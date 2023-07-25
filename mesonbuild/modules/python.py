@@ -26,7 +26,7 @@ from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..interpreter import primitives as P_OBJ
-from ..interpreter.type_checking import NoneType, PRESERVE_PATH_KW
+from ..interpreter.type_checking import NoneType, PRESERVE_PATH_KW, SHARED_MOD_KWS
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
@@ -42,7 +42,7 @@ if T.TYPE_CHECKING:
     from ..build import Build, SharedModule, Data
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
-    from ..interpreter.kwargs import ExtractRequired
+    from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw
     from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
 
     class PyInstallKw(TypedDict):
@@ -57,10 +57,16 @@ if T.TYPE_CHECKING:
         modules: T.List[str]
         pure: T.Optional[bool]
 
+    class ExtensionModuleKw(SharedModuleKw):
+
+        pass
+
 
 mod_kwargs = {'subdir'}
 mod_kwargs.update(known_shmod_kwargs)
 mod_kwargs -= {'name_prefix', 'name_suffix'}
+
+_MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_suffix'}]
 
 
 class PythonExternalProgram(BasicPythonExternalProgram):
@@ -138,7 +144,8 @@ class PythonInstallation(ExternalProgramHolder):
         })
 
     @permittedKwargs(mod_kwargs)
-    def extension_module_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'SharedModule':
+    @typed_kwargs('python.extension_module', *_MOD_KWARGS, allow_unknown=True)
+    def extension_module_method(self, args: T.List['TYPE_var'], kwargs: ExtensionModuleKw) -> 'SharedModule':
         if 'install_dir' in kwargs:
             if 'subdir' in kwargs:
                 raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
