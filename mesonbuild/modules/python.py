@@ -20,7 +20,7 @@ from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from .. import mlog
 from ..coredata import UserFeatureOption
-from ..build import known_shmod_kwargs
+from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
@@ -39,9 +39,10 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict, NotRequired
 
     from . import ModuleState
-    from ..build import Build, SharedModule, Data
+    from ..build import Build, Data
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
+    from ..interpreter.interpreter import BuildTargetSource
     from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw
     from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
 
@@ -144,8 +145,9 @@ class PythonInstallation(ExternalProgramHolder):
         })
 
     @permittedKwargs(mod_kwargs)
+    @typed_pos_args('python.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @typed_kwargs('python.extension_module', *_MOD_KWARGS, _DEFAULTABLE_SUBDIR_KW, allow_unknown=True)
-    def extension_module_method(self, args: T.List['TYPE_var'], kwargs: ExtensionModuleKw) -> 'SharedModule':
+    def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
         if 'install_dir' in kwargs:
             if kwargs['subdir'] is not None:
                 raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
@@ -172,7 +174,7 @@ class PythonInstallation(ExternalProgramHolder):
         # msys2's python3 has "-cpython-36m.dll", we have to be clever
         # FIXME: explain what the specific cleverness is here
         split, suffix = self.suffix.rsplit('.', 1)
-        args[0] += split
+        args = (args[0] + split, args[1])
 
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
@@ -181,7 +183,7 @@ class PythonInstallation(ExternalProgramHolder):
                 (self.is_pypy or mesonlib.version_compare(self.version, '>=3.9')):
             kwargs['gnu_symbol_visibility'] = 'inlineshidden'
 
-        return self.interpreter.func_shared_module(None, args, kwargs)
+        return self.interpreter.build_target(self.current_node, args, kwargs, SharedModule)
 
     def _dependency_method_impl(self, kwargs: TYPE_kwargs) -> Dependency:
         for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
