@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     from .sampleimpl import SampleImpl
 
 
-def sameple_generator(options: Arguments) -> SampleImpl:
+def sample_generator(options: Arguments) -> SampleImpl:
     return {
         'c': CProject,
         'cpp': CppProject,
