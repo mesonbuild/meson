@@ -14,12 +14,20 @@
 from __future__ import annotations
 
 import sysconfig
-from .. import mesonlib
+import typing as T
 
+from .. import mesonlib
 from . import ExtensionModule, ModuleInfo
-from ..interpreterbase import typed_pos_args, noPosargs, noKwargs, permittedKwargs
+from ..interpreter.type_checking import SHARED_MOD_KWS
+from ..interpreterbase import typed_kwargs, typed_pos_args, noPosargs, noKwargs, permittedKwargs
 from ..build import known_shmod_kwargs
 from ..programs import ExternalProgram
+
+if T.TYPE_CHECKING:
+    from ..interpreter.kwargs import SharedModule as SharedModuleKW
+
+
+_MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_suffix'}]
 
 
 class Python3Module(ExtensionModule):
@@ -36,7 +44,8 @@ class Python3Module(ExtensionModule):
         })
 
     @permittedKwargs(known_shmod_kwargs)
-    def extension_module(self, state, args, kwargs):
+    @typed_kwargs('python3.extension_module', *_MOD_KWARGS, allow_unknown=True)
+    def extension_module(self, state, args, kwargs: SharedModuleKW):
         if 'name_prefix' in kwargs:
             raise mesonlib.MesonException('Name_prefix is set automatically, specifying it is forbidden.')
         if 'name_suffix' in kwargs:
