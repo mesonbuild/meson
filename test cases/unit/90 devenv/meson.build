@@ -20,3 +20,6 @@ env = environment({'TEST_C': ['/prefix']}, method: 'prepend')
 meson.add_devenv(env)
 env = environment({'TEST_C': ['/suffix']}, method: 'append')
 meson.add_devenv(env)
+
+# Reproducer for https://github.com/mesonbuild/meson/issues/12032
+pkgconf = import('pkgconfig')

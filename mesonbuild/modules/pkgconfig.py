@@ -391,7 +391,8 @@ class PkgConfigModule(NewExtensionModule):
         })
 
     def postconf_hook(self, b: build.Build) -> None:
-        b.devenv.append(self.devenv)
+        if self.devenv is not None:
+            b.devenv.append(self.devenv)
 
     def _get_lname(self, l: T.Union[build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex],
                    msg: str, pcfile: str) -> str:
