@@ -36,7 +36,7 @@ from ..mesonlib import MachineChoice
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, NotRequired
 
     from . import ModuleState
     from ..build import Build, SharedModule, Data
@@ -59,7 +59,7 @@ if T.TYPE_CHECKING:
 
     class ExtensionModuleKw(SharedModuleKw):
 
-        pass
+        subdir: NotRequired[T.Optional[str]]
 
 
 mod_kwargs = {'subdir'}
@@ -111,7 +111,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
 
 _PURE_KW = KwargInfo('pure', (bool, NoneType))
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
-
+_DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
 class PythonInstallation(ExternalProgramHolder):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
@@ -144,15 +144,16 @@ class PythonInstallation(ExternalProgramHolder):
         })
 
     @permittedKwargs(mod_kwargs)
-    @typed_kwargs('python.extension_module', *_MOD_KWARGS, allow_unknown=True)
+    @typed_kwargs('python.extension_module', *_MOD_KWARGS, _DEFAULTABLE_SUBDIR_KW, allow_unknown=True)
     def extension_module_method(self, args: T.List['TYPE_var'], kwargs: ExtensionModuleKw) -> 'SharedModule':
         if 'install_dir' in kwargs:
-            if 'subdir' in kwargs:
+            if kwargs['subdir'] is not None:
                 raise InvalidArguments('"subdir" and "install_dir" are mutually exclusive')
         else:
-            subdir = kwargs.pop('subdir', '')
-            if not isinstance(subdir, str):
-                raise InvalidArguments('"subdir" argument must be a string.')
+            # We want to remove 'subdir', but it may be None and we want to replace it with ''
+            # It must be done this way since we don't allow both `install_dir`
+            # and `subdir` to be set at the same time
+            subdir = kwargs.pop('subdir') or ''
 
             kwargs['install_dir'] = self._get_install_dir_impl(False, subdir)
 
