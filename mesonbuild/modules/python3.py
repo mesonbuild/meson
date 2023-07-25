@@ -47,14 +47,10 @@ class Python3Module(ExtensionModule):
             'sysconfig_path': self.sysconfig_path,
         })
 
-    @permittedKwargs(known_shmod_kwargs)
+    @permittedKwargs(known_shmod_kwargs - {'name_prefix', 'name_suffix'})
     @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @typed_kwargs('python3.extension_module', *_MOD_KWARGS, allow_unknown=True)
     def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW):
-        if 'name_prefix' in kwargs:
-            raise mesonlib.MesonException('Name_prefix is set automatically, specifying it is forbidden.')
-        if 'name_suffix' in kwargs:
-            raise mesonlib.MesonException('Name_suffix is set automatically, specifying it is forbidden.')
         host_system = state.host_machine.system
         if host_system == 'darwin':
             # Default suffix is 'dylib' but Python does not use it for extensions.
