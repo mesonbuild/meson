@@ -3530,7 +3530,7 @@ class AllPlatformTests(BasePlatformTests):
 
                 string : bar
                 integer: 1
-                boolean: True
+                boolean: true
 
             subsub undefined
 
@@ -3539,12 +3539,12 @@ class AllPlatformTests(BasePlatformTests):
             My Project 1.0
 
               Configuration
-                Some boolean   : False
-                Another boolean: True
+                Some boolean   : false
+                Another boolean: true
                 Some string    : Hello World
                 A list         : string
                                  1
-                                 True
+                                 true
                 empty list     :
                 enabled_opt    : enabled
                 A number       : 1
