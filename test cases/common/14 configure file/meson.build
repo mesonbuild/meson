@@ -226,6 +226,10 @@ inf2 = files('invalid-utf8.bin.in')[0]
 outf = fs.copyfile(inf2, 'invalid-utf8-2.bin')
 test('fs.copyfile file', check_file, args: [inf2, outf])
 
+# Test that copyfile can accept a build target
+outf = fs.copyfile(e, 'inctestcopy')
+test('fs.copyfile exe', check_file, args: [e.full_path(), outf])
+
 # Test non isolatin1 encoded input file which fails to decode with utf-8
 conf8 = configuration_data()
 conf8.set('var', 'foo')

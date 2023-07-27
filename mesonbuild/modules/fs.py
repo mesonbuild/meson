@@ -19,7 +19,7 @@ import os
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
-from .. import mlog
+from .. import build, mlog
 from ..build import CustomTarget, InvalidArguments
 from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
 from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
@@ -33,6 +33,7 @@ from ..mesonlib import (
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
+    from ..interpreter.interpreter import SourceInputs
     from ..mesonlib import FileOrString, FileMode
 
     from typing_extensions import TypedDict
@@ -270,7 +271,9 @@ class FSModule(ExtensionModule):
         return data
 
     @FeatureNew('fs.copyfile', '0.64.0')
-    @typed_pos_args('fs.copyfile', (File, str), optargs=[str])
+    @typed_pos_args('fs.copyfile', (File, str, build.GeneratedList, build.BuildTarget,
+                                    build.BothLibraries, build.CustomTargetIndex,
+                                    build.CustomTarget), optargs=[str])
     @typed_kwargs(
         'fs.copyfile',
         INSTALL_KW,
@@ -278,19 +281,35 @@ class FSModule(ExtensionModule):
         INSTALL_TAG_KW,
         KwargInfo('install_dir', (str, NoneType)),
     )
-    def copyfile(self, state: ModuleState, args: T.Tuple[FileOrString, T.Optional[str]],
+    def copyfile(self, state: ModuleState, args: T.Tuple[SourceInputs, T.Optional[str]],
                  kwargs: CopyKw) -> ModuleReturnValue:
         """Copy a file into the build directory at build time."""
         if kwargs['install'] and not kwargs['install_dir']:
             raise InvalidArguments('"install_dir" must be specified when "install" is true')
 
+        if isinstance(args[0], (build.GeneratedList, build.BuildTarget,
+                                build.BothLibraries, build.CustomTargetIndex,
+                                build.CustomTarget)):
+            FeatureNew.single_use('Copying from generated files', '1.3.0', state.subproject)
+
         src = self.interpreter.source_strings_to_files([args[0]])[0]
 
+        if isinstance(src, (build.StructuredSources, build.ExtractedObjects)):
+            raise InvalidArguments(f'fs.copyfile does not accept {type(src)} as argument')
+        elif isinstance(src, build.BothLibraries):
+            src = src.get_default_object()
+
+        src_file_name = src.fname if isinstance(src, File) else src.get_outputs()[0]
         # The input is allowed to have path separators, but the output may not,
         # so use the basename for the default case
-        dest = args[1] if args[1] else os.path.basename(src.fname)
+        dest = args[1] if args[1] else os.path.basename(src_file_name)
         if has_path_sep(dest):
             raise InvalidArguments('Destination path may not have path separators')
+
+        if (not isinstance(src, File)
+                and src.get_subdir() == state.subdir
+                and os.path.basename(src_file_name) == dest):
+            raise InvalidArguments('Destination and source cannot be the same file')
 
         ct = CustomTarget(
             dest,
