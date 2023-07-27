@@ -1273,10 +1273,10 @@ class BuildTarget(Target):
             if t not in result:
                 result.add(t)
                 if isinstance(t, StaticLibrary):
-                    t.get_dependencies_recurse(result)
+                    t._get_dependencies_recurse(result)
         return result
 
-    def get_dependencies_recurse(self, result: OrderedSet[Target], include_internals: bool = True) -> None:
+    def _get_dependencies_recurse(self, result: OrderedSet[Target], include_internals: bool = True) -> None:
         # self is always a static library because we don't need to pull dependencies
         # of shared libraries. If self is installed (not internal) it already
         # include objects extracted from all its internal dependencies so we can
@@ -1288,9 +1288,9 @@ class BuildTarget(Target):
             if include_internals or not t.is_internal():
                 result.add(t)
             if isinstance(t, StaticLibrary):
-                t.get_dependencies_recurse(result, include_internals)
+                t._get_dependencies_recurse(result, include_internals)
         for t in self.link_whole_targets:
-            t.get_dependencies_recurse(result, include_internals)
+            t._get_dependencies_recurse(result, include_internals)
 
     def get_source_subdir(self):
         return self.subdir
@@ -1451,24 +1451,24 @@ You probably should put it in link_with instead.''')
                 # If we install this static library we also need to include objects
                 # from all uninstalled static libraries it depends on.
                 if self.install:
-                    for lib in t.get_internal_static_libraries():
+                    for lib in t._get_internal_static_libraries():
                         self.objects += [lib.extract_all_objects()]
             self.link_whole_targets.append(t)
 
     @lru_cache(maxsize=None)
-    def get_internal_static_libraries(self) -> OrderedSet[Target]:
+    def _get_internal_static_libraries(self) -> OrderedSet[Target]:
         result: OrderedSet[Target] = OrderedSet()
-        self.get_internal_static_libraries_recurse(result)
+        self._get_internal_static_libraries_recurse(result)
         return result
 
-    def get_internal_static_libraries_recurse(self, result: OrderedSet[Target]) -> None:
+    def _get_internal_static_libraries_recurse(self, result: OrderedSet[Target]) -> None:
         for t in self.link_targets:
             if t.is_internal() and t not in result:
                 result.add(t)
-                t.get_internal_static_libraries_recurse(result)
+                t._get_internal_static_libraries_recurse(result)
         for t in self.link_whole_targets:
             if t.is_internal():
-                t.get_internal_static_libraries_recurse(result)
+                t._get_internal_static_libraries_recurse(result)
 
     def add_pch(self, language: str, pchlist: T.List[str]) -> None:
         if not pchlist:
