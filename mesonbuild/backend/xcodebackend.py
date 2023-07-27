@@ -1467,6 +1467,8 @@ class XCodeBackend(backends.Backend):
             dep_libs = []
             links_dylib = False
             headerdirs = []
+            bridging_header = ""
+            is_swift = self.is_swift_target(target)
             for d in target.include_dirs:
                 for sd in d.incdirs:
                     cd = os.path.join(d.curdir, sd)
@@ -1474,6 +1476,13 @@ class XCodeBackend(backends.Backend):
                     headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
                 for extra in d.extra_build_dirs:
                     headerdirs.append(os.path.join(self.environment.get_build_dir(), extra))
+            # Swift can import declarations from C-based code using bridging headers.
+            # There can only be one header, and it must be included as a source file.
+            for i in target.get_sources():
+                if self.environment.is_header(i) and is_swift:
+                    relh = i.rel_to_builddir(self.build_to_src)
+                    bridging_header = os.path.normpath(os.path.join(self.environment.get_build_dir(), relh))
+                    break
             (dep_libs, links_dylib) = self.determine_internal_dep_link_args(target, buildtype)
             if links_dylib:
                 dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
@@ -1496,7 +1505,7 @@ class XCodeBackend(backends.Backend):
             ldargs += target.link_args
             # Swift is special. Again. You can't mix Swift with other languages
             # in the same target. Thus for Swift we only use
-            if self.is_swift_target(target):
+            if is_swift:
                 linker, stdlib_args = target.compilers['swift'], []
             else:
                 linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
@@ -1651,6 +1660,8 @@ class XCodeBackend(backends.Backend):
             else:
                 settings_dict.add_item('PRODUCT_NAME', product_name)
             settings_dict.add_item('SECTORDER_FLAGS', '""')
+            if is_swift and bridging_header:
+                settings_dict.add_item('SWIFT_OBJC_BRIDGING_HEADER', f'"{bridging_header}"')
             settings_dict.add_item('SYMROOT', f'"{symroot}"')
             sysheader_arr = PbxArray()
             # XCode will change every -I flag that points inside these directories
