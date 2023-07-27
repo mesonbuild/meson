@@ -1292,6 +1292,9 @@ class BuildTarget(Target):
         for t in self.link_whole_targets:
             t._get_dependencies_recurse(result, include_internals)
 
+    def links_dynamically(self) -> bool:
+        return False
+
     def get_source_subdir(self):
         return self.subdir
 
@@ -2186,6 +2189,9 @@ class SharedLibrary(BuildTarget):
             result.update({old: new})
         mappings.update(result)
         return mappings
+
+    def links_dynamically(self) -> bool:
+        return True
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
