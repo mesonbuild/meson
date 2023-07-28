@@ -1098,6 +1098,34 @@ class Backend:
                 paths.update(cc.get_library_dirs(self.environment))
         return list(paths)
 
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def search_dll_path(link_arg: str) -> T.Optional[str]:
+        if link_arg.startswith(('-l', '-L')):
+            link_arg = link_arg[2:]
+
+        p = Path(link_arg)
+        if not p.is_absolute():
+            return None
+
+        try:
+            p = p.resolve(strict=True)
+        except FileNotFoundError:
+            return None
+
+        for f in p.parent.glob('*.dll'):
+            # path contains dlls
+            return str(p.parent)
+
+        if p.is_file():
+            p = p.parent
+        # Heuristic: replace *last* occurence of '/lib'
+        binpath = Path('/bin'.join(p.as_posix().rsplit('/lib', maxsplit=1)))
+        for _ in binpath.glob('*.dll'):
+            return str(binpath)
+
+        return None
+
     @classmethod
     @lru_cache(maxsize=None)
     def extract_dll_paths(cls, target: build.BuildTarget) -> T.Set[str]:
@@ -1116,32 +1144,9 @@ class Backend:
                 bindir = dep.get_pkgconfig_variable('bindir', [], default='')
                 if bindir:
                     results.add(bindir)
-
-            for link_arg in dep.link_args:
-                if link_arg.startswith(('-l', '-L')):
-                    link_arg = link_arg[2:]
-                p = Path(link_arg)
-                if not p.is_absolute():
                     continue
 
-                try:
-                    p = p.resolve(strict=True)
-                except FileNotFoundError:
-                    continue
-
-                for _ in p.parent.glob('*.dll'):
-                    # path contains dlls
-                    results.add(str(p.parent))
-                    break
-
-                else:
-                    if p.is_file():
-                        p = p.parent
-                    # Heuristic: replace *last* occurence of '/lib'
-                    binpath = Path('/bin'.join(p.as_posix().rsplit('/lib', maxsplit=1)))
-                    for _ in binpath.glob('*.dll'):
-                        results.add(str(binpath))
-                        break
+            results.update(filter(None, map(cls.search_dll_path, dep.link_args)))  # pylint: disable=bad-builtin
 
         for i in chain(target.link_targets, target.link_whole_targets):
             if isinstance(i, build.BuildTarget):
