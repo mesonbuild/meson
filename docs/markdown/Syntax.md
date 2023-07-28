@@ -252,13 +252,13 @@ s = s.replace('as', 'are')
 #### .strip()
 
 ```meson
-# Similar to the Python str.strip(). Removes leading/ending spaces and newlines
+# Similar to the Python str.strip(). Removes leading/ending spaces and newlines.
 define = ' -Dsomedefine '
 stripped_define = define.strip()
 # 'stripped_define' now has the value '-Dsomedefine'
 
 # You may also pass a string to strip, which specifies the set of characters to
-# be removed.
+# be removed instead of the default whitespace.
 string = 'xyxHelloxyx'.strip('xy')
 # 'string' now has the value 'Hello'
 ```

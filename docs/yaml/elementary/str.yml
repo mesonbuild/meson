@@ -61,7 +61,10 @@ methods:
 
 # str.strip()
 - name: strip
-  description: Removes leading/ending spaces and newlines from the string.
+  description: |
+    Removes leading/ending characters from the string.
+
+    By default the characters to remove are spaces and newlines.
   returns: str
   example: |
     ```meson
@@ -75,7 +78,8 @@ methods:
     strip_chars:
       type: str
       since: 0.43.0
-      description: All characters in this string will be stripped.
+      description:
+      description: Instead of whitespace, strip all the characters in this string.
 
 # str.to_lower()
 - name: to_lower
