@@ -84,8 +84,8 @@ jobs:
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-setuptools
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-pip
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-fastjsonschema
-            mingw-w64-${{ matrix.MSYS2_ARCH }}-objfw
-            mingw-w64-${{ matrix.MSYS2_ARCH }}-llvm
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.MSYSTEM != 'MINGW32' && 'objfw' || 'ninja' }}
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.MSYSTEM != 'MINGW32' && 'llvm' || 'ninja' }}
             mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.TOOLCHAIN }}
 
       - name: Install dependencies
