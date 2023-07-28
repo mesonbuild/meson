@@ -78,7 +78,6 @@ methods:
     strip_chars:
       type: str
       since: 0.43.0
-      description:
       description: Instead of whitespace, strip all the characters in this string.
 
 # str.to_lower()
