@@ -352,6 +352,13 @@ class XCodeBackend(backends.Backend):
                 if isinstance(o, str):
                     o = os.path.join(t.subdir, o)
                     self.filemap[o] = self.gen_id()
+            for e in t.extra_files:
+                if isinstance(e, mesonlib.File):
+                    e = os.path.join(e.subdir, e.fname)
+                    self.filemap[e] = self.gen_id()
+                else:
+                    e = os.path.join(t.subdir, e)
+                    self.filemap[e] = self.gen_id()
             self.target_filemap[name] = self.gen_id()
 
     def generate_buildstylemap(self) -> None:
@@ -523,6 +530,16 @@ class XCodeBackend(backends.Backend):
                     self.fileref_ids[k] = self.gen_id()
                 else:
                     raise RuntimeError('Unknown input type ' + str(o))
+            for e in t.extra_files:
+                if isinstance(e, mesonlib.File):
+                    e = os.path.join(e.subdir, e.fname)
+                if isinstance(e, str):
+                    e = os.path.join(t.subdir, e)
+                    k = (tname, e)
+                    assert k not in self.buildfile_ids
+                    self.buildfile_ids[k] = self.gen_id()
+                    assert k not in self.fileref_ids
+                    self.fileref_ids[k] = self.gen_id()
 
     def generate_build_file_maps(self) -> None:
         for buildfile in self.interpreter.get_build_def_files():
@@ -791,6 +808,24 @@ class XCodeBackend(backends.Backend):
                 o_dict.add_item('name', f'"{name}"')
                 o_dict.add_item('path', f'"{rel_name}"')
                 o_dict.add_item('sourceTree', 'SOURCE_ROOT')
+
+            for e in t.extra_files:
+                if isinstance(e, mesonlib.File):
+                    e = os.path.join(e.subdir, e.fname)
+                else:
+                    e = os.path.join(t.subdir, e)
+                idval = self.fileref_ids[(tname, e)]
+                fullpath = os.path.join(self.environment.get_source_dir(), e)
+                e_dict = PbxDict()
+                xcodetype = self.get_xcodetype(e)
+                name = os.path.basename(e)
+                path = e
+                objects_dict.add_item(idval, e_dict, fullpath)
+                e_dict.add_item('isa', 'PBXFileReference')
+                e_dict.add_item('explicitFileType', '"' + xcodetype + '"')
+                e_dict.add_item('name', '"' + name + '"')
+                e_dict.add_item('path', '"' + path + '"')
+                e_dict.add_item('sourceTree', 'SOURCE_ROOT')
         for tname, idval in self.target_filemap.items():
             target_dict = PbxDict()
             objects_dict.add_item(idval, target_dict, tname)
@@ -989,6 +1024,14 @@ class XCodeBackend(backends.Backend):
             else:
                 o = os.path.join(t.subdir, o)
             target_children.add_item(self.fileref_ids[(tid, o)], o)
+        for e in t.extra_files:
+            if isinstance(e, mesonlib.File):
+                e = os.path.join(e.subdir, e.fname)
+            elif isinstance(e, str):
+                e = os.path.join(t.subdir, e)
+            else:
+                continue
+            target_children.add_item(self.fileref_ids[(tid, e)], e)
         source_files_dict.add_item('name', '"Source files"')
         source_files_dict.add_item('sourceTree', '"<group>"')
         return group_id
