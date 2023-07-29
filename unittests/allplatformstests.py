@@ -1369,8 +1369,8 @@ class AllPlatformTests(BasePlatformTests):
         targets = self.introspect('--targets')
         # This assumes all of the targets support lto
         for t in targets:
-            for s in t['target_sources']:
-                self.assertTrue(expected.issubset(set(s['parameters'])), f'Incorrect values for {t["name"]}')
+            for src in t['target_sources']:
+                self.assertTrue(expected.issubset(set(src['parameters'])), f'Incorrect values for {t["name"]}')
 
     def test_dist_git(self):
         if not shutil.which('git'):

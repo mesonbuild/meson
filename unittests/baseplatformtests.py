@@ -171,22 +171,22 @@ class BasePlatformTests(TestCase):
             env = os.environ.copy()
             env.update(override_envvars)
 
-        p = subprocess.run(command, stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
-                           env=env,
-                           encoding='utf-8',
-                           text=True, cwd=workdir, timeout=60 * 5)
+        proc = subprocess.run(command, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
+                              env=env,
+                              encoding='utf-8',
+                              text=True, cwd=workdir, timeout=60 * 5)
         print('$', join_args(command))
         print('stdout:')
-        print(p.stdout)
+        print(proc.stdout)
         if not stderr:
             print('stderr:')
-            print(p.stderr)
-        if p.returncode != 0:
-            if 'MESON_SKIP_TEST' in p.stdout:
+            print(proc.stderr)
+        if proc.returncode != 0:
+            if 'MESON_SKIP_TEST' in proc.stdout:
                 raise SkipTest('Project requested skipping.')
-            raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
-        return p.stdout
+            raise subprocess.CalledProcessError(proc.returncode, command, output=proc.stdout)
+        return proc.stdout
 
     def init(self, srcdir, *,
              extra_args=None,
