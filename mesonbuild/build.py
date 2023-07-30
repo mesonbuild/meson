@@ -2321,7 +2321,7 @@ class SharedLibrary(BuildTarget):
                 self.darwin_versions = (self.soversion, self.soversion)
 
         # Visual Studio module-definitions file
-        if 'vs_module_defs' in kwargs:
+        if kwargs.get('vs_module_defs') is not None:
             path = kwargs['vs_module_defs']
             if isinstance(path, str):
                 if os.path.isabs(path):
