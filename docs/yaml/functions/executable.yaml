@@ -44,3 +44,13 @@ kwargs:
     type: bool
     since: 0.49.0
     description: Build a position-independent executable.
+
+  vs_module_defs:
+    type: str | file | custom_tgt | custom_idx
+    since: 1.3.0
+    description: |
+      Specify a Microsoft module definition file for controlling symbol exports,
+      etc., on platforms where that is possible (e.g. Windows).
+
+      This can be used to expose which functions a shared_module loaded by an
+      executable will be allowed to use.

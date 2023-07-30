@@ -114,7 +114,7 @@ known_build_target_kwargs = (
     rust_kwargs |
     cs_kwargs)
 
-known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie'}
+known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
@@ -1702,6 +1702,28 @@ class BuildTarget(Target):
                                      'use shared_library() with `override_options: [\'b_lundef=false\']` instead.')
                     link_target.force_soname = True
 
+    def process_vs_module_defs_kw(self, kwargs: T.Dict[str, T.Any]) -> None:
+        if kwargs.get('vs_module_defs') is None:
+            return
+
+        path: T.Union[str, File, CustomTarget, CustomTargetIndex] = kwargs['vs_module_defs']
+        if isinstance(path, str):
+            if os.path.isabs(path):
+                self.vs_module_defs = File.from_absolute_file(path)
+            else:
+                self.vs_module_defs = File.from_source_file(self.environment.source_dir, self.subdir, path)
+        elif isinstance(path, File):
+            # When passing a generated file.
+            self.vs_module_defs = path
+        elif isinstance(path, (CustomTarget, CustomTargetIndex)):
+            # When passing output of a Custom Target
+            self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
+        else:
+            raise InvalidArguments(
+                'vs_module_defs must be either a string, '
+                'a file object, a Custom Target, or a Custom Target Index')
+        self.process_link_depends(path)
+
 class FileInTargetPrivateDir:
     """Represents a file with the path '/path/to/build/target_private_dir/fname'.
        target_private_dir is the return value of get_target_private_dir which is e.g. 'subdir/target.p'.
@@ -1924,6 +1946,9 @@ class Executable(BuildTarget):
         self.is_linkwithable = self.export_dynamic
         # Remember that this exe was returned by `find_program()` through an override
         self.was_returned_by_find_program = False
+
+        self.vs_module_defs: T.Optional[File] = None
+        self.process_vs_module_defs_kw(kwargs)
 
     def post_init(self) -> None:
         super().post_init()
@@ -2323,24 +2348,7 @@ class SharedLibrary(BuildTarget):
                 self.darwin_versions = (self.soversion, self.soversion)
 
         # Visual Studio module-definitions file
-        if kwargs.get('vs_module_defs') is not None:
-            path = kwargs['vs_module_defs']
-            if isinstance(path, str):
-                if os.path.isabs(path):
-                    self.vs_module_defs = File.from_absolute_file(path)
-                else:
-                    self.vs_module_defs = File.from_source_file(self.environment.source_dir, self.subdir, path)
-            elif isinstance(path, File):
-                # When passing a generated file.
-                self.vs_module_defs = path
-            elif isinstance(path, (CustomTarget, CustomTargetIndex)):
-                # When passing output of a Custom Target
-                self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
-            else:
-                raise InvalidArguments(
-                    'Shared library vs_module_defs must be either a string, '
-                    'a file object, a Custom Target, or a Custom Target Index')
-            self.process_link_depends(path)
+        self.process_vs_module_defs_kw(kwargs)
 
         rust_abi = kwargs.get('rust_abi')
         rust_crate_type = kwargs.get('rust_crate_type')

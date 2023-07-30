@@ -601,6 +601,7 @@ _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
 EXECUTABLE_KWS = [
     *_BUILD_TARGET_KWS,
     *_EXCLUSIVE_EXECUTABLE_KWS,
+    _VS_MODULE_DEFS_KW.evolve(since='1.3.0', since_values=None),
 ]
 
 # Arguments exclusive to library types
