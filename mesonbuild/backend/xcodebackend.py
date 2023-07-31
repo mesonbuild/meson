@@ -1274,6 +1274,7 @@ class XCodeBackend(backends.Backend):
         exe = generator.get_exe()
         exe_arr = self.build_target_to_cmd_array(exe)
         workdir = self.environment.get_build_dir()
+        target_private_dir = self.relpath(self.get_target_private_dir(t), self.get_target_dir(t))
         gen_dict = PbxDict()
         objects_dict.add_item(self.shell_targets[(tname, generator_id)], gen_dict, f'"Generator {generator_id}/{tname}"')
         infilelist = genlist.get_inputs()
@@ -1295,7 +1296,7 @@ class XCodeBackend(backends.Backend):
             # unclear whether it is necessary, what actually happens when it is defined
             # and currently the build works without it.
             #infile_abs = i.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
-            infilename = i.rel_to_builddir(self.build_to_src)
+            infilename = i.rel_to_builddir(self.build_to_src, target_private_dir)
             base_args = generator.get_arglist(infilename)
             for o_base in genlist.get_outputs_for(i):
                 o = os.path.join(self.get_target_private_dir(t), o_base)
