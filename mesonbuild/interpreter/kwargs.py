@@ -359,7 +359,7 @@ class _SharedLibMixin(TypedDict):
     darwin_versions: T.Optional[T.Tuple[str, str]]
     soversion: T.Optional[str]
     version: T.Optional[str]
-    vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget]]
+    vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
 
 
 class SharedLibrary(_BuildTarget, _SharedLibMixin, _LibraryMixin):
@@ -368,7 +368,7 @@ class SharedLibrary(_BuildTarget, _SharedLibMixin, _LibraryMixin):
 
 class SharedModule(_BuildTarget, _LibraryMixin):
 
-    vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget]]
+    vs_module_defs: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
 
 
 class Library(_BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin):
