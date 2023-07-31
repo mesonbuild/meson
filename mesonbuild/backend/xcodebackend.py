@@ -44,6 +44,8 @@ XCODETYPEMAP = {'c': 'sourcecode.c.c',
                 'o': 'compiled.mach-o.objfile',
                 's': 'sourcecode.asm',
                 'asm': 'sourcecode.asm',
+                'metal': 'sourcecode.metal',
+                'glsl': 'sourcecode.glsl',
                 }
 LANGNAMEMAP = {'c': 'C',
                'cpp': 'CPLUSPLUS',
