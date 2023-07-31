@@ -807,7 +807,7 @@ class CoreData:
                 continue
 
             oldval = self.options[key]
-            if type(oldval) != type(value):
+            if type(oldval) is not type(value):
                 self.options[key] = value
             elif oldval.choices != value.choices:
                 # If the choices have changed, use the new value, but attempt
