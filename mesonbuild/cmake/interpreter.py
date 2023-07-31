@@ -470,34 +470,16 @@ class ConverterTarget:
                 self.depends.append(dep_tgt)
 
     def process_object_libs(self, obj_target_list: T.List['ConverterTarget'], linker_workaround: bool) -> None:
-        # Try to detect the object library(s) from the generated input sources
-        temp = [x for x in self.generated if any(x.name.endswith('.' + y) for y in obj_suffixes)]
-        stem = [x.stem for x in temp]
-        exts = self._all_source_suffixes()
-        # Temp now stores the source filenames of the object files
-        for i in obj_target_list:
-            source_files = [x.name for x in i.sources + i.generated]
-            for j in stem:
-                # On some platforms (specifically looking at you Windows with vs20xy backend) CMake does
-                # not produce object files with the format `foo.cpp.obj`, instead it skipps the language
-                # suffix and just produces object files like `foo.obj`. Thus we have to do our best to
-                # undo this step and guess the correct language suffix of the object file. This is done
-                # by trying all language suffixes meson knows and checking if one of them fits.
-                candidates = [j]
-                if not any(j.endswith('.' + x) for x in exts):
-                    mlog.warning('Object files do not contain source file extensions, thus falling back to guessing them.', once=True)
-                    candidates += [f'{j}.{x}' for x in exts]
-                if any(x in source_files for x in candidates):
-                    if linker_workaround:
-                        self._append_objlib_sources(i)
-                    else:
-                        self.includes += i.includes
-                        self.includes = list(OrderedSet(self.includes))
-                        self.object_libs += [i]
-                    break
-
-        # Filter out object files from the sources
-        self.generated = [x for x in self.generated if not any(x.name.endswith('.' + y) for y in obj_suffixes)]
+        for obj_target in obj_target_list:
+            artifacts_abs_path = [obj_target.build_dir / x for x in obj_target.artifacts]
+            if all(x in self.generated for x in artifacts_abs_path):
+                if linker_workaround:
+                    self._append_objlib_sources(obj_target)
+                else:
+                    self.includes += obj_target.includes
+                    self.includes = list(OrderedSet(self.includes))
+                    self.object_libs += [obj_target]
+                self.generated = [x for x in self.generated if x not in artifacts_abs_path]
 
     def _append_objlib_sources(self, tgt: 'ConverterTarget') -> None:
         self.includes += tgt.includes
@@ -890,17 +872,33 @@ class CMakeInterpreter:
         self.trace.parse(self.cmake_stderr)
 
         # Find all targets
-        added_target_names: T.List[str] = []
-        for i_0 in self.codemodel_configs:
-            for j_0 in i_0.projects:
-                if not self.project_name:
-                    self.project_name = j_0.name
-                for k_0 in j_0.targets:
-                    # Avoid duplicate targets from different configurations and known
-                    # dummy CMake internal target types
-                    if k_0.type not in skip_targets and k_0.name not in added_target_names:
-                        added_target_names += [k_0.name]
-                        self.targets += [ConverterTarget(k_0, self.env, self.for_machine)]
+
+        # For the Visual Studio backend, self.codemodel_configs, has 4 elements, corresponding to
+        # the configurations 'Debug', 'Release', 'MinSizeRel', 'RelWithDebInfo'. Each one
+        # contains the same targets, but with slightly different artifact paths, e.g.
+        # - 'libfoo.dir/Debug/clash.obj'
+        # - 'libfoo.dir/Release/clash.obj'
+        # - 'libfoo.dir/MinSizeRel/clash.obj'
+        # - 'libfoo.dir/RelWithDebInfo/clash.obj'
+        # Thus, we just look at one arbitrary configuration and turn the path into
+        # - 'libfoo.dir/$(Configuration)/clash.obj'
+        # Which is the path some other parts of meson expect.
+        if not self.backend_name.startswith('vs'):
+            assert len(self.codemodel_configs) == 1
+        arbitrary = -1
+        for j_0 in self.codemodel_configs[arbitrary].projects:
+            if not self.project_name:
+                self.project_name = j_0.name
+            for k_0 in j_0.targets:
+                if self.backend_name.startswith('vs'):
+                    for i, artifact in enumerate(k_0.artifacts):
+                        parts = list(artifact.parts)
+                        assert parts[-2] == self.codemodel_configs[arbitrary].name
+                        parts[-2] = "$(Configuration)"
+                        k_0.artifacts[i] = Path(*parts)
+                # Avoid duplicate targets from known dummy CMake internal target types
+                if k_0.type not in skip_targets:
+                    self.targets += [ConverterTarget(k_0, self.env, self.for_machine)]
 
         # Add interface targets from trace, if not already present.
         # This step is required because interface targets were removed from
