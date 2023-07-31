@@ -513,9 +513,10 @@ RUST_ABI_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
     since='1.3.0',
     validator=in_set_validator({'rust', 'c'}))
 
-_VS_MODULE_DEFS_KW: KwargInfo[T.Optional[T.Union[str, File, CustomTarget]]] = KwargInfo(
+_VS_MODULE_DEFS_KW: KwargInfo[T.Optional[T.Union[str, File, CustomTarget, CustomTargetIndex]]] = KwargInfo(
     'vs_module_defs',
-    (str, File, CustomTarget, NoneType),
+    (str, File, CustomTarget, CustomTargetIndex, NoneType),
+    since_values={CustomTargetIndex: '1.3.0'}
 )
 
 # Applies to all build_target like classes

@@ -2333,13 +2333,13 @@ class SharedLibrary(BuildTarget):
             elif isinstance(path, File):
                 # When passing a generated file.
                 self.vs_module_defs = path
-            elif isinstance(path, CustomTarget):
+            elif isinstance(path, (CustomTarget, CustomTargetIndex)):
                 # When passing output of a Custom Target
-                self.vs_module_defs = File.from_built_file(path.subdir, path.get_filename())
+                self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
             else:
                 raise InvalidArguments(
                     'Shared library vs_module_defs must be either a string, '
-                    'a file object or a Custom Target')
+                    'a file object, a Custom Target, or a Custom Target Index')
             self.process_link_depends(path)
 
         rust_abi = kwargs.get('rust_abi')

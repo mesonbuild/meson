@@ -45,6 +45,8 @@ kwargs:
       Specify a Microsoft module definition file for controlling symbol exports,
       etc., on platforms where that is possible (e.g. Windows).
 
+      *(Since 1.3.0)* [[@custom_idx]] are supported
+
   rust_abi:
     type: str
     since: 1.3.0
