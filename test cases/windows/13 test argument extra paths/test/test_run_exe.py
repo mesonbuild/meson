@@ -9,4 +9,4 @@ if __name__ == '__main__':
 
     res = subprocess.run(args.prog)
 
-    sys.exit(res.returncode - 42)
+    sys.exit(res.returncode)

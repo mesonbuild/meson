@@ -10,5 +10,3 @@
     #define DLL_PUBLIC
   #endif
 #endif
-
-DLL_PUBLIC int foo_process(void);

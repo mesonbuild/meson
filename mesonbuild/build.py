@@ -1045,39 +1045,6 @@ class BuildTarget(Target):
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
                                 recursive, pch=True)
 
-    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
-        return self.get_transitive_link_deps()
-
-    @lru_cache(maxsize=None)
-    def get_transitive_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
-        result: T.List[Target] = []
-        for i in self.link_targets:
-            result += i.get_all_link_deps()
-        return result
-
-    def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
-        return self.get_transitive_link_deps_mapping(prefix)
-
-    @lru_cache(maxsize=None)
-    def get_transitive_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
-        result: T.Dict[str, str] = {}
-        for i in self.link_targets:
-            mapping = i.get_link_deps_mapping(prefix)
-            #we are merging two dictionaries, while keeping the earlier one dominant
-            result_tmp = mapping.copy()
-            result_tmp.update(result)
-            result = result_tmp
-        return result
-
-    @lru_cache(maxsize=None)
-    def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
-        result: OrderedSet[str] = OrderedSet()
-        for i in self.link_targets:
-            if not isinstance(i, StaticLibrary):
-                result.add(i.get_subdir())
-            result.update(i.get_link_dep_subdirs())
-        return result
-
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_libdir(), '{libdir}'
 
@@ -1263,9 +1230,12 @@ class BuildTarget(Target):
 
     @lru_cache(maxsize=None)
     def get_dependencies(self) -> OrderedSet[Target]:
-        # Get all targets needed for linking. This includes all link_with and
-        # link_whole targets, and also all dependencies of static libraries
-        # recursively. The algorithm here is closely related to what we do in
+        '''Get all targets needed for linking.
+
+        This includes all link_with and link_whole targets, and also all
+        dependencies of static libraries recursively.
+        '''
+        # The algorithm here is closely related to what we do in
         # get_internal_static_libraries(): Installed static libraries include
         # objects from all their dependencies already.
         result: OrderedSet[Target] = OrderedSet()
@@ -1291,6 +1261,48 @@ class BuildTarget(Target):
                 t._get_dependencies_recurse(result, include_internals)
         for t in self.link_whole_targets:
             t._get_dependencies_recurse(result, include_internals)
+
+    @lru_cache(maxsize=None)
+    def get_runtime_dependencies(self) -> OrderedSet[BuildTargetTypes]:
+        ''' Get all shared libraries needed by this target at runtime
+
+        Unlike get_dependencies() which includes libraries needed to link at
+        build time, this does not include static libraries but includes transitive
+        dependencies of both static and shared libraries.
+
+        Note that this can include shared libraries built by a CustomTarget.
+
+        This is used to determine rpath, LD_LIBRARY_PATH (or PATH on Windows)
+        needed to run tests, etc.
+        '''
+        result: OrderedSet[Target] = OrderedSet()
+        for t in itertools.chain(self.link_targets, self.link_whole_targets):
+            if t.links_dynamically():
+                result.add(t)
+            if isinstance(t, BuildTarget):
+                result.update(t.get_runtime_dependencies())
+        return result
+
+    @lru_cache(maxsize=None)
+    def get_macos_dylib_name_mapping(self, prefix: str) -> T.Mapping[str, str]:
+        mappings: T.Mapping[str, str] = {}
+        for t in self.get_runtime_dependencies():
+            if not isinstance(t, SharedLibrary):
+                continue
+            old = get_target_macos_dylib_install_name(t)
+            if old not in mappings:
+                fname = t.get_filename()
+                outdirs, _, _ = t.get_install_dir()
+                new = os.path.join(prefix, outdirs[0], fname)
+                mappings[old] = new
+        return mappings
+
+    @lru_cache(maxsize=None)
+    def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
+        result: OrderedSet[str] = OrderedSet()
+        for t in self.get_runtime_dependencies():
+            result.add(t.get_subdir())
+        return result
 
     def links_dynamically(self) -> bool:
         return False
@@ -2097,9 +2109,6 @@ class StaticLibrary(BuildTarget):
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs = [self.filename]
 
-    def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
-        return {}
-
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_static_lib_dir(), '{libdir_static}'
 
@@ -2177,18 +2186,6 @@ class SharedLibrary(BuildTarget):
             self.suffix = None
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames()
-
-    def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
-        result: T.Dict[str, str] = {}
-        mappings = self.get_transitive_link_deps_mapping(prefix)
-        old = get_target_macos_dylib_install_name(self)
-        if old not in mappings:
-            fname = self.get_filename()
-            outdirs, _, _ = self.get_install_dir()
-            new = os.path.join(prefix, outdirs[0], fname)
-            result.update({old: new})
-        mappings.update(result)
-        return mappings
 
     def links_dynamically(self) -> bool:
         return True
@@ -2427,9 +2424,6 @@ class SharedLibrary(BuildTarget):
         if self.import_filename:
             return [self.vs_import_filename, self.gcc_import_filename]
         return []
-
-    def get_all_link_deps(self):
-        return [self] + self.get_transitive_link_deps()
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
         """
@@ -2714,14 +2708,8 @@ class CustomTarget(Target, CommandBase):
         suf = os.path.splitext(self.outputs[0])[-1]
         return suf not in {'.a', '.lib'}
 
-    def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
-        return {}
-
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
-
-    def get_all_link_deps(self):
-        return []
 
     def is_internal(self) -> bool:
         '''
@@ -2961,12 +2949,6 @@ class CustomTargetIndex(HoldableObject):
 
     def get_id(self) -> str:
         return self.target.get_id()
-
-    def get_all_link_deps(self):
-        return self.target.get_all_link_deps()
-
-    def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
-        return self.target.get_link_deps_mapping(prefix)
 
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return self.target.get_link_dep_subdirs()

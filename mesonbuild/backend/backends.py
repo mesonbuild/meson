@@ -509,7 +509,7 @@ class Backend:
     def get_executable_serialisation(
             self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
             workdir: T.Optional[str] = None,
-            extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
+            extra_bdeps: T.Optional[T.List[build.BuildTargetTypes]] = None,
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
@@ -555,7 +555,7 @@ class Backend:
 
         machine = self.environment.machines[exe_for_machine]
         if machine.is_windows() or machine.is_cygwin():
-            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
+            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
         else:
             extra_paths = []
 
@@ -581,7 +581,7 @@ class Backend:
     def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram],
                              cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]],
                              workdir: T.Optional[str] = None,
-                             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
+                             extra_bdeps: T.Optional[T.List[build.BuildTargetTypes]] = None,
                              capture: T.Optional[str] = None,
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
@@ -1155,32 +1155,46 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTarget, build.CustomTarget, programs.ExternalProgram, mesonlib.File, str],
-            extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget]]) -> T.List[str]:
+            self, exe: T.Union[build.BuildTargetTypes, programs.ExternalProgram, File, str],
+            extra_bdeps: T.Optional[T.Iterable[build.BuildTargetTypes]] = None) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
-        We must determine all locations of DLLs that this exe
-        links to and return them so they can be used in unit
-        tests.
+        We must determine all locations of DLLs that this exe links to. Note that
+        we could be running for example a python script that loads a C module
+        that links to other DLLs. For that reason we don't only take the executable
+        itself, but also all built targets passed as argument (or `depends:` kwarg)
+        in the case of a CustomTarget command.
         """
+        # extra_bdeps often contains exe itself, so let's ensure it's always the
+        # case for simplicity.
+        targets = OrderedSet(extra_bdeps or [])
+        if isinstance(exe, build.BuildTarget):
+            targets.add(exe)
+
+        mingw_added = False
         result: T.Set[str] = set()
         prospectives: T.Set[build.BuildTargetTypes] = set()
-        if isinstance(target, build.BuildTarget):
-            prospectives.update(target.get_transitive_link_deps())
-            # External deps
-            result.update(self.extract_dll_paths(target))
+        for t in targets:
+            if isinstance(t, build.BuildTarget):
+                if isinstance(t, build.SharedLibrary):
+                    prospectives.add(t)
+                prospectives.update(t.get_runtime_dependencies())
+                result.update(self.extract_dll_paths(t))
+                # If any of our targets is cross built for Windows we need to include
+                # mingw toolchain paths.
+                if not mingw_added and not self.environment.machines.matches_build_machine(t.for_machine):
+                    result.update(self.get_mingw_extra_paths(t))
+                    mingw_added = True
+            elif t.is_linkable_target() and t.links_dynamically():
+                prospectives.add(t)
 
-        for bdep in extra_bdeps:
-            prospectives.add(bdep)
-            if isinstance(bdep, build.BuildTarget):
-                prospectives.update(bdep.get_transitive_link_deps())
-        # Internal deps
-        for ld in prospectives:
-            dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir(ld))
-            result.add(dirseg)
-        if (isinstance(target, build.BuildTarget) and
-                not self.environment.machines.matches_build_machine(target.for_machine)):
-            result.update(self.get_mingw_extra_paths(target))
+        for i in prospectives:
+            result.add(os.path.join(self.environment.get_build_dir(), self.get_target_dir(i)))
+
+        # Windows search for DLLs in executable's directory by default already.
+        if isinstance(exe, build.Executable):
+            result.discard(os.path.join(self.environment.get_build_dir(), self.get_target_dir(exe)))
+
         return list(result)
 
     def write_benchmark_file(self, datafile: T.BinaryIO) -> None:
@@ -1246,9 +1260,8 @@ class Backend:
                 ld_lib_path: T.Set[str] = set()
                 for d in depends:
                     if isinstance(d, build.BuildTarget):
-                        for l in d.get_all_link_deps():
-                            if isinstance(l, build.SharedLibrary):
-                                ld_lib_path.add(os.path.join(self.environment.get_build_dir(), l.get_subdir()))
+                        for l in d.get_runtime_dependencies():
+                            ld_lib_path.add(os.path.join(self.environment.get_build_dir(), l.get_subdir()))
                 if ld_lib_path:
                     t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
 
@@ -1712,7 +1725,7 @@ class Backend:
                 # Done separately because of strip/aliases/rpath
                 if first_outdir is not False:
                     tag = t.install_tag[0] or ('devel' if isinstance(t, build.StaticLibrary) else 'runtime')
-                    mappings = t.get_link_deps_mapping(d.prefix)
+                    mappings = t.get_macos_dylib_name_mapping(d.prefix)
                     i = TargetInstallData(self.get_target_filename(t), first_outdir,
                                           first_outdir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
@@ -1974,7 +1987,7 @@ class Backend:
                 if host_machine.is_windows() or host_machine.is_cygwin():
                     # On windows we cannot rely on rpath to run executables from build
                     # directory. We have to add in PATH the location of every DLL needed.
-                    library_paths.update(self.determine_windows_extra_paths(t, []))
+                    library_paths.update(self.determine_windows_extra_paths(t))
             elif isinstance(t, build.SharedLibrary):
                 # Add libraries that are going to be installed in libdir into
                 # LD_LIBRARY_PATH. This allows running system applications using
