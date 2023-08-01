@@ -749,7 +749,7 @@ class Vs2010Backend(backends.Backend):
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-        extra_bdeps = target.get_transitive_build_target_deps()
+        extra_bdeps = target.get_build_target_deps()
         wrapper_cmd, _ = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
                                                    # All targets run from the target dir
                                                    workdir=tdir_abs,

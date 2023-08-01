@@ -1215,25 +1215,13 @@ class Backend:
             is_cross = self.environment.is_cross_build(test_for_machine)
             exe_wrapper = self.environment.get_exe_wrapper()
             machine = self.environment.machines[exe.for_machine]
-            if machine.is_windows() or machine.is_cygwin():
-                extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget]] = []
-                if isinstance(exe, build.CustomTarget):
-                    extra_bdeps = list(exe.get_transitive_build_target_deps())
-                extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
-                for a in t.cmd_args:
-                    if isinstance(a, build.BuildTarget):
-                        for p in self.determine_windows_extra_paths(a, []):
-                            if p not in extra_paths:
-                                extra_paths.append(p)
-            else:
-                extra_paths = []
 
             cmd_args: T.List[str] = []
-            depends: T.Set[build.Target] = set(t.depends)
+            depends: T.Set[build.BuildTargetTypes] = set(t.depends)
             if isinstance(exe, build.Target):
                 depends.add(exe)
             for a in t.cmd_args:
-                if isinstance(a, build.Target):
+                if isinstance(a, (build.BuildTarget, build.CustomTarget)):
                     depends.add(a)
                 elif isinstance(a, build.CustomTargetIndex):
                     depends.add(a.target)
@@ -1247,6 +1235,11 @@ class Backend:
                     cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
                 else:
                     raise MesonException('Bad object in test command.')
+
+            if machine.is_windows() or machine.is_cygwin():
+                extra_paths = self.determine_windows_extra_paths(exe, depends)
+            else:
+                extra_paths = []
 
             t_env = copy.deepcopy(t.env)
             if not machine.is_windows() and not machine.is_cygwin() and not machine.is_darwin():
