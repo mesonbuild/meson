@@ -2722,7 +2722,7 @@ class AllPlatformTests(BasePlatformTests):
         with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as crossfile:
             crossfile.write(textwrap.dedent(
                 '''[binaries]
-                pkgconfig = '{}'
+                pkg-config = '{}'
 
                 [properties]
 
@@ -2749,7 +2749,7 @@ class AllPlatformTests(BasePlatformTests):
         with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as crossfile:
             crossfile.write(textwrap.dedent(
                 '''[binaries]
-                pkgconfig = 'pkg-config'
+                pkg-config = 'pkg-config'
 
                 [properties]
                 pkg_config_libdir = ['{}']

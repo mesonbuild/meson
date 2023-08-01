@@ -213,7 +213,7 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
     except ValueError:
         pass
     try:
-        infos.binaries['pkgconfig'] = locate_path("%s-pkg-config" % host_arch)
+        infos.binaries['pkg-config'] = locate_path("%s-pkg-config" % host_arch)
     except ValueError:
         pass # pkg-config is optional
     try:
