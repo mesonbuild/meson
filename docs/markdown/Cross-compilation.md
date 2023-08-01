@@ -338,7 +338,7 @@ scratch.
 ## Custom data
 
 You can store arbitrary data in `properties` and access them from your
-Meson files. As an example if you cross file has this:
+Meson files. As an example if your cross file has this:
 
 ```ini
 [properties]
