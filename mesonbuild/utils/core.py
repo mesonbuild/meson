@@ -141,15 +141,13 @@ class EnvironmentVariables(HoldableObject):
 @dataclass(eq=False)
 class ExecutableSerialisation:
 
-    # XXX: should capture and feed default to False, instead of None?
-
     cmd_args: T.List[str]
     env: T.Optional[EnvironmentVariables] = None
     exe_wrapper: T.Optional['programs.ExternalProgram'] = None
     workdir: T.Optional[str] = None
     extra_paths: T.Optional[T.List] = None
-    capture: T.Optional[bool] = None
-    feed: T.Optional[bool] = None
+    capture: T.Optional[str] = None
+    feed: T.Optional[str] = None
     tag: T.Optional[str] = None
     verbose: bool = False
     installdir_map: T.Optional[T.Dict[str, str]] = None
