@@ -487,6 +487,9 @@ class MachineChoice(enum.IntEnum):
     BUILD = 0
     HOST = 1
 
+    def __str__(self) -> str:
+        return f'{self.get_lower_case_name()} machine'
+
     def get_lower_case_name(self) -> str:
         return PerMachine('build', 'host')[self]
 
