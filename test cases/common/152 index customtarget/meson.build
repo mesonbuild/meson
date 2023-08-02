@@ -56,6 +56,13 @@ custom_target(
   input: gen[0],
   output: 'foo',
   command: [find_program('check_args.py'), '@INPUT@'],
+  build_by_default: true,
+)
+
+custom_target(
+  output: 'foo2',
+  command: [find_program('check_args.py'), gen[0]],
+  build_by_default: true,
 )
 
 subdir('subdir')

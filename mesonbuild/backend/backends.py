@@ -507,7 +507,7 @@ class Backend:
         return result
 
     def get_executable_serialisation(
-            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
+            self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTargetTypes, File, str]],
             workdir: T.Optional[str] = None,
             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
             capture: T.Optional[str] = None,
@@ -525,7 +525,7 @@ class Backend:
         elif isinstance(exe, build.BuildTarget):
             exe_cmd = [self.get_target_filename_abs(exe)]
             exe_for_machine = exe.for_machine
-        elif isinstance(exe, build.CustomTarget):
+        elif isinstance(exe, (build.CustomTarget, build.CustomTargetIndex)):
             # The output of a custom target can either be directly runnable
             # or not, that is, a script, a native binary or a cross compiled
             # binary when exe wrapper is available and when it is not.
@@ -546,7 +546,7 @@ class Backend:
                 p = c.get_path()
                 assert isinstance(p, str)
                 cmd_args.append(p)
-            elif isinstance(c, (build.BuildTarget, build.CustomTarget)):
+            elif isinstance(c, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
                 cmd_args.append(c.rel_to_builddir(self.environment.source_dir))
@@ -578,8 +578,8 @@ class Backend:
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag, verbose, installdir_map)
 
-    def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram],
-                             cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]],
+    def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram],
+                             cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram]],
                              workdir: T.Optional[str] = None,
                              extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
                              capture: T.Optional[str] = None,
@@ -590,7 +590,7 @@ class Backend:
         '''
         Serialize an executable for running with a generator or a custom target
         '''
-        cmd: T.List[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]] = []
+        cmd: T.List[T.Union[str, mesonlib.File, build.BuildTargetTypes, programs.ExternalProgram]] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
         es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, verbose=verbose)
@@ -647,8 +647,8 @@ class Backend:
                 ', '.join(reasons)
             )
 
-        if isinstance(exe, (programs.ExternalProgram,
-                            build.BuildTarget, build.CustomTarget)):
+        if isinstance(exe, (programs.ExternalProgram, build.BuildTarget,
+                            build.CustomTarget, build.CustomTargetIndex)):
             basename = os.path.basename(exe.name)
         elif isinstance(exe, mesonlib.File):
             basename = os.path.basename(exe.fname)
@@ -1155,7 +1155,7 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTarget, build.CustomTarget, programs.ExternalProgram, mesonlib.File, str],
+            self, target: T.Union[build.BuildTargetTypes, programs.ExternalProgram, mesonlib.File, str],
             extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget]]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
@@ -1535,7 +1535,7 @@ class Backend:
             if isinstance(i, build.BuildTarget):
                 cmd += self.build_target_to_cmd_array(i)
                 continue
-            elif isinstance(i, build.CustomTarget):
+            elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
                 tmp = i.get_outputs()[0]
@@ -1946,7 +1946,7 @@ class Backend:
                         compiler += [j.absolute_path(self.source_dir, self.build_dir)]
                     elif isinstance(j, str):
                         compiler += [j]
-                    elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
+                    elif isinstance(j, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                         compiler += j.get_outputs()
                     else:
                         raise RuntimeError(f'Type "{type(j).__name__}" is not supported in get_introspection_data. This is a bug')
