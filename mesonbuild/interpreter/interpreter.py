@@ -1617,6 +1617,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     # the host machine.
     def find_program_impl(self, args: T.List[mesonlib.FileOrString],
                           for_machine: MachineChoice = MachineChoice.HOST,
+                          default_options: T.Optional[T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None,
                           required: bool = True, silent: bool = True,
                           wanted: T.Union[str, T.List[str]] = '',
                           search_dirs: T.Optional[T.List[str]] = None,
@@ -1625,7 +1626,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
-        progobj = self.program_lookup(args, for_machine, required, search_dirs, extra_info)
+        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, extra_info)
         if progobj is None:
             progobj = self.notfound_program(args)
 
@@ -1669,6 +1670,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return progobj
 
     def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
+                       default_options: T.Optional[T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]],
                        required: bool, search_dirs: T.List[str], extra_info: T.List[mlog.TV_Loggable]
                        ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         progobj = self.program_from_overrides(args, extra_info)
@@ -1684,7 +1686,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:
-            return self.find_program_fallback(fallback, args, required, extra_info)
+            return self.find_program_fallback(fallback, args, default_options, required, extra_info)
 
         progobj = self.program_from_file_for(for_machine, args)
         if progobj is None:
@@ -1693,18 +1695,19 @@ class Interpreter(InterpreterBase, HoldableObject):
             prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = prog if prog.found() else None
         if progobj is None and fallback and required:
-            progobj = self.find_program_fallback(fallback, args, required, extra_info)
+            progobj = self.find_program_fallback(fallback, args, default_options, required, extra_info)
 
         return progobj
 
     def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
+                              default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]],
                               required: bool, extra_info: T.List[mlog.TV_Loggable]
                               ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
                  mlog.bold(' '.join(args)))
         sp_kwargs: kwtypes.DoSubproject = {
             'required': required,
-            'default_options': {},
+            'default_options': default_options or {},
             'version': [],
             'cmake_options': [],
             'options': None,
@@ -1720,6 +1723,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         REQUIRED_KW,
         KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
+        DEFAULT_OPTIONS.evolve(since='1.3.0')
     )
     @disablerIfNotFound
     def func_find_program(self, node: mparser.BaseNode, args: T.Tuple[T.List[mesonlib.FileOrString]],
@@ -1731,7 +1735,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.notfound_program(args[0])
 
         search_dirs = extract_search_dirs(kwargs)
-        return self.find_program_impl(args[0], kwargs['native'], required=required,
+        default_options = kwargs['default_options']
+        return self.find_program_impl(args[0], kwargs['native'], default_options=default_options, required=required,
                                       silent=False, wanted=kwargs['version'],
                                       search_dirs=search_dirs)
 
