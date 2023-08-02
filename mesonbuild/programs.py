@@ -109,7 +109,7 @@ class ExternalProgram(mesonlib.HoldableObject):
                                                    {'capture': True,
                                                     'check': True,
                                                     'env': mesonlib.EnvironmentVariables()},
-                                                   True)
+                                                   in_builddir=True)
                 o, e = res.stdout, res.stderr
             else:
                 p, o, e = mesonlib.Popen_safe(raw_cmd)

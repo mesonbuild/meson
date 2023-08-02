@@ -2685,7 +2685,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.log('Configuring', mlog.bold(output), 'with command')
             res = self.run_command_impl(cmd,
                                         {'capture': True, 'check': True, 'env': EnvironmentVariables()},
-                                        True)
+                                        in_builddir=True)
             if kwargs['capture']:
                 dst_tmp = ofile_abs + '~'
                 file_encoding = kwargs['encoding']
