@@ -758,8 +758,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     # better error messages when overridden
     @typed_pos_args(
         'run_command',
-        (build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str),
-        varargs=(build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str))
+        varargs=(build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str),
+        min_varargs=1)
     @typed_kwargs(
         'run_command',
         KwargInfo('check', (bool, NoneType), since='0.47.0'),
@@ -767,17 +767,15 @@ class Interpreter(InterpreterBase, HoldableObject):
         ENV_KW.evolve(since='0.50.0'),
     )
     def func_run_command(self, node: mparser.BaseNode,
-                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                         args: T.Tuple[T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwtypes.RunCommand') -> RunProcess:
-        return self.run_command_impl(args, kwargs)
+        return self.run_command_impl(args[0], kwargs)
 
     def run_command_impl(self,
-                         args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
-                                       T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
+                         args: T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]],
                          kwargs: 'kwtypes.RunCommand',
                          in_builddir: bool = False) -> RunProcess:
-        cmd, cargs = args
+        cmd, *cargs = args
         capture = kwargs['capture']
         env = kwargs['env']
         srcdir = self.environment.get_source_dir()
@@ -2683,10 +2681,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 depfile = os.path.join(self.environment.get_scratch_dir(), depfile)
                 values['@DEPFILE@'] = depfile
             # Substitute @INPUT@, @OUTPUT@, etc here.
-            _cmd = mesonlib.substitute_values(kwargs['command'], values)
+            cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
-            cmd, *args = _cmd
-            res = self.run_command_impl((cmd, args),
+            res = self.run_command_impl(cmd,
                                         {'capture': True, 'check': True, 'env': EnvironmentVariables()},
                                         True)
             if kwargs['capture']:
