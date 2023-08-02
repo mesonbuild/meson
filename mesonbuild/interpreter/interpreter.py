@@ -770,10 +770,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                          args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
                                        T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwtypes.RunCommand') -> RunProcess:
-        return self.run_command_impl(node, args, kwargs)
+        return self.run_command_impl(args, kwargs)
 
     def run_command_impl(self,
-                         node: mparser.BaseNode,
                          args: T.Tuple[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str],
                                        T.List[T.Union[build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str]]],
                          kwargs: 'kwtypes.RunCommand',
@@ -829,7 +828,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif isinstance(a, ExternalProgram):
                 expanded_args.append(a.get_path())
             elif isinstance(a, compilers.Compiler):
-                FeatureNew.single_use('Compiler object as a variadic argument to `run_command`', '0.61.0', self.subproject, location=node)
+                FeatureNew.single_use('Compiler object as a variadic argument to `run_command`', '0.61.0', self.subproject, location=self.current_node)
                 prog = ExternalProgram(a.exelist[0], silent=True)
                 if not prog.found():
                     raise InterpreterException(f'Program {cmd!r} not found or not executable')
@@ -2687,7 +2686,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             _cmd = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
             cmd, *args = _cmd
-            res = self.run_command_impl(node, (cmd, args),
+            res = self.run_command_impl((cmd, args),
                                         {'capture': True, 'check': True, 'env': EnvironmentVariables()},
                                         True)
             if kwargs['capture']:
