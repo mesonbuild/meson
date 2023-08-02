@@ -325,7 +325,7 @@ sub_proj = cmake.subproject('libsimple_cmake')
 # Fetch the dependency object
 cm_lib = sub_proj.dependency('cm_lib')
 
-executable(exe1, ['sources'], dependencies: [cm_lib])
+executable('exe1', ['sources'], dependencies: [cm_lib])
 ```
 
 It should be noted that not all projects are guaranteed to work. The
