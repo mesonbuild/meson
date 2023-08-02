@@ -232,6 +232,7 @@ class Summary(TypedDict):
 
 class FindProgram(ExtractRequired, ExtractSearchDirs):
 
+    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     native: MachineChoice
     version: T.List[str]
 
