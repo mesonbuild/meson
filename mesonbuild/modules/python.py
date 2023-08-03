@@ -24,8 +24,8 @@ from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTa
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
 from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
-from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
-from ..interpreter import primitives as P_OBJ
+from ..interpreter import extract_required_kwarg, permitted_dependency_kwargs, primitives as P_OBJ
+from ..interpreter.interpreterobjects import _ExternalProgramHolder
 from ..interpreter.type_checking import NoneType, PRESERVE_PATH_KW, SHARED_MOD_KWS
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
@@ -114,9 +114,9 @@ _PURE_KW = KwargInfo('pure', (bool, NoneType))
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
 _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
-class PythonInstallation(ExternalProgramHolder):
+class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
-        ExternalProgramHolder.__init__(self, python, interpreter)
+        _ExternalProgramHolder.__init__(self, python, interpreter)
         info = python.info
         prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'

@@ -28,7 +28,7 @@ from ..interpreterbase import (
     InvalidArguments, noPosargs, noKwargs, typed_kwargs, FeatureDeprecated,
     ContainerTypeInfo, KwargInfo, typed_pos_args
 )
-from ..interpreter import CustomTargetHolder
+from ..interpreter.interpreterobjects import _CustomTargetHolder
 from ..interpreter.type_checking import NoneType
 from ..programs import ExternalProgram
 
@@ -364,8 +364,8 @@ class HotdocTargetBuilder:
         return (target, install_script)
 
 
-class HotdocTargetHolder(CustomTargetHolder):
-    def __init__(self, target, interp):
+class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
+    def __init__(self, target: HotdocTarget, interp):
         super().__init__(target, interp)
         self.methods.update({'config_path': self.config_path_method})
 

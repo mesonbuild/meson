@@ -559,8 +559,10 @@ class DependencyHolder(ObjectHolder[Dependency]):
         new_dep = self.held_object.generate_link_whole_dependency()
         return new_dep
 
-class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
-    def __init__(self, ep: ExternalProgram, interpreter: 'Interpreter') -> None:
+_EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
+
+class _ExternalProgramHolder(ObjectHolder[_EXTPROG]):
+    def __init__(self, ep: _EXTPROG, interpreter: 'Interpreter') -> None:
         super().__init__(ep, interpreter)
         self.methods.update({'found': self.found_method,
                              'path': self.path_method,
@@ -605,6 +607,9 @@ class ExternalProgramHolder(ObjectHolder[ExternalProgram]):
 
     def found(self) -> bool:
         return self.held_object.found()
+
+class ExternalProgramHolder(_ExternalProgramHolder[ExternalProgram]):
+    pass
 
 class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
     def __init__(self, el: ExternalLibrary, interpreter: 'Interpreter'):
@@ -969,8 +974,10 @@ class CustomTargetIndexHolder(ObjectHolder[build.CustomTargetIndex]):
         assert self.interpreter.backend is not None
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
-class CustomTargetHolder(ObjectHolder[build.CustomTarget]):
-    def __init__(self, target: 'build.CustomTarget', interp: 'Interpreter'):
+_CT = T.TypeVar('_CT', bound=build.CustomTarget)
+
+class _CustomTargetHolder(ObjectHolder[_CT]):
+    def __init__(self, target: _CT, interp: 'Interpreter'):
         super().__init__(target, interp)
         self.methods.update({'full_path': self.full_path_method,
                              'to_list': self.to_list_method,
@@ -1006,6 +1013,9 @@ class CustomTargetHolder(ObjectHolder[build.CustomTarget]):
             return self.held_object[other]
         except IndexError:
             raise InvalidArguments(f'Index {other} out of bounds of custom target {self.held_object.name} output of size {len(self.held_object)}.')
+
+class CustomTargetHolder(_CustomTargetHolder[build.CustomTarget]):
+    pass
 
 class RunTargetHolder(ObjectHolder[build.RunTarget]):
     pass
