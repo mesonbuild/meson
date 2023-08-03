@@ -41,6 +41,10 @@ if T.TYPE_CHECKING:
 
         separator: str
 
+    class InternalDependencyAsStaticKW(TypedDict):
+
+        recursive: bool
+
 _ERROR_MSG_KW: KwargInfo[T.Optional[str]] = KwargInfo('error_message', (str, NoneType))
 
 
@@ -455,6 +459,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
                              'include_type': self.include_type_method,
                              'as_system': self.as_system_method,
                              'as_link_whole': self.as_link_whole_method,
+                             'as_static': self.as_static_method,
                              })
 
     def found(self) -> bool:
@@ -565,6 +570,17 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('as_link_whole method is only supported on declare_dependency() objects')
         new_dep = self.held_object.generate_link_whole_dependency()
         return new_dep
+
+    @FeatureNew('dependency.as_static', '1.3.0')
+    @noPosargs
+    @typed_kwargs(
+        'dependency.as_static',
+        KwargInfo('recursive', bool, default=False),
+    )
+    def as_static_method(self, args: T.List[TYPE_var], kwargs: InternalDependencyAsStaticKW) -> Dependency:
+        if not isinstance(self.held_object, InternalDependency):
+            raise InterpreterException('as_static method is only supported on declare_dependency() objects')
+        return self.held_object.get_as_static(kwargs['recursive'])
 
 _EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
 

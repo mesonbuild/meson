@@ -337,6 +337,15 @@ class InternalDependency(Dependency):
         new_dep.libraries = []
         return new_dep
 
+    def get_as_static(self, recursive: bool) -> Dependency:
+        from ..build import BothLibraries
+
+        new_dep = copy.copy(self)
+        new_dep.libraries = [lib.static if isinstance(lib, BothLibraries) else lib for lib in self.libraries]
+        if recursive:
+            new_dep.ext_deps = [dep.get_as_static(True) if isinstance(dep, InternalDependency) else dep for dep in self.ext_deps]
+        return new_dep
+
 class HasNativeKwarg:
     def __init__(self, kwargs: T.Dict[str, T.Any]):
         self.for_machine = self.get_for_machine_from_kwargs(kwargs)

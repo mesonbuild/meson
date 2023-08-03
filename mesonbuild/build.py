@@ -140,6 +140,12 @@ def get_target_macos_dylib_install_name(ld) -> str:
     name.append('.dylib')
     return ''.join(name)
 
+
+def extract_targets_as_list(kwargs: T.Dict[str, T.Any], key: str, self_libs: T.List[LibTypes]) -> T.List[LibTypes]:
+    lib_list = listify(kwargs.get(key, [])) + self_libs
+    return [t.get_default_object() if isinstance(t, BothLibraries) else t for t in lib_list]
+
+
 class InvalidArguments(MesonException):
     pass
 
@@ -769,8 +775,8 @@ class BuildTarget(Target):
         # we have to call process_compilers() first and we need to process libraries
         # from link_with and link_whole first.
         # See https://github.com/mesonbuild/meson/pull/11957#issuecomment-1629243208.
-        link_targets = extract_as_list(kwargs, 'link_with') + self.link_targets
-        link_whole_targets = extract_as_list(kwargs, 'link_whole') + self.link_whole_targets
+        link_targets = extract_targets_as_list(kwargs, 'link_with', self.link_targets)
+        link_whole_targets = extract_targets_as_list(kwargs, 'link_whole', self.link_whole_targets)
         self.link_targets.clear()
         self.link_whole_targets.clear()
         self.link(link_targets)
@@ -2482,6 +2488,9 @@ class BothLibraries(SecondLevelHolder):
         elif self._preferred_library == 'static':
             return self.static
         raise MesonBugException(f'self._preferred_library == "{self._preferred_library}" is neither "shared" nor "static".')
+
+    def get_id(self) -> str:
+        return self.get_default_object().get_id()
 
 class CommandBase:
 
