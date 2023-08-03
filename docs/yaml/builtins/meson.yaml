@@ -99,6 +99,8 @@ methods:
           [[custom_target]], as well as strings are accepted.
 
           *(since 0.57.0)* [[@file]] objects and the output of [[configure_file]] may be used.
+          *(since 1.3.0)* [[@custom_tgt]] and [[@custom_idx]] objects may be used as the
+          first argument. They were already accepted as extra arguments.
 
     varargs:
       name: arg
