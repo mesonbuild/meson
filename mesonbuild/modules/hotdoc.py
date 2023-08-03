@@ -15,8 +15,8 @@ from __future__ import annotations
 
 '''This module provides helper functions for generating documentation using hotdoc'''
 
-import os
-import subprocess
+import os, subprocess
+import typing as T
 
 from mesonbuild import mesonlib
 from mesonbuild import mlog, build
@@ -42,6 +42,11 @@ def ensure_list(value):
 MIN_HOTDOC_VERSION = '0.8.100'
 
 file_types = (str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex)
+
+
+class HotdocExternalProgram(ExternalProgram):
+    def run_hotdoc(self, cmd: T.List[str]) -> int:
+        return subprocess.run(self.get_command() + cmd, stdout=subprocess.DEVNULL).returncode
 
 
 class HotdocTargetBuilder:
@@ -400,17 +405,13 @@ class HotDocModule(ExtensionModule):
 
     def __init__(self, interpreter):
         super().__init__(interpreter)
-        self.hotdoc = ExternalProgram('hotdoc')
+        self.hotdoc = HotdocExternalProgram('hotdoc')
         if not self.hotdoc.found():
             raise MesonException('hotdoc executable not found')
         version = self.hotdoc.get_version(interpreter)
         if not mesonlib.version_compare(version, f'>={MIN_HOTDOC_VERSION}'):
             raise MesonException(f'hotdoc {MIN_HOTDOC_VERSION} required but not found.)')
 
-        def run_hotdoc(cmd):
-            return subprocess.run(self.hotdoc.get_command() + cmd, stdout=subprocess.DEVNULL).returncode
-
-        self.hotdoc.run_hotdoc = run_hotdoc
         self.methods.update({
             'has_extensions': self.has_extensions,
             'generate_doc': self.generate_doc,
