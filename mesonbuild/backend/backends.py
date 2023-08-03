@@ -1443,7 +1443,7 @@ class Backend:
             elif isinstance(i, build.BuildTarget):
                 fname = [self.get_target_filename(i)]
             elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
-                fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
+                fname = [os.path.join(self.get_target_dir(i), p) for p in i.get_outputs()]
             elif isinstance(i, build.GeneratedList):
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
@@ -1475,16 +1475,6 @@ class Backend:
                     deps.append(os.path.join(self.build_to_src, target.subdir, i))
         return deps
 
-    def get_custom_target_output_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
-        # The XCode backend is special. A target foo/bar does
-        # not go to ${BUILDDIR}/foo/bar but instead to
-        # ${BUILDDIR}/${BUILDTYPE}/foo/bar.
-        # Currently we set the include dir to be the former,
-        # and not the latter. Thus we need this extra customisation
-        # point. If in the future we make include dirs et al match
-        # ${BUILDDIR}/${BUILDTYPE} instead, this becomes unnecessary.
-        return self.get_target_dir(target)
-
     @lru_cache(maxsize=None)
     def get_normpath_target(self, source: str) -> str:
         return os.path.normpath(source)
@@ -1498,7 +1488,7 @@ class Backend:
             # own target build dir.
             if not isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
-            idir = self.get_normpath_target(self.get_custom_target_output_dir(i))
+            idir = self.get_normpath_target(self.get_target_dir(i))
             if not idir:
                 idir = '.'
             if absolute_path:
@@ -1522,7 +1512,7 @@ class Backend:
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
         build_root = '.'
-        outdir = self.get_custom_target_output_dir(target)
+        outdir = self.get_target_dir(target)
         if absolute_outputs:
             source_root = self.environment.get_source_dir()
             build_root = self.environment.get_build_dir()
@@ -1539,7 +1529,7 @@ class Backend:
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
                 tmp = i.get_outputs()[0]
-                i = os.path.join(self.get_custom_target_output_dir(i), tmp)
+                i = os.path.join(self.get_target_dir(i), tmp)
             elif isinstance(i, mesonlib.File):
                 i = i.rel_to_builddir(self.build_to_src)
                 if target.absolute_paths or absolute_outputs:
