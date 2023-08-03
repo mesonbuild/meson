@@ -1526,10 +1526,13 @@ class Backend:
                 cmd += self.build_target_to_cmd_array(i)
                 continue
             elif isinstance(i, build.CustomTarget):
-                # GIR scanner will attempt to execute this binary but
-                # it assumes that it is in path, so always give it a full path.
-                tmp = i.get_outputs()[0]
-                i = os.path.join(self.get_target_dir(i), tmp)
+                # FIXME: When a CustomTarget has more than one output this picks
+                # the first one and print a warning. We should instead expand all
+                # outputs here.
+                if target.absolute_paths or absolute_outputs:
+                    i = self.get_target_filename_abs(i)
+                else:
+                    i = self.get_target_filename(i)
             elif isinstance(i, mesonlib.File):
                 i = i.rel_to_builddir(self.build_to_src)
                 if target.absolute_paths or absolute_outputs:
