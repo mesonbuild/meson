@@ -1346,8 +1346,8 @@ class BuildTarget(Target):
                     self.process_sourcelist(dep.get_sources())
                 self.add_deps(dep.ext_deps)
             elif isinstance(dep, BuildTarget):
-                raise InvalidArguments('''Tried to use a build target as a dependency.
-You probably should put it in link_with instead.''')
+                raise InvalidArguments(f'Tried to use a build target {dep.name} as a dependency of target {self.name}.\n'
+                                       'You probably should put it in link_with instead.')
             else:
                 # This is a bit of a hack. We do not want Build to know anything
                 # about the interpreter so we can't import it and use isinstance.
