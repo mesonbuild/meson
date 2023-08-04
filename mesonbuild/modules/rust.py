@@ -172,8 +172,7 @@ class RustModule(ExtensionModule):
             new_target_kwargs
         )
 
-        test = self.interpreter.make_test(
-            self.interpreter.current_node, (name, new_target), tkwargs)
+        test = self.interpreter.make_test(name, new_target, tkwargs)
 
         return ModuleReturnValue(None, [new_target, test])
 

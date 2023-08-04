@@ -2165,14 +2165,14 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_benchmark(self, node: mparser.BaseNode,
                        args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
                        kwargs: 'kwtypes.FuncBenchmark') -> None:
-        self.add_test(node, args, kwargs, False)
+        self.add_test(args[0], args[1], kwargs, False)
 
     @typed_pos_args('test', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File))
     @typed_kwargs('test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
     def func_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
                   kwargs: 'kwtypes.FuncTest') -> None:
-        self.add_test(node, args, kwargs, True)
+        self.add_test(args[0], args[1], kwargs, True)
 
     def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> EnvironmentVariables:
         envlist = kwargs.get('env')
@@ -2183,15 +2183,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments(f'"env": {msg}')
         return ENV_KW.convertor(envlist)
 
-    def make_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+    def make_test(self, name: str, exe: T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File],
                   kwargs: 'kwtypes.BaseTest') -> Test:
-        name = args[0]
         if ':' in name:
             mlog.deprecation(f'":" is not allowed in test name "{name}", it has been replaced with "_"',
-                             location=node)
+                             location=self.current_node)
             name = name.replace(':', '_')
-        exe = args[1]
         if isinstance(exe, ExternalProgram):
             if not exe.found():
                 raise InvalidArguments('Tried to use not-found external program as test exe')
@@ -2201,7 +2198,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         env = self.unpack_env_kwarg(kwargs)
 
         if kwargs['timeout'] <= 0:
-            FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)
+            FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=self.current_node)
 
         prj = self.subproject if self.is_subproject() else self.build.project_name
 
@@ -2226,10 +2223,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                     kwargs['priority'],
                     kwargs['verbose'])
 
-    def add_test(self, node: mparser.BaseNode,
-                 args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+    def add_test(self, name: str, exe: T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File],
                  kwargs: T.Dict[str, T.Any], is_base_test: bool):
-        t = self.make_test(node, args, kwargs)
+        t = self.make_test(name, exe, kwargs)
         if is_base_test:
             self.build.tests.append(t)
             mlog.debug('Adding test', mlog.bold(t.name, True))
