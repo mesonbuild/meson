@@ -471,7 +471,7 @@ PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=Fal
 
 TEST_KWS: T.List[KwargInfo] = [
     KwargInfo('args', ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex)),
-              listify=True, default=[]),
+              listify=True, default=[], deprecated='1.3.0'),
     KwargInfo('should_fail', bool, default=False),
     KwargInfo('timeout', int, default=30),
     KwargInfo('workdir', (str, NoneType), default=None,

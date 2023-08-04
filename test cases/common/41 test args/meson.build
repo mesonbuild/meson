@@ -33,3 +33,21 @@ testfilect = custom_target('testfile',
                            build_by_default : true,
                            command : [copy, '@INPUT@', '@OUTPUT@'])
 test('custom target arg', tester, args : testfilect, env : env_array)
+
+# Same tests as above, but with positional args instead of kwarg
+test('command line arguments - positional', e1, 'first', 'second')
+test('custom target arg - positional', tester, testfilect, env : env_array)
+
+# Command can be a python script in current source dir. ExternalProgram can be
+# passed as positional args too.
+arg = find_program('python3')
+test('python script', 'script.py', arg)
+
+# CustomTarget and CustomTargetIndex as first arg. The script is executable,
+# but Windows won't read shebang.
+if build_machine.system() != 'windows'
+  fs = import('fs')
+  ct = fs.copyfile('script.py')
+  test('custom target exe', ct, arg)
+  test('custom target index exe', ct[0], arg)
+endif
