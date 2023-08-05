@@ -171,7 +171,7 @@ _COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, 
 _COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW]
 
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
-_HAS_REQUIRED_KW = REQUIRED_KW.evolve(since='1.1.0', default=False)
+_HAS_REQUIRED_KW = REQUIRED_KW.evolve(since='1.3.0', default=False)
 
 class CompilerHolder(ObjectHolder['Compiler']):
     preprocess_uid = itertools.count()
