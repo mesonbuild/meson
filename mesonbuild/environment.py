@@ -342,7 +342,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     # MIPS64 is able to run MIPS32 code natively, so there is a chance that
     # such mixture mentioned above exists.
     elif trial == 'mips64':
-        if not any_compiler_has_define(compilers, '__mips64'):
+        if compilers and not any_compiler_has_define(compilers, '__mips64'):
             trial = 'mips'
 
     if trial not in known_cpu_families:
@@ -382,7 +382,7 @@ def detect_cpu(compilers: CompilersDict) -> str:
         if '64' not in trial:
             trial = 'mips'
         else:
-            if not any_compiler_has_define(compilers, '__mips64'):
+            if compilers and not any_compiler_has_define(compilers, '__mips64'):
                 trial = 'mips'
             else:
                 trial = 'mips64'
