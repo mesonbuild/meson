@@ -469,6 +469,7 @@ def machine_info_can_run(machine_info: MachineInfo):
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
         ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
+        ((true_build_cpu_family == 'mips64') and (machine_info.cpu_family == 'mips')) or \
         ((true_build_cpu_family == 'aarch64') and (machine_info.cpu_family == 'arm'))
 
 class Environment:
