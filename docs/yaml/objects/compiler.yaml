@@ -150,7 +150,7 @@ methods:
     required:
       type: bool | feature
       default: false
-      since: 1.1.0
+      since: 1.3.0
       description:
         When set to `true`, Meson will halt if the check fails.
 
