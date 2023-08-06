@@ -964,15 +964,20 @@ class CmdLineFileParser(configparser.ConfigParser):
         return optionstr
 
 class MachineFileParser():
-    def __init__(self, filenames: T.List[str]) -> None:
+    def __init__(self, filenames: T.List[str], sourcedir: str) -> None:
         self.parser = CmdLineFileParser()
         self.constants: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = {'True': True, 'False': False}
         self.sections: T.Dict[str, T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = {}
 
-        try:
-            self.parser.read(filenames)
-        except configparser.Error as e:
-            raise EnvironmentException(f'Malformed cross or native file: {e}')
+        for fname in filenames:
+            with open(fname, encoding='utf-8') as f:
+                content = f.read()
+                content = content.replace('@GLOBAL_SOURCE_ROOT@', sourcedir)
+                content = content.replace('@DIRNAME@', os.path.dirname(fname))
+                try:
+                    self.parser.read_string(content, fname)
+                except configparser.Error as e:
+                    raise EnvironmentException(f'Malformed machine file: {e}')
 
         # Parse [constants] first so they can be used in other sections
         if self.parser.has_section('constants'):
@@ -1028,8 +1033,8 @@ class MachineFileParser():
                     return os.path.join(l, r)
         raise EnvironmentException('Unsupported node type')
 
-def parse_machine_files(filenames: T.List[str]):
-    parser = MachineFileParser(filenames)
+def parse_machine_files(filenames: T.List[str], sourcedir: str):
+    parser = MachineFileParser(filenames, sourcedir)
     return parser.sections
 
 def get_cmd_line_file(build_dir: str) -> str:

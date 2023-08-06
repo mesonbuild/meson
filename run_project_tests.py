@@ -793,7 +793,7 @@ def _skip_keys(test_def: T.Dict) -> T.Tuple[bool, bool]:
 
     # Test is expected to skip if os matches
     if 'skip_on_os' in test_def:
-        mesonenv = environment.Environment(None, None, get_fake_options('/'))
+        mesonenv = environment.Environment('', '', get_fake_options('/'))
         for skip_os in test_def['skip_on_os']:
             if skip_os.startswith('!'):
                 if mesonenv.machines.host.system != skip_os[1:]:
@@ -966,7 +966,7 @@ def have_d_compiler() -> bool:
 
 def have_objc_compiler(use_tmp: bool) -> bool:
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
-        env = environment.Environment(None, build_dir, get_fake_options('/'))
+        env = environment.Environment('', build_dir, get_fake_options('/'))
         try:
             objc_comp = detect_objc_compiler(env, MachineChoice.HOST)
         except mesonlib.MesonException:
@@ -982,7 +982,7 @@ def have_objc_compiler(use_tmp: bool) -> bool:
 
 def have_objcpp_compiler(use_tmp: bool) -> bool:
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
-        env = environment.Environment(None, build_dir, get_fake_options('/'))
+        env = environment.Environment('', build_dir, get_fake_options('/'))
         try:
             objcpp_comp = detect_objcpp_compiler(env, MachineChoice.HOST)
         except mesonlib.MesonException:
@@ -1458,7 +1458,7 @@ def detect_system_compiler(options: 'CompilerArgumentType') -> None:
     if options.native_file:
         fake_opts.native_file = [options.native_file]
 
-    env = environment.Environment(None, None, fake_opts)
+    env = environment.Environment('', '', fake_opts)
 
     print_compilers(env, MachineChoice.HOST)
     if options.cross_file:
