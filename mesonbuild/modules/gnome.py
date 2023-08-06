@@ -875,7 +875,8 @@ class GnomeModule(ExtensionModule):
                               ) -> T.List[T.Union[build.BuildTarget, CustomTarget, CustomTargetIndex, Dependency]]:
         ret: T.List[T.Union[build.BuildTarget, CustomTarget, CustomTargetIndex, Dependency]] = []
         for girtarget in girtargets:
-            ret += girtarget.get_all_link_deps()
+            ret.append(girtarget)
+            ret += girtarget.get_runtime_dependencies()
             ret += girtarget.get_external_deps()
         return ret
 

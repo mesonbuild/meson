@@ -1166,7 +1166,7 @@ class NinjaBackend(backends.Backend):
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
         cmd, reason = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
-                                                extra_bdeps=target.get_transitive_build_target_deps(),
+                                                extra_bdeps=target.get_build_target_deps(),
                                                 capture=ofilenames[0] if target.capture else None,
                                                 feed=srcs[0] if target.feed else None,
                                                 env=target.env,
