@@ -477,7 +477,7 @@ class Environment:
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
 
-    def __init__(self, source_dir: T.Optional[str], build_dir: T.Optional[str], options: 'argparse.Namespace') -> None:
+    def __init__(self, source_dir: str, build_dir: str, options: 'argparse.Namespace') -> None:
         self.source_dir = source_dir
         self.build_dir = build_dir
         # Do not try to create build directories when build_dir is none.
@@ -550,7 +550,7 @@ class Environment:
         ## Read in native file(s) to override build machine configuration
 
         if self.coredata.config_files is not None:
-            config = coredata.parse_machine_files(self.coredata.config_files)
+            config = coredata.parse_machine_files(self.coredata.config_files, self.source_dir)
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
@@ -561,7 +561,7 @@ class Environment:
         ## Read in cross file(s) to override host machine configuration
 
         if self.coredata.cross_files:
-            config = coredata.parse_machine_files(self.coredata.cross_files)
+            config = coredata.parse_machine_files(self.coredata.cross_files, self.source_dir)
             properties.host = Properties(config.get('properties', {}))
             binaries.host = BinaryTable(config.get('binaries', {}))
             cmakevars.host = CMakeVariables(config.get('cmake', {}))

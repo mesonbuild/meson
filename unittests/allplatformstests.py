@@ -3982,17 +3982,23 @@ class AllPlatformTests(BasePlatformTests):
                     [properties]
                     c_args = common_flags + ['-DSOMETHING']
                     cpp_args = c_args + ['-DSOMETHING_ELSE']
+                    rel_to_src = '@GLOBAL_SOURCE_ROOT@' / 'tool'
+                    rel_to_file = '@DIRNAME@' / 'tool'
+                    no_escaping = '@@DIRNAME@@' / 'tool'
 
                     [binaries]
                     c = toolchain / compiler
                     '''))
 
-            values = mesonbuild.coredata.parse_machine_files([crossfile1, crossfile2])
+            values = mesonbuild.coredata.parse_machine_files([crossfile1, crossfile2], self.builddir)
             self.assertEqual(values['binaries']['c'], '/toolchain/gcc')
             self.assertEqual(values['properties']['c_args'],
                              ['--sysroot=/toolchain/sysroot', '-DSOMETHING'])
             self.assertEqual(values['properties']['cpp_args'],
                              ['--sysroot=/toolchain/sysroot', '-DSOMETHING', '-DSOMETHING_ELSE'])
+            self.assertEqual(values['properties']['rel_to_src'], os.path.join(self.builddir, 'tool'))
+            self.assertEqual(values['properties']['rel_to_file'], os.path.join(os.path.dirname(crossfile2), 'tool'))
+            self.assertEqual(values['properties']['no_escaping'], os.path.join(f'@{os.path.dirname(crossfile2)}@', 'tool'))
 
     @skipIf(is_windows(), 'Directory cleanup fails for some reason')
     def test_wrap_git(self):
