@@ -4,16 +4,14 @@
 import typing as T
 import re
 from dataclasses import dataclass, field
-from enum import IntFlag, auto
 
 from ...mesonlib import File, MesonException
 from ...interpreter.type_checking import NoneType
 from ...interpreterbase.decorators import (
     noKwargs, noPosargs, KwargInfo, typed_kwargs, typed_pos_args,
-    ContainerTypeInfo, noArgsFlattening
+    ContainerTypeInfo
 )
 from .. import ModuleObject
-from .utils import test_code, get_compiler
 
 if T.TYPE_CHECKING:
     from typing import TypedDict
@@ -50,9 +48,6 @@ class ConflictAttr:
     )
     mjoin: str = field(default='', hash=False, compare=False)
 
-    def __str__(self) -> str:
-        return self.val
-
     def copy(self) -> 'ConflictAttr':
         return ConflictAttr(**self.__dict__)
 
@@ -71,14 +66,12 @@ class ConflictAttr:
 
 class KwargConfilctAttr(KwargInfo):
     def __init__(self, func_name: str, opt_name: str, default: T.Any = None):
-        types = [
-            str, ContainerTypeInfo(dict, str),
+        types = (
+            NoneType, str, ContainerTypeInfo(dict, str),
             ContainerTypeInfo(list, (dict, str))
-        ]
-        if default is None:
-            types += [NoneType]
+        )
         super().__init__(
-            opt_name, tuple(types),
+            opt_name, types,
             convertor = lambda values: self.convert(
                 func_name, opt_name, values
             ),
@@ -152,29 +145,6 @@ if T.TYPE_CHECKING:
         interest: NotRequired[int]
 
 class FeatureObject(ModuleObject):
-    """
-    A data class that represents the feature.
-
-    A feature is a unit of work that can be developed, tested, and deployed independently.
-
-    Attributes:
-      name: The name of the feature.
-      interest: The interest level of the feature.
-                It used for sorting and to determine succor features.
-      implies: A set of features objects that are implied by this feature.
-               (Optional)
-               This means that if this feature is enabled,
-               then the implied features will also be enabled.
-               If any of the implied features is not supported by the platform
-               or the compiler this feature will also considerd not supported.
-      group: A list of
-
-      detect: A list of strings that identify the methods that can be used to detect whether the feature is supported.
-      args: A list of strings that identify the arguments that are required to enable this feature.
-      test_code: A string or a file object that contains the test code for this feature.
-      extra_tests: A dictionary that maps from the name of a test to the test code for that test.
-      disable: A string that specifies why this feature is disabled.
-    """
     name: str
     interest: int
     implies: T.Set['FeatureObject']
@@ -191,8 +161,8 @@ class FeatureObject(ModuleObject):
 
         super().__init__()
 
-        @typed_pos_args('feature.new', str, int)
-        @typed_kwargs('feature.new',
+        @typed_pos_args('features.new', str, int)
+        @typed_kwargs('features.new',
             KwargInfo(
                 'implies',
                 (FeatureObject, ContainerTypeInfo(list, FeatureObject)),
@@ -202,8 +172,8 @@ class FeatureObject(ModuleObject):
                 'group', (str, ContainerTypeInfo(list, str)),
                 default=[], listify=True
             ),
-            KwargConfilctAttr('feature.new', 'detect', default=[]),
-            KwargConfilctAttr('feature.new', 'args', default=[]),
+            KwargConfilctAttr('features.new', 'detect', default=[]),
+            KwargConfilctAttr('features.new', 'args', default=[]),
             KwargInfo('test_code', (str, File), default=''),
             KwargInfo(
                 'extra_tests', (ContainerTypeInfo(dict, (str, File))),
@@ -238,7 +208,7 @@ class FeatureObject(ModuleObject):
     def update_method(self, state: 'ModuleState', args: T.List['TYPE_var'],
                       kwargs: 'TYPE_kwargs') -> 'FeatureObject':
         @noPosargs
-        @typed_kwargs('feature.update',
+        @typed_kwargs('features.FeatureObject.update',
             KwargInfo('name', (NoneType, str)),
             KwargInfo('interest', (NoneType, int)),
             KwargInfo(
@@ -252,8 +222,8 @@ class FeatureObject(ModuleObject):
                 'group', (NoneType, str, ContainerTypeInfo(list, str)),
                 listify=True
             ),
-            KwargConfilctAttr('feature.update', 'detect'),
-            KwargConfilctAttr('feature.update', 'args'),
+            KwargConfilctAttr('features.FeatureObject.update', 'detect'),
+            KwargConfilctAttr('features.FeatureObject.update', 'args'),
             KwargInfo('test_code', (NoneType, str, File)),
             KwargInfo(
                 'extra_tests', (
@@ -273,27 +243,28 @@ class FeatureObject(ModuleObject):
         return self
 
     @noKwargs
-    @typed_pos_args('feature.get', str)
+    @typed_pos_args('features.FeatureObject.get', str)
     def get_method(self, state: 'ModuleState', args: T.Tuple[str],
                    kwargs: 'TYPE_kwargs') -> 'TYPE_var':
 
         impl_lst = lambda lst: [v.to_dict() for v in lst]
         noconv = lambda v: v
-        dfunc = dict(
-            name = noconv,
-            interest = noconv,
-            group = noconv,
-            implies = lambda v: [fet.name for fet in sorted(v)],
-            detect = impl_lst,
-            args = impl_lst,
-            test_code = noconv,
-            extra_tests = noconv,
-            disable = noconv
-        )
-        cfunc = dfunc.get(args[0])
+        dfunc = {
+            'name': noconv,
+            'interest': noconv,
+            'group': noconv,
+            'implies': lambda v: [fet.name for fet in sorted(v)],
+            'detect': impl_lst,
+            'args': impl_lst,
+            'test_code': noconv,
+            'extra_tests': noconv,
+            'disable': noconv
+        }
+        cfunc: T.Optional[T.Callable[[str], 'TYPE_var']] = dfunc.get(args[0])
         if cfunc is None:
             raise MesonException(f'Key {args[0]!r} is not in the feature.')
-        return cfunc(getattr(self, args[0]))
+        val = getattr(self, args[0])
+        return cfunc(val)
 
     def get_implicit(self, _caller: T.Set['FeatureObject'] = None
                      ) -> T.Set['FeatureObject']:
@@ -306,8 +277,61 @@ class FeatureObject(ModuleObject):
             ret = ret.union(sub_fet.get_implicit(_caller))
         return ret
 
+    @staticmethod
+    def get_implicit_multi(features: T.Iterable['FeatureObject']) -> T.Set['FeatureObject']:
+        implies = set().union(*[f.get_implicit() for f in features])
+        return implies
+
+    @staticmethod
+    def get_implicit_combine_multi(features: T.Iterable['FeatureObject']) -> T.Set['FeatureObject']:
+        return FeatureObject.get_implicit_multi(features).union(features)
+
+    @staticmethod
+    def sorted_multi(features: T.Iterable[T.Union['FeatureObject', T.Iterable['FeatureObject']]],
+                     reverse: bool = False
+                     ) -> T.List[T.Union['FeatureObject', T.Iterable['FeatureObject']]]:
+        def sort_cb(k: T.Union[FeatureObject, T.Iterable[FeatureObject]]) -> int:
+            if isinstance(k, FeatureObject):
+                return k.interest
+            # keep prevalent features and erase any implied features
+            implied_features = FeatureObject.get_implicit_multi(k)
+            prevalent_features = set(k).difference(implied_features)
+            if len(prevalent_features) == 0:
+                # It happens when all features imply each other.
+                # Set the highest interested feature
+                return sorted(k)[-1].interest
+            # multiple features
+            rank = max(f.interest for f in prevalent_features)
+            # FIXME: that's not a safe way to increase the rank for
+            # multi features this why this function isn't considerd
+            # accurate.
+            rank += len(prevalent_features) -1
+            return rank
+        return sorted(features, reverse=reverse, key=sort_cb)
+
+    @staticmethod
+    def features_names(features: T.Iterable[T.Union['FeatureObject', T.Iterable['FeatureObject']]]
+                       ) -> T.List[T.Union[str, T.List[str]]]:
+        return [
+            fet.name if isinstance(fet, FeatureObject)
+            else [f.name for f in fet]
+            for fet in features
+        ]
+
+    def __repr__(self) -> str:
+        args = ', '.join([
+            f'{attr} = {str(getattr(self, attr))}'
+            for attr in [
+                'group', 'implies',
+                'detect', 'args',
+                'test_code', 'extra_tests',
+                'disable'
+            ]
+        ])
+        return f'FeatureObject({self.name}, {self.interest}, {args})'
+
     def __hash__(self) -> int:
-        return hash(str(id(self)) + self.name)
+        return hash(self.name)
 
     def __eq__(self, robj: object) -> bool:
         if not isinstance(robj, FeatureObject):
@@ -329,4 +353,3 @@ class FeatureObject(ModuleObject):
 
     def __ge__(self, robj: object) -> T.Any:
         return robj <= self
-
