@@ -233,7 +233,7 @@ methods:
     returns: str
     since: 0.58.0
     description: |
-      Returns a string with the absolute path to the source root directory
+      Returns a string with the absolute path to the source root directory.
       This function will return the source root of the
       main project if called from a subproject, which is usually not what you want.
       It is usually preferable to use [[meson.current_source_dir]] or [[meson.project_source_root]].
