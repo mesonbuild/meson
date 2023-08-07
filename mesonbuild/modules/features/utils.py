@@ -1,11 +1,9 @@
 # Copyright (c) 2023, NumPy Developers.
-# All rights reserved.
-
-import typing as T
 import hashlib
+from typing import Tuple, List, Union, Any, TYPE_CHECKING
 from ...mesonlib import MesonException, MachineChoice
 
-if T.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ...compilers import Compiler
     from ...mesonlib import File
     from .. import ModuleState
@@ -25,17 +23,17 @@ def get_compiler(state: 'ModuleState') -> 'Compiler':
     return compiler
 
 def test_code(state: 'ModuleState', compiler: 'Compiler',
-              args: T.List[str], code: 'T.Union[str, File]'
-              ) -> T.Tuple[bool, bool, str]:
-    # TODO: treat warnings as errors
+              args: List[str], code: 'Union[str, File]'
+              ) -> Tuple[bool, bool, str]:
+    # TODO: Add option to treat warnings as errors
     with compiler.cached_compile(
         code, state.environment.coredata, extra_args=args
     ) as p:
         return p.cached, p.returncode == 0, p.stderr
 
-def generate_hash(*args: T.Any) -> str:
+def generate_hash(*args: Any) -> str:
     hasher = hashlib.sha1()
-    test: T.List[bytes] = []
+    test: List[bytes] = []
     for a in args:
         hasher.update(bytes(str(a), encoding='utf-8'))
     return hasher.hexdigest()

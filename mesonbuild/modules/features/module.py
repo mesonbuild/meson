@@ -1,9 +1,9 @@
 # Copyright (c) 2023, NumPy Developers.
-# All rights reserved.
-
-import typing as T
 import os
-
+from typing import (
+    Dict, Set, Tuple, List, Callable, Optional,
+    Union, Any, cast, TYPE_CHECKING
+)
 from ... import mlog, build
 from ...compilers import Compiler
 from ...mesonlib import File, MesonException
@@ -16,26 +16,26 @@ from .. import ModuleInfo, NewExtensionModule, ModuleObject
 from .feature import FeatureObject, ConflictAttr
 from .utils import test_code, get_compiler, generate_hash
 
-if T.TYPE_CHECKING:
+if TYPE_CHECKING:
     from typing import TypedDict
     from ...interpreterbase import TYPE_var, TYPE_kwargs
     from .. import ModuleState
     from .feature import FeatureKwArgs
 
     class TestKwArgs(TypedDict):
-        compiler: T.Optional[Compiler]
-        force_args: T.Optional[T.List[str]]
+        compiler: Optional[Compiler]
+        force_args: Optional[List[str]]
         anyfet: bool
         cached: bool
 
     class TestResultKwArgs(TypedDict):
         target_name: str
-        prevalent_features: T.List[str]
-        features: T.List[str]
-        args: T.List[str]
-        detect: T.List[str]
-        defines: T.List[str]
-        undefines: T.List[str]
+        prevalent_features: List[str]
+        features: List[str]
+        args: List[str]
+        detect: List[str]
+        defines: List[str]
+        undefines: List[str]
         is_supported: bool
         is_disabled: bool
         fail_reason: str
@@ -43,38 +43,38 @@ if T.TYPE_CHECKING:
 class TargetsObject(ModuleObject):
     def __init__(self) -> None:
         super().__init__()
-        self._targets: T.Dict[
-            T.Union[FeatureObject, T.Tuple[FeatureObject, ...]],
-            T.List[build.StaticLibrary]
+        self._targets: Dict[
+            Union[FeatureObject, Tuple[FeatureObject, ...]],
+            List[build.StaticLibrary]
         ] = {}
-        self._baseline: T.List[build.StaticLibrary] = []
+        self._baseline: List[build.StaticLibrary] = []
         self.methods.update({
             'static_lib': self.static_lib_method,
             'extend': self.extend_method
         })
 
     def extend_method(self, state: 'ModuleState',
-                      args: T.List['TYPE_var'],
+                      args: List['TYPE_var'],
                       kwargs: 'TYPE_kwargs') -> 'TargetsObject':
 
         @typed_pos_args('feature.TargetsObject.extend', TargetsObject)
         @noKwargs
         def test_args(state: 'ModuleState',
-                      args: T.Tuple[TargetsObject],
+                      args: Tuple[TargetsObject],
                       kwargs: 'TYPE_kwargs') -> TargetsObject:
             return args[0]
         robj: TargetsObject = test_args(state, args, kwargs)
         self._baseline.extend(robj._baseline)
         for features, robj_targets in robj._targets.items():
-            targets: T.List[build.StaticLibrary] = self._targets.setdefault(features, [])
+            targets: List[build.StaticLibrary] = self._targets.setdefault(features, [])
             targets += robj_targets
         return self
 
     @typed_pos_args('features.TargetsObject.static_lib', str)
     @noKwargs
-    def static_lib_method(self, state: 'ModuleState', args: T.Tuple[str],
+    def static_lib_method(self, state: 'ModuleState', args: Tuple[str],
                           kwargs: 'TYPE_kwargs'
-                          ) -> T.Any:
+                          ) -> Any:
         # The linking order must be based on the lowest interested features,
         # to ensures that the linker prioritizes any duplicate weak global symbols
         # of the lowest interested features over the highest ones,
@@ -82,9 +82,9 @@ class TargetsObject(ModuleObject):
         # to any involved optimizations that may generated based
         # on the highest interested features.
         link_whole = [] + self._baseline
-        tcast = T.Union[FeatureObject, T.Tuple[FeatureObject, ...]]
+        tcast = Union[FeatureObject, Tuple[FeatureObject, ...]]
         for features in FeatureObject.sorted_multi(self._targets.keys()):
-            link_whole += self._targets[T.cast(tcast, features)]
+            link_whole += self._targets[cast(tcast, features)]
         if not link_whole:
             return []
         static_lib = state._interpreter.func_static_lib(
@@ -97,14 +97,14 @@ class TargetsObject(ModuleObject):
     def add_baseline_target(self, target: build.StaticLibrary) -> None:
         self._baseline.append(target)
 
-    def add_target(self, features: T.Union[FeatureObject, T.List[FeatureObject]],
+    def add_target(self, features: Union[FeatureObject, List[FeatureObject]],
                    target: build.StaticLibrary) -> None:
         tfeatures = (
             features if isinstance(features, FeatureObject)
             else tuple(sorted(features))
         )
-        targets: T.List[build.StaticLibrary] = self._targets.setdefault(
-            tfeatures, T.cast(T.List[build.StaticLibrary], []))  # type: ignore
+        targets: List[build.StaticLibrary] = self._targets.setdefault(
+            tfeatures, cast(List[build.StaticLibrary], []))  # type: ignore
         targets.append(target)
 
 class Module(NewExtensionModule):
@@ -121,12 +121,12 @@ class Module(NewExtensionModule):
         })
 
     def new_method(self, state: 'ModuleState',
-                   args: T.List['TYPE_var'],
+                   args: List['TYPE_var'],
                    kwargs: 'TYPE_kwargs') -> FeatureObject:
         return FeatureObject(state, args, kwargs)
 
     def _cache_dict(self, state: 'ModuleState'
-                    ) -> T.Dict[str, 'TestResultKwArgs']:
+                    ) -> Dict[str, 'TestResultKwArgs']:
         coredata = state.environment.coredata
         attr_name = 'module_features_cache'
         if not hasattr(coredata, attr_name):
@@ -134,7 +134,7 @@ class Module(NewExtensionModule):
         return getattr(coredata, attr_name, {})
 
     def _get_cache(self, state: 'ModuleState', key: str
-                   ) -> T.Optional['TestResultKwArgs']:
+                   ) -> Optional['TestResultKwArgs']:
         return self._cache_dict(state).get(key)
 
     def _set_cache(self, state: 'ModuleState', key: str,
@@ -152,9 +152,9 @@ class Module(NewExtensionModule):
         ),
     )
     def test_method(self, state: 'ModuleState',
-                    args: T.Tuple[T.List[FeatureObject]],
+                    args: Tuple[List[FeatureObject]],
                     kwargs: 'TestKwArgs'
-                    ) -> T.List[T.Union[bool, 'TestResultKwArgs']]:
+                    ) -> List[Union[bool, 'TestResultKwArgs']]:
 
         features = args[0]
         features_set = set(features)
@@ -201,12 +201,12 @@ class Module(NewExtensionModule):
         return [test_result['is_supported'], test_result]
 
     def cached_test(self, state: 'ModuleState',
-                    features: T.Set[FeatureObject],
+                    features: Set[FeatureObject],
                     compiler: 'Compiler',
-                    force_args: T.Optional[T.List[str]],
+                    force_args: Optional[List[str]],
                     anyfet: bool, cached: bool,
-                    _caller: T.Optional[T.Set[FeatureObject]] = None
-                    ) -> T.Tuple[bool, 'TestResultKwArgs']:
+                    _caller: Optional[Set[FeatureObject]] = None
+                    ) -> Tuple[bool, 'TestResultKwArgs']:
 
         if cached:
             test_hash = generate_hash(
@@ -233,12 +233,12 @@ class Module(NewExtensionModule):
             self._set_cache(state, test_hash, test_result)
         return False, test_result
 
-    def test_any(self, state: 'ModuleState', features: T.Set[FeatureObject],
+    def test_any(self, state: 'ModuleState', features: Set[FeatureObject],
                  compiler: 'Compiler',
-                 force_args: T.Optional[T.List[str]],
+                 force_args: Optional[List[str]],
                  cached: bool,
                  # dummy no need for recrusive guard
-                 _caller: T.Optional[T.Set[FeatureObject]] = None,
+                 _caller: Optional[Set[FeatureObject]] = None,
                  ) -> 'TestResultKwArgs':
 
         _, test_any_result = self.cached_test(
@@ -273,11 +273,11 @@ class Module(NewExtensionModule):
         )
         return test_any_result
 
-    def test(self, state: 'ModuleState', features: T.Set[FeatureObject],
+    def test(self, state: 'ModuleState', features: Set[FeatureObject],
              compiler: 'Compiler',
-             force_args: T.Optional[T.List[str]] = None,
+             force_args: Optional[List[str]] = None,
              cached: bool = True,
-             _caller: T.Optional[T.Set[FeatureObject]] = None
+             _caller: Optional[Set[FeatureObject]] = None
              ) -> 'TestResultKwArgs':
 
         implied_features = FeatureObject.get_implicit_multi(features)
@@ -368,15 +368,15 @@ class Module(NewExtensionModule):
 
         for fet in all_features:
             for attr in conflict_attrs:
-                values: T.List[ConflictAttr] = getattr(fet, attr)
+                values: List[ConflictAttr] = getattr(fet, attr)
                 accumulate_values = test_result[attr]  # type: ignore
                 for conflict in values:
                     if not conflict.match:
                         accumulate_values.append(conflict.val)
                         continue
-                    conflict_vals: T.List[str] = []
+                    conflict_vals: List[str] = []
                     # select the acc items based on the match
-                    new_acc: T.List[str] = []
+                    new_acc: List[str] = []
                     for acc in accumulate_values:
                         # not affected by the match so we keep it
                         if not conflict.match.match(acc):
@@ -454,23 +454,23 @@ class Module(NewExtensionModule):
         allow_unknown=True
     )
     def multi_targets_method(self, state: 'ModuleState',
-                            args: T.Tuple[str], kwargs: 'TYPE_kwargs'
+                            args: Tuple[str], kwargs: 'TYPE_kwargs'
                             ) -> TargetsObject:
         config_name = args[0]
         sources = args[1]  # type: ignore
-        dispatch: T.List[T.Union[FeatureObject, T.List[FeatureObject]]] = (
+        dispatch: List[Union[FeatureObject, List[FeatureObject]]] = (
             kwargs.pop('dispatch') # type: ignore
         )
-        baseline: T.Optional[T.List[FeatureObject]] = (
+        baseline: Optional[List[FeatureObject]] = (
             kwargs.pop('baseline')  # type: ignore
         )
         prefix: str = kwargs.pop('prefix')  # type: ignore
         cached: bool = kwargs.pop('cached')  # type: ignore
-        compiler: T.Optional[Compiler] = kwargs.pop('compiler')  # type: ignore
+        compiler: Optional[Compiler] = kwargs.pop('compiler')  # type: ignore
         if not compiler:
             compiler = get_compiler(state)
 
-        baseline_features : T.Set[FeatureObject] = set()
+        baseline_features : Set[FeatureObject] = set()
         has_baseline = baseline is not None
         if has_baseline:
             baseline_features = FeatureObject.get_implicit_combine_multi(baseline)
@@ -481,13 +481,13 @@ class Module(NewExtensionModule):
                 force_args=None
             )
 
-        enabled_targets_names: T.List[str] = []
-        enabled_targets_features: T.List[T.Union[
-            FeatureObject, T.List[FeatureObject]
+        enabled_targets_names: List[str] = []
+        enabled_targets_features: List[Union[
+            FeatureObject, List[FeatureObject]
         ]] = []
-        enabled_targets_tests: T.List['TestResultKwArgs'] = []
-        skipped_targets: T.List[T.Tuple[
-            T.Union[FeatureObject, T.List[FeatureObject]], str
+        enabled_targets_tests: List['TestResultKwArgs'] = []
+        skipped_targets: List[Tuple[
+            Union[FeatureObject, List[FeatureObject]], str
         ]] = []
         for d in dispatch:
             if isinstance(d, FeatureObject):
@@ -562,7 +562,7 @@ class Module(NewExtensionModule):
             )
             mtargets_obj.add_target(features_objects, static_lib)
 
-        skipped_targets_info: T.List[str] = []
+        skipped_targets_info: List[str] = []
         skipped_tab = ' '*4
         for skipped, reason in skipped_targets:
             name = ', '.join(
@@ -571,13 +571,13 @@ class Module(NewExtensionModule):
             )
             skipped_targets_info.append(f'{skipped_tab}"{name}": "{reason}"')
 
-        target_info: T.Callable[[str, 'TestResultKwArgs'], str] = lambda target_name, test_result: (
+        target_info: Callable[[str, 'TestResultKwArgs'], str] = lambda target_name, test_result: (
             f'{skipped_tab}"{target_name}":\n' + '\n'.join([
                 f'{skipped_tab*2}"{k}": {v}'
                 for k, v in test_result.items()
             ])
         )
-        enabled_targets_info: T.List[str] = [
+        enabled_targets_info: List[str] = [
             target_info(test_result['target_name'], test_result)
             for test_result in enabled_targets_tests
         ]
@@ -605,14 +605,14 @@ class Module(NewExtensionModule):
         return mtargets_obj
 
     def gen_target(self, state: 'ModuleState', config_name: str,
-                   sources: T.List[T.Union[
+                   sources: List[Union[
                       str, File, build.CustomTarget, build.CustomTargetIndex,
                       build.GeneratedList, build.StructuredSources, build.ExtractedObjects,
                       build.BuildTarget
                    ]],
                    test_result: 'TestResultKwArgs',
                    prefix: str, is_baseline: bool,
-                   stlib_kwargs: T.Dict[str, T.Any]
+                   stlib_kwargs: Dict[str, Any]
                    ) -> build.StaticLibrary:
 
         target_name = 'baseline' if is_baseline else test_result['target_name']
@@ -635,11 +635,11 @@ class Module(NewExtensionModule):
         return static_lib
 
     def gen_config(self, state: 'ModuleState', config_name: str,
-                   targets: T.List['TestResultKwArgs'],
+                   targets: List['TestResultKwArgs'],
                    prefix: str, has_baseline: bool
                    ) -> str:
 
-        dispatch_calls: T.List[str] = []
+        dispatch_calls: List[str] = []
         for test in targets:
             c_detect = '&&'.join([
                 f'TEST_CB({d})' for d in test['detect']
@@ -690,17 +690,17 @@ class Module(NewExtensionModule):
         KwargInfo('reverse', bool, default = False),
     )
     def sort_method(self, state: 'ModuleState',
-                    args: T.Tuple[T.List[FeatureObject]],
-                    kwargs: T.Dict[str, bool]
-                    ) -> T.List[FeatureObject]:
+                    args: Tuple[List[FeatureObject]],
+                    kwargs: Dict[str, bool]
+                    ) -> List[FeatureObject]:
         return sorted(args[0], reverse=kwargs['reverse'])
 
     @typed_pos_args('features.implicit', varargs=FeatureObject, min_varargs=1)
     @noKwargs
     def implicit_method(self, state: 'ModuleState',
-                        args: T.Tuple[T.List[FeatureObject]],
+                        args: Tuple[List[FeatureObject]],
                         kwargs: 'TYPE_kwargs'
-                        ) -> T.List[FeatureObject]:
+                        ) -> List[FeatureObject]:
 
         features = args[0]
         return sorted(FeatureObject.get_implicit_multi(features))
@@ -708,7 +708,7 @@ class Module(NewExtensionModule):
     @typed_pos_args('features.implicit', varargs=FeatureObject, min_varargs=1)
     @noKwargs
     def implicit_c_method(self, state: 'ModuleState',
-                          args: T.Tuple[T.List[FeatureObject]],
+                          args: Tuple[List[FeatureObject]],
                           kwargs: 'TYPE_kwargs'
-                          ) -> T.List[FeatureObject]:
+                          ) -> List[FeatureObject]:
         return sorted(FeatureObject.get_implicit_combine_multi(args[0]))

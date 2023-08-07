@@ -1,12 +1,10 @@
 # Copyright (c) 2023, NumPy Developers.
-# All rights reserved.
-#
 
-import typing as T
+from typing import TYPE_CHECKING
 
 from .module import Module
 
-if T.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ...interpreter import Interpreter
 
 def initialize(interpreter: 'Interpreter') -> Module:
