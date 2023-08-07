@@ -31,9 +31,9 @@ if T.TYPE_CHECKING:
     from ...dependencies import Dependency  # noqa: F401
 
 clang_color_args: T.Dict[str, T.List[str]] = {
-    'auto': ['-fcolor-diagnostics'],
-    'always': ['-fcolor-diagnostics'],
-    'never': ['-fno-color-diagnostics'],
+    'auto': ['-fdiagnostics-color=auto'],
+    'always': ['-fdiagnostics-color=always'],
+    'never': ['-fdiagnostics-color=never'],
 }
 
 clang_optimization_args: T.Dict[str, T.List[str]] = {
