@@ -2049,6 +2049,15 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathExists(exe2)
         self.assertNotEqual(exe1, exe2)
 
+        # Wipe and run the compile command against the target names
+        self.init(testdir, extra_args=['--wipe'])
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, './foo'])
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, './foo.bin'])
+        self.assertPathExists(exe1)
+        self.assertPathExists(exe2)
+        self.assertNotEqual(exe1, exe2)
+
+
     def opt_has(self, name, value):
         res = self.introspect('--buildoptions')
         found = False
