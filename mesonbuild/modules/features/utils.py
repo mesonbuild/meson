@@ -2,6 +2,7 @@
 # All rights reserved.
 
 import typing as T
+import hashlib
 from ...mesonlib import MesonException, MachineChoice
 
 if T.TYPE_CHECKING:
@@ -32,3 +33,9 @@ def test_code(state: 'ModuleState', compiler: 'Compiler',
     ) as p:
         return p.cached, p.returncode == 0, p.stderr
 
+def generate_hash(*args: T.Any) -> str:
+    hasher = hashlib.sha1()
+    test: T.List[bytes] = []
+    for a in args:
+        hasher.update(bytes(str(a), encoding='utf-8'))
+    return hasher.hexdigest()
