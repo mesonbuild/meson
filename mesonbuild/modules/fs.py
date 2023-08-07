@@ -20,18 +20,21 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from ..build import CustomTarget, InvalidArguments
+from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
 from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
 from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
+from ..interpreterbase.baseobjects import TYPE_kwargs
 from ..mesonlib import (
     File,
     MesonException,
     has_path_sep,
     path_is_in_root,
 )
+from ..utils.universal import relpath
 
 if T.TYPE_CHECKING:
     from . import ModuleState
+    from ..build import BuildTargetTypes
     from ..interpreter import Interpreter
     from ..mesonlib import FileOrString, FileMode
 
@@ -75,6 +78,7 @@ class FSModule(ExtensionModule):
             'stem': self.stem,
             'read': self.read,
             'copyfile': self.copyfile,
+            'relative_to': self.relative_to,
         })
 
     def _absolute_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
@@ -311,6 +315,23 @@ class FSModule(ExtensionModule):
         )
 
         return ModuleReturnValue(ct, [ct])
+
+    @FeatureNew('fs.relative_to', '1.3.0')
+    @typed_pos_args('fs.relative_to', (str, File, CustomTarget, CustomTargetIndex, BuildTarget), (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    @noKwargs
+    def relative_to(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes], T.Union[FileOrString, BuildTargetTypes]], kwargs: TYPE_kwargs) -> str:
+        def to_path(arg: T.Union[FileOrString, CustomTarget, CustomTargetIndex, BuildTarget]) -> str:
+            if isinstance(arg, File):
+                return arg.absolute_path(state.environment.source_dir, state.environment.build_dir)
+            elif isinstance(arg, (CustomTarget, CustomTargetIndex, BuildTarget)):
+                return state.backend.get_target_filename_abs(arg)
+            else:
+                return os.path.join(state.environment.source_dir, state.subdir, arg)
+
+        t = to_path(args[0])
+        f = to_path(args[1])
+
+        return relpath(t, f)
 
 
 def initialize(*args: T.Any, **kwargs: T.Any) -> FSModule:
