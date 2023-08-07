@@ -1,10 +1,11 @@
 # Copyright (c) 2023, NumPy Developers.
 # All rights reserved.
-
-import typing as T
 import re
+from typing import (
+    Dict, Set, Tuple, List, Callable, Optional,
+    Union, Any, Iterable, cast, TYPE_CHECKING
+)
 from dataclasses import dataclass, field
-
 from ...mesonlib import File, MesonException
 from ...interpreter.type_checking import NoneType
 from ...interpreterbase.decorators import (
@@ -13,7 +14,7 @@ from ...interpreterbase.decorators import (
 )
 from .. import ModuleObject
 
-if T.TYPE_CHECKING:
+if TYPE_CHECKING:
     from typing import TypedDict
     from typing_extensions import NotRequired
     from ...interpreterbase import TYPE_var, TYPE_kwargs
@@ -40,10 +41,10 @@ class ConflictAttr:
 
     """
     val: str = field(hash=True, compare=True)
-    match: T.Union[re.Pattern, None] = field(
+    match: Union[re.Pattern, None] = field(
         default=None, hash=False, compare=False
     )
-    mfilter: T.Union[re.Pattern, None] = field(
+    mfilter: Union[re.Pattern, None] = field(
         default=None, hash=False, compare=False
     )
     mjoin: str = field(default='', hash=False, compare=False)
@@ -51,8 +52,8 @@ class ConflictAttr:
     def copy(self) -> 'ConflictAttr':
         return ConflictAttr(**self.__dict__)
 
-    def to_dict(self) -> T.Dict[str, str]:
-        ret: T.Dict[str, str] = {}
+    def to_dict(self) -> Dict[str, str]:
+        ret: Dict[str, str] = {}
         for attr in ('val', 'mjoin'):
             ret[attr] = getattr(self, attr)
         for attr in ('match', 'mfilter'):
@@ -65,7 +66,7 @@ class ConflictAttr:
         return ret
 
 class KwargConfilctAttr(KwargInfo):
-    def __init__(self, func_name: str, opt_name: str, default: T.Any = None):
+    def __init__(self, func_name: str, opt_name: str, default: Any = None):
         types = (
             NoneType, str, ContainerTypeInfo(dict, str),
             ContainerTypeInfo(list, (dict, str))
@@ -80,10 +81,10 @@ class KwargConfilctAttr(KwargInfo):
 
     @staticmethod
     def convert(func_name:str, opt_name: str, values: 'IMPLIED_ATTR',
-                ) -> T.Union[None, T.List[ConflictAttr]]:
+                ) -> Union[None, List[ConflictAttr]]:
         if values is None:
             return None
-        ret: T.List[ConflictAttr] = []
+        ret: List[ConflictAttr] = []
         values = [values] if isinstance(values, (str, dict)) else values
         accepted_keys = ('val', 'match', 'mfilter', 'mjoin')
         for edict in values:
@@ -124,20 +125,20 @@ class KwargConfilctAttr(KwargInfo):
             ret.append(implattr)
         return ret
 
-if T.TYPE_CHECKING:
-    IMPLIED_ATTR = T.Union[
-        None, str, T.Dict[str, str], T.List[
-            T.Union[str, T.Dict[str, str]]
+if TYPE_CHECKING:
+    IMPLIED_ATTR = Union[
+        None, str, Dict[str, str], List[
+            Union[str, Dict[str, str]]
         ]
     ]
     class FeatureKwArgs(TypedDict):
-        #implies: T.Optional[T.List['FeatureObject']]
-        implies: NotRequired[T.List[T.Any]]
-        group: NotRequired[T.List[str]]
-        detect: NotRequired[T.List[ConflictAttr]]
-        args: NotRequired[T.List[ConflictAttr]]
-        test_code: NotRequired[T.Union[str, File]]
-        extra_tests: NotRequired[T.Dict[str, T.Union[str, File]]]
+        #implies: Optional[List['FeatureObject']]
+        implies: NotRequired[List[Any]]
+        group: NotRequired[List[str]]
+        detect: NotRequired[List[ConflictAttr]]
+        args: NotRequired[List[ConflictAttr]]
+        test_code: NotRequired[Union[str, File]]
+        extra_tests: NotRequired[Dict[str, Union[str, File]]]
         disable: NotRequired[str]
 
     class FeatureUpdateKwArgs(FeatureKwArgs):
@@ -147,16 +148,16 @@ if T.TYPE_CHECKING:
 class FeatureObject(ModuleObject):
     name: str
     interest: int
-    implies: T.Set['FeatureObject']
-    group: T.List[str]
-    detect: T.List[ConflictAttr]
-    args: T.List[ConflictAttr]
-    test_code: T.Union[str, File]
-    extra_tests: T.Dict[str, T.Union[str, File]]
+    implies: Set['FeatureObject']
+    group: List[str]
+    detect: List[ConflictAttr]
+    args: List[ConflictAttr]
+    test_code: Union[str, File]
+    extra_tests: Dict[str, Union[str, File]]
     disable: str
 
     def __init__(self, state: 'ModuleState',
-                 args: T.List['TYPE_var'],
+                 args: List['TYPE_var'],
                  kwargs: 'TYPE_kwargs') -> None:
 
         super().__init__()
@@ -182,7 +183,7 @@ class FeatureObject(ModuleObject):
             KwargInfo('disable', (str), default=''),
         )
         def init_attrs(state: 'ModuleState',
-                       args: T.Tuple[str, int],
+                       args: Tuple[str, int],
                        kwargs: 'FeatureKwArgs') -> None:
             self.name = args[0]
             self.interest = args[1]
@@ -205,7 +206,7 @@ class FeatureObject(ModuleObject):
             'get': self.get_method,
         })
 
-    def update_method(self, state: 'ModuleState', args: T.List['TYPE_var'],
+    def update_method(self, state: 'ModuleState', args: List['TYPE_var'],
                       kwargs: 'TYPE_kwargs') -> 'FeatureObject':
         @noPosargs
         @typed_kwargs('features.FeatureObject.update',
@@ -231,7 +232,7 @@ class FeatureObject(ModuleObject):
             ),
             KwargInfo('disable', (NoneType, str)),
         )
-        def update(state: 'ModuleState', args: T.List['TYPE_var'],
+        def update(state: 'ModuleState', args: List['TYPE_var'],
                    kwargs: 'FeatureUpdateKwArgs') -> None:
             for k, v in kwargs.items():
                 if v is not None and k != 'implies':
@@ -244,7 +245,7 @@ class FeatureObject(ModuleObject):
 
     @noKwargs
     @typed_pos_args('features.FeatureObject.get', str)
-    def get_method(self, state: 'ModuleState', args: T.Tuple[str],
+    def get_method(self, state: 'ModuleState', args: Tuple[str],
                    kwargs: 'TYPE_kwargs') -> 'TYPE_var':
 
         impl_lst = lambda lst: [v.to_dict() for v in lst]
@@ -260,14 +261,14 @@ class FeatureObject(ModuleObject):
             'extra_tests': noconv,
             'disable': noconv
         }
-        cfunc: T.Optional[T.Callable[[str], 'TYPE_var']] = dfunc.get(args[0])
+        cfunc: Optional[Callable[[str], 'TYPE_var']] = dfunc.get(args[0])
         if cfunc is None:
             raise MesonException(f'Key {args[0]!r} is not in the feature.')
         val = getattr(self, args[0])
         return cfunc(val)
 
-    def get_implicit(self, _caller: T.Set['FeatureObject'] = None
-                     ) -> T.Set['FeatureObject']:
+    def get_implicit(self, _caller: Set['FeatureObject'] = None
+                     ) -> Set['FeatureObject']:
         # infinity recursive guard since
         # features can imply each other
         _caller = {self, } if not _caller else _caller.union({self, })
@@ -278,19 +279,19 @@ class FeatureObject(ModuleObject):
         return ret
 
     @staticmethod
-    def get_implicit_multi(features: T.Iterable['FeatureObject']) -> T.Set['FeatureObject']:
+    def get_implicit_multi(features: Iterable['FeatureObject']) -> Set['FeatureObject']:
         implies = set().union(*[f.get_implicit() for f in features])
         return implies
 
     @staticmethod
-    def get_implicit_combine_multi(features: T.Iterable['FeatureObject']) -> T.Set['FeatureObject']:
+    def get_implicit_combine_multi(features: Iterable['FeatureObject']) -> Set['FeatureObject']:
         return FeatureObject.get_implicit_multi(features).union(features)
 
     @staticmethod
-    def sorted_multi(features: T.Iterable[T.Union['FeatureObject', T.Iterable['FeatureObject']]],
+    def sorted_multi(features: Iterable[Union['FeatureObject', Iterable['FeatureObject']]],
                      reverse: bool = False
-                     ) -> T.List[T.Union['FeatureObject', T.Iterable['FeatureObject']]]:
-        def sort_cb(k: T.Union[FeatureObject, T.Iterable[FeatureObject]]) -> int:
+                     ) -> List[Union['FeatureObject', Iterable['FeatureObject']]]:
+        def sort_cb(k: Union[FeatureObject, Iterable[FeatureObject]]) -> int:
             if isinstance(k, FeatureObject):
                 return k.interest
             # keep prevalent features and erase any implied features
@@ -310,8 +311,8 @@ class FeatureObject(ModuleObject):
         return sorted(features, reverse=reverse, key=sort_cb)
 
     @staticmethod
-    def features_names(features: T.Iterable[T.Union['FeatureObject', T.Iterable['FeatureObject']]]
-                       ) -> T.List[T.Union[str, T.List[str]]]:
+    def features_names(features: Iterable[Union['FeatureObject', Iterable['FeatureObject']]]
+                       ) -> List[Union[str, List[str]]]:
         return [
             fet.name if isinstance(fet, FeatureObject)
             else [f.name for f in fet]
@@ -338,18 +339,18 @@ class FeatureObject(ModuleObject):
             return False
         return self is robj and self.name == robj.name
 
-    def __lt__(self, robj: object) -> T.Any:
+    def __lt__(self, robj: object) -> Any:
         if not isinstance(robj, FeatureObject):
             return NotImplemented
         return self.interest < robj.interest
 
-    def __le__(self, robj: object) -> T.Any:
+    def __le__(self, robj: object) -> Any:
         if not isinstance(robj, FeatureObject):
             return NotImplemented
         return self.interest <= robj.interest
 
-    def __gt__(self, robj: object) -> T.Any:
+    def __gt__(self, robj: object) -> Any:
         return robj < self
 
-    def __ge__(self, robj: object) -> T.Any:
+    def __ge__(self, robj: object) -> Any:
         return robj <= self
