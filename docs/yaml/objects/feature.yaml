@@ -90,7 +90,7 @@ methods:
     error_message:
       type: str
       default: "''"
-      description: The error Message to print if the check fails
+      description: The error message to print if the check fails
 
 - name: enable_if
   returns: feature
@@ -124,7 +124,7 @@ methods:
     error_message:
       type: str
       default: "''"
-      description: The error Message to print if the check fails
+      description: The error message to print if the check fails
 
 - name: disable_if
   returns: feature
@@ -162,4 +162,4 @@ methods:
     error_message:
       type: str
       default: "''"
-      description: The error Message to print if the check fails
+      description: The error message to print if the check fails
