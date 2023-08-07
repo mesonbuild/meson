@@ -61,9 +61,11 @@ def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
 
 class ParsedTargetName:
     full_name = ''
+    base_name = ''
     name = ''
     type = ''
     path = ''
+    suffix = ''
 
     def __init__(self, target: str):
         self.full_name = target
@@ -79,6 +81,13 @@ class ParsedTargetName:
             self.name = split[1]
         else:
             self.name = split[0]
+
+        split = self.name.rsplit('.', 1)
+        if len(split) > 1:
+            self.base_name = split[0]
+            self.suffix = split[1]
+        else:
+            self.base_name = split[0]
 
     @staticmethod
     def _is_valid_type(type: str) -> bool:
@@ -96,19 +105,32 @@ class ParsedTargetName:
         return type in allowed_types
 
 def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
-    if target.name not in introspect_data:
+    if target.name not in introspect_data and target.base_name not in introspect_data:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
 
     intro_targets = introspect_data[target.name]
+    # if target.name doesn't find anything, try just the base name
+    if not intro_targets:
+        intro_targets = introspect_data[target.base_name]
     found_targets: T.List[T.Dict[str, T.Any]] = []
 
     resolved_bdir = builddir.resolve()
 
-    if not target.type and not target.path:
+    if not target.type and not target.path and not target.suffix:
         found_targets = intro_targets
     else:
         for intro_target in intro_targets:
+            # Parse out the name from the id if needed
+            intro_target_name = intro_target['name']
+            split = intro_target['id'].rsplit('@', 1)
+            if len(split) > 1:
+                split = split[0].split('@@', 1)
+                if len(split) > 1:
+                    intro_target_name = split[1]
+                else:
+                    intro_target_name = split[0]
             if ((target.type and target.type != intro_target['type'].replace(' ', '_')) or
+                (target.name != intro_target_name) or
                 (target.path and intro_target['filename'] != 'no_name' and
                  Path(target.path) != Path(intro_target['filename'][0]).relative_to(resolved_bdir).parent)):
                 continue
@@ -119,12 +141,20 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     elif len(found_targets) > 1:
         suggestions: T.List[str] = []
         for i in found_targets:
-            p = Path(i['filename'][0]).relative_to(resolved_bdir).parent / i['name']
+            i_name = i['name']
+            split = i['id'].rsplit('@', 1)
+            if len(split) > 1:
+                split = split[0].split('@@', 1)
+                if len(split) > 1:
+                    i_name = split[1]
+                else:
+                    i_name = split[0]
+            p = Path(i['filename'][0]).relative_to(resolved_bdir).parent / i_name
             t = i['type'].replace(' ', '_')
             suggestions.append(f'- ./{p}:{t}')
         suggestions_str = '\n'.join(suggestions)
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambiguous name.'
-                             f'Add target type and/or path:\n{suggestions_str}')
+                             f' Add target type and/or path:\n{suggestions_str}')
 
     return found_targets[0]
 
@@ -278,7 +308,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         metavar='TARGET',
         nargs='*',
         default=None,
-        help='Targets to build. Target has the following format: [PATH_TO_TARGET/]TARGET_NAME[:TARGET_TYPE].')
+        help='Targets to build. Target has the following format: [PATH_TO_TARGET/]TARGET_NAME.TARGET_SUFFIX[:TARGET_TYPE].')
     parser.add_argument(
         '--clean',
         action='store_true',
