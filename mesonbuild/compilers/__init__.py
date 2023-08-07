@@ -15,6 +15,7 @@
 # Public symbols for compilers sub-package when using 'from . import compilers'
 __all__ = [
     'Compiler',
+    'CompileResult',
     'RunResult',
 
     'all_languages',
@@ -57,6 +58,7 @@ __all__ = [
 # Bring symbols from each module into compilers sub-package namespace
 from .compilers import (
     Compiler,
+    CompileResult,
     RunResult,
     all_languages,
     base_options,
