@@ -91,7 +91,8 @@ class MesonVersionMismatchException(MesonException):
     '''Build directory generated with Meson version is incompatible with current version'''
     def __init__(self, old_version: str, current_version: str) -> None:
         super().__init__(f'Build directory has been generated with Meson version {old_version}, '
-                         f'which is incompatible with the current version {current_version}.')
+                         f'which is incompatible with the current version {current_version}. '
+                         f'Consider reconfiguring the directory with meson setup --reconfigure.')
         self.old_version = old_version
         self.current_version = current_version
 
