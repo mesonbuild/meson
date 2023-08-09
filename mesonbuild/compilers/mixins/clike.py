@@ -1090,27 +1090,25 @@ class CLikeCompiler(Compiler):
         return [f]
 
     @staticmethod
-    def _get_file_from_list(env: 'Environment', paths: T.List[Path]) -> Path:
+    def _get_file_from_list(env: Environment, paths: T.List[Path]) -> T.Optional[Path]:
         '''
         We just check whether the library exists. We can't do a link check
         because the library might have unresolved symbols that require other
         libraries. On macOS we check if the library matches our target
         architecture.
         '''
-        # If not building on macOS for Darwin, do a simple file check
-        if not env.machines.host.is_darwin() or not env.machines.build.is_darwin():
-            for p in paths:
-                if p.is_file():
-                    return p
-        # Run `lipo` and check if the library supports the arch we want
         for p in paths:
-            if not p.is_file():
-                continue
-            archs = mesonlib.darwin_get_object_archs(str(p))
-            if archs and env.machines.host.cpu_family in archs:
+            if p.is_file():
+
+                if env.machines.host.is_darwin() and env.machines.build.is_darwin():
+                    # Run `lipo` and check if the library supports the arch we want
+                    archs = mesonlib.darwin_get_object_archs(str(p))
+                    if not archs or env.machines.host.cpu_family not in archs:
+                        mlog.debug(f'Rejected {p}, supports {archs} but need {env.machines.host.cpu_family}')
+                        continue
+
                 return p
-            else:
-                mlog.debug(f'Rejected {p}, supports {archs} but need {env.machines.host.cpu_family}')
+
         return None
 
     @functools.lru_cache()
