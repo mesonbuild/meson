@@ -1353,8 +1353,6 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        if detect_c_compiler(env, MachineChoice.HOST).get_id() == 'clang' and is_windows():
-            raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args='-Db_lto=true')
         self.build()
@@ -1367,9 +1365,6 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         extra_args: T.List[str] = []
-        if cc.get_id() == 'clang':
-            if is_windows():
-                raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'] + extra_args)
         self.build()
@@ -1392,12 +1387,10 @@ class AllPlatformTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
-        if cc.get_id() != 'clang':
-            raise SkipTest('Only clang currently supports thinLTO')
+        if cc.get_id() not in {'clang', 'clang-cl'}:
+            raise SkipTest('Only clang/clang-cl currently support thinLTO')
         if cc.linker.id not in {'ld.lld', 'ld.gold', 'ld64', 'lld-link'}:
             raise SkipTest('thinLTO requires ld.lld, ld.gold, ld64, or lld-link')
-        elif is_windows():
-            raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_mode=thin', '-Db_lto_threads=8', '-Dc_args=-Werror=unused-command-line-argument'])
         self.build()

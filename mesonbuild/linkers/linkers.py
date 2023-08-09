@@ -356,6 +356,12 @@ class VisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
         VisualStudioLikeLinker.__init__(self, machine)
 
 
+class LlvmVisualStudioLinker(VisualStudioLinker):
+    # Used to help detect known compiler, static linker (archiver), and
+    # dynamic linker incompatibilities.
+    id = 'llvm-lib'
+
+
 class IntelVisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
 
     """Intel's xilib static linker."""
@@ -411,6 +417,12 @@ class ArmarLinker(ArLikeLinker, StaticLinker):
     id = 'armar'
 
 
+class LlvmArLinker(ArLinker):
+    # Used to help detect known compiler, static linker (archiver), and
+    # dynamic linker incompatibilities.
+    id = 'llvm-ar'
+
+
 class DLinker(StaticLinker):
     def __init__(self, exelist: T.List[str], arch: str, *, rsp_syntax: RSPFileSyntax = RSPFileSyntax.GCC):
         super().__init__(exelist)
@@ -438,10 +450,10 @@ class DLinker(StaticLinker):
 
 
 class CcrxLinker(StaticLinker):
+    id = 'rlink'
 
     def __init__(self, exelist: T.List[str]):
         super().__init__(exelist)
-        self.id = 'rlink'
 
     def can_linker_accept_rsp(self) -> bool:
         return False
@@ -454,10 +466,10 @@ class CcrxLinker(StaticLinker):
 
 
 class Xc16Linker(StaticLinker):
+    id = 'xc16-ar'
 
     def __init__(self, exelist: T.List[str]):
         super().__init__(exelist)
-        self.id = 'xc16-ar'
 
     def can_linker_accept_rsp(self) -> bool:
         return False
@@ -469,10 +481,10 @@ class Xc16Linker(StaticLinker):
         return ['rcs']
 
 class CompCertLinker(StaticLinker):
+    id = 'ccomp'
 
     def __init__(self, exelist: T.List[str]):
         super().__init__(exelist)
-        self.id = 'ccomp'
 
     def can_linker_accept_rsp(self) -> bool:
         return False
@@ -482,10 +494,10 @@ class CompCertLinker(StaticLinker):
 
 
 class TILinker(StaticLinker):
+    id = 'ti-ar'
 
     def __init__(self, exelist: T.List[str]):
         super().__init__(exelist)
-        self.id = 'ti-ar'
 
     def can_linker_accept_rsp(self) -> bool:
         return False
@@ -508,7 +520,6 @@ class AIXArLinker(ArLikeLinker, StaticLinker):
 
 
 class MetrowerksStaticLinker(StaticLinker):
-
     def can_linker_accept_rsp(self) -> bool:
         return True
 
@@ -1211,9 +1222,10 @@ NvidiaHPC_DynamicLinker = PGIDynamicLinker
 
 
 class PGIStaticLinker(StaticLinker):
+    id = '(pgi)ar' # This used to clash with the same id as ArLinker ('ar'), making id inadequate for identifying static linkers.
+
     def __init__(self, exelist: T.List[str]):
         super().__init__(exelist)
-        self.id = 'ar'
         self.std_args = ['-r']
 
     def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
