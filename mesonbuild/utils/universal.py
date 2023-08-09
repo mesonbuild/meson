@@ -1547,7 +1547,13 @@ def Popen_safe_logged(args: T.List[str], msg: str = 'Called', **kwargs: T.Any) -
     '''
     Wrapper around Popen_safe that assumes standard piped o/e and logs this to the meson log.
     '''
-    p, o, e = Popen_safe(args, **kwargs)
+    try:
+        p, o, e = Popen_safe(args, **kwargs)
+    except Exception as excp:
+        mlog.debug('-----------')
+        mlog.debug(f'{msg}: `{join_args(args)}` -> {excp}')
+        raise
+
     rc, out, err = p.returncode, o.strip(), e.strip()
     mlog.debug('-----------')
     mlog.debug(f'{msg}: `{join_args(args)}` -> {rc}')
