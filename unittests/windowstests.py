@@ -443,7 +443,16 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('C++ modules is only supported with Visual Studio.')
         if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
             raise SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
-        self.init(os.path.join(self.unit_test_dir, '85 cpp modules'))
+        # Even after all the above, it's still possible that we're configured to
+        # build with the clang-cl compiler (i.e. with 'CXX=clang-cl' env.var),
+        # which, at least as of vesion 15.0.1, doesn't yet have modules support.
+        testdir = os.path.join(self.unit_test_dir, '85 cpp modules')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_id() == 'clang-cl':
+            # FIXME: When supported, skip depending on version number.
+            raise SkipTest('clang-cl does not yet support C++ modules')
+        self.init(testdir)
         self.build()
 
     def test_non_utf8_fails(self):
