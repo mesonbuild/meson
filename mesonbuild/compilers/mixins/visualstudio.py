@@ -37,6 +37,12 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
+clangcl_color_args: T.Dict[str, T.List[str]] = {
+    'auto': ['-fcolor-diagnostics'],
+    'always': ['-fcolor-diagnostics'],
+    'never': ['-fno-color-diagnostics'],
+}
+
 vs32_instruction_set_args: T.Dict[str, T.Optional[T.List[str]]] = {
     'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
     'sse': ['/arch:SSE'],
@@ -450,7 +456,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         self.base_options.update(
             {mesonlib.OptionKey('b_lto'), mesonlib.OptionKey('b_lto_threads'),
              mesonlib.OptionKey('b_lto_mode'), mesonlib.OptionKey('b_thinlto_cache'),
-             mesonlib.OptionKey('b_thinlto_cache_dir')})
+             mesonlib.OptionKey('b_thinlto_cache_dir'), mesonlib.OptionKey('b_colorout')})
 
         # Assembly
         self.can_compile_suffixes.add('s')
@@ -484,6 +490,9 @@ class ClangClCompiler(VisualStudioLikeCompiler):
             return converted
         else:
             return dep.get_compile_args()
+
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
+        return clangcl_color_args[colortype][:]
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         if not mesonlib.version_compare(self.version, '>=15.0.1'):
