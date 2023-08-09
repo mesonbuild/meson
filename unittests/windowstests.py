@@ -358,8 +358,8 @@ class WindowsTests(BasePlatformTests):
         for f in (dll, exe):
             pe = pefile.PE(f)
             msg = f'PE file: {f!r}, compiler: {cc_id!r}, linker: {ld_id!r}'
-            if cc_id == 'clang-cl':
-                # Latest clang-cl tested (7.0) does not write checksums out
+            if ld_id in {'ld.lld', 'lld-link'}:
+                # Latest llvm-based lld linkers (as of 16.0.5) do not write checksums out
                 self.assertFalse(pe.verify_checksum(), msg=msg)
             else:
                 # Verify that a valid checksum was written by all other compilers
