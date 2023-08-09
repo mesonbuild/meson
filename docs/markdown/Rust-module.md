@@ -105,3 +105,32 @@ were never turned on by Meson.
 [properties]
 bindgen_clang_arguments = ['--target', 'x86_64-linux-gnu']
 ```
+
+### proc_macro()
+
+```meson
+rustmod.proc_macro(name, sources, ...)
+```
+
+*Since 1.3.0*
+
+This function creates a Rust `proc-macro` crate, similar to:
+```meson
+[[shared_library]](name, sources,
+  rust_crate_type: 'proc-macro',
+  native: true)
+```
+
+`proc-macro` targets can be passed to `link_with` keyword argument of other Rust
+targets.
+
+Only a subset of [[shared_library]] keyword arguments are allowed:
+- rust_args
+- rust_dependency_map
+- sources
+- dependencies
+- extra_files
+- link_args
+- link_depends
+- link_with
+- override_options

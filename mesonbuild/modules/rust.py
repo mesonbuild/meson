@@ -15,13 +15,15 @@ from __future__ import annotations
 
 import os
 import typing as T
+from mesonbuild.interpreterbase.decorators import FeatureNew
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, CustomTarget, InvalidArguments, Jar, StructuredSources
+from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
+                     CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
 from ..compilers.compilers import are_asserts_disabled
-from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
+from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..mesonlib import File
 
 if T.TYPE_CHECKING:
@@ -32,6 +34,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..programs import ExternalProgram, OverrideProgram
+    from ..interpreter.type_checking import SourcesVarargsType
 
     from typing_extensions import TypedDict
 
@@ -64,6 +67,7 @@ class RustModule(ExtensionModule):
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
+            'proc_macro': self.proc_macro,
         })
 
     @typed_pos_args('rust.test', str, BuildTarget)
@@ -267,6 +271,19 @@ class RustModule(ExtensionModule):
         )
 
         return ModuleReturnValue([target], [target])
+
+    # Allow a limited set of kwargs, but still use the full set of typed_kwargs()
+    # because it could be setting required default values.
+    @FeatureNew('rust.proc_macro', '1.3.0')
+    @permittedKwargs({'rust_args', 'rust_dependency_map', 'sources', 'dependencies', 'extra_files',
+                      'link_args', 'link_depends', 'link_with', 'override_options'})
+    @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
+    @typed_kwargs('rust.proc_macro', *SHARED_LIB_KWS, allow_unknown=True)
+    def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: T.Dict) -> SharedLibrary:
+        kwargs['native'] = True
+        kwargs['rust_crate_type'] = 'proc-macro'
+        target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
+        return T.cast('SharedLibrary', target)
 
 
 def initialize(interp: Interpreter) -> RustModule:
