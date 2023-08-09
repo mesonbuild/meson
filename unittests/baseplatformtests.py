@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
+# Copyright © 2023 Intel Corporation
+
+from __future__ import annotations
 
 from pathlib import PurePath
 from unittest import mock, TestCase, SkipTest
@@ -32,6 +35,17 @@ from run_tests import (
     get_builddir_target_args, get_meson_script, run_configure_inprocess,
     run_mtest_inprocess, handle_meson_skip_test,
 )
+
+if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
+    class CompDBEntry(TypedDict):
+        directory: str
+        command: str
+        file: str
+        output: str
+
+    CompDBType = T.List[CompDBEntry]
 
 
 # magic attribute used by unittest.result.TestResult._is_relevant_tb_level
@@ -306,12 +320,12 @@ class BasePlatformTests(TestCase):
         ensure_backend_detects_changes(self.backend)
         os.utime(f)
 
-    def get_compdb(self):
+    def get_compdb(self) -> CompDBType:
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Compiler db not available with {self.backend.name} backend')
         try:
             with open(os.path.join(self.builddir, 'compile_commands.json'), encoding='utf-8') as ifile:
-                contents = json.load(ifile)
+                contents: CompDBType = json.load(ifile)
         except FileNotFoundError:
             raise SkipTest('Compiler db not found')
         # If Ninja is using .rsp files, generate them, read their contents, and
