@@ -123,7 +123,7 @@ class RustCompiler(Compiler):
 
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
-        p, stdo, stde = Popen_safe(cmd)
+        _, stdo, _ = Popen_safe(cmd)
         return stdo.split('\n', maxsplit=1)[0]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:

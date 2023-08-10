@@ -344,7 +344,7 @@ class CmakeModule(ExtensionModule):
         regex = mesonlib.get_variable_regex('cmake@')
         for line in data:
             line = line.replace('@PACKAGE_INIT@', package_init)
-            line, _missing = mesonlib.do_replacement(regex, line, 'cmake@', confdata)
+            line, _ = mesonlib.do_replacement(regex, line, 'cmake@', confdata)
 
             result.append(line)
 

@@ -657,14 +657,14 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
     from . import fortran
     from ..linkers import linkers
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
-    compilers, ccache, exe_wrap = _get_compilers(env, 'fortran', for_machine)
+    compilers, _, exe_wrap = _get_compilers(env, 'fortran', for_machine)
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]
     cls: T.Type[FortranCompiler]
     for compiler in compilers:
         for arg in ['--version', '-V']:
             try:
-                p, out, err = Popen_safe_logged(compiler + [arg], msg='Detecting compiler via')
+                _, out, err = Popen_safe_logged(compiler + [arg], msg='Detecting compiler via')
             except OSError as e:
                 popen_exceptions[join_args(compiler + [arg])] = e
                 continue
@@ -1102,7 +1102,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
 
     popen_exceptions = {}
     is_cross = env.is_cross_build(for_machine)
-    compilers, ccache, exe_wrap = _get_compilers(env, 'd', for_machine)
+    compilers, _, exe_wrap = _get_compilers(env, 'd', for_machine)
     cls: T.Type[d.DCompiler]
     for exelist in compilers:
         # Search for a D compiler.
