@@ -35,9 +35,6 @@ if T.TYPE_CHECKING:
     class OperatorCall(Protocol[__T]):
         def __call__(self, other: __T) -> 'TYPE_var': ...
 
-TV_fw_var = T.Union[str, int, bool, list, dict, 'InterpreterObject']
-TV_fw_args = T.List[T.Union[mparser.BaseNode, TV_fw_var]]
-TV_fw_kwargs = T.Dict[str, T.Union[mparser.BaseNode, TV_fw_var]]
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 

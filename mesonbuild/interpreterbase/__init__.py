@@ -46,7 +46,6 @@ __all__ = [
     'disablerIfNotFound',
     'permittedKwargs',
     'typed_operator',
-    'unary_operator',
     'typed_pos_args',
     'ContainerTypeInfo',
     'KwargInfo',
@@ -62,9 +61,6 @@ __all__ = [
 
     'SubProject',
 
-    'TV_fw_var',
-    'TV_fw_args',
-    'TV_fw_kwargs',
     'TV_func',
     'TYPE_elementary',
     'TYPE_var',
@@ -85,9 +81,6 @@ from .baseobjects import (
     MutableInterpreterObject,
     ContextManagerObject,
 
-    TV_fw_var,
-    TV_fw_args,
-    TV_fw_kwargs,
     TV_func,
     TYPE_elementary,
     TYPE_var,
@@ -115,7 +108,6 @@ from .decorators import (
     ContainerTypeInfo,
     KwargInfo,
     typed_operator,
-    unary_operator,
     typed_kwargs,
     FeatureCheckBase,
     FeatureNew,
