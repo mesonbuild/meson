@@ -1147,7 +1147,7 @@ class NinjaBackend(backends.Backend):
                 deps.append(os.path.join(self.get_target_dir(i), output))
         return deps
 
-    def generate_custom_target(self, target):
+    def generate_custom_target(self, target: build.CustomTarget):
         self.custom_target_generator_inputs(target)
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
@@ -1185,7 +1185,7 @@ class NinjaBackend(backends.Backend):
             elem.add_item('pool', 'console')
         full_name = Path(target.subdir, target.name).as_posix()
         elem.add_item('COMMAND', cmd)
-        elem.add_item('description', f'Generating {full_name} with a custom command{cmd_type}')
+        elem.add_item('description', target.description.format(full_name) + cmd_type)
         self.add_build(elem)
         self.processed_targets.add(target.get_id())
 

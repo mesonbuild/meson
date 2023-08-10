@@ -263,6 +263,7 @@ class RustModule(ExtensionModule):
             extra_depends=depends,
             depend_files=depend_files,
             backend=state.backend,
+            description='Generating bindings for Rust {}',
         )
 
         return ModuleReturnValue([target], [target])

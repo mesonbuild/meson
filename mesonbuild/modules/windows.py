@@ -206,6 +206,7 @@ class WindowsModule(ExtensionModule):
                 depfile=depfile,
                 depend_files=wrc_depend_files,
                 extra_depends=wrc_depends,
+                description='Compiling Windows resource {}',
             ))
 
         return ModuleReturnValue(res_targets, [res_targets])

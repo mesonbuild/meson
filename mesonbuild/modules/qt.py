@@ -348,6 +348,7 @@ class QtBaseModule(ExtensionModule):
                 [f'{name}.cpp'],
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
+                description='Compiling Qt resources {}',
             )
             targets.append(res_target)
         else:
@@ -368,6 +369,7 @@ class QtBaseModule(ExtensionModule):
                     [f'{name}.cpp'],
                     depend_files=qrc_deps,
                     depfile=f'{name}.d',
+                    description='Compiling Qt resources {}',
                 )
                 targets.append(res_target)
 
@@ -600,6 +602,7 @@ class QtBaseModule(ExtensionModule):
                 install_dir=[kwargs['install_dir']],
                 install_tag=['i18n'],
                 build_by_default=kwargs['build_by_default'],
+                description='Compiling Qt translations {}',
             )
             translations.append(lrelease_target)
         if qresource:

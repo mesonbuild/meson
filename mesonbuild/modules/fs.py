@@ -306,6 +306,7 @@ class FSModule(ExtensionModule):
             install_mode=kwargs['install_mode'],
             install_tag=[kwargs['install_tag']],
             backend=state.backend,
+            description='Copying file {}',
         )
 
         return ModuleReturnValue(ct, [ct])
