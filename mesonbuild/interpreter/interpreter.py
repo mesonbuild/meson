@@ -1619,7 +1619,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           for_machine: MachineChoice = MachineChoice.HOST,
                           default_options: T.Optional[T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None,
                           required: bool = True, silent: bool = True,
-                          wanted: T.Union[str, T.List[str]] = '',
+                          wanted: T.Union[None, str, T.Iterable[str]] = None,
                           search_dirs: T.Optional[T.List[str]] = None,
                           version_func: T.Optional[T.Callable[[T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']], str]] = None
                           ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:

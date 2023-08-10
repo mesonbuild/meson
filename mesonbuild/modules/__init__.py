@@ -87,7 +87,7 @@ class ModuleState:
     def find_program(self, prog: T.Union[mesonlib.FileOrString, T.List[mesonlib.FileOrString]],
                      required: bool = True,
                      version_func: T.Optional[T.Callable[[T.Union[ExternalProgram, build.Executable, OverrideProgram]], str]] = None,
-                     wanted: T.Optional[str] = None, silent: bool = False,
+                     wanted: T.Union[None, str, T.Iterable[str]] = None, silent: bool = False,
                      for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[ExternalProgram, build.Executable, OverrideProgram]:
         if not isinstance(prog, list):
             prog = [prog]
@@ -95,7 +95,7 @@ class ModuleState:
                                                    wanted=wanted, silent=silent, for_machine=for_machine)
 
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
-                  wanted: T.Optional[str] = None) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
+                  wanted: T.Union[None, str, T.Iterable[str]] = None) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         # Look in overrides in case it's built as subproject
         progobj = self._interpreter.program_from_overrides([name], [])
         if progobj is not None:
@@ -117,7 +117,7 @@ class ModuleState:
         return self.find_program(name, required=required, wanted=wanted)
 
     def dependency(self, depname: str, native: bool = False, required: bool = True,
-                   wanted: T.Optional[str] = None) -> 'Dependency':
+                   wanted: T.Union[None, str, T.Iterable[str]] = None) -> 'Dependency':
         kwargs: T.Dict[str, object] = {'native': native, 'required': required}
         if wanted:
             kwargs['version'] = wanted
