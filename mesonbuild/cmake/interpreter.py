@@ -524,14 +524,14 @@ class ConverterTarget:
             self.compile_opts[lang] += [x for x in opts if x not in self.compile_opts[lang]]
 
     @lru_cache(maxsize=None)
-    def _all_source_suffixes(self) -> 'ImmutableListProtocol[str]':
+    def _all_source_suffixes(self) -> ImmutableListProtocol[str]:
         suffixes: T.List[str] = []
         for exts in lang_suffixes.values():
             suffixes.extend(exts)
         return suffixes
 
     @lru_cache(maxsize=None)
-    def _all_lang_stds(self, lang: str) -> 'ImmutableListProtocol[str]':
+    def _all_lang_stds(self, lang: str) -> ImmutableListProtocol[str]:
         try:
             res = self.env.coredata.options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices
         except KeyError:

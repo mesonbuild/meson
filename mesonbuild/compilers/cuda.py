@@ -652,7 +652,7 @@ class CudaCompiler(Compiler):
         overrides = {std_key: 'none'}
         return coredata.OptionsView(host_options, overrides=overrides)
 
-    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: KeyedOptionDictType) -> T.List[str]:
         args = self.get_ccbin_args(options)
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
@@ -665,7 +665,7 @@ class CudaCompiler(Compiler):
 
         return args + self._to_host_flags(self.host_compiler.get_option_compile_args(self._to_host_compiler_options(options)))
 
-    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: KeyedOptionDictType) -> T.List[str]:
         args = self.get_ccbin_args(options)
         return args + self._to_host_flags(self.host_compiler.get_option_link_args(self._to_host_compiler_options(options)), _Phase.LINKER)
 
@@ -748,7 +748,7 @@ class CudaCompiler(Compiler):
     def get_std_exe_link_args(self) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), _Phase.LINKER)
 
-    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
+    def find_library(self, libname: str, env: Environment, extra_dirs: T.List[str],
                      libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
         return ['-l' + libname] # FIXME
 
@@ -773,7 +773,7 @@ class CudaCompiler(Compiler):
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return self._to_host_flags(super().get_dependency_link_args(dep), _Phase.LINKER)
 
-    def get_ccbin_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_ccbin_args(self, options: KeyedOptionDictType) -> T.List[str]:
         key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
         ccbindir = options[key].value
         if isinstance(ccbindir, str) and ccbindir != '':

@@ -344,7 +344,7 @@ def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
 def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '_T') -> '_T':
     """Get the value of an option, or the fallback value."""
     try:
-        v: '_T' = options[opt].value
+        v: _T = options[opt].value
     except KeyError:
         return fallback
 
@@ -1339,7 +1339,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
         raise EnvironmentException(f'{self.id} does not know how to do prelinking.')
 
-    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+    def rsp_file_syntax(self) -> RSPFileSyntax:
         """The format of the RSP file that this compiler supports.
 
         If `self.can_linker_accept_rsp()` returns True, then this needs to
@@ -1366,7 +1366,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       env: 'Environment') -> 'KeyedOptionDictType':
+                       env: Environment) -> KeyedOptionDictType:
     """Retrieve options that apply to all compilers for a given language."""
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey('args', lang=lang, machine=for_machine)

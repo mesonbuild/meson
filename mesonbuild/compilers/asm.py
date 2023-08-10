@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import typing as T
 
@@ -36,8 +38,8 @@ class NasmCompiler(Compiler):
     }
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
-                 for_machine: 'MachineChoice', info: 'MachineInfo',
-                 linker: T.Optional['DynamicLinker'] = None,
+                 for_machine: MachineChoice, info: MachineInfo,
+                 linker: T.Optional[DynamicLinker] = None,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
         super().__init__(ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
         if 'link' in self.linker.id:

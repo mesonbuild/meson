@@ -175,7 +175,7 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
             args.append('-std=' + std.value)
         return args
 
-    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: KeyedOptionDictType) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typedict mypy can't understand this.
             libs = options[OptionKey('winlibs', machine=self.for_machine, lang=self.language)].value.copy()
@@ -625,7 +625,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
 
 class Xc16CCompiler(Xc16Compiler, CCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
+                 is_cross: bool, info: MachineInfo,
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
@@ -633,7 +633,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
                            info, exe_wrapper, linker=linker, full_version=full_version)
         Xc16Compiler.__init__(self)
 
-    def get_options(self) -> 'MutableKeyedOptionDictType':
+    def get_options(self) -> MutableKeyedOptionDictType:
         opts = CCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
         assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
@@ -705,8 +705,8 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
 
 class TICCompiler(TICompiler, CCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 is_cross: bool, info: MachineInfo,
+                 exe_wrapper: T.Optional[ExternalProgram] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,

@@ -127,7 +127,7 @@ class I18nModule(ExtensionModule):
 
     INFO = ModuleInfo('i18n')
 
-    def __init__(self, interpreter: 'Interpreter'):
+    def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
         self.methods.update({
             'merge_file': self.merge_file,
@@ -163,7 +163,7 @@ class I18nModule(ExtensionModule):
         KwargInfo('po_dir', str, required=True),
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
-    def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
+    def merge_file(self, state: ModuleState, args: T.List[TYPE_var], kwargs: MergeFile) -> ModuleReturnValue:
         if self.tools['msgfmt'] is None or not self.tools['msgfmt'].found():
             self.tools['msgfmt'] = state.find_program('msgfmt', for_machine=mesonlib.MachineChoice.BUILD)
         if isinstance(self.tools['msgfmt'], ExternalProgram):

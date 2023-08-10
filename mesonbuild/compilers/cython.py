@@ -86,7 +86,7 @@ class CythonCompiler(Compiler):
         })
         return opts
 
-    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: KeyedOptionDictType) -> T.List[str]:
         args: T.List[str] = []
         key = options[OptionKey('version', machine=self.for_machine, lang=self.language)]
         args.append(f'-{key.value}')

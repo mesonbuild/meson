@@ -328,7 +328,7 @@ test_commands:      T.List[str]
 install_commands:   T.List[str]
 uninstall_commands: T.List[str]
 
-backend:      'Backend'
+backend: Backend
 backend_flags: T.List[str]
 
 stop: bool = False

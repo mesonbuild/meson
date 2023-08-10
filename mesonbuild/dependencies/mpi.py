@@ -32,8 +32,8 @@ if T.TYPE_CHECKING:
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
-def mpi_factory(env: 'Environment',
-                for_machine: 'MachineChoice',
+def mpi_factory(env: Environment,
+                for_machine: MachineChoice,
                 kwargs: T.Dict[str, T.Any],
                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language', 'c')

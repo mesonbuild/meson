@@ -48,17 +48,17 @@ TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 SubProject = T.NewType('SubProject', str)
 
 class InterpreterObject:
-    def __init__(self, *, subproject: T.Optional['SubProject'] = None) -> None:
+    def __init__(self, *, subproject: T.Optional[SubProject] = None) -> None:
         self.methods: T.Dict[
             str,
             T.Callable[[T.List[TYPE_var], TYPE_kwargs], TYPE_var]
         ] = {}
-        self.operators: T.Dict[MesonOperator, 'OperatorCall'] = {}
+        self.operators: T.Dict[MesonOperator, OperatorCall] = {}
         self.trivial_operators: T.Dict[
             MesonOperator,
             T.Tuple[
                 T.Union[T.Type, T.Tuple[T.Type, ...]],
-                'OperatorCall'
+                OperatorCall
             ]
         ] = {}
         # Current node set during a method call. This can be used as location

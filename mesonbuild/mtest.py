@@ -563,7 +563,7 @@ class ConsoleLogger(TestLogger):
     def request_update(self) -> None:
         self.update.set()
 
-    def emit_progress(self, harness: 'TestHarness') -> None:
+    def emit_progress(self, harness: TestHarness) -> None:
         if self.progress_test is None:
             self.flush()
             return
@@ -666,7 +666,7 @@ class ConsoleLogger(TestLogger):
         else:
             return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
 
-    def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+    def print_log(self, harness: TestHarness, result: TestRun) -> None:
         if not result.verbose:
             cmdline = result.cmdline
             if not cmdline:
@@ -680,7 +680,7 @@ class ConsoleLogger(TestLogger):
             print_safe(log)
             print(self.output_end)
 
-    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, res: TestResult) -> None:
+    def log_subtest(self, harness: TestHarness, test: TestRun, s: str, res: TestResult) -> None:
         if test.verbose or (harness.options.print_errorlogs and res.is_bad()):
             self.flush()
             print(harness.format(test, mlog.colorize_console(), max_left_width=self.max_left_width,
@@ -690,7 +690,7 @@ class ConsoleLogger(TestLogger):
 
             self.request_update()
 
-    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+    def log(self, harness: TestHarness, result: TestRun) -> None:
         self.running_tests.remove(result)
         if result.res is TestResult.TIMEOUT and (result.verbose or
                                                  harness.options.print_errorlogs):
@@ -717,7 +717,7 @@ class ConsoleLogger(TestLogger):
 
         self.request_update()
 
-    async def finish(self, harness: 'TestHarness') -> None:
+    async def finish(self, harness: TestHarness) -> None:
         self.stop = True
         self.request_update()
         if self.progress_task:
@@ -733,12 +733,12 @@ class ConsoleLogger(TestLogger):
 
 
 class TextLogfileBuilder(TestFileLogger):
-    def start(self, harness: 'TestHarness') -> None:
+    def start(self, harness: TestHarness) -> None:
         self.file.write(f'Log of Meson test suite run on {datetime.datetime.now().isoformat()}\n\n')
         inherit_env = env_tuple_to_str(os.environ.items())
         self.file.write(f'Inherited environment: {inherit_env}\n\n')
 
-    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+    def log(self, harness: TestHarness, result: TestRun) -> None:
         title = f'{result.num}/{harness.test_count}'
         self.file.write(dashes(title, '=', 78) + '\n')
         self.file.write('test:         ' + result.name + '\n')
@@ -757,7 +757,7 @@ class TextLogfileBuilder(TestFileLogger):
             self.file.write(result.stde)
         self.file.write(dashes('', '=', 78) + '\n\n')
 
-    async def finish(self, harness: 'TestHarness') -> None:
+    async def finish(self, harness: TestHarness) -> None:
         if harness.collected_failures:
             self.file.write("\nSummary of Failures:\n\n")
             for _, result in enumerate(harness.collected_failures, 1):
@@ -807,7 +807,7 @@ class JunitBuilder(TestLogger):
             'testsuites', tests='0', errors='0', failures='0')
         self.suites: T.Dict[str, et.Element] = {}
 
-    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+    def log(self, harness: TestHarness, result: TestRun) -> None:
         """Log a single test case."""
         if result.junit is not None:
             for suite in result.junit.findall('.//testsuite'):
@@ -914,7 +914,7 @@ class JunitBuilder(TestLogger):
 
 class TestRun:
     TEST_NUM = 0
-    PROTOCOL_TO_CLASS: T.Dict[TestProtocol, T.Type['TestRun']] = {}
+    PROTOCOL_TO_CLASS: T.Dict[TestProtocol, T.Type[TestRun]] = {}
 
     def __new__(cls, test: TestSerialisation, *args: T.Any, **kwargs: T.Any) -> T.Any:
         return super().__new__(TestRun.PROTOCOL_TO_CLASS[test.protocol])
@@ -1229,7 +1229,7 @@ def check_testdata(objs: T.List[TestSerialisation]) -> T.List[TestSerialisation]
 
 # Custom waiting primitives for asyncio
 
-async def queue_iter(q: 'asyncio.Queue[T.Optional[str]]') -> T.AsyncIterator[str]:
+async def queue_iter(q: asyncio.Queue[T.Optional[str]]) -> T.AsyncIterator[str]:
     while True:
         item = await q.get()
         q.task_done()
@@ -1295,15 +1295,15 @@ class TestSubprocess:
         return queue_iter(self.queue)
 
     def communicate(self,
-                    test: 'TestRun',
+                    test: TestRun,
                     console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[None]],
                                                           T.Optional[T.Awaitable[None]]]:
-        async def collect_stdo(test: 'TestRun',
+        async def collect_stdo(test: TestRun,
                                reader: asyncio.StreamReader,
                                console_mode: ConsoleUser) -> None:
             test.stdo = await read_decode(reader, self.queue, console_mode)
 
-        async def collect_stde(test: 'TestRun',
+        async def collect_stde(test: TestRun,
                                reader: asyncio.StreamReader,
                                console_mode: ConsoleUser) -> None:
             test.stde = await read_decode(reader, None, console_mode)
@@ -1369,7 +1369,7 @@ class TestSubprocess:
             if self.stde_task:
                 self.stde_task.cancel()
 
-    async def wait(self, test: 'TestRun') -> None:
+    async def wait(self, test: TestRun) -> None:
         p = self._process
 
         self.all_futures.append(asyncio.ensure_future(p.wait()))

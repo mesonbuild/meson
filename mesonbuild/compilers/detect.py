@@ -1267,7 +1267,7 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
-def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
+def detect_masm_compiler(env: Environment, for_machine: MachineChoice) -> Compiler:
     # We need a C compiler to properly detect the machine info and linker
     is_cross = env.is_cross_build(for_machine)
     cc = detect_c_compiler(env, for_machine)

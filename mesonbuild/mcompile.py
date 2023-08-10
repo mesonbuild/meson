@@ -166,7 +166,7 @@ def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, intros
     else:
         return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
 
-def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_ninja(options: argparse.Namespace, builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     runner = detect_ninja()
     if runner is None:
         raise MesonException('Cannot find ninja.')
@@ -210,7 +210,7 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
         target_name = str(rel_path / target_name)
     return target_name
 
-def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_vs(options: argparse.Namespace, builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     slns = list(builddir.glob('*.sln'))
     assert len(slns) == 1, 'More than one solution in a project?'
     sln = slns[0]
