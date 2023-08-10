@@ -112,7 +112,7 @@ def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     intr.ast.accept(printer)
     return printer.result
 
-def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
+def list_installed(installdata: T.Optional[backends.InstallData]) -> T.Dict[str, str]:
     res: T.Dict[str, str] = {}
     if installdata is not None:
         for t in installdata.targets:
@@ -435,10 +435,10 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
 
     return list(result.values())
 
-def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
-    result: T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]] = []
+def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
+    result: T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]] = []
     for t in testdata:
-        to: T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]] = {}
+        to: T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]] = {}
         if isinstance(t.fname, str):
             fname = [t.fname]
         else:
@@ -460,10 +460,10 @@ def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict
         result.append(to)
     return result
 
-def list_tests(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_tests(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
     return get_test_list(testdata)
 
-def list_benchmarks(benchdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_benchmarks(benchdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
     return get_test_list(benchdata)
 
 def list_machines(builddata: build.Build) -> T.Dict[str, T.Dict[str, T.Union[str, bool]]]:
@@ -633,7 +633,7 @@ def split_version_string(version: str) -> T.Dict[str, T.Union[str, int]]:
         'patch': int(vers_list[2] if len(vers_list) > 2 else 0)
     }
 
-def write_meson_info_file(builddata: build.Build, errors: list, build_files_updated: bool = False) -> None:
+def write_meson_info_file(builddata: build.Build, errors: T.List[Exception], build_files_updated: bool = False) -> None:
     info_dir = builddata.environment.info_dir
     info_file = get_meson_info_file(info_dir)
     intro_types = get_meson_introspection_types()

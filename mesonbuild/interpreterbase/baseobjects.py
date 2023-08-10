@@ -63,7 +63,7 @@ class InterpreterObject:
         ] = {}
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
-        self.current_node:  mparser.BaseNode = None
+        self.current_node:  T.Optional[mparser.BaseNode] = None
         self.subproject = subproject or SubProject('')
 
         # Some default operators supported by all objects

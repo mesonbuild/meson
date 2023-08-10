@@ -545,7 +545,7 @@ class PkgConfigModule(NewExtensionModule):
                     if isinstance(l, str):
                         yield l
                     else:
-                        install_dir: T.Union[str, bool]
+                        install_dir: T.Optional[T.Union[str, bool]]
                         if uninstalled:
                             install_dir = os.path.dirname(state.backend.get_target_filename_abs(l))
                         else:

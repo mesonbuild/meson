@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
         def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
     _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
 
-def get_callee_args(wrapped_args: T.Sequence[T.Any]) -> T.Tuple['mparser.BaseNode', T.List['TYPE_var'], 'TYPE_kwargs', 'SubProject']:
+def get_callee_args(wrapped_args: T.Sequence[T.Any]) -> T.Tuple[T.Optional[mparser.BaseNode], T.List['TYPE_var'], 'TYPE_kwargs', 'SubProject']:
     # First argument could be InterpreterBase, InterpreterObject or ModuleObject.
     # In the case of a ModuleObject it is the 2nd argument (ModuleState) that
     # contains the needed information.
@@ -280,7 +280,7 @@ class ContainerTypeInfo:
         not be empty, and other cases where an empty container is allowed.
     """
 
-    def __init__(self, container: T.Type, contains: T.Union[T.Type, T.Tuple[T.Type, ...]], *,
+    def __init__(self, container: T.Type[T.Any], contains: T.Union[T.Type[T.Any], T.Tuple[T.Type[T.Any], ...]], *,
                  pairs: bool = False, allow_empty: bool = True):
         self.container = container
         self.contains = contains

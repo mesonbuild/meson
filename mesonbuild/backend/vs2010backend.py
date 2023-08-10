@@ -127,7 +127,7 @@ def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List
 # (pre-processor defines, include paths, additional compiler options)
 # fields to use to fill in the respective intellisense fields of sources that can't simply
 # reference and re-use the shared 'primary' language intellisense fields of the vcxproj.
-def get_non_primary_lang_intellisense_fields(vslite_ctx: dict,
+def get_non_primary_lang_intellisense_fields(vslite_ctx: T.Dict[str, T.Optional[T.Dict[str, str]]],
                                              target_id: str,
                                              primary_src_lang: str) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
     defs_paths_opts_per_lang_and_buildtype = {}
@@ -234,7 +234,7 @@ class Vs2010Backend(backends.Backend):
 
     def generate(self,
                  capture: bool = False,
-                 vslite_ctx: dict = None) -> T.Optional[dict]:
+                 vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> T.Optional[T.Dict[str, T.List[str]]]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
@@ -295,7 +295,7 @@ class Vs2010Backend(backends.Backend):
         Vs2010Backend.touch_regen_timestamp(self.environment.get_build_dir())
 
     @staticmethod
-    def get_regen_stampfile(build_dir: str) -> None:
+    def get_regen_stampfile(build_dir: str) -> str:
         return os.path.join(os.path.join(build_dir, Environment.private_dir), 'regen.stamp')
 
     @staticmethod
@@ -541,7 +541,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('EndGlobal\n')
         replace_if_different(sln_filename, sln_filename_tmp)
 
-    def generate_projects(self, vslite_ctx: dict = None) -> T.List[Project]:
+    def generate_projects(self, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> T.List[Project]:
         startup_project = self.environment.coredata.options[OptionKey('backend_startup_project')].value
         projlist: T.List[Project] = []
         startup_idx = 0
@@ -1257,7 +1257,7 @@ class Vs2010Backend(backends.Backend):
                                                root: ET.Element,
                                                platform: str,
                                                target_ext: str,
-                                               vslite_ctx: dict,
+                                               vslite_ctx: T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]],
                                                target,
                                                proj_to_build_root: str,
                                                primary_src_lang: T.Optional[str]) -> None:
@@ -1630,7 +1630,7 @@ class Vs2010Backend(backends.Backend):
     # Returns bool indicating whether the .vcxproj has been generated.
     # Under some circumstances, it's unnecessary to create some .vcxprojs, so, when generating the .sln,
     # we need to respect that not all targets will have generated a project.
-    def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str, vslite_ctx: dict = None) -> bool:
+    def gen_vcxproj(self, target: build.BuildTarget, ofname: str, guid: str, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> bool:
         mlog.debug(f'Generating vcxproj {target.name}.')
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
