@@ -65,8 +65,8 @@ class SwiftCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'd'
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o', target]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_header_import_args(self, headername: str) -> T.List[str]:
         return ['-import-objc-header', headername]

@@ -58,8 +58,8 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_linker_always_args(self) -> T.List[str]:
         return ['/nologo']
 
-    def get_output_args(self, fname: str) -> T.List[str]:
-        return ['-out:' + fname]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-out:' + outputname]
 
     def get_link_args(self, fname: str) -> T.List[str]:
         return ['-r:' + fname]
@@ -83,7 +83,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def get_pch_name(self, header_name: str) -> str:
+    def get_pch_name(self, name: str) -> str:
         return ''
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:

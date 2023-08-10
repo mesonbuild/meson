@@ -44,8 +44,8 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
                           linker=linker)
         CLikeCompiler.__init__(self, exe_wrap)
 
-    @staticmethod
-    def get_display_language() -> str:
+    @classmethod
+    def get_display_language(cls) -> str:
         return 'Objective-C++'
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:

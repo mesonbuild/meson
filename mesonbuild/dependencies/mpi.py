@@ -174,11 +174,11 @@ class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
         self.compile_args = self._filter_compile_args(args)
         self.link_args = self._filter_link_args(args)
 
-    def _sanitize_version(self, out: str) -> str:
-        v = re.search(r'(\d{4}) Update (\d)', out)
+    def _sanitize_version(self, version: str) -> str:
+        v = re.search(r'(\d{4}) Update (\d)', version)
         if v:
             return '{}.{}'.format(v.group(1), v.group(2))
-        return out
+        return version
 
 
 class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
@@ -199,11 +199,11 @@ class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
         l_args = self.get_config_value(['--showme:link'], 'link_args')
         self.link_args = self._filter_link_args(l_args)
 
-    def _sanitize_version(self, out: str) -> str:
-        v = re.search(r'\d+.\d+.\d+', out)
+    def _sanitize_version(self, version: str) -> str:
+        v = re.search(r'\d+.\d+.\d+', version)
         if v:
             return v.group(0)
-        return out
+        return version
 
 
 class MSMPIDependency(SystemDependency):

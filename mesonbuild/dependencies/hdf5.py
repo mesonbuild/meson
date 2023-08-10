@@ -141,8 +141,8 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
             elif Path(arg).is_file():
                 self.link_args.append(arg)
 
-    def _sanitize_version(self, ver: str) -> str:
-        v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)
+    def _sanitize_version(self, version: str) -> str:
+        v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', version)
         return v.group(1)
 
 

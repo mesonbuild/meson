@@ -611,8 +611,8 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-optimize=0']
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-output=obj={target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-output=obj={outputname}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']
@@ -658,8 +658,8 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-o{target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-o{outputname}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']
@@ -692,8 +692,8 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-o{target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-o{outputname}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']

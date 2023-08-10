@@ -479,10 +479,10 @@ class CudaCompiler(Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def thread_link_flags(self, environment: 'Environment') -> T.List[str]:
-        return self._to_host_flags(self.host_compiler.thread_link_flags(environment), _Phase.LINKER)
+    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+        return self._to_host_flags(self.host_compiler.thread_link_flags(env), _Phase.LINKER)
 
-    def sanity_check(self, work_dir: str, env: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
@@ -535,7 +535,7 @@ class CudaCompiler(Compiler):
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self.get_ccbin_args(env.coredata.options)
+        flags += self.get_ccbin_args(environment.coredata.options)
 
         # If cross-compiling, we can't run the sanity check, only compile it.
         if self.is_cross and self.exe_wrapper is None:
@@ -742,8 +742,8 @@ class CudaCompiler(Compiler):
                                                build_dir: str) -> T.List[str]:
         return []
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o', target]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_std_exe_link_args(self) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), _Phase.LINKER)
