@@ -726,7 +726,7 @@ class ConsoleLogger(TestLogger):
         if harness.collected_failures and \
                 (harness.options.print_errorlogs or harness.options.verbose):
             print("\nSummary of Failures:\n")
-            for i, result in enumerate(harness.collected_failures, 1):
+            for _, result in enumerate(harness.collected_failures, 1):
                 print(harness.format(result, mlog.colorize_console()))
 
         print(harness.summary())
@@ -760,7 +760,7 @@ class TextLogfileBuilder(TestFileLogger):
     async def finish(self, harness: 'TestHarness') -> None:
         if harness.collected_failures:
             self.file.write("\nSummary of Failures:\n\n")
-            for i, result in enumerate(harness.collected_failures, 1):
+            for _, result in enumerate(harness.collected_failures, 1):
                 self.file.write(harness.format(result, False) + '\n')
         self.file.write(harness.summary())
 

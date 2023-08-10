@@ -577,7 +577,7 @@ class Installer:
                 s = selectors.DefaultSelector()
                 s.register(sys.stdin, selectors.EVENT_READ)
                 ans = None
-                for attempt in range(5):
+                for _ in range(5):
                     print(f'Attempt to use {rootcmd} to gain elevated privileges? [y/n] ', end='', flush=True)
                     if s.select(30):
                         # we waited on sys.stdin *only*
