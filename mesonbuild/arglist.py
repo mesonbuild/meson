@@ -104,7 +104,7 @@ class CompilerArgs(T.MutableSequence[str]):
     # TODO: these should probably move too
     always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)
 
-    def __init__(self, compiler: T.Union['Compiler', 'StaticLinker'],
+    def __init__(self, compiler: T.Union[Compiler, StaticLinker],
                  iterable: T.Optional[T.Iterable[str]] = None):
         self.compiler = compiler
         self._container: T.List[str] = list(iterable) if iterable is not None else []
@@ -188,7 +188,7 @@ class CompilerArgs(T.MutableSequence[str]):
         self.flush_pre_post()
         self._container.insert(index, value)
 
-    def copy(self) -> 'CompilerArgs':
+    def copy(self) -> CompilerArgs:
         self.flush_pre_post()
         return type(self)(self.compiler, self._container.copy())
 

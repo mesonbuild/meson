@@ -68,10 +68,10 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_linker_lib_prefix(self) -> str:
         return ''
 
-    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: KeyedOptionDictType) -> T.List[str]:
         return []
 
-    def has_multi_link_args(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_link_args(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
         return False, False
 
     def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
@@ -80,7 +80,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_std_shared_lib_link_args(self) -> T.List[str]:
         return []
 
-    def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_std_shared_module_args(self, options: KeyedOptionDictType) -> T.List[str]:
         return self.get_std_shared_lib_link_args()
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:

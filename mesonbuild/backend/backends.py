@@ -267,10 +267,10 @@ def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None,
 # Feel free to move stuff in and out of it as you see fit.
 class Backend:
 
-    environment: T.Optional['Environment']
+    environment: T.Optional[Environment]
     name = '<UNKNOWN>'
 
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional['Interpreter']):
+    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         # Make it possible to construct a dummy backend
         # This is used for introspection without a build directory
         if build is None:
@@ -1066,7 +1066,7 @@ class Backend:
                 commands += compiler.get_include_args(priv_dir, False)
         return commands
 
-    def build_target_link_arguments(self, compiler: 'Compiler', deps: T.List[build.Target]) -> T.List[str]:
+    def build_target_link_arguments(self, compiler: Compiler, deps: T.List[build.Target]) -> T.List[str]:
         args: T.List[str] = []
         for d in deps:
             if not d.is_linkable_target():
@@ -1414,7 +1414,7 @@ class Backend:
         return result
 
     @lru_cache(maxsize=None)
-    def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> 'ImmutableListProtocol[str]':
+    def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> ImmutableListProtocol[str]:
         libs: T.List[str] = []
         for f in generated_source.get_outputs():
             if self.environment.is_library(f):
@@ -1422,7 +1422,7 @@ class Backend:
         return libs
 
     @lru_cache(maxsize=None)
-    def get_custom_target_provided_libraries(self, target: T.Union[build.BuildTarget, build.CustomTarget]) -> 'ImmutableListProtocol[str]':
+    def get_custom_target_provided_libraries(self, target: T.Union[build.BuildTarget, build.CustomTarget]) -> ImmutableListProtocol[str]:
         libs: T.List[str] = []
         for t in target.get_generated_sources():
             if not isinstance(t, build.CustomTarget):
@@ -1489,7 +1489,7 @@ class Backend:
     def get_normpath_target(self, source: str) -> str:
         return os.path.normpath(source)
 
-    def get_custom_target_dirs(self, target: build.CustomTarget, compiler: 'Compiler', *,
+    def get_custom_target_dirs(self, target: build.CustomTarget, compiler: Compiler, *,
                                absolute_path: bool = False) -> T.List[str]:
         custom_target_include_dirs: T.List[str] = []
         for i in target.get_generated_sources():
@@ -1508,7 +1508,7 @@ class Backend:
         return custom_target_include_dirs
 
     def get_custom_target_dir_include_args(
-            self, target: build.CustomTarget, compiler: 'Compiler', *,
+            self, target: build.CustomTarget, compiler: Compiler, *,
             absolute_path: bool = False) -> T.List[str]:
         incs: T.List[str] = []
         for i in self.get_custom_target_dirs(target, compiler, absolute_path=absolute_path):

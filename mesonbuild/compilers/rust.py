@@ -56,10 +56,10 @@ class RustCompiler(Compiler):
     }
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 is_cross: bool, info: MachineInfo,
+                 exe_wrapper: T.Optional[ExternalProgram] = None,
                  full_version: T.Optional[str] = None,
-                 linker: T.Optional['DynamicLinker'] = None):
+                 linker: T.Optional[DynamicLinker] = None):
         super().__init__([], exelist, version, for_machine, info,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)

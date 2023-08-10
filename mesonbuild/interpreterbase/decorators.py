@@ -416,7 +416,7 @@ class KwargInfo(T.Generic[_T]):
                deprecated_message: T.Union[str, None, _NULL_T] = _NULL,
                deprecated_values: T.Union[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
                validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
-               convertor: T.Union[T.Callable[[_T], TYPE_var], None, _NULL_T] = _NULL) -> 'KwargInfo':
+               convertor: T.Union[T.Callable[[_T], TYPE_var], None, _NULL_T] = _NULL) -> 'KwargInfo[_T]':
         """Create a shallow copy of this KwargInfo, with modifications.
 
         This allows us to create a new copy of a KwargInfo with modifications.
@@ -667,15 +667,13 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
             node, _, _, subproject = get_callee_args(wrapped_args)
-            if subproject is None:
-                raise AssertionError(f'{wrapped_args!r}')
             self.use(subproject, node)
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast('TV_func', wrapped)
 
     @classmethod
-    def single_use(cls, feature_name: str, version: str, subproject: 'SubProject',
-                   extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None) -> None:
+    def single_use(cls, feature_name: str, version: str, subproject: SubProject,
+                   extra_message: str = '', location: T.Optional[mparser.BaseNode] = None) -> None:
         """Oneline version that instantiates and calls use()."""
         cls(feature_name, version, extra_message).use(subproject, location)
 

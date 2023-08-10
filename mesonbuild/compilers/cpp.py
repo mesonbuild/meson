@@ -291,7 +291,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
 
         return args
 
-    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: KeyedOptionDictType) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typedict mypy can't understand this.
             key = OptionKey('winlibs', machine=self.for_machine, lang=self.language)
@@ -321,8 +321,8 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
     id = 'emscripten'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
-                 linker: T.Optional['DynamicLinker'] = None,
+                 info: MachineInfo, exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional[DynamicLinker] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  full_version: T.Optional[str] = None):
         if not is_cross:
@@ -961,8 +961,8 @@ class MetrowerksCPPCompilerEmbeddedPowerPC(MetrowerksCompiler, CPPCompiler):
     id = 'mwcceppc'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 is_cross: bool, info: MachineInfo,
+                 exe_wrapper: T.Optional[ExternalProgram] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
@@ -972,13 +972,13 @@ class MetrowerksCPPCompilerEmbeddedPowerPC(MetrowerksCompiler, CPPCompiler):
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return mwcceppc_instruction_set_args.get(instruction_set, None)
 
-    def get_options(self) -> 'MutableKeyedOptionDictType':
+    def get_options(self) -> MutableKeyedOptionDictType:
         opts = CPPCompiler.get_options(self)
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts[key].choices = ['none']
         return opts
 
-    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: KeyedOptionDictType) -> T.List[str]:
         args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':

@@ -1517,7 +1517,7 @@ class BuildTarget(Target):
             ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
         self.include_dirs += ids
 
-    def add_compiler_args(self, language: str, args: T.List['FileOrString']) -> None:
+    def add_compiler_args(self, language: str, args: T.List[FileOrString]) -> None:
         args = listify(args)
         for a in args:
             if not isinstance(a, (str, File)):

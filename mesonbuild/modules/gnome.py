@@ -776,8 +776,8 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[Executable, 'ExternalProgram', 'OverrideProgram'],
-                                                            T.Union[Executable, 'ExternalProgram', 'OverrideProgram']]:
+    def _get_gir_dep(self, state: ModuleState) -> T.Tuple[Dependency, T.Union[Executable, ExternalProgram, OverrideProgram],
+                                                          T.Union[Executable, ExternalProgram, OverrideProgram]]:
         if not self.gir_dep:
             self.gir_dep = state.dependency('gobject-introspection-1.0')
             self.giscanner = state.find_tool('g-ir-scanner', 'gobject-introspection-1.0', 'g_ir_scanner')

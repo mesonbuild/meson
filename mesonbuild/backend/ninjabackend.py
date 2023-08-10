@@ -2858,8 +2858,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return (rel_obj, rel_src)
 
     @lru_cache(maxsize=None)
-    def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: str, is_system: bool) -> \
-            T.Tuple['ImmutableListProtocol[str]', 'ImmutableListProtocol[str]']:
+    def generate_inc_dir(self, compiler: Compiler, d: str, basedir: str, is_system: bool) -> \
+            T.Tuple[ImmutableListProtocol[str], ImmutableListProtocol[str]]:
         # Avoid superfluous '/.' at the end of paths when d is '.'
         if d not in ('', '.'):
             expdir = os.path.normpath(os.path.join(basedir, d))
@@ -2879,13 +2879,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             bargs = []
         return (sargs, bargs)
 
-    def _generate_single_compile(self, target: build.BuildTarget, compiler: 'Compiler',
-                                 is_generated: bool = False) -> 'CompilerArgs':
+    def _generate_single_compile(self, target: build.BuildTarget, compiler: Compiler,
+                                 is_generated: bool = False) -> CompilerArgs:
         commands = self._generate_single_compile_base_args(target, compiler)
         commands += self._generate_single_compile_target_args(target, compiler, is_generated)
         return commands
 
-    def _generate_single_compile_base_args(self, target: build.BuildTarget, compiler: 'Compiler') -> 'CompilerArgs':
+    def _generate_single_compile_base_args(self, target: build.BuildTarget, compiler: Compiler) -> CompilerArgs:
         base_proxy = target.get_options()
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
