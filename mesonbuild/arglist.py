@@ -320,11 +320,11 @@ class CompilerArgs(T.MutableSequence[str]):
             return self._container == other
         return NotImplemented
 
-    def append(self, arg: str) -> None:
-        self += [arg]
+    def append(self, value: str) -> None:
+        self += [value]
 
-    def extend(self, args: T.Iterable[str]) -> None:
-        self += args
+    def extend(self, values: T.Iterable[str]) -> None:
+        self += values
 
     def __repr__(self) -> str:
         self.flush_pre_post()

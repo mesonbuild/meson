@@ -681,13 +681,13 @@ class ConsoleLogger(TestLogger):
             print_safe(log)
             print(self.output_end)
 
-    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult) -> None:
-        if test.verbose or (harness.options.print_errorlogs and result.is_bad()):
+    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, res: TestResult) -> None:
+        if test.verbose or (harness.options.print_errorlogs and res.is_bad()):
             self.flush()
             print(harness.format(test, mlog.colorize_console(), max_left_width=self.max_left_width,
                                  prefix=self.sub,
                                  middle=s,
-                                 right=result.get_text(mlog.colorize_console())), flush=True)
+                                 right=res.get_text(mlog.colorize_console())), flush=True)
 
             self.request_update()
 
@@ -808,12 +808,12 @@ class JunitBuilder(TestLogger):
             'testsuites', tests='0', errors='0', failures='0')
         self.suites: T.Dict[str, et.Element] = {}
 
-    def log(self, harness: 'TestHarness', test: 'TestRun') -> None:
+    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         """Log a single test case."""
-        if test.junit is not None:
-            for suite in test.junit.findall('.//testsuite'):
+        if result.junit is not None:
+            for suite in result.junit.findall('.//testsuite'):
                 # Assume that we don't need to merge anything here...
-                suite.attrib['name'] = '{}.{}.{}'.format(test.project, test.name, suite.attrib['name'])
+                suite.attrib['name'] = '{}.{}.{}'.format(result.project, result.name, suite.attrib['name'])
 
                 # GTest can inject invalid attributes
                 for case in suite.findall('.//testcase[@result]'):
@@ -830,23 +830,23 @@ class JunitBuilder(TestLogger):
         # In this case we have a test binary with multiple results.
         # We want to record this so that each result is recorded
         # separately
-        if test.results:
-            suitename = f'{test.project}.{test.name}'
+        if result.results:
+            suitename = f'{result.project}.{result.name}'
             assert suitename not in self.suites or harness.options.repeat > 1, 'duplicate suite'
 
             suite = self.suites[suitename] = et.Element(
                 'testsuite',
                 name=suitename,
-                tests=str(len(test.results)),
-                errors=str(sum(1 for r in test.results if r.result in
+                tests=str(len(result.results)),
+                errors=str(sum(1 for r in result.results if r.result in
                                {TestResult.INTERRUPT, TestResult.ERROR})),
-                failures=str(sum(1 for r in test.results if r.result in
+                failures=str(sum(1 for r in result.results if r.result in
                                  {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
-                skipped=str(sum(1 for r in test.results if r.result is TestResult.SKIP)),
-                time=str(test.duration),
+                skipped=str(sum(1 for r in result.results if r.result is TestResult.SKIP)),
+                time=str(result.duration),
             )
 
-            for subtest in test.results:
+            for subtest in result.results:
                 # Both name and classname are required. Use the suite name as
                 # the class name, so that e.g. GitLab groups testcases correctly.
                 testcase = et.SubElement(suite, 'testcase', name=str(subtest), classname=suitename)
@@ -867,38 +867,38 @@ class JunitBuilder(TestLogger):
                     fail.text = 'Test did not finish before configured timeout.'
                 if subtest.explanation:
                     et.SubElement(testcase, 'system-out').text = subtest.explanation
-            if test.stdo:
+            if result.stdo:
                 out = et.SubElement(suite, 'system-out')
-                out.text = replace_unencodable_xml_chars(test.stdo.rstrip())
-            if test.stde:
+                out.text = replace_unencodable_xml_chars(result.stdo.rstrip())
+            if result.stde:
                 err = et.SubElement(suite, 'system-err')
-                err.text = replace_unencodable_xml_chars(test.stde.rstrip())
+                err.text = replace_unencodable_xml_chars(result.stde.rstrip())
         else:
-            if test.project not in self.suites:
-                suite = self.suites[test.project] = et.Element(
-                    'testsuite', name=test.project, tests='1', errors='0',
-                    failures='0', skipped='0', time=str(test.duration))
+            if result.project not in self.suites:
+                suite = self.suites[result.project] = et.Element(
+                    'testsuite', name=result.project, tests='1', errors='0',
+                    failures='0', skipped='0', time=str(result.duration))
             else:
-                suite = self.suites[test.project]
+                suite = self.suites[result.project]
                 suite.attrib['tests'] = str(int(suite.attrib['tests']) + 1)
 
-            testcase = et.SubElement(suite, 'testcase', name=test.name,
-                                     classname=test.project, time=str(test.duration))
-            if test.res is TestResult.SKIP:
+            testcase = et.SubElement(suite, 'testcase', name=result.name,
+                                     classname=result.project, time=str(result.duration))
+            if result.res is TestResult.SKIP:
                 et.SubElement(testcase, 'skipped')
                 suite.attrib['skipped'] = str(int(suite.attrib['skipped']) + 1)
-            elif test.res is TestResult.ERROR:
+            elif result.res is TestResult.ERROR:
                 et.SubElement(testcase, 'error')
                 suite.attrib['errors'] = str(int(suite.attrib['errors']) + 1)
-            elif test.res is TestResult.FAIL:
+            elif result.res is TestResult.FAIL:
                 et.SubElement(testcase, 'failure')
                 suite.attrib['failures'] = str(int(suite.attrib['failures']) + 1)
-            if test.stdo:
+            if result.stdo:
                 out = et.SubElement(testcase, 'system-out')
-                out.text = replace_unencodable_xml_chars(test.stdo.rstrip())
-            if test.stde:
+                out.text = replace_unencodable_xml_chars(result.stdo.rstrip())
+            if result.stde:
                 err = et.SubElement(testcase, 'system-err')
-                err.text = replace_unencodable_xml_chars(test.stde.rstrip())
+                err.text = replace_unencodable_xml_chars(result.stde.rstrip())
 
     async def finish(self, harness: 'TestHarness') -> None:
         """Calculate total test counts and write out the xml result."""
