@@ -2535,6 +2535,7 @@ class CustomTarget(Target, CommandBase):
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
                  absolute_paths: bool = False,
                  backend: T.Optional['Backend'] = None,
+                 description: str = 'Generating {} with a custom command',
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
@@ -2559,6 +2560,7 @@ class CustomTarget(Target, CommandBase):
         self.install_mode = install_mode
         self.install_tag = _process_install_tag(install_tag, len(self.outputs))
         self.name = name if name else self.outputs[0]
+        self.description = description
 
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths

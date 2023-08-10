@@ -247,6 +247,7 @@ class ExternalProject(NewExtensionModule):
             depfile=f'{self.name}.d',
             console=True,
             extra_depends=extra_depends,
+            description='Generating external project {}',
         )
 
         idir = build.InstallDir(self.subdir.as_posix(),

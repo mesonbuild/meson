@@ -212,6 +212,7 @@ class I18nModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
+            description='Merging translations for {}',
         )
 
         return ModuleReturnValue(ct, [ct])
@@ -304,6 +305,7 @@ class I18nModule(ExtensionModule):
                 # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
                 install_dir=[path.join(install_dir, l, 'LC_MESSAGES')],
                 install_tag=['i18n'],
+                description='Building translation {}',
             )
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
@@ -390,6 +392,7 @@ class I18nModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
+            description='Merging translations for {}',
         )
 
         return ModuleReturnValue(ct, [ct])
