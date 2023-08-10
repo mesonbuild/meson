@@ -61,6 +61,7 @@ def mpi_factory(env: 'Environment',
 
     if DependencyMethods.CONFIG_TOOL in methods:
         nwargs = kwargs.copy()
+        tool_names: T.List[T.Optional[str]] = []
 
         if compiler_is_intel:
             if env.machines[for_machine].is_windows():
@@ -68,11 +69,11 @@ def mpi_factory(env: 'Environment',
                 nwargs['returncode_value'] = 3
 
             if language == 'c':
-                tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
+                tool_names.extend([os.environ.get('I_MPI_CC'), 'mpiicc'])
             elif language == 'cpp':
-                tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
+                tool_names.extend([os.environ.get('I_MPI_CXX'), 'mpiicpc'])
             elif language == 'fortran':
-                tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
+                tool_names.extend([os.environ.get('I_MPI_F90'), 'mpiifort'])
 
             cls: T.Type[ConfigToolDependency] = IntelMPIConfigToolDependency
         else: # OpenMPI, which doesn't work with intel
@@ -80,11 +81,11 @@ def mpi_factory(env: 'Environment',
             # We try the environment variables for the tools first, but then
             # fall back to the hardcoded names
             if language == 'c':
-                tool_names = [os.environ.get('MPICC'), 'mpicc']
+                tool_names.extend([os.environ.get('MPICC'), 'mpicc'])
             elif language == 'cpp':
-                tool_names = [os.environ.get('MPICXX'), 'mpic++', 'mpicxx', 'mpiCC']
+                tool_names.extend([os.environ.get('MPICXX'), 'mpic++', 'mpicxx', 'mpiCC'])
             elif language == 'fortran':
-                tool_names = [os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']]
+                tool_names.extend([os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']])
                 tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
             cls = OpenMPIConfigToolDependency
