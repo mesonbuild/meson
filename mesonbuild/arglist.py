@@ -22,6 +22,7 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
+    from types import NotImplementedType
     from .linkers.linkers import StaticLinker
     from .compilers import Compiler
 
@@ -311,7 +312,7 @@ class CompilerArgs(T.MutableSequence[str]):
         new += self
         return new
 
-    def __eq__(self, other: object) -> T.Union[bool]:
+    def __eq__(self, other: object) -> T.Union[bool, NotImplementedType]:
         self.flush_pre_post()
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):

@@ -25,7 +25,7 @@ class NoneBackend(Backend):
 
     name = 'none'
 
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> T.Optional[T.Dict[str, T.List[str]]]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the none backend to generate with \'capture = True\'')

@@ -359,7 +359,7 @@ class Resolver:
             self.wrapdb_provided_deps.update({i: name for i in info.get('dependency_names', [])})
             self.wrapdb_provided_programs.update({i: name for i in info.get('program_names', [])})
 
-    def get_from_wrapdb(self, subp_name: str) -> PackageDefinition:
+    def get_from_wrapdb(self, subp_name: str) -> T.Optional[PackageDefinition]:
         info = self.wrapdb.get(subp_name)
         if not info:
             return None

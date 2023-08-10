@@ -57,7 +57,7 @@ if T.TYPE_CHECKING:
         profile: bool
         quiet: bool
         wd: str
-        destdir: str
+        destdir: T.Optional[str]
         dry_run: bool
         skip_subprojects: str
         tags: str

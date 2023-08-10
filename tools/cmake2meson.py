@@ -29,7 +29,7 @@ class Token:
         self.colno = 0
 
 class Statement:
-    def __init__(self, name: str, args: list):
+    def __init__(self, name: str, args: T.List[T.Union[Token, T.Any]]):
         self.name = name.lower()
         self.args = args
 
@@ -277,7 +277,7 @@ class Converter:
             outfile.write('\n')
         self.indent_level += postincrement
 
-    def convert(self, subdir: Path = None) -> None:
+    def convert(self, subdir: T.Optional[Path] = None) -> None:
         if not subdir:
             subdir = self.cmake_root
         cfile = Path(subdir).expanduser() / 'CMakeLists.txt'

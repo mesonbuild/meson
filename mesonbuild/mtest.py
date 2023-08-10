@@ -522,7 +522,7 @@ class ConsoleLogger(TestLogger):
     def __init__(self) -> None:
         self.running_tests: OrderedSet['TestRun'] = OrderedSet()
         self.progress_test: T.Optional['TestRun'] = None
-        self.progress_task: T.Optional[asyncio.Future] = None
+        self.progress_task: T.Optional[asyncio.Future[None]] = None
         self.max_left_width = 0
         self.stop = False
         # TODO: before 3.10 this cannot be created immediately, because
@@ -1280,14 +1280,14 @@ async def complete_all(futures: T.Iterable[asyncio.Future[T.Any]],
 class TestSubprocess:
     def __init__(self, p: asyncio.subprocess.Process,
                  stdout: T.Optional[int], stderr: T.Optional[int],
-                 postwait_fn: T.Callable[[], None] = None):
+                 postwait_fn: T.Optional[T.Callable[[], None]] = None):
         self._process = p
         self.stdout = stdout
         self.stderr = stderr
         self.stdo_task: T.Optional[asyncio.Task[None]] = None
         self.stde_task: T.Optional[asyncio.Task[None]] = None
         self.postwait_fn = postwait_fn
-        self.all_futures: T.List[asyncio.Future] = []
+        self.all_futures: T.List[asyncio.Future[T.Any]] = []
         self.queue: T.Optional[asyncio.Queue[T.Optional[str]]] = None
 
     def stdout_lines(self) -> T.AsyncIterator[str]:
@@ -1583,7 +1583,7 @@ class TestHarness:
         self.console_logger = ConsoleLogger()
         self.loggers.append(self.console_logger)
         self.need_console = False
-        self.ninja: T.List[str] = None
+        self.ninja: T.Optional[T.List[str]] = None
 
         self.logfile_base: T.Optional[str] = None
         if self.options.logbase and not self.options.gdb:
@@ -1670,7 +1670,7 @@ class TestHarness:
             l.close()
         self.console_logger = None
 
-    def get_test_setup(self, test: T.Optional[TestSerialisation]) -> build.TestSetup:
+    def get_test_setup(self, test: TestSerialisation) -> build.TestSetup:
         if ':' in self.options.setup:
             if self.options.setup not in self.build_data.test_setups:
                 sys.exit(f"Unknown test setup '{self.options.setup}'.")
@@ -2006,8 +2006,8 @@ class TestHarness:
 
     async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
-        futures: T.Deque[asyncio.Future] = deque()
-        running_tests: T.Dict[asyncio.Future, str] = {}
+        futures: T.Deque[asyncio.Future[None]] = deque()
+        running_tests: T.Dict[asyncio.Future[None], str] = {}
         interrupted = False
         ctrlc_times: T.Deque[float] = deque(maxlen=MAX_CTRLC)
         loop = asyncio.get_running_loop()

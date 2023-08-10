@@ -297,7 +297,7 @@ class Backend:
     # 'vslite_ctx' is only provided when
     # we expect this backend setup/generation to make use of previously captured
     # compile args (as is the case when using '--genvslite').
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> T.Optional[T.Dict[str, T.List[str]]]:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
     def get_target_filename(self, t: T.Union[build.Target, build.CustomTargetIndex], *, warn_multi_output: bool = True) -> str:
@@ -423,7 +423,7 @@ class Backend:
         osrc = f'{target.name}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
-    def generate_unity_files(self, target: build.BuildTarget, unity_src: str) -> T.List[mesonlib.File]:
+    def generate_unity_files(self, target: build.BuildTarget, unity_src: T.List[mesonlib.FileOrString]) -> T.List[mesonlib.File]:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
@@ -525,7 +525,7 @@ class Backend:
     def get_executable_serialisation(
             self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
             workdir: T.Optional[str] = None,
-            extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
+            extra_bdeps: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget]]] = None,
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
@@ -597,7 +597,7 @@ class Backend:
     def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram],
                              cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]],
                              workdir: T.Optional[str] = None,
-                             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
+                             extra_bdeps: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget]]] = None,
                              capture: T.Optional[str] = None,
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
@@ -1475,7 +1475,7 @@ class Backend:
             srcs += fname
         return srcs
 
-    def get_custom_target_depend_files(self, target: build.CustomTarget, absolute_paths: bool = False) -> T.List[str]:
+    def get_custom_target_depend_files(self, target: T.Union[build.CustomTarget, build.GeneratedList], absolute_paths: bool = False) -> T.List[str]:
         deps: T.List[str] = []
         for i in target.depend_files:
             if isinstance(i, mesonlib.File):

@@ -60,7 +60,7 @@ def _windows_ansi() -> bool:
     return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
 
 def colorize_console() -> bool:
-    _colorize_console: bool = getattr(sys.stdout, 'colorize_console', None)
+    _colorize_console: T.Optional[bool] = getattr(sys.stdout, 'colorize_console', None)
     if _colorize_console is not None:
         return _colorize_console
 

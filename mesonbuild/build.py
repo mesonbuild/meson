@@ -1802,7 +1802,7 @@ class Generator(HoldableObject):
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
         return bases
 
-    def get_dep_outname(self, inname: str) -> T.List[str]:
+    def get_dep_outname(self, inname: str) -> str:
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.basename(inname)
@@ -2746,7 +2746,7 @@ class CompileTarget(BuildTarget):
     def __init__(self,
                  name: str,
                  subdir: str,
-                 subproject: str,
+                 subproject: SubProject,
                  environment: environment.Environment,
                  sources: T.List['SourceOutputs'],
                  output_templ: str,
@@ -2799,7 +2799,7 @@ class RunTarget(Target, CommandBase):
                  command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
                  dependencies: T.Sequence[Target],
                  subdir: str,
-                 subproject: str,
+                 subproject: SubProject,
                  environment: environment.Environment,
                  env: T.Optional['EnvironmentVariables'] = None,
                  default_env: bool = True):
@@ -2847,7 +2847,7 @@ class AliasTarget(RunTarget):
     typename = 'alias'
 
     def __init__(self, name: str, dependencies: T.Sequence['Target'],
-                 subdir: str, subproject: str, environment: environment.Environment):
+                 subdir: str, subproject: SubProject, environment: environment.Environment):
         super().__init__(name, [], dependencies, subdir, subproject, environment)
 
     def __repr__(self):
@@ -2859,7 +2859,7 @@ class Jar(BuildTarget):
 
     typename = 'jar'
 
-    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+    def __init__(self, name: str, subdir: str, subproject: SubProject, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
                  kwargs):
@@ -3016,13 +3016,13 @@ class Data(HoldableObject):
     install_dir_name: str
     install_mode: 'FileMode'
     subproject: str
-    rename: T.List[str] = None
+    rename: T.List[str] = field(default_factory=list)
     install_tag: T.Optional[str] = None
     data_type: str = None
     follow_symlinks: T.Optional[bool] = None
 
     def __post_init__(self) -> None:
-        if self.rename is None:
+        if not self.rename:
             self.rename = [os.path.basename(f.fname) for f in self.sources]
 
 @dataclass(eq=False)
