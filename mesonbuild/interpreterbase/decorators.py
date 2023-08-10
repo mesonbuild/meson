@@ -142,22 +142,6 @@ def typed_operator(operator: MesonOperator,
         return T.cast('_TV_FN_Operator', wrapper)
     return inner
 
-def unary_operator(operator: MesonOperator) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
-    """Decorator that does type checking for unary operator calls.
-
-    This decorator is for unary operators that do not take any other objects.
-    It should be impossible for a user to accidentally break this. Triggering
-    this check always indicates a bug in the Meson interpreter.
-    """
-    def inner(f: '_TV_FN_Operator') -> '_TV_FN_Operator':
-        @wraps(f)
-        def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
-            if other is not None:
-                raise mesonlib.MesonBugException(f'The unary operator `{operator.value}` of {self.display_name()} was passed the object {other} of type {type(other).__name__}')
-            return f(self, other)
-        return T.cast('_TV_FN_Operator', wrapper)
-    return inner
-
 
 def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                    varargs: T.Optional[T.Union[T.Type, T.Tuple[T.Type, ...]]] = None,
