@@ -152,7 +152,7 @@ class ExternalProgram(mesonlib.HoldableObject):
         # WindowsApps path in the search path, replace it with
         # dirname(sys.executable).
         appstore_dir = Path(os.environ['USERPROFILE']) / 'AppData' / 'Local' / 'Microsoft' / 'WindowsApps'
-        paths = []
+        paths: T.List[str] = []
         for each in path.split(os.pathsep):
             if Path(each) != appstore_dir:
                 paths.append(each)

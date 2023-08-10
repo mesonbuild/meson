@@ -333,7 +333,7 @@ def run_genvslite_setup(options: argparse.Namespace) -> None:
     else:
         options.cmd_line_options[k_backend] = 'ninja'
     buildtypes_list = coredata.get_genvs_default_buildtype_list()
-    vslite_ctx = {}
+    vslite_ctx: T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]] = {}
 
     for buildtypestr in buildtypes_list:
         options.builddir = f'{builddir_prefix}_{buildtypestr}' # E.g. builddir_release

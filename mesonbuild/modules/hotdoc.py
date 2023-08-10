@@ -90,8 +90,8 @@ class HotdocTargetBuilder:
         self.cmd: T.List[TYPE_var] = ['conf', '--project-name', name, "--disable-incremental-build",
                                       '--output', os.path.join(self.builddir, self.subdir, self.name + '-doc')]
 
-        self._extra_extension_paths = set()
-        self.extra_assets = set()
+        self._extra_extension_paths: T.Set[str] = set()
+        self.extra_assets: T.Set[str] = set()
         self.extra_depends = []
         self._subprojects = []
 
@@ -155,7 +155,7 @@ class HotdocTargetBuilder:
             self.check_extra_arg_type(arg, value)
             self.set_arg_value(option, value)
 
-    def get_value(self, types, argname, default=None, value_processor=None,
+    def get_value(self, types, argname: str, default=None, value_processor=None,
                   mandatory=False, force_list=False):
         if not isinstance(types, list):
             types = [types]
@@ -204,7 +204,7 @@ class HotdocTargetBuilder:
         self.cmd += ['--gi-c-source-roots'] + value
 
     def process_dependencies(self, deps: T.List[T.Union[Dependency, build.StaticLibrary, build.SharedLibrary, CustomTarget, CustomTargetIndex]]) -> T.List[str]:
-        cflags = set()
+        cflags: T.Set[str] = set()
         for dep in mesonlib.listify(ensure_list(deps)):
             if isinstance(dep, InternalDependency):
                 inc_args = self.state.get_include_args(dep.include_directories)
@@ -247,7 +247,7 @@ class HotdocTargetBuilder:
         self._subprojects.extend(value)
 
     def flatten_config_command(self) -> T.List[str]:
-        cmd = []
+        cmd: T.List[str] = []
         for arg in mesonlib.listify(self.cmd, flatten=True):
             if isinstance(arg, File):
                 arg = arg.absolute_path(self.state.environment.get_source_dir(),
@@ -398,7 +398,7 @@ class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
 
     @noPosargs
     @noKwargs
-    def config_path_method(self, *args: T.Any, **kwargs: T.Any) -> str:
+    def config_path_method(self, *args: T.List[TYPE_var], **kwargs: TYPE_kwargs):
         conf = self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
                                                           self.interpreter.environment.build_dir)
         return conf

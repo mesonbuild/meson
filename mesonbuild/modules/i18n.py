@@ -351,7 +351,7 @@ class I18nModule(ExtensionModule):
         mo_targets = kwargs['mo_targets']
         its_files = kwargs.get('its_files', [])
 
-        mo_fnames = []
+        mo_fnames: T.List[str] = []
         for target in mo_targets:
             mo_fnames.append(path.join(target.get_subdir(), target.get_outputs()[0]))
 

@@ -110,7 +110,7 @@ class Xc16Compiler(Compiler):
 
     @classmethod
     def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
-        result = []
+        result: T.List[str] = []
         for i in args:
             if i.startswith('-D'):
                 i = '-D' + i[2:]

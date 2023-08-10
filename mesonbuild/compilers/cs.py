@@ -142,7 +142,7 @@ class VisualStudioCsCompiler(CsCompiler):
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         res = mono_buildtype_args[buildtype]
         if not self.info.is_windows():
-            tmp = []
+            tmp: T.List[str] = []
             for flag in res:
                 if flag == '-debug':
                     flag = '-debug:portable'

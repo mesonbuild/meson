@@ -1136,7 +1136,7 @@ class Backend:
         1. If there are DLLs in the same directory than the .lib dir, use it
         2. If there is a sibbling directory named 'bin' with DLLs in it, use it
         """
-        results = set()
+        results: T.Set[str] = set()
         for dep in target.external_deps:
 
             if dep.type_name == 'pkgconfig':
@@ -1928,7 +1928,7 @@ class Backend:
         '''
         if isinstance(target, (build.CustomTarget, build.BuildTarget)):
             source_list_raw = target.sources
-            source_list = []
+            source_list: T.List[str] = []
             for j in source_list_raw:
                 if isinstance(j, mesonlib.File):
                     source_list += [j.absolute_path(self.source_dir, self.build_dir)]
@@ -1963,8 +1963,8 @@ class Backend:
 
     def get_devenv(self) -> mesonlib.EnvironmentVariables:
         env = mesonlib.EnvironmentVariables()
-        extra_paths = set()
-        library_paths = set()
+        extra_paths: T.Set[str] = set()
+        library_paths: T.Set[str] = set()
         build_machine = self.environment.machines[MachineChoice.BUILD]
         host_machine = self.environment.machines[MachineChoice.HOST]
         need_wine = not build_machine.is_windows() and host_machine.is_windows()

@@ -475,16 +475,18 @@ class Installer:
             exclude: (set(str), set(str)), tuple of (exclude_files, exclude_dirs),
                      each element of the set is a path relative to src_dir.
         '''
+        exclude_files: T.Set[str]
+        exclude_dirs: T.Set[str]
         if not os.path.isabs(src_dir):
             raise ValueError(f'src_dir must be absolute, got {src_dir}')
         if not os.path.isabs(dst_dir):
             raise ValueError(f'dst_dir must be absolute, got {dst_dir}')
         if exclude is not None:
-            exclude_files, exclude_dirs = exclude
-            exclude_files = {os.path.normpath(x) for x in exclude_files}
-            exclude_dirs = {os.path.normpath(x) for x in exclude_dirs}
+            exclude_files = {os.path.normpath(x) for x in exclude[0]}
+            exclude_dirs = {os.path.normpath(x) for x in exclude[1]}
         else:
-            exclude_files = exclude_dirs = set()
+            exclude_files = set()
+            exclude_dirs = set()
         for root, dirs, files in os.walk(src_dir):
             assert os.path.isabs(root)
             for d in dirs[:]:
@@ -790,8 +792,8 @@ def rebuild_all(wd: str, backend: str) -> bool:
 
             if os.environ.get('SUDO_USER') is not None:
                 orig_user = env.pop('SUDO_USER')
-                orig_uid = env.pop('SUDO_UID', 0)
-                orig_gid = env.pop('SUDO_GID', 0)
+                orig_uid = int(env.pop('SUDO_UID', 0))
+                orig_gid = int(env.pop('SUDO_GID', 0))
                 try:
                     homedir = pwd.getpwuid(int(orig_uid)).pw_dir
                 except KeyError:
@@ -819,10 +821,8 @@ def rebuild_all(wd: str, backend: str) -> bool:
 
             def wrapped() -> None:
                 print(f'Dropping privileges to {orig_user!r} before running ninja...')
-                if orig_gid is not None:
-                    os.setgid(int(orig_gid))
-                if orig_uid is not None:
-                    os.setuid(int(orig_uid))
+                os.setgid(orig_gid)
+                os.setuid(orig_uid)
 
             return env, wrapped
         else:

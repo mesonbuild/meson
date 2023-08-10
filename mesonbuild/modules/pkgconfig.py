@@ -450,7 +450,7 @@ class PkgConfigModule(NewExtensionModule):
                                  uninstalled: bool = False, dataonly: bool = False,
                                  pkgroot: T.Optional[str] = None) -> None:
         coredata = state.environment.get_coredata()
-        referenced_vars = set()
+        referenced_vars: T.Set[str] = set()
         optnames = [x.name for x in BUILTIN_DIR_OPTIONS.keys()]
 
         if not dataonly:
@@ -462,8 +462,8 @@ class PkgConfigModule(NewExtensionModule):
         # also automatically infer variables referenced in other variables
         implicit_vars_warning = False
         redundant_vars_warning = False
-        varnames = set()
-        varstrings = set()
+        varnames: T.Set[str] = set()
+        varstrings: T.Set[str] = set()
         for k, v in variables + unescaped_variables:
             varnames |= {k}
             varstrings |= {v}
@@ -540,7 +540,7 @@ class PkgConfigModule(NewExtensionModule):
                 msg = 'Library target {0!r} has {1!r} set. Compilers ' \
                       'may not find it from its \'-l{2}\' linker flag in the ' \
                       '{3!r} pkg-config file.'
-                Lflags = []
+                Lflags: T.List[str] = []
                 for l in libs:
                     if isinstance(l, str):
                         yield l
@@ -688,7 +688,7 @@ class PkgConfigModule(NewExtensionModule):
 
         def parse_variable_list(vardict: T.Dict[str, str]) -> T.List[T.Tuple[str, str]]:
             reserved = ['prefix', 'libdir', 'includedir']
-            variables = []
+            variables: T.List[T.Tuple[str, str]] = []
             for name, value in vardict.items():
                 if not dataonly and name in reserved:
                     raise mesonlib.MesonException(f'Variable "{name}" is reserved')

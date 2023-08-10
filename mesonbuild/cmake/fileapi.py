@@ -111,9 +111,9 @@ class CMakeFileAPI:
             return src_dir, bld_dir
 
         def parse_sources(comp_group: T.Dict[str, T.Any], tgt: T.Dict[str, T.Any]) -> T.Tuple[T.List[Path], T.List[Path], T.List[int]]:
-            gen = []
-            src = []
-            idx = []
+            gen: T.List[Path] = []
+            src: T.List[Path] = []
+            idx: T.List[int] = []
 
             src_list_raw = tgt.get('sources', [])
             for i in comp_group.get('sourceIndexes', []):
@@ -141,8 +141,8 @@ class CMakeFileAPI:
             # decided to use arrays for the linker flags. However, this feeling
             # soon turns into despair when you realize that there only one entry
             # per type in most cases, and we still have to do manual string splitting.
-            link_flags = []
-            link_libs = []
+            link_flags: T.List[str] = []
+            link_libs: T.List[str] = []
             for i in tgt.get('link', {}).get('commandFragments', []):
                 if i['role'] == 'flags':
                     link_flags += [i['fragment']]
@@ -174,11 +174,11 @@ class CMakeFileAPI:
                 'fileGroups': [],
             }
 
-            processed_src_idx = []
+            processed_src_idx: T.List[int] = []
             for cg in tgt.get('compileGroups', []):
                 # Again, why an array, when there is usually only one element
                 # and arguments are separated with spaces...
-                flags = []
+                flags: T.List[str] = []
                 for i in cg.get('compileCommandFragments', []):
                     flags += [i['fragment']]
 

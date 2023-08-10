@@ -264,8 +264,8 @@ class CompilerArgs(T.MutableSequence[str]):
             self.append_direct(elem)
 
     def extend_preserving_lflags(self, iterable: T.Iterable[str]) -> None:
-        normal_flags = []
-        lflags = []
+        normal_flags: T.List[str] = []
+        lflags: T.List[str] = []
         for i in iterable:
             if i not in self.always_dedup_args and (i.startswith('-l') or i.startswith('-L')):
                 lflags.append(i)
