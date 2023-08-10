@@ -89,7 +89,7 @@ if sys.maxunicode >= 0x10000:
         (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF),
         (0xFFFFE, 0xFFFFF), (0x10FFFE, 0x10FFFF)])
 UNENCODABLE_XML_CHR_RANGES = [fr'{chr(low)}-{chr(high)}' for (low, high) in UNENCODABLE_XML_UNICHRS]
-UNENCODABLE_XML_CHRS_RE = re.compile('([' + ''.join(UNENCODABLE_XML_CHR_RANGES) + '])')
+UNENCODABLE_XML_CHRS_RE: re.Pattern[str] = re.compile('([' + ''.join(UNENCODABLE_XML_CHR_RANGES) + '])')
 
 
 def is_windows() -> bool:
@@ -506,9 +506,8 @@ class TestFileLogger(TestLogger):
         self.file = open(filename, 'w', encoding='utf-8', errors=errors)
 
     def close(self) -> None:
-        if self.file:
+        if not self.file.closed:
             self.file.close()
-            self.file = None
 
 
 class ConsoleLogger(TestLogger):
@@ -1175,7 +1174,7 @@ TestRun.PROTOCOL_TO_CLASS[TestProtocol.RUST] = TestRunRust
 def replace_unencodable_xml_chars(original_str: str) -> str:
     # [1:-1] is needed for removing `'` characters from both start and end
     # of the string
-    replacement_lambda = lambda illegal_chr: repr(illegal_chr.group())[1:-1]
+    replacement_lambda: T.Callable[[re.Match[str]], str] = lambda illegal_chr: repr(illegal_chr.group())[1:-1]
     return UNENCODABLE_XML_CHRS_RE.sub(replacement_lambda, original_str)
 
 def decode(stream: T.Union[None, bytes]) -> str:
@@ -1238,14 +1237,14 @@ async def queue_iter(q: 'asyncio.Queue[T.Optional[str]]') -> T.AsyncIterator[str
             break
         yield item
 
-async def complete(future: asyncio.Future) -> None:
+async def complete(future: asyncio.Future[T.Any]) -> None:
     """Wait for completion of the given future, ignoring cancellation."""
     try:
         await future
     except asyncio.CancelledError:
         pass
 
-async def complete_all(futures: T.Iterable[asyncio.Future],
+async def complete_all(futures: T.Iterable[asyncio.Future[T.Any]],
                        timeout: T.Optional[T.Union[int, float]] = None) -> None:
     """Wait for completion of all the given futures, ignoring cancellation.
        If timeout is not None, raise an asyncio.TimeoutError after the given
@@ -1253,7 +1252,7 @@ async def complete_all(futures: T.Iterable[asyncio.Future],
        have not completed and none have raised exceptions, even if timeout
        is zero."""
 
-    def check_futures(futures: T.Iterable[asyncio.Future]) -> None:
+    def check_futures(futures: T.Iterable[asyncio.Future[int]]) -> None:
         # Raise exceptions if needed
         left = False
         for f in futures:
@@ -1297,8 +1296,8 @@ class TestSubprocess:
 
     def communicate(self,
                     test: 'TestRun',
-                    console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[str]],
-                                                          T.Optional[T.Awaitable[str]]]:
+                    console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[None]],
+                                                          T.Optional[T.Awaitable[None]]]:
         async def collect_stdo(test: 'TestRun',
                                reader: asyncio.StreamReader,
                                console_mode: ConsoleUser) -> None:
@@ -1399,7 +1398,7 @@ class SingleTestRunner:
 
         if self.cmd and self.test.extra_paths:
             env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + env['PATH']
-            winecmd = []
+            winecmd: T.List[str] = []
             for c in self.cmd:
                 winecmd.append(c)
                 if os.path.basename(c).startswith('wine'):
@@ -1602,7 +1601,7 @@ class TestHarness:
         self.prepare_build()
         self.load_metadata()
 
-        ss = set()
+        ss: T.Set[str] = set()
         for t in self.tests:
             for s in t.suite:
                 ss.add(s)
@@ -1935,7 +1934,7 @@ class TestHarness:
                     # succeed on an invalid pattern.
                     raise MesonException(f'{arg} test name does not match any test')
 
-    def get_tests(self, errorfile: T.Optional[T.IO] = None) -> T.List[TestSerialisation]:
+    def get_tests(self, errorfile: T.Optional[T.TextIO] = None) -> T.List[TestSerialisation]:
         if not self.tests:
             print('No tests defined.', file=errorfile)
             return []
@@ -2023,7 +2022,7 @@ class TestHarness:
                 if maxfail and self.fail_count >= maxfail and res.res.is_bad():
                     cancel_all_tests()
 
-        def test_done(f: asyncio.Future) -> None:
+        def test_done(f: asyncio.Future[None]) -> None:
             if not f.cancelled():
                 f.result()
             futures.remove(f)

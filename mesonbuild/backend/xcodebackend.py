@@ -494,7 +494,7 @@ class XCodeBackend(backends.Backend):
         self.generate_target_file_maps_impl(self.build_targets)
         self.generate_target_file_maps_impl(self.custom_targets)
 
-    def generate_target_file_maps_impl(self, targets):
+    def generate_target_file_maps_impl(self, targets: T.Union[T.Dict[str, build.CustomTarget], T.Dict[str, build.BuildTarget]]):
         for tname, t in targets.items():
             for s in t.sources:
                 if isinstance(s, mesonlib.File):

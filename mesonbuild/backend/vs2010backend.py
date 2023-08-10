@@ -566,11 +566,11 @@ class Vs2010Backend(backends.Backend):
 
         return projlist
 
-    def split_sources(self, srclist):
-        sources = []
-        headers = []
-        objects = []
-        languages = []
+    def split_sources(self, srclist: T.List[File]) -> T.Tuple[T.List[File], T.List[File], T.List[File], T.List[str]]:
+        sources: T.List[File] = []
+        headers: T.List[File] = []
+        objects: T.List[File] = []
+        languages: T.List[str] = []
         for i in srclist:
             if self.environment.is_header(i):
                 headers.append(i)
@@ -783,7 +783,7 @@ class Vs2010Backend(backends.Backend):
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
     @classmethod
-    def lang_from_source_file(cls, src):
+    def lang_from_source_file(cls, src: str):
         ext = src.split('.')[-1]
         if ext in compilers.c_suffixes:
             return 'c'

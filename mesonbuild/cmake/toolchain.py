@@ -234,7 +234,7 @@ class CMakeToolchain:
         # Configure
         trace = CMakeTraceParser(self.cmakebin.version(), build_dir, self.env)
         self.cmakebin.set_exec_mode(print_cmout=False, always_capture_stderr=trace.requires_stderr())
-        cmake_args = []
+        cmake_args: T.List[str] = []
         cmake_args += trace.trace_args()
         cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_TOOLCHAIN_FILE={temp_toolchain_file.as_posix()}', '.']

@@ -107,7 +107,7 @@ class _Logger:
     log_errors_only = False
     logged_once: T.Set[T.Tuple[str, ...]] = field(default_factory=set)
     log_warnings_counter = 0
-    log_pager: T.Optional['subprocess.Popen'] = None
+    log_pager: T.Optional['subprocess.Popen[str]'] = None
 
     _LOG_FNAME: T.ClassVar[str] = 'meson-log.txt'
 
@@ -225,7 +225,7 @@ class _Logger:
         raw = iostr.getvalue()
         if self.log_depth:
             prepend = self.log_depth[-1] + '| ' if nested else ''
-            lines = []
+            lines: T.List[str] = []
             for l in raw.split('\n'):
                 l = l.strip()
                 lines.append(prepend + l if l else '')

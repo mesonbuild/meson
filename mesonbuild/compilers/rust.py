@@ -166,7 +166,7 @@ class RustCompiler(Compiler):
         return []
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':

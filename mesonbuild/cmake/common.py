@@ -89,7 +89,7 @@ class CMakeBuildFile:
 
 def _flags_to_list(raw: str) -> T.List[str]:
     # Convert a raw commandline string into a list of strings
-    res = []
+    res: T.List[str] = []
     curr = ''
     escape = False
     in_string = False

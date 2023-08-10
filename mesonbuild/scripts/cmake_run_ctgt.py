@@ -44,7 +44,7 @@ def run(argsv: T.List[str]) -> int:
         if not i:
             continue
 
-        cmd = []
+        cmd: T.List[str] = []
         stdout = None
         stderr = None
         capture_file = ''

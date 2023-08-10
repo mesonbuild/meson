@@ -112,7 +112,7 @@ def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     return printer.result
 
 def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
-    res = {}
+    res: T.Dict[str, str] = {}
     if installdata is not None:
         for t in installdata.targets:
             res[os.path.join(installdata.build_dir, t.fname)] = \
@@ -481,7 +481,7 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.D
         'descriptive_name': builddata.project_name,
         'subproject_dir': builddata.subproject_dir,
     }
-    subprojects = []
+    subprojects: T.List[T.Dict[str, str]] = []
     for k, v in builddata.subprojects.items():
         c: T.Dict[str, str] = {
             'name': k,
@@ -494,8 +494,7 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.D
 
 def list_projinfo_from_source(intr: IntrospectionInterpreter) -> T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]:
     sourcedir = intr.source_root
-    files = find_buildsystem_files_list(sourcedir)
-    files = [os.path.normpath(x) for x in files]
+    files = [os.path.normpath(x) for x in find_buildsystem_files_list(sourcedir)]
 
     for i in intr.project_data['subprojects']:
         basedir = os.path.join(intr.subproject_dir, i['name'])

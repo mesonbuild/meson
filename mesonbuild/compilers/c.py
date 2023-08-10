@@ -169,7 +169,7 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
@@ -249,7 +249,7 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
@@ -304,7 +304,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', lang=self.language, machine=self.for_machine)]
         if std.value != 'none':
             args.append('-std=' + std.value)
@@ -414,7 +414,7 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
@@ -478,7 +478,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         # As of MVSC 16.8, /std:c11 and /std:c17 are the only valid C standard options.
         if std.value in {'c11'}:
@@ -529,7 +529,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value == 'c89':
@@ -563,7 +563,7 @@ class ArmCCompiler(ArmCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -596,7 +596,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
         return []
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value == 'c89':
@@ -644,7 +644,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
         return []
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -728,7 +728,7 @@ class TICCompiler(TICompiler, CCompiler):
         return []
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -761,7 +761,7 @@ class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-lang')
@@ -790,7 +790,7 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-lang ' + std.value)

@@ -143,8 +143,8 @@ class CMakeDependency(ExternalDependency):
         package_version = kwargs.get('cmake_package_version', '')
         if not isinstance(package_version, str):
             raise DependencyException('Keyword "cmake_package_version" must be a string.')
-        components = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'components'))]
-        modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
+        components: T.List[T.Tuple[str, bool]] = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'components'))]
+        modules: T.List[T.Tuple[str, bool]] = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
         cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
@@ -163,7 +163,7 @@ class CMakeDependency(ExternalDependency):
 
         # Try different CMake generators since specifying no generator may fail
         # in cygwin for some reason
-        gen_list = []
+        gen_list: T.List[str] = []
         # First try the last working generator
         if CMakeDependency.class_working_generator is not None:
             gen_list += [CMakeDependency.class_working_generator]
@@ -384,7 +384,7 @@ class CMakeDependency(ExternalDependency):
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = []
+            cmake_opts: T.List[str] = []
             cmake_opts += [f'-DNAME={name}']
             cmake_opts += ['-DARCHS={}'.format(';'.join(self.cmakeinfo.archs))]
             cmake_opts += [f'-DVERSION={package_version}']
@@ -396,7 +396,7 @@ class CMakeDependency(ExternalDependency):
             cmake_opts += self._extra_cmake_opts()
             cmake_opts += ['.']
             if len(i) > 0:
-                cmake_opts = ['-G', i] + cmake_opts
+                cmake_opts += ['-G', i]
 
             # Run CMake
             ret1, out1, err1 = self._call_cmake(cmake_opts, self._main_cmake_file())
@@ -534,8 +534,8 @@ class CMakeDependency(ExternalDependency):
         # Set dependencies with CMake targets
         # recognise arguments we should pass directly to the linker
         incDirs = []
-        compileOptions = []
-        libraries = []
+        compileOptions: T.List[str] = []
+        libraries: T.List[str] = []
 
         for i, required in modules:
             if i not in self.traceparser.targets:

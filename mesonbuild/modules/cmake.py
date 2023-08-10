@@ -46,7 +46,8 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
-    from ..cmake import SingleTargetOptions
+    from ..cmake.common import SingleTargetOptions
+    from ..cmake.interpreter import TargetInfo
     from ..environment import Environment
     from ..interpreter import Interpreter, kwargs
     from ..interpreterbase import TYPE_kwargs, TYPE_var
@@ -202,9 +203,9 @@ class CMakeSubprojectOptions(ModuleObject):
             }
         )
 
-    def _get_opts(self, kwargs: dict) -> SingleTargetOptions:
-        if 'target' in kwargs:
-            return self.target_options[kwargs['target']]
+    def _get_opts(self, tgt: T.Optional[str]) -> SingleTargetOptions:
+        if tgt is not None:
+            return self.target_options[tgt]
         return self.target_options.global_options
 
     @typed_pos_args('subproject_options.add_cmake_defines', varargs=dict)
@@ -339,7 +340,7 @@ class CmakeModule(ExtensionModule):
         except Exception as e:
             raise mesonlib.MesonException(f'Could not read input file {infile}: {e!s}')
 
-        result = []
+        result: T.List[str] = []
         regex = mesonlib.get_variable_regex('cmake@')
         for line in data:
             line = line.replace('@PACKAGE_INIT@', package_init)

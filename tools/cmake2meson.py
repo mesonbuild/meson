@@ -162,7 +162,7 @@ class Converter:
         self.options: T.List[T.Tuple[str, str, T.Optional[str]]] = []
 
     def convert_args(self, args: T.List[Token], as_array: bool = True) -> str:
-        res = []
+        res: T.List[str] = []
         if as_array:
             start = '['
             end = ']'
@@ -189,8 +189,10 @@ class Converter:
             return
         preincrement = 0
         postincrement = 0
+
+        line: str
         if t.name == '_':
-            line = t.args[0]
+            line = T.cast('str', t.args[0])
         elif t.name == 'add_subdirectory':
             line = "subdir('" + t.args[0].value + "')"
         elif t.name == 'pkg_search_module' or t.name == 'pkg_search_modules':
@@ -230,14 +232,14 @@ class Converter:
             return
         elif t.name == 'project':
             pname = t.args[0].value
-            args = [pname]
+            raw_args: T.List[T.Any] = [pname]
             for l in t.args[1:]:
                 l = l.value.lower()
                 if l == 'cxx':
                     l = 'cpp'
-                args.append(l)
-            args = ["'%s'" % i for i in args]
-            line = 'project(' + ', '.join(args) + ", default_options : ['default_library=static'])"
+                raw_args.append(l)
+            str_args = ["'%s'" % i for i in raw_args]
+            line = 'project(' + ', '.join(str_args) + ", default_options : ['default_library=static'])"
         elif t.name == 'set':
             varname = t.args[0].value.lower()
             line = '{} = {}\n'.format(varname, self.convert_args(t.args[1:]))

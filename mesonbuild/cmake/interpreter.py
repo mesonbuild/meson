@@ -53,6 +53,7 @@ from ..mparser import (
 
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
     from .common import CMakeConfiguration, TargetOptions
     from .traceparser import CMakeGeneratorTarget
     from .._typing import ImmutableListProtocol
@@ -62,6 +63,13 @@ if T.TYPE_CHECKING:
     TYPE_mixed = T.Union[str, int, bool, Path, BaseNode]
     TYPE_mixed_list = T.Union[TYPE_mixed, T.Sequence[TYPE_mixed]]
     TYPE_mixed_kwargs = T.Dict[str, TYPE_mixed_list]
+
+    class TargetInfo(TypedDict):
+        inc: T.Optional[str]
+        src: T.Optional[str]
+        dep: T.Optional[str]
+        tgt: T.Optional[str]
+        func: str
 
 # Disable all warnings automatically enabled with --trace and friends
 # See https://cmake.org/cmake/help/latest/variable/CMAKE_POLICY_WARNING_CMPNNNN.html
@@ -304,7 +312,7 @@ class ConverterTarget:
             if i not in self.compile_opts:
                 continue
 
-            temp = []
+            temp: T.List[str] = []
             for j in self.compile_opts[i]:
                 m = ConverterTarget.std_regex.match(j)
                 ctgt = output_target_map.generated(Path(j))
@@ -539,8 +547,8 @@ class ConverterTarget:
     def process_inter_target_dependencies(self) -> None:
         # Move the dependencies from all transfer_dependencies_from to the target
         to_process = list(self.depends)
-        processed = []
-        new_deps = []
+        processed: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
+        new_deps: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
         for i in to_process:
             processed += [i]
             if isinstance(i, ConverterTarget) and i.meson_func() in transfer_dependencies_from:
@@ -734,8 +742,8 @@ class ConverterCustomTarget:
     def process_inter_target_dependencies(self) -> None:
         # Move the dependencies from all transfer_dependencies_from to the target
         to_process = list(self.depends)
-        processed = []
-        new_deps = []
+        processed: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
+        new_deps: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
         for i in to_process:
             processed += [i]
             if isinstance(i, ConverterTarget) and i.meson_func() in transfer_dependencies_from:
@@ -791,7 +799,7 @@ class CMakeInterpreter:
         self.output_target_map = OutputTargetMap(self.build_dir)
 
         # Generated meson data
-        self.generated_targets: T.Dict[str, T.Dict[str, T.Optional[str]]] = {}
+        self.generated_targets: T.Dict[str, TargetInfo] = {}
         self.internal_name_map: T.Dict[str, str] = {}
 
         # Do some special handling for object libraries for certain configurations
@@ -817,7 +825,7 @@ class CMakeInterpreter:
         # TODO: drop this check once the deprecated `cmake_args` kwarg is removed
         extra_cmake_options = check_cmake_args(extra_cmake_options)
 
-        cmake_args = []
+        cmake_args: T.List[str] = []
         cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix}']
         cmake_args += extra_cmake_options
@@ -925,7 +933,7 @@ class CMakeInterpreter:
             self.output_target_map.add(i_3)
 
         # First pass: Basic target cleanup
-        object_libs = []
+        object_libs: T.List[ConverterTarget] = []
         custom_target_outputs: T.List[str] = []
         for ctgt in self.custom_targets:
             ctgt.postprocess(self.output_target_map, self.src_dir, custom_target_outputs, self.trace)
@@ -1029,7 +1037,7 @@ class CMakeInterpreter:
 
         # Add the targets
         processing: T.List[str] = []
-        processed: T.Dict[str, T.Dict[str, T.Optional[str]]] = {}
+        processed: T.Dict[str, TargetInfo] = {}
         name_map: T.Dict[str, str] = {}
 
         def extract_tgt(tgt: T.Union[ConverterTarget, ConverterCustomTarget, CustomTargetReference]) -> IdNode:
@@ -1251,7 +1259,7 @@ class CMakeInterpreter:
         self.internal_name_map = name_map
         return root_cb
 
-    def target_info(self, target: str) -> T.Optional[T.Dict[str, str]]:
+    def target_info(self, target: str) -> T.Optional[TargetInfo]:
         # Try resolving the target name
         # start by checking if there is a 100% match (excluding the name prefix)
         prx_tgt = _sanitize_cmake_name(target)

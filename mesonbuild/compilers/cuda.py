@@ -258,7 +258,7 @@ class CudaCompiler(Compiler):
         if len(flags) <= 1:
             return flags
         flagit = iter(flags)
-        xflags = []
+        xflags: T.List[str] = []
 
         def is_xcompiler_flag_isolated(flag: str) -> bool:
             return flag == '-Xcompiler'
@@ -305,7 +305,7 @@ class CudaCompiler(Compiler):
         gratuitous, irritating differences.
         """
 
-        xflags = []
+        xflags: T.List[str] = []
         flagit = iter(flags)
 
         for flag in flagit:
@@ -526,7 +526,7 @@ class CudaCompiler(Compiler):
         # environment set up properly. Of course, this only works for native
         # builds; For cross builds we must still use the exe_wrapper (if any).
         self.detected_cc = ''
-        flags = []
+        flags: T.List[str] = []
 
         # Disable warnings, compile with statically-linked runtime for minimum
         # reliance on the system.

@@ -113,7 +113,7 @@ class _MPIConfigToolDependency(ConfigToolDependency):
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
         """
-        result = []
+        result: T.List[str] = []
         multi_args: T.Tuple[str, ...] = ('-I', )
         if self.language == 'fortran':
             fc = self.env.coredata.compilers[self.for_machine]['fortran']
@@ -137,7 +137,7 @@ class _MPIConfigToolDependency(ConfigToolDependency):
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
         """
-        result = []
+        result: T.List[str] = []
         include_next = False
         for f in args:
             if self._is_link_arg(f):

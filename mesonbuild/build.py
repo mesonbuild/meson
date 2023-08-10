@@ -133,7 +133,7 @@ def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
 
 
 @lru_cache(maxsize=None)
-def get_target_macos_dylib_install_name(ld) -> str:
+def get_target_macos_dylib_install_name(ld: SharedLibrary) -> str:
     name = ['@rpath/', ld.prefix, ld.name]
     if ld.soversion is not None:
         name.append('.' + ld.soversion)
@@ -278,15 +278,15 @@ class Build:
         self.devenv: T.List[EnvironmentVariables] = []
         self.modules: T.List[str] = []
 
-    def get_build_targets(self):
-        build_targets = OrderedDict()
+    def get_build_targets(self) -> T.Dict[str, BuildTarget]:
+        build_targets: T.Dict[str, BuildTarget] = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, BuildTarget):
                 build_targets[name] = t
         return build_targets
 
-    def get_custom_targets(self):
-        custom_targets = OrderedDict()
+    def get_custom_targets(self) -> T.Dict[str, CustomTarget]:
+        custom_targets: T.Dict[str, CustomTarget] = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, CustomTarget):
                 custom_targets[name] = t
@@ -1278,7 +1278,7 @@ class BuildTarget(Target):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_extra_args(self, language):
+    def get_extra_args(self, language: str) -> T.List[str]:
         return self.extra_args.get(language, [])
 
     @lru_cache(maxsize=None)
@@ -1424,7 +1424,7 @@ class BuildTarget(Target):
             self.check_can_link_together(t)
             self.link_targets.append(t)
 
-    def link_whole(self, targets, promoted: bool = False):
+    def link_whole(self, targets: T.Iterable[BuildTarget], promoted: bool = False) -> None:
         for t in targets:
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
@@ -2630,7 +2630,7 @@ class CustomTarget(Target, CommandBase):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
 
-    def get_dependencies(self):
+    def get_dependencies(self) -> T.List[T.Union[BuildTarget, CustomTarget]]:
         return self.dependencies
 
     def should_install(self) -> bool:
@@ -2661,7 +2661,7 @@ class CustomTarget(Target, CommandBase):
     def get_generated_sources(self) -> T.List[GeneratedList]:
         return self.get_generated_lists()
 
-    def get_dep_outname(self, infilenames):
+    def get_dep_outname(self, infilenames: T.List[str]):
         if self.depfile is None:
             raise InvalidArguments('Tried to get depfile name for custom_target that does not have depfile defined.')
         if infilenames:
@@ -2702,7 +2702,7 @@ class CustomTarget(Target, CommandBase):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return []
 
     def is_internal(self) -> bool:
@@ -2722,10 +2722,10 @@ class CustomTarget(Target, CommandBase):
     def __getitem__(self, index: int) -> 'CustomTargetIndex':
         return CustomTargetIndex(self, self.outputs[index])
 
-    def __setitem__(self, index, value):
+    def __setitem__(self, index: int, value):
         raise NotImplementedError
 
-    def __delitem__(self, index):
+    def __delitem__(self, index: int):
         raise NotImplementedError
 
     def __iter__(self):
@@ -2879,13 +2879,13 @@ class Jar(BuildTarget):
         self.main_class = kwargs.get('main_class', '')
         self.java_resources: T.Optional[StructuredSources] = kwargs.get('java_resources', None)
 
-    def get_main_class(self):
+    def get_main_class(self) -> str:
         return self.main_class
 
     def type_suffix(self):
         return "@jar"
 
-    def get_java_args(self):
+    def get_java_args(self) -> T.List[str]:
         return self.java_args
 
     def get_java_resources(self) -> T.Optional[StructuredSources]:
@@ -2898,7 +2898,7 @@ class Jar(BuildTarget):
     def is_linkable_target(self):
         return True
 
-    def get_classpath_args(self):
+    def get_classpath_args(self) -> T.List[str]:
         cp_paths = [os.path.join(l.get_subdir(), l.get_filename()) for l in self.link_targets]
         cp_string = os.pathsep.join(cp_paths)
         if cp_string:
@@ -2944,7 +2944,7 @@ class CustomTargetIndex(HoldableObject):
     def get_id(self) -> str:
         return self.target.get_id()
 
-    def get_all_link_deps(self):
+    def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.target.get_all_link_deps()
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
