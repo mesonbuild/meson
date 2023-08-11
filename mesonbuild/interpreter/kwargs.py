@@ -344,7 +344,12 @@ class Executable(_BuildTarget):
     win_subsystem: T.Optional[str]
 
 
-class StaticLibrary(_BuildTarget, _LibraryMixin):
+class _StaticLibMixin(TypedDict):
+
+    prelink: bool
+
+
+class StaticLibrary(_BuildTarget, _StaticLibMixin, _LibraryMixin):
     pass
 
 
@@ -363,7 +368,7 @@ class SharedModule(_BuildTarget, _LibraryMixin):
     pass
 
 
-class Library(_BuildTarget, _SharedLibMixin, _LibraryMixin):
+class Library(_BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin):
 
     """For library, both_library, and as a base for build_target"""
 
