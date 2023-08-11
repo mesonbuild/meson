@@ -604,7 +604,9 @@ _EXCLUSIVE_LIB_KWS: T.List[KwargInfo] = [
 
 # Arguments exclusive to StaticLibrary. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_STATIC_LIB_KWS: T.List[KwargInfo] = []
+_EXCLUSIVE_STATIC_LIB_KWS: T.List[KwargInfo] = [
+    KwargInfo('prelink', bool, default=False, since='0.57.0'),
+]
 
 # The total list of arguments used by StaticLibrary
 STATIC_LIB_KWS = [
