@@ -195,8 +195,8 @@ class CudaDependency(SystemDependency):
             except ValueError:
                 continue
             # use // for floor instead of / which produces a float
-            major = vers_int // 1000                  # type: int
-            minor = (vers_int - major * 1000) // 10   # type: int
+            major = vers_int // 1000
+            minor = (vers_int - major * 1000) // 10
             return f'{major}.{minor}'
         return None
 

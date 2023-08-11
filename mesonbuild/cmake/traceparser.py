@@ -107,8 +107,8 @@ class CMakeTraceParser:
         self.custom_targets = []  # type: T.List[CMakeGeneratorTarget]
 
         self.env = env
-        self.permissive = permissive  # type: bool
-        self.cmake_version = cmake_version  # type: str
+        self.permissive = permissive
+        self.cmake_version = cmake_version
         self.trace_file = 'cmake_trace.txt'
         self.trace_file_path = build_dir / self.trace_file
         self.trace_format = 'json-v1' if version_compare(cmake_version, '>=3.17') else 'human'
@@ -785,7 +785,7 @@ class CMakeTraceParser:
 
         fixed_list = []  # type: T.List[str]
         curr_str = None  # type: T.Optional[str]
-        path_found = False # type: bool
+        path_found = False
 
         for i in broken_list:
             if curr_str is None:

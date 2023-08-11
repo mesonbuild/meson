@@ -87,7 +87,7 @@ class ArmCompiler(Compiler):
                           '1': default_warn_args,
                           '2': default_warn_args + [],
                           '3': default_warn_args + [],
-                          'everything': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
+                          'everything': default_warn_args + []}
         # Assembly
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')

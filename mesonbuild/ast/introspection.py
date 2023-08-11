@@ -46,7 +46,7 @@ class IntrospectionHelper(argparse.Namespace):
     # mimic an argparse namespace
     def __init__(self, cross_file: str):
         super().__init__()
-        self.cross_file = cross_file  # type: str
+        self.cross_file = cross_file
         self.native_file = None       # type: str
         self.cmd_line_options = {}    # type: T.Dict[str, str]
 

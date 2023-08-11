@@ -71,7 +71,7 @@ class Xc16Compiler(Compiler):
                           '1': default_warn_args,
                           '2': default_warn_args + [],
                           '3': default_warn_args + [],
-                          'everything': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
+                          'everything': default_warn_args + []}
 
     def get_always_args(self) -> T.List[str]:
         return []

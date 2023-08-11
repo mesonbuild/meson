@@ -161,7 +161,7 @@ class Properties:
             self,
             properties: T.Optional[T.Dict[str, T.Optional[T.Union[str, bool, int, T.List[str]]]]] = None,
     ):
-        self.properties = properties or {}  # type: T.Dict[str, T.Optional[T.Union[str, bool, int, T.List[str]]]]
+        self.properties = properties or {}
 
     def has_stdlib(self, language: str) -> bool:
         return language + '_stdlib' in self.properties

@@ -333,7 +333,7 @@ class BoostLibraryFile():
     def get_compiler_args(self) -> T.List[str]:
         args = []  # type: T.List[str]
         if self.mod_name in boost_libraries:
-            libdef = boost_libraries[self.mod_name]  # type: BoostLibrary
+            libdef = boost_libraries[self.mod_name]
             if self.static:
                 args += libdef.static
             else:

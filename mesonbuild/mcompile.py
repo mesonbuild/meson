@@ -174,7 +174,7 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
 
     # Normalize project name
     # Source: https://docs.microsoft.com/en-us/visualstudio/msbuild/how-to-build-specific-targets-in-solutions-by-using-msbuild-exe
-    target_name = re.sub(r"[\%\$\@\;\.\(\)']", '_', intro_target['id'])  # type: str
+    target_name = re.sub(r"[\%\$\@\;\.\(\)']", '_', intro_target['id'])
     rel_path = Path(intro_target['filename'][0]).relative_to(builddir.resolve()).parent
     if rel_path != Path('.'):
         target_name = str(rel_path / target_name)

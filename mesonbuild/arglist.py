@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from .compilers import Compiler
 
 # execinfo is a compiler lib on BSD
-UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt', 'execinfo']  # type: T.List[str]
+UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt', 'execinfo']
 
 
 class Dedup(enum.Enum):
@@ -94,7 +94,7 @@ class CompilerArgs(T.MutableSequence[str]):
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
     dedup1_prefixes = ()  # type: T.Tuple[str, ...]
-    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')  # type: T.Tuple[str, ...]
+    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
     # Match a .so of the form path/to/libfoo.so.0.1.0
     # Only UNIX shared libraries require this. Others have a fixed extension.
     dedup1_regex = re.compile(r'([\/\\]|\A)lib.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
@@ -102,7 +102,7 @@ class CompilerArgs(T.MutableSequence[str]):
     # In generate_link() we add external libs without de-dup, but we must
     # *always* de-dup these because they're special arguments to the linker
     # TODO: these should probably move too
-    always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)  # type : T.Tuple[str, ...]
+    always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)
 
     def __init__(self, compiler: T.Union['Compiler', 'StaticLinker'],
                  iterable: T.Optional[T.Iterable[str]] = None):

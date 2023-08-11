@@ -167,10 +167,10 @@ class CMakeInclude:
 class CMakeFileGroup:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
         self.defines = data.get('defines', '')                       # type: str
-        self.flags = _flags_to_list(data.get('compileFlags', ''))  # type: T.List[str]
+        self.flags = _flags_to_list(data.get('compileFlags', ''))
         self.is_generated = data.get('isGenerated', False)                # type: bool
         self.language = data.get('language', 'C')                     # type: str
-        self.sources = [Path(x) for x in data.get('sources', [])]    # type: T.List[Path]
+        self.sources = [Path(x) for x in data.get('sources', [])]
 
         # Fix the include directories
         self.includes = []  # type: T.List[CMakeInclude]
@@ -196,18 +196,18 @@ class CMakeFileGroup:
 
 class CMakeTarget:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
-        self.artifacts = [Path(x) for x in data.get('artifacts', [])]               # type: T.List[Path]
-        self.src_dir = Path(data.get('sourceDirectory', ''))                        # type: Path
-        self.build_dir = Path(data.get('buildDirectory', ''))                       # type: Path
+        self.artifacts = [Path(x) for x in data.get('artifacts', [])]
+        self.src_dir = Path(data.get('sourceDirectory', ''))
+        self.build_dir = Path(data.get('buildDirectory', ''))
         self.name = data.get('name', '')                                            # type: str
         self.full_name = data.get('fullName', '')                                   # type: str
         self.install = data.get('hasInstallRule', False)                            # type: bool
-        self.install_paths = [Path(x) for x in set(data.get('installPaths', []))]   # type: T.List[Path]
+        self.install_paths = [Path(x) for x in set(data.get('installPaths', []))]
         self.link_lang = data.get('linkerLanguage', '')                             # type: str
-        self.link_libraries = _flags_to_list(data.get('linkLibraries', ''))         # type: T.List[str]
-        self.link_flags = _flags_to_list(data.get('linkFlags', ''))                 # type: T.List[str]
-        self.link_lang_flags = _flags_to_list(data.get('linkLanguageFlags', ''))    # type: T.List[str]
-        # self.link_path = Path(data.get('linkPath', ''))                             # type: Path
+        self.link_libraries = _flags_to_list(data.get('linkLibraries', ''))
+        self.link_flags = _flags_to_list(data.get('linkFlags', ''))
+        self.link_lang_flags = _flags_to_list(data.get('linkLanguageFlags', ''))
+        # self.link_path = Path(data.get('linkPath', ''))
         self.type = data.get('type', 'EXECUTABLE')                                  # type: str
         # self.is_generator_provided = data.get('isGeneratorProvided', False)         # type: bool
         self.files = []                                                             # type: T.List[CMakeFileGroup]
@@ -237,8 +237,8 @@ class CMakeTarget:
 
 class CMakeProject:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
-        self.src_dir = Path(data.get('sourceDirectory', ''))    # type: Path
-        self.build_dir = Path(data.get('buildDirectory', ''))   # type: Path
+        self.src_dir = Path(data.get('sourceDirectory', ''))
+        self.build_dir = Path(data.get('buildDirectory', ''))
         self.name = data.get('name', '')                        # type: str
         self.targets = []                                       # type: T.List[CMakeTarget]
 

@@ -38,8 +38,8 @@ def parse_generator_expressions(
     if '$<' not in raw:
         return raw
 
-    out = ''  # type: str
-    i = 0     # type: int
+    out = ''
+    i = 0
 
     def equal(arg: str) -> str:
         col_pos = arg.find(',')
@@ -147,10 +147,10 @@ def parse_generator_expressions(
         nonlocal i
         i += 2
 
-        func = ''  # type: str
-        args = ''  # type: str
-        res = ''   # type: str
-        exp = ''   # type: str
+        func = ''
+        args = ''
+        res = ''
+        exp = ''
 
         # Determine the body of the expression
         while i < len(raw):

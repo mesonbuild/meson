@@ -606,9 +606,9 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     unconditional = False
 
     def __init__(self, feature_name: str, feature_version: str, extra_message: str = ''):
-        self.feature_name = feature_name  # type: str
-        self.feature_version = feature_version    # type: str
-        self.extra_message = extra_message  # type: str
+        self.feature_name = feature_name
+        self.feature_version = feature_version
+        self.extra_message = extra_message
 
     @staticmethod
     def get_target_version(subproject: str) -> str:

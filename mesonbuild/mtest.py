@@ -524,7 +524,7 @@ class ConsoleLogger(TestLogger):
         self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
         self.progress_test = None          # type: T.Optional['TestRun']
         self.progress_task = None          # type: T.Optional[asyncio.Future]
-        self.max_left_width = 0            # type: int
+        self.max_left_width = 0
         self.stop = False
         # TODO: before 3.10 this cannot be created immediately, because
         # it will create a new event loop
@@ -933,7 +933,7 @@ class TestRun:
         self.stde = ''
         self.additional_error = ''
         self.cmd = None        # type: T.Optional[T.List[str]]
-        self.env = test_env    # type: T.Dict[str, str]
+        self.env = test_env
         self.should_fail = test.should_fail
         self.project = test.project_name
         self.junit = None      # type: T.Optional[et.ElementTree]
@@ -1285,7 +1285,7 @@ class TestSubprocess:
         self.stderr = stderr
         self.stdo_task: T.Optional[asyncio.Task[None]] = None
         self.stde_task: T.Optional[asyncio.Task[None]] = None
-        self.postwait_fn = postwait_fn   # type: T.Callable[[], None]
+        self.postwait_fn = postwait_fn
         self.all_futures = []            # type: T.List[asyncio.Future]
         self.queue = None                # type: T.Optional[asyncio.Queue[T.Optional[str]]]
 
