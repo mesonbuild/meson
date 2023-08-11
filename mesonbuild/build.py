@@ -2139,7 +2139,7 @@ class SharedLibrary(BuildTarget):
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
         self.soversion = None
-        self.ltversion = None
+        self.ltversion: T.Optional[str] = None
         # Max length 2, first element is compatibility_version, second is current_version
         self.darwin_versions = []
         self.vs_module_defs = None
@@ -2350,12 +2350,7 @@ class SharedLibrary(BuildTarget):
 
         if not self.environment.machines[self.for_machine].is_android():
             # Shared library version
-            if 'version' in kwargs:
-                self.ltversion = kwargs['version']
-                if not isinstance(self.ltversion, str):
-                    raise InvalidArguments('Shared library version needs to be a string, not ' + type(self.ltversion).__name__)
-                if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', self.ltversion):
-                    raise InvalidArguments(f'Invalid Shared library version "{self.ltversion}". Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.')
+            self.ltversion = T.cast('T.Optional[str]', kwargs.get('version'))
             # Try to extract/deduce the soversion
             if 'soversion' in kwargs:
                 self.soversion = kwargs['soversion']

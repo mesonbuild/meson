@@ -338,7 +338,12 @@ class StaticLibrary(_BuildTarget):
     pass
 
 
-class SharedLibrary(_BuildTarget):
+class _SharedLibMixin(TypedDict):
+
+    version: T.Optional[str]
+
+
+class SharedLibrary(_BuildTarget, _SharedLibMixin):
     pass
 
 
@@ -346,7 +351,7 @@ class SharedModule(_BuildTarget):
     pass
 
 
-class Library(_BuildTarget):
+class Library(_BuildTarget, _SharedLibMixin):
 
     """For library, both_library, and as a base for build_target"""
 
