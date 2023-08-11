@@ -340,6 +340,7 @@ class StaticLibrary(_BuildTarget):
 
 class _SharedLibMixin(TypedDict):
 
+    soversion: T.Optional[str]
     version: T.Optional[str]
 
 

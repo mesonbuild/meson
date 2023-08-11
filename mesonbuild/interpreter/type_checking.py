@@ -535,6 +535,7 @@ STATIC_LIB_KWS = [
 # Arguments exclusive to SharedLibrary. These are separated to make integrating
 # them into build_target easier
 _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
+    KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
     KwargInfo('version', (str, NoneType), validator=_validate_shlib_version)
 ]
 
