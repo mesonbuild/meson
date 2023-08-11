@@ -2138,7 +2138,7 @@ class SharedLibrary(BuildTarget):
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
-        self.soversion = None
+        self.soversion: T.Optional[str] = None
         self.ltversion: T.Optional[str] = None
         # Max length 2, first element is compatibility_version, second is current_version
         self.darwin_versions = []
@@ -2351,14 +2351,8 @@ class SharedLibrary(BuildTarget):
         if not self.environment.machines[self.for_machine].is_android():
             # Shared library version
             self.ltversion = T.cast('T.Optional[str]', kwargs.get('version'))
-            # Try to extract/deduce the soversion
-            if 'soversion' in kwargs:
-                self.soversion = kwargs['soversion']
-                if isinstance(self.soversion, int):
-                    self.soversion = str(self.soversion)
-                if not isinstance(self.soversion, str):
-                    raise InvalidArguments('Shared library soversion is not a string or integer.')
-            elif self.ltversion:
+            self.soversion = T.cast('T.Optional[str]', kwargs.get('soversion'))
+            if self.soversion is None and self.ltversion is not None:
                 # library version is defined, get the soversion from that
                 # We replicate what Autotools does here and take the first
                 # number of the version by default.
