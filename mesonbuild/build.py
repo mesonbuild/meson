@@ -723,7 +723,7 @@ class BuildTarget(Target):
             kwargs):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
         self.all_compilers = compilers
-        self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
+        self.compilers: OrderedDict[str, Compiler] = OrderedDict()
         self.objects: T.List[ObjectTypes] = []
         self.structured_sources = structured_sources
         self.external_deps: T.List[dependencies.Dependency] = []
@@ -1539,7 +1539,7 @@ class BuildTarget(Target):
 
         See: https://github.com/mesonbuild/meson/issues/1653
         '''
-        langs = [] # type: T.List[str]
+        langs: T.List[str] = []
 
         # Check if any of the external libraries were written in this language
         for dep in self.external_deps:

@@ -60,7 +60,7 @@ def _windows_ansi() -> bool:
     return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
 
 def colorize_console() -> bool:
-    _colorize_console = getattr(sys.stdout, 'colorize_console', None)  # type: bool
+    _colorize_console: bool = getattr(sys.stdout, 'colorize_console', None)
     if _colorize_console is not None:
         return _colorize_console
 
@@ -201,7 +201,7 @@ class _Logger:
         self.log_fatal_warnings = fatal_warnings
 
     def process_markup(self, args: T.Sequence[TV_Loggable], keep: bool, display_timestamp: bool = True) -> T.List[str]:
-        arr = []  # type: T.List[str]
+        arr: T.List[str] = []
         if self.log_timestamp_start is not None and display_timestamp:
             arr = ['[{:.3f}]'.format(time.monotonic() - self.log_timestamp_start)]
         for arg in args:
@@ -312,7 +312,7 @@ class _Logger:
         # The typing requirements here are non-obvious. Lists are invariant,
         # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
         if severity is _Severity.NOTICE:
-            label = [bold('NOTICE:')]  # type: TV_LoggableList
+            label: TV_LoggableList = [bold('NOTICE:')]
         elif severity is _Severity.WARNING:
             label = [yellow('WARNING:')]
         elif severity is _Severity.ERROR:
@@ -373,7 +373,7 @@ class _Logger:
         if prefix is None:
             prefix = red('ERROR:')
         self.log()
-        args = []  # type: T.List[T.Union[AnsiDecorator, str]]
+        args: T.List[T.Union[AnsiDecorator, str]] = []
         if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
             # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
             # that this is correct, so we'll just ignore it.

@@ -48,7 +48,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
             return
 
         # some broken pkgconfig don't actually list the full path to the needed includes
-        newinc = []  # type: T.List[str]
+        newinc: T.List[str] = []
         for arg in self.compile_args:
             if arg.startswith('-I'):
                 stem = 'static' if self.static else 'shared'
@@ -56,7 +56,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
                     newinc.append('-I' + str(Path(arg[2:]) / stem))
         self.compile_args += newinc
 
-        link_args = []  # type: T.List[str]
+        link_args: T.List[str] = []
         for larg in self.get_link_args():
             lpath = Path(larg)
             # some pkg-config hdf5.pc (e.g. Ubuntu) don't include the commonly-used HL HDF5 libraries,

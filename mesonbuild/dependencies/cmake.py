@@ -80,7 +80,7 @@ class CMakeDependency(ExternalDependency):
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
         # Gather a list of all languages to support
-        self.language_list = []  # type: T.List[str]
+        self.language_list: T.List[str] = []
         if language is None or force_use_global_compilers:
             compilers = None
             if kwargs.get('native', False):
@@ -312,7 +312,7 @@ class CMakeDependency(ExternalDependency):
                 return True
 
         # Check PATH
-        system_env = []  # type: T.List[str]
+        system_env: T.List[str] = []
         for i in os.environ.get('PATH', '').split(os.pathsep):
             if i.endswith('/bin') or i.endswith('\\bin'):
                 i = i[:-4]

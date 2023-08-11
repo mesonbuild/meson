@@ -969,7 +969,7 @@ def detect_vala_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> RustCompiler:
     from . import rust
     from ..linkers import linkers
-    popen_exceptions = {}  # type: T.Dict[str, Exception]
+    popen_exceptions: T.Dict[str, Exception] = {}
     compilers, _, exe_wrap = _get_compilers(env, 'rust', for_machine)
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]

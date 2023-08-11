@@ -188,7 +188,7 @@ class CMakeSubproject(ModuleObject):
 class CMakeSubprojectOptions(ModuleObject):
     def __init__(self) -> None:
         super().__init__()
-        self.cmake_options = []  # type: T.List[str]
+        self.cmake_options: T.List[str] = []
         self.target_options = TargetOptions()
 
         self.methods.update(

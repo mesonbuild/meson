@@ -93,12 +93,12 @@ class InterpreterBase:
         self.current_lineno = -1
         # Current node set during a function call. This can be used as location
         # when printing a warning message during a method call.
-        self.current_node = None  # type: mparser.BaseNode
+        self.current_node: mparser.BaseNode = None
         # This is set to `version_string` when this statement is evaluated:
         # meson.version().compare_version(version_string)
         # If it was part of a if-clause, it is used to temporally override the
         # current meson version target within that if-block.
-        self.tmp_meson_version = None # type: T.Optional[str]
+        self.tmp_meson_version: T.Optional[str] = None
 
     def handle_meson_version_from_ast(self, strict: bool = True) -> None:
         # do nothing in an AST interpreter

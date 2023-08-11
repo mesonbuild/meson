@@ -163,7 +163,7 @@ class Lexer:
         col = 0
         while loc < len(self.code):
             matched = False
-            value = None  # type: T.Union[str, bool, int]
+            value: T.Union[str, bool, int] = None
             for (tid, reg) in self.token_specification:
                 mo = reg.match(self.code, loc)
                 if mo:
@@ -610,7 +610,7 @@ class Parser:
     def __init__(self, code: str, filename: str):
         self.lexer = Lexer(code)
         self.stream = self.lexer.lex(filename)
-        self.current = Token('eof', '', 0, 0, 0, (0, 0), None)  # type: Token
+        self.current: Token = Token('eof', '', 0, 0, 0, (0, 0), None)
         self.getsym()
         self.in_ternary = False
 

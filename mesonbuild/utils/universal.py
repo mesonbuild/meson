@@ -1526,7 +1526,7 @@ def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
                       **kwargs: T.Any) -> T.Tuple['subprocess.Popen[str]', str, str]:
     p = subprocess.Popen(args, universal_newlines=False, close_fds=False,
                          stdin=stdin, stdout=stdout, stderr=stderr, **kwargs)
-    input_ = None  # type: T.Optional[bytes]
+    input_: T.Optional[bytes] = None
     if write is not None:
         input_ = write.encode('utf-8')
     o, e = p.communicate(input_)

@@ -566,7 +566,7 @@ def strip_system_includedirs(environment: 'Environment', for_machine: MachineCho
     return [i for i in include_args if i not in exclude]
 
 def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[str, T.Any]) -> T.List[DependencyMethods]:
-    method = kwargs.get('method', 'auto')  # type: T.Union[DependencyMethods, str]
+    method: T.Union[DependencyMethods, str] = kwargs.get('method', 'auto')
     if isinstance(method, DependencyMethods):
         return [method]
     # TODO: try/except?

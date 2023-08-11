@@ -240,12 +240,12 @@ class AstPrinter(AstVisitor):
 
 class AstJSONPrinter(AstVisitor):
     def __init__(self) -> None:
-        self.result = {}  # type: T.Dict[str, T.Any]
+        self.result: T.Dict[str, T.Any] = {}
         self.current = self.result
 
     def _accept(self, key: str, node: mparser.BaseNode) -> None:
         old = self.current
-        data = {}  # type: T.Dict[str, T.Any]
+        data: T.Dict[str, T.Any] = {}
         self.current = data
         node.accept(self)
         self.current = old
@@ -253,7 +253,7 @@ class AstJSONPrinter(AstVisitor):
 
     def _accept_list(self, key: str, nodes: T.Sequence[mparser.BaseNode]) -> None:
         old = self.current
-        datalist = []  # type: T.List[T.Dict[str, T.Any]]
+        datalist: T.List[T.Dict[str, T.Any]] = []
         for i in nodes:
             self.current = {}
             i.accept(self)
@@ -388,10 +388,10 @@ class AstJSONPrinter(AstVisitor):
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
         self._accept_list('positional', node.arguments)
-        kwargs_list = []  # type: T.List[T.Dict[str, T.Dict[str, T.Any]]]
+        kwargs_list: T.List[T.Dict[str, T.Dict[str, T.Any]]] = []
         for key, val in node.kwargs.items():
-            key_res = {}  # type: T.Dict[str, T.Any]
-            val_res = {}  # type: T.Dict[str, T.Any]
+            key_res: T.Dict[str, T.Any] = {}
+            val_res: T.Dict[str, T.Any] = {}
             self._raw_accept(key, key_res)
             self._raw_accept(val, val_res)
             kwargs_list += [{'key': key_res, 'val': val_res}]

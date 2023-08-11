@@ -98,7 +98,7 @@ def parse_generator_expressions(
             return ';'.join([x for x in tgt.properties['IMPORTED_LOCATION'] if x])
         return ''
 
-    supported = {
+    supported: T.Dict[str, T.Callable[[str], str]] = {
         # Boolean functions
         'BOOL': lambda x: '0' if x.upper() in {'', '0', 'FALSE', 'OFF', 'N', 'NO', 'IGNORE', 'NOTFOUND'} or x.endswith('-NOTFOUND') else '1',
         'AND': lambda x: '1' if all(y == '1' for y in x.split(',')) else '0',
@@ -140,7 +140,7 @@ def parse_generator_expressions(
         'TARGET_NAME_IF_EXISTS': lambda x: x if x in trace.targets else '',
         'TARGET_PROPERTY': target_property,
         'TARGET_FILE': target_file,
-    }  # type: T.Dict[str, T.Callable[[str], str]]
+    }
 
     # Recursively evaluate generator expressions
     def eval_generator_expressions() -> str:

@@ -295,7 +295,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self.build, self)})
         self.generators: T.List[build.Generator] = []
-        self.processed_buildfiles = set() # type: T.Set[str]
+        self.processed_buildfiles: T.Set[str] = set()
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects: T.Dict[str, SubprojectHolder] = {}

@@ -460,7 +460,7 @@ class BinaryTable:
 class CMakeVariables:
     def __init__(self, variables: T.Optional[T.Dict[str, T.Any]] = None) -> None:
         variables = variables or {}
-        self.variables = {}  # type: T.Dict[str, T.List[str]]
+        self.variables: T.Dict[str, T.List[str]] = {}
 
         for key, value in variables.items():
             value = mesonlib.listify(value)

@@ -54,7 +54,7 @@ def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     with path_to_intro.open(encoding='utf-8') as f:
         schema = json.load(f)
 
-    parsed_data = defaultdict(list) # type: T.Dict[str, T.List[dict]]
+    parsed_data: T.Dict[str, T.List[dict]] = defaultdict(list)
     for target in schema:
         parsed_data[target['name']] += [target]
     return parsed_data
@@ -100,7 +100,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
 
     intro_targets = introspect_data[target.name]
-    found_targets = []  # type: T.List[T.Dict[str, T.Any]]
+    found_targets: T.List[T.Dict[str, T.Any]] = []
 
     resolved_bdir = builddir.resolve()
 
@@ -337,8 +337,8 @@ def run(options: 'argparse.Namespace') -> int:
     if setup_vsenv(need_vsenv):
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
-    cmd = []    # type: T.List[str]
-    env = None  # type: T.Optional[T.Dict[str, str]]
+    cmd: T.List[str] = []
+    env: T.Optional[T.Dict[str, str]] = None
 
     backend = cdata.get_option(mesonlib.OptionKey('backend'))
     assert isinstance(backend, str)

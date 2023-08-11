@@ -521,9 +521,9 @@ class ConsoleLogger(TestLogger):
     RTRI = "\u25B6 "
 
     def __init__(self) -> None:
-        self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
-        self.progress_test = None          # type: T.Optional['TestRun']
-        self.progress_task = None          # type: T.Optional[asyncio.Future]
+        self.running_tests: OrderedSet['TestRun'] = OrderedSet()
+        self.progress_test: T.Optional['TestRun'] = None
+        self.progress_task: T.Optional[asyncio.Future] = None
         self.max_left_width = 0
         self.stop = False
         # TODO: before 3.10 this cannot be created immediately, because
@@ -806,7 +806,7 @@ class JunitBuilder(TestLogger):
         self.filename = filename
         self.root = et.Element(
             'testsuites', tests='0', errors='0', failures='0')
-        self.suites = {}  # type: T.Dict[str, et.Element]
+        self.suites: T.Dict[str, et.Element] = {}
 
     def log(self, harness: 'TestHarness', test: 'TestRun') -> None:
         """Log a single test case."""
@@ -924,24 +924,24 @@ class TestRun:
                  name: str, timeout: T.Optional[int], is_parallel: bool, verbose: bool):
         self.res = TestResult.PENDING
         self.test = test
-        self._num = None       # type: T.Optional[int]
+        self._num: T.Optional[int] = None
         self.name = name
         self.timeout = timeout
-        self.results = []      # type: T.List[TAPParser.Test]
-        self.returncode = None  # type: T.Optional[int]
-        self.starttime = None  # type: T.Optional[float]
-        self.duration = None   # type: T.Optional[float]
+        self.results: T.List[TAPParser.Test] = []
+        self.returncode: T.Optional[int] = None
+        self.starttime: T.Optional[float] = None
+        self.duration: T.Optional[float] = None
         self.stdo = ''
         self.stde = ''
         self.additional_error = ''
-        self.cmd = None        # type: T.Optional[T.List[str]]
+        self.cmd: T.Optional[T.List[str]] = None
         self.env = test_env
         self.should_fail = test.should_fail
         self.project = test.project_name
-        self.junit = None      # type: T.Optional[et.ElementTree]
+        self.junit: T.Optional[et.ElementTree] = None
         self.is_parallel = is_parallel
         self.verbose = verbose
-        self.warnings = []     # type: T.List[str]
+        self.warnings: T.List[str] = []
 
     def start(self, cmd: T.List[str]) -> None:
         self.res = TestResult.RUNNING
@@ -1088,7 +1088,7 @@ class TestRunTAP(TestRun):
 
     async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
         res = None
-        warnings = [] # type: T.List[TAPParser.UnknownLine]
+        warnings: T.List[TAPParser.UnknownLine] = []
         version = 12
 
         async for i in TAPParser().parse_async(lines):
@@ -1288,8 +1288,8 @@ class TestSubprocess:
         self.stdo_task: T.Optional[asyncio.Task[None]] = None
         self.stde_task: T.Optional[asyncio.Task[None]] = None
         self.postwait_fn = postwait_fn
-        self.all_futures = []            # type: T.List[asyncio.Future]
-        self.queue = None                # type: T.Optional[asyncio.Queue[T.Optional[str]]]
+        self.all_futures: T.List[asyncio.Future] = []
+        self.queue: T.Optional[asyncio.Queue[T.Optional[str]]] = None
 
     def stdout_lines(self) -> T.AsyncIterator[str]:
         self.queue = asyncio.Queue()
@@ -1535,7 +1535,7 @@ class SingleTestRunner:
                 if not self.options.split and not self.runobj.needs_parsing \
                 else asyncio.subprocess.PIPE
 
-        extra_cmd = []  # type: T.List[str]
+        extra_cmd: T.List[str] = []
         if self.test.protocol is TestProtocol.GTEST:
             gtestname = self.test.name
             if self.test.workdir:
@@ -1570,7 +1570,7 @@ class SingleTestRunner:
 class TestHarness:
     def __init__(self, options: argparse.Namespace):
         self.options = options
-        self.collected_failures = []  # type: T.List[TestRun]
+        self.collected_failures: T.List[TestRun] = []
         self.fail_count = 0
         self.expectedfail_count = 0
         self.unexpectedpass_count = 0
@@ -1580,13 +1580,13 @@ class TestHarness:
         self.test_count = 0
         self.name_max_len = 0
         self.is_run = False
-        self.loggers = []         # type: T.List[TestLogger]
+        self.loggers: T.List[TestLogger] = []
         self.console_logger = ConsoleLogger()
         self.loggers.append(self.console_logger)
         self.need_console = False
-        self.ninja = None # type: T.List[str]
+        self.ninja: T.List[str] = None
 
-        self.logfile_base = None  # type: T.Optional[str]
+        self.logfile_base: T.Optional[str] = None
         if self.options.logbase and not self.options.gdb:
             namebase = None
             self.logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
@@ -1809,7 +1809,7 @@ class TestHarness:
         startdir = os.getcwd()
         try:
             os.chdir(self.options.wd)
-            runners = []             # type: T.List[SingleTestRunner]
+            runners: T.List[SingleTestRunner] = []
             for i in range(self.options.repeat):
                 runners.extend(self.get_test_runner(test) for test in tests)
                 if i == 0:
@@ -1964,7 +1964,7 @@ class TestHarness:
 
     @staticmethod
     def get_wrapper(options: argparse.Namespace) -> T.List[str]:
-        wrap = []  # type: T.List[str]
+        wrap: T.List[str] = []
         if options.gdb:
             wrap = [options.gdb_path, '--quiet']
             if options.repeat > 1:
@@ -2007,10 +2007,10 @@ class TestHarness:
 
     async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
-        futures = deque()  # type: T.Deque[asyncio.Future]
-        running_tests = {}  # type: T.Dict[asyncio.Future, str]
+        futures: T.Deque[asyncio.Future] = deque()
+        running_tests: T.Dict[asyncio.Future, str] = {}
         interrupted = False
-        ctrlc_times = deque(maxlen=MAX_CTRLC)  # type: T.Deque[float]
+        ctrlc_times: T.Deque[float] = deque(maxlen=MAX_CTRLC)
         loop = asyncio.get_running_loop()
 
         async def run_test(test: SingleTestRunner) -> None:
@@ -2117,9 +2117,9 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
 
     assert len(ninja) > 0
 
-    depends = set()        # type: T.Set[str]
-    targets = set()        # type: T.Set[str]
-    intro_targets = {}     # type: T.Dict[str, T.List[str]]
+    depends: T.Set[str] = set()
+    targets: T.Set[str] = set()
+    intro_targets: T.Dict[str, T.List[str]] = {}
     for target in load_info_file(get_infodir(wd), kind='targets'):
         intro_targets[target['id']] = [
             convert_path_to_target(f)

@@ -31,16 +31,16 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-xc16_buildtype_args = {
+xc16_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
     'release': [],
     'minsize': [],
     'custom': [],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-xc16_optimization_args = {
+xc16_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-O0'],
@@ -48,12 +48,12 @@ xc16_optimization_args = {
     '2': ['-O2'],
     '3': ['-O3'],
     's': ['-Os']
-}  # type: T.Dict[str, T.List[str]]
+}
 
-xc16_debug_args = {
+xc16_debug_args: T.Dict[bool, T.List[str]] = {
     False: [],
     True: []
-}  # type: T.Dict[bool, T.List[str]]
+}
 
 
 class Xc16Compiler(Compiler):
@@ -66,7 +66,7 @@ class Xc16Compiler(Compiler):
         # Assembly
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
-        default_warn_args = []  # type: T.List[str]
+        default_warn_args: T.List[str] = []
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + [],

@@ -28,7 +28,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
-cs_optimization_args = {
+cs_optimization_args: T.Dict[str, T.List[str]] = {
                         'plain': [],
                         '0': [],
                         'g': [],
@@ -36,7 +36,7 @@ cs_optimization_args = {
                         '2': ['-optimize+'],
                         '3': ['-optimize+'],
                         's': ['-optimize+'],
-                        }  # type: T.Dict[str, T.List[str]]
+                        }
 
 
 class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):

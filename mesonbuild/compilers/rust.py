@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
 
 
-rust_optimization_args = {
+rust_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': [],
     'g': ['-C', 'opt-level=0'],
@@ -40,7 +40,7 @@ rust_optimization_args = {
     '2': ['-C', 'opt-level=2'],
     '3': ['-C', 'opt-level=3'],
     's': ['-C', 'opt-level=s'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
 class RustCompiler(Compiler):
 

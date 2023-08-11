@@ -28,8 +28,8 @@ class CMakeFileAPI:
         self.api_base_dir = self.build_dir / '.cmake' / 'api' / 'v1'
         self.request_dir = self.api_base_dir / 'query' / 'client-meson'
         self.reply_dir = self.api_base_dir / 'reply'
-        self.cmake_sources = []   # type: T.List[CMakeBuildFile]
-        self.cmake_configurations = []   # type: T.List[CMakeConfiguration]
+        self.cmake_sources: T.List[CMakeBuildFile] = []
+        self.cmake_configurations: T.List[CMakeConfiguration] = []
         self.kind_resolver_map = {
             'codemodel': self._parse_codemodel,
             'cmakeFiles': self._parse_cmakeFiles,

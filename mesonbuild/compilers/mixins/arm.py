@@ -34,16 +34,16 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-arm_buildtype_args = {
+arm_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
     'release': [],
     'minsize': [],
     'custom': [],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-arm_optimization_args = {
+arm_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-g'],
@@ -51,18 +51,18 @@ arm_optimization_args = {
     '2': [], # Compiler defaults to -O2
     '3': ['-O3', '-Otime'],
     's': ['-O3'], # Compiler defaults to -Ospace
-}  # type: T.Dict[str, T.List[str]]
+}
 
-armclang_buildtype_args = {
+armclang_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
     'release': [],
     'minsize': [],
     'custom': [],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-armclang_optimization_args = {
+armclang_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': [], # Compiler defaults to -O0
     'g': ['-g'],
@@ -70,7 +70,7 @@ armclang_optimization_args = {
     '2': ['-O2'],
     '3': ['-O3'],
     's': ['-Oz']
-}  # type: T.Dict[str, T.List[str]]
+}
 
 
 class ArmCompiler(Compiler):
@@ -82,7 +82,7 @@ class ArmCompiler(Compiler):
     def __init__(self) -> None:
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armcc supports only cross-compilation.')
-        default_warn_args = []  # type: T.List[str]
+        default_warn_args: T.List[str] = []
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + [],

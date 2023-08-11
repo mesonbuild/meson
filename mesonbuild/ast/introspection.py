@@ -47,8 +47,8 @@ class IntrospectionHelper(argparse.Namespace):
     def __init__(self, cross_file: str):
         super().__init__()
         self.cross_file = cross_file
-        self.native_file = None       # type: str
-        self.cmd_line_options = {}    # type: T.Dict[str, str]
+        self.native_file: str = None
+        self.cmd_line_options: T.Dict[str, str] = {}
 
     def __eq__(self, other: object) -> bool:
         return NotImplemented
@@ -78,10 +78,10 @@ class IntrospectionInterpreter(AstInterpreter):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
-        self.project_data = {}    # type: T.Dict[str, T.Any]
-        self.targets = []         # type: T.List[T.Dict[str, T.Any]]
-        self.dependencies = []    # type: T.List[T.Dict[str, T.Any]]
-        self.project_node = None  # type: BaseNode
+        self.project_data: T.Dict[str, T.Any] = {}
+        self.targets: T.List[T.Dict[str, T.Any]] = []
+        self.dependencies: T.List[T.Dict[str, T.Any]] = []
+        self.project_node: BaseNode = None
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -170,7 +170,7 @@ class IntrospectionInterpreter(AstInterpreter):
                 self._add_languages(args, required, for_machine)
 
     def _add_languages(self, raw_langs: T.List[TYPE_nvar], required: bool, for_machine: MachineChoice) -> None:
-        langs = []  # type: T.List[str]
+        langs: T.List[str] = []
         for l in self.flatten_args(raw_langs):
             if isinstance(l, str):
                 langs.append(l)
@@ -238,7 +238,7 @@ class IntrospectionInterpreter(AstInterpreter):
         kwargs = self.flatten_kwargs(kwargs_raw, True)
 
         def traverse_nodes(inqueue: T.List[BaseNode]) -> T.List[BaseNode]:
-            res = []  # type: T.List[BaseNode]
+            res: T.List[BaseNode] = []
             while inqueue:
                 curr = inqueue.pop(0)
                 arg_node = None
@@ -277,8 +277,8 @@ class IntrospectionInterpreter(AstInterpreter):
         kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in kwargs_reduced.items()}
         kwargs_reduced = {k: v for k, v in kwargs_reduced.items() if not isinstance(v, BaseNode)}
         for_machine = MachineChoice.HOST
-        objects = []        # type: T.List[T.Any]
-        empty_sources = []  # type: T.List[T.Any]
+        objects: T.List[T.Any] = []
+        empty_sources: T.List[T.Any] = []
         # Passing the unresolved sources list causes errors
         kwargs_reduced['_allow_no_sources'] = True
         target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, [], objects,

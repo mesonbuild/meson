@@ -74,7 +74,7 @@ def mpi_factory(env: 'Environment',
             elif language == 'fortran':
                 tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
 
-            cls = IntelMPIConfigToolDependency  # type: T.Type[ConfigToolDependency]
+            cls: T.Type[ConfigToolDependency] = IntelMPIConfigToolDependency
         else: # OpenMPI, which doesn't work with intel
             #
             # We try the environment variables for the tools first, but then

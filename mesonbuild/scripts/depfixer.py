@@ -123,8 +123,8 @@ class Elf(DataSizes):
     def __init__(self, bfile: str, verbose: bool = True) -> None:
         self.bfile = bfile
         self.verbose = verbose
-        self.sections = []  # type: T.List[SectionHeader]
-        self.dynamic = []   # type: T.List[DynamicEntry]
+        self.sections: T.List[SectionHeader] = []
+        self.dynamic: T.List[DynamicEntry] = []
         self.open_bf(bfile)
         try:
             (self.ptrsize, self.is_le) = self.detect_elf_type()
@@ -329,7 +329,7 @@ class Elf(DataSizes):
         old_rpath = self.read_str()
         # Some rpath entries may come from multiple sources.
         # Only add each one once.
-        new_rpaths = OrderedSet()  # type: OrderedSet[bytes]
+        new_rpaths: OrderedSet[bytes] = OrderedSet()
         if new_rpath:
             new_rpaths.update(new_rpath.split(b':'))
         if old_rpath:

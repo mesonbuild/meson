@@ -145,11 +145,11 @@ class PackageDefinition:
     def __init__(self, fname: str, subproject: str = ''):
         self.filename = fname
         self.subproject = SubProject(subproject)
-        self.type = None  # type: T.Optional[str]
-        self.values = {} # type: T.Dict[str, str]
-        self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
-        self.provided_programs = [] # type: T.List[str]
-        self.diff_files = [] # type: T.List[Path]
+        self.type: T.Optional[str] = None
+        self.values: T.Dict[str, str] = {}
+        self.provided_deps: T.Dict[str, T.Optional[str]] = {}
+        self.provided_programs: T.List[str] = []
+        self.diff_files: T.List[Path] = []
         self.basename = os.path.basename(fname)
         self.has_wrap = self.basename.endswith('.wrap')
         self.name = self.basename[:-5] if self.has_wrap else self.basename
@@ -290,10 +290,10 @@ class Resolver:
     def __post_init__(self) -> None:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
-        self.wraps = {} # type: T.Dict[str, PackageDefinition]
+        self.wraps: T.Dict[str, PackageDefinition] = {}
         self.netrc: T.Optional[netrc] = None
-        self.provided_deps = {} # type: T.Dict[str, PackageDefinition]
-        self.provided_programs = {} # type: T.Dict[str, PackageDefinition]
+        self.provided_deps: T.Dict[str, PackageDefinition] = {}
+        self.provided_programs: T.Dict[str, PackageDefinition] = {}
         self.wrapdb: T.Dict[str, T.Any] = {}
         self.wrapdb_provided_deps: T.Dict[str, str] = {}
         self.wrapdb_provided_programs: T.Dict[str, str] = {}
@@ -555,7 +555,7 @@ class Resolver:
         revno = self.wrap.get('revision')
         checkout_cmd = ['-c', 'advice.detachedHead=false', 'checkout', revno, '--']
         is_shallow = False
-        depth_option = []    # type: T.List[str]
+        depth_option: T.List[str] = []
         if self.wrap.values.get('depth', '') != '':
             is_shallow = True
             depth_option = ['--depth', self.wrap.values.get('depth')]
