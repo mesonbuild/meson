@@ -347,6 +347,7 @@ class Executable(_BuildTarget):
 class _StaticLibMixin(TypedDict):
 
     prelink: bool
+    pic: T.Optional[bool]
 
 
 class StaticLibrary(_BuildTarget, _StaticLibMixin, _LibraryMixin):

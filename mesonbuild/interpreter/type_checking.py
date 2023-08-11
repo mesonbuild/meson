@@ -606,6 +606,7 @@ _EXCLUSIVE_LIB_KWS: T.List[KwargInfo] = [
 # them into build_target easier
 _EXCLUSIVE_STATIC_LIB_KWS: T.List[KwargInfo] = [
     KwargInfo('prelink', bool, default=False, since='0.57.0'),
+    KwargInfo('pic', (bool, NoneType), since='0.36.0'),
 ]
 
 # The total list of arguments used by StaticLibrary

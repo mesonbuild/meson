@@ -1240,7 +1240,7 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
-    def _extract_pic_pie(self, kwargs, arg: str, option: str):
+    def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
@@ -1248,8 +1248,8 @@ class BuildTarget(Target):
             return True
 
         k = OptionKey(option)
-        if arg in kwargs:
-            val = kwargs[arg]
+        if kwargs.get(arg) is not None:
+            val = T.cast('bool', kwargs[arg])
         elif k in self.environment.coredata.options:
             val = self.environment.coredata.options[k].value
         else:
