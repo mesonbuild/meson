@@ -119,6 +119,13 @@ def _lower_strlist(input: T.List[str]) -> T.List[str]:
     return [i.lower() for i in input]
 
 
+def _validate_shlib_version(val: T.Optional[str]) -> T.Optional[str]:
+    if val is not None and not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', val):
+        return (f'Invalid Shared library version "{val}". '
+                'Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.')
+    return None
+
+
 def variables_validator(contents: T.Union[str, T.List[str], T.Dict[str, str]]) -> T.Optional[str]:
     if isinstance(contents, str):
         contents = [contents]
@@ -527,7 +534,9 @@ STATIC_LIB_KWS = [
 
 # Arguments exclusive to SharedLibrary. These are separated to make integrating
 # them into build_target easier
-_EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = []
+_EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
+    KwargInfo('version', (str, NoneType), validator=_validate_shlib_version)
+]
 
 # The total list of arguments used by SharedLibrary
 SHARED_LIB_KWS = [
