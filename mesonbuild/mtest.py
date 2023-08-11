@@ -770,14 +770,16 @@ class TextLogfileBuilder(TestFileLogger):
 
 class JsonLogfileBuilder(TestFileLogger):
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
-        jresult = {'name': result.name,
-                   'stdout': result.stdo,
-                   'result': result.res.value,
-                   'starttime': result.starttime,
-                   'duration': result.duration,
-                   'returncode': result.returncode,
-                   'env': result.env,
-                   'command': result.cmd}  # type: T.Dict[str, T.Any]
+        jresult: T.Dict[str, T.Any] = {
+            'name': result.name,
+            'stdout': result.stdo,
+            'result': result.res.value,
+            'starttime': result.starttime,
+            'duration': result.duration,
+            'returncode': result.returncode,
+            'env': result.env,
+            'command': result.cmd,
+        }
         if result.stde:
             jresult['stderr'] = result.stde
         self.file.write(json.dumps(jresult) + '\n')
