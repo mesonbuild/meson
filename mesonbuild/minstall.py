@@ -700,11 +700,11 @@ class Installer:
             try:
                 rc = self.run_exe(i, localenv)
             except OSError:
-                print(f'FAILED: install script \'{name}\' could not be run, stopped')
+                print(f'FAILED: install script \'{name}\' could not be run.')
                 # POSIX shells return 127 when a command could not be found
                 sys.exit(127)
             if rc != 0:
-                print(f'FAILED: install script \'{name}\' exit code {rc}, stopped')
+                print(f'FAILED: install script \'{name}\' failed with exit code {rc}.')
                 sys.exit(rc)
 
     def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
