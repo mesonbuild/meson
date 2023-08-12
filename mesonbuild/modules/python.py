@@ -471,7 +471,9 @@ class PythonModule(ExtensionModule):
         build_config = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.build_config'))
 
         if not name_or_path:
-            python = PythonExternalProgram('python3', mesonlib.python_command, build_config_path=build_config)
+            python = PythonExternalProgram('python3', build_config_path=build_config)
+            if not python.found():
+                python = PythonExternalProgram('python3', mesonlib.python_command, build_config_path=build_config)
         else:
             tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
             python = PythonExternalProgram(display_name, ext_prog=tmp_python, build_config_path=build_config)
