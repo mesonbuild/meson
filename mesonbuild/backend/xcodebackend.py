@@ -883,7 +883,7 @@ class XCodeBackend(backends.Backend):
                 custom_dict.add_item('isa', 'PBXFileReference')
                 custom_dict.add_item('explicitFileType', '"' + typestr + '"')
                 custom_dict.add_item('name', o)
-                custom_dict.add_item('path', os.path.join(self.src_to_build, o))
+                custom_dict.add_item('path', f'"{os.path.join(self.src_to_build, o)}"')
                 custom_dict.add_item('refType', 0)
                 custom_dict.add_item('sourceTree', 'SOURCE_ROOT')
                 objects_dict.add_item(self.custom_target_output_fileref[o], custom_dict)
@@ -1242,7 +1242,7 @@ class XCodeBackend(backends.Backend):
             custom_dict.add_item('name', '"Generate {}."'.format(ofilenames[0]))
             custom_dict.add_item('outputPaths', outarray)
             for o in ofilenames:
-                outarray.add_item(os.path.join(self.environment.get_build_dir(), o))
+                outarray.add_item(f'"{os.path.join(self.environment.get_build_dir(), o)}"')
             custom_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
             custom_dict.add_item('shellPath', '/bin/sh')
             workdir = self.environment.get_build_dir()
@@ -1290,7 +1290,7 @@ class XCodeBackend(backends.Backend):
         outarray = PbxArray()
         gen_dict.add_item('outputPaths', outarray)
         for of in ofile_abs:
-            outarray.add_item(of)
+            outarray.add_item(f'"{of}"')
         for i in infilelist:
             # This might be needed to be added to inputPaths. It's not done yet as it is
             # unclear whether it is necessary, what actually happens when it is defined
