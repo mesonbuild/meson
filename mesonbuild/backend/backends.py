@@ -1620,7 +1620,9 @@ class Backend:
         for s in self.build.postconf_scripts:
             name = ' '.join(s.cmd_args)
             mlog.log(f'Running postconf script {name!r}')
-            run_exe(s, env)
+            rc = run_exe(s, env)
+            if rc != 0:
+                raise MesonException(f'Postconf script \'{name}\' failed with exit code {rc}.')
 
     def create_install_data(self) -> InstallData:
         strip_bin = self.environment.lookup_binary_entry(MachineChoice.HOST, 'strip')
