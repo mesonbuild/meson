@@ -33,6 +33,20 @@ methods:
     | Enabled  | Enabled        | Enabled         |
     | Disabled | Disabled       | Disabled        |
 
+  example: |
+    `disable_auto_if` is useful to give precedence to mutually exclusive dependencies
+    (that provide the same API) if either or both are available:
+
+    ```
+    # '-Dfoo=auto -Dbar=enabled' will not pick foo even if installed.
+    use_bar = get_option('bar')
+    use_foo = get_option('foo').disable_auto_if(use_bar.enabled())
+    dep_foo = dependency('foo', required: use_foo)
+    if not dep_foo.found()
+      dep_foo = dependency('bar', required: use_bar)
+    endif
+    ```
+
   posargs:
     value:
       type: bool
