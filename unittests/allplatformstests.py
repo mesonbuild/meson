@@ -431,9 +431,8 @@ class AllPlatformTests(BasePlatformTests):
 
         valid_string = base_string_valid + repr(invalid_string)[1:-1] + base_string_valid
         invalid_string = base_string_invalid + invalid_string + base_string_invalid
-        broken_xml_stream = invalid_string.encode()
-        decoded_broken_stream = mtest.decode(broken_xml_stream)
-        self.assertEqual(decoded_broken_stream, valid_string)
+        fixed_string = mtest.replace_unencodable_xml_chars(invalid_string)
+        self.assertEqual(fixed_string, valid_string)
 
     def test_replace_unencodable_xml_chars_unit(self):
         '''
@@ -445,9 +444,16 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest('xmllint not installed')
         testdir = os.path.join(self.unit_test_dir, '110 replace unencodable xml chars')
         self.init(testdir)
-        self.run_tests()
+        tests_command_output = self.run_tests()
         junit_xml_logs = Path(self.logdir, 'testlog.junit.xml')
         subprocess.run(['xmllint', junit_xml_logs], check=True)
+        # Ensure command output and JSON / text logs are not mangled.
+        raw_output_sample = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b'
+        assert raw_output_sample in tests_command_output
+        text_log = Path(self.logdir, 'testlog.txt').read_text()
+        assert raw_output_sample in text_log
+        json_log = json.loads(Path(self.logdir, 'testlog.json').read_bytes())
+        assert raw_output_sample in json_log['stdout']
 
     def test_run_target_files_path(self):
         '''
