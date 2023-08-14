@@ -118,7 +118,7 @@ class CudaCompiler(Compiler):
     }
     # Dictionary of NVCC flags taking either one argument or a comma-separated list.
     # Maps --long to -short options, because the short options are more GCC-like.
-    _FLAG_LONG2SHORT_WITHARGS = {
+    _FLAG_LONG2SHORT_WITHARGS: T.Mapping[str, str] = {
         '--output-file':                        '-o',                           # 4.2.1.1
         '--pre-include':                        '-include',                     # 4.2.1.3
         '--library':                            '-l',                           # 4.2.1.4

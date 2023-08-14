@@ -42,12 +42,12 @@ else:
 
 # XXX: prevent circular references.
 # FIXME: this really is a posix interface not a c-like interface
-clike_debug_args: T.Dict[bool, T.List[str]] = {
+clike_debug_args: T.Mapping[bool, T.List[str]] = {
     False: [],
     True: ['-g'],
 }
 
-gnulike_buildtype_args: T.Dict[str, T.List[str]] = {
+gnulike_buildtype_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
@@ -56,7 +56,7 @@ gnulike_buildtype_args: T.Dict[str, T.List[str]] = {
     'custom': [],
 }
 
-gnu_optimization_args: T.Dict[str, T.List[str]] = {
+gnu_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Og'],
@@ -66,7 +66,7 @@ gnu_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Os'],
 }
 
-gnulike_instruction_set_args: T.Dict[str, T.List[str]] = {
+gnulike_instruction_set_args: T.Mapping[str, T.List[str]] = {
     'mmx': ['-mmmx'],
     'sse': ['-msse'],
     'sse2': ['-msse2'],
@@ -79,7 +79,7 @@ gnulike_instruction_set_args: T.Dict[str, T.List[str]] = {
     'neon': ['-mfpu=neon'],
 }
 
-gnu_symbol_visibility_args: T.Dict[str, T.List[str]] = {
+gnu_symbol_visibility_args: T.Mapping[str, T.List[str]] = {
     '': [],
     'default': ['-fvisibility=default'],
     'internal': ['-fvisibility=internal'],
@@ -88,7 +88,7 @@ gnu_symbol_visibility_args: T.Dict[str, T.List[str]] = {
     'inlineshidden': ['-fvisibility=hidden', '-fvisibility-inlines-hidden'],
 }
 
-gnu_color_args: T.Dict[str, T.List[str]] = {
+gnu_color_args: T.Mapping[str, T.List[str]] = {
     'auto': ['-fdiagnostics-color=auto'],
     'always': ['-fdiagnostics-color=always'],
     'never': ['-fdiagnostics-color=never'],
@@ -328,7 +328,7 @@ gnu_objc_warning_args: T.Dict[str, T.List[str]] = {
     ],
 }
 
-_LANG_MAP = {
+_LANG_MAP: T.Mapping[str, str] = {
     'c': 'c',
     'cpp': 'c++',
     'objc': 'objective-c',

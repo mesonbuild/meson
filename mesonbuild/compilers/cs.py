@@ -28,15 +28,15 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
-cs_optimization_args: T.Dict[str, T.List[str]] = {
-                        'plain': [],
-                        '0': [],
-                        'g': [],
-                        '1': ['-optimize+'],
-                        '2': ['-optimize+'],
-                        '3': ['-optimize+'],
-                        's': ['-optimize+'],
-                        }
+cs_optimization_args: T.Mapping[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-optimize+'],
+    '2': ['-optimize+'],
+    '3': ['-optimize+'],
+    's': ['-optimize+'],
+}
 
 
 class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):

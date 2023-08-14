@@ -44,7 +44,7 @@ BUILD_TARGET_FUNCTIONS = [
 
 class IntrospectionHelper(argparse.Namespace):
     # mimic an argparse namespace
-    def __init__(self, cross_file: str):
+    def __init__(self, cross_file: T.Optional[str]):
         super().__init__()
         self.cross_file = cross_file
         self.native_file: str = None

@@ -31,7 +31,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-ti_buildtype_args: T.Dict[str, T.List[str]] = {
+ti_buildtype_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
@@ -40,7 +40,7 @@ ti_buildtype_args: T.Dict[str, T.List[str]] = {
     'custom': [],
 }
 
-ti_optimization_args: T.Dict[str, T.List[str]] = {
+ti_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Ooff'],
@@ -50,7 +50,7 @@ ti_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-O4']
 }
 
-ti_debug_args: T.Dict[bool, T.List[str]] = {
+ti_debug_args: T.Mapping[bool, T.List[str]] = {
     False: [],
     True: ['-g']
 }

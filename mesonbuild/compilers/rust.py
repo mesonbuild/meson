@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
 
 
-rust_optimization_args: T.Dict[str, T.List[str]] = {
+rust_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': [],
     'g': ['-C', 'opt-level=0'],
