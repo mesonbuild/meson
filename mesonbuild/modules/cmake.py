@@ -185,7 +185,7 @@ class CMakeSubproject(ModuleObject):
     @noKwargs
     @FeatureNew('CMakeSubproject.found()', '0.53.2')
     def found_method(self, state: ModuleState, args: TYPE_var, kwargs: TYPE_kwargs) -> bool:
-        return self.subp is not None
+        return self.subp.found()
 
 
 class CMakeSubprojectOptions(ModuleObject):
