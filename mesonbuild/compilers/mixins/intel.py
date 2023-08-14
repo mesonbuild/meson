@@ -50,7 +50,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     minsize: -O2
     """
 
-    BUILD_ARGS: T.Dict[str, T.List[str]] = {
+    BUILD_ARGS: T.Mapping[str, T.List[str]] = {
         'plain': [],
         'debug': ["-g", "-traceback"],
         'debugoptimized': ["-g", "-traceback"],
@@ -59,7 +59,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         'custom': [],
     }
 
-    OPTIM_ARGS: T.Dict[str, T.List[str]] = {
+    OPTIM_ARGS: T.Mapping[str, T.List[str]] = {
         'plain': [],
         '0': ['-O0'],
         'g': ['-O0'],
@@ -129,7 +129,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     """Abstractions for ICL, the Intel compiler on Windows."""
 
-    BUILD_ARGS: T.Dict[str, T.List[str]] = {
+    BUILD_ARGS: T.Mapping[str, T.List[str]] = {
         'plain': [],
         'debug': ["/Zi", "/traceback"],
         'debugoptimized': ["/Zi", "/traceback"],
@@ -138,7 +138,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         'custom': [],
     }
 
-    OPTIM_ARGS: T.Dict[str, T.List[str]] = {
+    OPTIM_ARGS: T.Mapping[str, T.List[str]] = {
         'plain': [],
         '0': ['/Od'],
         'g': ['/Od'],

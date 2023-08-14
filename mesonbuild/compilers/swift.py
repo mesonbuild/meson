@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
 
-swift_optimization_args: T.Dict[str, T.List[str]] = {
+swift_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': [],
     'g': [],

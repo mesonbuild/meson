@@ -34,7 +34,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-arm_buildtype_args: T.Dict[str, T.List[str]] = {
+arm_buildtype_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
@@ -43,7 +43,7 @@ arm_buildtype_args: T.Dict[str, T.List[str]] = {
     'custom': [],
 }
 
-arm_optimization_args: T.Dict[str, T.List[str]] = {
+arm_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-g'],
@@ -53,7 +53,7 @@ arm_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-O3'], # Compiler defaults to -Ospace
 }
 
-armclang_buildtype_args: T.Dict[str, T.List[str]] = {
+armclang_buildtype_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
@@ -62,7 +62,7 @@ armclang_buildtype_args: T.Dict[str, T.List[str]] = {
     'custom': [],
 }
 
-armclang_optimization_args: T.Dict[str, T.List[str]] = {
+armclang_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': [], # Compiler defaults to -O0
     'g': ['-g'],

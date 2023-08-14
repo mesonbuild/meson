@@ -31,7 +31,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-ccrx_buildtype_args: T.Dict[str, T.List[str]] = {
+ccrx_buildtype_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
@@ -40,7 +40,7 @@ ccrx_buildtype_args: T.Dict[str, T.List[str]] = {
     'custom': [],
 }
 
-ccrx_optimization_args: T.Dict[str, T.List[str]] = {
+ccrx_optimization_args: T.Mapping[str, T.List[str]] = {
     '0': ['-optimize=0'],
     'g': ['-optimize=0'],
     '1': ['-optimize=1'],
@@ -49,7 +49,7 @@ ccrx_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-optimize=2', '-size']
 }
 
-ccrx_debug_args: T.Dict[bool, T.List[str]] = {
+ccrx_debug_args: T.Mapping[bool, T.List[str]] = {
     False: [],
     True: ['-debug']
 }

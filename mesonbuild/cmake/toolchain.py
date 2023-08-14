@@ -153,7 +153,7 @@ class CMakeToolchain:
         # Best effort to map the meson system name to CMAKE_SYSTEM_NAME, which
         # is not trivial since CMake lacks a list of all supported
         # CMAKE_SYSTEM_NAME values.
-        SYSTEM_MAP: T.Dict[str, str] = {
+        SYSTEM_MAP: T.Mapping[str, str] = {
             'android': 'Android',
             'linux': 'Linux',
             'windows': 'Windows',

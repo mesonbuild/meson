@@ -30,7 +30,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-mwcc_buildtype_args: T.Dict[str, T.List[str]] = {
+mwcc_buildtype_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     'debug': ['-g'],
     'debugoptimized': ['-g', '-O4'],
@@ -39,7 +39,7 @@ mwcc_buildtype_args: T.Dict[str, T.List[str]] = {
     'custom': [],
 }
 
-mwccarm_instruction_set_args: T.Dict[str, T.List[str]] = {
+mwccarm_instruction_set_args: T.Mapping[str, T.List[str]] = {
     'generic': ['-proc', 'generic'],
     'v4': ['-proc', 'v4'],
     'v4t': ['-proc', 'v4t'],
@@ -71,7 +71,7 @@ mwccarm_instruction_set_args: T.Dict[str, T.List[str]] = {
     'pxa263': ['-proc', 'pxa263']
 }
 
-mwcceppc_instruction_set_args: T.Dict[str, T.List[str]] = {
+mwcceppc_instruction_set_args: T.Mapping[str, T.List[str]] = {
     'generic': ['-proc', 'generic'],
     '401': ['-proc', '401'],
     '403': ['-proc', '403'],
@@ -99,7 +99,7 @@ mwcceppc_instruction_set_args: T.Dict[str, T.List[str]] = {
     'gekko': ['-proc', 'gekko'],
 }
 
-mwasmarm_instruction_set_args: T.Dict[str, T.List[str]] = {
+mwasmarm_instruction_set_args: T.Mapping[str, T.List[str]] = {
     'arm4': ['-proc', 'arm4'],
     'arm4t': ['-proc', 'arm4t'],
     'arm4xm': ['-proc', 'arm4xm'],
@@ -114,7 +114,7 @@ mwasmarm_instruction_set_args: T.Dict[str, T.List[str]] = {
     'xscale': ['-proc', 'xscale']
 }
 
-mwasmeppc_instruction_set_args: T.Dict[str, T.List[str]] = {
+mwasmeppc_instruction_set_args: T.Mapping[str, T.List[str]] = {
     '401': ['-proc', '401'],
     '403': ['-proc', '403'],
     '505': ['-proc', '505'],
@@ -167,7 +167,7 @@ mwasmeppc_instruction_set_args: T.Dict[str, T.List[str]] = {
     'generic': ['-proc', 'generic'],
 }
 
-mwcc_optimization_args: T.Dict[str, T.List[str]] = {
+mwcc_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Op'],
@@ -177,7 +177,7 @@ mwcc_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Os']
 }
 
-mwcc_debug_args: T.Dict[bool, T.List[str]] = {
+mwcc_debug_args: T.Mapping[bool, T.List[str]] = {
     False: [],
     True: ['-g']
 }

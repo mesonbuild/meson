@@ -13,7 +13,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import MachineChoice
     from ..envconfig import MachineInfo
 
-nasm_optimization_args: T.Dict[str, T.List[str]] = {
+nasm_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-O0'],
@@ -29,7 +29,7 @@ class NasmCompiler(Compiler):
     id = 'nasm'
 
     # https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features
-    crt_args: T.Dict[str, T.List[str]] = {
+    crt_args: T.Mapping[str, T.List[str]] = {
         'none': [],
         'md': ['/DEFAULTLIB:ucrt.lib', '/DEFAULTLIB:vcruntime.lib', '/DEFAULTLIB:msvcrt.lib'],
         'mdd': ['/DEFAULTLIB:ucrtd.lib', '/DEFAULTLIB:vcruntimed.lib', '/DEFAULTLIB:msvcrtd.lib'],

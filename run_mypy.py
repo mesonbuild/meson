@@ -113,7 +113,7 @@ def main() -> int:
     if opts.clear:
         print('\x1bc', end='', flush=True)
 
-    to_check = [] # type: T.List[str]
+    to_check: T.List[str] = []
     if opts.files:
         for f in opts.files:
             if f in modules:

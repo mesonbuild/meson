@@ -10,7 +10,9 @@
 #   warranty.
 #
 
-C_FUNC_ATTRIBUTES = {
+import typing as T
+
+C_FUNC_ATTRIBUTES: T.Mapping[str, str] = {
     'alias': '''
         int foo(void) { return 0; }
         int bar(void) __attribute__((alias("foo")));''',
@@ -126,7 +128,7 @@ C_FUNC_ATTRIBUTES = {
     'retain': '__attribute__((retain)) int x;',
 }
 
-CXX_FUNC_ATTRIBUTES = {
+CXX_FUNC_ATTRIBUTES: T.Mapping[str, str] = {
     # Alias must be applied to the mangled name in C++
     'alias':
         ('extern "C" {'
