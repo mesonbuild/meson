@@ -1020,7 +1020,7 @@ class InternalTests(unittest.TestCase):
 
         schema = json.loads(Path('data/test.schema.json').read_text(encoding='utf-8'))
 
-        errors = []  # type: T.Tuple[str, Exception]
+        errors: T.List[T.Tuple[Path, Exception]] = []
         for p in Path('test cases').glob('**/test.json'):
             try:
                 validate(json.loads(p.read_text(encoding='utf-8')), schema=schema)

@@ -119,7 +119,7 @@ class Parser:
         return Statement(cur.value, args)
 
     def arguments(self) -> T.List[T.Union[Token, T.Any]]:
-        args = []  # type: T.List[T.Union[Token, T.Any]]
+        args: T.List[T.Union[Token, T.Any]] = []
         if self.accept('lparen'):
             args.append(self.arguments())
             self.expect('rparen')
@@ -159,7 +159,7 @@ class Converter:
         self.cmake_root = Path(cmake_root).expanduser()
         self.indent_unit = '  '
         self.indent_level = 0
-        self.options = []  # type: T.List[tuple]
+        self.options: T.List[T.Tuple[str, str, T.Optional[str]]] = []
 
     def convert_args(self, args: T.List[Token], as_array: bool = True) -> str:
         res = []
