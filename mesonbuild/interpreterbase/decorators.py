@@ -589,7 +589,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     emit_notice = False
     unconditional = False
 
-    def __init__(self, feature_name: str, feature_version: str, extra_message: str = ''):
+    def __init__(self, feature_name: str, feature_version: str, extra_message: T.Optional[str] = None):
         self.feature_name = feature_name
         self.feature_version = feature_version
         self.extra_message = extra_message
@@ -673,7 +673,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
 
     @classmethod
     def single_use(cls, feature_name: str, version: str, subproject: SubProject,
-                   extra_message: str = '', location: T.Optional[mparser.BaseNode] = None) -> None:
+                   extra_message: T.Optional[str] = None, location: T.Optional[mparser.BaseNode] = None) -> None:
         """Oneline version that instantiates and calls use()."""
         cls(feature_name, version, extra_message).use(subproject, location)
 
