@@ -136,7 +136,7 @@ def main():
         # Let there be colors!
         if 'CI' in os.environ:
             pytest_args += ['--color=yes']
-        pytest_args += ['./run_unittests.py']
+        pytest_args += ['unittests']
         pytest_args += convert_args(sys.argv[1:])
         # Always disable pytest-cov because we use a custom setup
         try:
