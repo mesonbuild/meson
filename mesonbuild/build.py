@@ -1325,9 +1325,9 @@ class BuildTarget(Target):
             if isinstance(dep, dependencies.InternalDependency):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
+                self.process_objectlist(dep.objects)
                 self.extra_files.extend(f for f in dep.extra_files if f not in self.extra_files)
                 self.add_include_dirs(dep.include_directories, dep.get_include_type())
-                self.objects.extend(dep.objects)
                 self.link_targets.extend(dep.libraries)
                 self.link_whole_targets.extend(dep.whole_libraries)
                 if dep.get_compile_args() or dep.get_link_args():
