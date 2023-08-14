@@ -209,7 +209,7 @@ class CMakeTarget:
         self.link_lang_flags = _flags_to_list(data.get('linkLanguageFlags', ''))
         # self.link_path = Path(data.get('linkPath', ''))
         self.type: str = data.get('type', 'EXECUTABLE')
-        # self.is_generator_provided = data.get('isGeneratorProvided', False)         # type: bool
+        # self.is_generator_provided: bool = data.get('isGeneratorProvided', False)
         self.files: T.List[CMakeFileGroup] = []
 
         for i in data.get('fileGroups', []):
