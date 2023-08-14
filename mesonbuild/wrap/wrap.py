@@ -581,7 +581,7 @@ class Resolver:
         checkout_cmd = ['-c', 'advice.detachedHead=false', 'checkout', revno, '--']
         is_shallow = False
         depth_option: T.List[str] = []
-        if self.wrap.values.get('depth', '') != '':
+        if 'depth' in self.wrap.values:
             is_shallow = True
             depth_option = ['--depth', self.wrap.values.get('depth')]
         # for some reason git only allows commit ids to be shallowly fetched by fetch not with clone
