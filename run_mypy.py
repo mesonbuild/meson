@@ -35,6 +35,7 @@ modules = [
     'mesonbuild/interpreter/type_checking.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
+    'mesonbuild/utils/ar.py',
     'mesonbuild/utils/core.py',
     'mesonbuild/utils/platform.py',
     'mesonbuild/utils/universal.py',
