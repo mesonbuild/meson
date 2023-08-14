@@ -869,10 +869,10 @@ class JunitBuilder(TestLogger):
                     et.SubElement(testcase, 'system-out').text = subtest.explanation
             if test.stdo:
                 out = et.SubElement(suite, 'system-out')
-                out.text = test.stdo.rstrip()
+                out.text = replace_unencodable_xml_chars(test.stdo.rstrip())
             if test.stde:
                 err = et.SubElement(suite, 'system-err')
-                err.text = test.stde.rstrip()
+                err.text = replace_unencodable_xml_chars(test.stde.rstrip())
         else:
             if test.project not in self.suites:
                 suite = self.suites[test.project] = et.Element(
@@ -895,10 +895,10 @@ class JunitBuilder(TestLogger):
                 suite.attrib['failures'] = str(int(suite.attrib['failures']) + 1)
             if test.stdo:
                 out = et.SubElement(testcase, 'system-out')
-                out.text = test.stdo.rstrip()
+                out.text = replace_unencodable_xml_chars(test.stdo.rstrip())
             if test.stde:
                 err = et.SubElement(testcase, 'system-err')
-                err.text = test.stde.rstrip()
+                err.text = replace_unencodable_xml_chars(test.stde.rstrip())
 
     async def finish(self, harness: 'TestHarness') -> None:
         """Calculate total test counts and write out the xml result."""
@@ -1182,9 +1182,9 @@ def decode(stream: T.Union[None, bytes]) -> str:
     if stream is None:
         return ''
     try:
-        return replace_unencodable_xml_chars(stream.decode('utf-8'))
+        return stream.decode('utf-8')
     except UnicodeDecodeError:
-        return replace_unencodable_xml_chars(stream.decode('iso-8859-1', errors='ignore'))
+        return stream.decode('iso-8859-1', errors='ignore')
 
 async def read_decode(reader: asyncio.StreamReader,
                       queue: T.Optional['asyncio.Queue[T.Optional[str]]'],
