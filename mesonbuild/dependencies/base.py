@@ -29,7 +29,8 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
         CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
-        StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
+        StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes,
+        GeneratedList
     )
     from ..interpreter.type_checking import PkgConfigDefineType
 
@@ -155,6 +156,7 @@ class Dependency(HoldableObject):
         self.featurechecks: T.List['FeatureCheckBase'] = []
         self.feature_since: T.Optional[T.Tuple[str, str]] = None
         self.meson_variables: T.List[str] = []
+        self.objects: T.List[T.Union[str, mesonlib.File, ExtractedObjects, CustomTarget, CustomTargetIndex, GeneratedList]] = []
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Dependency):
@@ -327,7 +329,7 @@ class InternalDependency(Dependency):
         self.extra_files = list(extra_files)
         self.ext_deps = ext_deps
         self.variables = variables
-        self.objects = objects
+        self.objects.extend(objects)
         if d_module_versions:
             self.d_features['versions'] = d_module_versions
         if d_import_dirs:
