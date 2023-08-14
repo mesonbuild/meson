@@ -2692,11 +2692,26 @@ class CustomTarget(Target, CommandBase):
                 raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
             return self.depfile
 
-    def is_linkable_output(self, output: str) -> bool:
+    @staticmethod
+    def is_linkable_output(output: str) -> bool:
         if output.endswith(('.a', '.dll', '.lib', '.so', '.dylib')):
             return True
         # libfoo.so.X soname
         if re.search(r'\.so(\.\d+)*$', output):
+            return True
+        return False
+
+    @staticmethod
+    def is_dynamic_output(output: str) -> bool:
+        # Some projects generate import libraries with a CustomTarget, see for
+        # example: https://github.com/mesonbuild/meson/issues/12120.
+        # Use some naming convention to distinguish them from static libraries:
+        # - Mingw/Meson uses .dll.a.
+        # - Rurstc uses .dll.lib.
+        if output.endswith(('.dll.a', '.dll.lib')):
+            return True
+        # Anything not static is considered dynamic.
+        if not output.endswith(('.a', '.lib')):
             return True
         return False
 
@@ -2712,8 +2727,7 @@ class CustomTarget(Target, CommandBase):
 
         :return: True if is dynamically linked, otherwise False
         """
-        suf = os.path.splitext(self.outputs[0])[-1]
-        return suf not in {'.a', '.lib'}
+        return self.is_dynamic_output(self.outputs[0])
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
@@ -2730,7 +2744,7 @@ class CustomTarget(Target, CommandBase):
         '''
         if len(self.outputs) != 1:
             return False
-        return CustomTargetIndex(self, self.outputs[0]).is_internal()
+        return not self.links_dynamically() and not self.should_install()
 
     def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.get_outputs()
@@ -2982,8 +2996,7 @@ class CustomTargetIndex(HoldableObject):
 
         :return: True if is dynamically linked, otherwise False
         """
-        suf = os.path.splitext(self.output)[-1]
-        return suf not in {'.a', '.lib'}
+        return self.target.is_dynamic_output(self.output)
 
     def should_install(self) -> bool:
         return self.target.should_install()
@@ -2992,8 +3005,7 @@ class CustomTargetIndex(HoldableObject):
         '''
         Returns True if this is a not installed static library
         '''
-        suf = os.path.splitext(self.output)[-1]
-        return suf in {'.a', '.lib'} and not self.should_install()
+        return not self.links_dynamically() and not self.should_install()
 
     def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
         return self.target.extract_all_objects()
