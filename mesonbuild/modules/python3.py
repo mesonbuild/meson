@@ -62,11 +62,12 @@ class Python3Module(ExtensionModule):
         elif host_system == 'windows':
             # On Windows the extension is pyd for some unexplainable reason.
             suffix = 'pyd'
-        else:
-            suffix = []
-        kwargs['name_prefix'] = ''
-        kwargs['name_suffix'] = suffix
-        return self.interpreter.build_target(state.current_node, args, kwargs, SharedModule)
+
+        # TODO: Remove these ignore comments after build targets are fully typed
+        kwargs['name_prefix'] = '' # type: ignore
+        kwargs['name_suffix'] = suffix # type: ignore
+
+        return self.interpreter.build_target(state.current_node, args, kwargs, SharedModule) # type: ignore
 
     @noPosargs
     @noKwargs
