@@ -31,7 +31,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..utils.core import EnvironOrDict
-    from .._typing import ImmutableListProtocol
+    from ..interpreter.type_checking import PkgConfigDefineType
 
 class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''
@@ -52,14 +52,14 @@ class PkgConfigInterface:
         raise NotImplementedError
 
     def cflags(self, name: str, allow_system: bool = False,
-               define_variable: T.Optional[ImmutableListProtocol[str]] = None) -> T.List[str]:
+               define_variable: PkgConfigDefineType = None) -> T.List[str]:
         '''Return module cflags
            @allow_system: If False, remove default system include paths
         '''
         raise NotImplementedError
 
     def libs(self, name: str, static: bool = False, allow_system: bool = False,
-             define_variable: T.Optional[ImmutableListProtocol[str]] = None) -> T.List[str]:
+             define_variable: PkgConfigDefineType = None) -> T.List[str]:
         '''Return module libs
            @static: If True, also include private libraries
            @allow_system: If False, remove default system libraries search paths
@@ -67,7 +67,7 @@ class PkgConfigInterface:
         raise NotImplementedError
 
     def variable(self, name: str, variable_name: str,
-                 define_variable: ImmutableListProtocol[str]) -> T.Optional[str]:
+                 define_variable: PkgConfigDefineType) -> T.Optional[str]:
         '''Return module variable or None if variable is not defined'''
         raise NotImplementedError
 
@@ -103,13 +103,13 @@ class PkgConfigCLI(PkgConfigInterface):
         return version if ret == 0 else None
 
     @staticmethod
-    def _define_variable_args(define_variable: T.Optional[ImmutableListProtocol[str]]) -> T.List[str]:
+    def _define_variable_args(define_variable: PkgConfigDefineType) -> T.List[str]:
         if define_variable:
             return ['--define-variable=' + '='.join(define_variable)]
         return []
 
     def cflags(self, name: str, allow_system: bool = False,
-               define_variable: T.Optional[ImmutableListProtocol[str]] = None) -> T.List[str]:
+               define_variable: PkgConfigDefineType = None) -> T.List[str]:
         env = None
         if allow_system:
             env = os.environ.copy()
@@ -123,7 +123,7 @@ class PkgConfigCLI(PkgConfigInterface):
         return self._split_args(out)
 
     def libs(self, name: str, static: bool = False, allow_system: bool = False,
-             define_variable: T.Optional[ImmutableListProtocol[str]] = None) -> T.List[str]:
+             define_variable: PkgConfigDefineType = None) -> T.List[str]:
         env = None
         if allow_system:
             env = os.environ.copy()
@@ -139,7 +139,7 @@ class PkgConfigCLI(PkgConfigInterface):
         return self._split_args(out)
 
     def variable(self, name: str, variable_name: str,
-                 define_variable: ImmutableListProtocol[str]) -> T.Optional[str]:
+                 define_variable: PkgConfigDefineType) -> T.Optional[str]:
         args: T.List[str] = []
         args += self._define_variable_args(define_variable)
         args += ['--variable=' + variable_name, name]
@@ -516,16 +516,6 @@ class PkgConfigDependency(ExternalDependency):
         raw_libs = self.pkgconfig.libs(self.name, self.static, allow_system=False)
         self.link_args, self.raw_link_args = self._search_libs(libs, raw_libs)
 
-    def get_pkgconfig_variable(self, variable_name: str,
-                               define_variable: ImmutableListProtocol[str],
-                               default: T.Optional[str]) -> str:
-        variable = self.pkgconfig.variable(self.name, variable_name, define_variable)
-        if variable is None:
-            if default is None:
-                mlog.warning(f'Pkg-config variable {variable_name!r} not defined for dependency {self.name}.')
-            variable = default or ''
-        return variable
-
     def extract_field(self, la_file: str, fieldname: str) -> T.Optional[str]:
         with open(la_file, encoding='utf-8') as f:
             for line in f:
@@ -568,10 +558,12 @@ class PkgConfigDependency(ExternalDependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
         if pkgconfig:
             try:
-                return self.get_pkgconfig_variable(pkgconfig, pkgconfig_define or [], default_value)
+                variable = self.pkgconfig.variable(self.name, pkgconfig, pkgconfig_define)
+                if variable is not None:
+                    return variable
             except DependencyException:
                 pass
         if default_value is not None:

@@ -242,7 +242,7 @@ class FailureTests(BasePlatformTests):
         dep = declare_dependency(dependencies : zlib_dep)
         dep.get_pkgconfig_variable('foo')
         '''
-        self.assertMesonRaises(code, "Method.*pkgconfig.*is invalid.*internal")
+        self.assertMesonRaises(code, ".*is not a pkgconfig dependency")
         code = '''zlib_dep = dependency('zlib', required : false)
         dep = declare_dependency(dependencies : zlib_dep)
         dep.get_configtool_variable('foo')

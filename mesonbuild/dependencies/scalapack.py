@@ -148,5 +148,5 @@ class MKLPkgConfigDependency(PkgConfigDependency):
             # gfortran doesn't appear to look in system paths for INCLUDE files,
             # so don't allow pkg-config to suppress -I flags for system paths
             allow_system = True
-        cflags = self.pkgconfig.cflags(self.name, allow_system, define_variable=['prefix', self.__mklroot.as_posix()])
+        cflags = self.pkgconfig.cflags(self.name, allow_system, define_variable=('prefix', self.__mklroot.as_posix()))
         self.compile_args = self._convert_mingw_paths(cflags)

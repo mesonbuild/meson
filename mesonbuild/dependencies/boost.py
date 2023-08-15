@@ -662,7 +662,7 @@ class BoostDependency(SystemDependency):
         try:
             boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
             if boost_pc.found():
-                boost_root = boost_pc.get_pkgconfig_variable('prefix', [], None)
+                boost_root = boost_pc.get_variable(pkgconfig='prefix')
                 if boost_root:
                     roots += [Path(boost_root)]
         except DependencyException:

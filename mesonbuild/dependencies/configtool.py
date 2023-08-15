@@ -24,6 +24,7 @@ from mesonbuild import mesonlib
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from ..interpreter.type_checking import PkgConfigDefineType
 
 class ConfigToolDependency(ExternalDependency):
 
@@ -171,7 +172,7 @@ class ConfigToolDependency(ExternalDependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
         if configtool:
             # In the not required case '' (empty string) will be returned if the
             # variable is not found. Since '' is a valid value to return we

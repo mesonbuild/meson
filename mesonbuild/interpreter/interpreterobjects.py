@@ -21,7 +21,7 @@ from ..interpreterbase import (
                                typed_pos_args, typed_kwargs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
-from ..interpreter.type_checking import NoneType, ENV_SEPARATOR_KW
+from ..interpreter.type_checking import NoneType, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import HoldableObject, OptionKey, listify, Popen_safe
@@ -487,17 +487,18 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @typed_pos_args('dependency.get_pkgconfig_variable', str)
     @typed_kwargs(
         'dependency.get_pkgconfig_variable',
-        KwargInfo('default', (str, NoneType)),
-        KwargInfo(
-            'define_variable',
-            ContainerTypeInfo(list, str, pairs=True),
-            default=[],
-            listify=True,
-            validator=lambda x: 'must be of length 2 or empty' if len(x) not in {0, 2} else None,
-        ),
+        KwargInfo('default', str, default=''),
+        PKGCONFIG_DEFINE_KW.evolve(name='define_variable')
     )
     def pkgconfig_method(self, args: T.Tuple[str], kwargs: 'kwargs.DependencyPkgConfigVar') -> str:
-        return self.held_object.get_pkgconfig_variable(args[0], **kwargs)
+        from ..dependencies.pkgconfig import PkgConfigDependency
+        if not isinstance(self.held_object, PkgConfigDependency):
+            raise InvalidArguments(f'{self.held_object.get_name()!r} is not a pkgconfig dependency')
+        return self.held_object.get_variable(
+            pkgconfig=args[0],
+            default_value=kwargs['default'],
+            pkgconfig_define=kwargs['define_variable'],
+        )
 
     @FeatureNew('dependency.get_configtool_variable', '0.44.0')
     @FeatureDeprecated('dependency.get_configtool_variable', '0.56.0',
@@ -523,7 +524,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
         KwargInfo('configtool', (str, NoneType)),
         KwargInfo('internal', (str, NoneType), since='0.54.0'),
         KwargInfo('default_value', (str, NoneType)),
-        KwargInfo('pkgconfig_define', ContainerTypeInfo(list, str, pairs=True), default=[], listify=True),
+        PKGCONFIG_DEFINE_KW,
     )
     def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: 'kwargs.DependencyGetVariable') -> str:
         default_varname = args[0]

@@ -30,6 +30,7 @@ if T.TYPE_CHECKING:
     from ..cmake import CMakeTarget
     from ..environment import Environment
     from ..envconfig import MachineInfo
+    from ..interpreter.type_checking import PkgConfigDefineType
 
 class CMakeInfo(T.NamedTuple):
     module_paths: T.List[str]
@@ -632,7 +633,7 @@ class CMakeDependency(ExternalDependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
         if cmake and self.traceparser is not None:
             try:
                 v = self.traceparser.vars[cmake]
