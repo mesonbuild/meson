@@ -16,7 +16,7 @@ from __future__ import annotations
 from os import path
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
+from . import NewExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build
 from .. import mesonlib
 from .. import mlog
@@ -123,12 +123,12 @@ PRESET_ARGS = {
 }
 
 
-class I18nModule(ExtensionModule):
+class I18nModule(NewExtensionModule):
 
     INFO = ModuleInfo('i18n')
 
     def __init__(self, interpreter: Interpreter):
-        super().__init__(interpreter)
+        super().__init__()
         self.methods.update({
             'merge_file': self.merge_file,
             'gettext': self.gettext,
