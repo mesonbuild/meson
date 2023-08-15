@@ -664,9 +664,9 @@ class NinjaBackend(backends.Backend):
         os.replace(tempfilename, outfilename)
         mlog.cmd_ci_include(outfilename)  # For CI debugging
         # Refresh Ninja's caches. https://github.com/ninja-build/ninja/pull/1685
-        if mesonlib.version_compare(self.ninja_version, '>=1.10.0') and os.path.exists('.ninja_deps'):
-            subprocess.call(self.ninja_command + ['-t', 'restat'])
-            subprocess.call(self.ninja_command + ['-t', 'cleandead'])
+        if mesonlib.version_compare(self.ninja_version, '>=1.10.0') and os.path.exists(os.path.join(self.environment.build_dir, '.ninja_log')):
+            subprocess.call(self.ninja_command + ['-t', 'restat'], cwd=self.environment.build_dir)
+            subprocess.call(self.ninja_command + ['-t', 'cleandead'], cwd=self.environment.build_dir)
         self.generate_compdb()
         self.generate_rust_project_json()
 
