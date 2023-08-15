@@ -20,6 +20,7 @@ from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, 
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
+from functools import lru_cache
 import re
 import os
 import shlex
@@ -89,12 +90,6 @@ class PkgConfigInterface:
 class PkgConfigCLI(PkgConfigInterface):
     '''pkg-config CLI implementation'''
 
-    # We cache all pkg-config subprocess invocations to avoid redundant calls
-    pkgbin_cache: T.Dict[
-        T.Tuple[ExternalProgram, T.Tuple[str, ...], T.FrozenSet[T.Tuple[str, str]]],
-        T.Tuple[int, str, str]
-    ] = {}
-
     def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool) -> None:
         super().__init__(env, for_machine)
         # Store a copy of the pkg-config path on the object itself so it is
@@ -106,6 +101,7 @@ class PkgConfigCLI(PkgConfigInterface):
     def found(self) -> bool:
         return bool(self.pkgbin)
 
+    @lru_cache(maxsize=None)
     def version(self, name: str) -> T.Optional[str]:
         mlog.debug(f'Determining dependency {name!r} with pkg-config executable {self.pkgbin.get_path()!r}')
         ret, version, _ = self._call_pkgbin(['--modversion', name])
@@ -117,6 +113,7 @@ class PkgConfigCLI(PkgConfigInterface):
             return ['--define-variable=' + '='.join(define_variable)]
         return []
 
+    @lru_cache(maxsize=None)
     def cflags(self, name: str, allow_system: bool = False,
                define_variable: PkgConfigDefineType = None) -> T.List[str]:
         env = None
@@ -131,6 +128,7 @@ class PkgConfigCLI(PkgConfigInterface):
             raise DependencyException(f'Could not generate cflags for {name}:\n{err}\n')
         return self._split_args(out)
 
+    @lru_cache(maxsize=None)
     def libs(self, name: str, static: bool = False, allow_system: bool = False,
              define_variable: PkgConfigDefineType = None) -> T.List[str]:
         env = None
@@ -147,6 +145,7 @@ class PkgConfigCLI(PkgConfigInterface):
             raise DependencyException(f'Could not generate libs for {name}:\n{err}\n')
         return self._split_args(out)
 
+    @lru_cache(maxsize=None)
     def variable(self, name: str, variable_name: str,
                  define_variable: PkgConfigDefineType) -> T.Optional[str]:
         args: T.List[str] = []
@@ -165,6 +164,7 @@ class PkgConfigCLI(PkgConfigInterface):
         mlog.debug(f'Got pkg-config variable {variable_name} : {variable}')
         return variable
 
+    @lru_cache(maxsize=None)
     def list_all(self) -> T.List[str]:
         ret, out, err = self._call_pkgbin(['--list-all'])
         if ret != 0:
@@ -186,12 +186,6 @@ class PkgConfigCLI(PkgConfigInterface):
             if version_if_ok:
                 return potential_pkgbin
         return None
-
-    def _call_pkgbin_real(self, args: T.List[str], env: T.Dict[str, str]) -> T.Tuple[int, str, str]:
-        assert isinstance(self.pkgbin, ExternalProgram)
-        cmd = self.pkgbin.get_command() + args
-        p, out, err = Popen_safe_logged(cmd, env=env)
-        return p.returncode, out.strip(), err.strip()
 
     @staticmethod
     def check_pkgconfig(env: Environment, pkgbin: ExternalProgram) -> T.Optional[str]:
@@ -253,13 +247,9 @@ class PkgConfigCLI(PkgConfigInterface):
         assert isinstance(self.pkgbin, ExternalProgram)
         env = env or os.environ
         env = self.setup_env(env, self.env, self.for_machine)
-
-        fenv = frozenset(env.items())
-        targs = tuple(args)
-        cache = self.pkgbin_cache
-        if (self.pkgbin, targs, fenv) not in cache:
-            cache[(self.pkgbin, targs, fenv)] = self._call_pkgbin_real(args, env)
-        return cache[(self.pkgbin, targs, fenv)]
+        cmd = self.pkgbin.get_command() + args
+        p, out, err = Popen_safe_logged(cmd, env=env)
+        return p.returncode, out.strip(), err.strip()
 
 
 class PkgConfigDependency(ExternalDependency):
