@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice, join_args
+from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice, join_args, MesonException
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -36,7 +36,10 @@ class PkgConfigInterface:
         for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
         impl = PkgConfigInterface.class_impl[for_machine]
         if impl is False:
-            impl = PkgConfigCLI(env, for_machine, silent)
+            if 'MESON_PKG_CONFIG' in os.environ:
+                impl = PkgConfigNative(env, for_machine, silent)
+            else:
+                impl = PkgConfigCLI(env, for_machine, silent)
             if not impl.found():
                 impl = None
             if not impl and not silent:
@@ -108,6 +111,43 @@ class PkgConfigInterface:
     def list_all(self) -> ImmutableListProtocol[str]:
         '''Return all available pkg-config modules'''
         raise NotImplementedError
+
+class PkgConfigNative(PkgConfigInterface):
+    '''Native pkg-config implementation'''
+
+    def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool) -> None:
+        super().__init__(env, for_machine)
+        self.repo = env.create_pkgconfig_repo(for_machine, env.is_cross_build())
+        if not silent:
+            mlog.log('Found pkg-config:', mlog.green('YES'), mlog.blue('native'))
+
+    def found(self) -> bool:
+        return True
+
+    def version(self, name: str) -> T.Optional[str]:
+        try:
+            pkg = self.repo.lookup(name)
+        except MesonException:
+            return None
+        return pkg.get_version()
+
+    def cflags(self, name: str, allow_system: bool = False,
+               define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
+        pkg = self.repo.lookup(name)
+        return pkg.get_cflags(allow_system, define_variable)
+
+    def libs(self, name: str, static: bool = False, allow_system: bool = False,
+             define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
+        pkg = self.repo.lookup(name)
+        return pkg.get_libs(static, allow_system, define_variable)
+
+    def variable(self, name: str, variable_name: str,
+                 define_variable: PkgConfigDefineType) -> T.Optional[str]:
+        pkg = self.repo.lookup(name)
+        return pkg.get_variable(variable_name, define_variable)
+
+    def list_all(self) -> ImmutableListProtocol[str]:
+        return self.repo.get_all_names()
 
 class PkgConfigCLI(PkgConfigInterface):
     '''pkg-config CLI implementation'''
