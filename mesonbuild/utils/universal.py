@@ -524,6 +524,10 @@ class PerMachine(T.Generic[_T]):
             unfreeze.host = None
         return unfreeze
 
+    def assign(self, build: _T, host: _T) -> None:
+        self.build = build
+        self.host = host
+
     def __repr__(self) -> str:
         return f'PerMachine({self.build!r}, {self.host!r})'
 

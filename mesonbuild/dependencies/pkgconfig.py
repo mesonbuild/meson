@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged
+from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -29,19 +29,30 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from ..utils.core import EnvironOrDict
     from ..interpreter.type_checking import PkgConfigDefineType
 
 class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''
 
+    class_impl: PerMachine[T.Union[Literal[False], T.Optional[PkgConfigInterface]]] = PerMachine(False, False)
+
     @staticmethod
     def instance(env: Environment, for_machine: MachineChoice, silent: bool) -> T.Optional[PkgConfigInterface]:
-        impl = PkgConfigCLI(env, for_machine, silent)
-        if not impl.found():
-            return None
+        for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
+        impl = PkgConfigInterface.class_impl[for_machine]
+        if impl is False:
+            impl = PkgConfigCLI(env, for_machine, silent)
+            if not impl.found():
+                impl = None
+            if not impl and not silent:
+                mlog.log('Found pkg-config:', mlog.red('NO'))
+            PkgConfigInterface.class_impl[for_machine] = impl
         return impl
+
+    def __init__(self, env: Environment, for_machine: MachineChoice) -> None:
+        self.env = env
+        self.for_machine = for_machine
 
     def found(self) -> bool:
         '''Return whether pkg-config is supported'''
@@ -78,9 +89,6 @@ class PkgConfigInterface:
 class PkgConfigCLI(PkgConfigInterface):
     '''pkg-config CLI implementation'''
 
-    # The class's copy of the pkg-config path. Avoids having to search for it
-    # multiple times in the same Meson invocation.
-    class_pkgbin: PerMachine[T.Union[None, Literal[False], ExternalProgram]] = PerMachine(None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     pkgbin_cache: T.Dict[
         T.Tuple[ExternalProgram, T.Tuple[str, ...], T.FrozenSet[T.Tuple[str, str]]],
@@ -88,11 +96,12 @@ class PkgConfigCLI(PkgConfigInterface):
     ] = {}
 
     def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool) -> None:
-        self.env = env
-        self.for_machine = for_machine
+        super().__init__(env, for_machine)
         # Store a copy of the pkg-config path on the object itself so it is
         # stored in the pickled coredata and recovered.
-        self.pkgbin = self._detect_pkgbin(env, for_machine, silent)
+        self.pkgbin = self._detect_pkgbin(env, for_machine)
+        if self.pkgbin and not silent:
+            mlog.log('Found pkg-config:', mlog.green('YES'), mlog.blue(self.pkgbin.get_path()))
 
     def found(self) -> bool:
         return bool(self.pkgbin)
@@ -162,41 +171,21 @@ class PkgConfigCLI(PkgConfigInterface):
             raise DependencyException(f'could not list modules:\n{err}\n')
         return [i.split(' ', 1)[0] for i in out.splitlines()]
 
-    def _split_args(self, cmd: str) -> T.List[str]:
+    @staticmethod
+    def _split_args(cmd: str) -> T.List[str]:
         # pkg-config paths follow Unix conventions, even on Windows; split the
         # output using shlex.split rather than mesonlib.split_args
         return shlex.split(cmd)
 
-    @classmethod
-    def _detect_pkgbin(cls, env: Environment, for_machine: MachineChoice, silent: bool) -> T.Optional[ExternalProgram]:
-        # Only search for pkg-config for each machine the first time and store
-        # the result in the class definition
-        if cls.class_pkgbin[for_machine] is False:
-            mlog.debug(f'Pkg-config binary for {for_machine} is cached as not found.')
-        elif cls.class_pkgbin[for_machine] is not None:
-            mlog.debug(f'Pkg-config binary for {for_machine} is cached.')
-        else:
-            assert cls.class_pkgbin[for_machine] is None, 'for mypy'
-            mlog.debug(f'Pkg-config binary for {for_machine} is not cached.')
-            for potential_pkgbin in find_external_program(
-                    env, for_machine, 'pkgconfig', 'Pkg-config',
-                    env.default_pkgconfig, allow_default_for_cross=False):
-                version_if_ok = cls.check_pkgconfig(env, potential_pkgbin)
-                if not version_if_ok:
-                    continue
-                if not silent:
-                    mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
-                             f'({version_if_ok})')
-                cls.class_pkgbin[for_machine] = potential_pkgbin
-                break
-            else:
-                if not silent:
-                    mlog.log('Found pkg-config:', mlog.red('NO'))
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
-                cls.class_pkgbin[for_machine] = False
-
-        return cls.class_pkgbin[for_machine] or None
+    @staticmethod
+    def _detect_pkgbin(env: Environment, for_machine: MachineChoice) -> T.Optional[ExternalProgram]:
+        for potential_pkgbin in find_external_program(
+                env, for_machine, 'pkgconfig', 'Pkg-config',
+                env.default_pkgconfig, allow_default_for_cross=False):
+            version_if_ok = PkgConfigCLI.check_pkgconfig(env, potential_pkgbin)
+            if version_if_ok:
+                return potential_pkgbin
+        return None
 
     def _call_pkgbin_real(self, args: T.List[str], env: T.Dict[str, str]) -> T.Tuple[int, str, str]:
         assert isinstance(self.pkgbin, ExternalProgram)
