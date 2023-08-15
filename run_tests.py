@@ -36,7 +36,7 @@ import typing as T
 
 from mesonbuild.compilers.c import CCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
-from mesonbuild.dependencies.pkgconfig import PkgConfigCLI
+from mesonbuild.dependencies.pkgconfig import PkgConfigInterface
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
@@ -161,6 +161,8 @@ def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
     env = Environment(sdir, bdir, opts)
     env.coredata.options[OptionKey('args', lang='c')] = FakeCompilerOptions()
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
+    # Invalidate cache when using a different Environment object.
+    clear_meson_configure_class_caches()
     return env
 
 def get_convincing_fake_env_and_cc(bdir, prefix):
@@ -309,11 +311,10 @@ def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str, str]:
     return returncode, out.getvalue()
 
 def clear_meson_configure_class_caches() -> None:
-    CCompiler.find_library_cache = {}
-    CCompiler.find_framework_cache = {}
-    PkgConfigCLI.pkgbin_cache = {}
-    PkgConfigCLI.class_pkgbin = mesonlib.PerMachine(None, None)
-    mesonlib.project_meson_versions = collections.defaultdict(str)
+    CCompiler.find_library_cache.clear()
+    CCompiler.find_framework_cache.clear()
+    PkgConfigInterface.class_impl.assign(False, False)
+    mesonlib.project_meson_versions.clear()
 
 def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
     stderr = StringIO()
