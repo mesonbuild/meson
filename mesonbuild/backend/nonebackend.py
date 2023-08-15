@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# mypy is fighting this...
+# pylint: disable=useless-return
+
 from __future__ import annotations
 
 import typing as T
@@ -37,3 +40,5 @@ class NoneBackend(Backend):
         mlog.log('Generating simple install-only backend')
         self.serialize_tests()
         self.create_install_data_files()
+
+        return None
