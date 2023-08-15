@@ -16,7 +16,7 @@ from ..dependencies.base import Dependency
 from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString, OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
-
+from .type_checking import PkgConfigDefineType
 
 class FuncAddProjectArgs(TypedDict):
 
@@ -256,7 +256,7 @@ class FeatureOptionRequire(TypedDict):
 class DependencyPkgConfigVar(TypedDict):
 
     default: T.Optional[str]
-    define_variable: T.List[str]
+    define_variable: PkgConfigDefineType
 
 
 class DependencyGetVariable(TypedDict):
@@ -266,7 +266,7 @@ class DependencyGetVariable(TypedDict):
     configtool: T.Optional[str]
     internal: T.Optional[str]
     default_value: T.Optional[str]
-    pkgconfig_define: T.List[str]
+    pkgconfig_define: PkgConfigDefineType
 
 
 class ConfigurationDataSet(TypedDict):

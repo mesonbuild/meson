@@ -198,7 +198,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                 self.is_found = False
                 return
             if self.private_headers:
-                qt_inc_dir = mod.get_pkgconfig_variable('includedir', [], None)
+                qt_inc_dir = mod.get_variable(pkgconfig='includedir')
                 mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m)
                 if not os.path.isdir(mod_private_dir):
                     # At least some versions of homebrew don't seem to set this
@@ -220,7 +220,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                 if arg == f'-l{debug_lib_name}' or arg.endswith(f'{debug_lib_name}.lib') or arg.endswith(f'{debug_lib_name}.a'):
                     is_debug = True
                     break
-            libdir = self.get_pkgconfig_variable('libdir', [], None)
+            libdir = self.get_variable(pkgconfig='libdir')
             if not self._link_with_qt_winmain(is_debug, libdir):
                 self.is_found = False
                 return
@@ -228,7 +228,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
         self.bindir = self.get_pkgconfig_host_bins(self)
         if not self.bindir:
             # If exec_prefix is not defined, the pkg-config file is broken
-            prefix = self.get_pkgconfig_variable('exec_prefix', [], None)
+            prefix = self.get_variable(pkgconfig='exec_prefix')
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
@@ -422,7 +422,7 @@ class Qt4PkgConfigDependency(QtPkgConfigDependency):
         applications = ['moc', 'uic', 'rcc', 'lupdate', 'lrelease']
         for application in applications:
             try:
-                return os.path.dirname(core.get_pkgconfig_variable(f'{application}_location', [], None))
+                return os.path.dirname(core.get_variable(pkgconfig=f'{application}_location'))
             except mesonlib.MesonException:
                 pass
         return None
@@ -439,7 +439,7 @@ class Qt5PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
-        return core.get_pkgconfig_variable('host_bins', [], None)
+        return core.get_variable(pkgconfig='host_bins')
 
     @staticmethod
     def get_pkgconfig_host_libexecs(core: PkgConfigDependency) -> str:
@@ -460,12 +460,12 @@ class Qt6PkgConfigDependency(Qt6WinMainMixin, QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
-        return core.get_pkgconfig_variable('bindir', [], None)
+        return core.get_variable(pkgconfig='bindir')
 
     @staticmethod
     def get_pkgconfig_host_libexecs(core: PkgConfigDependency) -> str:
         # Qt6 pkg-config for Qt defines libexecdir from 6.3+
-        return core.get_pkgconfig_variable('libexecdir', [], None)
+        return core.get_variable(pkgconfig='libexecdir')
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)

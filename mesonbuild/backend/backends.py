@@ -1143,7 +1143,7 @@ class Backend:
 
             if dep.type_name == 'pkgconfig':
                 # If by chance pkg-config knows the bin dir...
-                bindir = dep.get_pkgconfig_variable('bindir', [], default='')
+                bindir = dep.get_variable(pkgconfig='bindir', default_value='')
                 if bindir:
                     results.add(bindir)
                     continue

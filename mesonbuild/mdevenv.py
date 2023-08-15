@@ -85,7 +85,7 @@ def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List
         datadir = b.environment.coredata.get_option(OptionKey('datadir'))
         assert isinstance(datadir, str), 'for mypy'
         datadir_abs = os.path.join(prefix, datadir)
-        completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=['datadir', datadir_abs])
+        completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=('datadir', datadir_abs))
         assert isinstance(completionsdir, str), 'for mypy'
         completionsdir_path = Path(completionsdir)
         for f in install_data.data:

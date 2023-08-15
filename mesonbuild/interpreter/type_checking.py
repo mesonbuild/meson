@@ -29,6 +29,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import EnvInitValueType
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
+    PkgConfigDefineType = T.Optional[T.Tuple[str, str]]
 
 
 def in_set_validator(choices: T.Set[str]) -> T.Callable[[str], T.Optional[str]]:
@@ -648,3 +649,11 @@ BUILD_TARGET_KWS = [
         }
     )
 ]
+
+PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
+    'pkgconfig_define',
+    ContainerTypeInfo(list, str, pairs=True),
+    default=[],
+    validator=lambda x: 'must be of length 2 or empty' if len(x) not in {0, 2} else None,
+    convertor=lambda x: tuple(x) if x else None
+)
