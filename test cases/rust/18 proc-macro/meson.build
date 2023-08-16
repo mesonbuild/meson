@@ -8,6 +8,7 @@ pm = shared_library(
   'proc_macro_examples',
   'proc.rs',
   rust_crate_type : 'proc-macro',
+  native: true,
 )
 
 main = executable(

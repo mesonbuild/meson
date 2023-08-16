@@ -8,6 +8,7 @@ pkg-config = '/usr/bin/x86_64-w64-mingw32-pkg-config'
 windres = '/usr/bin/x86_64-w64-mingw32-windres'
 exe_wrapper = 'wine'
 cmake = '/usr/bin/cmake'
+rust = ['rustc', '--target', 'x86_64-pc-windows-gnu']
 
 [properties]
 # Directory that contains 'bin', 'lib', etc

@@ -63,7 +63,10 @@ class RustCompiler(Compiler):
         super().__init__([], exelist, version, for_machine, info,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
-        self.exe_wrapper = exe_wrapper
+        if not exe_wrapper or not exe_wrapper.found() or not exe_wrapper.get_command():
+            self.exe_wrapper = None
+        else:
+            self.exe_wrapper = exe_wrapper
         self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
@@ -74,12 +77,17 @@ class RustCompiler(Compiler):
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
-        output_name = os.path.join(work_dir, 'rusttest')
         with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write(textwrap.dedent(
                 '''fn main() {
                 }
                 '''))
+
+        output_name = os.path.join(work_dir, 'rusttest')
+        if self.is_cross:
+            output_name += '_cross'
+        # Required for Windows, allowed everywhere else.
+        output_name += '.exe'
 
         cmdlist = self.exelist + ['-o', output_name, source_name]
         pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
@@ -123,6 +131,11 @@ class RustCompiler(Compiler):
 
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
+        p, stdo, stde = Popen_safe(cmd)
+        return stdo.split('\n', maxsplit=1)[0]
+
+    def get_target_libdir(self) -> str:
+        cmd = self.get_exelist(ccache=False) + ['--print', 'target-libdir']
         p, stdo, stde = Popen_safe(cmd)
         return stdo.split('\n', maxsplit=1)[0]
 

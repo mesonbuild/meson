@@ -1401,7 +1401,7 @@ class BuildTarget(Target):
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.for_machine is not t.for_machine:
+            if self.for_machine is not t.for_machine and (not t.uses_rust() or t.rust_crate_type != 'proc-macro'):
                 msg = f'Tried to mix libraries for machines {self.for_machine} and {t.for_machine} in target {self.name!r}'
                 if self.environment.is_cross_build():
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
@@ -1422,7 +1422,7 @@ class BuildTarget(Target):
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.for_machine is not t.for_machine:
+            if self.for_machine is not t.for_machine and (not t.uses_rust() or t.rust_crate_type != 'proc-macro'):
                 msg = f'Tried to mix libraries for machines {self.for_machine} and {t.for_machine} in target {self.name!r}'
                 if self.environment.is_cross_build():
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
@@ -2235,8 +2235,12 @@ class SharedLibrary(BuildTarget):
             if self.uses_rust():
                 # Shared library is of the form foo.dll
                 prefix = ''
-                # Import library is called foo.dll.lib
-                self.import_filename = f'{self.name}.dll.lib'
+                if self.get_using_msvc():
+                    # Import library is called foo.dll.lib when using MSVC linker
+                    self.import_filename = f'{self.name}.dll.lib'
+                else:
+                    # Import library is called libfoo.dll.a when using GCC linker
+                    self.import_filename = f'lib{self.name}.dll.a'
                 # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.get_option(OptionKey("debug"))
             elif self.get_using_msvc():
@@ -2352,6 +2356,13 @@ class SharedLibrary(BuildTarget):
             else:
                 raise InvalidArguments(f'Invalid rust_crate_type "{rust_crate_type}": must be a string.')
             if rust_crate_type == 'proc-macro':
+                if 'native' not in kwargs:
+                    kwargs['native'] = True
+                if not kwargs.get('native', False):
+                    if self.environment.is_cross_build():
+                        raise InvalidArguments('Rust "proc-macro" crate type requires "native: true". This will fail in a cross-build.')
+                    else:
+                        mlog.warning('Rust "proc-macro" crate type requires "native: true". This will fail in a cross-build.')
                 FeatureNew.single_use('Rust crate type "proc-macro"', '0.62.0', self.subproject)
 
     def get_import_filename(self) -> T.Optional[str]:
