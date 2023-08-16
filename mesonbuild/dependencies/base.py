@@ -193,9 +193,6 @@ class Dependency(HoldableObject):
     def get_exe_args(self, compiler: 'Compiler') -> T.List[str]:
         return []
 
-    def get_configtool_variable(self, variable_name: str) -> str:
-        raise DependencyException(f'{self.name!r} is not a config-tool dependency')
-
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
                                includes: bool = False, sources: bool = False) -> 'Dependency':
@@ -291,10 +288,6 @@ class InternalDependency(Dependency):
         if self.sources or self.libraries or self.whole_libraries:
             return True
         return any(d.is_built() for d in self.ext_deps)
-
-    def get_configtool_variable(self, variable_name: str) -> str:
-        raise DependencyException('Method "get_configtool_variable()" is '
-                                  'invalid for an internal dependency')
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,

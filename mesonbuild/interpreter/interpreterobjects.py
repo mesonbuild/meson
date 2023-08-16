@@ -506,7 +506,13 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @noKwargs
     @typed_pos_args('dependency.get_config_tool_variable', str)
     def configtool_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
-        return self.held_object.get_configtool_variable(args[0])
+        from ..dependencies.configtool import ConfigToolDependency
+        if not isinstance(self.held_object, ConfigToolDependency):
+            raise InvalidArguments(f'{self.held_object.get_name()!r} is not a config-tool dependency')
+        return self.held_object.get_variable(
+            configtool=args[0],
+            default_value='',
+        )
 
     @FeatureNew('dependency.partial_dependency', '0.46.0')
     @noPosargs
