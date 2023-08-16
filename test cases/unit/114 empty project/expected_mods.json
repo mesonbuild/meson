@@ -188,7 +188,6 @@
       "mesonbuild.dependencies",
       "mesonbuild.dependencies.base",
       "mesonbuild.dependencies.detect",
-      "mesonbuild.dependencies.pkgconfig",
       "mesonbuild.depfile",
       "mesonbuild.envconfig",
       "mesonbuild.environment",
