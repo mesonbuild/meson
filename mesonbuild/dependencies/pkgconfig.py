@@ -26,6 +26,8 @@ import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
+
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..utils.core import EnvironOrDict
@@ -78,7 +80,7 @@ class PkgConfigCLI(PkgConfigInterface):
 
     # The class's copy of the pkg-config path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_pkgbin: PerMachine[T.Union[None, T.Literal[False], ExternalProgram]] = PerMachine(None, None)
+    class_pkgbin: PerMachine[T.Union[None, Literal[False], ExternalProgram]] = PerMachine(None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     pkgbin_cache: T.Dict[
         T.Tuple[ExternalProgram, T.Tuple[str, ...], T.FrozenSet[T.Tuple[str, str]]],
