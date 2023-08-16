@@ -92,11 +92,9 @@ class PkgConfigCLI(PkgConfigInterface):
 
     def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool) -> None:
         super().__init__(env, for_machine)
-        # Store a copy of the pkg-config path on the object itself so it is
-        # stored in the pickled coredata and recovered.
-        self.pkgbin = self._detect_pkgbin(env, for_machine)
+        self._detect_pkgbin()
         if self.pkgbin and not silent:
-            mlog.log('Found pkg-config:', mlog.green('YES'), mlog.blue(self.pkgbin.get_path()))
+            mlog.log('Found pkg-config:', mlog.green('YES'), mlog.bold(f'({self.pkgbin.get_path()})'), mlog.blue(self.pkgbin_version))
 
     def found(self) -> bool:
         return bool(self.pkgbin)
@@ -177,18 +175,18 @@ class PkgConfigCLI(PkgConfigInterface):
         # output using shlex.split rather than mesonlib.split_args
         return shlex.split(cmd)
 
-    @staticmethod
-    def _detect_pkgbin(env: Environment, for_machine: MachineChoice) -> T.Optional[ExternalProgram]:
+    def _detect_pkgbin(self) -> None:
         for potential_pkgbin in find_external_program(
-                env, for_machine, 'pkgconfig', 'Pkg-config',
-                env.default_pkgconfig, allow_default_for_cross=False):
-            version_if_ok = PkgConfigCLI.check_pkgconfig(env, potential_pkgbin)
+                self.env, self.for_machine, 'pkgconfig', 'Pkg-config',
+                self.env.default_pkgconfig, allow_default_for_cross=False):
+            version_if_ok = self._check_pkgconfig(potential_pkgbin)
             if version_if_ok:
-                return potential_pkgbin
-        return None
+                self.pkgbin = potential_pkgbin
+                self.pkgbin_version = version_if_ok
+                return
+        self.pkgbin = None
 
-    @staticmethod
-    def check_pkgconfig(env: Environment, pkgbin: ExternalProgram) -> T.Optional[str]:
+    def _check_pkgconfig(self, pkgbin: ExternalProgram) -> T.Optional[str]:
         if not pkgbin.found():
             mlog.log(f'Did not find pkg-config by name {pkgbin.name!r}')
             return None
@@ -207,7 +205,7 @@ class PkgConfigCLI(PkgConfigInterface):
             return None
         except PermissionError:
             msg = f'Found pkg-config {command_as_string!r} but didn\'t have permissions to run it.'
-            if not env.machines.build.is_windows():
+            if not self.env.machines.build.is_windows():
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None
