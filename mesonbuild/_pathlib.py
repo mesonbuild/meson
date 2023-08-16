@@ -29,6 +29,7 @@
     python bugs are fixed and it is OK to tell our users to "just upgrade
     python".
 '''
+from __future__ import annotations
 
 import pathlib
 import os
