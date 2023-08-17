@@ -42,7 +42,7 @@ from mesonbuild.linkers import linkers
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
-    LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
+    LibType, MachineChoice, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, OptionKey,
     OptionType
 )
@@ -1017,7 +1017,7 @@ class InternalTests(unittest.TestCase):
 
         schema = json.loads(Path('data/test.schema.json').read_text(encoding='utf-8'))
 
-        errors = []  # type: T.Tuple[str, Exception]
+        errors: T.List[T.Tuple[Path, Exception]] = []
         for p in Path('test cases').glob('**/test.json'):
             try:
                 validate(json.loads(p.read_text(encoding='utf-8')), schema=schema)

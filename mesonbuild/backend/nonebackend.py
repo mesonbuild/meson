@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# mypy is fighting this...
+# pylint: disable=useless-return
+
 from __future__ import annotations
 
 import typing as T
@@ -25,7 +28,7 @@ class NoneBackend(Backend):
 
     name = 'none'
 
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> T.Optional[T.Dict[str, T.List[str]]]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the none backend to generate with \'capture = True\'')
@@ -37,3 +40,5 @@ class NoneBackend(Backend):
         mlog.log('Generating simple install-only backend')
         self.serialize_tests()
         self.create_install_data_files()
+
+        return None

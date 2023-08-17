@@ -154,7 +154,7 @@ def variables_convertor(contents: T.Union[str, T.List[str], T.Dict[str, str]]) -
         contents = [contents]
     if isinstance(contents, dict):
         return contents
-    variables = {}
+    variables: T.Dict[str, str] = {}
     for v in contents:
         key, val = v.split('=', 1)
         variables[key.strip()] = val.strip()
@@ -317,7 +317,7 @@ OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, T.Union[str, int, bool, 
 def _output_validator(outputs: T.List[str]) -> T.Optional[str]:
     output_set = set(outputs)
     if len(output_set) != len(outputs):
-        seen = set()
+        seen: T.Set[str] = set()
         for el in outputs:
             if el in seen:
                 return f"contains {el!r} multiple times, but no duplicates are allowed."

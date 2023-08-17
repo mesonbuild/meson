@@ -28,15 +28,15 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
-cs_optimization_args: T.Dict[str, T.List[str]] = {
-                        'plain': [],
-                        '0': [],
-                        'g': [],
-                        '1': ['-optimize+'],
-                        '2': ['-optimize+'],
-                        '3': ['-optimize+'],
-                        's': ['-optimize+'],
-                        }
+cs_optimization_args: T.Mapping[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-optimize+'],
+    '2': ['-optimize+'],
+    '3': ['-optimize+'],
+    's': ['-optimize+'],
+}
 
 
 class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
@@ -58,8 +58,8 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_linker_always_args(self) -> T.List[str]:
         return ['/nologo']
 
-    def get_output_args(self, fname: str) -> T.List[str]:
-        return ['-out:' + fname]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-out:' + outputname]
 
     def get_link_args(self, fname: str) -> T.List[str]:
         return ['-r:' + fname]
@@ -83,7 +83,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def get_pch_name(self, header_name: str) -> str:
+    def get_pch_name(self, name: str) -> str:
         return ''
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
@@ -142,7 +142,7 @@ class VisualStudioCsCompiler(CsCompiler):
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         res = mono_buildtype_args[buildtype]
         if not self.info.is_windows():
-            tmp = []
+            tmp: T.List[str] = []
             for flag in res:
                 if flag == '-debug':
                     flag = '-debug:portable'

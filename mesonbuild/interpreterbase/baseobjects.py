@@ -35,9 +35,6 @@ if T.TYPE_CHECKING:
     class OperatorCall(Protocol[__T]):
         def __call__(self, other: __T) -> 'TYPE_var': ...
 
-TV_fw_var = T.Union[str, int, bool, list, dict, 'InterpreterObject']
-TV_fw_args = T.List[T.Union[mparser.BaseNode, TV_fw_var]]
-TV_fw_kwargs = T.Dict[str, T.Union[mparser.BaseNode, TV_fw_var]]
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
@@ -51,22 +48,22 @@ TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 SubProject = T.NewType('SubProject', str)
 
 class InterpreterObject:
-    def __init__(self, *, subproject: T.Optional['SubProject'] = None) -> None:
+    def __init__(self, *, subproject: T.Optional[SubProject] = None) -> None:
         self.methods: T.Dict[
             str,
             T.Callable[[T.List[TYPE_var], TYPE_kwargs], TYPE_var]
         ] = {}
-        self.operators: T.Dict[MesonOperator, 'OperatorCall'] = {}
+        self.operators: T.Dict[MesonOperator, OperatorCall] = {}
         self.trivial_operators: T.Dict[
             MesonOperator,
             T.Tuple[
                 T.Union[T.Type, T.Tuple[T.Type, ...]],
-                'OperatorCall'
+                OperatorCall
             ]
         ] = {}
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
-        self.current_node:  mparser.BaseNode = None
+        self.current_node:  T.Optional[mparser.BaseNode] = None
         self.subproject = subproject or SubProject('')
 
         # Some default operators supported by all objects

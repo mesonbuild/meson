@@ -37,7 +37,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-vs32_instruction_set_args: T.Dict[str, T.Optional[T.List[str]]] = {
+vs32_instruction_set_args: T.Mapping[str, T.Optional[T.List[str]]] = {
     'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
     'sse': ['/arch:SSE'],
     'sse2': ['/arch:SSE2'],
@@ -50,7 +50,7 @@ vs32_instruction_set_args: T.Dict[str, T.Optional[T.List[str]]] = {
 }
 
 # The 64 bit compiler defaults to /arch:avx.
-vs64_instruction_set_args: T.Dict[str, T.Optional[T.List[str]]] = {
+vs64_instruction_set_args: T.Mapping[str, T.Optional[T.List[str]]] = {
     'mmx': ['/arch:AVX'],
     'sse': ['/arch:AVX'],
     'sse2': ['/arch:AVX'],
@@ -63,7 +63,7 @@ vs64_instruction_set_args: T.Dict[str, T.Optional[T.List[str]]] = {
     'neon': None,
 }
 
-msvc_optimization_args: T.Dict[str, T.List[str]] = {
+msvc_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['/Od'],
     'g': [], # No specific flag to optimize debugging, /Zi or /ZI will create debug information
@@ -73,7 +73,7 @@ msvc_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['/O1', '/Gw'],
 }
 
-msvc_debug_args: T.Dict[bool, T.List[str]] = {
+msvc_debug_args: T.Mapping[bool, T.List[str]] = {
     False: [],
     True: ['/Zi']
 }
@@ -94,7 +94,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     ignore_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS + ['execinfo']
     internal_libs: T.List[str] = []
 
-    crt_args: T.Dict[str, T.List[str]] = {
+    crt_args: T.Mapping[str, T.List[str]] = {
         'none': [],
         'md': ['/MD'],
         'mdd': ['/MDd'],

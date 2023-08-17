@@ -16,7 +16,7 @@ from __future__ import annotations
 from os import path
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
+from . import NewExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build
 from .. import mesonlib
 from .. import mlog
@@ -123,12 +123,12 @@ PRESET_ARGS = {
 }
 
 
-class I18nModule(ExtensionModule):
+class I18nModule(NewExtensionModule):
 
     INFO = ModuleInfo('i18n')
 
-    def __init__(self, interpreter: 'Interpreter'):
-        super().__init__(interpreter)
+    def __init__(self, interpreter: Interpreter):
+        super().__init__()
         self.methods.update({
             'merge_file': self.merge_file,
             'gettext': self.gettext,
@@ -163,7 +163,7 @@ class I18nModule(ExtensionModule):
         KwargInfo('po_dir', str, required=True),
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
-    def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
+    def merge_file(self, state: ModuleState, args: T.List[TYPE_var], kwargs: MergeFile) -> ModuleReturnValue:
         if self.tools['msgfmt'] is None or not self.tools['msgfmt'].found():
             self.tools['msgfmt'] = state.find_program('msgfmt', for_machine=mesonlib.MachineChoice.BUILD)
         if isinstance(self.tools['msgfmt'], ExternalProgram):
@@ -351,7 +351,7 @@ class I18nModule(ExtensionModule):
         mo_targets = kwargs['mo_targets']
         its_files = kwargs.get('its_files', [])
 
-        mo_fnames = []
+        mo_fnames: T.List[str] = []
         for target in mo_targets:
             mo_fnames.append(path.join(target.get_subdir(), target.get_outputs()[0]))
 

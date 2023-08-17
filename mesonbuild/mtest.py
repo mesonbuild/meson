@@ -89,7 +89,7 @@ if sys.maxunicode >= 0x10000:
         (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF),
         (0xFFFFE, 0xFFFFF), (0x10FFFE, 0x10FFFF)])
 UNENCODABLE_XML_CHR_RANGES = [fr'{chr(low)}-{chr(high)}' for (low, high) in UNENCODABLE_XML_UNICHRS]
-UNENCODABLE_XML_CHRS_RE = re.compile('([' + ''.join(UNENCODABLE_XML_CHR_RANGES) + '])')
+UNENCODABLE_XML_CHRS_RE: re.Pattern[str] = re.compile('([' + ''.join(UNENCODABLE_XML_CHR_RANGES) + '])')
 
 
 def is_windows() -> bool:
@@ -506,9 +506,8 @@ class TestFileLogger(TestLogger):
         self.file = open(filename, 'w', encoding='utf-8', errors=errors)
 
     def close(self) -> None:
-        if self.file:
+        if not self.file.closed:
             self.file.close()
-            self.file = None
 
 
 class ConsoleLogger(TestLogger):
@@ -523,7 +522,7 @@ class ConsoleLogger(TestLogger):
     def __init__(self) -> None:
         self.running_tests: OrderedSet['TestRun'] = OrderedSet()
         self.progress_test: T.Optional['TestRun'] = None
-        self.progress_task: T.Optional[asyncio.Future] = None
+        self.progress_task: T.Optional[asyncio.Future[None]] = None
         self.max_left_width = 0
         self.stop = False
         # TODO: before 3.10 this cannot be created immediately, because
@@ -564,7 +563,7 @@ class ConsoleLogger(TestLogger):
     def request_update(self) -> None:
         self.update.set()
 
-    def emit_progress(self, harness: 'TestHarness') -> None:
+    def emit_progress(self, harness: TestHarness) -> None:
         if self.progress_test is None:
             self.flush()
             return
@@ -667,7 +666,7 @@ class ConsoleLogger(TestLogger):
         else:
             return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
 
-    def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+    def print_log(self, harness: TestHarness, result: TestRun) -> None:
         if not result.verbose:
             cmdline = result.cmdline
             if not cmdline:
@@ -681,17 +680,17 @@ class ConsoleLogger(TestLogger):
             print_safe(log)
             print(self.output_end)
 
-    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult) -> None:
-        if test.verbose or (harness.options.print_errorlogs and result.is_bad()):
+    def log_subtest(self, harness: TestHarness, test: TestRun, s: str, res: TestResult) -> None:
+        if test.verbose or (harness.options.print_errorlogs and res.is_bad()):
             self.flush()
             print(harness.format(test, mlog.colorize_console(), max_left_width=self.max_left_width,
                                  prefix=self.sub,
                                  middle=s,
-                                 right=result.get_text(mlog.colorize_console())), flush=True)
+                                 right=res.get_text(mlog.colorize_console())), flush=True)
 
             self.request_update()
 
-    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+    def log(self, harness: TestHarness, result: TestRun) -> None:
         self.running_tests.remove(result)
         if result.res is TestResult.TIMEOUT and (result.verbose or
                                                  harness.options.print_errorlogs):
@@ -718,7 +717,7 @@ class ConsoleLogger(TestLogger):
 
         self.request_update()
 
-    async def finish(self, harness: 'TestHarness') -> None:
+    async def finish(self, harness: TestHarness) -> None:
         self.stop = True
         self.request_update()
         if self.progress_task:
@@ -727,19 +726,19 @@ class ConsoleLogger(TestLogger):
         if harness.collected_failures and \
                 (harness.options.print_errorlogs or harness.options.verbose):
             print("\nSummary of Failures:\n")
-            for i, result in enumerate(harness.collected_failures, 1):
+            for _, result in enumerate(harness.collected_failures, 1):
                 print(harness.format(result, mlog.colorize_console()))
 
         print(harness.summary())
 
 
 class TextLogfileBuilder(TestFileLogger):
-    def start(self, harness: 'TestHarness') -> None:
+    def start(self, harness: TestHarness) -> None:
         self.file.write(f'Log of Meson test suite run on {datetime.datetime.now().isoformat()}\n\n')
         inherit_env = env_tuple_to_str(os.environ.items())
         self.file.write(f'Inherited environment: {inherit_env}\n\n')
 
-    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+    def log(self, harness: TestHarness, result: TestRun) -> None:
         title = f'{result.num}/{harness.test_count}'
         self.file.write(dashes(title, '=', 78) + '\n')
         self.file.write('test:         ' + result.name + '\n')
@@ -758,10 +757,10 @@ class TextLogfileBuilder(TestFileLogger):
             self.file.write(result.stde)
         self.file.write(dashes('', '=', 78) + '\n\n')
 
-    async def finish(self, harness: 'TestHarness') -> None:
+    async def finish(self, harness: TestHarness) -> None:
         if harness.collected_failures:
             self.file.write("\nSummary of Failures:\n\n")
-            for i, result in enumerate(harness.collected_failures, 1):
+            for _, result in enumerate(harness.collected_failures, 1):
                 self.file.write(harness.format(result, False) + '\n')
         self.file.write(harness.summary())
 
@@ -808,12 +807,12 @@ class JunitBuilder(TestLogger):
             'testsuites', tests='0', errors='0', failures='0')
         self.suites: T.Dict[str, et.Element] = {}
 
-    def log(self, harness: 'TestHarness', test: 'TestRun') -> None:
+    def log(self, harness: TestHarness, result: TestRun) -> None:
         """Log a single test case."""
-        if test.junit is not None:
-            for suite in test.junit.findall('.//testsuite'):
+        if result.junit is not None:
+            for suite in result.junit.findall('.//testsuite'):
                 # Assume that we don't need to merge anything here...
-                suite.attrib['name'] = '{}.{}.{}'.format(test.project, test.name, suite.attrib['name'])
+                suite.attrib['name'] = '{}.{}.{}'.format(result.project, result.name, suite.attrib['name'])
 
                 # GTest can inject invalid attributes
                 for case in suite.findall('.//testcase[@result]'):
@@ -830,23 +829,23 @@ class JunitBuilder(TestLogger):
         # In this case we have a test binary with multiple results.
         # We want to record this so that each result is recorded
         # separately
-        if test.results:
-            suitename = f'{test.project}.{test.name}'
+        if result.results:
+            suitename = f'{result.project}.{result.name}'
             assert suitename not in self.suites or harness.options.repeat > 1, 'duplicate suite'
 
             suite = self.suites[suitename] = et.Element(
                 'testsuite',
                 name=suitename,
-                tests=str(len(test.results)),
-                errors=str(sum(1 for r in test.results if r.result in
+                tests=str(len(result.results)),
+                errors=str(sum(1 for r in result.results if r.result in
                                {TestResult.INTERRUPT, TestResult.ERROR})),
-                failures=str(sum(1 for r in test.results if r.result in
+                failures=str(sum(1 for r in result.results if r.result in
                                  {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
-                skipped=str(sum(1 for r in test.results if r.result is TestResult.SKIP)),
-                time=str(test.duration),
+                skipped=str(sum(1 for r in result.results if r.result is TestResult.SKIP)),
+                time=str(result.duration),
             )
 
-            for subtest in test.results:
+            for subtest in result.results:
                 # Both name and classname are required. Use the suite name as
                 # the class name, so that e.g. GitLab groups testcases correctly.
                 testcase = et.SubElement(suite, 'testcase', name=str(subtest), classname=suitename)
@@ -867,38 +866,38 @@ class JunitBuilder(TestLogger):
                     fail.text = 'Test did not finish before configured timeout.'
                 if subtest.explanation:
                     et.SubElement(testcase, 'system-out').text = subtest.explanation
-            if test.stdo:
+            if result.stdo:
                 out = et.SubElement(suite, 'system-out')
-                out.text = replace_unencodable_xml_chars(test.stdo.rstrip())
-            if test.stde:
+                out.text = replace_unencodable_xml_chars(result.stdo.rstrip())
+            if result.stde:
                 err = et.SubElement(suite, 'system-err')
-                err.text = replace_unencodable_xml_chars(test.stde.rstrip())
+                err.text = replace_unencodable_xml_chars(result.stde.rstrip())
         else:
-            if test.project not in self.suites:
-                suite = self.suites[test.project] = et.Element(
-                    'testsuite', name=test.project, tests='1', errors='0',
-                    failures='0', skipped='0', time=str(test.duration))
+            if result.project not in self.suites:
+                suite = self.suites[result.project] = et.Element(
+                    'testsuite', name=result.project, tests='1', errors='0',
+                    failures='0', skipped='0', time=str(result.duration))
             else:
-                suite = self.suites[test.project]
+                suite = self.suites[result.project]
                 suite.attrib['tests'] = str(int(suite.attrib['tests']) + 1)
 
-            testcase = et.SubElement(suite, 'testcase', name=test.name,
-                                     classname=test.project, time=str(test.duration))
-            if test.res is TestResult.SKIP:
+            testcase = et.SubElement(suite, 'testcase', name=result.name,
+                                     classname=result.project, time=str(result.duration))
+            if result.res is TestResult.SKIP:
                 et.SubElement(testcase, 'skipped')
                 suite.attrib['skipped'] = str(int(suite.attrib['skipped']) + 1)
-            elif test.res is TestResult.ERROR:
+            elif result.res is TestResult.ERROR:
                 et.SubElement(testcase, 'error')
                 suite.attrib['errors'] = str(int(suite.attrib['errors']) + 1)
-            elif test.res is TestResult.FAIL:
+            elif result.res is TestResult.FAIL:
                 et.SubElement(testcase, 'failure')
                 suite.attrib['failures'] = str(int(suite.attrib['failures']) + 1)
-            if test.stdo:
+            if result.stdo:
                 out = et.SubElement(testcase, 'system-out')
-                out.text = replace_unencodable_xml_chars(test.stdo.rstrip())
-            if test.stde:
+                out.text = replace_unencodable_xml_chars(result.stdo.rstrip())
+            if result.stde:
                 err = et.SubElement(testcase, 'system-err')
-                err.text = replace_unencodable_xml_chars(test.stde.rstrip())
+                err.text = replace_unencodable_xml_chars(result.stde.rstrip())
 
     async def finish(self, harness: 'TestHarness') -> None:
         """Calculate total test counts and write out the xml result."""
@@ -915,7 +914,7 @@ class JunitBuilder(TestLogger):
 
 class TestRun:
     TEST_NUM = 0
-    PROTOCOL_TO_CLASS: T.Dict[TestProtocol, T.Type['TestRun']] = {}
+    PROTOCOL_TO_CLASS: T.Dict[TestProtocol, T.Type[TestRun]] = {}
 
     def __new__(cls, test: TestSerialisation, *args: T.Any, **kwargs: T.Any) -> T.Any:
         return super().__new__(TestRun.PROTOCOL_TO_CLASS[test.protocol])
@@ -1175,7 +1174,7 @@ TestRun.PROTOCOL_TO_CLASS[TestProtocol.RUST] = TestRunRust
 def replace_unencodable_xml_chars(original_str: str) -> str:
     # [1:-1] is needed for removing `'` characters from both start and end
     # of the string
-    replacement_lambda = lambda illegal_chr: repr(illegal_chr.group())[1:-1]
+    replacement_lambda: T.Callable[[re.Match[str]], str] = lambda illegal_chr: repr(illegal_chr.group())[1:-1]
     return UNENCODABLE_XML_CHRS_RE.sub(replacement_lambda, original_str)
 
 def decode(stream: T.Union[None, bytes]) -> str:
@@ -1230,7 +1229,7 @@ def check_testdata(objs: T.List[TestSerialisation]) -> T.List[TestSerialisation]
 
 # Custom waiting primitives for asyncio
 
-async def queue_iter(q: 'asyncio.Queue[T.Optional[str]]') -> T.AsyncIterator[str]:
+async def queue_iter(q: asyncio.Queue[T.Optional[str]]) -> T.AsyncIterator[str]:
     while True:
         item = await q.get()
         q.task_done()
@@ -1238,14 +1237,14 @@ async def queue_iter(q: 'asyncio.Queue[T.Optional[str]]') -> T.AsyncIterator[str
             break
         yield item
 
-async def complete(future: asyncio.Future) -> None:
+async def complete(future: asyncio.Future[T.Any]) -> None:
     """Wait for completion of the given future, ignoring cancellation."""
     try:
         await future
     except asyncio.CancelledError:
         pass
 
-async def complete_all(futures: T.Iterable[asyncio.Future],
+async def complete_all(futures: T.Iterable[asyncio.Future[T.Any]],
                        timeout: T.Optional[T.Union[int, float]] = None) -> None:
     """Wait for completion of all the given futures, ignoring cancellation.
        If timeout is not None, raise an asyncio.TimeoutError after the given
@@ -1253,7 +1252,7 @@ async def complete_all(futures: T.Iterable[asyncio.Future],
        have not completed and none have raised exceptions, even if timeout
        is zero."""
 
-    def check_futures(futures: T.Iterable[asyncio.Future]) -> None:
+    def check_futures(futures: T.Iterable[asyncio.Future[int]]) -> None:
         # Raise exceptions if needed
         left = False
         for f in futures:
@@ -1281,14 +1280,14 @@ async def complete_all(futures: T.Iterable[asyncio.Future],
 class TestSubprocess:
     def __init__(self, p: asyncio.subprocess.Process,
                  stdout: T.Optional[int], stderr: T.Optional[int],
-                 postwait_fn: T.Callable[[], None] = None):
+                 postwait_fn: T.Optional[T.Callable[[], None]] = None):
         self._process = p
         self.stdout = stdout
         self.stderr = stderr
         self.stdo_task: T.Optional[asyncio.Task[None]] = None
         self.stde_task: T.Optional[asyncio.Task[None]] = None
         self.postwait_fn = postwait_fn
-        self.all_futures: T.List[asyncio.Future] = []
+        self.all_futures: T.List[asyncio.Future[T.Any]] = []
         self.queue: T.Optional[asyncio.Queue[T.Optional[str]]] = None
 
     def stdout_lines(self) -> T.AsyncIterator[str]:
@@ -1296,15 +1295,15 @@ class TestSubprocess:
         return queue_iter(self.queue)
 
     def communicate(self,
-                    test: 'TestRun',
-                    console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[str]],
-                                                          T.Optional[T.Awaitable[str]]]:
-        async def collect_stdo(test: 'TestRun',
+                    test: TestRun,
+                    console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[None]],
+                                                          T.Optional[T.Awaitable[None]]]:
+        async def collect_stdo(test: TestRun,
                                reader: asyncio.StreamReader,
                                console_mode: ConsoleUser) -> None:
             test.stdo = await read_decode(reader, self.queue, console_mode)
 
-        async def collect_stde(test: 'TestRun',
+        async def collect_stde(test: TestRun,
                                reader: asyncio.StreamReader,
                                console_mode: ConsoleUser) -> None:
             test.stde = await read_decode(reader, None, console_mode)
@@ -1370,7 +1369,7 @@ class TestSubprocess:
             if self.stde_task:
                 self.stde_task.cancel()
 
-    async def wait(self, test: 'TestRun') -> None:
+    async def wait(self, test: TestRun) -> None:
         p = self._process
 
         self.all_futures.append(asyncio.ensure_future(p.wait()))
@@ -1399,7 +1398,7 @@ class SingleTestRunner:
 
         if self.cmd and self.test.extra_paths:
             env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + env['PATH']
-            winecmd = []
+            winecmd: T.List[str] = []
             for c in self.cmd:
                 winecmd.append(c)
                 if os.path.basename(c).startswith('wine'):
@@ -1584,7 +1583,7 @@ class TestHarness:
         self.console_logger = ConsoleLogger()
         self.loggers.append(self.console_logger)
         self.need_console = False
-        self.ninja: T.List[str] = None
+        self.ninja: T.Optional[T.List[str]] = None
 
         self.logfile_base: T.Optional[str] = None
         if self.options.logbase and not self.options.gdb:
@@ -1602,7 +1601,7 @@ class TestHarness:
         self.prepare_build()
         self.load_metadata()
 
-        ss = set()
+        ss: T.Set[str] = set()
         for t in self.tests:
             for s in t.suite:
                 ss.add(s)
@@ -1671,7 +1670,7 @@ class TestHarness:
             l.close()
         self.console_logger = None
 
-    def get_test_setup(self, test: T.Optional[TestSerialisation]) -> build.TestSetup:
+    def get_test_setup(self, test: TestSerialisation) -> build.TestSetup:
         if ':' in self.options.setup:
             if self.options.setup not in self.build_data.test_setups:
                 sys.exit(f"Unknown test setup '{self.options.setup}'.")
@@ -1935,7 +1934,7 @@ class TestHarness:
                     # succeed on an invalid pattern.
                     raise MesonException(f'{arg} test name does not match any test')
 
-    def get_tests(self, errorfile: T.Optional[T.IO] = None) -> T.List[TestSerialisation]:
+    def get_tests(self, errorfile: T.Optional[T.TextIO] = None) -> T.List[TestSerialisation]:
         if not self.tests:
             print('No tests defined.', file=errorfile)
             return []
@@ -2007,8 +2006,8 @@ class TestHarness:
 
     async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
-        futures: T.Deque[asyncio.Future] = deque()
-        running_tests: T.Dict[asyncio.Future, str] = {}
+        futures: T.Deque[asyncio.Future[None]] = deque()
+        running_tests: T.Dict[asyncio.Future[None], str] = {}
         interrupted = False
         ctrlc_times: T.Deque[float] = deque(maxlen=MAX_CTRLC)
         loop = asyncio.get_running_loop()
@@ -2023,7 +2022,7 @@ class TestHarness:
                 if maxfail and self.fail_count >= maxfail and res.res.is_bad():
                     cancel_all_tests()
 
-        def test_done(f: asyncio.Future) -> None:
+        def test_done(f: asyncio.Future[None]) -> None:
             if not f.cancelled():
                 f.result()
             futures.remove(f)

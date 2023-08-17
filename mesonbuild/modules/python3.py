@@ -22,8 +22,10 @@ from ..build import (
     BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects,
     GeneratedList, SharedModule, StructuredSources, known_shmod_kwargs
 )
+from ..interpreter import Interpreter
 from ..interpreter.type_checking import SHARED_MOD_KWS
 from ..interpreterbase import typed_kwargs, typed_pos_args, noPosargs, noKwargs, permittedKwargs
+from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
@@ -38,8 +40,8 @@ class Python3Module(ExtensionModule):
 
     INFO = ModuleInfo('python3', '0.38.0', deprecated='0.48.0')
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, interpreter: Interpreter):
+        super().__init__(interpreter)
         self.methods.update({
             'extension_module': self.extension_module,
             'find_python': self.find_python,
@@ -50,7 +52,9 @@ class Python3Module(ExtensionModule):
     @permittedKwargs(known_shmod_kwargs - {'name_prefix', 'name_suffix'})
     @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @typed_kwargs('python3.extension_module', *_MOD_KWARGS, allow_unknown=True)
-    def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW):
+    def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW) -> SharedModule:
+        suffix: T.Union[str, T.List[str]] = []
+
         host_system = state.host_machine.system
         if host_system == 'darwin':
             # Default suffix is 'dylib' but Python does not use it for extensions.
@@ -58,15 +62,16 @@ class Python3Module(ExtensionModule):
         elif host_system == 'windows':
             # On Windows the extension is pyd for some unexplainable reason.
             suffix = 'pyd'
-        else:
-            suffix = []
-        kwargs['name_prefix'] = ''
-        kwargs['name_suffix'] = suffix
-        return self.interpreter.build_target(state.current_node, args, kwargs, SharedModule)
+
+        # TODO: Remove these ignore comments after build targets are fully typed
+        kwargs['name_prefix'] = '' # type: ignore
+        kwargs['name_suffix'] = suffix # type: ignore
+
+        return self.interpreter.build_target(state.current_node, args, kwargs, SharedModule) # type: ignore
 
     @noPosargs
     @noKwargs
-    def find_python(self, state, args, kwargs):
+    def find_python(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> ExternalProgram:
         command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
         if command is not None:
             py3 = ExternalProgram.from_entry('python3', command)
@@ -76,12 +81,12 @@ class Python3Module(ExtensionModule):
 
     @noPosargs
     @noKwargs
-    def language_version(self, state, args, kwargs):
+    def language_version(self, state: ModuleState, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return sysconfig.get_python_version()
 
     @noKwargs
     @typed_pos_args('python3.sysconfig_path', str)
-    def sysconfig_path(self, state, args, kwargs):
+    def sysconfig_path(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
         path_name = args[0]
         valid_names = sysconfig.get_path_names()
         if path_name not in valid_names:
@@ -91,5 +96,5 @@ class Python3Module(ExtensionModule):
         return sysconfig.get_path(path_name, vars={'base': '', 'platbase': '', 'installed_base': ''})[1:]
 
 
-def initialize(*args, **kwargs):
+def initialize(*args: T.Any, **kwargs: T.Any) -> Python3Module:
     return Python3Module(*args, **kwargs)

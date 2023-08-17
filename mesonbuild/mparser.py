@@ -163,7 +163,7 @@ class Lexer:
         col = 0
         while loc < len(self.code):
             matched = False
-            value: T.Union[str, bool, int] = None
+            value: T.Optional[T.Union[str, bool, int]] = None
             for (tid, reg) in self.token_specification:
                 mo = reg.match(self.code, loc)
                 if mo:

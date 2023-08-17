@@ -30,13 +30,13 @@ if T.TYPE_CHECKING:
     from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
 
-clang_color_args: T.Dict[str, T.List[str]] = {
+clang_color_args: T.Mapping[str, T.List[str]] = {
     'auto': ['-fdiagnostics-color=auto'],
     'always': ['-fdiagnostics-color=always'],
     'never': ['-fdiagnostics-color=never'],
 }
 
-clang_optimization_args: T.Dict[str, T.List[str]] = {
+clang_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Og'],

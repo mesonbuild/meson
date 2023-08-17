@@ -174,7 +174,7 @@ class MesonApp:
         return src_dir, build_dir
 
     # See class Backend's 'generate' for comments on capture args and returned dictionary.
-    def generate(self, capture: bool = False, vslite_ctx: T.Optional[dict] = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> T.Optional[T.Dict[str, T.List[str]]]:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
@@ -182,7 +182,7 @@ class MesonApp:
         with mesonlib.BuildDirLock(self.build_dir):
             return self._generate(env, capture, vslite_ctx)
 
-    def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: T.Optional[dict]) -> T.Optional[dict]:
+    def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]]) -> T.Optional[T.Dict[str, T.List[str]]]:
         # Get all user defined options, including options that have been defined
         # during a previous invocation or using meson configure.
         user_defined_options = argparse.Namespace(**vars(self.options))
@@ -231,7 +231,7 @@ class MesonApp:
             raise
 
         cdf: T.Optional[str] = None
-        captured_compile_args: T.Optional[dict] = None
+        captured_compile_args: T.Optional[T.Dict[str, T.List[str]]] = None
         try:
             dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
             # We would like to write coredata as late as possible since we use the existence of
@@ -333,7 +333,7 @@ def run_genvslite_setup(options: argparse.Namespace) -> None:
     else:
         options.cmd_line_options[k_backend] = 'ninja'
     buildtypes_list = coredata.get_genvs_default_buildtype_list()
-    vslite_ctx = {}
+    vslite_ctx: T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]] = {}
 
     for buildtypestr in buildtypes_list:
         options.builddir = f'{builddir_prefix}_{buildtypestr}' # E.g. builddir_release

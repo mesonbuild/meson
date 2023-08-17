@@ -22,6 +22,7 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
+    from types import NotImplementedType
     from .linkers.linkers import StaticLinker
     from .compilers import Compiler
 
@@ -104,7 +105,7 @@ class CompilerArgs(T.MutableSequence[str]):
     # TODO: these should probably move too
     always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)
 
-    def __init__(self, compiler: T.Union['Compiler', 'StaticLinker'],
+    def __init__(self, compiler: T.Union[Compiler, StaticLinker],
                  iterable: T.Optional[T.Iterable[str]] = None):
         self.compiler = compiler
         self._container: T.List[str] = list(iterable) if iterable is not None else []
@@ -188,7 +189,7 @@ class CompilerArgs(T.MutableSequence[str]):
         self.flush_pre_post()
         self._container.insert(index, value)
 
-    def copy(self) -> 'CompilerArgs':
+    def copy(self) -> CompilerArgs:
         self.flush_pre_post()
         return type(self)(self.compiler, self._container.copy())
 
@@ -264,8 +265,8 @@ class CompilerArgs(T.MutableSequence[str]):
             self.append_direct(elem)
 
     def extend_preserving_lflags(self, iterable: T.Iterable[str]) -> None:
-        normal_flags = []
-        lflags = []
+        normal_flags: T.List[str] = []
+        lflags: T.List[str] = []
         for i in iterable:
             if i not in self.always_dedup_args and (i.startswith('-l') or i.startswith('-L')):
                 lflags.append(i)
@@ -311,7 +312,7 @@ class CompilerArgs(T.MutableSequence[str]):
         new += self
         return new
 
-    def __eq__(self, other: object) -> T.Union[bool]:
+    def __eq__(self, other: object) -> T.Union[bool, NotImplementedType]:
         self.flush_pre_post()
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):
@@ -320,11 +321,11 @@ class CompilerArgs(T.MutableSequence[str]):
             return self._container == other
         return NotImplemented
 
-    def append(self, arg: str) -> None:
-        self += [arg]
+    def append(self, value: str) -> None:
+        self += [value]
 
-    def extend(self, args: T.Iterable[str]) -> None:
-        self += args
+    def extend(self, values: T.Iterable[str]) -> None:
+        self += values
 
     def __repr__(self) -> str:
         self.flush_pre_post()

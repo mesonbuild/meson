@@ -34,7 +34,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     language = 'java'
     id = 'unknown'
 
-    _WARNING_LEVELS: T.Dict[str, T.List[str]] = {
+    _WARNING_LEVELS: T.Mapping[str, T.List[str]] = {
         '0': ['-nowarn'],
         '1': ['-Xlint:all'],
         '2': ['-Xlint:all', '-Xdoclint:all'],

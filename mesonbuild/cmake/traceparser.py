@@ -313,7 +313,7 @@ class CMakeTraceParser:
             pass
 
         # 1st remove PARENT_SCOPE and CACHE from args
-        args = []
+        args: T.List[str] = []
         for i in tline.args:
             if not i or i == 'PARENT_SCOPE':
                 continue
@@ -494,7 +494,7 @@ class CMakeTraceParser:
         scope = args.pop(0)
 
         append = False
-        targets = []
+        targets: T.List[str] = []
         while args:
             curr = args.pop(0)
             # XXX: APPEND_STRING is specifically *not* supposed to create a
@@ -567,7 +567,7 @@ class CMakeTraceParser:
         # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
         args = list(tline.args)
 
-        targets = []
+        targets: T.List[str] = []
         while args:
             curr = args.pop(0)
             if curr == 'PROPERTIES':
@@ -675,8 +675,8 @@ class CMakeTraceParser:
         if target not in self.targets:
             return self._gen_exception(func, f'TARGET {target} not found', tline)
 
-        interface = []
-        private = []
+        interface: T.List[str] = []
+        private: T.List[str] = []
 
         mode = 'PUBLIC'
         for i in args[1:]:

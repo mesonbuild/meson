@@ -44,8 +44,8 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
                           linker=linker)
         CLikeCompiler.__init__(self, exe_wrap)
 
-    @staticmethod
-    def get_display_language() -> str:
+    @classmethod
+    def get_display_language(cls) -> str:
         return 'Objective-C++'
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
@@ -55,10 +55,10 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 is_cross: bool, info: MachineInfo,
+                 exe_wrapper: T.Optional[ExternalProgram] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
-                 linker: T.Optional['DynamicLinker'] = None,
+                 linker: T.Optional[DynamicLinker] = None,
                  full_version: T.Optional[str] = None):
         ObjCPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                                 info, exe_wrapper, linker=linker, full_version=full_version)
@@ -76,10 +76,10 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 is_cross: bool, info: MachineInfo,
+                 exe_wrapper: T.Optional[ExternalProgram] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
-                 linker: T.Optional['DynamicLinker'] = None,
+                 linker: T.Optional[DynamicLinker] = None,
                  full_version: T.Optional[str] = None):
         ObjCPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                                 info, exe_wrapper, linker=linker, full_version=full_version)
@@ -103,7 +103,7 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang='cpp')]
         if std.value != 'none':
             args.append('-std=' + std.value)

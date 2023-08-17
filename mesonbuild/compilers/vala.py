@@ -109,7 +109,7 @@ class ValaCompiler(Compiler):
             return ['--debug']
         return []
 
-    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
+    def find_library(self, libname: str, env: Environment, extra_dirs: T.List[str],
                      libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
@@ -132,8 +132,8 @@ class ValaCompiler(Compiler):
         mlog.debug(f'Searched {extra_dirs!r} and {libname!r} wasn\'t found')
         return None
 
-    def thread_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_flags(self, env: Environment) -> T.List[str]:
         return []
 
-    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+    def thread_link_flags(self, env: Environment) -> T.List[str]:
         return []

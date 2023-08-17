@@ -312,7 +312,7 @@ class Resolver:
     def load_wraps(self) -> None:
         if not os.path.isdir(self.subdir_root):
             return
-        root, dirs, files = next(os.walk(self.subdir_root))
+        _, dirs, files = next(os.walk(self.subdir_root))
         ignore_dirs = {'packagecache', 'packagefiles'}
         for i in files:
             if not i.endswith('.wrap'):
@@ -356,7 +356,7 @@ class Resolver:
             self.wrapdb_provided_deps.update({i: name for i in info.get('dependency_names', [])})
             self.wrapdb_provided_programs.update({i: name for i in info.get('program_names', [])})
 
-    def get_from_wrapdb(self, subp_name: str) -> PackageDefinition:
+    def get_from_wrapdb(self, subp_name: str) -> T.Optional[PackageDefinition]:
         info = self.wrapdb.get(subp_name)
         if not info:
             return None
@@ -556,7 +556,7 @@ class Resolver:
         checkout_cmd = ['-c', 'advice.detachedHead=false', 'checkout', revno, '--']
         is_shallow = False
         depth_option: T.List[str] = []
-        if self.wrap.values.get('depth', '') != '':
+        if 'depth' in self.wrap.values:
             is_shallow = True
             depth_option = ['--depth', self.wrap.values.get('depth')]
         # for some reason git only allows commit ids to be shallowly fetched by fetch not with clone

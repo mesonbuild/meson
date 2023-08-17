@@ -32,8 +32,8 @@ if T.TYPE_CHECKING:
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
-def mpi_factory(env: 'Environment',
-                for_machine: 'MachineChoice',
+def mpi_factory(env: Environment,
+                for_machine: MachineChoice,
                 kwargs: T.Dict[str, T.Any],
                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language', 'c')
@@ -61,6 +61,8 @@ def mpi_factory(env: 'Environment',
 
     if DependencyMethods.CONFIG_TOOL in methods:
         nwargs = kwargs.copy()
+        tool_names: T.List[T.Optional[str]] = []
+        cls: T.Type[ConfigToolDependency]
 
         if compiler_is_intel:
             if env.machines[for_machine].is_windows():
@@ -68,23 +70,23 @@ def mpi_factory(env: 'Environment',
                 nwargs['returncode_value'] = 3
 
             if language == 'c':
-                tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
+                tool_names.extend([os.environ.get('I_MPI_CC'), 'mpiicc'])
             elif language == 'cpp':
-                tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
+                tool_names.extend([os.environ.get('I_MPI_CXX'), 'mpiicpc'])
             elif language == 'fortran':
-                tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
+                tool_names.extend([os.environ.get('I_MPI_F90'), 'mpiifort'])
 
-            cls: T.Type[ConfigToolDependency] = IntelMPIConfigToolDependency
+            cls = IntelMPIConfigToolDependency
         else: # OpenMPI, which doesn't work with intel
             #
             # We try the environment variables for the tools first, but then
             # fall back to the hardcoded names
             if language == 'c':
-                tool_names = [os.environ.get('MPICC'), 'mpicc']
+                tool_names.extend([os.environ.get('MPICC'), 'mpicc'])
             elif language == 'cpp':
-                tool_names = [os.environ.get('MPICXX'), 'mpic++', 'mpicxx', 'mpiCC']
+                tool_names.extend([os.environ.get('MPICXX'), 'mpic++', 'mpicxx', 'mpiCC'])
             elif language == 'fortran':
-                tool_names = [os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']]
+                tool_names.extend([os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']])
                 tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
             cls = OpenMPIConfigToolDependency
@@ -112,7 +114,7 @@ class _MPIConfigToolDependency(ConfigToolDependency):
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
         """
-        result = []
+        result: T.List[str] = []
         multi_args: T.Tuple[str, ...] = ('-I', )
         if self.language == 'fortran':
             fc = self.env.coredata.compilers[self.for_machine]['fortran']
@@ -136,7 +138,7 @@ class _MPIConfigToolDependency(ConfigToolDependency):
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
         """
-        result = []
+        result: T.List[str] = []
         include_next = False
         for f in args:
             if self._is_link_arg(f):
@@ -173,11 +175,11 @@ class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
         self.compile_args = self._filter_compile_args(args)
         self.link_args = self._filter_link_args(args)
 
-    def _sanitize_version(self, out: str) -> str:
-        v = re.search(r'(\d{4}) Update (\d)', out)
+    def _sanitize_version(self, version: str) -> str:
+        v = re.search(r'(\d{4}) Update (\d)', version)
         if v:
             return '{}.{}'.format(v.group(1), v.group(2))
-        return out
+        return version
 
 
 class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
@@ -198,11 +200,11 @@ class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
         l_args = self.get_config_value(['--showme:link'], 'link_args')
         self.link_args = self._filter_link_args(l_args)
 
-    def _sanitize_version(self, out: str) -> str:
-        v = re.search(r'\d+.\d+.\d+', out)
+    def _sanitize_version(self, version: str) -> str:
+        v = re.search(r'\d+.\d+.\d+', version)
         if v:
             return v.group(0)
-        return out
+        return version
 
 
 class MSMPIDependency(SystemDependency):

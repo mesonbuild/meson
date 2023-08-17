@@ -213,7 +213,7 @@ class Elf(DataSizes):
             self.sections.append(SectionHeader(self.bf, self.ptrsize, self.is_le))
 
     def read_str(self) -> bytes:
-        arr = []
+        arr: T.List[bytes] = []
         x = self.bf.read(1)
         while x != b'\0':
             arr.append(x)
@@ -296,7 +296,7 @@ class Elf(DataSizes):
 
     def fix_deps(self, prefix: bytes) -> None:
         sec = self.find_section(b'.dynstr')
-        deps = []
+        deps: T.List[DynamicEntry] = []
         for i in self.dynamic:
             if i.d_tag == DT_NEEDED:
                 deps.append(i)
@@ -393,7 +393,7 @@ def get_darwin_rpaths_to_remove(fname: str) -> T.List[str]:
     p, out, _ = Popen_safe(['otool', '-l', fname], stderr=subprocess.DEVNULL)
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, p.args, out)
-    result = []
+    result: T.List[str] = []
     current_cmd = 'FOOBAR'
     for line in out.split('\n'):
         line = line.strip()
@@ -415,7 +415,7 @@ def fix_darwin(fname: str, new_rpath: str, final_path: str, install_name_mapping
         # non-executable target. Just return.
         return
     try:
-        args = []
+        args: T.List[str] = []
         if rpaths:
             # TODO: fix this properly, not totally clear how
             #

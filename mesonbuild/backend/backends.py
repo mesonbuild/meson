@@ -267,10 +267,10 @@ def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None,
 # Feel free to move stuff in and out of it as you see fit.
 class Backend:
 
-    environment: T.Optional['Environment']
+    environment: T.Optional[Environment]
     name = '<UNKNOWN>'
 
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional['Interpreter']):
+    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         # Make it possible to construct a dummy backend
         # This is used for introspection without a build directory
         if build is None:
@@ -295,7 +295,7 @@ class Backend:
     # 'vslite_ctx' is only provided when
     # we expect this backend setup/generation to make use of previously captured
     # compile args (as is the case when using '--genvslite').
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> T.Optional[T.Dict[str, T.List[str]]]:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
     def get_target_filename(self, t: T.Union[build.Target, build.CustomTargetIndex], *, warn_multi_output: bool = True) -> str:
@@ -407,7 +407,7 @@ class Backend:
         osrc = f'{target.name}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
-    def generate_unity_files(self, target: build.BuildTarget, unity_src: str) -> T.List[mesonlib.File]:
+    def generate_unity_files(self, target: build.BuildTarget, unity_src: T.List[mesonlib.FileOrString]) -> T.List[mesonlib.File]:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
@@ -509,7 +509,7 @@ class Backend:
     def get_executable_serialisation(
             self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
             workdir: T.Optional[str] = None,
-            extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
+            extra_bdeps: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget]]] = None,
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
@@ -581,7 +581,7 @@ class Backend:
     def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram],
                              cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]],
                              workdir: T.Optional[str] = None,
-                             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
+                             extra_bdeps: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget]]] = None,
                              capture: T.Optional[str] = None,
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
@@ -1066,7 +1066,7 @@ class Backend:
                 commands += compiler.get_include_args(priv_dir, False)
         return commands
 
-    def build_target_link_arguments(self, compiler: 'Compiler', deps: T.List[build.Target]) -> T.List[str]:
+    def build_target_link_arguments(self, compiler: Compiler, deps: T.List[build.Target]) -> T.List[str]:
         args: T.List[str] = []
         for d in deps:
             if not d.is_linkable_target():
@@ -1136,7 +1136,7 @@ class Backend:
         1. If there are DLLs in the same directory than the .lib dir, use it
         2. If there is a sibbling directory named 'bin' with DLLs in it, use it
         """
-        results = set()
+        results: T.Set[str] = set()
         for dep in target.external_deps:
 
             if dep.type_name == 'pkgconfig':
@@ -1414,7 +1414,7 @@ class Backend:
         return result
 
     @lru_cache(maxsize=None)
-    def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> 'ImmutableListProtocol[str]':
+    def get_custom_target_provided_by_generated_source(self, generated_source: build.CustomTarget) -> ImmutableListProtocol[str]:
         libs: T.List[str] = []
         for f in generated_source.get_outputs():
             if self.environment.is_library(f):
@@ -1422,7 +1422,7 @@ class Backend:
         return libs
 
     @lru_cache(maxsize=None)
-    def get_custom_target_provided_libraries(self, target: T.Union[build.BuildTarget, build.CustomTarget]) -> 'ImmutableListProtocol[str]':
+    def get_custom_target_provided_libraries(self, target: T.Union[build.BuildTarget, build.CustomTarget]) -> ImmutableListProtocol[str]:
         libs: T.List[str] = []
         for t in target.get_generated_sources():
             if not isinstance(t, build.CustomTarget):
@@ -1459,7 +1459,7 @@ class Backend:
             srcs += fname
         return srcs
 
-    def get_custom_target_depend_files(self, target: build.CustomTarget, absolute_paths: bool = False) -> T.List[str]:
+    def get_custom_target_depend_files(self, target: T.Union[build.CustomTarget, build.GeneratedList], absolute_paths: bool = False) -> T.List[str]:
         deps: T.List[str] = []
         for i in target.depend_files:
             if isinstance(i, mesonlib.File):
@@ -1489,7 +1489,7 @@ class Backend:
     def get_normpath_target(self, source: str) -> str:
         return os.path.normpath(source)
 
-    def get_custom_target_dirs(self, target: build.CustomTarget, compiler: 'Compiler', *,
+    def get_custom_target_dirs(self, target: build.CustomTarget, compiler: Compiler, *,
                                absolute_path: bool = False) -> T.List[str]:
         custom_target_include_dirs: T.List[str] = []
         for i in target.get_generated_sources():
@@ -1508,7 +1508,7 @@ class Backend:
         return custom_target_include_dirs
 
     def get_custom_target_dir_include_args(
-            self, target: build.CustomTarget, compiler: 'Compiler', *,
+            self, target: build.CustomTarget, compiler: Compiler, *,
             absolute_path: bool = False) -> T.List[str]:
         incs: T.List[str] = []
         for i in self.get_custom_target_dirs(target, compiler, absolute_path=absolute_path):
@@ -1829,8 +1829,6 @@ class Backend:
                     outdir_name = os.path.join('{includedir}', subdir)
 
             for f in h.get_sources():
-                if not isinstance(f, File):
-                    raise MesonException(f'Invalid header type {f!r} can\'t be installed')
                 abspath = f.absolute_path(srcdir, builddir)
                 i = InstallDataBase(abspath, outdir, outdir_name, h.get_custom_install_mode(), h.subproject, tag='devel')
                 d.headers.append(i)
@@ -1928,7 +1926,7 @@ class Backend:
         '''
         if isinstance(target, (build.CustomTarget, build.BuildTarget)):
             source_list_raw = target.sources
-            source_list = []
+            source_list: T.List[str] = []
             for j in source_list_raw:
                 if isinstance(j, mesonlib.File):
                     source_list += [j.absolute_path(self.source_dir, self.build_dir)]
@@ -1963,8 +1961,8 @@ class Backend:
 
     def get_devenv(self) -> mesonlib.EnvironmentVariables:
         env = mesonlib.EnvironmentVariables()
-        extra_paths = set()
-        library_paths = set()
+        extra_paths: T.Set[str] = set()
+        library_paths: T.Set[str] = set()
         build_machine = self.environment.machines[MachineChoice.BUILD]
         host_machine = self.environment.machines[MachineChoice.HOST]
         need_wine = not build_machine.is_windows() and host_machine.is_windows()

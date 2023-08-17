@@ -32,7 +32,7 @@ from .. import build
 from .. import interpreter
 from .. import mesonlib
 from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
+from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, IncludeDirs, InvalidArguments
 from ..dependencies import Dependency, InternalDependency
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, SOURCES_KW, in_set_validator
@@ -776,8 +776,8 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[Executable, 'ExternalProgram', 'OverrideProgram'],
-                                                            T.Union[Executable, 'ExternalProgram', 'OverrideProgram']]:
+    def _get_gir_dep(self, state: ModuleState) -> T.Tuple[Dependency, T.Union[Executable, ExternalProgram, OverrideProgram],
+                                                          T.Union[Executable, ExternalProgram, OverrideProgram]]:
         if not self.gir_dep:
             self.gir_dep = state.dependency('gobject-introspection-1.0')
             self.giscanner = state.find_tool('g-ir-scanner', 'gobject-introspection-1.0', 'g_ir_scanner')
@@ -881,7 +881,7 @@ class GnomeModule(ExtensionModule):
 
     @staticmethod
     def _get_gir_targets_inc_dirs(girtargets: T.Sequence[build.BuildTarget]) -> OrderedSet[build.IncludeDirs]:
-        ret: OrderedSet = OrderedSet()
+        ret: OrderedSet[IncludeDirs] = OrderedSet()
         for girtarget in girtargets:
             ret.update(girtarget.get_include_dirs())
         return ret

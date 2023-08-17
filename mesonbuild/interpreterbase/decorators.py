@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
         def __call__(s, self: _TV_IntegerObject, other: _TV_ARG1) -> TYPE_var: ...
     _TV_FN_Operator = T.TypeVar('_TV_FN_Operator', bound=FN_Operator)
 
-def get_callee_args(wrapped_args: T.Sequence[T.Any]) -> T.Tuple['mparser.BaseNode', T.List['TYPE_var'], 'TYPE_kwargs', 'SubProject']:
+def get_callee_args(wrapped_args: T.Sequence[T.Any]) -> T.Tuple[T.Optional[mparser.BaseNode], T.List['TYPE_var'], 'TYPE_kwargs', 'SubProject']:
     # First argument could be InterpreterBase, InterpreterObject or ModuleObject.
     # In the case of a ModuleObject it is the 2nd argument (ModuleState) that
     # contains the needed information.
@@ -138,22 +138,6 @@ def typed_operator(operator: MesonOperator,
         def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
             if not isinstance(other, types):
                 raise InvalidArguments(f'The `{operator.value}` of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
-            return f(self, other)
-        return T.cast('_TV_FN_Operator', wrapper)
-    return inner
-
-def unary_operator(operator: MesonOperator) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
-    """Decorator that does type checking for unary operator calls.
-
-    This decorator is for unary operators that do not take any other objects.
-    It should be impossible for a user to accidentally break this. Triggering
-    this check always indicates a bug in the Meson interpreter.
-    """
-    def inner(f: '_TV_FN_Operator') -> '_TV_FN_Operator':
-        @wraps(f)
-        def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
-            if other is not None:
-                raise mesonlib.MesonBugException(f'The unary operator `{operator.value}` of {self.display_name()} was passed the object {other} of type {type(other).__name__}')
             return f(self, other)
         return T.cast('_TV_FN_Operator', wrapper)
     return inner
@@ -296,7 +280,7 @@ class ContainerTypeInfo:
         not be empty, and other cases where an empty container is allowed.
     """
 
-    def __init__(self, container: T.Type, contains: T.Union[T.Type, T.Tuple[T.Type, ...]], *,
+    def __init__(self, container: T.Type[T.Any], contains: T.Union[T.Type[T.Any], T.Tuple[T.Type[T.Any], ...]], *,
                  pairs: bool = False, allow_empty: bool = True):
         self.container = container
         self.contains = contains
@@ -432,7 +416,7 @@ class KwargInfo(T.Generic[_T]):
                deprecated_message: T.Union[str, None, _NULL_T] = _NULL,
                deprecated_values: T.Union[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
                validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
-               convertor: T.Union[T.Callable[[_T], TYPE_var], None, _NULL_T] = _NULL) -> 'KwargInfo':
+               convertor: T.Union[T.Callable[[_T], TYPE_var], None, _NULL_T] = _NULL) -> 'KwargInfo[_T]':
         """Create a shallow copy of this KwargInfo, with modifications.
 
         This allows us to create a new copy of a KwargInfo with modifications.
@@ -605,7 +589,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     emit_notice = False
     unconditional = False
 
-    def __init__(self, feature_name: str, feature_version: str, extra_message: str = ''):
+    def __init__(self, feature_name: str, feature_version: str, extra_message: T.Optional[str] = None):
         self.feature_name = feature_name
         self.feature_version = feature_version
         self.extra_message = extra_message
@@ -683,15 +667,13 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         @wraps(f)
         def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
             node, _, _, subproject = get_callee_args(wrapped_args)
-            if subproject is None:
-                raise AssertionError(f'{wrapped_args!r}')
             self.use(subproject, node)
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast('TV_func', wrapped)
 
     @classmethod
-    def single_use(cls, feature_name: str, version: str, subproject: 'SubProject',
-                   extra_message: str = '', location: T.Optional['mparser.BaseNode'] = None) -> None:
+    def single_use(cls, feature_name: str, version: str, subproject: SubProject,
+                   extra_message: T.Optional[str] = None, location: T.Optional[mparser.BaseNode] = None) -> None:
         """Oneline version that instantiates and calls use()."""
         cls(feature_name, version, extra_message).use(subproject, location)
 

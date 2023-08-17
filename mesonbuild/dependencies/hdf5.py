@@ -63,7 +63,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
             # so let's add them if they exist
             # additionally, some pkgconfig HDF5 HL files are malformed so let's be sure to find HL anyway
             if lpath.is_file():
-                hl = []
+                hl: T.List[str] = []
                 if language == 'cpp':
                     hl += ['_hl_cpp', '_cpp']
                 elif language == 'fortran':
@@ -141,8 +141,8 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
             elif Path(arg).is_file():
                 self.link_args.append(arg)
 
-    def _sanitize_version(self, ver: str) -> str:
-        v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)
+    def _sanitize_version(self, version: str) -> str:
+        v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', version)
         return v.group(1)
 
 

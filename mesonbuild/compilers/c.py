@@ -170,13 +170,13 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
 
-    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: KeyedOptionDictType) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typedict mypy can't understand this.
             libs = options[OptionKey('winlibs', machine=self.for_machine, lang=self.language)].value.copy()
@@ -249,7 +249,7 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
@@ -305,7 +305,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', lang=self.language, machine=self.for_machine)]
         if std.value != 'none':
             args.append('-std=' + std.value)
@@ -412,7 +412,7 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
@@ -481,7 +481,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value.startswith('gnu'):
             mlog.log(
@@ -536,7 +536,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value == 'c89':
@@ -569,7 +569,7 @@ class ArmCCompiler(ArmCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -601,7 +601,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
         return []
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value == 'c89':
@@ -616,8 +616,8 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-optimize=0']
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-output=obj={target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-output=obj={outputname}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']
@@ -630,7 +630,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
 
 class Xc16CCompiler(Xc16Compiler, CCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
+                 is_cross: bool, info: MachineInfo,
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
@@ -638,7 +638,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
                            info, exe_wrapper, linker=linker, full_version=full_version)
         Xc16Compiler.__init__(self)
 
-    def get_options(self) -> 'MutableKeyedOptionDictType':
+    def get_options(self) -> MutableKeyedOptionDictType:
         opts = CCompiler.get_options(self)
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts[key].choices = ['none', 'c89', 'c99', 'gnu89', 'gnu99']
@@ -648,7 +648,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
         return []
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -662,8 +662,8 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-o{target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-o{outputname}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']
@@ -695,8 +695,8 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return [f'-o{target}']
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-o{outputname}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
@@ -708,8 +708,8 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
 
 class TICCompiler(TICompiler, CCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 is_cross: bool, info: MachineInfo,
+                 exe_wrapper: T.Optional[ExternalProgram] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
@@ -730,7 +730,7 @@ class TICCompiler(TICompiler, CCompiler):
         return []
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -763,7 +763,7 @@ class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-lang')
@@ -792,7 +792,7 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-lang ' + std.value)

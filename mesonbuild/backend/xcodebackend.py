@@ -254,7 +254,7 @@ class XCodeBackend(backends.Backend):
         obj_path = f'{project}.build/{buildtype}/{tname}.build/Objects-normal/{arch}/{stem}.o'
         return obj_path
 
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict[str, T.Optional[T.Dict[str, T.List[str]]]]] = None) -> T.Optional[T.Dict[str, str]]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the xcode backend to generate with \'capture = True\'')
@@ -495,7 +495,7 @@ class XCodeBackend(backends.Backend):
         self.generate_target_file_maps_impl(self.build_targets)
         self.generate_target_file_maps_impl(self.custom_targets)
 
-    def generate_target_file_maps_impl(self, targets):
+    def generate_target_file_maps_impl(self, targets: T.Union[T.Dict[str, build.CustomTarget], T.Dict[str, build.BuildTarget]]):
         for tname, t in targets.items():
             for s in t.sources:
                 if isinstance(s, mesonlib.File):

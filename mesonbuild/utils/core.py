@@ -143,9 +143,9 @@ class ExecutableSerialisation:
 
     cmd_args: T.List[str]
     env: T.Optional[EnvironmentVariables] = None
-    exe_wrapper: T.Optional['programs.ExternalProgram'] = None
+    exe_wrapper: T.Optional[programs.ExternalProgram] = None
     workdir: T.Optional[str] = None
-    extra_paths: T.Optional[T.List] = None
+    extra_paths: T.Optional[T.List[str]] = None
     capture: T.Optional[str] = None
     feed: T.Optional[str] = None
     tag: T.Optional[str] = None

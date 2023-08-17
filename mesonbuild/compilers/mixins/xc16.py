@@ -31,7 +31,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-xc16_buildtype_args: T.Dict[str, T.List[str]] = {
+xc16_buildtype_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
@@ -40,7 +40,7 @@ xc16_buildtype_args: T.Dict[str, T.List[str]] = {
     'custom': [],
 }
 
-xc16_optimization_args: T.Dict[str, T.List[str]] = {
+xc16_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-O0'],
@@ -50,7 +50,7 @@ xc16_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Os']
 }
 
-xc16_debug_args: T.Dict[bool, T.List[str]] = {
+xc16_debug_args: T.Mapping[bool, T.List[str]] = {
     False: [],
     True: []
 }
@@ -110,7 +110,7 @@ class Xc16Compiler(Compiler):
 
     @classmethod
     def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
-        result = []
+        result: T.List[str] = []
         for i in args:
             if i.startswith('-D'):
                 i = '-D' + i[2:]

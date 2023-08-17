@@ -30,7 +30,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-ccomp_buildtype_args: T.Dict[str, T.List[str]] = {
+ccomp_buildtype_args: T.Mapping[str, T.List[str]] = {
     'plain': [''],
     'debug': ['-O0', '-g'],
     'debugoptimized': ['-O0', '-g'],
@@ -39,7 +39,7 @@ ccomp_buildtype_args: T.Dict[str, T.List[str]] = {
     'custom': ['-Obranchless'],
 }
 
-ccomp_optimization_args: T.Dict[str, T.List[str]] = {
+ccomp_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-O0'],
@@ -49,7 +49,7 @@ ccomp_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Os']
 }
 
-ccomp_debug_args: T.Dict[bool, T.List[str]] = {
+ccomp_debug_args: T.Mapping[bool, T.List[str]] = {
     False: [],
     True: ['-g']
 }

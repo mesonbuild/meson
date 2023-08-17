@@ -64,8 +64,7 @@ class IntroCommand:
 
 def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
                                   builddata: T.Optional[build.Build] = None,
-                                  backend: T.Optional[backends.Backend] = None,
-                                  sourcedir: T.Optional[str] = None) -> 'T.Mapping[str, IntroCommand]':
+                                  backend: T.Optional[backends.Backend] = None) -> 'T.Mapping[str, IntroCommand]':
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
@@ -112,8 +111,8 @@ def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     intr.ast.accept(printer)
     return printer.result
 
-def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
-    res = {}
+def list_installed(installdata: T.Optional[backends.InstallData]) -> T.Dict[str, str]:
+    res: T.Dict[str, str] = {}
     if installdata is not None:
         for t in installdata.targets:
             res[os.path.join(installdata.build_dir, t.fname)] = \
@@ -435,10 +434,10 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
 
     return list(result.values())
 
-def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
-    result: T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]] = []
+def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
+    result: T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]] = []
     for t in testdata:
-        to: T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]] = {}
+        to: T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]] = {}
         if isinstance(t.fname, str):
             fname = [t.fname]
         else:
@@ -460,10 +459,10 @@ def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict
         result.append(to)
     return result
 
-def list_tests(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_tests(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
     return get_test_list(testdata)
 
-def list_benchmarks(benchdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_benchmarks(benchdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[None, str, int, T.List[str], T.Dict[str, str]]]]:
     return get_test_list(benchdata)
 
 def list_machines(builddata: build.Build) -> T.Dict[str, T.Dict[str, T.Union[str, bool]]]:
@@ -482,7 +481,7 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.D
         'descriptive_name': builddata.project_name,
         'subproject_dir': builddata.subproject_dir,
     }
-    subprojects = []
+    subprojects: T.List[T.Dict[str, str]] = []
     for k, v in builddata.subprojects.items():
         c: T.Dict[str, str] = {
             'name': k,
@@ -495,8 +494,7 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.D
 
 def list_projinfo_from_source(intr: IntrospectionInterpreter) -> T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]:
     sourcedir = intr.source_root
-    files = find_buildsystem_files_list(sourcedir)
-    files = [os.path.normpath(x) for x in files]
+    files = [os.path.normpath(x) for x in find_buildsystem_files_list(sourcedir)]
 
     for i in intr.project_data['subprojects']:
         basedir = os.path.join(intr.subproject_dir, i['name'])
@@ -543,7 +541,7 @@ def run(options: argparse.Namespace) -> int:
     indent = 4 if options.indent else None
     results: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]] = []
     sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
-    intro_types = get_meson_introspection_types(sourcedir=sourcedir)
+    intro_types = get_meson_introspection_types()
 
     if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
@@ -634,7 +632,7 @@ def split_version_string(version: str) -> T.Dict[str, T.Union[str, int]]:
         'patch': int(vers_list[2] if len(vers_list) > 2 else 0)
     }
 
-def write_meson_info_file(builddata: build.Build, errors: list, build_files_updated: bool = False) -> None:
+def write_meson_info_file(builddata: build.Build, errors: T.List[Exception], build_files_updated: bool = False) -> None:
     info_dir = builddata.environment.info_dir
     info_file = get_meson_info_file(info_dir)
     intro_types = get_meson_introspection_types()

@@ -45,8 +45,8 @@ class ObjCCompiler(CLikeCompiler, Compiler):
                           linker=linker)
         CLikeCompiler.__init__(self, exe_wrap)
 
-    @staticmethod
-    def get_display_language() -> str:
+    @classmethod
+    def get_display_language(cls) -> str:
         return 'Objective-C'
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
@@ -103,7 +103,7 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         std = options[OptionKey('std', machine=self.for_machine, lang='c')]
         if std.value != 'none':
             args.append('-std=' + std.value)

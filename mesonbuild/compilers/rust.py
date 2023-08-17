@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
 
 
-rust_optimization_args: T.Dict[str, T.List[str]] = {
+rust_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': [],
     'g': ['-C', 'opt-level=0'],
@@ -56,10 +56,10 @@ class RustCompiler(Compiler):
     }
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 is_cross: bool, info: MachineInfo,
+                 exe_wrapper: T.Optional[ExternalProgram] = None,
                  full_version: T.Optional[str] = None,
-                 linker: T.Optional['DynamicLinker'] = None):
+                 linker: T.Optional[DynamicLinker] = None):
         super().__init__([], exelist, version, for_machine, info,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
@@ -123,7 +123,7 @@ class RustCompiler(Compiler):
 
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
-        p, stdo, stde = Popen_safe(cmd)
+        _, stdo, _ = Popen_safe(cmd)
         return stdo.split('\n', maxsplit=1)[0]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
@@ -172,7 +172,7 @@ class RustCompiler(Compiler):
         return []
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':

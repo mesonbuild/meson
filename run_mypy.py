@@ -26,6 +26,7 @@ modules = [
     # specific files
     'mesonbuild/arglist.py',
     'mesonbuild/backend/backends.py',
+    'mesonbuild/backend/nonebackend.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/depfile.py',
     'mesonbuild/envconfig.py',
@@ -46,6 +47,7 @@ modules = [
     'mesonbuild/mlog.py',
     'mesonbuild/msubprojects.py',
     'mesonbuild/modules/__init__.py',
+    'mesonbuild/modules/cmake.py',
     'mesonbuild/modules/external_project.py',
     'mesonbuild/modules/fs.py',
     'mesonbuild/modules/gnome.py',
@@ -55,11 +57,13 @@ modules = [
     'mesonbuild/modules/keyval.py',
     'mesonbuild/modules/modtest.py',
     'mesonbuild/modules/pkgconfig.py',
+    'mesonbuild/modules/python3.py',
     'mesonbuild/modules/qt.py',
     'mesonbuild/modules/qt4.py',
     'mesonbuild/modules/qt5.py',
     'mesonbuild/modules/qt6.py',
     'mesonbuild/modules/rust.py',
+    'mesonbuild/modules/simd.py',
     'mesonbuild/modules/sourceset.py',
     'mesonbuild/modules/wayland.py',
     'mesonbuild/modules/windows.py',
@@ -112,7 +116,7 @@ def main() -> int:
     if opts.clear:
         print('\x1bc', end='', flush=True)
 
-    to_check = [] # type: T.List[str]
+    to_check: T.List[str] = []
     if opts.files:
         for f in opts.files:
             if f in modules:

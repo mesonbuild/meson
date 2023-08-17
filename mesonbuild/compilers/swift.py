@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
 
-swift_optimization_args: T.Dict[str, T.List[str]] = {
+swift_optimization_args: T.Mapping[str, T.List[str]] = {
     'plain': [],
     '0': [],
     'g': [],
@@ -65,8 +65,8 @@ class SwiftCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'd'
 
-    def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o', target]
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     def get_header_import_args(self, headername: str) -> T.List[str]:
         return ['-import-objc-header', headername]

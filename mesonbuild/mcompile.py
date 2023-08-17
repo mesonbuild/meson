@@ -44,7 +44,7 @@ def validate_builddir(builddir: Path) -> None:
                              'It is also possible that the build directory was generated with an old\n'
                              'meson version. Please regenerate it in this case.')
 
-def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
+def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[T.Dict[str, T.Any]]]:
     """
     Converts a List of name-to-dict to a dict of name-to-dicts (since names are not unique)
     """
@@ -54,7 +54,7 @@ def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     with path_to_intro.open(encoding='utf-8') as f:
         schema = json.load(f)
 
-    parsed_data: T.Dict[str, T.List[dict]] = defaultdict(list)
+    parsed_data: T.Dict[str, T.List[T.Dict[str, T.Any]]] = defaultdict(list)
     for target in schema:
         parsed_data[target['name']] += [target]
     return parsed_data
@@ -95,7 +95,7 @@ class ParsedTargetName:
         }
         return type in allowed_types
 
-def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
+def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.List[T.Dict[str, T.Any]]]) -> T.Dict[str, T.Any]:
     if target.name not in introspect_data:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
 
@@ -128,7 +128,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
 
     return found_targets[0]
 
-def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> T.List[str]:
+def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.List[str]:
     intro_target = get_target_from_intro_data(target, builddir, introspect_data)
 
     if intro_target['type'] in {'alias', 'run'}:
@@ -136,7 +136,7 @@ def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, intros
     else:
         return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
 
-def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_ninja(options: argparse.Namespace, builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     runner = detect_ninja()
     if runner is None:
         raise MesonException('Cannot find ninja.')
@@ -167,7 +167,7 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tu
 
     return cmd, None
 
-def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> str:
+def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.List[T.Dict[str, T.Any]]]) -> str:
     intro_target = get_target_from_intro_data(target, builddir, introspect_data)
 
     assert intro_target['type'] not in {'alias', 'run'}, 'Should not reach here: `run` targets must be handle above'
@@ -180,7 +180,7 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
         target_name = str(rel_path / target_name)
     return target_name
 
-def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_vs(options: argparse.Namespace, builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     slns = list(builddir.glob('*.sln'))
     assert len(slns) == 1, 'More than one solution in a project?'
     sln = slns[0]

@@ -253,4 +253,4 @@ class PlatformAgnosticTests(BasePlatformTests):
             expected = json.load(f)['meson']['modules']
 
         self.assertEqual(data['modules'], expected)
-        self.assertEqual(data['count'], 68)
+        self.assertEqual(data['count'], 72)

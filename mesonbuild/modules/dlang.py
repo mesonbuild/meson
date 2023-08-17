@@ -18,11 +18,13 @@ from __future__ import annotations
 
 import json
 import os
+import typing as T
 
-from . import ExtensionModule, ModuleInfo
+from . import ExtensionModule, ModuleInfo, ModuleState
 from .. import mlog
 from ..dependencies import Dependency
 from ..dependencies.dub import DubDependency
+from ..interpreter.interpreter import Interpreter
 from ..interpreterbase import typed_pos_args
 from ..mesonlib import Popen_safe, MesonException
 
@@ -32,13 +34,13 @@ class DlangModule(ExtensionModule):
 
     INFO = ModuleInfo('dlang', '0.48.0')
 
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
         self.methods.update({
             'generate_dub_file': self.generate_dub_file,
         })
 
-    def _init_dub(self, state):
+    def _init_dub(self, state: ModuleState):
         if DlangModule.class_dubbin is None:
             self.dubbin = DubDependency.class_dubbin
             DlangModule.class_dubbin = self.dubbin
@@ -56,7 +58,7 @@ class DlangModule(ExtensionModule):
                 raise MesonException('DUB not found.')
 
     @typed_pos_args('dlang.generate_dub_file', str, str)
-    def generate_dub_file(self, state, args, kwargs):
+    def generate_dub_file(self, state: ModuleState, args: T.Tuple[str, str], kwargs):
         if not DlangModule.init_dub:
             self._init_dub(state)
 
@@ -107,11 +109,11 @@ class DlangModule(ExtensionModule):
         with open(config_path, 'w', encoding='utf-8') as ofile:
             ofile.write(json.dumps(config, indent=4, ensure_ascii=False))
 
-    def _call_dubbin(self, args, env=None):
+    def _call_dubbin(self, args: ModuleState, env=None):
         p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
 
-    def check_dub(self, state):
+    def check_dub(self, state: ModuleState):
         dubbin = state.find_program('dub', silent=True)
         if dubbin.found():
             try:

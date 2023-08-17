@@ -206,14 +206,14 @@ class CLikeCompiler(Compiler):
             return ['-isystem', path]
         return ['-I' + path]
 
-    def get_compiler_dirs(self, env: 'Environment', name: str) -> T.List[str]:
+    def get_compiler_dirs(self, env: Environment, name: str) -> T.List[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
         return []
 
     @functools.lru_cache()
-    def _get_library_dirs(self, env: 'Environment',
+    def _get_library_dirs(self, env: Environment,
                           elf_class: T.Optional[int] = None) -> 'ImmutableListProtocol[str]':
         # TODO: replace elf_class with enum
         dirs = self.get_compiler_dirs(env, 'libraries')
@@ -387,7 +387,7 @@ class CLikeCompiler(Compiler):
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def _get_basic_compiler_args(self, env: 'Environment', mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
+    def _get_basic_compiler_args(self, env: Environment, mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
         cargs: T.List[str] = []
         largs: T.List[str] = []
         if mode is CompileCheckMode.LINK:
