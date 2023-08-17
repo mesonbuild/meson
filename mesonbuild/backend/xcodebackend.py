@@ -564,9 +564,13 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_aggregate_target(self, objects_dict):
         self.custom_aggregate_targets = {}
         self.build_all_tdep_id = self.gen_id()
-        # FIXME: filter out targets that are not built by default.
-        target_dependencies = [self.pbx_dep_map[t] for t in self.build_targets]
-        custom_target_dependencies = [self.pbx_custom_dep_map[t] for t in self.custom_targets]
+        target_dependencies = []
+        custom_target_dependencies = []
+        for tname, t in self.get_build_by_default_targets().items():
+            if isinstance(t, build.CustomTarget):
+                custom_target_dependencies.append(self.pbx_custom_dep_map[t.get_id()])
+            elif isinstance(t, build.BuildTarget):
+                target_dependencies.append(self.pbx_dep_map[t.get_id()])
         aggregated_targets = []
         aggregated_targets.append((self.all_id, 'ALL_BUILD',
                                    self.all_buildconf_id,
