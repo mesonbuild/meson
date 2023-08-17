@@ -24,7 +24,8 @@ from ..interpreterbase.decorators import KwargInfo, typed_pos_args, typed_kwargs
 from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
-    from ..interpreter import kwargs as kwtypes
+    from . import ModuleState
+    from ..interpreter import Interpreter, kwargs as kwtypes
     from ..interpreter.type_checking import SourcesVarargsType
 
     class CheckKw(kwtypes.StaticLibrary):
@@ -61,7 +62,7 @@ class SimdModule(ExtensionModule):
 
     INFO = ModuleInfo('SIMD', '0.42.0', unstable=True)
 
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
         self.methods.update({
             'check': self.check,
@@ -73,7 +74,7 @@ class SimdModule(ExtensionModule):
                   *[BT_SOURCES_KW.evolve(name=iset) for iset in ISETS],
                   *[a for a in STATIC_LIB_KWS if a.name != 'sources'],
                   allow_unknown=True) # Because we also accept STATIC_LIB_KWS, but build targets have not been completely ported to typed_pos_args/typed_kwargs.
-    def check(self, state, args: T.Tuple[str], kwargs: CheckKw):
+    def check(self, state: ModuleState, args: T.Tuple[str], kwargs: CheckKw) -> T.List[T.Union[T.List[build.StaticLibrary], build.ConfigurationData]]:
         result: T.List[build.StaticLibrary] = []
         if 'sources' in kwargs:
             raise mesonlib.MesonException('SIMD module does not support the "sources" keyword')
@@ -109,5 +110,5 @@ class SimdModule(ExtensionModule):
             result.append(self.interpreter.func_static_lib(None, [libname], lib_kwargs))
         return [result, conf]
 
-def initialize(*args, **kwargs):
-    return SimdModule(*args, **kwargs)
+def initialize(interp: Interpreter) -> SimdModule:
+    return SimdModule(interp)
