@@ -10,9 +10,11 @@ on:
     branches:
       - master
     paths:
+      - .github/workflows/website.yml
       - docs/**
   pull_request:
     paths:
+      - .github/workflows/website.yml
       - docs/**
   workflow_dispatch:
   release:
