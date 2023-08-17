@@ -1250,7 +1250,7 @@ class XCodeBackend(backends.Backend):
             for c in fixed_cmd:
                 quoted_cmd.append(c.replace('"', chr(92) + '"'))
             cmdstr = ' '.join([f"\\'{x}\\'" for x in quoted_cmd])
-            custom_dict.add_item('shellScript', f'"cd {workdir}; {cmdstr}"')
+            custom_dict.add_item('shellScript', f'"cd \'{workdir}\'; {cmdstr}"')
             custom_dict.add_item('showEnvVarsInLog', 0)
 
     def generate_generator_target_shell_build_phases(self, objects_dict):
