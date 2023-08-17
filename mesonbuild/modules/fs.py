@@ -23,19 +23,13 @@ from .. import mlog
 from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
 from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
 from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
-from ..interpreterbase.baseobjects import TYPE_kwargs
-from ..mesonlib import (
-    File,
-    MesonException,
-    has_path_sep,
-    path_is_in_root,
-)
-from ..utils.universal import relpath
+from ..mesonlib import File, MesonException, has_path_sep, path_is_in_root, relpath
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..build import BuildTargetTypes
     from ..interpreter import Interpreter
+    from ..interpreterbase import TYPE_kwargs
     from ..mesonlib import FileOrString, FileMode
 
     from typing_extensions import TypedDict
