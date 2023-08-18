@@ -41,7 +41,7 @@ import mesonbuild.modules.pkgconfig
 from run_tests import (
     Backend, ensure_backend_detects_changes, get_backend_commands,
     get_builddir_target_args, get_meson_script, run_configure_inprocess,
-    run_mtest_inprocess
+    run_mtest_inprocess, handle_meson_skip_test,
 )
 
 
@@ -183,8 +183,9 @@ class BasePlatformTests(TestCase):
             print('stderr:')
             print(proc.stderr)
         if proc.returncode != 0:
-            if 'MESON_SKIP_TEST' in proc.stdout:
-                raise SkipTest('Project requested skipping.')
+            skipped, reason = handle_meson_skip_test(proc.stdout)
+            if skipped:
+                raise SkipTest(f'Project requested skipping: {reason}')
             raise subprocess.CalledProcessError(proc.returncode, command, output=proc.stdout)
         return proc.stdout
 
@@ -234,8 +235,9 @@ class BasePlatformTests(TestCase):
                 mesonbuild.mlog._logger.log_dir = None
                 mesonbuild.mlog._logger.log_file = None
 
-            if 'MESON_SKIP_TEST' in out:
-                raise SkipTest('Project requested skipping.')
+            skipped, reason = handle_meson_skip_test(out)
+            if skipped:
+                raise SkipTest(f'Project requested skipping: {reason}')
             if returncode != 0:
                 self._print_meson_log()
                 print('Stdout:\n')
@@ -247,8 +249,6 @@ class BasePlatformTests(TestCase):
         else:
             try:
                 out = self._run(self.setup_command + args + extra_args + build_and_src_dir_args, override_envvars=override_envvars, workdir=workdir)
-            except SkipTest:
-                raise SkipTest('Project requested skipping: ' + srcdir)
             except Exception:
                 if not allow_fail:
                     self._print_meson_log()

@@ -53,10 +53,12 @@ from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWin
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.modules.python import PythonExternalProgram
-from run_tests import get_fake_options, run_configure, get_meson_script
-from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
-from run_tests import ensure_backend_detects_changes
-from run_tests import guess_backend
+from run_tests import (
+    get_fake_options, run_configure, get_meson_script, get_backend_commands,
+    get_backend_args_for_dir, Backend, ensure_backend_detects_changes,
+    guess_backend, handle_meson_skip_test,
+)
+
 
 if T.TYPE_CHECKING:
     from types import FrameType
@@ -1206,12 +1208,6 @@ class LogRunFuture:
 
 RunFutureUnion = T.Union[TestRunFuture, LogRunFuture]
 
-def test_emits_skip_msg(line: str) -> bool:
-    for prefix in {'Problem encountered', 'Assert failed', 'Failed to configure the CMake subproject'}:
-        if f'{prefix}: MESON_SKIP_TEST' in line:
-            return True
-    return False
-
 def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                log_name_base: str,
                failfast: bool,
@@ -1324,15 +1320,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             skip_as_expected = True
         else:
             # skipped due to test outputting 'MESON_SKIP_TEST'
-            for l in result.stdo.splitlines():
-                if test_emits_skip_msg(l):
-                    is_skipped = True
-                    offset = l.index('MESON_SKIP_TEST') + 16
-                    skip_reason = l[offset:].strip()
-                    break
-            else:
-                is_skipped = False
-                skip_reason = ''
+            is_skipped, skip_reason = handle_meson_skip_test(result.stdo)
             if not skip_dont_care(t):
                 skip_as_expected = (is_skipped == t.skip_expected)
             else:
