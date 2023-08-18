@@ -224,6 +224,20 @@ fs.stem('foo/bar/baz.dll.a')  # baz.dll
    project. If the file specified by `path` is a `files()` object it
    cannot refer to a built file.
 
+### relative_to
+
+*Since 1.3.0*
+
+Return a relative filepath. In the event a relative path could not be found, the
+absolute path of `to` is returned. Relative path arguments will be assumed to be
+relative to `meson.current_source_dir()`.
+
+Has the following positional arguments:
+   - to `str | file | custom_tgt | custom_idx | build_tgt`: end path
+   - from `str | file | custom_tgt | custom_idx | build_tgt`: start path
+
+returns:
+   - a string
 
 ### copyfile
 
