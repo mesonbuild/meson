@@ -133,7 +133,6 @@ ENV_VAR_TOOL_MAP: T.Mapping[str, str] = {
     # Other tools
     'cmake': 'CMAKE',
     'qmake': 'QMAKE',
-    'pkgconfig': 'PKG_CONFIG',
     'pkg-config': 'PKG_CONFIG',
     'make': 'MAKE',
     'vapigen': 'VAPIGEN',
@@ -403,6 +402,11 @@ class BinaryTable:
                 if not isinstance(command, (list, str)):
                     raise mesonlib.MesonException(
                         f'Invalid type {command!r} for entry {name!r} in cross file')
+                if name == 'pkgconfig':
+                    if 'pkg-config' in binaries:
+                        raise mesonlib.MesonException('Both pkgconfig and pkg-config entries in machine file.')
+                    mlog.deprecation('"pkgconfig" entry is deprecated and should be replaced by "pkg-config"')
+                    name = 'pkg-config'
                 self.binaries[name] = mesonlib.listify(command)
 
     @staticmethod

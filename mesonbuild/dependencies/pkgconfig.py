@@ -177,7 +177,7 @@ class PkgConfigCLI(PkgConfigInterface):
 
     def _detect_pkgbin(self) -> None:
         for potential_pkgbin in find_external_program(
-                self.env, self.for_machine, 'pkgconfig', 'Pkg-config',
+                self.env, self.for_machine, 'pkg-config', 'Pkg-config',
                 self.env.default_pkgconfig, allow_default_for_cross=False):
             version_if_ok = self._check_pkgconfig(potential_pkgbin)
             if version_if_ok:
