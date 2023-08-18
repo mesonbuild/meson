@@ -1,5 +1,9 @@
 project('pkgconfig-gen-dependencies', 'c', version: '1.0')
 
+if find_program('pkg-config').version() == '2.0.1'
+    error('MESON_SKIP_TEST: cannot test uninstalled.pc due to https://github.com/pkgconf/pkgconf/issues/310#issuecomment-1677844842')
+endif
+
 pkgg = import('pkgconfig')
 
 # libmain internally use libinternal and expose libexpose in its API
