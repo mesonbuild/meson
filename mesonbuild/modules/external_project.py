@@ -24,7 +24,7 @@ from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING
 from ..envconfig import ENV_VAR_PROG_MAP
 from ..dependencies import InternalDependency
-from ..dependencies.pkgconfig import PkgConfigCLI
+from ..dependencies.pkgconfig import PkgConfigInterface
 from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -40,6 +40,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
     from ..mesonlib import EnvironmentVariables
+    from ..utils.core import EnvironOrDict
 
     class Dependency(TypedDict):
 
@@ -144,7 +145,7 @@ class ExternalProject(NewExtensionModule):
         # Set common env variables like CFLAGS, CC, etc.
         link_exelist: T.List[str] = []
         link_args: T.List[str] = []
-        self.run_env = os.environ.copy()
+        self.run_env: EnvironOrDict = os.environ.copy()
         for lang, compiler in self.env.coredata.compilers[MachineChoice.HOST].items():
             if any(lang not in i for i in (ENV_VAR_PROG_MAP, CFLAGS_MAPPING)):
                 continue
@@ -165,8 +166,8 @@ class ExternalProject(NewExtensionModule):
         self.run_env['LDFLAGS'] = self._quote_and_join(link_args)
 
         self.run_env = self.user_env.get_env(self.run_env)
-        self.run_env = PkgConfigCLI.setup_env(self.run_env, self.env, MachineChoice.HOST,
-                                              uninstalled=True)
+        self.run_env = PkgConfigInterface.setup_env(self.run_env, self.env, MachineChoice.HOST,
+                                                    uninstalled=True)
 
         self.build_dir.mkdir(parents=True, exist_ok=True)
         self._run('configure', configure_cmd, workdir)

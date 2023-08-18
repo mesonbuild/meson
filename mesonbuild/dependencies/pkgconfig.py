@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice
+from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice, join_args
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -37,9 +37,11 @@ class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''
 
     class_impl: PerMachine[T.Union[Literal[False], T.Optional[PkgConfigInterface]]] = PerMachine(False, False)
+    class_cli_impl: PerMachine[T.Union[Literal[False], T.Optional[PkgConfigCLI]]] = PerMachine(False, False)
 
     @staticmethod
     def instance(env: Environment, for_machine: MachineChoice, silent: bool) -> T.Optional[PkgConfigInterface]:
+        '''Return a pkg-config implementation singleton'''
         for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
         impl = PkgConfigInterface.class_impl[for_machine]
         if impl is False:
@@ -50,6 +52,35 @@ class PkgConfigInterface:
                 mlog.log('Found pkg-config:', mlog.red('NO'))
             PkgConfigInterface.class_impl[for_machine] = impl
         return impl
+
+    @staticmethod
+    def _cli(env: Environment, for_machine: MachineChoice, silent: bool = False) -> T.Optional[PkgConfigCLI]:
+        '''Return the CLI pkg-config implementation singleton
+        Even when we use another implementation internally, external tools might
+        still need the CLI implementation.
+        '''
+        for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
+        impl: T.Union[Literal[False], T.Optional[PkgConfigInterface]] # Help confused mypy
+        impl = PkgConfigInterface.instance(env, for_machine, silent)
+        if impl and not isinstance(impl, PkgConfigCLI):
+            impl = PkgConfigInterface.class_cli_impl[for_machine]
+            if impl is False:
+                impl = PkgConfigCLI(env, for_machine, silent)
+                if not impl.found():
+                    impl = None
+                PkgConfigInterface.class_cli_impl[for_machine] = impl
+        return T.cast('T.Optional[PkgConfigCLI]', impl) # Trust me, mypy
+
+    @staticmethod
+    def get_env(env: Environment, for_machine: MachineChoice, uninstalled: bool = False) -> EnvironmentVariables:
+        cli = PkgConfigInterface._cli(env, for_machine)
+        return cli._get_env(uninstalled) if cli else EnvironmentVariables()
+
+    @staticmethod
+    def setup_env(environ: EnvironOrDict, env: Environment, for_machine: MachineChoice,
+                  uninstalled: bool = False) -> EnvironOrDict:
+        cli = PkgConfigInterface._cli(env, for_machine)
+        return cli._setup_env(environ, uninstalled) if cli else environ
 
     def __init__(self, env: Environment, for_machine: MachineChoice) -> None:
         self.env = env
@@ -211,29 +242,26 @@ class PkgConfigCLI(PkgConfigInterface):
             return None
         return out.strip()
 
-    @staticmethod
-    def get_env(environment: Environment, for_machine: MachineChoice,
-                uninstalled: bool = False) -> EnvironmentVariables:
+    def _get_env(self, uninstalled: bool = False) -> EnvironmentVariables:
         env = EnvironmentVariables()
-        key = OptionKey('pkg_config_path', machine=for_machine)
-        extra_paths: T.List[str] = environment.coredata.options[key].value[:]
+        key = OptionKey('pkg_config_path', machine=self.for_machine)
+        extra_paths: T.List[str] = self.env.coredata.options[key].value[:]
         if uninstalled:
-            uninstalled_path = Path(environment.get_build_dir(), 'meson-uninstalled').as_posix()
+            uninstalled_path = Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix()
             if uninstalled_path not in extra_paths:
                 extra_paths.append(uninstalled_path)
         env.set('PKG_CONFIG_PATH', extra_paths)
-        sysroot = environment.properties[for_machine].get_sys_root()
+        sysroot = self.env.properties[self.for_machine].get_sys_root()
         if sysroot:
             env.set('PKG_CONFIG_SYSROOT_DIR', [sysroot])
-        pkg_config_libdir_prop = environment.properties[for_machine].get_pkg_config_libdir()
+        pkg_config_libdir_prop = self.env.properties[self.for_machine].get_pkg_config_libdir()
         if pkg_config_libdir_prop:
             env.set('PKG_CONFIG_LIBDIR', pkg_config_libdir_prop)
+        env.set('PKG_CONFIG', [join_args(self.pkgbin.get_command())])
         return env
 
-    @staticmethod
-    def setup_env(env: EnvironOrDict, environment: Environment, for_machine: MachineChoice,
-                  uninstalled: bool = False) -> T.Dict[str, str]:
-        envvars = PkgConfigCLI.get_env(environment, for_machine, uninstalled)
+    def _setup_env(self, env: EnvironOrDict, uninstalled: bool = False) -> T.Dict[str, str]:
+        envvars = self._get_env(uninstalled)
         env = envvars.get_env(env)
         # Dump all PKG_CONFIG environment variables
         for key, value in env.items():
@@ -244,7 +272,7 @@ class PkgConfigCLI(PkgConfigInterface):
     def _call_pkgbin(self, args: T.List[str], env: T.Optional[EnvironOrDict] = None) -> T.Tuple[int, str, str]:
         assert isinstance(self.pkgbin, ExternalProgram)
         env = env or os.environ
-        env = self.setup_env(env, self.env, self.for_machine)
+        env = self._setup_env(env)
         cmd = self.pkgbin.get_command() + args
         p, out, err = Popen_safe_logged(cmd, env=env)
         return p.returncode, out.strip(), err.strip()
