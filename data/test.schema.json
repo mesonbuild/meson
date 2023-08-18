@@ -33,7 +33,8 @@
               "py_implib",
               "py_limited_implib",
               "implibempty",
-              "expr"
+              "expr",
+              "link"
             ]
           },
           "platform": {
