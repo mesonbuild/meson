@@ -104,7 +104,7 @@ class FSModule(ExtensionModule):
     @FeatureNew('fs.as_posix', '0.54.0')
     @typed_pos_args('fs.as_posix', str)
     def as_posix(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> str:
-        """
+        r"""
         this function assumes you are passing a Windows path, even if on a Unix-like system
         and so ALL '\' are turned to '/', even if you meant to escape a character
         """
