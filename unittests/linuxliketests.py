@@ -45,7 +45,7 @@ from mesonbuild.compilers.c import AppleClangCCompiler
 from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
-from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI
+from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI, PkgConfigInterface
 import mesonbuild.modules.pkgconfig
 
 PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
@@ -1169,7 +1169,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         # Regression test: This used to modify the value of `pkg_config_path`
         # option, adding the meson-uninstalled directory to it.
-        PkgConfigCLI.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
+        PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
 
         pkg_config_path = env.coredata.options[OptionKey('pkg_config_path')].value
         self.assertEqual(pkg_config_path, [pkg_dir])

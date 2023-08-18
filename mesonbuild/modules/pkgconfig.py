@@ -26,7 +26,7 @@ from .. import dependencies
 from .. import mesonlib
 from .. import mlog
 from ..coredata import BUILTIN_DIR_OPTIONS
-from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI
+from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -741,7 +741,7 @@ class PkgConfigModule(NewExtensionModule):
                     self._metadata[lib.get_id()] = MetaData(
                         filebase, name, state.current_node)
         if self.devenv is None:
-            self.devenv = PkgConfigCLI.get_env(state.environment, mesonlib.MachineChoice.HOST, uninstalled=True)
+            self.devenv = PkgConfigInterface.get_env(state.environment, mesonlib.MachineChoice.HOST, uninstalled=True)
         return ModuleReturnValue(res, [res])
 
 
