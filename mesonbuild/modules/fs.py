@@ -72,6 +72,18 @@ class FSModule(ExtensionModule):
             return Path(arg.absolute_path(state.source_root, state.environment.get_build_dir()))
         return Path(state.source_root) / Path(state.subdir) / Path(arg).expanduser()
 
+    @staticmethod
+    def _obj_to_path(feature_new_prefix: str, obj: T.Union[FileOrString, BuildTargetTypes], state: ModuleState) -> PurePath:
+        if isinstance(obj, str):
+            return PurePath(obj)
+
+        if isinstance(obj, File):
+            FeatureNew(f'{feature_new_prefix} with file', '0.59.0').use(state.subproject, location=state.current_node)
+            return PurePath(str(obj))
+
+        FeatureNew(f'{feature_new_prefix} with build_tgt, custom_tgt, and custom_idx', '1.4.0').use(state.subproject, location=state.current_node)
+        return PurePath(state.backend.get_target_filename(obj))
+
     def _resolve_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
         """
         resolves symlinks and makes absolute a directory relative to calling meson.build,
@@ -178,41 +190,29 @@ class FSModule(ExtensionModule):
             return False
 
     @noKwargs
-    @typed_pos_args('fs.replace_suffix', (str, File), str)
-    def replace_suffix(self, state: 'ModuleState', args: T.Tuple['FileOrString', str], kwargs: T.Dict[str, T.Any]) -> str:
-        if isinstance(args[0], File):
-            FeatureNew('fs.replace_suffix with file', '0.59.0').use(state.subproject, location=state.current_node)
-        original = PurePath(str(args[0]))
-        new = original.with_suffix(args[1])
-        return str(new)
+    @typed_pos_args('fs.replace_suffix', (str, File, CustomTarget, CustomTargetIndex, BuildTarget), str)
+    def replace_suffix(self, state: 'ModuleState', args: T.Tuple[T.Union[FileOrString, BuildTargetTypes], str], kwargs: T.Dict[str, T.Any]) -> str:
+        path = self._obj_to_path('fs.replace_suffix', args[0], state)
+        return str(path.with_suffix(args[1]))
 
     @noKwargs
-    @typed_pos_args('fs.parent', (str, File))
-    def parent(self, state: 'ModuleState', args: T.Tuple['FileOrString'], kwargs: T.Dict[str, T.Any]) -> str:
-        if isinstance(args[0], File):
-            FeatureNew('fs.parent_file', '0.59.0').use(state.subproject, location=state.current_node)
-        original = PurePath(str(args[0]))
-        new = original.parent
-        return str(new)
+    @typed_pos_args('fs.parent', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    def parent(self, state: 'ModuleState', args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
+        path = self._obj_to_path('fs.parent', args[0], state)
+        return str(path.parent)
 
     @noKwargs
-    @typed_pos_args('fs.name', (str, File))
-    def name(self, state: 'ModuleState', args: T.Tuple['FileOrString'], kwargs: T.Dict[str, T.Any]) -> str:
-        if isinstance(args[0], File):
-            FeatureNew('fs.name with file', '0.59.0').use(state.subproject, location=state.current_node)
-        original = PurePath(str(args[0]))
-        new = original.name
-        return str(new)
+    @typed_pos_args('fs.name', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    def name(self, state: 'ModuleState', args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
+        path = self._obj_to_path('fs.name', args[0], state)
+        return str(path.name)
 
     @noKwargs
-    @typed_pos_args('fs.stem', (str, File))
+    @typed_pos_args('fs.stem', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
     @FeatureNew('fs.stem', '0.54.0')
-    def stem(self, state: 'ModuleState', args: T.Tuple['FileOrString'], kwargs: T.Dict[str, T.Any]) -> str:
-        if isinstance(args[0], File):
-            FeatureNew('fs.stem with file', '0.59.0').use(state.subproject, location=state.current_node)
-        original = PurePath(str(args[0]))
-        new = original.stem
-        return str(new)
+    def stem(self, state: 'ModuleState', args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
+        path = self._obj_to_path('fs.stem', args[0], state)
+        return str(path.stem)
 
     @FeatureNew('fs.read', '0.57.0')
     @typed_pos_args('fs.read', (str, File))
