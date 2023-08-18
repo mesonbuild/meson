@@ -1,4 +1,4 @@
-project('fs module test', 'c')
+project('fs module test')
 
 is_windows = build_machine.system() == 'windows'
 
@@ -138,29 +138,6 @@ assert(fs.name(f[1]) == 'meson.build', 'failed to get basename')
 assert(fs.name('foo/bar/baz.dll.a') == 'baz.dll.a', 'failed to get basename with compound suffix')
 assert(fs.stem('foo/bar/baz.dll') == 'baz', 'failed to get stem with suffix')
 assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compound suffix')
-
-# relative_to
-if build_machine.system() == 'windows'
-  # strings
-  assert(fs.relative_to('c:\\prefix\\lib\\foo', 'c:\\prefix') == 'lib\\foo')
-  assert(fs.relative_to('c:\\prefix\\lib', 'c:\\prefix\\bin') == '..\\lib')
-  assert(fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar') == 'c:\\proj1\\foo')
-  assert(fs.relative_to('prefix\\lib\\foo', 'prefix') == 'lib\\foo')
-  assert(fs.relative_to('prefix\\lib', 'prefix\\bin') == '..\\lib')
-  assert(fs.relative_to('proj1\\foo', 'proj1\\bar') == '..\\foo')
-  assert(fs.relative_to('subdir/subdirfile.txt', meson.current_source_dir()) == 'subdir\\subdirfile.txt')
-  assert(fs.relative_to(files('meson.build'), files('subdir/meson.build')) == '..\\..\\meson.build')
-  assert(fs.relative_to(files('meson.build'), 'subdir/meson.build') == '..\\..\\meson.build')
-else
-  # strings
-  assert(fs.relative_to('/prefix/lib/foo', '/prefix') == 'lib/foo')
-  assert(fs.relative_to('/prefix/lib', '/prefix/bin') == '../lib')
-  assert(fs.relative_to('prefix/lib/foo', 'prefix') == 'lib/foo')
-  assert(fs.relative_to('prefix/lib', 'prefix/bin') == '../lib')
-  assert(fs.relative_to('subdir/subdirfile.txt', meson.current_source_dir()) == 'subdir/subdirfile.txt')
-  assert(fs.relative_to(files('meson.build'), files('subdir/meson.build')) == '../../meson.build')
-  assert(fs.relative_to(files('meson.build'), 'subdir/meson.build') == '../../meson.build')
-endif
 
 subdir('subdir')
 
