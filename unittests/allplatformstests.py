@@ -4814,3 +4814,24 @@ class AllPlatformTests(BasePlatformTests):
             self.assertNotEqual(olddata, newdata)
             olddata = newdata
             oldmtime = newmtime
+
+    def test_extract_static_library(self) -> None:
+        testdir = os.path.join(self.unit_test_dir, '111 extract static library')
+        self.init(testdir)
+
+        # Libraries should not be extracted at configure time
+        privatepath = Path(self.privatedir)
+        self.assertFalse(set(privatepath.glob('*.a.p')))
+
+        # Depending on which CI machine this is running, there could be different
+        # set of static libraries, glib and its dependencies.
+        objects = set(privatepath.glob('*.a.p/*.o'))
+        self.assertTrue(objects)
+
+        # Check that the shared library exposes symbols from glib even if we don't use them.
+        o = self._run(['objdump', '-TC', os.path.join(self.builddir, 'libglib-wrapper.so')])
+        self.assertIn('g_hash_table_new', o)
+
+        # Check that the static library contains all objects we extracted
+        o = self._run(['ar', 't', os.path.join(self.builddir, 'libglib-wrapper.a')])
+        self.assertEqual(set(o.split()), {o.name for o in objects})
