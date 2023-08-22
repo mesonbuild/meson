@@ -46,8 +46,10 @@ class CudaDependency(SystemDependency):
         self.lib_modules: T.Dict[str, T.List[str]] = {}
         self.requested_modules = self.get_requested(kwargs)
         if not any(runtime in self.requested_modules for runtime in ['cudart', 'cudart_static']):
+            # By default, we prefer to link the static CUDA runtime, since this is what nvcc also does by default:
+            # https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#cudart-none-shared-static-cudart
             req_modules = ['cudart']
-            if kwargs.get('static', False):
+            if kwargs.get('static', True):
                 req_modules = ['cudart_static']
                 machine = self.env.machines[self.for_machine]
                 if machine.is_linux():
