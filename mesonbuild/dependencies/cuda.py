@@ -45,8 +45,16 @@ class CudaDependency(SystemDependency):
         super().__init__('cuda', environment, kwargs, language=language)
         self.lib_modules: T.Dict[str, T.List[str]] = {}
         self.requested_modules = self.get_requested(kwargs)
-        if 'cudart' not in self.requested_modules:
-            self.requested_modules = ['cudart'] + self.requested_modules
+        if not any(runtime in self.requested_modules for runtime in ['cudart', 'cudart_static']):
+            req_modules = ['cudart']
+            if kwargs.get('static', False):
+                req_modules = ['cudart_static']
+                machine = self.env.machines[self.for_machine]
+                if machine.is_linux():
+                    # extracted by running
+                    #   nvcc -v foo.o
+                    req_modules += ['rt', 'pthread', 'dl']
+            self.requested_modules = req_modules + self.requested_modules
 
         (self.cuda_path, self.version, self.is_found) = self._detect_cuda_path_and_version()
         if not self.is_found:
