@@ -8,11 +8,19 @@ from mesonbuild import environment, mesonlib
 import argparse, re, sys, os, subprocess, pathlib, stat
 import typing as T
 
-def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool) -> int:
+def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool,
+             gcovr_exe: str, llvm_cov_exe: str) -> int:
     outfiles = []
     exitcode = 0
 
-    (gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe) = environment.find_coverage_tools()
+    if gcovr_exe == '':
+        gcovr_exe = None
+    else:
+        gcovr_exe, gcovr_version = environment.detect_gcovr(gcovr_exe)
+    if llvm_cov_exe == '' or not mesonlib.exe_exists([llvm_cov_exe, '--version']):
+        llvm_cov_exe = None
+
+    lcov_exe, lcov_version, genhtml_exe = environment.detect_lcov_genhtml()
 
     # load config files for tools if available in the source tree
     # - lcov requires manually specifying a per-project config
@@ -186,8 +194,12 @@ def run(args: T.List[str]) -> int:
                         const='sonarqube', help='generate Sonarqube Xml report')
     parser.add_argument('--html', dest='outputs', action='append_const',
                         const='html', help='generate Html report')
-    parser.add_argument('--use_llvm_cov', action='store_true',
+    parser.add_argument('--use-llvm-cov', action='store_true',
                         help='use llvm-cov')
+    parser.add_argument('--gcovr', action='store', default='',
+                        help='The gcovr executable to use if specified')
+    parser.add_argument('--llvm-cov', action='store', default='',
+                        help='The llvm-cov executable to use if specified')
     parser.add_argument('source_root')
     parser.add_argument('subproject_root')
     parser.add_argument('build_root')
@@ -195,7 +207,8 @@ def run(args: T.List[str]) -> int:
     options = parser.parse_args(args)
     return coverage(options.outputs, options.source_root,
                     options.subproject_root, options.build_root,
-                    options.log_dir, options.use_llvm_cov)
+                    options.log_dir, options.use_llvm_cov,
+                    options.gcovr, options.llvm_cov)
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

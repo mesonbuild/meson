@@ -72,8 +72,7 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
     return value
 
 
-def detect_gcovr(min_version: str = '3.3', log: bool = False):
-    gcovr_exe = 'gcovr'
+def detect_gcovr(gcovr_exe: str = 'gcovr', min_version: str = '3.3', log: bool = False):
     try:
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
     except (FileNotFoundError, PermissionError):
@@ -86,8 +85,7 @@ def detect_gcovr(min_version: str = '3.3', log: bool = False):
         return gcovr_exe, found
     return None, None
 
-def detect_lcov(log: bool = False):
-    lcov_exe = 'lcov'
+def detect_lcov(lcov_exe: str = 'lcov', log: bool = False):
     try:
         p, found = Popen_safe([lcov_exe, '--version'])[0:2]
     except (FileNotFoundError, PermissionError):
@@ -107,16 +105,19 @@ def detect_llvm_cov():
             return tool
     return None
 
-def find_coverage_tools() -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
+def detect_lcov_genhtml(lcov_exe: str = 'lcov', genhtml_exe: str = 'genhtml'):
+    lcov_exe, lcov_version = detect_lcov(lcov_exe)
+    if not mesonlib.exe_exists([genhtml_exe, '--version']):
+        genhtml_exe = None
+
+    return lcov_exe, lcov_version, genhtml_exe
+
+def find_coverage_tools(coredata: coredata.CoreData) -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
     gcovr_exe, gcovr_version = detect_gcovr()
 
     llvm_cov_exe = detect_llvm_cov()
 
-    lcov_exe, lcov_version = detect_lcov()
-    genhtml_exe = 'genhtml'
-
-    if not mesonlib.exe_exists([genhtml_exe, '--version']):
-        genhtml_exe = None
+    lcov_exe, lcov_version, genhtml_exe = detect_lcov_genhtml()
 
     return gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe
 

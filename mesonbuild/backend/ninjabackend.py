@@ -630,7 +630,8 @@ class NinjaBackend(backends.Backend):
             key = OptionKey('b_coverage')
             if (key in self.environment.coredata.options and
                     self.environment.coredata.options[key].value):
-                gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, _ = environment.find_coverage_tools()
+                gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = environment.find_coverage_tools(self.environment.coredata)
+                mlog.debug(f'Using {gcovr_exe} ({gcovr_version}), {lcov_exe} and {llvm_cov_exe} for code coverage')
                 if gcovr_exe or (lcov_exe and genhtml_exe):
                     self.add_build_comment(NinjaComment('Coverage rules'))
                     self.generate_coverage_rules(gcovr_exe, gcovr_version)
