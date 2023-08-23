@@ -1408,12 +1408,7 @@ class BuildTarget(Target):
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.for_machine is not t.for_machine:
-                msg = f'Tried to mix libraries for machines {self.for_machine} and {t.for_machine} in target {self.name!r}'
-                if self.environment.is_cross_build():
-                    raise InvalidArguments(msg + ' This is not possible in a cross build.')
-                else:
-                    mlog.warning(msg + ' This will fail in cross build.')
+            self.check_can_link_together(t)
             self.link_targets.append(t)
 
     def link_whole(self, targets, promoted: bool = False):
@@ -1429,12 +1424,7 @@ class BuildTarget(Target):
                 msg = f"Can't link non-PIC static library {t.name!r} into shared library {self.name!r}. "
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
-            if self.for_machine is not t.for_machine:
-                msg = f'Tried to mix libraries for machines {self.for_machine} and {t.for_machine} in target {self.name!r}'
-                if self.environment.is_cross_build():
-                    raise InvalidArguments(msg + ' This is not possible in a cross build.')
-                else:
-                    mlog.warning(msg + ' This will fail in cross build.')
+            self.check_can_link_together(t)
             if isinstance(self, StaticLibrary) and not self.uses_rust():
                 # When we're a static library and we link_whole: to another static
                 # library, we need to add that target's objects to ourselves.
@@ -1479,6 +1469,17 @@ class BuildTarget(Target):
                 m += (f' Meson had to promote link to link_whole because {origin.name!r} is installed but not {t.name!r},'
                       f' and thus has to include objects from {t.name!r} to be usable.')
             raise InvalidArguments(m)
+
+    def check_can_link_together(self, t: BuildTargetTypes) -> None:
+        links_with_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
+        if not self.uses_rust() and links_with_rust_abi:
+            raise InvalidArguments(f'Try to link Rust ABI library {t.name!r} with a non-Rust target {self.name!r}')
+        if self.for_machine is not t.for_machine:
+            msg = f'Tried to mix libraries for machines {self.for_machine} and {t.for_machine} in target {self.name!r}'
+            if self.environment.is_cross_build():
+                raise InvalidArguments(msg + ' This is not possible in a cross build.')
+            else:
+                mlog.warning(msg + ' This will fail in cross build.')
 
     def add_pch(self, language: str, pchlist: T.List[str]) -> None:
         if not pchlist:
@@ -1644,6 +1645,9 @@ class BuildTarget(Target):
 
     def uses_rust(self) -> bool:
         return 'rust' in self.compilers
+
+    def uses_rust_abi(self) -> bool:
+        return self.uses_rust() and self.rust_crate_type in {'dylib', 'rlib', 'proc-macro'}
 
     def uses_fortran(self) -> bool:
         return 'fortran' in self.compilers
