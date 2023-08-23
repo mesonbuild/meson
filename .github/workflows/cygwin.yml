@@ -49,7 +49,23 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Find package cache dir
+        id: package-cache
+        run: |
+          # rather than having to work this out here, cygwin-install-action
+          # should simply take a package cache dir input.
+          $workvol = Split-Path -Path "${{ runner.temp }}" -Qualifier
+          echo "workvol=$workvol" >> $env:GITHUB_OUTPUT
+        shell: powershell
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ steps.package-cache.outputs.workvol}}\cygwin-packages
+          key: cygwin-packages-${{ github.run_number }}
+          restore-keys: cygwin-packages-
+
       - uses: cygwin/cygwin-install-action@v6
+        id: install-action
         with:
           platform: ${{ matrix.ARCH }}
           packages: |
@@ -76,6 +92,11 @@ jobs:
             python39-wheel
             vala
             zlib-devel
+
+      - uses: actions/cache/save@v4
+        with:
+          path: ${{ steps.install-action.outputs.package-cache }}
+          key: cygwin-packages-${{ github.run_number }}
 
       - name: Find pip cache dir
         id: pip-cache
