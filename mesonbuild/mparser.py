@@ -863,6 +863,9 @@ class Parser:
     def method_call(self, source_object: BaseNode) -> MethodNode:
         methodname = self.e9()
         if not isinstance(methodname, IdNode):
+            if isinstance(source_object, NumberNode) and isinstance(methodname, NumberNode):
+                raise ParseException('meson does not support float numbers',
+                                     self.getline(), source_object.lineno, source_object.colno)
             raise ParseException('Method name must be plain id',
                                  self.getline(), self.current.lineno, self.current.colno)
         assert isinstance(methodname.value, str)
