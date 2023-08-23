@@ -18,8 +18,8 @@ import textwrap
 import re
 import typing as T
 
-from .. import coredata, mlog
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe, OptionKey, join_args
+from .. import coredata
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
@@ -82,13 +82,7 @@ class RustCompiler(Compiler):
                 '''))
 
         cmdlist = self.exelist + ['-o', output_name, source_name]
-        pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
-        mlog.debug('Sanity check compiler command line:', join_args(cmdlist))
-        mlog.debug('Sanity check compile stdout:')
-        mlog.debug(stdo)
-        mlog.debug('-----\nSanity check compile stderr:')
-        mlog.debug(stde)
-        mlog.debug('-----')
+        pc, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
         if self.is_cross:
@@ -104,7 +98,7 @@ class RustCompiler(Compiler):
             raise EnvironmentException(f'Executables created by Rust compiler {self.name_string()} are not runnable.')
         # Get libraries needed to link with a Rust staticlib
         cmdlist = self.exelist + ['--crate-type', 'staticlib', '--print', 'native-static-libs', source_name]
-        p, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
+        p, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if p.returncode == 0:
             match = re.search('native-static-libs: (.*)$', stde, re.MULTILINE)
             if match:
@@ -123,7 +117,7 @@ class RustCompiler(Compiler):
 
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
-        p, stdo, stde = Popen_safe(cmd)
+        p, stdo, stde = Popen_safe_logged(cmd)
         return stdo.split('\n', maxsplit=1)[0]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
