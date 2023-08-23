@@ -163,7 +163,7 @@ class Lexer:
         col = 0
         while loc < len(self.code):
             matched = False
-            value: T.Union[str, bool, int] = None
+            value: str = ''
             for (tid, reg) in self.token_specification:
                 mo = reg.match(self.code, loc)
                 if mo:
@@ -175,7 +175,7 @@ class Lexer:
                     loc = mo.end()
                     span_end = loc
                     bytespan = (span_start, span_end)
-                    match_text = mo.group()
+                    value = mo.group()
                     if tid in {'ignore', 'comment'}:
                         break
                     elif tid == 'lparen':
@@ -193,23 +193,18 @@ class Lexer:
                     elif tid == 'dblquote':
                         raise ParseException('Double quotes are not supported. Use single quotes.', self.getline(line_start), lineno, col)
                     elif tid in {'string', 'fstring'}:
-                        if match_text.find("\n") != -1:
+                        if value.find("\n") != -1:
                             msg = ("Newline character in a string detected, use ''' (three single quotes) "
                                    "for multiline strings instead.\n"
                                    "This will become a hard error in a future Meson release.")
                             mlog.warning(mlog.code_line(msg, self.getline(line_start), col), location=BaseNode(lineno, col, filename))
-                        value = match_text[2 if tid == 'fstring' else 1:-1]
+                        value = value[2 if tid == 'fstring' else 1:-1]
                     elif tid in {'multiline_string', 'multiline_fstring'}:
-                        if tid == 'multiline_string':
-                            value = match_text[3:-3]
-                        else:
-                            value = match_text[4:-3]
-                        lines = match_text.split('\n')
+                        value = value[4 if tid == 'multiline_fstring' else 3:-3]
+                        lines = value.split('\n')
                         if len(lines) > 1:
                             lineno += len(lines) - 1
                             line_start = mo.end() - len(lines[-1])
-                    elif tid == 'number':
-                        value = match_text
                     elif tid == 'eol_cont':
                         lineno += 1
                         line_start = loc
@@ -220,13 +215,12 @@ class Lexer:
                         if par_count > 0 or bracket_count > 0 or curl_count > 0:
                             break
                     elif tid == 'id':
-                        if match_text in self.keywords:
-                            tid = match_text
+                        if value in self.keywords:
+                            tid = value
                         else:
-                            if match_text in self.future_keywords:
-                                mlog.warning(f"Identifier '{match_text}' will become a reserved keyword in a future release. Please rename it.",
+                            if value in self.future_keywords:
+                                mlog.warning(f"Identifier '{value}' will become a reserved keyword in a future release. Please rename it.",
                                              location=BaseNode(lineno, col, filename))
-                            value = match_text
                     yield Token(tid, filename, curline_start, curline, col, bytespan, value)
                     break
             if not matched:
