@@ -420,7 +420,7 @@ class Rewriter:
         if target in self.interpreter.assignments:
             node = self.interpreter.assignments[target]
             if isinstance(node, FunctionNode):
-                if node.func_name in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
+                if node.func_name.value in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
                     tgt = self.interpreter.assign_vals[target]
 
         return tgt
@@ -440,7 +440,7 @@ class Rewriter:
         if dependency in self.interpreter.assignments:
             node = self.interpreter.assignments[dependency]
             if isinstance(node, FunctionNode):
-                if node.func_name == 'dependency':
+                if node.func_name.value == 'dependency':
                     name = self.interpreter.flatten_args(node.args)[0]
                     dep = check_list(name)
 
@@ -630,7 +630,7 @@ class Rewriter:
             args = []
             if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
-                if n.func_name in BUILD_TARGET_FUNCTIONS:
+                if n.func_name.value in BUILD_TARGET_FUNCTIONS:
                     args.pop(0)
             elif isinstance(n, ArrayNode):
                 args = n.args.arguments
@@ -814,15 +814,15 @@ class Rewriter:
             src_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
             src_arr_node = ArrayNode(src_arg_node, 0, 0, 0, 0)
             src_far_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            src_fun_node = FunctionNode(filename, 0, 0, 0, 0, 'files', src_far_node)
-            src_ass_node = AssignmentNode(filename, 0, 0, source_id, src_fun_node)
+            src_fun_node = FunctionNode(filename, 0, 0, 0, 0, IdNode(Token('id', filename, 0, 0, 0, (0, 0), 'files')), src_far_node)
+            src_ass_node = AssignmentNode(filename, 0, 0, IdNode(Token('id', filename, 0, 0, 0, (0, 0), source_id)), src_fun_node)
             src_arg_node.arguments = [StringNode(Token('string', filename, 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
             tgt_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            tgt_fun_node = FunctionNode(filename, 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
-            tgt_ass_node = AssignmentNode(filename, 0, 0, target_id, tgt_fun_node)
+            tgt_fun_node = FunctionNode(filename, 0, 0, 0, 0, IdNode(Token('id', filename, 0, 0, 0, (0, 0), cmd['target_type'])), tgt_arg_node)
+            tgt_ass_node = AssignmentNode(filename, 0, 0, IdNode(Token('id', filename, 0, 0, 0, (0, 0), target_id)), tgt_fun_node)
             tgt_arg_node.arguments = [
                 StringNode(Token('string', filename, 0, 0, 0, None, cmd['target'])),
                 IdNode(Token('string', filename, 0, 0, 0, None, source_id))

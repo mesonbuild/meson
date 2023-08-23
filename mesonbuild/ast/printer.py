@@ -162,24 +162,24 @@ class AstPrinter(AstVisitor):
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
         node.lineno = self.curr_line or node.lineno
         node.source_object.accept(self)
-        self.append('.' + node.name + '(', node)
+        self.append('.' + node.name.value + '(', node)
         node.args.accept(self)
         self.append(')', node)
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         node.lineno = self.curr_line or node.lineno
-        self.append(node.func_name + '(', node)
+        self.append(node.func_name.value + '(', node)
         node.args.accept(self)
         self.append(')', node)
 
     def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
         node.lineno = self.curr_line or node.lineno
-        self.append(node.var_name + ' = ', node)
+        self.append(node.var_name.value + ' = ', node)
         node.value.accept(self)
 
     def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
         node.lineno = self.curr_line or node.lineno
-        self.append(node.var_name + ' += ', node)
+        self.append(node.var_name.value + ' += ', node)
         node.value.accept(self)
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
@@ -352,22 +352,22 @@ class AstJSONPrinter(AstVisitor):
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
         self._accept('object', node.source_object)
         self._accept('args', node.args)
-        self.current['name'] = node.name
+        self.current['name'] = node.name.value
         self.setbase(node)
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         self._accept('args', node.args)
-        self.current['name'] = node.func_name
+        self.current['name'] = node.func_name.value
         self.setbase(node)
 
     def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
         self._accept('value', node.value)
-        self.current['var_name'] = node.var_name
+        self.current['var_name'] = node.var_name.value
         self.setbase(node)
 
     def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
         self._accept('value', node.value)
-        self.current['var_name'] = node.var_name
+        self.current['var_name'] = node.var_name.value
         self.setbase(node)
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:

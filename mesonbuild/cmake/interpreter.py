@@ -1002,7 +1002,7 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            func_n = FunctionNode(self.subdir.as_posix(), 0, 0, 0, 0, name, args_n)
+            func_n = FunctionNode(self.subdir.as_posix(), 0, 0, 0, 0, id_node(name), args_n)
             return func_n
 
         def method(obj: BaseNode, name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> MethodNode:
@@ -1014,10 +1014,10 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            return MethodNode(self.subdir.as_posix(), 0, 0, obj, name, args_n)
+            return MethodNode(self.subdir.as_posix(), 0, 0, obj, id_node(name), args_n)
 
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:
-            return AssignmentNode(self.subdir.as_posix(), 0, 0, var_name, value)
+            return AssignmentNode(self.subdir.as_posix(), 0, 0, id_node(var_name), value)
 
         # Generate the root code block and the project function call
         root_cb = CodeBlockNode(token())

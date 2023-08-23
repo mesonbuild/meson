@@ -137,7 +137,7 @@ class InterpreterBase:
         if not self.ast.lines:
             raise InvalidCode('No statements in code.')
         first = self.ast.lines[0]
-        if not isinstance(first, mparser.FunctionNode) or first.func_name != 'project':
+        if not isinstance(first, mparser.FunctionNode) or first.func_name.value != 'project':
             p = pathlib.Path(self.source_root).resolve()
             found = p
             for parent in p.parents:
@@ -476,7 +476,7 @@ class InterpreterBase:
 
     def evaluate_plusassign(self, node: mparser.PlusAssignmentNode) -> None:
         assert isinstance(node, mparser.PlusAssignmentNode)
-        varname = node.var_name
+        varname = node.var_name.value
         addition = self.evaluate_statement(node.value)
         if addition is None:
             raise InvalidCodeOnVoid('plus assign')
@@ -504,7 +504,7 @@ class InterpreterBase:
         return self._holderify(iobject.operator_call(MesonOperator.INDEX, index))
 
     def function_call(self, node: mparser.FunctionNode) -> T.Optional[InterpreterObject]:
-        func_name = node.func_name
+        func_name = node.func_name.value
         (h_posargs, h_kwargs) = self.reduce_arguments(node.args)
         (posargs, kwargs) = self._unholder_args(h_posargs, h_kwargs)
         if is_disabled(posargs, kwargs) and func_name not in {'get_variable', 'set_variable', 'unset_variable', 'is_disabler'}:
@@ -532,7 +532,7 @@ class InterpreterBase:
         else:
             object_display_name = invocable.__class__.__name__
             obj = self.evaluate_statement(invocable)
-        method_name = node.name
+        method_name = node.name.value
         (h_args, h_kwargs) = self.reduce_arguments(node.args)
         (args, kwargs) = self._unholder_args(h_args, h_kwargs)
         if is_disabled(args, kwargs):
@@ -628,7 +628,7 @@ class InterpreterBase:
                 Tried to assign values inside an argument list.
                 To specify a keyword argument, use : instead of =.
             '''))
-        var_name = node.var_name
+        var_name = node.var_name.value
         if not isinstance(var_name, str):
             raise InvalidArguments('Tried to assign value to a non-variable.')
         value = self.evaluate_statement(node.value)

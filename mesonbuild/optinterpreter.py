@@ -164,7 +164,7 @@ class OptionInterpreter:
     def evaluate_statement(self, node: mparser.BaseNode) -> None:
         if not isinstance(node, mparser.FunctionNode):
             raise OptionException('Option file may only contain option definitions')
-        func_name = node.func_name
+        func_name = node.func_name.value
         if func_name != 'option':
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)

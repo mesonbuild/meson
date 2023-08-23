@@ -470,52 +470,48 @@ class IndexNode(BaseNode):
 class MethodNode(BaseNode):
 
     source_object: BaseNode
-    name: str
+    name: IdNode
     args: ArgumentNode
 
-    def __init__(self, filename: str, lineno: int, colno: int, source_object: BaseNode, name: str, args: ArgumentNode):
+    def __init__(self, filename: str, lineno: int, colno: int, source_object: BaseNode, name: IdNode, args: ArgumentNode):
         super().__init__(lineno, colno, filename)
         self.source_object = source_object
         self.name = name
-        assert isinstance(self.name, str)
         self.args = args
 
 @dataclass(unsafe_hash=True)
 class FunctionNode(BaseNode):
 
-    func_name: str
+    func_name: IdNode
     args: ArgumentNode
 
-    def __init__(self, filename: str, lineno: int, colno: int, end_lineno: int, end_colno: int, func_name: str, args: ArgumentNode):
+    def __init__(self, filename: str, lineno: int, colno: int, end_lineno: int, end_colno: int, func_name: IdNode, args: ArgumentNode):
         super().__init__(lineno, colno, filename, end_lineno=end_lineno, end_colno=end_colno)
         self.func_name = func_name
-        assert isinstance(func_name, str)
         self.args = args
 
 
 @dataclass(unsafe_hash=True)
 class AssignmentNode(BaseNode):
 
-    var_name: str
+    var_name: IdNode
     value: BaseNode
 
-    def __init__(self, filename: str, lineno: int, colno: int, var_name: str, value: BaseNode):
+    def __init__(self, filename: str, lineno: int, colno: int, var_name: IdNode, value: BaseNode):
         super().__init__(lineno, colno, filename)
         self.var_name = var_name
-        assert isinstance(var_name, str)
         self.value = value
 
 
 @dataclass(unsafe_hash=True)
 class PlusAssignmentNode(BaseNode):
 
-    var_name: str
+    var_name: IdNode
     value: BaseNode
 
-    def __init__(self, filename: str, lineno: int, colno: int, var_name: str, value: BaseNode):
+    def __init__(self, filename: str, lineno: int, colno: int, var_name: IdNode, value: BaseNode):
         super().__init__(lineno, colno, filename)
         self.var_name = var_name
-        assert isinstance(var_name, str)
         self.value = value
 
 
@@ -687,14 +683,14 @@ class Parser:
             if not isinstance(left, IdNode):
                 raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            return PlusAssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
+            return PlusAssignmentNode(left.filename, left.lineno, left.colno, left, value)
         elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            return AssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
+            return AssignmentNode(left.filename, left.lineno, left.colno, left, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
@@ -783,7 +779,7 @@ class Parser:
                 raise ParseException('Function call must be applied to plain id',
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            left = FunctionNode(left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
+            left = FunctionNode(left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left, args)
         go_again = True
         while go_again:
             go_again = False
@@ -887,7 +883,7 @@ class Parser:
         self.expect('lparen')
         args = self.args()
         self.expect('rparen')
-        method = MethodNode(methodname.filename, methodname.lineno, methodname.colno, source_object, methodname.value, args)
+        method = MethodNode(methodname.filename, methodname.lineno, methodname.colno, source_object, methodname, args)
         if self.accept('dot'):
             return self.method_call(method)
         return method

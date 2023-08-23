@@ -103,18 +103,22 @@ class AstVisitor:
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
         self.visit_default_func(node)
         node.source_object.accept(self)
+        node.name.accept(self)
         node.args.accept(self)
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         self.visit_default_func(node)
+        node.func_name.accept(self)
         node.args.accept(self)
 
     def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
         self.visit_default_func(node)
+        node.var_name.accept(self)
         node.value.accept(self)
 
     def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
         self.visit_default_func(node)
+        node.var_name.accept(self)
         node.value.accept(self)
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:

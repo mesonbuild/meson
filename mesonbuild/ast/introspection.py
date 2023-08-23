@@ -261,7 +261,7 @@ class IntrospectionInterpreter(AstInterpreter):
                     continue
                 arg_nodes = arg_node.arguments.copy()
                 # Pop the first element if the function is a build target function
-                if isinstance(curr, FunctionNode) and curr.func_name in BUILD_TARGET_FUNCTIONS:
+                if isinstance(curr, FunctionNode) and curr.func_name.value in BUILD_TARGET_FUNCTIONS:
                     arg_nodes.pop(0)
                 elementary_nodes = [x for x in arg_nodes if isinstance(x, (str, BaseStringNode))]
                 inqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]

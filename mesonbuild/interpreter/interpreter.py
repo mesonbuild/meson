@@ -2942,7 +2942,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _add_global_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
                               args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         if self.is_subproject():
-            msg = f'Function \'{node.func_name}\' cannot be used in subprojects because ' \
+            msg = f'Function \'{node.func_name.value}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
                   'this if is_subproject() returns false. Alternatively, ' \
                   'define a variable that\ncontains your language-specific ' \
@@ -2962,7 +2962,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
                        args_frozen: bool, args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         if args_frozen:
-            msg = f'Tried to use \'{node.func_name}\' after a build target has been declared.\n' \
+            msg = f'Tried to use \'{node.func_name.value}\' after a build target has been declared.\n' \
                   'This is not permitted. Please declare all arguments before your targets.'
             raise InvalidCode(msg)
 

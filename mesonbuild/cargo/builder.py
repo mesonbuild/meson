@@ -97,7 +97,7 @@ def method(name: str, id_: mparser.IdNode,
         args.arguments = pos
     if kw is not None:
         args.kwargs = {identifier(k, id_.filename): v for k, v in kw.items()}
-    return mparser.MethodNode(id_.filename, -1, -1, id_, name, args)
+    return mparser.MethodNode(id_.filename, -1, -1, id_, identifier(name, id_.filename), args)
 
 
 def function(name: str, filename: str,
@@ -117,7 +117,7 @@ def function(name: str, filename: str,
         args.arguments = pos
     if kw is not None:
         args.kwargs = {identifier(k, filename): v for k, v in kw.items()}
-    return mparser.FunctionNode(filename, -1, -1, -1, -1, name, args)
+    return mparser.FunctionNode(filename, -1, -1, -1, -1, identifier(name, filename), args)
 
 
 def equal(lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:
@@ -168,7 +168,7 @@ def assign(value: mparser.BaseNode, varname: str, filename: str) -> mparser.Assi
     :param filename: The filename
     :return: An AssignmentNode
     """
-    return mparser.AssignmentNode(filename, -1, -1, varname, value)
+    return mparser.AssignmentNode(filename, -1, -1, identifier(varname, filename), value)
 
 
 def block(filename: str) -> mparser.CodeBlockNode:
