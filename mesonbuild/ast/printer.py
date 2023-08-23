@@ -185,7 +185,7 @@ class AstPrinter(AstVisitor):
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
         node.lineno = self.curr_line or node.lineno
         self.append_padded('foreach', node)
-        self.append_padded(', '.join(node.varnames), node)
+        self.append_padded(', '.join(varname.value for varname in node.varnames), node)
         self.append_padded(':', node)
         node.items.accept(self)
         self.newline()
@@ -373,7 +373,7 @@ class AstJSONPrinter(AstVisitor):
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
         self._accept('items', node.items)
         self._accept('block', node.block)
-        self.current['varnames'] = node.varnames
+        self.current['varnames'] = [varname.value for varname in node.varnames]
         self.setbase(node)
 
     def visit_IfClauseNode(self, node: mparser.IfClauseNode) -> None:

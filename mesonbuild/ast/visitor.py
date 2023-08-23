@@ -123,6 +123,8 @@ class AstVisitor:
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
         self.visit_default_func(node)
+        for varname in node.varnames:
+            varname.accept(self)
         node.items.accept(self)
         node.block.accept(self)
 

@@ -518,11 +518,11 @@ class PlusAssignmentNode(BaseNode):
 @dataclass(unsafe_hash=True)
 class ForeachClauseNode(BaseNode):
 
-    varnames: T.List[str] = field(hash=False)
+    varnames: T.List[IdNode] = field(hash=False)
     items: BaseNode
     block: CodeBlockNode
 
-    def __init__(self, token: Token, varnames: T.List[str], items: BaseNode, block: CodeBlockNode):
+    def __init__(self, token: Token, varnames: T.List[IdNode], items: BaseNode, block: CodeBlockNode):
         super().__init__(token.lineno, token.colno, token.filename)
         self.varnames = varnames
         self.items = items
@@ -898,13 +898,13 @@ class Parser:
         self.expect('id')
         assert isinstance(t.value, str)
         varname = t
-        varnames = [t.value]
+        varnames = [IdNode(t)]
 
         if self.accept('comma'):
             t = self.current
             self.expect('id')
             assert isinstance(t.value, str)
-            varnames.append(t.value)
+            varnames.append(IdNode(t))
 
         self.expect('colon')
         items = self.statement()

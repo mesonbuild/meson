@@ -459,14 +459,14 @@ class InterpreterBase:
             if tsize is None:
                 if isinstance(i, tuple):
                     raise mesonlib.MesonBugException(f'Iteration of {items} returned a tuple even though iter_tuple_size() is None')
-                self.set_variable(node.varnames[0], self._holderify(i))
+                self.set_variable(node.varnames[0].value, self._holderify(i))
             else:
                 if not isinstance(i, tuple):
                     raise mesonlib.MesonBugException(f'Iteration of {items} did not return a tuple even though iter_tuple_size() is {tsize}')
                 if len(i) != tsize:
                     raise mesonlib.MesonBugException(f'Iteration of {items} did not return a tuple even though iter_tuple_size() is {tsize}')
                 for j in range(tsize):
-                    self.set_variable(node.varnames[j], self._holderify(i[j]))
+                    self.set_variable(node.varnames[j].value, self._holderify(i[j]))
             try:
                 self.evaluate_codeblock(node.block)
             except ContinueRequest:
