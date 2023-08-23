@@ -121,7 +121,7 @@ class Lexer:
             ('fstring', re.compile(r"f'([^'\\]|(\\.))*'")),
             ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
             ('number', re.compile(r'0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|0|[1-9]\d*')),
-            ('eol_cont', re.compile(r'\\\n')),
+            ('eol_cont', re.compile(r'\\[ \t]*(#.*)?\n')),
             ('eol', re.compile(r'\n')),
             ('multiline_string', re.compile(r"'''(.|\n)*?'''", re.M)),
             ('comment', re.compile(r'#.*')),

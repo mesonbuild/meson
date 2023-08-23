@@ -173,12 +173,12 @@ no_string_escapes = '''\\\'\a\b\f\n\r\t\v\046\x26\u2D4d\U00002d4d\N{GREEK CAPITA
 # cont_string = 'blablabla\
 # blablabla'
 
-# FIXME: is it supposed to work? (cont_eol with whitespace and comments after)
-# if a \  # comment in cont 1
-#     and b \  # comment in cont 2
-#     or c  # comment in cont 3
-#   message('ok')
-# endif
+# cont_eol with whitespace and comments after
+if a \  # comment in cont 1
+    and b \  # comment in cont 2
+    or c  # comment in cont 3
+  message('ok')
+endif
 
 if a \
     or b
