@@ -282,8 +282,7 @@ class BooleanNode(ElementaryNode[bool]):
     pass
 
 class IdNode(ElementaryNode[str]):
-    def __str__(self) -> str:
-        return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
+    pass
 
 @dataclass(unsafe_hash=True)
 class NumberNode(ElementaryNode[int]):
@@ -297,16 +296,13 @@ class NumberNode(ElementaryNode[int]):
         self.bytespan = token.bytespan
 
 class StringNode(ElementaryNode[str]):
-    def __str__(self) -> str:
-        return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
+    pass
 
 class FormatStringNode(ElementaryNode[str]):
-    def __str__(self) -> str:
-        return f"Format string node: '{self.value}' ({self.lineno}, {self.colno})."
+    pass
 
 class MultilineFormatStringNode(FormatStringNode):
-    def __str__(self) -> str:
-        return f"Multiline Format string node: '{self.value}' ({self.lineno}, {self.colno})."
+    pass
 
 class ContinueNode(ElementaryNode):
     pass
