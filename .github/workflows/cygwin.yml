@@ -31,6 +31,7 @@ jobs:
         include:
           - NAME: gccx64ninja
             ARCH: x86_64
+            CIRCA: 2023/08/17/111706
     env:
       MESON_CI_JOBNAME: cygwin-${{ matrix.NAME }}
 
@@ -49,6 +50,8 @@ jobs:
 
       - uses: cygwin/cygwin-install-action@master
         with:
+          site: http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/64bit/${{ matrix.CIRCA }}
+          check-sig: false
           platform: ${{ matrix.ARCH }}
           packages: |
             cmake
