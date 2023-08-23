@@ -98,11 +98,39 @@ def detect_lcov(lcov_exe: str = 'lcov', log: bool = False):
         return lcov_exe, found
     return None, None
 
-def detect_llvm_cov():
-    tools = get_llvm_tool_names('llvm-cov')
-    for tool in tools:
+def detect_llvm_cov(suffix: T.Optional[str] = None):
+    # If there's a known suffix or forced lack of suffix, use that
+    if suffix is not None:
+        if suffix == '':
+            tool = 'llvm-cov'
+        else:
+            tool = f'llvm-cov-{suffix}'
         if mesonlib.exe_exists([tool, '--version']):
             return tool
+    else:
+        # Otherwise guess in the dark
+        tools = get_llvm_tool_names('llvm-cov')
+        for tool in tools:
+            if mesonlib.exe_exists([tool, '--version']):
+                return tool
+    return None
+
+def compute_llvm_suffix(coredata: coredata.CoreData):
+    # Check to see if the user is trying to do coverage for either a C or C++ project
+    compilers = coredata.compilers[MachineChoice.BUILD]
+    cpp_compiler_is_clang = 'cpp' in compilers and compilers['cpp'].id == 'clang'
+    c_compiler_is_clang = 'c' in compilers and compilers['c'].id == 'clang'
+    # Extract first the C++ compiler if available. If it's a Clang of some kind, compute the suffix if possible
+    if cpp_compiler_is_clang:
+        suffix = compilers['cpp'].version.split('.')[0]
+        return suffix
+
+    # Then the C compiler, again checking if it's some kind of Clang and computing the suffix
+    if c_compiler_is_clang:
+        suffix = compilers['c'].version.split('.')[0]
+        return suffix
+
+    # Neither compiler is a Clang, or no compilers are for C or C++
     return None
 
 def detect_lcov_genhtml(lcov_exe: str = 'lcov', genhtml_exe: str = 'genhtml'):
@@ -115,7 +143,7 @@ def detect_lcov_genhtml(lcov_exe: str = 'lcov', genhtml_exe: str = 'genhtml'):
 def find_coverage_tools(coredata: coredata.CoreData) -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
     gcovr_exe, gcovr_version = detect_gcovr()
 
-    llvm_cov_exe = detect_llvm_cov()
+    llvm_cov_exe = detect_llvm_cov(compute_llvm_suffix(coredata))
 
     lcov_exe, lcov_version, genhtml_exe = detect_lcov_genhtml()
 
