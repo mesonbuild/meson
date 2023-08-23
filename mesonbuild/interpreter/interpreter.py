@@ -1446,23 +1446,28 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_exception(self, node, args, kwargs):
         raise RuntimeError('unit test traceback :)')
 
-    @noKwargs
     @typed_pos_args('expect_error', str)
+    @typed_kwargs(
+        'expect_error',
+        KwargInfo('how', str, default='literal', validator=in_set_validator({'literal', 're'})),
+    )
     def func_expect_error(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: TYPE_kwargs) -> ContextManagerObject:
         class ExpectErrorObject(ContextManagerObject):
-            def __init__(self, msg: str, subproject: str) -> None:
+            def __init__(self, msg: str, how: str, subproject: str) -> None:
                 super().__init__(subproject)
                 self.msg = msg
+                self.how = how
 
             def __exit__(self, exc_type, exc_val, exc_tb):
                 if exc_val is None:
                     raise InterpreterException('Expecting an error but code block succeeded')
                 if isinstance(exc_val, mesonlib.MesonException):
                     msg = str(exc_val)
-                    if msg != self.msg:
+                    if (self.how == 'literal' and self.msg != msg) or \
+                       (self.how == 're' and not re.match(self.msg, msg)):
                         raise InterpreterException(f'Expecting error {self.msg!r} but got {msg!r}')
                     return True
-        return ExpectErrorObject(args[0], self.subproject)
+        return ExpectErrorObject(args[0], kwargs['how'], self.subproject)
 
     def add_languages(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)
