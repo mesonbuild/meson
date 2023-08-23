@@ -171,7 +171,11 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [defaults['gcc_static_linker']] + default_linkers
         elif compiler.id == 'clang':
             # Use llvm-ar if available; needed for LTO
-            trials = [defaults['clang_static_linker']] + default_linkers
+            llvm_ar = defaults['clang_static_linker']
+            # Extract the version major of the compiler to use as a suffix
+            suffix = compiler.version.split('.')[0]
+            # Prefer suffixed llvm-ar first, then unsuffixed then the defaults
+            trials = [[f'{llvm_ar[0]}-{suffix}'], llvm_ar] + default_linkers
         elif compiler.language == 'd':
             # Prefer static linkers over linkers used by D compilers
             if is_windows():
