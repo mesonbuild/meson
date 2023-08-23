@@ -24,11 +24,18 @@ on:
       - ".github/workflows/cygwin.yml"
       - "run*tests.py"
 
+  # Try to ratchet circa forward weekly (every Sunday)
+  schedule:
+    - cron: '0 0 * * 0'
+
 permissions:
   contents: read
 
 jobs:
   test:
+    # do not run the weekly scheduled job in a fork
+    if: github.event_name != 'schedule' || github.repository == 'mesonbuild/meson'
+
     runs-on: windows-latest
     name: ${{ matrix.NAME }}
     strategy:
@@ -39,6 +46,7 @@ jobs:
             ARCH: x86_64
     env:
       MESON_CI_JOBNAME: cygwin-${{ matrix.NAME }}
+      GIST_ID: 3540b45017d28254b9b3805472340adf
 
     steps:
       # remove inheritable permissions since they break assumptions testsuite
@@ -64,9 +72,37 @@ jobs:
           key: cygwin-packages-${{ github.run_number }}
           restore-keys: cygwin-packages-
 
+      # determine the circa to use (N.B. it may be arch-specific)
+      - name: Determine circa
+        id: circa-select
+        env:
+          MODE: ${{github.event_name}}
+        run: |
+          if ( $env:MODE -eq 'schedule' ) {
+            # if this is scheduled, use latest circa
+            # (an empty site indicates to cygwin-install-action that is should use its default)
+            $site = ""
+            $checksig = "true"
+            echo "Selecting latest circa"
+          } else {
+            # otherwise, fetch circa from the ratchet (updated below in 'schedule' mode)
+            $gist = "https://gist.githubusercontent.com/jon-turney/$env:GIST_ID/raw/${{ matrix.ARCH }}"
+            $response = Invoke-WebRequest -Uri "$gist" -UseBasicParsing
+            $circa = $response.Content
+            echo "Selecting circa $circa"
+            # install cygwin from that circa using the time machine
+            $site = "http://ctm.crouchingtigerhiddenfruitbat.org/pub/cygwin/circa/64bit/$circa"
+            $checksig = "false"
+          }
+          echo "site=$site" >> $env:GITHUB_OUTPUT
+          echo "checksig=$checksig" >> $env:GITHUB_OUTPUT
+        shell: powershell
+
       - uses: cygwin/cygwin-install-action@v6
         id: install-action
         with:
+          site: ${{ steps.circa-select.outputs.site }}
+          check-sig: ${{ steps.circa-select.outputs.checksig }}
           platform: ${{ matrix.ARCH }}
           packages: |
             cmake
@@ -132,6 +168,27 @@ jobs:
           # variants such as boost_thread are not present)
           SKIP_STATIC_BOOST: 1
         shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
+
+      # if this is a scheduled run, and it succeeded, update the circa
+      - name: Update the circa ratchet
+        run: |
+          # get the circa from the cygwin installation at hand
+          export CIRCA=$(date -d @$(cat /etc/setup/timestamp) +%Y/%m/%d/%H%M%S)
+          # store it in the ratchet (by arch)
+          curl --no-progress-meter -L \
+            -X PATCH \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            https://api.github.com/gists/${GIST_ID} \
+            --variable %ARCH \
+            --variable %CIRCA \
+            --expand-data '{"files":{"{{ARCH}}":{"content":"{{CIRCA}}"}}'
+        if: (github.event_name == 'schedule')
+        shell: bash --noprofile --norc -o igncr -eo pipefail '{0}'
+        env:
+          ARCH: ${{ matrix.ARCH }}
+          # GitHub PAT with gist write permission
+          GITHUB_TOKEN: ${{ secrets.GIST_TOKEN }}
 
       - uses: actions/upload-artifact@v4
         with:
