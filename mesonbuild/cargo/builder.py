@@ -45,7 +45,7 @@ def number(value: int, filename: str) -> mparser.NumberNode:
     :param filename: the file that the value came from
     :return: A NumberNode
     """
-    return mparser.NumberNode(_token('number', filename, value))
+    return mparser.NumberNode(_token('number', filename, str(value)))
 
 
 def bool(value: builtins.bool, filename: str) -> mparser.BooleanNode:

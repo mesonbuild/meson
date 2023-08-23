@@ -966,7 +966,7 @@ class CMakeInterpreter:
             return IdNode(token(val=value))
 
         def number(value: int) -> NumberNode:
-            return NumberNode(token(val=value))
+            return NumberNode(token(val=str(value)))
 
         def nodeify(value: TYPE_mixed_list) -> BaseNode:
             if isinstance(value, str):

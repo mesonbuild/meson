@@ -217,7 +217,7 @@ class Lexer:
                             lineno += len(lines) - 1
                             line_start = mo.end() - len(lines[-1])
                     elif tid == 'number':
-                        value = int(match_text, base=0)
+                        value = match_text
                     elif tid == 'eol_cont':
                         lineno += 1
                         line_start = loc
@@ -285,8 +285,16 @@ class IdNode(ElementaryNode[str]):
     def __str__(self) -> str:
         return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
+@dataclass(unsafe_hash=True)
 class NumberNode(ElementaryNode[int]):
-    pass
+
+    raw_value: str = field(hash=False)
+
+    def __init__(self, token: Token[str]):
+        BaseNode.__init__(self, token.lineno, token.colno, token.filename)
+        self.raw_value = token.value
+        self.value = int(token.value, base=0)
+        self.bytespan = token.bytespan
 
 class StringNode(ElementaryNode[str]):
     def __str__(self) -> str:
