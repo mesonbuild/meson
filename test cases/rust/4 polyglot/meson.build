@@ -47,8 +47,9 @@ foreach crate_type : ['lib', 'rlib', 'dylib', 'cdylib', 'staticlib', 'proc-macro
         install: true)
       test(f'polyglottest-@name@', e)
     else
-      # FIXME: Verify that linking Rust ABI with C ABI executable raises an error.
-      # Currently it only fails at build time.
+      testcase expect_error('Try to link Rust ABI library .*', how: 're')
+        executable(f'prog-@name@', 'prog.c', link_with: l)
+      endtestcase
     endif
   endforeach
 endforeach
