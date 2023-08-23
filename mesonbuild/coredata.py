@@ -1098,7 +1098,7 @@ class MachineFileParser():
         return section
 
     def _evaluate_statement(self, node: mparser.BaseNode) -> T.Union[str, bool, int, T.List[str]]:
-        if isinstance(node, (mparser.StringNode)):
+        if isinstance(node, (mparser.BaseStringNode)):
             return node.value
         elif isinstance(node, mparser.BooleanNode):
             return node.value

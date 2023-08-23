@@ -43,6 +43,12 @@ class AstVisitor:
     def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
         self.visit_default_func(node)
 
+    def visit_MultilineStringNode(self, node: mparser.StringNode) -> None:
+        self.visit_default_func(node)
+
+    def visit_FormatMultilineStringNode(self, node: mparser.FormatStringNode) -> None:
+        self.visit_default_func(node)
+
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
         self.visit_default_func(node)
 

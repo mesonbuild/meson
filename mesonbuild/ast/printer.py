@@ -84,7 +84,17 @@ class AstPrinter(AstVisitor):
 
     def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
         assert isinstance(node.value, str)
-        self.append("f'" + node.value + "'", node)
+        self.append("f'" + self.escape(node.value) + "'", node)
+        node.lineno = self.curr_line or node.lineno
+
+    def visit_MultilineStringNode(self, node: mparser.StringNode) -> None:
+        assert isinstance(node.value, str)
+        self.append("'''" + node.value + "'''", node)
+        node.lineno = self.curr_line or node.lineno
+
+    def visit_FormatMultilineStringNode(self, node: mparser.FormatStringNode) -> None:
+        assert isinstance(node.value, str)
+        self.append("f'''" + node.value + "'''", node)
         node.lineno = self.curr_line or node.lineno
 
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:

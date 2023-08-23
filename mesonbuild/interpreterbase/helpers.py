@@ -25,7 +25,7 @@ if T.TYPE_CHECKING:
     from .baseobjects import TYPE_var, TYPE_kwargs, SubProject
 
 def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']:
-    if isinstance(args, mparser.StringNode):
+    if isinstance(args, mparser.BaseStringNode):
         assert isinstance(args.value, str)
         return [args.value]
     if not isinstance(args, collections.abc.Sequence):
@@ -35,7 +35,7 @@ def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']
         if isinstance(a, list):
             rest = flatten(a)
             result = result + rest
-        elif isinstance(a, mparser.StringNode):
+        elif isinstance(a, mparser.BaseStringNode):
             result.append(a.value)
         else:
             result.append(a)

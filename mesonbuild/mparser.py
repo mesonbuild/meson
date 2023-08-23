@@ -193,23 +193,15 @@ class Lexer:
                     elif tid == 'dblquote':
                         raise ParseException('Double quotes are not supported. Use single quotes.', self.getline(line_start), lineno, col)
                     elif tid in {'string', 'fstring'}:
-                        # Handle here and not on the regexp to give a better error message.
                         if match_text.find("\n") != -1:
                             msg = ("Newline character in a string detected, use ''' (three single quotes) "
                                    "for multiline strings instead.\n"
                                    "This will become a hard error in a future Meson release.")
                             mlog.warning(mlog.code_line(msg, self.getline(line_start), col), location=BaseNode(lineno, col, filename))
                         value = match_text[2 if tid == 'fstring' else 1:-1]
-                        value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
                     elif tid in {'multiline_string', 'multiline_fstring'}:
-                        # For multiline strings, parse out the value and pass
-                        # through the normal string logic.
-                        # For multiline format strings, we have to emit a
-                        # different AST node so we can add a feature check,
-                        # but otherwise, it follows the normal fstring logic.
                         if tid == 'multiline_string':
                             value = match_text[3:-3]
-                            tid = 'string'
                         else:
                             value = match_text[4:-3]
                         lines = match_text.split('\n')
@@ -295,13 +287,30 @@ class NumberNode(ElementaryNode[int]):
         self.value = int(token.value, base=0)
         self.bytespan = token.bytespan
 
-class StringNode(ElementaryNode[str]):
+class BaseStringNode(ElementaryNode[str]):
     pass
 
-class FormatStringNode(ElementaryNode[str]):
+@dataclass(unsafe_hash=True)
+class StringNode(BaseStringNode):
+
+    raw_value: str = field(hash=False)
+
+    def __init__(self, token: Token[str], escape: bool = True):
+        super().__init__(token)
+        self.value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, token.value) if escape else token.value
+        self.raw_value = token.value
+
+class FormatStringNode(StringNode):
     pass
 
-class MultilineFormatStringNode(FormatStringNode):
+@dataclass(unsafe_hash=True)
+class MultilineStringNode(BaseStringNode):
+
+    def __init__(self, token: Token[str]):
+        super().__init__(token)
+        self.value = token.value
+
+class MultilineFormatStringNode(MultilineStringNode):
     pass
 
 class ContinueNode(ElementaryNode):
@@ -819,6 +828,8 @@ class Parser:
             return StringNode(t)
         if self.accept('fstring'):
             return FormatStringNode(t)
+        if self.accept('multiline_string'):
+            return MultilineStringNode(t)
         if self.accept('multiline_fstring'):
             return MultilineFormatStringNode(t)
         return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)

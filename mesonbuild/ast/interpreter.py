@@ -239,7 +239,7 @@ class AstInterpreter(InterpreterBase):
 
     def evaluate_dictstatement(self, node: mparser.DictNode) -> TYPE_nkwargs:
         def resolve_key(node: mparser.BaseNode) -> str:
-            if isinstance(node, mparser.StringNode):
+            if isinstance(node, mparser.BaseStringNode):
                 return node.value
             return '__AST_UNKNOWN__'
         arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)

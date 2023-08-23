@@ -115,7 +115,7 @@ class OptionInterpreter:
             return arg
         if isinstance(arg, mparser.ParenthesizedNode):
             return self.reduce_single(arg.inner)
-        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode,
+        elif isinstance(arg, (mparser.BaseStringNode, mparser.BooleanNode,
                               mparser.NumberNode)):
             return arg.value
         elif isinstance(arg, mparser.ArrayNode):
@@ -123,7 +123,7 @@ class OptionInterpreter:
         elif isinstance(arg, mparser.DictNode):
             d = {}
             for k, v in arg.args.kwargs.items():
-                if not isinstance(k, mparser.StringNode):
+                if not isinstance(k, mparser.BaseStringNode):
                     raise OptionException('Dictionary keys must be a string literal')
                 d[k.value] = self.reduce_single(v)
             return d

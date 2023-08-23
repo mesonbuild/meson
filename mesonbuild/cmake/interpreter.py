@@ -960,7 +960,7 @@ class CMakeInterpreter:
             return Token(tid, self.subdir.as_posix(), 0, 0, 0, None, val)
 
         def string(value: str) -> StringNode:
-            return StringNode(token(val=value))
+            return StringNode(token(val=value), escape=False)
 
         def id_node(value: str) -> IdNode:
             return IdNode(token(val=value))
