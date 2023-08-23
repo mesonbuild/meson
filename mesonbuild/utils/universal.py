@@ -2383,22 +2383,22 @@ class OptionKey:
         return self.type is OptionType.BASE
 
 
-def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL]) -> _PL:
-    load_fail_msg = f'{object_name} file {filename!r} is corrupted. Try with a fresh build tree.'
+def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL], suggest_reconfigure: bool = True) -> _PL:
+    load_fail_msg = f'{object_name} file {filename!r} is corrupted.'
+    extra_msg = ' Consider reconfiguring the directory with "meson setup --reconfigure".' if suggest_reconfigure else ''
     try:
         with open(filename, 'rb') as f:
             obj = pickle.load(f)
     except (pickle.UnpicklingError, EOFError):
-        raise MesonException(load_fail_msg)
+        raise MesonException(load_fail_msg + extra_msg)
     except (TypeError, ModuleNotFoundError, AttributeError):
-        build_dir = os.path.dirname(os.path.dirname(filename))
         raise MesonException(
             f"{object_name} file {filename!r} references functions or classes that don't "
             "exist. This probably means that it was generated with an old "
-            "version of meson. Try running from the source directory "
-            f'meson setup {build_dir} --wipe')
+            "version of meson." + extra_msg)
+
     if not isinstance(obj, object_type):
-        raise MesonException(load_fail_msg)
+        raise MesonException(load_fail_msg + extra_msg)
 
     # Because these Protocols are not available at runtime (and cannot be made
     # available at runtime until we drop support for Python < 3.8), we have to
@@ -2412,7 +2412,7 @@ def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL]) -> _P
     from ..coredata import version as coredata_version
     from ..coredata import major_versions_differ, MesonVersionMismatchException
     if major_versions_differ(version, coredata_version):
-        raise MesonVersionMismatchException(version, coredata_version)
+        raise MesonVersionMismatchException(version, coredata_version, extra_msg)
     return obj
 
 

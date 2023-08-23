@@ -489,7 +489,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata = coredata.load(self.get_build_dir())  # type: coredata.CoreData
+                self.coredata: coredata.CoreData = coredata.load(self.get_build_dir(), suggest_reconfigure=False)
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(options)
@@ -507,7 +507,7 @@ class Environment:
                     coredata.read_cmd_line_file(self.build_dir, options)
                     self.create_new_coredata(options)
                 else:
-                    raise e
+                    raise MesonException(f'{str(e)} Try regenerating using "meson setup --wipe".')
         else:
             # Just create a fresh coredata in this case
             self.scratch_dir = ''
