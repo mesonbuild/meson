@@ -17,7 +17,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from hashlib import _Hash
-    from typing_extensions import Literal
+    from typing_extensions import Literal, NotRequired, TypedDict, Unpack
     from ..mparser import BaseNode
     from .. import programs
 
@@ -25,16 +25,24 @@ if T.TYPE_CHECKING:
 
     EnvInitValueType = T.Dict[str, T.Union[str, T.List[str]]]
 
+    class MesonExceptionKeywordArguments(TypedDict):
+        file: NotRequired[str]
+        lineno: NotRequired[int]
+        colno: NotRequired[int]
 
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
-    def __init__(self, *args: object, file: T.Optional[str] = None,
-                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
+    file: T.Optional[str]
+    lineno: T.Optional[int]
+    colno: T.Optional[int]
+
+    def __init__(self, *args: object, **kwargs: Unpack[MesonExceptionKeywordArguments]):
         super().__init__(*args)
-        self.file = file
-        self.lineno = lineno
-        self.colno = colno
+
+        self.file = kwargs.get('file', None)
+        self.lineno = kwargs.get('lineno', None)
+        self.colno = kwargs.get('colno', None)
 
     @classmethod
     def from_node(cls, *args: object, node: BaseNode) -> MesonException:
