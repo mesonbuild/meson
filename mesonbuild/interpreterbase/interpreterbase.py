@@ -295,6 +295,12 @@ class InterpreterBase:
             # Reset self.tmp_meson_version to know if it gets set during this
             # statement evaluation.
             self.tmp_meson_version = None
+            if isinstance(i.condition, mparser.AssignmentNode):
+                raise InvalidCode.from_node(
+                    'Assignment are returning void and not valid in if clause.',
+                    node=i.condition,
+                    error_resolve='Should this be an equality check?')
+
             result = self.evaluate_statement(i.condition)
             if result is None:
                 raise InvalidCodeOnVoid.from_node('if', node=i.condition)
