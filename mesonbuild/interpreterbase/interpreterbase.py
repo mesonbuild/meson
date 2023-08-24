@@ -40,6 +40,8 @@ import textwrap
 if T.TYPE_CHECKING:
     from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
     from ..interpreter import Interpreter
+    from ..utils.core import MesonExceptionKeywordArguments
+    from typing_extensions import Unpack
 
     HolderMapType = T.Dict[
         T.Union[
@@ -59,11 +61,9 @@ if T.TYPE_CHECKING:
         T.Callable[[mparser.BaseNode, T.List[TYPE_var], T.Dict[str, TYPE_var]], TYPE_var]
     ]
 
-
 class InvalidCodeOnVoid(InvalidCode):
-
-    def __init__(self, op_type: str) -> None:
-        super().__init__(f'Cannot perform {op_type!r} operation on void statement.')
+    def __init__(self, op_type: str, **kwargs: Unpack[MesonExceptionKeywordArguments]) -> None:
+        super().__init__(f'Cannot perform {op_type!r} operation on void statement.', **kwargs)
 
 
 class InterpreterBase:
