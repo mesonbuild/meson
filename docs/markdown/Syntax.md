@@ -454,6 +454,15 @@ Keys must be unique:
 my_dict = {'foo': 42, 'foo': 43}
 ```
 
+Accessing elements of a dictionary works similarly to array indexing:
+
+```meson
+my_dict = {'foo': 42, 'bar': 'baz'}
+forty_two = my_dict['foo']
+# This will fail
+my_dict['does_not_exist']
+```
+
 Dictionaries are immutable and do not have a guaranteed order.
 
 Dictionaries are available since 0.47.0.
