@@ -28,7 +28,10 @@ if T.TYPE_CHECKING:
     class MesonExceptionKeywordArguments(TypedDict):
         file: NotRequired[str]
         lineno: NotRequired[int]
+        end_lineno: NotRequired[int]
         colno: NotRequired[int]
+        end_colno: NotRequired[int]
+        error_resolve: NotRequired[str]
 
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
@@ -36,22 +39,31 @@ class MesonException(Exception):
     file: T.Optional[str]
     lineno: T.Optional[int]
     colno: T.Optional[int]
+    end_colno: T.Optional[int]
+    source: T.Optional[str]
+    error_resolve: T.Optional[str]
 
     def __init__(self, *args: object, **kwargs: Unpack[MesonExceptionKeywordArguments]):
         super().__init__(*args)
 
         self.file = kwargs.get('file', None)
         self.lineno = kwargs.get('lineno', None)
+        self.end_lineno = kwargs.get('end_lineno', self.lineno)
         self.colno = kwargs.get('colno', None)
+        self.end_colno = kwargs.get('end_colno', None)
+        self.error_resolve = kwargs.get('error_resolve', None)
+        self.source = None
 
     @classmethod
-    def from_node(cls, *args: object, node: BaseNode) -> MesonException:
+    def from_node(cls, *args: object, node: BaseNode, error_resolve: T.Optional[str] = None) -> MesonException:
         """Create a MesonException with location data from a BaseNode
 
         :param node: A BaseNode to set location data from
         :return: A Meson Exception instance
         """
-        return cls(*args, file=node.filename, lineno=node.lineno, colno=node.colno)
+        e = cls(*args, file=node.filename, lineno=node.lineno, end_lineno=node.end_lineno,
+                colno=node.colno, end_colno=node.end_colno, error_resolve=error_resolve)
+        return e
 
 class MesonBugException(MesonException):
     '''Exceptions thrown when there is a clear Meson bug that should be reported'''
