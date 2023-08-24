@@ -634,7 +634,7 @@ class NinjaBackend(backends.Backend):
                 mlog.debug(f'Using {gcovr_exe} ({gcovr_version}), {lcov_exe} and {llvm_cov_exe} for code coverage')
                 if gcovr_exe or (lcov_exe and genhtml_exe):
                     self.add_build_comment(NinjaComment('Coverage rules'))
-                    self.generate_coverage_rules(gcovr_exe, gcovr_version)
+                    self.generate_coverage_rules(gcovr_exe, gcovr_version, llvm_cov_exe)
                     mlog.log_timestamp("Coverage rules generated")
                 else:
                     # FIXME: since we explicitly opted in, should this be an error?
@@ -1209,9 +1209,15 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         self.processed_targets.add(target.get_id())
 
-    def generate_coverage_command(self, elem, outputs):
+    def generate_coverage_command(self, elem, outputs: T.List[str], gcovr_exe: T.Optional[str], llvm_cov_exe: T.Optional[str]):
         targets = self.build.get_targets().values()
         use_llvm_cov = False
+        exe_args = []
+        if gcovr_exe is not None:
+            exe_args += ['--gcov', gcovr_exe]
+        if llvm_cov_exe is not None:
+            exe_args += ['--llvm-cov', llvm_cov_exe]
+
         for target in targets:
             if not hasattr(target, 'compilers'):
                 continue
@@ -1227,35 +1233,36 @@ class NinjaBackend(backends.Backend):
                                     self.build.get_subproject_dir()),
                        self.environment.get_build_dir(),
                        self.environment.get_log_dir()] +
-                      (['--use_llvm_cov'] if use_llvm_cov else []))
+                      exe_args +
+                      (['--use-llvm-cov'] if use_llvm_cov else []))
 
-    def generate_coverage_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str]):
+    def generate_coverage_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str], llvm_cov_exe: T.Optional[str]):
         e = self.create_phony_target('coverage', 'CUSTOM_COMMAND', 'PHONY')
-        self.generate_coverage_command(e, [])
+        self.generate_coverage_command(e, [], gcovr_exe, llvm_cov_exe)
         e.add_item('description', 'Generates coverage reports')
         self.add_build(e)
-        self.generate_coverage_legacy_rules(gcovr_exe, gcovr_version)
+        self.generate_coverage_legacy_rules(gcovr_exe, gcovr_version, llvm_cov_exe)
 
-    def generate_coverage_legacy_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str]):
+    def generate_coverage_legacy_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str], llvm_cov_exe: T.Optional[str]):
         e = self.create_phony_target('coverage-html', 'CUSTOM_COMMAND', 'PHONY')
-        self.generate_coverage_command(e, ['--html'])
+        self.generate_coverage_command(e, ['--html'], gcovr_exe, llvm_cov_exe)
         e.add_item('description', 'Generates HTML coverage report')
         self.add_build(e)
 
         if gcovr_exe:
             e = self.create_phony_target('coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
-            self.generate_coverage_command(e, ['--xml'])
+            self.generate_coverage_command(e, ['--xml'], gcovr_exe, llvm_cov_exe)
             e.add_item('description', 'Generates XML coverage report')
             self.add_build(e)
 
             e = self.create_phony_target('coverage-text', 'CUSTOM_COMMAND', 'PHONY')
-            self.generate_coverage_command(e, ['--text'])
+            self.generate_coverage_command(e, ['--text'], gcovr_exe, llvm_cov_exe)
             e.add_item('description', 'Generates text coverage report')
             self.add_build(e)
 
             if mesonlib.version_compare(gcovr_version, '>=4.2'):
                 e = self.create_phony_target('coverage-sonarqube', 'CUSTOM_COMMAND', 'PHONY')
-                self.generate_coverage_command(e, ['--sonarqube'])
+                self.generate_coverage_command(e, ['--sonarqube'], gcovr_exe, llvm_cov_exe)
                 e.add_item('description', 'Generates Sonarqube XML coverage report')
                 self.add_build(e)
 
