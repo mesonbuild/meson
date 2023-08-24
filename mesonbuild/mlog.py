@@ -362,18 +362,57 @@ class _Logger:
         if prefix is None:
             prefix = red('ERROR:')
         self.log()
+        args_prefix: T.List[T.Union[AnsiDecorator, str]] = []
         args: T.List[T.Union[AnsiDecorator, str]] = []
+        node_content: T.List[T.Union[AnsiDecorator, str]] = []
+        node_marker: T.List[T.Union[AnsiDecorator, str]] = []
+        node_resolve: T.List[T.Union[AnsiDecorator, str]] = []
         if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
             # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
             # that this is correct, so we'll just ignore it.
             path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
-            args.append(f'{path}:{e.lineno}:{e.colno}:')  # type: ignore
+            args_prefix.append(f'{path}:{e.lineno}:{e.colno}:')  # type: ignore
         if prefix:
             args.append(prefix)
         args.append(str(e))
 
+        if all(getattr(e, a, None) is not None for a in ['source', 'lineno', 'colno']):
+            colno = getattr(e, 'colno')
+            lineno = getattr(e, 'lineno')
+            end_lineno = getattr(e, 'end_lineno', lineno)
+            if end_lineno is None:
+                end_lineno = lineno
+            source = getattr(e, 'source')
+            assert lineno <= end_lineno
+
+            # TODO: use source span in bytes position instead of line position
+            lines = source.splitlines()
+
+            # Missing expected source lines are sourced past the end of the file
+            # See test `failing-meson/118 missing compiler` for an example.
+            if 1 <= lineno <= len(lines):
+                line_content = lines[lineno - 1]
+                lineno_size = len(str(end_lineno))
+                lineno_str = str(lineno).rjust(lineno_size)
+                empty_lineno = (lineno_size + 1) * ' '
+
+                # We need to decide how many error markers need to be printed.
+                end_colno = len(line_content)
+                if getattr(e, 'end_colno', None) is not None and lineno == e.end_lineno: # type: ignore
+                    end_colno = getattr(e, 'end_colno')
+
+                node_content.append(f' {lineno_str} | {line_content}')
+                node_marker.append(empty_lineno + ' | ' + colno * ' ' + (end_colno - colno) * '^')
+
+                error_resolve = getattr(e, 'error_resolve', None)
+                if error_resolve is not None:
+                    node_resolve.append(empty_lineno + ' | ' + colno * ' ')
+                    node_resolve.append(yellow(f'{error_resolve}'))
+
         with self.force_logging():
-            self.log(*args, is_error=True)
+            for args_list in [args, node_content, node_marker, node_resolve]:
+                if args_list:
+                    self.log(*(args_prefix + args_list), is_error=True)
 
     @contextmanager
     def nested(self, name: str = '') -> T.Generator[None, None, None]:
