@@ -55,6 +55,9 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
+    elif 'lld-link' in compiler:
+        override = comp_class.use_linker_args('lld-link', comp_version)
+        check_args += override
 
     if extra_args is not None:
         check_args.extend(extra_args)
