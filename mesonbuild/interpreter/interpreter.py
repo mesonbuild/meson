@@ -3247,6 +3247,10 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         name, sources = args
         for_machine = self.machine_from_native_kwarg(kwargs)
+        if kwargs.get('rust_crate_type') == 'proc-macro':
+            # Silently force to native because that's the only sensible value
+            # and rust_crate_type is deprecated any way.
+            for_machine = MachineChoice.BUILD
         if 'sources' in kwargs:
             sources += listify(kwargs['sources'])
         if any(isinstance(s, build.BuildTarget) for s in sources):
