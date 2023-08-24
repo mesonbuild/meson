@@ -293,7 +293,7 @@ class InterpreterBase:
             self.tmp_meson_version = None
             result = self.evaluate_statement(i.condition)
             if result is None:
-                raise InvalidCodeOnVoid('if')
+                raise InvalidCodeOnVoid.from_node('if', node=i.condition)
             if isinstance(result, Disabler):
                 return result
             if not isinstance(result, InterpreterObject):
