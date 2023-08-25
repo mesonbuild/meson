@@ -116,7 +116,7 @@ class Lexer:
             self.keywords.update({'testcase', 'endtestcase'})
         self.token_specification = [
             # Need to be sorted longest to shortest.
-            ('ignore', re.compile(r'[ \t]')),
+            ('whitespace', re.compile(r'[ \t]+')),
             ('multiline_fstring', re.compile(r"f'''(.|\n)*?'''", re.M)),
             ('fstring', re.compile(r"f'([^'\\]|(\\.))*'")),
             ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
@@ -178,9 +178,7 @@ class Lexer:
                     span_end = loc
                     bytespan = (span_start, span_end)
                     value = mo.group()
-                    if tid in {'ignore', 'comment'}:
-                        break
-                    elif tid == 'lparen':
+                    if tid == 'lparen':
                         par_count += 1
                     elif tid == 'rparen':
                         par_count -= 1
@@ -210,12 +208,12 @@ class Lexer:
                     elif tid == 'eol_cont':
                         lineno += 1
                         line_start = loc
-                        break
+                        tid = 'whitespace'
                     elif tid == 'eol':
                         lineno += 1
                         line_start = loc
                         if par_count > 0 or bracket_count > 0 or curl_count > 0:
-                            break
+                            tid = 'whitespace'
                     elif tid == 'id':
                         if value in self.keywords:
                             tid = value
@@ -235,6 +233,7 @@ class BaseNode:
     filename: str = field(hash=False)
     end_lineno: int = field(hash=False)
     end_colno: int = field(hash=False)
+    whitespaces: T.Optional[WhitespaceNode] = field(hash=False)
 
     def __init__(self, lineno: int, colno: int, filename: str,
                  end_lineno: T.Optional[int] = None, end_colno: T.Optional[int] = None) -> None:
@@ -256,6 +255,26 @@ class BaseNode:
             func = getattr(visitor, fname)
             if callable(func):
                 func(self)
+
+    def append_whitespaces(self, token: Token) -> None:
+        if self.whitespaces is None:
+            self.whitespaces = WhitespaceNode(token)
+        else:
+            self.whitespaces.append(token)
+
+
+@dataclass(unsafe_hash=True)
+class WhitespaceNode(BaseNode):
+
+    value: str
+
+    def __init__(self, token: Token[str]):
+        super().__init__(token.lineno, token.colno, token.filename)
+        self.value = ''
+        self.append(token)
+
+    def append(self, token: Token[str]) -> None:
+        self.value += token.value
 
 @dataclass(unsafe_hash=True)
 class ElementaryNode(T.Generic[TV_TokenTypes], BaseNode):
@@ -456,12 +475,21 @@ class UMinusNode(UnaryOperatorNode):
 @dataclass(unsafe_hash=True)
 class CodeBlockNode(BaseNode):
 
+    pre_whitespaces: T.Optional[WhitespaceNode] = field(hash=False)
     lines: T.List[BaseNode] = field(hash=False)
 
     def __init__(self, token: Token[TV_TokenTypes]):
         super().__init__(token.lineno, token.colno, token.filename)
         self.pre_whitespaces = None
         self.lines = []
+
+    def append_whitespaces(self, token: Token) -> None:
+        if self.lines:
+            self.lines[-1].append_whitespaces(token)
+        elif self.pre_whitespaces is None:
+            self.pre_whitespaces = WhitespaceNode(token)
+        else:
+            self.pre_whitespaces.append(token)
 
 @dataclass(unsafe_hash=True)
 class IndexNode(BaseNode):
@@ -669,18 +697,28 @@ class Parser:
         self.stream = self.lexer.lex(filename)
         self.current: Token = Token('eof', '', 0, 0, 0, (0, 0), None)
         self.previous = self.current
+        self.current_ws: T.List[Token] = []
 
         self.getsym()
         self.in_ternary = False
 
     def create_node(self, node_type: T.Type[BaseNodeT], *args: T.Any, **kwargs: T.Any) -> BaseNodeT:
         node = node_type(*args, **kwargs)
+        for ws_token in self.current_ws:
+            node.append_whitespaces(ws_token)
+        self.current_ws = []
         return node
 
     def getsym(self) -> None:
         self.previous = self.current
         try:
             self.current = next(self.stream)
+
+            while self.current.tid in {'eol', 'comment', 'whitespace'}:
+                self.current_ws.append(self.current)
+                if self.current.tid == 'eol':
+                    break
+                self.current = next(self.stream)
 
         except StopIteration:
             self.current = Token('eof', '', self.current.line_start, self.current.lineno, self.current.colno + self.current.bytespan[1] - self.current.bytespan[0], (0, 0), None)
@@ -782,11 +820,17 @@ class Parser:
                 operator = self.create_node(SymbolNode, self.previous)
                 return self.create_node(ComparisonNode, operator_type, left, operator, self.e5())
         if self.accept('not'):
+            ws = self.current_ws.copy()
             not_token = self.previous
             if self.accept('in'):
                 in_token = self.previous
+                self.current_ws = self.current_ws[len(ws):]  # remove whitespaces between not and in
+                temp_node = EmptyNode(in_token.lineno, in_token.colno, in_token.filename)
+                for w in ws:
+                    temp_node.append_whitespaces(w)
+
                 not_token.bytespan = (not_token.bytespan[0], in_token.bytespan[1])
-                not_token.value += in_token.value
+                not_token.value += temp_node.whitespaces.value + in_token.value
                 operator = self.create_node(SymbolNode, not_token)
                 return self.create_node(ComparisonNode, 'notin', left, operator, self.e5())
         return left
@@ -1054,6 +1098,10 @@ class Parser:
 
         try:
             while cond:
+                for ws_token in self.current_ws:
+                    block.append_whitespaces(ws_token)
+                self.current_ws = []
+
                 curline = self.line()
 
                 if not isinstance(curline, EmptyNode):
@@ -1064,5 +1112,10 @@ class Parser:
         except ParseException as e:
             e.ast = block
             raise
+
+        # Remaining whitespaces will not be catched since there are no more nodes
+        for ws_token in self.current_ws:
+            block.append_whitespaces(ws_token)
+        self.current_ws = []
 
         return block
