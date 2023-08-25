@@ -312,7 +312,7 @@ class AstInterpreter(InterpreterBase):
         for i in node.ifs:
             self.evaluate_codeblock(i.block)
         if not isinstance(node.elseblock, EmptyNode):
-            self.evaluate_codeblock(node.elseblock)
+            self.evaluate_codeblock(node.elseblock.block)
 
     def get_variable(self, varname: str) -> int:
         return 0

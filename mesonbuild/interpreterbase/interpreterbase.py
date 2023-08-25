@@ -303,7 +303,7 @@ class InterpreterBase:
                     mesonlib.project_meson_versions[self.subproject] = prev_meson_version
                 return None
         if not isinstance(node.elseblock, mparser.EmptyNode):
-            self.evaluate_codeblock(node.elseblock)
+            self.evaluate_codeblock(node.elseblock.block)
         return None
 
     def evaluate_testcase(self, node: mparser.TestCaseClauseNode) -> T.Optional[Disabler]:

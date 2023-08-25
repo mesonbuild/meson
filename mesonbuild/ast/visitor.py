@@ -143,6 +143,10 @@ class AstVisitor:
         node.condition.accept(self)
         node.block.accept(self)
 
+    def visit_ElseNode(self, node: mparser.IfNode) -> None:
+        self.visit_default_func(node)
+        node.block.accept(self)
+
     def visit_TernaryNode(self, node: mparser.TernaryNode) -> None:
         self.visit_default_func(node)
         node.condition.accept(self)

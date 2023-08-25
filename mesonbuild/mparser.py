@@ -534,17 +534,25 @@ class IfNode(BaseNode):
         self.condition = condition
         self.block = block
 
+@dataclass(unsafe_hash=True)
+class ElseNode(BaseNode):
+
+    block: CodeBlockNode
+
+    def __init__(self, block: CodeBlockNode):
+        super().__init__(block.lineno, block.colno, block.filename)
+        self.block = block
 
 @dataclass(unsafe_hash=True)
 class IfClauseNode(BaseNode):
 
     ifs: T.List[IfNode] = field(hash=False)
-    elseblock: T.Union[EmptyNode, CodeBlockNode]
+    elseblock: T.Union[EmptyNode, ElseNode]
 
     def __init__(self, linenode: BaseNode):
         super().__init__(linenode.lineno, linenode.colno, linenode.filename)
         self.ifs = []
-        self.elseblock = None
+        self.elseblock = EmptyNode(linenode.lineno, linenode.colno, linenode.filename)
 
 @dataclass(unsafe_hash=True)
 class TestCaseClauseNode(BaseNode):
@@ -919,10 +927,11 @@ class Parser:
             b = self.codeblock()
             clause.ifs.append(IfNode(s, s, b))
 
-    def elseblock(self) -> T.Union[CodeBlockNode, EmptyNode]:
+    def elseblock(self) -> T.Union[ElseNode, EmptyNode]:
         if self.accept('else'):
             self.expect('eol')
-            return self.codeblock()
+            block = self.codeblock()
+            return ElseNode(block)
         return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
     def testcaseblock(self) -> TestCaseClauseNode:
