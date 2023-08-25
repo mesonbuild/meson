@@ -55,6 +55,12 @@ class AstVisitor:
     def visit_BreakNode(self, node: mparser.BreakNode) -> None:
         self.visit_default_func(node)
 
+    def visit_SymbolNode(self, node: mparser.SymbolNode) -> None:
+        self.visit_default_func(node)
+
+    def visit_WhitespaceNode(self, node: mparser.WhitespaceNode) -> None:
+        self.visit_default_func(node)
+
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self.visit_default_func(node)
         node.args.accept(self)
