@@ -389,7 +389,7 @@ class IncludeDirs(HoldableObject):
     def get_extra_build_dirs(self) -> T.List[str]:
         return self.extra_build_dirs
 
-    def to_string_list(self, sourcedir: str, builddir: T.Optional[str] = None) -> T.List[str]:
+    def to_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
         """Convert IncludeDirs object to a list of strings.
 
         :param sourcedir: The absolute source directory
@@ -400,8 +400,7 @@ class IncludeDirs(HoldableObject):
         strlist: T.List[str] = []
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            if builddir:
-                strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, self.curdir, idir))
         return strlist
 
 @dataclass(eq=False)

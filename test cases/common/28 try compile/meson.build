@@ -12,8 +12,21 @@ warncode = '''#warning This is a warning
 int main(void) { return 0; }
 '''
 
+configure_file(
+  input: 'foo.h.in',
+  output: 'foo.h',
+  configuration: {},
+)
+
+header_code = '#include "foo.h"'
+
 foreach lang : ['c', 'cpp']
   compiler = meson.get_compiler(lang)
+
+  assert(not compiler.compiles(header_code, name: 'Should not include . by default'))
+  assert(compiler.compiles(header_code, name: 'Should include builddir',
+    include_directories: include_directories('.'),
+  ))
 
   if compiler.compiles(code, name : 'code should succeed') == false
     error('Compiler ' + compiler.get_id() + ' is fail.')
