@@ -623,10 +623,12 @@ class Parser:
         self.lexer = Lexer(code)
         self.stream = self.lexer.lex(filename)
         self.current: Token = Token('eof', '', 0, 0, 0, (0, 0), None)
+        self.previous = self.current
         self.getsym()
         self.in_ternary = False
 
     def getsym(self) -> None:
+        self.previous = self.current
         try:
             self.current = next(self.stream)
         except StopIteration:
@@ -831,10 +833,9 @@ class Parser:
         while not isinstance(s, EmptyNode):
             if self.accept('colon'):
                 a.set_kwarg_no_check(s, self.statement())
-                potential = self.current
                 if not self.accept('comma'):
                     return a
-                a.commas.append(potential)
+                a.commas.append(self.previous)
             else:
                 raise ParseException('Only key:value pairs are valid in dict construction.',
                                      self.getline(), s.lineno, s.colno)
@@ -846,19 +847,17 @@ class Parser:
         a = ArgumentNode(self.current)
 
         while not isinstance(s, EmptyNode):
-            potential = self.current
             if self.accept('comma'):
-                a.commas.append(potential)
+                a.commas.append(self.previous)
                 a.append(s)
             elif self.accept('colon'):
                 if not isinstance(s, IdNode):
                     raise ParseException('Dictionary key must be a plain identifier.',
                                          self.getline(), s.lineno, s.colno)
                 a.set_kwarg(s, self.statement())
-                potential = self.current
                 if not self.accept('comma'):
                     return a
-                a.commas.append(potential)
+                a.commas.append(self.previous)
             else:
                 a.append(s)
                 return a
@@ -888,17 +887,15 @@ class Parser:
         return IndexNode(source_object, index_statement)
 
     def foreachblock(self) -> ForeachClauseNode:
-        t = self.current
         self.expect('id')
-        assert isinstance(t.value, str)
-        varname = t
-        varnames = [IdNode(t)]
+        assert isinstance(self.previous.value, str)
+        varname = self.previous
+        varnames = [IdNode(self.previous)]
 
         if self.accept('comma'):
-            t = self.current
             self.expect('id')
-            assert isinstance(t.value, str)
-            varnames.append(IdNode(t))
+            assert isinstance(self.previous.value, str)
+            varnames.append(IdNode(self.previous))
 
         self.expect('colon')
         items = self.statement()
