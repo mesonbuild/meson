@@ -172,7 +172,7 @@ def assign(value: mparser.BaseNode, varname: str, filename: str) -> mparser.Assi
     :param filename: The filename
     :return: An AssignmentNode
     """
-    return mparser.AssignmentNode(filename, -1, -1, identifier(varname, filename), _symbol(filename, '='), value)
+    return mparser.AssignmentNode(identifier(varname, filename), _symbol(filename, '='), value)
 
 
 def block(filename: str) -> mparser.CodeBlockNode:

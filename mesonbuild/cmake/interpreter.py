@@ -1021,7 +1021,7 @@ class CMakeInterpreter:
             return MethodNode(self.subdir.as_posix(), 0, 0, obj, symbol('.'), id_node(name), symbol('('), args_n, symbol(')'))
 
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:
-            return AssignmentNode(self.subdir.as_posix(), 0, 0, id_node(var_name), symbol('='), value)
+            return AssignmentNode(id_node(var_name), symbol('='), value)
 
         # Generate the root code block and the project function call
         root_cb = CodeBlockNode(token())

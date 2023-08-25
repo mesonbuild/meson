@@ -192,6 +192,8 @@ class InterpreterBase:
         self.current_node = cur
         if isinstance(cur, mparser.FunctionNode):
             return self.function_call(cur)
+        elif isinstance(cur, mparser.PlusAssignmentNode):
+            self.evaluate_plusassign(cur)
         elif isinstance(cur, mparser.AssignmentNode):
             self.assignment(cur)
         elif isinstance(cur, mparser.MethodNode):
@@ -229,8 +231,6 @@ class InterpreterBase:
             return self.evaluate_arithmeticstatement(cur)
         elif isinstance(cur, mparser.ForeachClauseNode):
             self.evaluate_foreach(cur)
-        elif isinstance(cur, mparser.PlusAssignmentNode):
-            self.evaluate_plusassign(cur)
         elif isinstance(cur, mparser.IndexNode):
             return self.evaluate_indexing(cur)
         elif isinstance(cur, mparser.TernaryNode):

@@ -530,7 +530,6 @@ class FunctionNode(BaseNode):
         self.args = args
         self.rpar = rpar
 
-
 @dataclass(unsafe_hash=True)
 class AssignmentNode(BaseNode):
 
@@ -538,28 +537,14 @@ class AssignmentNode(BaseNode):
     operator: SymbolNode
     value: BaseNode
 
-    def __init__(self, filename: str, lineno: int, colno: int,
-                 var_name: IdNode, operator: SymbolNode, value: BaseNode):
-        super().__init__(lineno, colno, filename)
+    def __init__(self, var_name: IdNode, operator: SymbolNode, value: BaseNode):
+        super().__init__(var_name.lineno, var_name.colno, var_name.filename)
         self.var_name = var_name
         self.operator = operator
         self.value = value
 
-
-@dataclass(unsafe_hash=True)
-class PlusAssignmentNode(BaseNode):
-
-    var_name: IdNode
-    operator: SymbolNode
-    value: BaseNode
-
-    def __init__(self, filename: str, lineno: int, colno: int,
-                 var_name: IdNode, operator: SymbolNode, value: BaseNode):
-        super().__init__(lineno, colno, filename)
-        self.var_name = var_name
-        self.operator = operator
-        self.value = value
-
+class PlusAssignmentNode(AssignmentNode):
+    pass
 
 @dataclass(unsafe_hash=True)
 class ForeachClauseNode(BaseNode):
@@ -775,7 +760,7 @@ class Parser:
             if not isinstance(left, IdNode):
                 raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            return self.create_node(PlusAssignmentNode, left.filename, left.lineno, left.colno, left, operator, value)
+            return self.create_node(PlusAssignmentNode, left, operator, value)
         elif self.accept('assign'):
             operator = self.create_node(SymbolNode, self.previous)
             value = self.e1()
@@ -783,7 +768,7 @@ class Parser:
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            return self.create_node(AssignmentNode, left.filename, left.lineno, left.colno, left, operator, value)
+            return self.create_node(AssignmentNode, left, operator, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
