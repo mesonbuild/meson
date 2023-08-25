@@ -376,9 +376,8 @@ class ArrayNode(BaseNode):
     args: ArgumentNode
     rbracket: SymbolNode
 
-    def __init__(self, lbracket: SymbolNode, args: ArgumentNode, rbracket: SymbolNode,
-                 lineno: int, colno: int, end_lineno: int, end_colno: int):
-        super().__init__(lineno, colno, args.filename, end_lineno=end_lineno, end_colno=end_colno)
+    def __init__(self, lbracket: SymbolNode, args: ArgumentNode, rbracket: SymbolNode):
+        super().__init__(lbracket.lineno, lbracket.colno, args.filename, end_lineno=rbracket.lineno, end_colno=rbracket.colno+1)
         self.lbracket = lbracket
         self.args = args
         self.rbracket = rbracket
@@ -390,9 +389,8 @@ class DictNode(BaseNode):
     args: ArgumentNode
     rcurl: SymbolNode
 
-    def __init__(self, lcurl: SymbolNode, args: ArgumentNode, rcurl: SymbolNode,
-                 lineno: int, colno: int, end_lineno: int, end_colno: int):
-        super().__init__(lineno, colno, args.filename, end_lineno=end_lineno, end_colno=end_colno)
+    def __init__(self, lcurl: SymbolNode, args: ArgumentNode, rcurl: SymbolNode):
+        super().__init__(lcurl.lineno, lcurl.colno, args.filename, end_lineno=rcurl.lineno, end_colno=rcurl.colno+1)
         self.lcurl = lcurl
         self.args = args
         self.rcurl = rcurl
@@ -490,9 +488,8 @@ class MethodNode(BaseNode):
     args: ArgumentNode
     rpar: SymbolNode
 
-    def __init__(self, filename: str, lineno: int, colno: int,
-                 source_object: BaseNode, dot: SymbolNode, name: IdNode, lpar: SymbolNode, args: ArgumentNode, rpar: SymbolNode):
-        super().__init__(lineno, colno, filename)
+    def __init__(self, source_object: BaseNode, dot: SymbolNode, name: IdNode, lpar: SymbolNode, args: ArgumentNode, rpar: SymbolNode):
+        super().__init__(name.lineno, name.colno, name.filename, end_lineno=rpar.lineno, end_colno=rpar.colno+1)
         self.source_object = source_object
         self.dot = dot
         self.name = name
@@ -508,9 +505,8 @@ class FunctionNode(BaseNode):
     args: ArgumentNode
     rpar: SymbolNode
 
-    def __init__(self, filename: str, lineno: int, colno: int, end_lineno: int, end_colno: int,
-                 func_name: IdNode, lpar: SymbolNode, args: ArgumentNode, rpar: SymbolNode):
-        super().__init__(lineno, colno, filename, end_lineno=end_lineno, end_colno=end_colno)
+    def __init__(self, func_name: IdNode, lpar: SymbolNode, args: ArgumentNode, rpar: SymbolNode):
+        super().__init__(func_name.lineno, func_name.colno, func_name.filename, end_lineno=rpar.end_lineno, end_colno=rpar.end_colno+1)
         self.func_name = func_name
         self.lpar = lpar
         self.args = args
@@ -631,8 +627,8 @@ class ParenthesizedNode(BaseNode):
     inner: BaseNode
     rpar: SymbolNode = field(hash=False)
 
-    def __init__(self, lpar: SymbolNode, inner: BaseNode, rpar: SymbolNode, lineno: int, colno: int, end_lineno: int, end_colno: int):
-        super().__init__(lineno, colno, inner.filename, end_lineno=end_lineno, end_colno=end_colno)
+    def __init__(self, lpar: SymbolNode, inner: BaseNode, rpar: SymbolNode):
+        super().__init__(lpar.lineno, lpar.colno, inner.filename, end_lineno=rpar.lineno, end_colno=rpar.colno+1)
         self.lpar = lpar
         self.inner = inner
         self.rpar = rpar
@@ -850,7 +846,7 @@ class Parser:
                 raise ParseException('Function call must be applied to plain id',
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            left = self.create_node(FunctionNode, left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left, lpar, args, rpar)
+            left = self.create_node(FunctionNode, left, lpar, args, rpar)
         go_again = True
         while go_again:
             go_again = False
@@ -869,19 +865,19 @@ class Parser:
             e = self.statement()
             self.block_expect('rparen', block_start)
             rpar = self.create_node(SymbolNode, self.previous)
-            return ParenthesizedNode(lpar, e, rpar, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            return ParenthesizedNode(lpar, e, rpar)
         elif self.accept('lbracket'):
             lbracket = self.create_node(SymbolNode, block_start)
             args = self.args()
             self.block_expect('rbracket', block_start)
             rbracket = self.create_node(SymbolNode, self.previous)
-            return self.create_node(ArrayNode, lbracket, args, rbracket, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            return self.create_node(ArrayNode, lbracket, args, rbracket)
         elif self.accept('lcurl'):
             lcurl = self.create_node(SymbolNode, block_start)
             key_values = self.key_values()
             self.block_expect('rcurl', block_start)
             rcurl = self.create_node(SymbolNode, self.previous)
-            return self.create_node(DictNode, lcurl, key_values, rcurl, block_start.lineno, block_start.colno, self.current.lineno, self.current.colno)
+            return self.create_node(DictNode, lcurl, key_values, rcurl)
         else:
             return self.e9()
 
@@ -962,8 +958,7 @@ class Parser:
         args = self.args()
         rpar = self.create_node(SymbolNode, self.current)
         self.expect('rparen')
-        method = self.create_node(MethodNode, methodname.filename, methodname.lineno, methodname.colno,
-                                  source_object, dot, methodname, lpar, args, rpar)
+        method = self.create_node(MethodNode, source_object, dot, methodname, lpar, args, rpar)
         if self.accept('dot'):
             return self.method_call(method)
         return method

@@ -995,7 +995,7 @@ class CMakeInterpreter:
             if not isinstance(elements, list):
                 elements = [args]
             args.arguments += [nodeify(x) for x in elements if x is not None]
-            return ArrayNode(symbol('['), args, symbol(']'), 0, 0, 0, 0)
+            return ArrayNode(symbol('['), args, symbol(']'))
 
         def function(name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> FunctionNode:
             args = [] if args is None else args
@@ -1006,7 +1006,7 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            func_n = FunctionNode(self.subdir.as_posix(), 0, 0, 0, 0, id_node(name), symbol('('), args_n, symbol(')'))
+            func_n = FunctionNode(id_node(name), symbol('('), args_n, symbol(')'))
             return func_n
 
         def method(obj: BaseNode, name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> MethodNode:
@@ -1018,7 +1018,7 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            return MethodNode(self.subdir.as_posix(), 0, 0, obj, symbol('.'), id_node(name), symbol('('), args_n, symbol(')'))
+            return MethodNode(obj, symbol('.'), id_node(name), symbol('('), args_n, symbol(')'))
 
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:
             return AssignmentNode(id_node(var_name), symbol('='), value)

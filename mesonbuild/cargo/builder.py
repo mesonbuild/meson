@@ -71,7 +71,7 @@ def array(value: T.List[mparser.BaseNode], filename: str) -> mparser.ArrayNode:
     """
     args = mparser.ArgumentNode(_token('array', filename, 'unused'))
     args.arguments = value
-    return mparser.ArrayNode(_symbol(filename, '['), args, _symbol(filename, ']'), -1, -1, -1, -1)
+    return mparser.ArrayNode(_symbol(filename, '['), args, _symbol(filename, ']'))
 
 
 def identifier(value: str, filename: str) -> mparser.IdNode:
@@ -101,7 +101,7 @@ def method(name: str, id_: mparser.IdNode,
         args.arguments = pos
     if kw is not None:
         args.kwargs = {identifier(k, id_.filename): v for k, v in kw.items()}
-    return mparser.MethodNode(id_.filename, -1, -1, id_, _symbol(id_.filename, '.'), identifier(name, id_.filename), _symbol(id_.filename, '('), args, _symbol(id_.filename, ')'))
+    return mparser.MethodNode(id_, _symbol(id_.filename, '.'), identifier(name, id_.filename), _symbol(id_.filename, '('), args, _symbol(id_.filename, ')'))
 
 
 def function(name: str, filename: str,
@@ -121,7 +121,7 @@ def function(name: str, filename: str,
         args.arguments = pos
     if kw is not None:
         args.kwargs = {identifier(k, filename): v for k, v in kw.items()}
-    return mparser.FunctionNode(filename, -1, -1, -1, -1, identifier(name, filename), _symbol(filename, '('), args, _symbol(filename, ')'))
+    return mparser.FunctionNode(identifier(name, filename), _symbol(filename, '('), args, _symbol(filename, ')'))
 
 
 def equal(lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:

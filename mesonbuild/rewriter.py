@@ -192,7 +192,7 @@ class MTypeList(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return ArrayNode(_symbol('['), ArgumentNode(Token('', '', 0, 0, 0, None, '')), _symbol(']'), 0, 0, 0, 0)
+        return ArrayNode(_symbol('['), ArgumentNode(Token('', '', 0, 0, 0, None, '')), _symbol(']'))
 
     def _new_element_node(self, value):
         # Overwrite in derived class
@@ -731,7 +731,7 @@ class Rewriter:
                     node = tgt_function.args.kwargs[extra_files_key]
                 except StopIteration:
                     # Target has no extra_files kwarg, create one
-                    node = ArrayNode(_symbol('['), ArgumentNode(Token('', tgt_function.filename, 0, 0, 0, None, '[]')), _symbol(']'), tgt_function.end_lineno, tgt_function.end_colno, tgt_function.end_lineno, tgt_function.end_colno)
+                    node = ArrayNode(_symbol('['), ArgumentNode(Token('', tgt_function.filename, 0, 0, 0, None, '[]')), _symbol(']'))
                     tgt_function.args.kwargs[IdNode(Token('string', tgt_function.filename, 0, 0, 0, None, 'extra_files'))] = node
                     mark_array = False
                     if tgt_function not in self.modified_nodes:
@@ -815,16 +815,16 @@ class Rewriter:
 
             # Build src list
             src_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            src_arr_node = ArrayNode(_symbol('['), src_arg_node, _symbol(']'), 0, 0, 0, 0)
+            src_arr_node = ArrayNode(_symbol('['), src_arg_node, _symbol(']'))
             src_far_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            src_fun_node = FunctionNode(filename, 0, 0, 0, 0, IdNode(Token('id', filename, 0, 0, 0, (0, 0), 'files')), _symbol('('), src_far_node, _symbol(')'))
+            src_fun_node = FunctionNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), 'files')), _symbol('('), src_far_node, _symbol(')'))
             src_ass_node = AssignmentNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), source_id)), _symbol('='), src_fun_node)
             src_arg_node.arguments = [StringNode(Token('string', filename, 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
             tgt_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            tgt_fun_node = FunctionNode(filename, 0, 0, 0, 0, IdNode(Token('id', filename, 0, 0, 0, (0, 0), cmd['target_type'])), _symbol('('), tgt_arg_node, _symbol(')'))
+            tgt_fun_node = FunctionNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), cmd['target_type'])), _symbol('('), tgt_arg_node, _symbol(')'))
             tgt_ass_node = AssignmentNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), target_id)), _symbol('='), tgt_fun_node)
             tgt_arg_node.arguments = [
                 StringNode(Token('string', filename, 0, 0, 0, None, cmd['target'])),
