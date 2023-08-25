@@ -401,7 +401,7 @@ class EmptyNode(BaseNode):
     pass
 
 @dataclass(unsafe_hash=True)
-class OrNode(BaseNode):
+class BinaryOperatorNode(BaseNode):
 
     left: BaseNode
     operator: SymbolNode
@@ -413,53 +413,33 @@ class OrNode(BaseNode):
         self.operator = operator
         self.right = right
 
-@dataclass(unsafe_hash=True)
-class AndNode(BaseNode):
+class OrNode(BinaryOperatorNode):
+    pass
 
-    left: BaseNode
-    operator: SymbolNode
-    right: BaseNode
-
-    def __init__(self, left: BaseNode, operator: SymbolNode, right: BaseNode):
-        super().__init__(left.lineno, left.colno, left.filename)
-        self.left = left
-        self.operator = operator
-        self.right = right
+class AndNode(BinaryOperatorNode):
+    pass
 
 @dataclass(unsafe_hash=True)
-class ComparisonNode(BaseNode):
+class ComparisonNode(BinaryOperatorNode):
 
-    left: BaseNode
-    operator: SymbolNode
-    right: BaseNode
     ctype: COMPARISONS
 
     def __init__(self, ctype: COMPARISONS, left: BaseNode, operator: SymbolNode, right: BaseNode):
-        super().__init__(left.lineno, left.colno, left.filename)
-        self.left = left
-        self.operator = operator
-        self.right = right
+        super().__init__(left, operator, right)
         self.ctype = ctype
 
 @dataclass(unsafe_hash=True)
-class ArithmeticNode(BaseNode):
+class ArithmeticNode(BinaryOperatorNode):
 
-    left: BaseNode
-    right: BaseNode
     # TODO: use a Literal for operation
     operation: str
-    operator: SymbolNode
 
     def __init__(self, operation: str, left: BaseNode, operator: SymbolNode, right: BaseNode):
-        super().__init__(left.lineno, left.colno, left.filename)
-        self.left = left
-        self.right = right
+        super().__init__(left, operator, right)
         self.operation = operation
-        self.operator = operator
-
 
 @dataclass(unsafe_hash=True)
-class NotNode(BaseNode):
+class UnaryOperatorNode(BaseNode):
 
     operator: SymbolNode
     value: BaseNode
@@ -468,6 +448,12 @@ class NotNode(BaseNode):
         super().__init__(token.lineno, token.colno, token.filename)
         self.operator = operator
         self.value = value
+
+class NotNode(UnaryOperatorNode):
+    pass
+
+class UMinusNode(UnaryOperatorNode):
+    pass
 
 @dataclass(unsafe_hash=True)
 class CodeBlockNode(BaseNode):
@@ -621,18 +607,6 @@ class TestCaseClauseNode(BaseNode):
         self.endtestcase = endtestcase
 
 @dataclass(unsafe_hash=True)
-class UMinusNode(BaseNode):
-
-    operator: SymbolNode
-    value: BaseNode
-
-    def __init__(self, current_location: Token, operator: SymbolNode, value: BaseNode):
-        super().__init__(current_location.lineno, current_location.colno, current_location.filename)
-        self.operator = operator
-        self.value = value
-
-
-@dataclass(unsafe_hash=True)
 class TernaryNode(BaseNode):
 
     condition: BaseNode
@@ -662,6 +636,7 @@ class ParenthesizedNode(BaseNode):
         self.lpar = lpar
         self.inner = inner
         self.rpar = rpar
+
 
 if T.TYPE_CHECKING:
     COMPARISONS = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'notin']
