@@ -186,16 +186,16 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
         linker = linkers.LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     # first might be apple clang, second is for real gcc, the third is icc
-    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e:
+    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or ': unknown option:' in e or ': unknown flag:' in e:
         if isinstance(comp_class.LINKER_PREFIX, str):
             cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
         else:
             cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args
         _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
 
-        for line in newerr.split('\n'):
-            if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
-                v = line.split('-')[1]
+        for word in (newo + '\n' + newerr).split():
+            if 'PROJECT:ld' in word or 'PROJECT:dyld' in word or 'cctools-' in word:
+                v = word.split('-')[1]
                 break
         else:
             __failed_to_detect_linker(compiler, check_args, o, e)
