@@ -167,6 +167,8 @@ class ModuleState:
             else:
                 yield self._interpreter.build_incdir_object([d])
 
+    def add_language(self, lang: str, for_machine: MachineChoice) -> None:
+        self._interpreter.add_languages([lang], True, for_machine)
 
 class ModuleObject(HoldableObject):
     """Base class for all objects returned by modules
