@@ -372,12 +372,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'error': self.func_error,
                            'executable': self.func_executable,
                            'files': self.func_files,
-                           'find_library': self.func_find_library,
                            'find_program': self.func_find_program,
                            'generator': self.func_generator,
                            'get_option': self.func_get_option,
                            'get_variable': self.func_get_variable,
-                           'gettext': self.func_gettext,
                            'import': self.func_import,
                            'include_directories': self.func_include_directories,
                            'install_data': self.func_install_data,
@@ -847,9 +845,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         return RunProcess(cmd, expanded_args, env, srcdir, builddir, self.subdir,
                           self.environment.get_build_command() + ['introspect'],
                           in_builddir=in_builddir, check=check, capture=capture)
-
-    def func_gettext(self, nodes, args, kwargs):
-        raise InterpreterException('Gettext() function has been moved to module i18n. Import it and use i18n.gettext() instead')
 
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
@@ -1753,12 +1748,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.find_program_impl(args[0], kwargs['native'], default_options=default_options, required=required,
                                       silent=False, wanted=kwargs['version'],
                                       search_dirs=search_dirs)
-
-    def func_find_library(self, node, args, kwargs):
-        raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
-                          'Look here for documentation: http://mesonbuild.com/Reference-manual.html#compiler-object\n'
-                          'Look here for example: http://mesonbuild.com/howtox.html#add-math-library-lm-portably\n'
-                          )
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
     @FeatureNewKwargs('dependency', '0.57.0', ['cmake_package_version'])
