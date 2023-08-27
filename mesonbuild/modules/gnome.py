@@ -1113,6 +1113,9 @@ class GnomeModule(ExtensionModule):
     )
     def generate_gir(self, state: 'ModuleState', args: T.Tuple[T.List[T.Union[Executable, build.SharedLibrary, build.StaticLibrary]]],
                      kwargs: 'GenerateGir') -> ModuleReturnValue:
+        # Ensure we have a C compiler even in C++ projects.
+        state.add_language('c', MachineChoice.HOST)
+
         girtargets = [self._unwrap_gir_target(arg, state) for arg in args[0]]
         if len(girtargets) > 1 and any(isinstance(el, Executable) for el in girtargets):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
@@ -1429,6 +1432,9 @@ class GnomeModule(ExtensionModule):
         command = state.environment.get_build_command()
 
         namespace = kwargs['namespace']
+
+        # Ensure we have a C compiler even in C++ projects.
+        state.add_language('c', MachineChoice.HOST)
 
         def abs_filenames(files: T.Iterable['FileOrString']) -> T.Iterator[str]:
             for f in files:
