@@ -370,6 +370,10 @@ class Jar(_BaseBuildTarget):
     java_resources: T.Optional[build.StructuredSources]
 
 
+class Shader(_BaseBuildTarget):
+    pass
+
+
 class FuncDeclareDependency(TypedDict):
 
     compile_args: T.List[str]

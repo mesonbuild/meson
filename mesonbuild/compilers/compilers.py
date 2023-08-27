@@ -73,6 +73,7 @@ lang_suffixes = {
     'cython': ('pyx', ),
     'nasm': ('asm',),
     'masm': ('masm',),
+    'glsl': ('vert', 'frag', 'geom', 'tesc', 'tese', 'comp', 'rgen', 'rint', 'rahit', 'rchit', 'rmiss', '.rcall'),
 }
 all_languages = lang_suffixes.keys()
 c_cpp_suffixes = {'h'}

@@ -869,6 +869,9 @@ class NinjaBackend(backends.Backend):
         if isinstance(target, build.Jar):
             self.generate_jar_target(target)
             return
+        if isinstance(target, build.Shader):
+            self.generate_shader_target(target)
+            return
         if target.uses_rust():
             self.generate_rust_target(target)
             return
@@ -1375,6 +1378,33 @@ class NinjaBackend(backends.Backend):
         self.add_build_comment(NinjaComment('Phony build target, always out of date'))
         elem = NinjaBuildElement(self.all_outputs, 'PHONY', 'phony', '')
         self.add_build(elem)
+
+    def generate_shader_target(self, target: build.Shader):
+        fname = target.get_filename()
+        outname = os.path.join(self.get_target_dir(target), fname)
+        compiler = target.compilers['glsl']
+        sources = target.get_sources()
+        src = []
+        for s in sources:
+            src.append(s.rel_to_builddir(self.build_to_src))
+
+        # Add possible shader generated files to src list
+        generated_sources = self.get_target_generated_sources(target)
+        gen_src_list = []
+        for rel_src in generated_sources.keys():
+            raw_src = File.from_built_relative(rel_src)
+            gen_src_list.append(raw_src)
+
+        args = self.generate_basic_compiler_args(target, compiler)
+        args += compiler.get_output_args(outname)
+        args += target.get_extra_args('glsl')
+
+        build = NinjaBuildElement(self.all_outputs, outname, self.compiler_to_rule_name(compiler), src)
+        build.add_item('ARGS', args)
+        build.add_item('in', src)
+
+        self.add_build(build)
+        self.create_target_source_introspection(target, compiler, args, sources, gen_src_list)
 
     def generate_jar_target(self, target: build.Jar):
         fname = target.get_filename()
@@ -2469,6 +2499,11 @@ class NinjaBackend(backends.Backend):
         description = 'Compiling Swift source $in'
         self.add_rule(NinjaRule(rule, command, [], description))
 
+    def generate_shader_compile_rules(self, compiler):
+        rule = self.compiler_to_rule_name(compiler)
+        command = compiler.get_exelist() + ['$ARGS', '$in']
+        self.add_rule(NinjaRule(rule, command, [], f'Compiling {compiler.language} shader $in'))
+
     def use_dyndeps_for_fortran(self) -> bool:
         '''Use the new Ninja feature for scanning dependencies during build,
         rather than up front. Remove this and all old scanning code once Ninja
@@ -2521,6 +2556,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         if langname == 'cython':
             self.generate_cython_compile_rules(compiler)
+            return
+        if langname == 'glsl':
+            self.generate_shader_compile_rules(compiler)
             return
         crstr = self.get_rule_suffix(compiler.for_machine)
         options = self._rsp_options(compiler)

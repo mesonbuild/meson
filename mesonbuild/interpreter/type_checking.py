@@ -612,6 +612,16 @@ JAR_KWS = [
     *_EXCLUSIVE_JAR_KWS,
 ]
 
+# Arguments exclusive to Shader. These are separated to make integrating
+# them into build_target easier
+_EXCLUSIVE_SHADER_KWS: T.List[KwargInfo] = []
+
+# The total list of arguments used by JAR
+SHADER_KWS = [
+    *_ALL_TARGET_KWS,
+    *_EXCLUSIVE_SHADER_KWS,
+]
+
 # Arguments used by both_library and library
 LIBRARY_KWS = [
     *_BUILD_TARGET_KWS,

@@ -89,6 +89,7 @@ defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 defaults['nasm'] = ['nasm', 'yasm']
+defaults['glsl'] = ['glslc']
 
 
 def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
@@ -108,6 +109,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
         'cython': detect_cython_compiler,
         'nasm': detect_nasm_compiler,
         'masm': detect_masm_compiler,
+        'glsl': detect_glsl_compiler,
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
@@ -1308,6 +1310,26 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         popen_exceptions[' '.join(comp + [arg])] = e
     _handle_exceptions(popen_exceptions, [comp])
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
+
+def detect_glsl_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
+    from .shader import GlslcCompiler
+
+    exelist = env.lookup_binary_entry(MachineChoice.BUILD, 'glsl')
+    info = env.machines[for_machine]
+    if exelist is None:
+        # TODO support fallback
+        exelist = [defaults['glsl'][0]]
+
+    try:
+        p, out = Popen_safe_logged(exelist + ['--version'], msg='Detecting compiler via')[0:2]
+    except OSError:
+        raise EnvironmentException('Could not execute glsl compiler: {}'.format(join_args(exelist)))
+    if 'Target: SPIR-V' in out:
+        version = out.split('\n')[0]
+        comp_class = GlslcCompiler
+        env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
+        return comp_class(exelist, version, for_machine, info)
+    raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 # GNU/Clang defines and version
 # =============================

@@ -119,6 +119,7 @@ known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_mo
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink'}
 known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
+known_shader_kwargs = known_build_target_kwargs
 
 def _process_install_tag(install_tag: T.Optional[T.List[T.Optional[str]]],
                          num_outputs: int) -> T.List[T.Optional[str]]:
@@ -2856,6 +2857,44 @@ class Jar(BuildTarget):
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_jar_dir(), '{jardir}'
+
+class Shader(BuildTarget):
+    known_kwargs = known_shader_kwargs
+
+    typename = 'shader'
+
+    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+                 sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
+                 objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
+                 kwargs):
+        super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
+                         environment, compilers, kwargs)
+        self.check_shader_sources()
+        if self.structured_sources:
+            raise InvalidArguments('Structured sources are not supported in shader targets.')
+        self.filename = self.name + '.spv'
+        self.outputs = [self.filename]
+        self.glsl_args = kwargs.get('glsl_args')
+
+    def type_suffix(self):
+        return "@shader"
+
+    def validate_install(self):
+        pass
+
+    def is_linkable_target(self):
+        return True
+
+    def get_glsl_args(self):
+        if self.glsl_args:
+            return self.glsl_args
+        return []
+
+    def check_shader_sources(self):
+        from .compilers import lang_suffixes
+        for s in self.sources:
+            if not s.endswith(lang_suffixes['glsl']):
+                raise InvalidArguments(f'Shader source {s} is not a glsl file.')
 
 @dataclass(eq=False)
 class CustomTargetIndex(HoldableObject):

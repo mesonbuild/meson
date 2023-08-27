@@ -60,6 +60,7 @@ from .type_checking import (
     CT_INSTALL_DIR_KW,
     EXECUTABLE_KWS,
     JAR_KWS,
+    SHADER_KWS,
     LIBRARY_KWS,
     MULTI_OUTPUT_KW,
     OUTPUT_KW,
@@ -400,6 +401,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'set_variable': self.func_set_variable,
                            'structured_sources': self.func_structured_sources,
                            'subdir': self.func_subdir,
+                           'shader': self.func_shader,
                            'shared_library': self.func_shared_lib,
                            'shared_module': self.func_shared_module,
                            'static_library': self.func_static_lib,
@@ -441,6 +443,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.SharedModule: OBJ.SharedModuleHolder,
             build.Executable: OBJ.ExecutableHolder,
             build.Jar: OBJ.JarHolder,
+            build.Shader: OBJ.ShaderHolder,
             build.CustomTarget: OBJ.CustomTargetHolder,
             build.CustomTargetIndex: OBJ.CustomTargetIndexHolder,
             build.Generator: OBJ.GeneratorHolder,
@@ -1878,6 +1881,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                  kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, args, kwargs, build.Jar)
 
+    @permittedKwargs(build.known_shader_kwargs)
+    @typed_pos_args('shader', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
+    @typed_kwargs('shader', *SHADER_KWS, allow_unknown=True)
+    def func_shader(self, node: mparser.BaseNode,
+                 args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
+                 kwargs: kwtypes.Shader) -> build.Shader:
+        return self.build_target(node, args, kwargs, build.Shader)
+
     @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
     @permittedKwargs(known_build_target_kwargs)
     @typed_pos_args('build_target', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.StructuredSources, build.ExtractedObjects, build.BuildTarget))
@@ -1900,7 +1911,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.build_both_libraries(node, args, kwargs)
         elif target_type == 'library':
             return self.build_library(node, args, kwargs)
-        return self.build_target(node, args, kwargs, build.Jar)
+        elif target_type == 'jar':
+            return self.build_target(node, args, kwargs, build.Jar)
+        return self.build_target(node, args, kwargs, build.Shader)
 
     @noPosargs
     @typed_kwargs(
@@ -3258,7 +3271,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
+        if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar, build.Shader}:
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
         self.kwarg_strings_to_includedirs(kwargs)
