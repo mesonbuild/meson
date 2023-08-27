@@ -13,6 +13,7 @@ description: |
   - `both_libraries` (see [[both_libraries]])
   - `library` (see [[library]])
   - `jar` (see [[jar]])*
+  - 'shader' (see [[shader]])
 
   This declaration:
 

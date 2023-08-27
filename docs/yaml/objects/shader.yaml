@@ -1,0 +1,4 @@
+name: shader
+long_name: Shader build target
+description: A shader build target
+extends: build_tgt

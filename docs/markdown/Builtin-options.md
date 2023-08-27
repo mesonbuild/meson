@@ -253,23 +253,26 @@ The following options are available. They can be set by passing
 the possible values they can take will depend on the target platform
 or compiler being used:
 
-| Option           | Default value | Possible values                          | Description |
-| ------           | ------------- | ---------------                          | ----------- |
-| c_args           |               | free-form comma-separated list           | C compile arguments to use |
-| c_link_args      |               | free-form comma-separated list           | C link arguments to use |
-| c_std            | none          | none, c89, c99, c11, c17, c18, c2x, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x | C language standard to use |
-| c_winlibs        | see below     | free-form comma-separated list           | Standard Windows libs to link against |
-| c_thread_count   | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
-| cpp_args         |               | free-form comma-separated list           | C++ compile arguments to use |
-| cpp_link_args    |               | free-form comma-separated list           | C++ link arguments to use |
-| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, c++20 <br/>c++2a, c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> gnu++2a, gnu++20, vc++14, vc++17, vc++20, vc++latest | C++ language standard to use |
-| cpp_debugstl     | false         | true, false                              | C++ STL debug mode |
-| cpp_eh           | default       | none, default, a, s, sc                  | C++ exception handling type |
-| cpp_rtti         | true          | true, false                              | Whether to enable RTTI (runtime type identification) |
-| cpp_thread_count | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
-| cpp_winlibs      | see below     | free-form comma-separated list           | Standard Windows libs to link against |
-| fortran_std      | none          | [none, legacy, f95, f2003, f2008, f2018] | Fortran language standard to use |
-| cuda_ccbindir    |               | filesystem path                          | CUDA non-default toolchain directory to use (-ccbin) *(Added in 0.57.1)* |
+| Option           | Default value | Possible values                                                                                                                                                           | Description                                                              |
+|------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| c_args           |               | free-form comma-separated list                                                                                                                                            | C compile arguments to use                                               |
+| c_link_args      |               | free-form comma-separated list                                                                                                                                            | C link arguments to use                                                  |
+| c_std            | none          | none, c89, c99, c11, c17, c18, c2x, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x                                                                                              | C language standard to use                                               |
+| c_winlibs        | see below     | free-form comma-separated list                                                                                                                                            | Standard Windows libs to link against                                    |
+| c_thread_count   | 4             | integer value ≥ 0                                                                                                                                                         | Number of threads to use with emcc when using threads                    |
+| cpp_args         |               | free-form comma-separated list                                                                                                                                            | C++ compile arguments to use                                             |
+| cpp_link_args    |               | free-form comma-separated list                                                                                                                                            | C++ link arguments to use                                                |
+| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, c++20 <br/>c++2a, c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> gnu++2a, gnu++20, vc++14, vc++17, vc++20, vc++latest | C++ language standard to use                                             |
+| cpp_debugstl     | false         | true, false                                                                                                                                                               | C++ STL debug mode                                                       |
+| cpp_eh           | default       | none, default, a, s, sc                                                                                                                                                   | C++ exception handling type                                              |
+| cpp_rtti         | true          | true, false                                                                                                                                                               | Whether to enable RTTI (runtime type identification)                     |
+| cpp_thread_count | 4             | integer value ≥ 0                                                                                                                                                         | Number of threads to use with emcc when using threads                    |
+| cpp_winlibs      | see below     | free-form comma-separated list                                                                                                                                            | Standard Windows libs to link against                                    |
+| fortran_std      | none          | [none, legacy, f95, f2003, f2008, f2018]                                                                                                                                  | Fortran language standard to use                                         |
+| cuda_ccbindir    |               | filesystem path                                                                                                                                                           | CUDA non-default toolchain directory to use (-ccbin) *(Added in 0.57.1)* |
+| glsl_std         |               | concatenation of version and profile, e.g. 310es, 450core, etc.                                                                                                           | Version and profile for GLSL shaders                                     |
+| glsl_target_env  |               | vulkan, vulkan1.0, vulkan1.1, vulkan1.2, vulkan1.3, opengl, opengl4.5                                                                                                     | Target execution environment for GLSL shaders                            |
+| glsl_target_spv  |               | spv1.0, spv1.1, spv1.2, spv1.3, spv1.4, spv1.5, spv1.6                                                                                                                    | SPIR-V output version for GLSL shaders                                   |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in
 compiler-specific argument forms, but the libraries are: kernel32,

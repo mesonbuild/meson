@@ -5,47 +5,48 @@
 These are return values of the `get_id` (Compiler family) and
 `get_argument_syntax` (Argument syntax) method in a compiler object.
 
-| Value     | Compiler family                  | Argument syntax |
-| -----     | ---------------                  | --------------- |
-| arm       | ARM compiler                     |                 |
-| armclang  | ARMCLANG compiler                |                 |
-| ccomp     | The CompCert formally-verified C compiler |        |
-| ccrx      | Renesas RX Family C/C++ compiler |                 |
-| clang     | The Clang compiler               | gcc             |
-| clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
-| dmd       | D lang reference compiler        |                 |
-| emscripten| Emscripten WASM compiler         |                 |
-| flang     | Flang Fortran compiler           |                 |
-| g95       | The G95 Fortran compiler         |                 |
-| gcc       | The GNU Compiler Collection      | gcc             |
-| intel     | Intel compiler (Linux and Mac)   | gcc             |
-| intel-cl  | Intel compiler (Windows)         | msvc            |
-| intel-llvm    | Intel oneAPI LLVM-based compiler            |                 |
-| intel-llvm-cl | Intel oneAPI LLVM-based compiler (Windows)  | msvc            |
-| lcc       | Elbrus C/C++/Fortran Compiler    |                 |
-| llvm      | LLVM-based compiler (Swift, D)   |                 |
-| mono      | Xamarin C# compiler              |                 |
-| mwccarm   | Metrowerks C/C++ compiler for Embedded ARM         |                 |
-| mwcceppc  | Metrowerks C/C++ compiler for Embedded PowerPC     |                 |
-| msvc      | Microsoft Visual Studio          | msvc            |
-| nagfor    | The NAG Fortran compiler         |                 |
-| nvidia_hpc| NVidia HPC SDK compilers         |                 |
-| open64    | The Open64 Fortran Compiler      |                 |
-| pathscale | The Pathscale Fortran compiler   |                 |
-| pgi       | Portland PGI C/C++/Fortran compilers |             |
-| rustc     | Rust compiler                    |                 |
-| sun       | Sun Fortran compiler             |                 |
-| c2000     | Texas Instruments C/C++ Compiler (C2000) |                 |
-| ti        | Texas Instruments C/C++ Compiler |                 |
-| valac     | Vala compiler                    |                 |
-| xc16      | Microchip XC16 C compiler        |                 |
-| cython    | The Cython compiler              |                 |
-| nasm      | The NASM compiler (Since 0.64.0) |                 |
-| yasm      | The YASM compiler (Since 0.64.0) |                 |
-| ml        | Microsoft Macro Assembler for x86 and x86_64 (Since 0.64.0) | msvc |
-| armasm    | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) | |
-| mwasmarm        | Metrowerks Assembler for Embedded ARM | |
-| mwasmeppc       | Metrowerks Assembler for Embedded PowerPC | |
+| Value         | Compiler family                                              | Argument syntax |
+|---------------|--------------------------------------------------------------|-----------------|
+| arm           | ARM compiler                                                 |                 |
+| armclang      | ARMCLANG compiler                                            |                 |
+| ccomp         | The CompCert formally-verified C compiler                    |                 |
+| ccrx          | Renesas RX Family C/C++ compiler                             |                 |
+| clang         | The Clang compiler                                           | gcc             |
+| clang-cl      | The Clang compiler (MSVC compatible driver)                  | msvc            |
+| dmd           | D lang reference compiler                                    |                 |
+| emscripten    | Emscripten WASM compiler                                     |                 |
+| flang         | Flang Fortran compiler                                       |                 |
+| g95           | The G95 Fortran compiler                                     |                 |
+| gcc           | The GNU Compiler Collection                                  | gcc             |
+| intel         | Intel compiler (Linux and Mac)                               | gcc             |
+| intel-cl      | Intel compiler (Windows)                                     | msvc            |
+| intel-llvm    | Intel oneAPI LLVM-based compiler                             |                 |
+| intel-llvm-cl | Intel oneAPI LLVM-based compiler (Windows)                   | msvc            |
+| lcc           | Elbrus C/C++/Fortran Compiler                                |                 |
+| llvm          | LLVM-based compiler (Swift, D)                               |                 |
+| mono          | Xamarin C# compiler                                          |                 |
+| mwccarm       | Metrowerks C/C++ compiler for Embedded ARM                   |                 |
+| mwcceppc      | Metrowerks C/C++ compiler for Embedded PowerPC               |                 |
+| msvc          | Microsoft Visual Studio                                      | msvc            |
+| nagfor        | The NAG Fortran compiler                                     |                 |
+| nvidia_hpc    | NVidia HPC SDK compilers                                     |                 |
+| open64        | The Open64 Fortran Compiler                                  |                 |
+| pathscale     | The Pathscale Fortran compiler                               |                 |
+| pgi           | Portland PGI C/C++/Fortran compilers                         |                 |
+| rustc         | Rust compiler                                                |                 |
+| sun           | Sun Fortran compiler                                         |                 |
+| c2000         | Texas Instruments C/C++ Compiler (C2000)                     |                 |
+| ti            | Texas Instruments C/C++ Compiler                             |                 |
+| valac         | Vala compiler                                                |                 |
+| xc16          | Microchip XC16 C compiler                                    |                 |
+| cython        | The Cython compiler                                          |                 |
+| nasm          | The NASM compiler (Since 0.64.0)                             |                 |
+| yasm          | The YASM compiler (Since 0.64.0)                             |                 |
+| ml            | Microsoft Macro Assembler for x86 and x86_64 (Since 0.64.0)  | msvc            |
+| armasm        | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) |                 |
+| mwasmarm      | Metrowerks Assembler for Embedded ARM                        |                 |
+| mwasmeppc     | Metrowerks Assembler for Embedded PowerPC                    |                 |
+| glslc         | GLSL Compiler                                                |                 |
 
 ## Linker ids
 
@@ -204,7 +205,7 @@ These are the parameter names for passing language specific arguments
 to your build target.
 
 | Language      | compiler name | linker name       |
-| ------------- | ------------- | ----------------- |
+|---------------|---------------|-------------------|
 | C             | c_args        | c_link_args       |
 | C++           | cpp_args      | cpp_link_args     |
 | C#            | cs_args       | cs_link_args      |
@@ -218,6 +219,7 @@ to your build target.
 | Cython        | cython_args   | cython_link_args  |
 | NASM          | nasm_args     | N/A               |
 | MASM          | masm_args     | N/A               |
+| GLSL          | glsl_args     |                   |
 
 All these `<lang>_*` options are specified per machine. See in
 [specifying options per
