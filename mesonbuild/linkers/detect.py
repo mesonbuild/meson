@@ -195,7 +195,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
         for line in newerr.split('\n'):
             if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
-                v = line.split('-')[1]
+                v = line.split('-')[1].split()[0]
                 break
         else:
             for word in newo.split():
