@@ -371,8 +371,8 @@ class AstInterpreter(InterpreterBase):
         elif isinstance(node, ArithmeticNode):
             if node.operation != 'add':
                 return None # Only handle string and array concats
-            l = quick_resolve(node.left)
-            r = quick_resolve(node.right)
+            l = self.resolve_node(node.left, include_unknown_args, id_loop_detect)
+            r = self.resolve_node(node.right, include_unknown_args, id_loop_detect)
             if isinstance(l, str) and isinstance(r, str):
                 result = l + r # String concatenation detected
             else:
