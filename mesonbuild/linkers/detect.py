@@ -185,7 +185,10 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             v = search_version(o)
 
         linker = linkers.LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
-    # first might be apple clang, second is for real gcc, the third is icc
+    # first might be apple clang, second is for real gcc, the third is icc, fourth is Tiger ld.
+    # Ventura (ld --version): ld: unknown option: --version
+    # Tiger (ld --version): ld: unknown flag: --version
+    # Tiger (ld64 --version): ld64-62.1 failed: unknown option: --version
     elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or ': unknown option:' in e or ': unknown flag:' in e:
         if isinstance(comp_class.LINKER_PREFIX, str):
             cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
@@ -194,10 +197,13 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
 
         for line in newerr.split('\n'):
+            # Ventura (ld -v): @(#)PROGRAM:ld  PROJECT:ld64-857.1
+            # Tiger (ld64 -v): @(#)PROGRAM:ld64  PROJECT:ld64-62.1  DEVELOPER:root  BUILT:Apr 20 2007 01:28:10
             if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
                 v = line.split('-')[1].split()[0]
                 break
         else:
+            # Tiger (ld -v): Apple Computer, Inc. version cctools-622.9~2
             for word in newo.split():
                 if 'cctools-' in word:
                     v = word.split('-')[1]
