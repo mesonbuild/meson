@@ -185,7 +185,9 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             v = search_version(o)
 
         linker = linkers.LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
-    # first might be apple clang, second is for real gcc, the third is icc, fourth is Tiger ld.
+    # first might be apple clang, second is for real gcc, the third is icc or recent ld, fourth is Tiger ld.
+    # clang -Wl,--version: ... failed with exit code 1 (use -v to see invocation)
+    # gcc-4.9+ -Wl,--version: ... -macosx_version_min 13.0.0 ...
     # Ventura (ld --version): ld: unknown option: --version
     # Tiger (ld --version): ld: unknown flag: --version
     # Tiger (ld64 --version): ld64-62.1 failed: unknown option: --version
