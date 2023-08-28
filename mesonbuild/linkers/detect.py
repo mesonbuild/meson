@@ -61,7 +61,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
     check_args += env.coredata.get_external_link_args(for_machine, comp_class.language)
 
-    override: T.List[str] = []
+    override = []  # type: T.List[str]
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
@@ -138,7 +138,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     else:
         check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
-    override: T.List[str] = []
+    override = []  # type: T.List[str]
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
@@ -193,12 +193,17 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args
         _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
 
-        for word in (newo + '\n' + newerr).split():
-            if 'PROJECT:ld' in word or 'PROJECT:dyld' in word or 'cctools-' in word:
-                v = word.split('-')[1]
+        for line in newerr.split('\n'):
+            if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
+                v = line.split('-')[1]
                 break
         else:
-            __failed_to_detect_linker(compiler, check_args, o, e)
+            for word in newo.split():
+                if 'cctools-' in word:
+                    v = word.split('-')[1]
+                    break
+            else:
+                __failed_to_detect_linker(compiler, check_args, o, e)
         linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'GNU' in o or 'GNU' in e:
         gnu_cls: T.Type[GnuDynamicLinker]
