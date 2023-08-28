@@ -30,6 +30,7 @@ These are return values of the `get_id` (Compiler family) and
 | msvc      | Microsoft Visual Studio          | msvc            |
 | nagfor    | The NAG Fortran compiler         |                 |
 | nvidia_hpc| NVidia HPC SDK compilers         |                 |
+| nvcc      | NVidia CUDA compiler             |                 |
 | open64    | The Open64 Fortran Compiler      |                 |
 | pathscale | The Pathscale Fortran compiler   |                 |
 | pgi       | Portland PGI C/C++/Fortran compilers |             |
@@ -208,6 +209,7 @@ to your build target.
 | C             | c_args        | c_link_args       |
 | C++           | cpp_args      | cpp_link_args     |
 | C#            | cs_args       | cs_link_args      |
+| CUDA          | cuda_args     | cuda_link_args    |
 | D             | d_args        | d_link_args       |
 | Fortran       | fortran_args  | fortran_link_args |
 | Java          | java_args     | java_link_args    |
@@ -239,6 +241,7 @@ arguments](#language-arguments-parameter-names) instead.
 | -----       | -------                                  |
 | CFLAGS      | Flags for the C compiler                 |
 | CXXFLAGS    | Flags for the C++ compiler               |
+| CUFLAGS     | Flags for the CUDA compiler              |
 | OBJCFLAGS   | Flags for the Objective C compiler       |
 | FFLAGS      | Flags for the Fortran compiler           |
 | DFLAGS      | Flags for the D compiler                 |
