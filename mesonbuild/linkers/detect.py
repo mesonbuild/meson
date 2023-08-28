@@ -61,7 +61,7 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
     check_args += env.coredata.get_external_link_args(for_machine, comp_class.language)
 
-    override = []  # type: T.List[str]
+    override: T.List[str] = []
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
@@ -138,7 +138,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     else:
         check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
-    override = []  # type: T.List[str]
+    override: T.List[str] = []
     value = env.lookup_binary_entry(for_machine, comp_class.language + '_ld')
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
