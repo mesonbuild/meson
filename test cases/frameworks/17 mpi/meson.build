@@ -42,7 +42,7 @@ if add_languages('fortran', required : false)
   'main.f90',
   dependencies : mpif)
 
-  test('MPI Fortran', exef, timeout: 20)
+  test('MPI Fortran', exef, timeout: 20, is_parallel: false)
 endif
 
 

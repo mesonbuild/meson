@@ -19,6 +19,8 @@ if (ier /= 0) then
   stop 1
 endif
 
+print *, "MPI initialized"
+
 call MPI_Finalize(ier)
 if (ier /= 0) then
   write(stderr,*) 'Unable to finalize MPI: ', ier
