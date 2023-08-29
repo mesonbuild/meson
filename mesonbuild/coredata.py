@@ -1377,6 +1377,11 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('purelibdir', module='python'): {},
 }
 
+if 'HOMEBREW_PREFIX' in os.environ:
+    homebrew_prefix = os.environ['HOMEBREW_PREFIX']
+    BUILTIN_DIR_NOPREFIX_OPTIONS[OptionKey('localstatedir')][homebrew_prefix] = homebrew_prefix
+    BUILTIN_DIR_NOPREFIX_OPTIONS[OptionKey('sharedstatedir')][homebrew_prefix] = homebrew_prefix + '/lib'
+
 FORBIDDEN_TARGET_NAMES = frozenset({
     'clean',
     'clean-ctlist',
