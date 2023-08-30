@@ -553,11 +553,11 @@ def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
     sys.stderr = mystderr = StringIO()
     old_cwd = os.getcwd()
     os.chdir(testdir)
-    test_log_fname = Path('meson-logs', 'testlog.txt')
+    test_log_fname = os.path.join('meson-logs', 'testlog.txt')
     try:
         returncode_test = mtest.run_with_args(['--no-rebuild'])
-        if test_log_fname.exists():
-            test_log = test_log_fname.open(encoding='utf-8', errors='ignore').read()
+        if os.path.exists(test_log_fname):
+            test_log = _run_ci_include([test_log_fname])
         else:
             test_log = ''
         returncode_benchmark = mtest.run_with_args(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
@@ -667,11 +667,10 @@ def _run_test(test: TestDef,
     returncode, stdo, stde = res
     cmd = '(inprocess) $ ' if inprocess else '$ '
     cmd += mesonlib.join_args(gen_args)
-    try:
-        logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
-        with logfile.open(errors='ignore', encoding='utf-8') as fid:
-            mesonlog = '\n'.join((cmd, fid.read()))
-    except Exception:
+    logfile = os.path.join(test_build_dir, 'meson-logs', 'meson-log.txt')
+    if os.path.exists(logfile):
+        mesonlog = '\n'.join((cmd, _run_ci_include([logfile])))
+    else:
         mesonlog = no_meson_log_msg
     cicmds = run_ci_commands(mesonlog)
     testresult = TestResult(cicmds)
