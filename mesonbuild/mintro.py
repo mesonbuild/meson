@@ -64,7 +64,7 @@ class IntroCommand:
 
 def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
                                   builddata: T.Optional[build.Build] = None,
-                                  backend: T.Optional[backends.Backend] = None) -> 'T.Mapping[str, IntroCommand]':
+                                  backend: T.Optional[backends.Backend] = None) -> T.Mapping[str, IntroCommand]:
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
