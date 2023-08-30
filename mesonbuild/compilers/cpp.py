@@ -55,6 +55,10 @@ if T.TYPE_CHECKING:
 else:
     CompilerMixinBase = object
 
+_ALL_STDS = ['c++98', 'c++0x', 'c++03', 'c++1y', 'c++1z', 'c++11', 'c++14', 'c++17', 'c++2a', 'c++20', 'c++23']
+_ALL_STDS += [f'gnu{std[1:]}' for std in _ALL_STDS]
+_ALL_STDS += ['vc++11', 'vc++14', 'vc++17', 'vc++20', 'vc++latest', 'c++latest']
+
 
 def non_msvc_eh_options(eh: str, args: T.List[str]) -> None:
     if eh == 'none':
@@ -178,11 +182,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         opts = super().get_options()
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
-            key: coredata.UserComboOption(
-                'C++ language standard to use',
-                ['none'],
-                'none',
-            ),
+            key: coredata.UserStdOption('C++', _ALL_STDS),
         })
         return opts
 
@@ -257,17 +257,15 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
             key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
         })
         cppstd_choices = [
-            'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
-            'c++2a', 'c++20', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z',
-            'gnu++2a', 'gnu++20',
+            'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a', 'c++20',
         ]
         if version_compare(self.version, self._CPP23_VERSION):
             cppstd_choices.append('c++23')
-            cppstd_choices.append('gnu++23')
         if version_compare(self.version, self._CPP26_VERSION):
             cppstd_choices.append('c++26')
-            cppstd_choices.append('gnu++26')
-        opts[key.evolve('std')].choices = cppstd_choices
+        std_opt = opts[key.evolve('std')]
+        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        std_opt.set_versions(cppstd_choices, gnu=True)
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
                 key.evolve('winlibs'): coredata.UserArrayOption(
@@ -371,10 +369,9 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
                 'default',
             ),
         })
-        opts[key].choices = [
-            'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'gnu++98',
-            'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
-        ]
+        std_opt = opts[key]
+        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        std_opt.set_versions(['c++98', 'c++03', 'c++11', 'c++14', 'c++17'], gnu=True)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -426,17 +423,16 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
             )
         })
         cppstd_choices = [
-            'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
-            'c++2a', 'c++20', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
-            'gnu++1z', 'gnu++2a', 'gnu++20',
+            'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
+            'c++2a', 'c++20',
         ]
         if version_compare(self.version, '>=12.2.0'):
             cppstd_choices.append('c++23')
-            cppstd_choices.append('gnu++23')
         if version_compare(self.version, '>=14.0.0'):
             cppstd_choices.append('c++26')
-            cppstd_choices.append('gnu++26')
-        opts[key].choices = cppstd_choices
+        std_opt = opts[key]
+        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        std_opt.set_versions(cppstd_choices, gnu=True)
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
                 key.evolve('winlibs'): coredata.UserArrayOption(
@@ -513,21 +509,21 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
 
-        cpp_stds = ['none', 'c++98', 'gnu++98']
+        cpp_stds = ['c++98']
         if version_compare(self.version, '>=1.20.00'):
-            cpp_stds += ['c++03', 'c++0x', 'c++11', 'gnu++03', 'gnu++0x', 'gnu++11']
+            cpp_stds += ['c++03', 'c++0x', 'c++11']
         if version_compare(self.version, '>=1.21.00') and version_compare(self.version, '<1.22.00'):
-            cpp_stds += ['c++14', 'gnu++14', 'c++1y', 'gnu++1y']
+            cpp_stds += ['c++14', 'c++1y']
         if version_compare(self.version, '>=1.22.00'):
-            cpp_stds += ['c++14', 'gnu++14']
+            cpp_stds += ['c++14']
         if version_compare(self.version, '>=1.23.00'):
-            cpp_stds += ['c++1y', 'gnu++1y']
+            cpp_stds += ['c++1y']
         if version_compare(self.version, '>=1.24.00'):
-            cpp_stds += ['c++1z', 'c++17', 'gnu++1z', 'gnu++17']
+            cpp_stds += ['c++1z', 'c++17']
         if version_compare(self.version, '>=1.25.00'):
-            cpp_stds += ['c++2a', 'gnu++2a']
+            cpp_stds += ['c++2a']
         if version_compare(self.version, '>=1.26.00'):
-            cpp_stds += ['c++20', 'gnu++20']
+            cpp_stds += ['c++20']
 
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
@@ -541,7 +537,9 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
                 False,
             ),
         })
-        opts[key].choices = cpp_stds
+        std_opt = opts[key]
+        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        std_opt.set_versions(cpp_stds, gnu=True)
         return opts
 
     # Elbrus C++ compiler does not have lchmod, but there is only linker warning, not compiler error.
@@ -615,7 +613,9 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             key.evolve('rtti'): coredata.UserBooleanOption('Enable RTTI', True),
             key.evolve('debugstl'): coredata.UserBooleanOption('STL debug mode', False),
         })
-        opts[key].choices = ['none'] + c_stds + g_stds
+        std_opt = opts[key]
+        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        std_opt.set_versions(c_stds + g_stds)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -682,7 +682,9 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
                 msvc_winlibs,
             ),
         })
-        opts[key.evolve('std')].choices = cpp_stds
+        std_opt = opts[key]
+        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        std_opt.set_versions(cpp_stds)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -846,8 +848,9 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts[key].choices = ['none', 'c++03', 'c++11']
+        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        std_opt.set_versions(['c++03', 'c++11'])
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -906,8 +909,9 @@ class TICPPCompiler(TICompiler, CPPCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts[key].choices = ['none', 'c++03']
+        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        std_opt.set_versions(['c++03'])
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
