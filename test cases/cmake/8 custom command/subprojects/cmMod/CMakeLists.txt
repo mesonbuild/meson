@@ -46,9 +46,12 @@ add_custom_command(
   DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cpyBase.hpp.in"
 )
 
+# Slight tuning to the file extension (it's still a C++ header)
+# checks that file extensions are not considered for the purposes
+# of target dependencies
 add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyBase.hpp"
-  COMMAND mycpy cpyBase.hpp.something                        cpyBase.hpp
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyBase.txt"
+  COMMAND mycpy cpyBase.hpp.something                        cpyBase.txt
   DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cpyBase.hpp.something"
 )
 
@@ -127,7 +130,7 @@ add_custom_command(
 )
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/cpyTest/some")
 
-add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp cpyNext.cpp cpyNext.hpp cpyTest.cpp cpyTest.hpp cpyTest2.hpp cpyTest3.hpp cpyTest/some/directory/cpyTest5.hpp)
+add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.txt cpyNext.cpp cpyNext.hpp cpyTest.cpp cpyTest.hpp cpyTest2.hpp cpyTest3.hpp cpyTest/some/directory/cpyTest5.hpp)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
 
