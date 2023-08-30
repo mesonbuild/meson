@@ -2,13 +2,20 @@
 # due to use of setup_env.json
 project('external CMake dependency', ['c', 'cpp'])
 
-if not find_program('cmake', required: false).found()
+cmake = find_program('cmake', required: false)
+if not cmake.found()
   error('MESON_SKIP_TEST cmake binary not available.')
 endif
 
 # Zlib is probably on all dev machines.
 
 dep = dependency('ZLIB', version : '>=1.2', method : 'cmake')
+
+if '#define' in dep.version() and cmake.version().version_compare('< 3.27.4')
+  # ZLIB 1.3 version is broken with those cmake versions
+  error('MESON_SKIP_TEST known bug in cmake (https://gitlab.kitware.com/cmake/cmake/-/issues/25200)')
+endif
+
 exe = executable('zlibprog', 'prog-checkver.c',
   dependencies : dep,
   c_args : '-DFOUND_ZLIB="' + dep.version() + '"')
