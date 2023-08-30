@@ -75,13 +75,29 @@ class RustCompiler(Compiler):
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest')
+        optional_args = []
         with open(source_name, 'w', encoding='utf-8') as ofile:
-            ofile.write(textwrap.dedent(
-                '''fn main() {
-                }
-                '''))
+            if self.is_cross:
+                ofile.write(textwrap.dedent(
+                    '''#![no_std]
+                    #![no_main]
+                    #[no_mangle]
+                    pub fn _start() -> ! {
+                        loop {}
+                    }
+                    #[panic_handler]
+                    fn panic(_info: &core::panic::PanicInfo) -> ! {
+                        loop {}
+                    }
+                    '''))
+                optional_args += ['-C', 'panic=abort'] + ['-C', 'link-arg=-nostartfiles']
+            else:
+                ofile.write(textwrap.dedent(
+                    '''fn main() {
+                    }
+                    '''))
 
-        cmdlist = self.exelist + ['-o', output_name, source_name]
+        cmdlist = self.exelist + optional_args + ['-o', output_name, source_name]
         pc, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
