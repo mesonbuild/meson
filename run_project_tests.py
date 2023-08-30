@@ -288,6 +288,7 @@ class TestDef:
             return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
         return NotImplemented
 
+failing_testcases: T.List[str] = []
 failing_logs: T.List[str] = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
@@ -1369,6 +1370,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             left_w = max(3, left_w)
             right_w = cols - left_w - name_len - 2
             right_w = max(3, right_w)
+            failing_testcases.append(name_str)
             failing_logs.append(f'\n\x1b[31m{"="*left_w}\x1b[0m {name_str} \x1b[31m{"="*right_w}\x1b[0m\n')
             if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
                 # For configure failures, instead of printing stdout,
@@ -1635,6 +1637,9 @@ if __name__ == '__main__':
                 print(l, '\n')
             except UnicodeError:
                 print(l.encode('ascii', errors='replace').decode(), '\n')
+        print('All failures:')
+        for c in failing_testcases:
+            print(f'  -> {c}')
     for name, dirs, _ in all_tests:
         dir_names = list({x.path.name for x in dirs})
         for k, g in itertools.groupby(dir_names, key=lambda x: x.split()[0]):
