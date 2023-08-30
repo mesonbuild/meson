@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from mesonbuild.compilers import detect_c_compiler, compiler_from_language
 from mesonbuild.mesonlib import (
     MachineChoice, is_osx, is_cygwin, EnvironmentException, OptionKey, MachineChoice,
-    OrderedSet
+    OrderedSet, quiet_git
 )
 from run_tests import get_fake_env
 
@@ -134,6 +134,9 @@ def is_tarball():
     if not os.path.isdir('docs'):
         return True
     return False
+
+def is_git_repo():
+    return quiet_git(['branch'], '.')[0]
 
 @contextmanager
 def chdir(path: str):

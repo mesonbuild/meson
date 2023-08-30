@@ -42,7 +42,7 @@ from mesonbuild.mesonlib import (
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
     MesonException, EnvironmentException, OptionKey,
-    windows_proof_rm
+    windows_proof_rm, quiet_git
 )
 from mesonbuild.programs import ExternalProgram
 
@@ -3028,6 +3028,26 @@ class AllPlatformTests(BasePlatformTests):
         out = self.run_target('clang-tidy')
         self.assertIn('cttest.cpp:4:20', out)
         self.assertNotIn(dummydir, out)
+
+    @skipIfNoExecutable('clang-tidy')
+    @unittest.skipIf(not is_git_repo(), 'Skipping because this is not in git repo')
+    def test_clang_tidy_fix(self):
+        if self.backend is not Backend.ninja:
+            raise SkipTest(f'Clang-tidy is for now only supported on Ninja, not {self.backend.name}')
+        if shutil.which('c++') is None:
+            raise SkipTest('Clang-tidy breaks when ccache is used and "c++" not in path.')
+        if is_osx():
+            raise SkipTest('Apple ships a broken clang-tidy that chokes on -pipe.')
+        testdir = os.path.join(self.unit_test_dir, '68 clang-tidy')
+        dummydir = os.path.join(testdir, 'dummydir.h')
+        self.init(testdir, override_envvars={'CXX': 'c++'})
+        out = self.run_target('clang-tidy-fix')
+        self.assertIn('cttest.cpp:4:20', out)
+        self.assertNotIn(dummydir, out)
+        ret = quiet_git(['diff', '--exit-code', 'test cases/unit/68 clang-tidy/cttest.cpp'], '.')
+        self.assertFalse(ret[0])
+        # Restore the file
+        quiet_git(['checkout', '--', 'test cases/unit/68 clang-tidy/cttest.cpp'], '.')
 
     def test_identity_cross(self):
         testdir = os.path.join(self.unit_test_dir, '69 cross')
