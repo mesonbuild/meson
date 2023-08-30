@@ -362,7 +362,15 @@ class ConverterTarget:
             supported += list(lang_suffixes[i])
         supported = [f'.{x}' for x in supported]
         self.sources = [x for x in self.sources if any(x.name.endswith(y) for y in supported)]
-        self.generated_raw = [x for x in self.generated_raw if any(x.name.endswith(y) for y in supported)]
+        # Don't filter unsupported files from generated_raw because they
+        # can be GENERATED dependencies for other targets.
+        # See: https://github.com/mesonbuild/meson/issues/11607
+        # However, the dummy CMake rule files for Visual Studio still
+        # need to be filtered out. They don't exist (because the project was
+        # not generated at this time) but the fileapi will still
+        # report them on Windows.
+        # See: https://stackoverflow.com/a/41816323
+        self.generated_raw = [x for x in self.generated_raw if not x.name.endswith('.rule')]
 
         # Make paths relative
         def rel_path(x: Path, is_header: bool, is_generated: bool) -> T.Optional[Path]:
