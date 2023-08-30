@@ -1626,10 +1626,6 @@ if __name__ == '__main__':
         (passing_tests, failing_tests, skipped_tests) = res
     except StopException:
         pass
-    print()
-    print('Total passed tests: ', green(str(passing_tests)))
-    print('Total failed tests: ', red(str(failing_tests)))
-    print('Total skipped tests:', yellow(str(skipped_tests)))
     if failing_tests > 0:
         print('\nMesonlogs of failing tests\n')
         for l in failing_logs:
@@ -1637,7 +1633,12 @@ if __name__ == '__main__':
                 print(l, '\n')
             except UnicodeError:
                 print(l.encode('ascii', errors='replace').decode(), '\n')
-        print('All failures:')
+    print()
+    print('Total passed tests: ', green(str(passing_tests)))
+    print('Total failed tests: ', red(str(failing_tests)))
+    print('Total skipped tests:', yellow(str(skipped_tests)))
+    if failing_tests > 0:
+        print('\nAll failures:')
         for c in failing_testcases:
             print(f'  -> {c}')
     for name, dirs, _ in all_tests:
