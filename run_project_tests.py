@@ -445,9 +445,9 @@ def _run_ci_include(args: T.List[str]) -> str:
         return 'At least one parameter required'
     try:
         data = Path(args[0]).read_text(errors='ignore', encoding='utf-8')
-        return f'{header}\n{data}\n{footer}'
+        return f'{header}\n{data}\n{footer}\n'
     except Exception:
-        return 'Failed to open {}'.format(args[0])
+        return 'Failed to open {}\n'.format(args[0])
 
 ci_commands = {
     'ci_include': _run_ci_include
@@ -461,7 +461,7 @@ def run_ci_commands(raw_log: str) -> T.List[str]:
         cmd = shlex.split(l[11:])
         if not cmd or cmd[0] not in ci_commands:
             continue
-        res += ['CI COMMAND {}:\n{}\n'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
+        res += ['CI COMMAND {}:\n{}'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
     return res
 
 class OutputMatch:
