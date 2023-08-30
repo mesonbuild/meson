@@ -5,6 +5,12 @@ if not gi.found()
   error('MESON_SKIP_TEST gobject-introspection not found.')
 endif
 
+if host_machine.system() == 'cygwin'
+  # FIXME: g-ir-scanner seems broken on cygwin:
+  # ERROR: can't resolve libraries to shared libraries: foo++
+  error('MESON_SKIP_TEST g-ir-scanner is broken on cygwin.')
+endif
+
 gnome = import('gnome')
 
 lib = library('foo++', 'foo.cpp')
