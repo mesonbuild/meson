@@ -79,7 +79,7 @@ class ExtraFrameworkDependency(ExternalDependency):
         return None
 
     def _get_framework_latest_version(self, path: Path) -> str:
-        versions = []
+        versions: T.List[Version] = []
         for each in path.glob('Versions/*'):
             # macOS filesystems are usually case-insensitive
             if each.name.lower() == 'current':
