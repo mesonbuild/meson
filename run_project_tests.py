@@ -699,8 +699,8 @@ def _run_test(test: TestDef,
     # Build with subprocess
     def build_step() -> None:
         build_start = time.time()
-        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
-        testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
+        pc, o, _ = Popen_safe(compile_commands + dir_args, cwd=test_build_dir, stderr=subprocess.STDOUT)
+        testresult.add_step(BuildStep.build, o, '', '', time.time() - build_start)
         if should_fail == 'build':
             if pc.returncode != 0:
                 raise testresult
