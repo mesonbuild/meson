@@ -36,7 +36,7 @@ varargs:
 
 kwargs:
   required:
-    type: bool
+    type: bool | feature
     default: true
     description: |
       If set to `true`, Meson will halt if any of the languages
