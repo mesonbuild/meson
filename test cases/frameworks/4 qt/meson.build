@@ -50,6 +50,9 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     qtmodule = import(qt)
     assert(qtmodule.has_tools())
 
+    # Test that fetching a variable works and yields a non-empty value
+    assert(qtdep.get_variable('prefix', configtool: 'QT_INSTALL_PREFIX') != '')
+
     # The following has two resource files because having two in one target
     # requires you to do it properly or you get linker symbol clashes.
 

@@ -150,8 +150,11 @@ class ConfigToolDependency(ExternalDependency):
             return []
         return split_args(out)
 
+    def get_variable_args(self, variable_name: str) -> T.List[str]:
+        return [f'--{variable_name}']
+
     def get_configtool_variable(self, variable_name: str) -> str:
-        p, out, _ = Popen_safe(self.config + [f'--{variable_name}'])
+        p, out, _ = Popen_safe(self.config + self.get_variable_args(variable_name))
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(
