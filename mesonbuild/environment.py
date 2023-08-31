@@ -747,7 +747,10 @@ class Environment:
         for (name, evar), for_machine in itertools.product(opts, MachineChoice):
             p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
             if p_env is not None:
-                self.binaries[for_machine].binaries.setdefault(name, mesonlib.split_args(p_env))
+                if os.path.exists(p_env):
+                    self.binaries[for_machine].binaries.setdefault(name, [p_env])
+                else:
+                    self.binaries[for_machine].binaries.setdefault(name, mesonlib.split_args(p_env))
 
     def _set_default_properties_from_env(self) -> None:
         """Properties which can also be set from the environment."""
