@@ -14,7 +14,7 @@ import tarfile
 import zipfile
 
 from . import mlog
-from .ast import IntrospectionInterpreter, AstIDGenerator
+from .ast import IntrospectionInterpreter
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
 from .wrap.wrap import (Resolver, WrapException, ALL_TYPES,
                         parse_patch_url, update_wrap_file, get_releases)
@@ -693,11 +693,9 @@ def run(options: 'Arguments') -> int:
         mlog.error('Directory', mlog.bold(source_dir), 'does not seem to be a Meson source directory.')
         return 1
     with mlog.no_logging():
-        intr = IntrospectionInterpreter(source_dir, '', 'none', visitors = [AstIDGenerator()])
+        intr = IntrospectionInterpreter(source_dir, '', 'none')
         intr.load_root_meson_file()
-        intr.sanity_check_ast()
-        intr.parse_project()
-    subproject_dir = intr.subproject_dir
+        subproject_dir = intr.extract_subproject_dir() or 'subprojects'
     if not os.path.isdir(os.path.join(source_dir, subproject_dir)):
         mlog.log('Directory', mlog.bold(source_dir), 'does not seem to have subprojects.')
         return 0
