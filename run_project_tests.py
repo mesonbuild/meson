@@ -1371,6 +1371,9 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             right_w = max(3, right_w)
             failing_testcases.append(name_str)
             failing_logs.append(f'\n\x1b[31m{"="*left_w}\x1b[0m {name_str} \x1b[31m{"="*right_w}\x1b[0m\n')
+            _during = bold('Failed during:')
+            _reason = bold('Reason:')
+            failing_logs.append(f'{_during} {result.step.name}\n{_reason} {result.msg}\n')
             if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
                 # For configure failures, instead of printing stdout,
                 # print the meson log if available since it's a superset
