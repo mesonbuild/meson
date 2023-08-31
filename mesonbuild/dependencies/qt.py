@@ -350,6 +350,9 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
             return m.group(0).rstrip('.')
         return version
 
+    def get_variable_args(self, variable_name: str) -> T.List[str]:
+        return ['-query', f'{variable_name}']
+
     @abc.abstractmethod
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         pass
