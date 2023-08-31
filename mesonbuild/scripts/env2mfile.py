@@ -296,7 +296,10 @@ def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
         compilerstr = os.environ.get(envvarname + envvar_suffix)
         if not compilerstr:
             continue
-        compiler = shlex.split(compilerstr)
+        if os.path.exists(compilerstr):
+            compiler = [compilerstr]
+        else:
+            compiler = shlex.split(compilerstr)
         infos.compilers[langname] = compiler
         lang_compile_args, lang_link_args = detect_language_args_from_envvars(langname, envvar_suffix)
         if lang_compile_args:
