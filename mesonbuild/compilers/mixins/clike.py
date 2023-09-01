@@ -1066,6 +1066,10 @@ class CLikeCompiler(Compiler):
 
     @staticmethod
     def _sort_shlibs_openbsd(libs: T.List[str]) -> T.List[str]:
+        def tuple_key(x: str) -> T.Tuple[int, ...]:
+            ver = x.rsplit('.so.', maxsplit=1)[1]
+            return tuple(int(i) for i in ver.split('.'))
+
         filtered = []  # type: T.List[str]
         for lib in libs:
             # Validate file as a shared library of type libfoo.so.X.Y
@@ -1073,12 +1077,11 @@ class CLikeCompiler(Compiler):
             if len(ret) != 2:
                 continue
             try:
-                float(ret[1])
+                tuple(int(i) for i in ret[1].split('.'))
             except ValueError:
                 continue
             filtered.append(lib)
-        float_cmp = lambda x: float(x.rsplit('.so.', maxsplit=1)[1])
-        return sorted(filtered, key=float_cmp, reverse=True)
+        return sorted(filtered, key=tuple_key, reverse=True)
 
     @classmethod
     def _get_trials_from_pattern(cls, pattern: str, directory: str, libname: str) -> T.List[Path]:
