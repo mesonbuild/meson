@@ -120,7 +120,7 @@ _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
         _ExternalProgramHolder.__init__(self, python, interpreter)
-        info = python.info
+        basic_info, info = python.basic_info, python.info
         prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'
         self.variables = info['variables']
@@ -130,7 +130,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         self.pure = python.pure
         self.platlib_install_path = os.path.join(prefix, python.platlib)
         self.purelib_install_path = os.path.join(prefix, python.purelib)
-        self.version = info['version']
+        self.version = basic_info['version']
         self.platform = info['platform']
         self.is_pypy = info['is_pypy']
         self.link_libpython = info['link_libpython']
@@ -410,9 +410,9 @@ class PythonModule(ExtensionModule):
             f.write(importlib.resources.read_binary('mesonbuild.scripts', 'pycompile.py'))
 
         for i in self.installations.values():
-            if isinstance(i, PythonExternalProgram) and i.run_bytecompile[i.info['version']]:
+            if isinstance(i, PythonExternalProgram) and i.run_bytecompile[i.basic_info['version']]:
                 i = T.cast('PythonExternalProgram', i)
-                manifest = f'python-{i.info["version"]}-installed.json'
+                manifest = f'python-{i.basic_info["version"]}-installed.json'
                 manifest_json = []
                 for name, f in py_files:
                     if f.startswith((os.path.join(installdata.prefix, i.platlib), os.path.join(installdata.prefix, i.purelib))):
@@ -447,17 +447,19 @@ class PythonModule(ExtensionModule):
             return None
 
     def _find_installation_impl(self, state: 'ModuleState', display_name: str, name_or_path: str, required: bool) -> MaybePythonProg:
+        config_path = self.interpreter.environment.coredata.get_option(OptionKey('target_config', module='python'))
+        assert isinstance(config_path, str)
         if not name_or_path:
-            python = PythonExternalProgram('python3', mesonlib.python_command)
+            python = PythonExternalProgram('python3', mesonlib.python_command, config_path)
         else:
             tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
-            python = PythonExternalProgram(display_name, ext_prog=tmp_python)
+            python = PythonExternalProgram(display_name, config_path=config_path, ext_prog=tmp_python)
 
             if not python.found() and mesonlib.is_windows():
                 pythonpath = self._get_win_pythonpath(name_or_path)
                 if pythonpath is not None:
                     name_or_path = pythonpath
-                    python = PythonExternalProgram(name_or_path)
+                    python = PythonExternalProgram(name_or_path, config_path=config_path)
 
             # Last ditch effort, python2 or python3 can be named python
             # on various platforms, let's not give up just yet, if an executable
@@ -465,7 +467,7 @@ class PythonModule(ExtensionModule):
             # it
             if not python.found() and name_or_path in {'python2', 'python3'}:
                 tmp_python = ExternalProgram.from_entry(display_name, 'python')
-                python = PythonExternalProgram(name_or_path, ext_prog=tmp_python)
+                python = PythonExternalProgram(name_or_path, config_path=config_path, ext_prog=tmp_python)
 
         if python.found():
             if python.sanity(state):
@@ -554,7 +556,7 @@ class PythonModule(ExtensionModule):
             assert isinstance(python, PythonExternalProgram), 'for mypy'
             python = copy.copy(python)
             python.pure = kwargs['pure']
-            python.run_bytecompile.setdefault(python.info['version'], False)
+            python.run_bytecompile.setdefault(python.basic_info['version'], False)
             return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')

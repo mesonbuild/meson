@@ -4853,3 +4853,8 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    def test_python_target_config(self):
+        testdir = os.path.join(self.unit_test_dir, '116 target config')
+        config_path = os.path.join(testdir, 'config.toml')
+        self.init(testdir, extra_args=['--python.target-config', config_path])

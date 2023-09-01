@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import functools, json, os, textwrap
+import functools, json, os, sys, textwrap
 from pathlib import Path
 import typing as T
 
@@ -34,6 +34,10 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
+    class BasicPythonIntrospectionDict(TypedDict):
+
+        version: str
+
     class PythonIntrospectionDict(TypedDict):
 
         install_paths: T.Dict[str, str]
@@ -46,7 +50,6 @@ if T.TYPE_CHECKING:
         suffix: str
         limited_api_suffix: str
         variables: T.Dict[str, str]
-        version: str
 
     _Base = ExternalDependency
 else:
@@ -73,6 +76,7 @@ class Pybind11ConfigToolDependency(ConfigToolDependency):
 
 class BasicPythonExternalProgram(ExternalProgram):
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
+                 config_path: T.Optional[str] = None,
                  ext_prog: T.Optional[ExternalProgram] = None):
         if ext_prog is None:
             super().__init__(name, command=command, silent=True)
@@ -82,6 +86,11 @@ class BasicPythonExternalProgram(ExternalProgram):
             self.path = ext_prog.path
             self.cached_version = None
 
+        self.config_path = config_path
+        self._config_data = self._parse_config(config_path) if config_path else None
+        self.basic_info = self._config_data or {
+            'version': '0.0',
+        }
         # We want strong key values, so we always populate this with bogus data.
         # Otherwise to make the type checkers happy we'd have to do .get() for
         # everycall, even though we know that the introspection data will be
@@ -97,9 +106,24 @@ class BasicPythonExternalProgram(ExternalProgram):
             'suffix': 'sentinel',
             'limited_api_suffix': 'sentinel',
             'variables': {},
-            'version': '0.0',
         }
         self.pure: bool = True
+
+    def _parse_config(self, path: str) -> T.Optional['BasicPythonIntrospectionDict']:
+        if sys.version_info >= (3, 11):
+            import tomllib
+        else:
+            try:
+                import tomli as tomllib
+            except ImportError:
+                return None
+
+        with open(path, 'rb') as f:
+            data = tomllib.load(f)
+
+        return {
+            'version': data['python']['version'],
+        }
 
     def _check_version(self, version: str) -> bool:
         if self.name == 'python2':
@@ -126,8 +150,15 @@ class BasicPythonExternalProgram(ExternalProgram):
             mlog.debug(stdout)
             mlog.debug('Program stderr:\n')
             mlog.debug(stderr)
+            if self._config_data:
+                mlog.debug('Only using data from the Python target config file')
 
         if info is not None and self._check_version(info['version']):
+            basic_info: 'BasicPythonIntrospectionDict' = {
+                'version': info.pop('version')
+            }
+            if not self._config_data:
+                self.basic_info = basic_info
             self.info = T.cast('PythonIntrospectionDict', info)
             return True
         else:
@@ -138,7 +169,7 @@ class _PythonDependencyBase(_Base):
 
     def __init__(self, python_holder: 'BasicPythonExternalProgram', embed: bool):
         self.embed = embed
-        self.version: str = python_holder.info['version']
+        self.version: str = python_holder.basic_info['version']
         self.platform = python_holder.info['platform']
         self.variables = python_holder.info['variables']
         self.paths = python_holder.info['paths']
@@ -358,14 +389,16 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
     from_installation = installation is not None
     # When not invoked through the python module, default installation.
     if installation is None:
-        installation = BasicPythonExternalProgram('python3', mesonlib.python_command)
+        config_path = env.coredata.get_option(mesonlib.OptionKey('target_config', module='python'))
+        assert isinstance(config_path, str)
+        installation = BasicPythonExternalProgram('python3', mesonlib.python_command, config_path)
         installation.sanity()
-    pkg_version = installation.info['variables'].get('LDVERSION') or installation.info['version']
+    pkg_version = installation.info['variables'].get('LDVERSION') or installation.basic_info['version']
 
     if DependencyMethods.PKGCONFIG in methods:
         if from_installation:
             pkg_libdir = installation.info['variables'].get('LIBPC')
-            pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
+            pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.basic_info['version'], '>=3.8') else ''
             pkg_name = f'python-{pkg_version}{pkg_embed}'
 
             # If python-X.Y.pc exists in LIBPC, we will try to use it

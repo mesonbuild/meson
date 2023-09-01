@@ -1,0 +1,7 @@
+[python]
+# inexistent version number, we set the value to this to test
+# if Meson is picking up the details from this config file
+version = '3.0.3'
+version_parts = { major = 3, minor = 0, micro = 3, releaselevel = 'final', serial = 0 }
+executable = '/usr/bin/python'
+stdlib = '/usr/lib/python3.0'

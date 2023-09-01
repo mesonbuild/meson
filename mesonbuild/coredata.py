@@ -1358,6 +1358,8 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
      BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
     (OptionKey('allow_limited_api', module='python'),
      BuiltinOption(UserBooleanOption, 'Whether to allow use of the Python Limited API', True)),
+    (OptionKey('target_config', module='python'),
+     BuiltinOption(UserStringOption, 'Config file for the target Python installation.', '')),
 ])
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
