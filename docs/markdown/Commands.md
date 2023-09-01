@@ -186,7 +186,11 @@ meson env2mfile --cross --debarch=armhf -o deb_arm_cross.txt
 
 {{ introspect_usage.inc }}
 
-Displays information about a configured Meson project.
+Displays information about a configured Meson project
+(`--benchmarks`, `--buildoptions`, `--buildsystem_files`, `--compilers`,
+`--dependencies`, `--installed`, `--install_plan`, `--machines`, `--targets`,
+`--tests`) or about a `meson.build` file (`--ast`, `--buildoptions`,
+`--dependencies`, `--scan-dependencies`, `--projectinfo`, `--targets`).
 
 {{ introspect_arguments.inc }}
 
@@ -195,7 +199,13 @@ Displays information about a configured Meson project.
 Display basic information about a configured project in `builddir`:
 
 ```
-meson introspect builddir --projectinfo
+meson introspect --projectinfo builddir
+```
+
+Dump parsed ast (abstract syntax tree) of a `meson.build` file:
+
+```
+meson introspect --ast meson.build
 ```
 
 ### install
