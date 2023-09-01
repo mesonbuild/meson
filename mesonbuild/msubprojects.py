@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, InitVar
 import os, subprocess
+import sys
 import argparse
-import asyncio
 import threading
 import copy
 import shutil
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
+from io import StringIO
+from contextlib import redirect_stdout, contextmanager
+from collections import defaultdict
 import typing as T
 import tarfile
 import zipfile
@@ -21,6 +24,7 @@ from .wrap.wrap import (Resolver, WrapException, ALL_TYPES,
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
+    from concurrent.futures import Future
 
     from .wrap.wrap import PackageDefinition
 
@@ -69,41 +73,41 @@ def read_archive_files(path: Path, base_path: Path) -> T.Set[Path]:
             archive_files = {base_path / i.name for i in tar_archive}
     return archive_files
 
-class Logger:
+class Logger(StringIO):
     def __init__(self, total_tasks: int) -> None:
-        self.lock = threading.Lock()
         self.total_tasks = total_tasks
         self.completed_tasks = 0
         self.running_tasks: T.Set[str] = set()
-        self.should_erase_line = ''
+        self.erase_line = '\33[2K\r'
+        self.stdout = sys.stdout
+        self.outputs: T.Dict[threading.Thread, StringIO] = defaultdict(StringIO)
+        self.colorize_console = mlog.colorize_console()
 
-    def flush(self) -> None:
-        if self.should_erase_line:
-            print(self.should_erase_line, end='\r')
-            self.should_erase_line = ''
+    def write(self, value: str) -> None:
+        self.outputs[threading.current_thread()].write(value)
 
     def print_progress(self) -> None:
+        if self.completed_tasks == self.total_tasks:
+            return
         line = f'Progress: {self.completed_tasks} / {self.total_tasks}'
         max_len = shutil.get_terminal_size().columns - len(line)
         running = ', '.join(self.running_tasks)
         if len(running) + 3 > max_len:
             running = running[:max_len - 6] + '...'
         line = line + f' ({running})'
-        print(self.should_erase_line, line, sep='', end='\r')
-        self.should_erase_line = '\x1b[K'
+        print(self.erase_line, line, sep='', end='\r', file=self.stdout)
 
-    def start(self, wrap_name: str) -> None:
-        with self.lock:
-            self.running_tasks.add(wrap_name)
-            self.print_progress()
-
-    def done(self, wrap_name: str, log_queue: T.List[T.Tuple[mlog.TV_LoggableList, T.Any]]) -> None:
-        with self.lock:
-            self.flush()
-            for args, kwargs in log_queue:
-                mlog.log(*args, **kwargs)
+    @contextmanager
+    def run_task(self, wrap_name: str) -> T.Generator:
+        self.running_tasks.add(wrap_name)
+        self.print_progress()
+        try:
+            yield
+        finally:
             self.running_tasks.remove(wrap_name)
             self.completed_tasks += 1
+            output = self.outputs.pop(threading.current_thread())
+            print(self.erase_line, output.getvalue(), sep='', end='', file=self.stdout)
             self.print_progress()
 
 
@@ -122,33 +126,27 @@ class Runner:
         self.wrap_resolver.dirname = os.path.join(r.subdir_root, self.wrap.directory)
         self.wrap_resolver.wrap = self.wrap
         self.run_method: T.Callable[[], bool] = self.options.subprojects_func.__get__(self)
-        self.log_queue: T.List[T.Tuple[mlog.TV_LoggableList, T.Any]] = []
-
-    def log(self, *args: mlog.TV_Loggable, **kwargs: T.Any) -> None:
-        self.log_queue.append((list(args), kwargs))
 
     def run(self) -> bool:
-        self.logger.start(self.wrap.name)
-        try:
-            result = self.run_method()
-        except MesonException as e:
-            self.log(mlog.red('Error:'), str(e))
-            result = False
-        self.logger.done(self.wrap.name, self.log_queue)
-        return result
+        with self.logger.run_task(self.wrap.name):
+            try:
+                return self.run_method()
+            except MesonException as e:
+                mlog.log(mlog.red('Error:'), str(e))
+        return False
 
     @staticmethod
     def pre_update_wrapdb(options: 'UpdateWrapDBArguments') -> None:
         options.releases = get_releases(options.allow_insecure)
 
     def update_wrapdb(self) -> bool:
-        self.log(f'Checking latest WrapDB version for {self.wrap.name}...')
+        mlog.log(f'Checking latest WrapDB version for {self.wrap.name}...')
         options = T.cast('UpdateWrapDBArguments', self.options)
 
         # Check if this wrap is in WrapDB
         info = options.releases.get(self.wrap.name)
         if not info:
-            self.log('  -> Wrap not found in wrapdb')
+            mlog.log('  -> Wrap not found in wrapdb')
             return True
 
         # Determine current version
@@ -163,7 +161,7 @@ class Runner:
                 branch, revision = parse_patch_url(patch_url)
             except WrapException:
                 if not options.force:
-                    self.log('  ->', mlog.red('Could not determine current version, use --force to update any way'))
+                    mlog.log('  ->', mlog.red('Could not determine current version, use --force to update any way'))
                     return False
                 branch = revision = None
 
@@ -175,9 +173,9 @@ class Runner:
             update_wrap_file(filename, self.wrap.name,
                              new_branch, new_revision,
                              options.allow_insecure)
-            self.log('  -> New version downloaded:', mlog.blue(latest_version))
+            mlog.log('  -> New version downloaded:', mlog.blue(latest_version))
         else:
-            self.log('  -> Already at latest version:', mlog.blue(latest_version))
+            mlog.log('  -> Already at latest version:', mlog.blue(latest_version))
 
         return True
 
@@ -190,24 +188,24 @@ class Runner:
             windows_proof_rmtree(self.repo_dir)
             try:
                 self.wrap_resolver.resolve(self.wrap.name, 'meson')
-                self.log('  -> New version extracted')
+                mlog.log('  -> New version extracted')
                 return True
             except WrapException as e:
-                self.log('  ->', mlog.red(str(e)))
+                mlog.log('  ->', mlog.red(str(e)))
                 return False
         else:
             # The subproject has not changed, or the new source and/or patch
             # tarballs should be extracted in the same directory than previous
             # version.
-            self.log('  -> Subproject has not changed, or the new source/patch needs to be extracted on the same location.')
-            self.log('     Pass --reset option to delete directory and redownload.')
+            mlog.log('  -> Subproject has not changed, or the new source/patch needs to be extracted on the same location.')
+            mlog.log('     Pass --reset option to delete directory and redownload.')
             return False
 
     def git_output(self, cmd: T.List[str]) -> str:
         return quiet_git(cmd, self.repo_dir, check=True)[1]
 
     def git_verbose(self, cmd: T.List[str]) -> None:
-        self.log(self.git_output(cmd))
+        mlog.log(self.git_output(cmd))
 
     def git_stash(self) -> None:
         # That git command return some output when there is something to stash.
@@ -225,15 +223,15 @@ class Runner:
     def git_show(self) -> None:
         commit_message = self.git_output(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'])
         parts = [s.strip() for s in commit_message.split('\n')]
-        self.log('  ->', mlog.yellow(parts[0]), mlog.red(parts[1]), parts[2], mlog.blue(parts[3]))
+        mlog.log('  ->', mlog.yellow(parts[0]), mlog.red(parts[1]), parts[2], mlog.blue(parts[3]))
 
     def git_rebase(self, revision: str) -> bool:
         try:
             self.git_output(['-c', 'rebase.autoStash=true', 'rebase', 'FETCH_HEAD'])
         except GitException as e:
-            self.log('  -> Could not rebase', mlog.bold(self.repo_dir), 'onto', mlog.bold(revision))
-            self.log(mlog.red(e.output))
-            self.log(mlog.red(str(e)))
+            mlog.log('  -> Could not rebase', mlog.bold(self.repo_dir), 'onto', mlog.bold(revision))
+            mlog.log(mlog.red(e.output))
+            mlog.log(mlog.red(str(e)))
             return False
         return True
 
@@ -246,9 +244,9 @@ class Runner:
             self.wrap_resolver.apply_patch()
             self.wrap_resolver.apply_diff_files()
         except GitException as e:
-            self.log('  -> Could not reset', mlog.bold(self.repo_dir), 'to', mlog.bold(revision))
-            self.log(mlog.red(e.output))
-            self.log(mlog.red(str(e)))
+            mlog.log('  -> Could not reset', mlog.bold(self.repo_dir), 'to', mlog.bold(revision))
+            mlog.log(mlog.red(e.output))
+            mlog.log(mlog.red(str(e)))
             return False
         return True
 
@@ -263,9 +261,9 @@ class Runner:
             self.git_stash()
             self.git_output(cmd)
         except GitException as e:
-            self.log('  -> Could not checkout', mlog.bold(revision), 'in', mlog.bold(self.repo_dir))
-            self.log(mlog.red(e.output))
-            self.log(mlog.red(str(e)))
+            mlog.log('  -> Could not checkout', mlog.bold(revision), 'in', mlog.bold(self.repo_dir))
+            mlog.log(mlog.red(e.output))
+            mlog.log(mlog.red(str(e)))
             return False
         return True
 
@@ -296,25 +294,25 @@ class Runner:
                     self.update_git_done()
                     return True
                 except WrapException as e:
-                    self.log('  ->', mlog.red(str(e)))
+                    mlog.log('  ->', mlog.red(str(e)))
                     return False
             else:
-                self.log('  -> Not a git repository.')
-                self.log('Pass --reset option to delete directory and redownload.')
+                mlog.log('  -> Not a git repository.')
+                mlog.log('Pass --reset option to delete directory and redownload.')
                 return False
         revision = self.wrap.values.get('revision')
         url = self.wrap.values.get('url')
         push_url = self.wrap.values.get('push-url')
         if not revision or not url:
             # It could be a detached git submodule for example.
-            self.log('  -> No revision or URL specified.')
+            mlog.log('  -> No revision or URL specified.')
             return True
         try:
             origin_url = self.git_output(['remote', 'get-url', 'origin']).strip()
         except GitException as e:
-            self.log('  -> Failed to determine current origin URL in', mlog.bold(self.repo_dir))
-            self.log(mlog.red(e.output))
-            self.log(mlog.red(str(e)))
+            mlog.log('  -> Failed to determine current origin URL in', mlog.bold(self.repo_dir))
+            mlog.log(mlog.red(e.output))
+            mlog.log(mlog.red(str(e)))
             return False
         if options.reset:
             try:
@@ -322,21 +320,21 @@ class Runner:
                 if push_url:
                     self.git_output(['remote', 'set-url', '--push', 'origin', push_url])
             except GitException as e:
-                self.log('  -> Failed to reset origin URL in', mlog.bold(self.repo_dir))
-                self.log(mlog.red(e.output))
-                self.log(mlog.red(str(e)))
+                mlog.log('  -> Failed to reset origin URL in', mlog.bold(self.repo_dir))
+                mlog.log(mlog.red(e.output))
+                mlog.log(mlog.red(str(e)))
                 return False
         elif url != origin_url:
-            self.log(f'  -> URL changed from {origin_url!r} to {url!r}')
+            mlog.log(f'  -> URL changed from {origin_url!r} to {url!r}')
             return False
         try:
             # Same as `git branch --show-current` but compatible with older git version
             branch = self.git_output(['rev-parse', '--abbrev-ref', 'HEAD']).strip()
             branch = branch if branch != 'HEAD' else ''
         except GitException as e:
-            self.log('  -> Failed to determine current branch in', mlog.bold(self.repo_dir))
-            self.log(mlog.red(e.output))
-            self.log(mlog.red(str(e)))
+            mlog.log('  -> Failed to determine current branch in', mlog.bold(self.repo_dir))
+            mlog.log(mlog.red(e.output))
+            mlog.log(mlog.red(str(e)))
             return False
         if self.wrap_resolver.is_git_full_commit_id(revision) and \
                 quiet_git(['rev-parse', '--verify', revision + '^{commit}'], self.repo_dir)[0]:
@@ -356,9 +354,9 @@ class Runner:
                 tags_refmap = '+refs/tags/*:refs/tags/*'
                 self.git_output(['fetch', '--refmap', heads_refmap, '--refmap', tags_refmap, 'origin', revision])
             except GitException as e:
-                self.log('  -> Could not fetch revision', mlog.bold(revision), 'in', mlog.bold(self.repo_dir))
-                self.log(mlog.red(e.output))
-                self.log(mlog.red(str(e)))
+                mlog.log('  -> Could not fetch revision', mlog.bold(revision), 'in', mlog.bold(self.repo_dir))
+                mlog.log(mlog.red(e.output))
+                mlog.log(mlog.red(str(e)))
                 return False
 
         if branch == '':
@@ -419,10 +417,10 @@ class Runner:
         return True
 
     def update(self) -> bool:
-        self.log(f'Updating {self.wrap.name}...')
+        mlog.log(f'Updating {self.wrap.name}...')
         success = False
         if not os.path.isdir(self.repo_dir):
-            self.log('  -> Not used.')
+            mlog.log('  -> Not used.')
             # It is not an error if we are updating all subprojects.
             success = not self.options.subprojects
         elif self.wrap.type == 'file':
@@ -434,11 +432,11 @@ class Runner:
         elif self.wrap.type == 'svn':
             success = self.update_svn()
         elif self.wrap.type is None:
-            self.log('  -> Cannot update subproject with no wrap file')
+            mlog.log('  -> Cannot update subproject with no wrap file')
             # It is not an error if we are updating all subprojects.
             success = not self.options.subprojects
         else:
-            self.log('  -> Cannot update', self.wrap.type, 'subproject')
+            mlog.log('  -> Cannot update', self.wrap.type, 'subproject')
         if success and os.path.isdir(self.repo_dir):
             self.wrap.update_hash_cache(self.repo_dir)
         return success
@@ -452,41 +450,41 @@ class Runner:
         if not branch_name:
             # It could be a detached git submodule for example.
             return True
-        self.log(f'Checkout {branch_name} in {self.wrap.name}...')
+        mlog.log(f'Checkout {branch_name} in {self.wrap.name}...')
         if self.git_checkout(branch_name, create=options.b):
             self.git_show()
             return True
         return False
 
     def download(self) -> bool:
-        self.log(f'Download {self.wrap.name}...')
+        mlog.log(f'Download {self.wrap.name}...')
         if os.path.isdir(self.repo_dir):
-            self.log('  -> Already downloaded')
+            mlog.log('  -> Already downloaded')
             return True
         try:
             self.wrap_resolver.resolve(self.wrap.name, 'meson')
-            self.log('  -> done')
+            mlog.log('  -> done')
         except WrapException as e:
-            self.log('  ->', mlog.red(str(e)))
+            mlog.log('  ->', mlog.red(str(e)))
             return False
         return True
 
     def foreach(self) -> bool:
         options = T.cast('ForeachArguments', self.options)
 
-        self.log(f'Executing command in {self.repo_dir}')
+        mlog.log(f'Executing command in {self.repo_dir}')
         if not os.path.isdir(self.repo_dir):
-            self.log('  -> Not downloaded yet')
+            mlog.log('  -> Not downloaded yet')
             return True
         cmd = [options.command] + options.args
         p, out, _ = Popen_safe(cmd, stderr=subprocess.STDOUT, cwd=self.repo_dir)
         if p.returncode != 0:
             err_message = "Command '{}' returned non-zero exit status {}.".format(" ".join(cmd), p.returncode)
-            self.log('  -> ', mlog.red(err_message))
-            self.log(out, end='')
+            mlog.log('  -> ', mlog.red(err_message))
+            mlog.log(out, end='')
             return False
 
-        self.log(out, end='')
+        mlog.log(out, end='')
         return True
 
     def purge(self) -> bool:
@@ -506,7 +504,7 @@ class Runner:
             redirect_file = Path(self.wrap.filename).resolve()
             if options.confirm:
                 redirect_file.unlink()
-            self.log(f'Deleting {redirect_file}')
+            mlog.log(f'Deleting {redirect_file}')
 
         if options.include_cache:
             packagecache = Path(self.wrap_resolver.cachedir).resolve()
@@ -515,7 +513,7 @@ class Runner:
                 if subproject_cache_file.is_file():
                     if options.confirm:
                         subproject_cache_file.unlink()
-                    self.log(f'Deleting {subproject_cache_file}')
+                    mlog.log(f'Deleting {subproject_cache_file}')
             except WrapException:
                 pass
 
@@ -524,7 +522,7 @@ class Runner:
                 if subproject_patch_file.is_file():
                     if options.confirm:
                         subproject_patch_file.unlink()
-                    self.log(f'Deleting {subproject_patch_file}')
+                    mlog.log(f'Deleting {subproject_patch_file}')
             except WrapException:
                 pass
 
@@ -546,7 +544,7 @@ class Runner:
         if subproject_source_dir.is_symlink():
             if options.confirm:
                 subproject_source_dir.unlink()
-            self.log(f'Deleting {subproject_source_dir}')
+            mlog.log(f'Deleting {subproject_source_dir}')
             return True
         if not subproject_source_dir.is_dir():
             return True
@@ -554,7 +552,7 @@ class Runner:
         try:
             if options.confirm:
                 windows_proof_rmtree(str(subproject_source_dir))
-            self.log(f'Deleting {subproject_source_dir}')
+            mlog.log(f'Deleting {subproject_source_dir}')
         except OSError as e:
             mlog.error(f'Unable to remove: {subproject_source_dir}: {e}')
             return False
@@ -575,9 +573,9 @@ class Runner:
             print('error: --apply and --save are mutually exclusive')
             return False
         if options.apply:
-            self.log(f'Re-applying patchfiles overlay for {self.wrap.name}...')
+            mlog.log(f'Re-applying patchfiles overlay for {self.wrap.name}...')
             if not os.path.isdir(self.repo_dir):
-                self.log('  -> Not downloaded yet')
+                mlog.log('  -> Not downloaded yet')
                 return True
             self.wrap_resolver.apply_patch()
             return True
@@ -597,7 +595,7 @@ class Runner:
             archive_files = read_archive_files(archive_path, base_path)
             directory_files = set(directory.glob('**/*'))
 
-            self.log(f'Saving {self.wrap.name} to {packagefiles}...')
+            mlog.log(f'Saving {self.wrap.name} to {packagefiles}...')
             shutil.rmtree(packagefiles)
             for src_path in directory_files - archive_files:
                 if not src_path.is_file():
@@ -710,29 +708,22 @@ def run(options: 'Arguments') -> int:
     for t in types:
         if t not in ALL_TYPES:
             raise MesonException(f'Unknown subproject type {t!r}, supported types are: {ALL_TYPES_STRING}')
-    tasks: T.List[T.Awaitable[bool]] = []
-    task_names: T.List[str] = []
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    executor = ThreadPoolExecutor(options.num_processes)
     if types:
         wraps = [wrap for wrap in wraps if wrap.type in types]
     pre_func = getattr(options, 'pre_func', None)
     if pre_func:
         pre_func(options)
+    tasks: T.List[T.Tuple[Future, str]] = []
     logger = Logger(len(wraps))
-    for wrap in wraps:
-        dirname = Path(subproject_dir, wrap.directory).as_posix()
-        runner = Runner(logger, r, wrap, dirname, options)
-        task = loop.run_in_executor(executor, runner.run)
-        tasks.append(task)
-        task_names.append(wrap.name)
-    results = loop.run_until_complete(asyncio.gather(*tasks))
-    logger.flush()
+    with redirect_stdout(logger), ThreadPoolExecutor(options.num_processes) as executor:
+        for wrap in wraps:
+            dirname = Path(subproject_dir, wrap.directory).as_posix()
+            runner = Runner(logger, r, wrap, dirname, options)
+            tasks.append((executor.submit(runner.run), wrap.name))
     post_func = getattr(options, 'post_func', None)
     if post_func:
         post_func(options)
-    failures = [name for name, success in zip(task_names, results) if not success]
+    failures = [name for future, name in tasks if not future.result()]
     if failures:
         m = 'Please check logs above as command failed in some subprojects which could have been left in conflict state: '
         m += ', '.join(failures)
