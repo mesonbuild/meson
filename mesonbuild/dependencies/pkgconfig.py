@@ -172,12 +172,12 @@ class PkgConfigCLI(PkgConfigInterface):
         # Only search for pkg-config for each machine the first time and store
         # the result in the class definition
         if cls.class_pkgbin[for_machine] is False:
-            mlog.debug(f'Pkg-config binary for {for_machine} is cached as not found.')
+            mlog.debug(f'Pkg-config binary for {for_machine.get_lower_case_name()} is cached as not found.')
         elif cls.class_pkgbin[for_machine] is not None:
-            mlog.debug(f'Pkg-config binary for {for_machine} is cached.')
+            mlog.debug(f'Pkg-config binary for {for_machine.get_lower_case_name()} is cached.')
         else:
             assert cls.class_pkgbin[for_machine] is None, 'for mypy'
-            mlog.debug(f'Pkg-config binary for {for_machine} is not cached.')
+            mlog.debug(f'Pkg-config binary for {for_machine.get_lower_case_name()} is not cached.')
             for potential_pkgbin in find_external_program(
                     env, for_machine, 'pkgconfig', 'Pkg-config',
                     env.default_pkgconfig, allow_default_for_cross=False):
@@ -281,7 +281,7 @@ class PkgConfigDependency(ExternalDependency):
         self.is_libtool = False
         self.pkgconfig = PkgConfigInterface.instance(self.env, self.for_machine, self.silent)
         if not self.pkgconfig:
-            msg = f'Pkg-config for machine {self.for_machine} not found. Giving up.'
+            msg = f'Pkg-config for machine {self.for_machine.get_lower_case_name()} not found. Giving up.'
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)
