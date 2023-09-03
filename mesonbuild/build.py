@@ -34,7 +34,7 @@ from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
-    OptionKey, PerMachineDefaultable, OptionOverrideProxy,
+    OptionKey, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load,
 )
 from .compilers import (
@@ -535,7 +535,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
                    for k, v in overrides.items()}
         else:
             ovr = {}
-        self.options = OptionOverrideProxy(ovr, self.environment.coredata.options, self.subproject)
+        self.options = coredata.OptionsView(self.environment.coredata.options, self.subproject, ovr)
         # XXX: this should happen in the interpreter
         if has_path_sep(self.name):
             # Fix failing test 53 when this becomes an error.
@@ -655,7 +655,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             else:
                 self.options.overrides[k] = v
 
-    def get_options(self) -> OptionOverrideProxy:
+    def get_options(self) -> coredata.OptionsView:
         return self.options
 
     def get_option(self, key: 'OptionKey') -> T.Union[str, int, bool, 'WrapMode']:
