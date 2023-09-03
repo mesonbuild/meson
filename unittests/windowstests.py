@@ -462,9 +462,6 @@ class WindowsTests(BasePlatformTests):
 
     @unittest.skipIf(is_cygwin(), "Needs visual studio")
     def test_vsenv_option(self):
-        if mesonbuild.environment.detect_msys2_arch():
-            # https://github.com/msys2-contrib/cpython-mingw/issues/141
-            raise SkipTest('mingw python fails with /bin being removed from PATH')
         if self.backend is not Backend.ninja:
             raise SkipTest('Only ninja backend is valid for test')
         env = os.environ.copy()
