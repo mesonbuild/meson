@@ -19,7 +19,9 @@ import pickle, os, uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
-from collections import OrderedDict
+from collections import OrderedDict, abc
+from dataclasses import dataclass
+
 from .mesonlib import (
     HoldableObject,
     MesonException, EnvironmentException, MachineChoice, PerMachine,
@@ -42,12 +44,12 @@ if T.TYPE_CHECKING:
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
     from .environment import Environment
-    from .mesonlib import OptionOverrideProxy, FileOrString
+    from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
 
-    OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
+    OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], 'OptionsView']
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
-    KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, OptionOverrideProxy]
+    KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, 'OptionsView']
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
@@ -374,6 +376,42 @@ class UserStdOption(UserComboOption):
                 return newstd
         raise MesonException(f'None of values {candidates} are supported by the {self.lang.upper()} compiler. ' +
                              f'Possible values are {self.choices}')
+
+@dataclass
+class OptionsView(abc.Mapping):
+    '''A view on an options dictionary for a given subproject and with overrides.
+    '''
+
+    # TODO: the typing here could be made more explicit using a TypeDict from
+    # python 3.8 or typing_extensions
+    options: KeyedOptionDictType
+    subproject: T.Optional[str] = None
+    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None
+
+    def __getitem__(self, key: OptionKey) -> UserOption:
+        # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
+        # We should try to share the code somehow.
+        key = key.evolve(subproject=self.subproject)
+        if not key.is_project():
+            opt = self.options.get(key)
+            if opt is None or opt.yielding:
+                opt = self.options[key.as_root()]
+        else:
+            opt = self.options[key]
+            if opt.yielding:
+                opt = self.options.get(key.as_root(), opt)
+        if self.overrides:
+            override_value = self.overrides.get(key.as_root())
+            if override_value is not None:
+                opt = copy.copy(opt)
+                opt.set_value(override_value)
+        return opt
+
+    def __iter__(self) -> T.Iterator[OptionKey]:
+        return iter(self.options)
+
+    def __len__(self) -> int:
+        return len(self.options)
 
 class DependencyCacheType(enum.Enum):
 
