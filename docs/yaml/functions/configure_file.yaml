@@ -144,3 +144,10 @@ kwargs:
       Set the file encoding for the input and output file.
       The supported encodings are those of python3, see
       [standard-encodings](https://docs.python.org/3/library/codecs.html#standard-encodings).
+
+  macro_name:
+    type: str
+    since: 1.3.0
+    description: |
+      When specified, macro guards will be used instead of '#pragma once'. The
+      macro guard name will be the specified name.
