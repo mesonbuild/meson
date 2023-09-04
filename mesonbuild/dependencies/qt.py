@@ -53,7 +53,7 @@ def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) ->
 
     private_dir = os.path.join(mod_inc_dir, mod_version)
     # fallback, let's try to find a directory with the latest version
-    if not os.path.exists(private_dir):
+    if os.path.isdir(mod_inc_dir) and not os.path.exists(private_dir):
         dirs = [filename for filename in os.listdir(mod_inc_dir)
                 if os.path.isdir(os.path.join(mod_inc_dir, filename))]
 
