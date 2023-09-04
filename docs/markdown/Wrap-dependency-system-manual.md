@@ -109,6 +109,12 @@ project's `subprojects/packagecache` directory, it will be used instead
 of downloading the file, even if `--wrap-mode` option is set to
 `nodownload`. The file's hash will be checked.
 
+Since *1.3.0* if the `MESON_PACKAGE_CACHE_DIR` environment variable is set, it is used instead of
+the project's `subprojects/packagecache`. This allows sharing the cache across multiple
+projects. In addition it can contain an already extracted source tree as long as it
+has the same directory name as the `directory` field in the wrap file. In that
+case, the directory will be copied into `subprojects/` before applying patches.
+
 ### Specific to VCS-based wraps
 - `url` - name of the wrap-git repository to clone. Required.
 - `revision` - name of the revision to checkout. Must be either: a

@@ -289,7 +289,7 @@ class Resolver:
 
     def __post_init__(self) -> None:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
-        self.cachedir = os.path.join(self.subdir_root, 'packagecache')
+        self.cachedir = os.environ.get('MESON_PACKAGE_CACHE_DIR') or os.path.join(self.subdir_root, 'packagecache')
         self.wraps: T.Dict[str, PackageDefinition] = {}
         self.netrc: T.Optional[netrc] = None
         self.provided_deps: T.Dict[str, PackageDefinition] = {}
@@ -462,7 +462,17 @@ class Resolver:
             if not os.path.isdir(self.dirname):
                 raise WrapException('Path already exists but is not a directory')
         else:
-            if self.wrap.type == 'file':
+            # Check first if we have the extracted directory in our cache. This can
+            # happen for example when MESON_PACKAGE_CACHE_DIR=/usr/share/cargo/registry
+            # on distros that ships Rust source code.
+            # TODO: We don't currently clone git repositories into the cache
+            # directory, but we should to avoid cloning multiple times the same
+            # repository. In that case, we could do something smarter than
+            # copy_tree() here.
+            cached_directory = os.path.join(self.cachedir, self.directory)
+            if os.path.isdir(cached_directory):
+                self.copy_tree(cached_directory, self.dirname)
+            elif self.wrap.type == 'file':
                 self.get_file()
             else:
                 self.check_can_download()
