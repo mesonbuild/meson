@@ -18,6 +18,7 @@ import pickle
 import tempfile
 import subprocess
 import textwrap
+import shutil
 from unittest import skipIf, SkipTest
 from pathlib import Path
 
@@ -261,3 +262,12 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         self.assertEqual(data['modules'], expected)
         self.assertEqual(data['count'], 68)
+
+    def test_meson_package_cache_dir(self):
+        # Copy testdir into temporary directory to not pollute meson source tree.
+        testdir = os.path.join(self.unit_test_dir, '116 meson package cache dir')
+        srcdir = os.path.join(self.builddir, 'srctree')
+        shutil.copytree(testdir, srcdir)
+        builddir = os.path.join(srcdir, '_build')
+        self.change_builddir(builddir)
+        self.init(srcdir, override_envvars={'MESON_PACKAGE_CACHE_DIR': os.path.join(srcdir, 'cache_dir')})
