@@ -2585,6 +2585,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         OUTPUT_KW,
         KwargInfo('output_format', str, default='c', since='0.47.0', since_values={'json': '1.3.0'},
                   validator=in_set_validator({'c', 'json', 'nasm'})),
+        KwargInfo('macro_name', (str, NoneType), default=None, since='1.3.0'),
     )
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                             kwargs: kwtypes.ConfigureFile):
@@ -2676,7 +2677,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                                      'copy a file to the build dir, use the \'copy:\' keyword '
                                      'argument added in 0.47.0', location=node)
             else:
-                mesonlib.dump_conf_header(ofile_abs, conf, output_format)
+                macro_name = kwargs['macro_name']
+                mesonlib.dump_conf_header(ofile_abs, conf, output_format, macro_name)
             conf.used = True
         elif kwargs['command'] is not None:
             if len(inputs) > 1:
