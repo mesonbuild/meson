@@ -424,4 +424,5 @@ schema is defined by the class structure given in
 - [Meson Syntax Highlighter](https://plugins.jetbrains.com/plugin/13269-meson-syntax-highlighter) plugin for JetBrains IDEs.
 - [vscode-meson](https://github.com/mesonbuild/vscode-meson) extension for VS Code/Codium
 - [Qt Creator](https://doc.qt.io/qtcreator/creator-project-meson.html)
+- [Meson-UI](https://github.com/dreamer-coding-555/meson-ui) (build GUI for Meson)
 - [mmeson](https://github.com/stephanlachnit/mmeson) (ccmake clone for Meson)
