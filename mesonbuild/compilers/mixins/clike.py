@@ -502,7 +502,7 @@ class CLikeCompiler(Compiler):
                      extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
                      dependencies: T.Optional[T.List['Dependency']]) -> bool:
         t = f'''{prefix}
-        #include <stdio.h>
+        #include <stddef.h>
         int main(void) {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)[0]
@@ -563,6 +563,7 @@ class CLikeCompiler(Compiler):
         if self.is_cross:
             return self.cross_compute_int(expression, low, high, guess, prefix, env, extra_args, dependencies)
         t = f'''{prefix}
+        #include<stddef.h>
         #include<stdio.h>
         int main(void) {{
             printf("%ld\\n", (long)({expression}));
@@ -582,7 +583,7 @@ class CLikeCompiler(Compiler):
         if extra_args is None:
             extra_args = []
         t = f'''{prefix}
-        #include <stdio.h>
+        #include <stddef.h>
         int main(void) {{
             {typename} something;
             return 0;
@@ -602,6 +603,7 @@ class CLikeCompiler(Compiler):
                                   dependencies=dependencies)
             return r, False
         t = f'''{prefix}
+        #include<stddef.h>
         #include<stdio.h>
         int main(void) {{
             printf("%ld\\n", (long)(sizeof({typename})));
@@ -621,7 +623,7 @@ class CLikeCompiler(Compiler):
         if extra_args is None:
             extra_args = []
         t = f'''{prefix}
-        #include <stdio.h>
+        #include <stddef.h>
         int main(void) {{
             {typename} something;
             return 0;
