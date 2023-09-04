@@ -180,7 +180,11 @@ methods:
 
 - name: alignment
   returns: int
-  description: Returns the alignment of the specified type.
+  description: |
+    Returns the alignment of the specified type. For C-like languages,
+    For C-like languages, the header `stddef.h` and `stdio.h` are included
+    implicitly for native compilation, only `stddef.h` is included when
+    cross-compiling.
 
   posargs:
     typename:
@@ -283,6 +287,9 @@ methods:
     (defaults to -1024), `high` (defaults to 1024) and `guess` to
     specify max and min values for the search and the value to try
     first.
+    For C-like languages, the header `stddef.h` and `stdio.h` are included
+    implicitly for native compilation, only `stddef.h` is included when
+    cross-compiling.
 
   posargs:
     expr:
@@ -304,7 +311,11 @@ methods:
 
 - name: sizeof
   returns: int
-  description: returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown.
+  description: |
+    returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown.
+    For C-like languages, the header `stddef.h` and `stdio.h` are included
+    implicitly for native compilation, only `stddef.h` is included when
+    cross-compiling.
   kwargs_inherit: compiler._common
   posargs:
     typename:
