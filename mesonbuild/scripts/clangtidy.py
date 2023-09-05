@@ -18,10 +18,15 @@ import subprocess
 from pathlib import Path
 
 from .run_tool import run_tool
+from .. import build
+from ..coredata import OptionKey
 import typing as T
 
-def run_clang_tidy(fname: Path, builddir: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(['clang-tidy', '-p', str(builddir), str(fname)])
+def run_clang_tidy(fname: Path, builddir: Path, werror: bool) -> subprocess.CompletedProcess:
+    extra_args = []
+    if werror:
+        extra_args.append('--warnings-as-errors=*')
+    return subprocess.run(['clang-tidy', '-p', str(builddir), *extra_args, str(fname)])
 
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
@@ -31,5 +36,6 @@ def run(args: T.List[str]) -> int:
 
     srcdir = Path(options.sourcedir)
     builddir = Path(options.builddir)
+    werror = build.load(options.builddir).environment.coredata.get_option(OptionKey('werror'))
 
-    return run_tool('clang-tidy', srcdir, builddir, run_clang_tidy, builddir)
+    return run_tool('clang-tidy', srcdir, builddir, run_clang_tidy, builddir, werror)
