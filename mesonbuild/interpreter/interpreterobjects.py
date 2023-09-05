@@ -784,7 +784,7 @@ class SubprojectHolder(MesonInterpreterObject):
                  warnings: int = 0,
                  disabled_feature: T.Optional[str] = None,
                  exception: T.Optional[Exception] = None,
-                 callstack: T.Optional[T.List[str]] = None) -> None:
+                 callstack: T.Optional[mesonlib.PerMachine[T.List[str]]] = None) -> None:
         super().__init__()
         self.held_object = subinterpreter
         self.warnings = warnings
@@ -792,7 +792,7 @@ class SubprojectHolder(MesonInterpreterObject):
         self.exception = exception
         self.subdir = PurePath(subdir).as_posix()
         self.cm_interpreter: T.Optional[CMakeInterpreter] = None
-        self.callstack = callstack
+        self.callstack = callstack.host if callstack else None
         self.methods.update({'get_variable': self.get_variable_method,
                              'found': self.found_method,
                              })
