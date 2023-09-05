@@ -12,6 +12,8 @@
 # limitations under the License.
 from __future__ import annotations
 
+from mesonbuild.utils.universal import PerMachineDefaultable
+
 from .. import mparser
 from .. import environment
 from .. import coredata
@@ -304,8 +306,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.processed_buildfiles: T.Set[str] = set()
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
-        self.subprojects: T.Dict[str, SubprojectHolder] = {}
-        self.subproject_stack: T.List[str] = []
+        self.subprojects: PerMachine[T.Dict[str, SubprojectHolder]] = PerMachineDefaultable.default(
+            self.environment.is_cross_build(), {}, {})
+        self.subproject_stack: PerMachine[T.List[str]] = PerMachineDefaultable.default(
+            self.environment.is_cross_build(), [], [])
         self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
@@ -795,7 +799,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           'configuration')
         expanded_args: T.List[str] = []
         if isinstance(cmd, build.Executable):
-            for name, exe in self.build.find_overrides.items():
+            for name, exe in self.build.find_overrides.host.items():
                 if cmd == exe:
                     progname = name
                     break
@@ -874,7 +878,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                             exception: T.Optional[Exception] = None) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
-        self.subprojects[subp_name] = sub
+        self.subprojects.host[subp_name] = sub
         return sub
 
     def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
@@ -896,16 +900,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         if has_path_sep(subp_name):
             mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.',
                          location=self.current_node)
-        if subp_name in self.subproject_stack:
-            fullstack = self.subproject_stack + [subp_name]
+        if subp_name in self.subproject_stack.host:
+            fullstack = self.subproject_stack.host + [subp_name]
             incpath = ' => '.join(fullstack)
             raise InvalidCode(f'Recursive include of subprojects: {incpath}.')
-        if subp_name in self.subprojects:
-            subproject = self.subprojects[subp_name]
+        if subp_name in self.subprojects.host:
+            subproject = self.subprojects.host[subp_name]
             if required and not subproject.found():
                 raise InterpreterException(f'Subproject "{subproject.subdir}" required but not found.')
             if kwargs['version']:
-                pv = self.build.subprojects[subp_name]
+                pv = self.build.subprojects.host[subp_name]
                 wanted = kwargs['version']
                 if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                     raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
@@ -924,7 +928,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
 
-        stack = ':'.join(self.subproject_stack + [subp_name])
+        stack = ':'.join(self.subproject_stack.host + [subp_name])
         m = ['\nExecuting subproject', mlog.bold(stack)]
         if method != 'meson':
             m += ['method', mlog.bold(method)]
@@ -985,7 +989,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi.bound_holder_map = self.bound_holder_map
             subi.summary = self.summary
 
-            subi.subproject_stack = self.subproject_stack + [subp_name]
+            subi.subproject_stack = PerMachine(self.subproject_stack.build.copy(), self.subproject_stack.host.copy())
+            subi.subproject_stack.host.append(subp_name)
             current_active = self.active_projectname
             with mlog.nested_warnings():
                 subi.run()
@@ -1000,17 +1005,17 @@ class Interpreter(InterpreterBase, HoldableObject):
             if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                 raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
         self.active_projectname = current_active
-        self.subprojects.update(subi.subprojects)
-        self.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
-                                                       callstack=self.subproject_stack)
+        self.subprojects.host.update(subi.subprojects.host)
+        self.subprojects.host[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
+                                                            callstack=self.subproject_stack)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.build_def_files.update(build_def_files)
         # We always need the subi.build_def_files, to propagate sub-sub-projects
         self.build_def_files.update(subi.build_def_files)
         self.build.merge(subi.build)
-        self.build.subprojects[subp_name] = subi.project_version
-        return self.subprojects[subp_name]
+        self.build.subprojects.host[subp_name] = subi.project_version
+        return self.subprojects.host[subp_name]
 
     def _do_subproject_cmake(self, subp_name: str, subdir: str,
                              default_options: T.Dict[OptionKey, str],
@@ -1263,7 +1268,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             proj_license_files.append((ifname, i))
         self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license,
                                                                proj_license_files, self.subproject)
-        if self.subproject in self.build.projects:
+        if self.subproject in self.build.projects.host:
             raise InvalidCode('Second call to project().')
 
         # spdirname is the subproject_dir for this project, relative to self.subdir.
@@ -1291,7 +1296,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             else:
                 self.environment.wrap_resolver = r
 
-        self.build.projects[self.subproject] = proj_name
+        self.build.projects.host[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
 
@@ -1383,7 +1388,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _print_summary(self) -> None:
         # Add automatic 'Subprojects' section in main project.
         all_subprojects = collections.OrderedDict()
-        for name, subp in sorted(self.subprojects.items()):
+        for name, subp in sorted(self.subprojects.host.items()):
             value = [subp.found()]
             if subp.disabled_feature:
                 value += [f'Feature {subp.disabled_feature!r} disabled']
@@ -1415,7 +1420,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)
         for subp_name, summary in sorted(self.summary.items()):
-            if self.subprojects[subp_name].found():
+            if self.subprojects.host[subp_name].found():
                 summary.dump()
         if main_summary:
             main_summary.dump()
@@ -1601,8 +1606,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         for name in command_names:
             if not isinstance(name, str):
                 continue
-            if name in self.build.find_overrides:
-                exe = self.build.find_overrides[name]
+            if name in self.build.find_overrides.host:
+                exe = self.build.find_overrides.host[name]
                 extra_info.append(mlog.blue('(overridden)'))
                 return exe
         return None
@@ -1610,14 +1615,14 @@ class Interpreter(InterpreterBase, HoldableObject):
     def store_name_lookups(self, command_names: T.List[mesonlib.FileOrString]) -> None:
         for name in command_names:
             if isinstance(name, str):
-                self.build.searched_programs.add(name)
+                self.build.searched_programs.host.add(name)
 
     def add_find_program_override(self, name: str, exe: T.Union[build.Executable, ExternalProgram, 'OverrideProgram']) -> None:
-        if name in self.build.searched_programs:
+        if name in self.build.searched_programs.host:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
-        if name in self.build.find_overrides:
+        if name in self.build.find_overrides.host:
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
-        self.build.find_overrides[name] = exe
+        self.build.find_overrides.host[name] = exe
 
     def notfound_program(self, args: T.List[mesonlib.FileOrString]) -> ExternalProgram:
         return NonExistingExternalProgram(' '.join(
@@ -1707,7 +1712,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 version = version_func(progobj)
             elif isinstance(progobj, build.Executable):
                 if progobj.subproject:
-                    interp = self.subprojects[progobj.subproject].held_object
+                    interp = self.subprojects.host[progobj.subproject].held_object
                 else:
                     interp = self
                 assert isinstance(interp, Interpreter)

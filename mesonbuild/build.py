@@ -243,7 +243,8 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version = None
         self.environment = environment
-        self.projects: T.Dict[SubProject, str] = {}
+        self.projects: PerMachine[T.Dict[SubProject, str]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
         self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -257,7 +258,8 @@ class Build:
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
         self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
-        self.subprojects: T.Dict[str, str] = {}
+        self.subprojects: PerMachine[T.Dict[SubProject, str]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
@@ -268,8 +270,11 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
-        self.find_overrides: T.Dict[str, T.Union['Executable', programs.ExternalProgram, programs.OverrideProgram]] = {}
-        self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
+        self.find_overrides: PerMachine[T.Dict[str, T.Union['Executable', programs.ExternalProgram, programs.OverrideProgram]]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), {}, {})
+        # The list of all programs that have been searched for.
+        self.searched_programs: PerMachine[T.Set[str]] = PerMachineDefaultable.default(
+            environment.is_cross_build(), set(), set())
 
         # If we are doing a cross build we need two caches, if we're doing a
         # build == host compilation the both caches should point to the same place.
@@ -310,7 +315,7 @@ class Build:
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 
     def get_project(self) -> str:
-        return self.projects['']
+        return self.projects.host['']
 
     def get_subproject_dir(self):
         return self.subproject_dir
