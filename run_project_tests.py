@@ -40,6 +40,7 @@ import time
 import typing as T
 import xml.etree.ElementTree as ET
 import collections
+import importlib.util
 
 from mesonbuild import build
 from mesonbuild import environment
@@ -169,7 +170,7 @@ class InstalledFile:
             return None
 
         # Handle the different types
-        if self.typ in {'py_implib', 'py_limited_implib', 'python_lib', 'python_limited_lib', 'python_file'}:
+        if self.typ in {'py_implib', 'py_limited_implib', 'python_lib', 'python_limited_lib', 'python_file', 'python_bytecode'}:
             val = p.as_posix()
             val = val.replace('@PYTHON_PLATLIB@', python.platlib)
             val = val.replace('@PYTHON_PURELIB@', python.purelib)
@@ -196,6 +197,8 @@ class InstalledFile:
                     return p.with_suffix('.dll.a')
                 else:
                     return None
+            if self.typ == 'python_bytecode':
+                return p.parent / importlib.util.cache_from_source(p.name)
         elif self.typ in {'file', 'dir'}:
             return p
         elif self.typ == 'shared_lib':

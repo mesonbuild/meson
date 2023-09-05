@@ -27,6 +27,7 @@
               "shared_lib",
               "python_lib",
               "python_limited_lib",
+              "python_bytecode",
               "pdb",
               "implib",
               "py_implib",
