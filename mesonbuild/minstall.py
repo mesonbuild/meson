@@ -716,8 +716,12 @@ class Installer:
             # install the archive in which the shared library exists. The below code does the same.
             # We change the .so files having lt_version or so_version to archive file install.
             if is_aix():
-                if '.so' in t.fname:
-                    t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
+                try:
+                    if os.environ["AIX_SO_ARCHIVE"] == '1':
+                        if '.so' in t.fname:
+                             t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
+                except:
+                    pass
             if not self.should_install(t):
                 continue
             if not os.path.exists(t.fname):
