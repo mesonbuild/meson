@@ -788,6 +788,12 @@ class BuildTarget(Target):
             # relocation-model=pic is rustc's default and Meson does not
             # currently have a way to disable PIC.
             self.pic = True
+        if 'vala' in self.compilers and self.is_linkable_target():
+            self.outputs += [self.vala_header, self.vala_vapi]
+            self.install_tag += ['devel', 'devel']
+            if self.vala_gir:
+                self.outputs.append(self.vala_gir)
+                self.install_tag.append('devel')
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -1962,7 +1968,7 @@ class Executable(BuildTarget):
         self.filename = self.name
         if self.suffix:
             self.filename += '.' + self.suffix
-        self.outputs = [self.filename]
+        self.outputs[0] = self.filename
 
         # The import library this target will generate
         self.import_filename = None
@@ -2111,7 +2117,7 @@ class StaticLibrary(BuildTarget):
             else:
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
-        self.outputs = [self.filename]
+        self.outputs[0] = self.filename
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
