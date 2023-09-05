@@ -719,8 +719,8 @@ class Installer:
                 try:
                     if os.environ["AIX_SO_ARCHIVE"] == '1':
                         if '.so' in t.fname:
-                             t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
-                except:
+                            t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
+                except Exception as e:
                     pass
             if not self.should_install(t):
                 continue

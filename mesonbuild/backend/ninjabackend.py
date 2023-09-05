@@ -1062,7 +1062,7 @@ class NinjaBackend(backends.Backend):
                 if os.environ["AIX_SO_ARCHIVE"] == '1':
                     elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                     self.add_build(elem)
-            except:
+            except Exception as e:
                 pass
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
@@ -3505,7 +3505,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 if os.environ["AIX_SO_ARCHIVE"] == '1':
                     for i, val in enumerate(internal):
                         internal[i] = linker.get_archive_name(val)
-            except:
+            except Exception as e:
                 pass
         commands += internal
         # Only non-static built targets need link args and link dependencies
@@ -3717,7 +3717,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                             if os.environ["AIX_SO_ARCHIVE"] == '1':
                                 linker, stdlib_args = self.determine_linker_and_stdlib_args(t)
                                 t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
-                        except:
+                        except Exception as e:
                             pass
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
