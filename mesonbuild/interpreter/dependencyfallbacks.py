@@ -15,14 +15,17 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
     from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
     from .interpreterobjects import SubprojectHolder
+    from ..utils.universal import MachineChoice
 
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
-    def __init__(self, interpreter: 'Interpreter', names: T.List[str], allow_fallback: T.Optional[bool] = None,
+    def __init__(self, interpreter: 'Interpreter', names: T.List[str], for_machine: MachineChoice,
+                 allow_fallback: T.Optional[bool] = None,
                  default_options: T.Optional[T.Dict[OptionKey, str]] = None) -> None:
         super().__init__(subproject=interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
+        self.for_machine = for_machine
         self.coredata = interpreter.coredata
         self.build = interpreter.build
         self.environment = interpreter.environment
@@ -86,9 +89,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self._handle_featurenew_dependencies(name)
         dep = dependencies.find_external_dependency(name, self.environment, kwargs)
         if dep.found():
-            for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
             identifier = dependencies.get_dep_identifier(name, kwargs)
-            self.coredata.deps[for_machine].put(identifier, dep)
+            self.coredata.deps[self.for_machine].put(identifier, dep)
             return dep
         return None
 
@@ -131,7 +133,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         return self._get_subproject_dep(subp_name, varname, kwargs)
 
     def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectHolder]:
-        sub = self.interpreter.subprojects.host.get(subp_name)
+        sub = self.interpreter.subprojects[self.for_machine].get(subp_name)
         if sub and sub.found():
             return sub
         return None
@@ -211,11 +213,10 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # of None in the case the dependency is cached as not-found, or if cached
         # version does not match. In that case we don't want to continue with
         # other candidates.
-        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
         identifier = dependencies.get_dep_identifier(name, kwargs)
         wanted_vers = stringlistify(kwargs.get('version', []))
 
-        override = self.build.dependency_overrides[for_machine].get(identifier)
+        override = self.build.dependency_overrides[self.for_machine].get(identifier)
         if override:
             info = [mlog.blue('(overridden)' if override.explicit else '(cached)')]
             cached_dep = override.dep
@@ -229,7 +230,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             cached_dep = None
         else:
             info = [mlog.blue('(cached)')]
-            cached_dep = self.coredata.deps[for_machine].get(identifier)
+            cached_dep = self.coredata.deps[self.for_machine].get(identifier)
 
         if cached_dep:
             found_vers = cached_dep.get_version()
@@ -358,16 +359,16 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         for i, item in enumerate(candidates):
             func, func_args, func_kwargs = item
             func_kwargs['required'] = required and (i == last)
+            func_kwargs['for_machine'] = self.for_machine
             kwargs['required'] = required and (i == last)
             dep = func(kwargs, func_args, func_kwargs)
             if dep and dep.found():
                 # Override this dependency to have consistent results in subsequent
                 # dependency lookups.
                 for name in self.names:
-                    for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
                     identifier = dependencies.get_dep_identifier(name, kwargs)
-                    if identifier not in self.build.dependency_overrides[for_machine]:
-                        self.build.dependency_overrides[for_machine][identifier] = \
+                    if identifier not in self.build.dependency_overrides[self.for_machine]:
+                        self.build.dependency_overrides[self.for_machine][identifier] = \
                             build.DependencyOverride(dep, self.interpreter.current_node, explicit=False)
                 return dep
             elif required and (dep or i == last):

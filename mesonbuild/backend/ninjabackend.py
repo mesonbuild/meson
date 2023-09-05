@@ -1506,7 +1506,7 @@ class NinjaBackend(backends.Backend):
         self.generate_generator_list_rules(target)
         self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
 
-    def determine_single_java_compile_args(self, target, compiler):
+    def determine_single_java_compile_args(self, target: build.BuildTarget, compiler):
         args = []
         args += compiler.get_buildtype_args(target.get_option(OptionKey('buildtype')))
         args += self.build.get_global_args(compiler, target.for_machine)
