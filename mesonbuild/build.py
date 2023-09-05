@@ -454,10 +454,12 @@ class IncludeDirs(HoldableObject):
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
+        bsubdir = f'build.{self.curdir}' if self.is_build_only_subproject else self.curdir
+
         strlist: T.List[str] = []
         for idir in self.incdirs:
             strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            strlist.append(os.path.join(builddir, self.curdir, idir))
+            strlist.append(os.path.join(builddir, bsubdir, idir))
         return strlist
 
 @dataclass(eq=False)
@@ -666,6 +668,8 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return self.subdir
 
     def get_output_subdir(self) -> str:
+        if self.build_only_subproject:
+            return f'build.{self.subdir}'
         return self.get_source_subdir()
 
     def get_typename(self) -> str:
@@ -682,7 +686,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return h.hexdigest()[:7]
 
     @staticmethod
-    def construct_id_from_path(subdir: str, name: str, type_suffix: str) -> str:
+    def construct_id_from_path(subdir: str, name: str, type_suffix: str, build_subproject: bool = False) -> str:
         """Construct target ID from subdir, name and type suffix.
 
         This helper function is made public mostly for tests."""
@@ -697,15 +701,21 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if subdir:
             subdir_part = Target._get_id_hash(subdir)
             # preserve myid for better debuggability
-            return subdir_part + '@@' + my_id
+            my_id = f'{subdir_part}@@{my_id}'
+        if build_subproject:
+            my_id = f'build.{my_id}'
         return my_id
 
     def get_id(self) -> str:
+        """Get the unique ID of the target.
+
+        :return: A unique string id
+        """
         name = self.name
         if getattr(self, 'name_suffix_set', False):
             name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.subdir, name, self.type_suffix())
+            self.subdir, name, self.type_suffix(), self.build_only_subproject)
 
     def process_kwargs_base(self, kwargs: T.Dict[str, T.Any]) -> None:
         if 'build_by_default' in kwargs:
@@ -1991,6 +2001,8 @@ class GeneratedList(HoldableObject):
         return self.subdir
 
     def get_output_subdir(self) -> str:
+        if self.is_build_only_subproject:
+            return f'build.{self.subdir}'
         return self.get_source_subdir()
 
 
