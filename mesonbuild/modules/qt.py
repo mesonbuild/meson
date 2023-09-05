@@ -23,7 +23,7 @@ from . import ModuleReturnValue, ExtensionModule
 from .. import build
 from .. import coredata
 from .. import mlog
-from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
+from ..dependencies import find_external_dependency, Dependency, ExternalLibrary, InternalDependency
 from ..mesonlib import MesonException, File, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
@@ -455,7 +455,10 @@ class QtBaseModule(ExtensionModule):
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
         for dep in kwargs['dependencies']:
-            compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+            compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
+            if isinstance(dep, InternalDependency):
+                for incl in dep.include_directories:
+                    compile_args.extend(f'-I{i}' for i in incl.to_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
 
         output: T.List[build.GeneratedList] = []
 
