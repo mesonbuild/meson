@@ -154,7 +154,7 @@ class Elf(DataSizes):
     def close_bf(self) -> None:
         if self.bf is not None:
             if self.bf_perms is not None:
-                os.fchmod(self.bf.fileno(), self.bf_perms)
+                os.chmod(self.bf.fileno(), self.bf_perms)
                 self.bf_perms = None
             self.bf.close()
             self.bf = None
