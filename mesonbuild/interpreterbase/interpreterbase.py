@@ -302,6 +302,12 @@ class InterpreterBase:
                     error_resolve='Should this be an equality check?')
 
             result = self.evaluate_statement(i.condition)
+            if isinstance(i.condition, mparser.FunctionNode) and result is None:
+                raise InvalidCode.from_node(
+                    f'{i.condition.func_name.value}(...) returns void and is not valid in condition.',
+                    node=i.condition,
+                    error_resolve=f'Change the condition or move the call to {i.condition.func_name.value}(...) before the condition')
+
             if result is None:
                 raise InvalidCodeOnVoid.from_node('if', node=i.condition)
             if isinstance(result, Disabler):
