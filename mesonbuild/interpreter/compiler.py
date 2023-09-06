@@ -189,6 +189,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                              'compute_int': self.compute_int_method,
                              'sizeof': self.sizeof_method,
                              'get_define': self.get_define_method,
+                             'has_define': self.has_define_method,
                              'check_header': self.check_header_method,
                              'has_header': self.has_header_method,
                              'has_header_symbol': self.has_header_symbol_method,
@@ -475,8 +476,25 @@ class CompilerHolder(ObjectHolder['Compiler']):
                                                  extra_args=extra_args,
                                                  dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
-        mlog.log('Fetching value of define', mlog.bold(element, True), msg, value, cached_msg)
-        return value
+        value_msg = '(undefined)' if value is None else value
+        mlog.log('Fetching value of define', mlog.bold(element, True), msg, value_msg, cached_msg)
+        return value if value is not None else ''
+
+    @FeatureNew('compiler.has_define', '1.3.0')
+    @typed_pos_args('compiler.has_define', str)
+    @typed_kwargs('compiler.has_define', *_COMMON_KWS)
+    def has_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
+        define_name = args[0]
+        extra_args = functools.partial(self._determine_args, kwargs)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
+        value, cached = self.compiler.get_define(define_name, kwargs['prefix'], self.environment,
+                                                 extra_args=extra_args,
+                                                 dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if cached else ''
+        h = mlog.green('YES') if value is not None else mlog.red('NO')
+        mlog.log('Checking if define', mlog.bold(define_name, True), msg, 'exists:', h, cached_msg)
+
+        return value is not None
 
     @typed_pos_args('compiler.compiles', (str, mesonlib.File))
     @typed_kwargs('compiler.compiles', *_COMPILES_KWS)
