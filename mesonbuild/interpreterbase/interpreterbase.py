@@ -101,7 +101,9 @@ class InterpreterBase:
             raise InvalidCode('Builder file is empty.')
         assert isinstance(code, str)
         try:
-            self.ast = mparser.Parser(code, mesonfile).parse()
+            self.source = code
+            self.parser = mparser.Parser(code, mesonfile)
+            self.ast = self.parser.parse()
             self.handle_meson_version_from_ast()
         except mparser.ParseException as me:
             me.file = mesonfile
@@ -177,12 +179,14 @@ class InterpreterBase:
                 self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
             except Exception as e:
+                e.source = self.source # type: ignore
                 if getattr(e, 'lineno', None) is None:
                     # We are doing the equivalent to setattr here and mypy does not like it
                     # NOTE: self.current_node is continually updated during processing
                     e.lineno = self.current_node.lineno                                               # type: ignore
                     e.colno = self.current_node.colno                                                 # type: ignore
                     e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)  # type: ignore
+
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
