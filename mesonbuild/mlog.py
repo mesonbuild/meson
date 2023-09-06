@@ -45,19 +45,22 @@ def is_windows() -> bool:
     return platname == 'windows'
 
 def _windows_ansi() -> bool:
-    # windll only exists on windows, so mypy will get mad
-    from ctypes import windll, byref  # type: ignore
-    from ctypes.wintypes import DWORD
+    if sys.platform == 'win32':
+        # windll only exists on windows, so mypy will get mad
+        from ctypes import windll, byref
+        from ctypes.wintypes import DWORD
 
-    kernel = windll.kernel32
-    stdout = kernel.GetStdHandle(-11)
-    mode = DWORD()
-    if not kernel.GetConsoleMode(stdout, byref(mode)):
-        return False
-    # ENABLE_VIRTUAL_TERMINAL_PROCESSING == 0x4
-    # If the call to enable VT processing fails (returns 0), we fallback to
-    # original behavior
-    return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
+        kernel = windll.kernel32
+        stdout = kernel.GetStdHandle(-11)
+        mode = DWORD()
+        if not kernel.GetConsoleMode(stdout, byref(mode)):
+            return False
+        # ENABLE_VIRTUAL_TERMINAL_PROCESSING == 0x4
+        # If the call to enable VT processing fails (returns 0), we fallback to
+        # original behavior
+        return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
+    else:
+        assert False, 'This function should only be called on Windows platform'
 
 def colorize_console() -> bool:
     _colorize_console: bool = getattr(sys.stdout, 'colorize_console', None)
