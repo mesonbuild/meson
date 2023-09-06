@@ -271,3 +271,10 @@ class PlatformAgnosticTests(BasePlatformTests):
         builddir = os.path.join(srcdir, '_build')
         self.change_builddir(builddir)
         self.init(srcdir, override_envvars={'MESON_PACKAGE_CACHE_DIR': os.path.join(srcdir, 'cache_dir')})
+
+    def test_cmake_openssl_not_found_bug(self):
+        """Issue #12098"""
+        testdir = os.path.join(self.unit_test_dir, '117 openssl cmake bug')
+        self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
+        out = self.init(testdir, allow_fail=True)
+        self.assertNotIn('Unhandled python exception', out)

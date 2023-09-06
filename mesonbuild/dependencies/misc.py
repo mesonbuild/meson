@@ -23,7 +23,7 @@ from .. import mesonlib
 from .. import mlog
 from .base import DependencyException, DependencyMethods
 from .base import BuiltinDependency, SystemDependency
-from .cmake import CMakeDependency
+from .cmake import CMakeDependency, CMakeDependencyFactory
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory, factory_methods
@@ -599,19 +599,19 @@ packages['openssl'] = openssl_factory = DependencyFactory(
     'openssl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
-    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::Crypto', 'OpenSSL::SSL'])),
+    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::Crypto', 'OpenSSL::SSL']),
 )
 
 packages['libcrypto'] = libcrypto_factory = DependencyFactory(
     'libcrypto',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
-    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::Crypto'])),
+    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::Crypto']),
 )
 
 packages['libssl'] = libssl_factory = DependencyFactory(
     'libssl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
-    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::SSL'])),
+    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::SSL']),
 )
