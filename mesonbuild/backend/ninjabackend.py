@@ -2396,12 +2396,16 @@ class NinjaBackend(backends.Backend):
                 options = self._rsp_options(compiler)
                 self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
             if self.environment.machines[for_machine].is_aix():
-                rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))
-                description = 'Archiving AIX shared library'
-                cmdlist = compiler.get_command_to_archive_shlib()
-                args = []
-                options = {}
-                self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None))
+                try:
+                    if os.environ["AIX_SO_ARCHIVE"] == '1':
+                        rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))
+                        description = 'Archiving AIX shared library'
+                        cmdlist = compiler.get_command_to_archive_shlib()
+                        args = []
+                        options = {}
+                        self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None))
+                except Exception:
+                    pass
 
         args = self.environment.get_build_command() + \
             ['--internal',
