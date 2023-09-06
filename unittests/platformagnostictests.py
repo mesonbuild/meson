@@ -278,3 +278,15 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
+
+    def test_pkgconfig_internal(self):
+        testdir = os.path.join(self.unit_test_dir, '117 pkgconfig internal')
+        self.init(testdir)
+        with open(os.path.join(self.builddir, 'meson-private', 'foo.pc'), encoding='utf-8') as f:
+            lines = f.read().splitlines()
+            self.assertIn('Requires: public', lines)
+            self.assertIn('Requires.private: private', lines)
+            self.assertIn('Requires.internal: internal, something', lines)
+            self.assertIn('Libs: -L${libdir} -lfoo', lines)
+            self.assertIn('Libs.private: -L${libdir} -linternal2', lines)
+            self.assertIn('Cflags: -I${includedir} -DPRIVATE', lines)

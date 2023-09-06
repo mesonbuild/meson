@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import PurePath
+import enum
 import os
 import typing as T
 
@@ -55,6 +56,7 @@ if T.TYPE_CHECKING:
         libraries_private: T.List[ANY_DEP]
         requires: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
         requires_private: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
+        requires_internal: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]
         install_dir: T.Optional[str]
         d_module_versions: T.List[T.Union[str, int]]
         extra_cflags: T.List[str]
@@ -62,6 +64,7 @@ if T.TYPE_CHECKING:
         uninstalled_variables: T.Dict[str, str]
         unescaped_variables: T.Dict[str, str]
         unescaped_uninstalled_variables: T.Dict[str, str]
+        internal: bool
 
 
 _PKG_LIBRARIES: KwargInfo[T.List[T.Union[str, dependencies.Dependency, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
@@ -95,8 +98,19 @@ class MetaData:
     warned: bool = False
 
 
+@enum.unique
+class Visibility(enum.IntEnum):
+    '''Dependency visibility
+    - internal: Only static linking.
+    - private: Static linking and cflags.
+    - public: Static and dynamic linking and cflags.
+    '''
+    INTERNAL = 1
+    PRIVATE = 2
+    PUBLIC = 3
+
 class DependenciesHelper:
-    def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData]) -> None:
+    def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData], use_internal: bool) -> None:
         self.state = state
         self.name = name
         self.metadata = metadata
@@ -104,27 +118,45 @@ class DependenciesHelper:
         self.pub_reqs: T.List[str] = []
         self.priv_libs: T.List[LIBS] = []
         self.priv_reqs: T.List[str] = []
+        self.internal_reqs: T.List[str] = []
         self.cflags: T.List[str] = []
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
         self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
         self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
+        self.use_internal = use_internal
 
     def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
-        p_libs, reqs, cflags = self._process_libs(libs, True)
+        p_libs, reqs, cflags = self._process_libs(libs, Visibility.PUBLIC)
         self.pub_libs = p_libs + self.pub_libs # prepend to preserve dependencies
         self.pub_reqs += reqs
         self.cflags += cflags
 
     def add_priv_libs(self, libs: T.List[ANY_DEP]) -> None:
-        p_libs, reqs, _ = self._process_libs(libs, False)
+        p_libs, reqs, cflags = self._process_libs(libs, Visibility.PRIVATE)
         self.priv_libs = p_libs + self.priv_libs
         self.priv_reqs += reqs
+        # Private dependencies are supposed to include cflags, but for backward
+        # compatibility we do it only if we enable the internal extension.
+        if self.use_internal:
+            self.cflags += cflags
+
+    def add_internal_libs(self, libs: T.List[ANY_DEP]) -> None:
+        # There is no Libs.internal, it's merged with Libs.private. However we
+        # do have Requires.internal.
+        p_libs, reqs, cflags = self._process_libs(libs, Visibility.INTERNAL)
+        self.priv_libs = p_libs + self.priv_libs
+        self.internal_reqs += reqs
 
     def add_pub_reqs(self, reqs: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
         self.pub_reqs += self._process_reqs(reqs)
 
     def add_priv_reqs(self, reqs: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
         self.priv_reqs += self._process_reqs(reqs)
+
+    def add_internal_reqs(self, reqs: T.List[T.Union[str, build.StaticLibrary, build.SharedLibrary, dependencies.Dependency]]) -> None:
+        if reqs and not self.use_internal:
+            raise mesonlib.MesonException('Using requires_internal requires "internal: true".')
+        self.internal_reqs += self._process_reqs(reqs)
 
     def _check_generated_pc_deprecation(self, obj: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary, build.SharedLibrary]) -> None:
         if obj.get_id() in self.metadata:
@@ -184,7 +216,7 @@ class DependenciesHelper:
             self.uninstalled_incdirs.add(subdir)
 
     def _process_libs(
-            self, libs: T.List[ANY_DEP], public: bool
+            self, libs: T.List[ANY_DEP], visibility: Visibility
             ) -> T.Tuple[T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]], T.List[str], T.List[str]]:
         libs = mesonlib.listify(libs)
         processed_libs: T.List[T.Union[str, build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]] = []
@@ -207,13 +239,14 @@ class DependenciesHelper:
                         raise mesonlib.MesonException('.pc file cannot refer to individual object files.')
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-                    self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
-                    self._add_uninstalled_incdirs(obj.get_include_dirs())
+                    self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, visibility, private_external_deps=True)
+                    if visibility > Visibility.INTERNAL:
+                        self._add_uninstalled_incdirs(obj.get_include_dirs())
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-            elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
+            elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only and not self.use_internal:
                 # Do not pull dependencies for shared libraries because they are
                 # only required for static linking. Adding private requires has
                 # the side effect of exposing their cflags, which is the
@@ -224,14 +257,18 @@ class DependenciesHelper:
                 self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
-                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
+                if visibility > Visibility.INTERNAL:
+                    self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
                 # If there is a static library in `Libs:` all its deps must be
                 # public too, otherwise the generated pc file will never be
                 # usable without --static.
+                dep_visibility = Visibility.INTERNAL if self.use_internal else Visibility.PRIVATE
+                if isinstance(obj, build.StaticLibrary) and visibility == Visibility.PUBLIC:
+                    dep_visibility = Visibility.PUBLIC
                 self._add_lib_dependencies(obj.link_targets,
                                            obj.link_whole_targets,
                                            obj.external_deps,
-                                           isinstance(obj, build.StaticLibrary) and public)
+                                           dep_visibility)
             elif isinstance(obj, (build.CustomTarget, build.CustomTargetIndex)):
                 if not obj.is_linkable_target():
                     raise mesonlib.MesonException('library argument contains a not linkable custom_target.')
@@ -248,9 +285,14 @@ class DependenciesHelper:
             self, link_targets: T.Sequence[build.BuildTargetTypes],
             link_whole_targets: T.Sequence[T.Union[build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex]],
             external_deps: T.List[dependencies.Dependency],
-            public: bool,
+            visibility: Visibility,
             private_external_deps: bool = False) -> None:
-        add_libs = self.add_pub_libs if public else self.add_priv_libs
+        if visibility == Visibility.PUBLIC:
+            add_libs = self.add_pub_libs
+        elif visibility == Visibility.PRIVATE:
+            add_libs = self.add_priv_libs
+        else:
+            add_libs = self.add_internal_libs
         # Recursively add all linked libraries
         for t in link_targets:
             # Internal libraries (uninstalled static library) will be promoted
@@ -259,18 +301,18 @@ class DependenciesHelper:
                 # `is_internal` shouldn't return True for anything but a
                 # StaticLibrary, or a CustomTarget that is a StaticLibrary
                 assert isinstance(t, (build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex)), 'for mypy'
-                self._add_link_whole(t, public)
+                self._add_link_whole(t, visibility)
             else:
                 add_libs([t])
         for t in link_whole_targets:
-            self._add_link_whole(t, public)
+            self._add_link_whole(t, visibility)
         # And finally its external dependencies
         if private_external_deps:
             self.add_priv_libs(T.cast('T.List[ANY_DEP]', external_deps))
         else:
             add_libs(T.cast('T.List[ANY_DEP]', external_deps))
 
-    def _add_link_whole(self, t: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary], public: bool) -> None:
+    def _add_link_whole(self, t: T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary], visibility: Visibility) -> None:
         # Don't include static libraries that we link_whole. But we still need to
         # include their dependencies: a static library we link_whole
         # could itself link to a shared library or an installed static library.
@@ -279,7 +321,7 @@ class DependenciesHelper:
         # See remove_dups() below.
         self.link_whole_targets.append(t)
         if isinstance(t, build.BuildTarget):
-            self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
+            self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, visibility)
 
     def add_version_reqs(self, name: str, version_reqs: T.Optional[T.List[str]]) -> None:
         if version_reqs:
@@ -371,6 +413,7 @@ class DependenciesHelper:
         self.pub_libs = _fn(self.pub_libs, True)
         self.priv_reqs = _fn(self.priv_reqs)
         self.priv_libs = _fn(self.priv_libs, True)
+        self.internal_reqs = _fn(self.internal_reqs)
         # Reset exclude list just in case some values can be both cflags and libs.
         exclude = set()
         self.cflags = _fn(self.cflags)
@@ -533,6 +576,9 @@ class PkgConfigModule(NewExtensionModule):
             reqs_str = deps.format_reqs(deps.priv_reqs)
             if len(reqs_str) > 0:
                 ofile.write(f'Requires.private: {reqs_str}\n')
+            reqs_str = deps.format_reqs(deps.internal_reqs)
+            if len(reqs_str) > 0:
+                ofile.write(f'Requires.internal: {reqs_str}\n')
             if len(conflicts) > 0:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
@@ -617,6 +663,8 @@ class PkgConfigModule(NewExtensionModule):
         _PKG_LIBRARIES.evolve(name='libraries_private'),
         _PKG_REQUIRES,
         _PKG_REQUIRES.evolve(name='requires_private'),
+        _PKG_REQUIRES.evolve(name='requires_internal', since='1.3.0'),
+        KwargInfo('internal', bool, default=False, since='1.3.0'),
     )
     def generate(self, state: ModuleState,
                  args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]],
@@ -671,11 +719,12 @@ class PkgConfigModule(NewExtensionModule):
         if mainlib:
             libraries.insert(0, mainlib)
 
-        deps = DependenciesHelper(state, filebase, self._metadata)
+        deps = DependenciesHelper(state, filebase, self._metadata, kwargs['internal'])
         deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs['libraries_private'])
         deps.add_pub_reqs(kwargs['requires'])
         deps.add_priv_reqs(kwargs['requires_private'])
+        deps.add_internal_reqs(kwargs['requires_internal'])
         deps.add_cflags(kwargs['extra_cflags'])
 
         dversions = kwargs['d_module_versions']
