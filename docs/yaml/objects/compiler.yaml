@@ -327,6 +327,17 @@ methods:
       type: str
       description: The define to check.
 
+- name: has_define
+  returns: bool
+  since: 1.3.0
+  description: |
+    Returns true if the given preprocessor symbol is *defined*.
+  kwargs_inherit: compiler._common
+  posargs:
+    definename:
+      type: str
+      description: The define to check.
+
 - name: compiles
   returns: bool
   description: Returns true if the code compiles.
