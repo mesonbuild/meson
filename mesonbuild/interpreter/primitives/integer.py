@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from ...interpreterbase import (
-    FeatureBroken, InvalidArguments, MesonOperator, ObjectHolder,
-    noKwargs, noPosargs, typed_operator,
+    FeatureBroken, InvalidArguments, MesonOperator, ObjectHolder, KwargInfo,
+    noKwargs, noPosargs, typed_operator, typed_kwargs
 )
 
 import typing as T
@@ -65,10 +65,13 @@ class IntegerHolder(ObjectHolder[int]):
     def is_odd_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
         return self.held_object % 2 != 0
 
-    @noKwargs
+    @typed_kwargs(
+        'to_string',
+        KwargInfo('fill', int, default=0, since='1.3.0')
+    )
     @noPosargs
-    def to_string_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return str(self.held_object)
+    def to_string_method(self, args: T.List[TYPE_var], kwargs: T.Dict[str, T.Any]) -> str:
+        return str(self.held_object).zfill(kwargs['fill'])
 
     @typed_operator(MesonOperator.DIV, int)
     def op_div(self, other: int) -> int:
