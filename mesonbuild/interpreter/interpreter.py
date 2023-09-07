@@ -37,6 +37,7 @@ from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, Feat
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..backend.backends import ExecutableSerialisation
+from ..optinterpreter import optname_regex
 
 from . import interpreterobjects as OBJ
 from . import compiler as compilerOBJ
@@ -1101,6 +1102,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Having a colon in option name is forbidden, '
                                        'projects are not allowed to directly access '
                                        'options of other subprojects.')
+
+        if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
+            raise InterpreterException(f'Invalid option name {optname!r}')
+
         opt = self.get_option_internal(optname)
         if isinstance(opt, coredata.UserFeatureOption):
             opt.name = optname
