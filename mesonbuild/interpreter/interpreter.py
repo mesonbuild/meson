@@ -25,7 +25,7 @@ from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
                         FileMode, MachineChoice, OptionKey, listify,
-                        extract_as_list, has_path_sep, PerMachine)
+                        extract_as_list, has_path_sep, path_is_in_root, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -553,7 +553,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if f.is_built:
                 return
             f = os.path.normpath(f.relative_name())
-        elif os.path.isfile(f) and not f.startswith('/dev'):
+        elif os.path.isfile(f) and not f.startswith('/dev/'):
             srcdir = Path(self.environment.get_source_dir())
             builddir = Path(self.environment.get_build_dir())
             try:
@@ -2784,7 +2784,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         absbase_build = os.path.join(build_root, self.subdir)
 
         for a in incdir_strings:
-            if a.startswith(src_root):
+            if path_is_in_root(Path(a), Path(src_root)):
                 raise InvalidArguments(textwrap.dedent('''\
                     Tried to form an absolute path to a dir in the source tree.
                     You should not do that but use relative paths instead, for
