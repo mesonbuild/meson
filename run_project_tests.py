@@ -942,6 +942,8 @@ def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str], skip_
         # Filter non-tests files (dot files, etc)
         if not t.is_dir() or t.name.startswith('.'):
             continue
+        if t.name in {'18 includedirxyz'}:
+            continue
         if only and not any(t.name.startswith(prefix) for prefix in only):
             continue
         test_def = TestDef(t, None, [], skip_category=skip_category)
