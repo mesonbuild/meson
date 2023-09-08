@@ -29,6 +29,7 @@ from ..interpreterbase import (
     InvalidArguments,
     BreakRequest,
     ContinueRequest,
+    Disabler,
     default_resolve_key,
 )
 
@@ -53,6 +54,7 @@ from ..mparser import (
     NotNode,
     PlusAssignmentNode,
     TernaryNode,
+    TestCaseClauseNode,
 )
 
 if T.TYPE_CHECKING:
@@ -445,3 +447,6 @@ class AstInterpreter(InterpreterBase):
             elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
                 flattened_kwargs[key] = val
         return flattened_kwargs
+
+    def evaluate_testcase(self, node: TestCaseClauseNode) -> Disabler | None:
+        return Disabler(subproject=self.subproject)
