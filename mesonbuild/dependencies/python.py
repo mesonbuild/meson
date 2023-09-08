@@ -113,7 +113,9 @@ class BasicPythonExternalProgram(ExternalProgram):
 
         with importlib.resources.path('mesonbuild.scripts', 'python_info.py') as f:
             cmd = self.get_command() + [str(f)]
-            p, stdout, stderr = mesonlib.Popen_safe(cmd)
+            env = os.environ.copy()
+            env['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
+            p, stdout, stderr = mesonlib.Popen_safe(cmd, env=env)
 
         try:
             info = json.loads(stdout)
