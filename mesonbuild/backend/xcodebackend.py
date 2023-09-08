@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import functools, uuid, os, operator
+import functools, uuid, os, operator, re
 import typing as T
 
 from . import backends
@@ -58,6 +58,35 @@ OPT2XCODEOPT = {'plain': None,
                 }
 BOOL2XCODEBOOL = {True: 'YES', False: 'NO'}
 LINKABLE_EXTENSIONS = {'.o', '.a', '.obj', '.so', '.dylib'}
+XCODEVERSIONS = {'1500': ('Xcode 15.0', 60),
+                 '1400': ('Xcode 14.0', 56),
+                 '1300': ('Xcode 13.0', 55),
+                 '1200': ('Xcode 12.0', 54),
+                 '1140': ('Xcode 11.4', 53),
+                 '1100': ('Xcode 11.0', 52),
+                 '1000': ('Xcode 10.0', 51),
+                 '930': ('Xcode 9.3', 50),
+                 '800': ('Xcode 8.0', 48),
+                 '630': ('Xcode 6.3', 47),
+                 '320': ('Xcode 3.2', 46),
+                 '310': ('Xcode 3.1', 45)
+                 }
+
+def autodetect_xcode_version() -> T.Tuple[str, int]:
+    try:
+        pc, stdout, stderr = mesonlib.Popen_safe(['xcodebuild', '-version'])
+    except FileNotFoundError:
+        raise MesonException('Could not detect Xcode. Please install it if you wish to use the Xcode backend.')
+    if pc.returncode != 0:
+        raise MesonException(f'An error occurred while detecting Xcode: {stderr}')
+    version = int(''.join(re.search(r'\d*\.\d*\.*\d*', stdout).group(0).split('.')))
+    # If the version number does not have two decimal points, pretend it does.
+    if stdout.count('.') < 2:
+        version *= 10
+    for v, r in XCODEVERSIONS.items():
+        if int(v) <= version:
+            return r
+    raise MesonException('Your Xcode installation is too old and is not supported.')
 
 class FileTreeEntry:
 
@@ -203,6 +232,7 @@ class XCodeBackend(backends.Backend):
         self.arch = self.build.environment.machines.host.cpu
         if self.arch == 'aarch64':
             self.arch = 'arm64'
+        self.xcodeversion, self.objversion = autodetect_xcode_version()
         # In Xcode files are not accessed via their file names, but rather every one of them
         # gets an unique id. More precisely they get one unique id per target they are used
         # in. If you generate only one id per file and use them, compilation will work but the
