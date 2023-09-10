@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from .. import ModuleState
 
 def get_compiler(state: 'ModuleState') -> 'Compiler':
-    for_machine = MachineChoice.BUILD
+    for_machine = MachineChoice.HOST
     clist = state.environment.coredata.compilers[for_machine]
     for cstr in ('c', 'cpp'):
         try:
