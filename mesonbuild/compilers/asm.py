@@ -318,6 +318,9 @@ class MetrowerksAsmCompilerARM(MetrowerksAsmCompiler):
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return mwasmarm_instruction_set_args.get(instruction_set, None)
+    
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return []
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         if self.info.cpu_family not in {'arm'}:
@@ -329,6 +332,9 @@ class MetrowerksAsmCompilerEmbeddedPowerPC(MetrowerksAsmCompiler):
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return mwasmeppc_instruction_set_args.get(instruction_set, None)
+    
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return []
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         if self.info.cpu_family not in {'ppc'}:
