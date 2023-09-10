@@ -5010,3 +5010,12 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    def test_rsp_support(self):
+        env = get_fake_env()
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        has_rsp = cc.linker.id in {
+            'ld.bfd', 'ld.gold', 'ld.lld', 'ld.mold', 'ld.qcld', 'ld.wasm',
+            'link', 'lld-link', 'mwldarm', 'mwldeppc', 'optlink', 'xilink',
+        }
+        self.assertEqual(cc.linker.get_accepts_rsp(), has_rsp)
