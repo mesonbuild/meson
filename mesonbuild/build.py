@@ -254,7 +254,8 @@ class Build:
         self.emptydir: T.List[EmptyDir] = []
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
-        self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
+        self.static_linker: PerMachine[StaticLinker] = PerMachineDefaultable.default(
+            environment.is_cross_build(), None, None)
         self.subprojects: PerMachine[T.Dict[SubProject, str]] = PerMachineDefaultable.default(
             environment.is_cross_build(), {}, {})
         self.subproject_dir = ''
