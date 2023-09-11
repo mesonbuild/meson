@@ -50,8 +50,7 @@ def main() -> None:
         scan_test_data_symlinks()
         setup_symlinks()
     setup_commands(args.backend)
-    if not args.quick:
-        detect_system_compiler(args)
+    detect_system_compiler(args, args.quick)
     detect_tools(not args.quick)
 
     test = TestDef(args.case, args.case.stem, [])
