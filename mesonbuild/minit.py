@@ -153,6 +153,8 @@ def autodetect_options(options: Arguments, sample: bool = False) -> None:
             raise SystemExit("Can't autodetect language, please specify it with -l.")
         print("Detected language: " + options.language)
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     '''
     Here we add args for that the user can passed when making a new

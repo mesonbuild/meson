@@ -90,6 +90,8 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         ('tests', IntroCommand('List all unit tests', func=lambda: list_tests(testdata))),
     ])
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     intro_types = get_meson_introspection_types()
     for key, val in intro_types.items():

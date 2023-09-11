@@ -301,6 +301,8 @@ def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tu
     cmd += options.xcode_args
     return cmd, None
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     """Add compile specific arguments."""
     parser.add_argument(

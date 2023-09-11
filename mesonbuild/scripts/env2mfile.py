@@ -31,6 +31,8 @@ def has_for_build() -> bool:
             return True
     return False
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--debarch', default=None,
                         help='The dpkg architecture to generate.')

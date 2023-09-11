@@ -18,6 +18,8 @@ if T.TYPE_CHECKING:
 
 POWERSHELL_EXES = {'pwsh.exe', 'powershell.exe'}
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='builddir', type=Path, default='.',
                         help='Path to build directory')

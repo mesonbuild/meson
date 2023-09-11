@@ -657,6 +657,8 @@ def add_wrap_update_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
     p.set_defaults(pre_func=Runner.pre_update_wrapdb)
     return p
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     subparsers = parser.add_subparsers(title='Commands', dest='command')
     subparsers.required = True

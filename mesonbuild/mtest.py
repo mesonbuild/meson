@@ -124,6 +124,8 @@ def determine_worker_count() -> int:
             num_workers = 1
     return num_workers
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--maxfail', default=0, type=int,
                         help='Number of failing tests before aborting the '

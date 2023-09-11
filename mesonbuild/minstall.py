@@ -72,6 +72,8 @@ false to copy the link.'''
 
 selinux_updates: T.List[str] = []
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='directory to cd into before running')
