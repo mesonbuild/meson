@@ -28,6 +28,8 @@ from .. import mesonlib, msubprojects
 if T.TYPE_CHECKING:
     import argparse
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     subparsers = parser.add_subparsers(title='Commands', dest='command')
     subparsers.required = True

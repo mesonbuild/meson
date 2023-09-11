@@ -21,6 +21,8 @@ import os.path
 import pprint
 import textwrap
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser):
     parser.add_argument('--all', action='store_true', dest='all', default=False,
                         help='Show data not used by current backend.')

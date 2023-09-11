@@ -48,6 +48,8 @@ archive_extension = {'gztar': '.tar.gz',
                      'xztar': '.tar.xz',
                      'zip': '.zip'}
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='directory to cd into before running')

@@ -1332,6 +1332,7 @@ class BuiltinOption(T.Generic[_T, _U]):
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
+# Please also update completion scripts in $MESONSRC/data/shell-completions/
 BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
     (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),

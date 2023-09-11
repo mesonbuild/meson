@@ -38,6 +38,8 @@ if T.TYPE_CHECKING:
 class RewriterException(MesonException):
     pass
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser, formatter=None):
     parser.add_argument('-s', '--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
     parser.add_argument('-V', '--verbose', action='store_true', default=False, help='Enable verbose output')

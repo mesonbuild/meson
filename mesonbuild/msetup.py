@@ -31,6 +31,8 @@ syntax: glob
 '''
 
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     coredata.register_builtin_arguments(parser)
     parser.add_argument('--native-file',
