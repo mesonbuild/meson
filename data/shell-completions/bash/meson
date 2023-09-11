@@ -168,6 +168,55 @@ _meson_compgen_options() {
   return 0
 }
 
+_meson_common_setup_configure_longopts=(
+  help
+  prefix
+  bindir
+  datadir
+  includedir
+  infodir
+  libdir
+  licensedir
+  libexecdir
+  localedir
+  localstatedir
+  mandir
+  sbindir
+  sharedstatedir
+  sysconfdir
+  auto-features
+  backend
+  genvslite
+  buildtype
+  debug
+  default-library
+  errorlogs
+  install-umask
+  layout
+  optimization
+  prefer-static
+  stdsplit
+  strip
+  unity
+  unity-size
+  warnlevel
+  werror
+  wrap-mode
+  force-fallback-for
+  vsenv
+  pkgconfig.relocatable
+  python.bytecompile
+  python.install-env
+  python.platlibdir
+  python.purelibdir
+  python.allow-limited-api
+  pkg-config-path
+  build.pkg-config-path
+  cmake-prefix-path
+  build.cmake-prefix-path
+  clearcache
+)
+
 _meson-setup() {
   shortopts=(
     h
@@ -175,53 +224,10 @@ _meson-setup() {
     v
   )
 
-  # backend-startup-project is currently VS backend only.
-
   longopts=(
-    help
-    prefix
-    bindir
-    datadir
-    includedir
-    infodir
-    libdir
-    libexecdir
-    licensedir
-    localedir
-    localstatedir
-    mandir
-    sbindir
-    sharedstatedir
-    sysconfdir
-    auto-features
-    backend
-    buildtype
-    debug
-    default-library
-    errorlogs
-    install-umask
-    layout
-    optimization
-    prefer-static
-    stdsplit
-    strip
-    unity
-    unity-size
-    warnlevel
-    werror
-    wrap-mode
-    force-fallback-for
-    pkgconfig.relocatable
-    python.install-env
-    python.platlibdir
-    python.purelibdir
-    pkg-config-path
-    build.pkg-config-path
-    cmake-prefix-path
-    build.cmake-prefix-path
+    ${_meson_common_setup_configure_longopts[@]}
     native-file
     cross-file
-    vsenv
     version
     fatal-meson-warnings
     reconfigure
@@ -266,49 +272,7 @@ _meson-configure() {
   )
 
   longopts=(
-    help
-    prefix
-    bindir
-    datadir
-    includedir
-    infodir
-    libdir
-    libexecdir
-    licensedir
-    localedir
-    localstatedir
-    mandir
-    sbindir
-    sharedstatedir
-    sysconfdir
-    auto-features
-    backend
-    buildtype
-    debug
-    default-library
-    errorlogs
-    install-umask
-    layout
-    optimization
-    prefer-static
-    stdsplit
-    strip
-    unity
-    unity-size
-    warnlevel
-    werror
-    wrap-mode
-    force-fallback-for
-    backend-startup-project
-    pkgconfig.relocatable
-    python.install-env
-    python.platlibdir
-    python.purelibdir
-    pkg-config-path
-    build.pkg-config-path
-    cmake-prefix-path
-    build.cmake-prefix-path
-    clearcache
+    ${_meson_common_setup_configure_longopts[@]}
     no-pager
   )
 
