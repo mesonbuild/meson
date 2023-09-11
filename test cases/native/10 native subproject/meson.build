@@ -4,6 +4,8 @@ project('native subproject', 'c', meson_version : '>= 1.3.0')
 subproject('both', native : true)
 subproject('both', native : false)
 
+maingen = executable('maingen', 'maingen.c', native : true)
+meson.override_find_program('maingen', maingen, native : true)
 gen = subproject('buildtool', native : true).get_variable('e')
 
 ct = custom_target(

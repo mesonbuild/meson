@@ -1643,9 +1643,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(name, str):
                 self.build.searched_programs[for_machine].add(name)
 
-    def add_find_program_override(self, name: str, exe: T.Union[build.Executable, ExternalProgram, 'OverrideProgram']) -> None:
-        # XXX: What to do here? We probably need to add an explicit native here...
-        for_machine = MachineChoice.HOST
+    def add_find_program_override(self, name: str, exe: T.Union[build.Executable, ExternalProgram, 'OverrideProgram'],
+                                  for_machine: MachineChoice = MachineChoice.HOST) -> None:
         if name in self.build.searched_programs[for_machine]:
             raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
         if name in self.build.find_overrides[for_machine]:
