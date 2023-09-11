@@ -2149,19 +2149,27 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.generators.append(gen)
         return gen
 
-    @typed_pos_args('benchmark', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File))
+    @typed_pos_args(
+        'benchmark', str,
+        varargs=(str, mesonlib.File, ExternalProgram, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex),
+        min_varargs=1,
+    )
     @typed_kwargs('benchmark', *TEST_KWS)
     def func_benchmark(self, node: mparser.BaseNode,
-                       args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+                       args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, ExternalProgram, build.BuildTargetTypes]]],
                        kwargs: 'kwtypes.FuncBenchmark') -> None:
-        self.add_test(node, args, kwargs, False)
+        self.add_test(args[0], args[1], kwargs, False)
 
-    @typed_pos_args('test', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File))
+    @typed_pos_args(
+        'test', str,
+        varargs=(str, mesonlib.File, ExternalProgram, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex),
+        min_varargs=1,
+    )
     @typed_kwargs('test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
     def func_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+                  args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, ExternalProgram, build.BuildTargetTypes]]],
                   kwargs: 'kwtypes.FuncTest') -> None:
-        self.add_test(node, args, kwargs, True)
+        self.add_test(args[0], args[1], kwargs, True)
 
     def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> EnvironmentVariables:
         envlist = kwargs.get('env')
@@ -2172,25 +2180,20 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments(f'"env": {msg}')
         return ENV_KW.convertor(envlist)
 
-    def make_test(self, node: mparser.BaseNode,
-                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+    def make_test(self, name: str, command: T.List[T.Union[str, mesonlib.File, ExternalProgram, build.BuildTargetTypes]],
                   kwargs: 'kwtypes.BaseTest') -> Test:
-        name = args[0]
         if ':' in name:
             mlog.deprecation(f'":" is not allowed in test name "{name}", it has been replaced with "_"',
-                             location=node)
+                             location=self.current_node)
             name = name.replace(':', '_')
-        exe = args[1]
+        exe, *args = command
         if isinstance(exe, ExternalProgram):
             if not exe.found():
                 raise InvalidArguments('Tried to use not-found external program as test exe')
-        elif isinstance(exe, mesonlib.File):
+        elif isinstance(exe, (str, mesonlib.File)):
             exe = self.find_program_impl([exe])
 
         env = self.unpack_env_kwarg(kwargs)
-
-        if kwargs['timeout'] <= 0:
-            FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)
 
         prj = self.subproject if self.is_subproject() else self.build.project_name
 
@@ -2206,7 +2209,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     exe,
                     kwargs['depends'],
                     kwargs.get('is_parallel', False),
-                    kwargs['args'],
+                    args,
                     env,
                     kwargs['should_fail'],
                     kwargs['timeout'],
@@ -2215,16 +2218,24 @@ class Interpreter(InterpreterBase, HoldableObject):
                     kwargs['priority'],
                     kwargs['verbose'])
 
-    def add_test(self, node: mparser.BaseNode,
-                 args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
+    def add_test(self, name: str, command: T.List[T.Union[str, mesonlib.File, ExternalProgram, build.BuildTargetTypes]],
                  kwargs: T.Dict[str, T.Any], is_base_test: bool):
-        t = self.make_test(node, args, kwargs)
+        test_type = 'test' if is_base_test else 'benchmark'
+        if len(command) > 1:
+            FeatureNew.single_use(f'{test_type}() command arguments as positional arguments', '1.3.0', self.subproject, location=self.current_node)
+            if kwargs['args']:
+                raise InvalidArguments('Cannot pass command args both as positional and keyword argument')
+        if not isinstance(command[0], (build.Executable, build.Jar, ExternalProgram, mesonlib.File)):
+            FeatureNew.single_use(f'{test_type}() first commmand argument of type {type(command[0]).__name__}', '1.3.0', self.subproject, location=self.current_node)
+        if kwargs['timeout'] <= 0:
+            FeatureNew.single_use(f'{test_type}() timeout <= 0', '0.57.0', self.subproject, location=self.current_node)
+        command += kwargs['args']
+        t = self.make_test(name, command, kwargs)
+        mlog.debug(f'Adding {test_type}', mlog.bold(t.name, True))
         if is_base_test:
             self.build.tests.append(t)
-            mlog.debug('Adding test', mlog.bold(t.name, True))
         else:
             self.build.benchmarks.append(t)
-            mlog.debug('Adding benchmark', mlog.bold(t.name, True))
 
     @typed_pos_args('install_headers', varargs=(str, mesonlib.File))
     @typed_kwargs(

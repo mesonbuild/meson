@@ -45,6 +45,7 @@ description: |
   commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
 
 posargs_inherit: benchmark
+varargs_inherit: benchmark
 kwargs_inherit: benchmark
 
 kwargs:

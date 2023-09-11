@@ -1155,7 +1155,7 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTarget, build.CustomTarget, programs.ExternalProgram, mesonlib.File, str],
+            self, target: T.Union[build.BuildTargetTypes, programs.ExternalProgram, File, str],
             extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget]]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
@@ -1245,6 +1245,10 @@ class Backend:
                     cmd_args.append(a)
                 elif isinstance(a, (build.Target, build.CustomTargetIndex)):
                     cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
+                elif isinstance(a, (programs.ExternalProgram)):
+                    if not a.found():
+                        raise MesonException('Tried to use not-found external program in test command')
+                    cmd_args.extend(a.get_command())
                 else:
                     raise MesonException('Bad object in test command.')
 

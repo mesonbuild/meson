@@ -21,17 +21,18 @@ from .. import mlog
 from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, CustomTarget, InvalidArguments, Jar, StructuredSources
 from ..compilers.compilers import are_asserts_disabled
 from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, FeatureNew
 from ..mesonlib import File
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..build import IncludeDirs, LibTypes
+    from ..build import IncludeDirs, LibTypes, BuildTargetTypes
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
-    from ..programs import ExternalProgram, OverrideProgram
+    from ..programs import OverrideProgram
 
     from typing_extensions import TypedDict
 
@@ -66,7 +67,10 @@ class RustModule(ExtensionModule):
             'bindgen': self.bindgen,
         })
 
-    @typed_pos_args('rust.test', str, BuildTarget)
+    @typed_pos_args(
+        'rust.test', str, BuildTarget,
+        varargs=(str, File, ExternalProgram, BuildTarget, CustomTarget, CustomTargetIndex),
+    )
     @typed_kwargs(
         'rust.test',
         *TEST_KWS,
@@ -81,7 +85,7 @@ class RustModule(ExtensionModule):
         ),
         KwargInfo('is_parallel', bool, default=False),
     )
-    def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncTest) -> ModuleReturnValue:
+    def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget, T.List[T.Union[str, File, ExternalProgram, BuildTargetTypes]]], kwargs: FuncTest) -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.
 
         Rust puts it's unitests inside it's main source files, unlike most
@@ -130,7 +134,11 @@ class RustModule(ExtensionModule):
         base_target: BuildTarget = args[1]
         if not base_target.uses_rust():
             raise InterpreterException('Second positional argument to rustmod.test() must be a rust based target')
-        extra_args = kwargs['args']
+
+        extra_args = args[2]
+        if extra_args:
+            FeatureNew.single_use('rust.test() command arguments as positional arguments', '1.3.0', state.subproject, location=state.current_node)
+        extra_args += kwargs['args']
 
         # Delete any arguments we don't want passed
         if '--test' in extra_args:
@@ -147,10 +155,10 @@ class RustModule(ExtensionModule):
                 del extra_args[i]
                 break
 
+        extra_args += ['--test', '--format', 'pretty']
+
         # We need to cast here, as currently these don't have protocol in them, but test itself does.
         tkwargs = T.cast('_kwargs.FuncTest', kwargs.copy())
-
-        tkwargs['args'] = extra_args + ['--test', '--format', 'pretty']
         tkwargs['protocol'] = 'rust'
 
         new_target_kwargs = base_target.original_kwargs.copy()
@@ -172,8 +180,7 @@ class RustModule(ExtensionModule):
             new_target_kwargs
         )
 
-        test = self.interpreter.make_test(
-            self.interpreter.current_node, (name, new_target), tkwargs)
+        test = self.interpreter.make_test(name, [new_target] + extra_args, tkwargs)
 
         return ModuleReturnValue(None, [new_target, test])
 

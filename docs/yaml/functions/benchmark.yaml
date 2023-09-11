@@ -21,14 +21,19 @@ posargs:
     type: str
     description: The *unique* test id
 
-  executable:
-    type: exe | jar | external_program | file
-    description: The program to execute
+varargs:
+  name: command
+  type: str | file | external_program | build_tgt | custom_tgt | custom_idx
+  min_varargs: 1
+  description: |
+    The program to execute.
+    *(Since 1.3.0)* can be followed by extra arguments to pass to the executable.
 
 kwargs:
   args:
     type: list[str | file | tgt]
     description: Arguments to pass to the executable
+    deprecated: 1.3.0
 
   env:
     type: env | list[str] | dict[str]

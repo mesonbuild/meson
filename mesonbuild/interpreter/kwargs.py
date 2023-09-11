@@ -37,7 +37,7 @@ class BaseTest(TypedDict):
 
     """Shared base for the Rust module."""
 
-    args: T.List[T.Union[str, File, build.Target]]
+    args: T.List[T.Union[str, File, build.BuildTargetTypes]]
     should_fail: bool
     timeout: int
     workdir: T.Optional[str]

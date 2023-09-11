@@ -32,6 +32,7 @@ test target which calls that executable, using the rust test protocol.
 
 This function takes two positional arguments, the first is the name of the
 test and the second is the library or executable that is the rust based target.
+*(Since 1.3.0)* can be followed by extra arguments to pass to the executable.
 It also takes the following keyword arguments:
 
 - `dependencies`: a list of test-only Dependencies
