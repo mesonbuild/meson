@@ -27,7 +27,7 @@ from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments
 from ..mesonlib import MachineChoice, OptionKey
-from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, BaseStringNode
 from .interpreter import AstInterpreter
 
 if T.TYPE_CHECKING:
@@ -128,7 +128,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
-            if isinstance(spdirname, StringNode):
+            if isinstance(spdirname, BaseStringNode):
                 assert isinstance(spdirname.value, str)
                 self.subproject_dir = spdirname.value
         if not self.is_subproject():
@@ -174,7 +174,7 @@ class IntrospectionInterpreter(AstInterpreter):
         for l in self.flatten_args(raw_langs):
             if isinstance(l, str):
                 langs.append(l)
-            elif isinstance(l, StringNode):
+            elif isinstance(l, BaseStringNode):
                 langs.append(l.value)
 
         for lang in sorted(langs, key=compilers.sort_clink):
@@ -261,9 +261,9 @@ class IntrospectionInterpreter(AstInterpreter):
                     continue
                 arg_nodes = arg_node.arguments.copy()
                 # Pop the first element if the function is a build target function
-                if isinstance(curr, FunctionNode) and curr.func_name in BUILD_TARGET_FUNCTIONS:
+                if isinstance(curr, FunctionNode) and curr.func_name.value in BUILD_TARGET_FUNCTIONS:
                     arg_nodes.pop(0)
-                elementary_nodes = [x for x in arg_nodes if isinstance(x, (str, StringNode))]
+                elementary_nodes = [x for x in arg_nodes if isinstance(x, (str, BaseStringNode))]
                 inqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]
                 if elementary_nodes:
                     res += [curr]

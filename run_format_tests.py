@@ -63,6 +63,7 @@ def check_format() -> None:
         'work area',
         '.eggs', '_cache',              # e.g. .mypy_cache
         'venv',                         # virtualenvs have DOS line endings
+        '118 rewrite',                  # we explicitly test for tab in meson.build file
     }
     for (root, _, filenames) in os.walk('.'):
         if any([x in root for x in skip_dirs]):

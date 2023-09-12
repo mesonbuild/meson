@@ -28,6 +28,10 @@ def _token(tid: str, filename: str, value: mparser.TV_TokenTypes) -> mparser.Tok
     return mparser.Token(tid, filename, -1, -1, -1, (-1, -1), value)
 
 
+def _symbol(filename: str, val: str) -> mparser.SymbolNode:
+    return mparser.SymbolNode(_token('', filename, val))
+
+
 def string(value: str, filename: str) -> mparser.StringNode:
     """Build A StringNode
 
@@ -45,7 +49,7 @@ def number(value: int, filename: str) -> mparser.NumberNode:
     :param filename: the file that the value came from
     :return: A NumberNode
     """
-    return mparser.NumberNode(_token('number', filename, value))
+    return mparser.NumberNode(_token('number', filename, str(value)))
 
 
 def bool(value: builtins.bool, filename: str) -> mparser.BooleanNode:
@@ -67,7 +71,7 @@ def array(value: T.List[mparser.BaseNode], filename: str) -> mparser.ArrayNode:
     """
     args = mparser.ArgumentNode(_token('array', filename, 'unused'))
     args.arguments = value
-    return mparser.ArrayNode(args, -1, -1, -1, -1)
+    return mparser.ArrayNode(_symbol(filename, '['), args, _symbol(filename, ']'))
 
 
 def identifier(value: str, filename: str) -> mparser.IdNode:
@@ -97,7 +101,7 @@ def method(name: str, id_: mparser.IdNode,
         args.arguments = pos
     if kw is not None:
         args.kwargs = {identifier(k, id_.filename): v for k, v in kw.items()}
-    return mparser.MethodNode(id_.filename, -1, -1, id_, name, args)
+    return mparser.MethodNode(id_, _symbol(id_.filename, '.'), identifier(name, id_.filename), _symbol(id_.filename, '('), args, _symbol(id_.filename, ')'))
 
 
 def function(name: str, filename: str,
@@ -117,7 +121,7 @@ def function(name: str, filename: str,
         args.arguments = pos
     if kw is not None:
         args.kwargs = {identifier(k, filename): v for k, v in kw.items()}
-    return mparser.FunctionNode(filename, -1, -1, -1, -1, name, args)
+    return mparser.FunctionNode(identifier(name, filename), _symbol(filename, '('), args, _symbol(filename, ')'))
 
 
 def equal(lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:
@@ -127,7 +131,7 @@ def equal(lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNod
     :param rhs: the right hand side of the equal
     :return: A compraison node
     """
-    return mparser.ComparisonNode('==', lhs, rhs)
+    return mparser.ComparisonNode('==', lhs, _symbol(lhs.filename, '=='), rhs)
 
 
 def or_(lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.OrNode:
@@ -137,7 +141,7 @@ def or_(lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.OrNode:
     :param rhs: The Right of the Node
     :return: The OrNode
     """
-    return mparser.OrNode(lhs, rhs)
+    return mparser.OrNode(lhs, _symbol(lhs.filename, 'or'), rhs)
 
 
 def and_(lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.AndNode:
@@ -147,7 +151,7 @@ def and_(lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.AndNode:
     :param rhs: The right of the And
     :return: The AndNode
     """
-    return mparser.AndNode(lhs, rhs)
+    return mparser.AndNode(lhs, _symbol(lhs.filename, 'and'), rhs)
 
 
 def not_(value: mparser.BaseNode, filename: str) -> mparser.NotNode:
@@ -157,7 +161,7 @@ def not_(value: mparser.BaseNode, filename: str) -> mparser.NotNode:
     :param filename: the string filename
     :return: The NotNode
     """
-    return mparser.NotNode(_token('not', filename, ''), value)
+    return mparser.NotNode(_token('not', filename, ''), _symbol(filename, 'not'), value)
 
 
 def assign(value: mparser.BaseNode, varname: str, filename: str) -> mparser.AssignmentNode:
@@ -168,7 +172,7 @@ def assign(value: mparser.BaseNode, varname: str, filename: str) -> mparser.Assi
     :param filename: The filename
     :return: An AssignmentNode
     """
-    return mparser.AssignmentNode(filename, -1, -1, varname, value)
+    return mparser.AssignmentNode(identifier(varname, filename), _symbol(filename, '='), value)
 
 
 def block(filename: str) -> mparser.CodeBlockNode:

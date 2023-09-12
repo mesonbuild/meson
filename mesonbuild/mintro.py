@@ -36,7 +36,7 @@ from .dependencies import Dependency
 from . import environment
 from .interpreterbase import ObjectHolder
 from .mesonlib import OptionKey
-from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
+from .mparser import FunctionNode, ArrayNode, ArgumentNode, BaseStringNode
 
 if T.TYPE_CHECKING:
     import argparse
@@ -187,14 +187,14 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
             args: T.List[BaseNode] = []
             if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
-                if n.func_name in BUILD_TARGET_FUNCTIONS:
+                if n.func_name.value in BUILD_TARGET_FUNCTIONS:
                     args.pop(0)
             elif isinstance(n, ArrayNode):
                 args = n.args.arguments
             elif isinstance(n, ArgumentNode):
                 args = n.arguments
             for j in args:
-                if isinstance(j, StringNode):
+                if isinstance(j, BaseStringNode):
                     assert isinstance(j.value, str)
                     res += [Path(j.value)]
                 elif isinstance(j, str):

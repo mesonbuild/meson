@@ -28,7 +28,7 @@ from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionL
 from mesonbuild.mesonlib import MesonException, setup_vsenv
 from . import mlog, environment
 from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseStringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode, SymbolNode
 import json, os, re, sys
 import typing as T
 
@@ -103,6 +103,9 @@ class RequiredKeys:
             return f(*wrapped_args, **wrapped_kwargs)
 
         return wrapped
+
+def _symbol(val: str) -> SymbolNode:
+    return SymbolNode(Token('', '', 0, 0, 0, (0, 0), val))
 
 class MTypeBase:
     def __init__(self, node: T.Optional[BaseNode] = None):
@@ -189,7 +192,7 @@ class MTypeList(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return ArrayNode(ArgumentNode(Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
+        return ArrayNode(_symbol('['), ArgumentNode(Token('', '', 0, 0, 0, None, '')), _symbol(']'))
 
     def _new_element_node(self, value):
         # Overwrite in derived class
@@ -267,12 +270,12 @@ class MTypeStrList(MTypeList):
         return StringNode(Token('', '', 0, 0, 0, None, str(value)))
 
     def _check_is_equal(self, node, value) -> bool:
-        if isinstance(node, StringNode):
+        if isinstance(node, BaseStringNode):
             return node.value == value
         return False
 
     def _check_regex_matches(self, node, regex: str) -> bool:
-        if isinstance(node, StringNode):
+        if isinstance(node, BaseStringNode):
             return re.match(regex, node.value) is not None
         return False
 
@@ -292,7 +295,7 @@ class MTypeIDList(MTypeList):
         return False
 
     def _check_regex_matches(self, node, regex: str) -> bool:
-        if isinstance(node, StringNode):
+        if isinstance(node, BaseStringNode):
             return re.match(regex, node.value) is not None
         return False
 
@@ -420,7 +423,7 @@ class Rewriter:
         if target in self.interpreter.assignments:
             node = self.interpreter.assignments[target]
             if isinstance(node, FunctionNode):
-                if node.func_name in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
+                if node.func_name.value in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
                     tgt = self.interpreter.assign_vals[target]
 
         return tgt
@@ -440,7 +443,7 @@ class Rewriter:
         if dependency in self.interpreter.assignments:
             node = self.interpreter.assignments[dependency]
             if isinstance(node, FunctionNode):
-                if node.func_name == 'dependency':
+                if node.func_name.value == 'dependency':
                     name = self.interpreter.flatten_args(node.args)[0]
                     dep = check_list(name)
 
@@ -630,7 +633,7 @@ class Rewriter:
             args = []
             if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
-                if n.func_name in BUILD_TARGET_FUNCTIONS:
+                if n.func_name.value in BUILD_TARGET_FUNCTIONS:
                     args.pop(0)
             elif isinstance(n, ArrayNode):
                 args = n.args.arguments
@@ -652,7 +655,7 @@ class Rewriter:
             src_list = []
             for i in target['sources']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, StringNode):
+                    if isinstance(j, BaseStringNode):
                         src_list += [j.value]
 
             # Generate the new String nodes
@@ -686,7 +689,7 @@ class Rewriter:
             def find_node(src):
                 for i in target['sources']:
                     for j in arg_list_from_node(i):
-                        if isinstance(j, StringNode):
+                        if isinstance(j, BaseStringNode):
                             if j.value == src:
                                 return i, j
                 return None, None
@@ -728,7 +731,7 @@ class Rewriter:
                     node = tgt_function.args.kwargs[extra_files_key]
                 except StopIteration:
                     # Target has no extra_files kwarg, create one
-                    node = ArrayNode(ArgumentNode(Token('', tgt_function.filename, 0, 0, 0, None, '[]')), tgt_function.end_lineno, tgt_function.end_colno, tgt_function.end_lineno, tgt_function.end_colno)
+                    node = ArrayNode(_symbol('['), ArgumentNode(Token('', tgt_function.filename, 0, 0, 0, None, '[]')), _symbol(']'))
                     tgt_function.args.kwargs[IdNode(Token('string', tgt_function.filename, 0, 0, 0, None, 'extra_files'))] = node
                     mark_array = False
                     if tgt_function not in self.modified_nodes:
@@ -745,7 +748,7 @@ class Rewriter:
             extra_files_list = []
             for i in target['extra_files']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, StringNode):
+                    if isinstance(j, BaseStringNode):
                         extra_files_list += [j.value]
 
             # Generate the new String nodes
@@ -776,7 +779,7 @@ class Rewriter:
             def find_node(src):
                 for i in target['extra_files']:
                     for j in arg_list_from_node(i):
-                        if isinstance(j, StringNode):
+                        if isinstance(j, BaseStringNode):
                             if j.value == src:
                                 return i, j
                 return None, None
@@ -812,17 +815,17 @@ class Rewriter:
 
             # Build src list
             src_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            src_arr_node = ArrayNode(src_arg_node, 0, 0, 0, 0)
+            src_arr_node = ArrayNode(_symbol('['), src_arg_node, _symbol(']'))
             src_far_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            src_fun_node = FunctionNode(filename, 0, 0, 0, 0, 'files', src_far_node)
-            src_ass_node = AssignmentNode(filename, 0, 0, source_id, src_fun_node)
+            src_fun_node = FunctionNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), 'files')), _symbol('('), src_far_node, _symbol(')'))
+            src_ass_node = AssignmentNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), source_id)), _symbol('='), src_fun_node)
             src_arg_node.arguments = [StringNode(Token('string', filename, 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
             tgt_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            tgt_fun_node = FunctionNode(filename, 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
-            tgt_ass_node = AssignmentNode(filename, 0, 0, target_id, tgt_fun_node)
+            tgt_fun_node = FunctionNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), cmd['target_type'])), _symbol('('), tgt_arg_node, _symbol(')'))
+            tgt_ass_node = AssignmentNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), target_id)), _symbol('='), tgt_fun_node)
             tgt_arg_node.arguments = [
                 StringNode(Token('string', filename, 0, 0, 0, None, cmd['target'])),
                 IdNode(Token('string', filename, 0, 0, 0, None, source_id))
@@ -845,12 +848,12 @@ class Rewriter:
             src_list = []
             for i in target['sources']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, StringNode):
+                    if isinstance(j, BaseStringNode):
                         src_list += [j.value]
             extra_files_list = []
             for i in target['extra_files']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, StringNode):
+                    if isinstance(j, BaseStringNode):
                         extra_files_list += [j.value]
             test_data = {
                 'name': target['name'],
@@ -865,8 +868,8 @@ class Rewriter:
             alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
             path_sorter = lambda key: ([(key.count('/') <= idx, alphanum_key(x)) for idx, x in enumerate(key.split('/'))])
 
-            unknown = [x for x in i.arguments if not isinstance(x, StringNode)]
-            sources = [x for x in i.arguments if isinstance(x, StringNode)]
+            unknown = [x for x in i.arguments if not isinstance(x, BaseStringNode)]
+            sources = [x for x in i.arguments if isinstance(x, BaseStringNode)]
             sources = sorted(sources, key=lambda x: path_sorter(x.value))
             i.arguments = unknown + sources
 

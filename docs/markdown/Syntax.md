@@ -109,7 +109,7 @@ Strings in Meson are declared with single quotes. To enter a literal
 single quote do it like this:
 
 ```meson
-single quote = 'contains a \' character'
+single_quote = 'contains a \' character'
 ```
 
 The full list of escape sequences is:

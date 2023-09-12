@@ -113,7 +113,9 @@ class OptionInterpreter:
     def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
         if isinstance(arg, str):
             return arg
-        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode,
+        if isinstance(arg, mparser.ParenthesizedNode):
+            return self.reduce_single(arg.inner)
+        elif isinstance(arg, (mparser.BaseStringNode, mparser.BooleanNode,
                               mparser.NumberNode)):
             return arg.value
         elif isinstance(arg, mparser.ArrayNode):
@@ -121,7 +123,7 @@ class OptionInterpreter:
         elif isinstance(arg, mparser.DictNode):
             d = {}
             for k, v in arg.args.kwargs.items():
-                if not isinstance(k, mparser.StringNode):
+                if not isinstance(k, mparser.BaseStringNode):
                     raise OptionException('Dictionary keys must be a string literal')
                 d[k.value] = self.reduce_single(v)
             return d
@@ -162,7 +164,7 @@ class OptionInterpreter:
     def evaluate_statement(self, node: mparser.BaseNode) -> None:
         if not isinstance(node, mparser.FunctionNode):
             raise OptionException('Option file may only contain option definitions')
-        func_name = node.func_name
+        func_name = node.func_name.value
         if func_name != 'option':
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
