@@ -960,6 +960,9 @@ class C2000CPPCompiler(TICPPCompiler):
     # Required for backwards compat with projects created before ti-cgt support existed
     id = 'c2000'
 
+class C6000CPPCompiler(TICPPCompiler):
+    id = 'c6000'
+
 class MetrowerksCPPCompilerARM(MetrowerksCompiler, CPPCompiler):
     id = 'mwccarm'
 
