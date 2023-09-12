@@ -735,6 +735,9 @@ class C2000CCompiler(TICCompiler):
     # Required for backwards compat with projects created before ti-cgt support existed
     id = 'c2000'
 
+class C6000CCompiler(TICCompiler):
+    id = 'c6000'
+
 class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
     id = 'mwccarm'
 

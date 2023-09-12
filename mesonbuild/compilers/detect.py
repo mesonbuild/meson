@@ -198,6 +198,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
 
         if any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
             arg = '/?'
+        elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'armar', 'armar.exe', 'ar6x', 'ar6x.exe'}:
+            arg = '?'
         else:
             arg = '--version'
         try:
@@ -231,6 +233,9 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
                 return linkers.C2000Linker(linker)
             else:
                 return linkers.TILinker(linker)
+        if 'Texas Instruments Incorporated' in out:
+            if 'ar6000' in linker_name:
+                return linkers.C6000Linker(linker)
         if out.startswith('The CompCert'):
             return linkers.CompCertLinker(linker)
         if out.strip().startswith('Metrowerks') or out.strip().startswith('Freescale'):
@@ -308,7 +313,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             arg = '--version'
         elif 'ccomp' in compiler_name:
             arg = '-version'
-        elif compiler_name in {'cl2000', 'cl2000.exe', 'cl430', 'cl430.exe', 'armcl', 'armcl.exe'}:
+        elif compiler_name in {'cl2000', 'cl2000.exe', 'cl430', 'cl430.exe', 'armcl', 'armcl.exe', 'cl6x', 'cl6x.exe'}:
             # TI compiler
             arg = '-version'
         elif compiler_name in {'icl', 'icl.exe'}:
@@ -428,6 +433,24 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             return cls(
                 compiler, version, for_machine, is_cross, info, target,
                 exe_wrap, linker=linker)
+
+        # must be detected here before clang because TI compilers contain 'clang' in their output and so that they can be detected as 'clang'
+        ti_compilers = {
+           'TMS320C2000 C/C++': (c.C2000CCompiler, cpp.C2000CPPCompiler, linkers.C2000DynamicLinker),
+           'TMS320C6x C/C++': (c.C6000CCompiler, cpp.C6000CPPCompiler, linkers.C6000DynamicLinker),
+           'TI ARM C/C++ Compiler': (c.TICCompiler, cpp.TICPPCompiler, linkers.TIDynamicLinker),
+           'MSP430 C/C++': (c.TICCompiler, cpp.TICPPCompiler, linkers.TIDynamicLinker)
+        }
+        for indentifier, compiler_classes in ti_compilers.items():
+            if indentifier in out:
+                cls = compiler_classes[0] if lang == 'c' else compiler_classes[1]
+                lnk = compiler_classes[2]
+                env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+                linker = lnk(compiler, for_machine, version=version)
+                return cls(
+                    ccache, compiler, version, for_machine, is_cross, info,
+                    exe_wrap, full_version=full_version, linker=linker)
+
         if 'clang' in out or 'Clang' in out:
             linker = None
 
@@ -525,19 +548,6 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             return cls(
                 ccache, compiler, version, for_machine, is_cross, info,
                 exe_wrap, full_version=full_version, linker=l)
-        if 'TMS320C2000 C/C++' in out or 'MSP430 C/C++' in out or 'TI ARM C/C++ Compiler' in out:
-            if 'TMS320C2000 C/C++' in out:
-                cls = c.C2000CCompiler if lang == 'c' else cpp.C2000CPPCompiler
-                lnk = linkers.C2000DynamicLinker
-            else:
-                cls = c.TICCompiler if lang == 'c' else cpp.TICPPCompiler
-                lnk = linkers.TIDynamicLinker
-
-            env.coredata.add_lang_args(cls.language, cls, for_machine, env)
-            linker = lnk(compiler, for_machine, version=version)
-            return cls(
-                ccache, compiler, version, for_machine, is_cross, info,
-                exe_wrap, full_version=full_version, linker=linker)
         if 'ARM' in out and not ('Metrowerks' in out or 'Freescale' in out):
             cls = c.ArmCCompiler if lang == 'c' else cpp.ArmCPPCompiler
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
