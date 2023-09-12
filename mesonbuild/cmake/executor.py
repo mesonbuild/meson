@@ -11,6 +11,7 @@ import os
 
 from .. import mlog
 from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows
+from ..options import OptionKey
 from ..programs import find_external_program, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -51,7 +52,8 @@ class CMakeExecutor:
             self.cmakebin = None
             return
 
-        prefpath = self.environment.coredata.optstore.get_value_for('cmake_prefix_path')
+        prefpath = self.environment.coredata.optstore.get_value_for(
+            OptionKey(name='cmake_prefix_path', machine=for_machine))
         assert isinstance(prefpath, list)
         self.prefix_paths = prefpath
         if self.prefix_paths:
