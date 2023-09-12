@@ -378,6 +378,6 @@ class IntrospectionInterpreter(AstInterpreter):
             assert isinstance(kw, IdNode), 'for mypy'
             if kw.value == 'subproject_dir':
                 # mypy does not understand "and isinstance"
-                if isinstance(val, StringNode):
+                if isinstance(val, BaseStringNode):
                     return val.value
         return None
