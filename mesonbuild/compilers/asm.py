@@ -306,6 +306,9 @@ class MetrowerksAsmCompiler(MetrowerksCompiler, Compiler):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
 
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return []
+
     def get_pic_args(self) -> T.List[str]:
         return []
 
