@@ -32,10 +32,10 @@ else:
 
 mwcc_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [],
-    'debug': ['-g'],
-    'debugoptimized': ['-g', '-O4'],
-    'release': ['-O4,p'],
-    'minsize': ['-Os'],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
     'custom': [],
 }
 
