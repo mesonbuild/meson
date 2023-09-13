@@ -173,7 +173,7 @@ mwcc_optimization_args: T.Dict[str, T.List[str]] = {
     'g': ['-Op'],
     '1': ['-O1'],
     '2': ['-O2'],
-    '3': ['-O3'],
+    '3': ['-O4,p'],
     's': ['-Os']
 }
 
