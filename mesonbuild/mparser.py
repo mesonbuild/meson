@@ -338,14 +338,14 @@ class ArgumentNode(BaseNode):
 
     arguments: T.List[BaseNode] = field(hash=False)
     commas: T.List[SymbolNode] = field(hash=False)
-    columns: T.List[SymbolNode] = field(hash=False)
+    colons: T.List[SymbolNode] = field(hash=False)
     kwargs: T.Dict[BaseNode, BaseNode] = field(hash=False)
 
     def __init__(self, token: Token[TV_TokenTypes]):
         super().__init__(token.lineno, token.colno, token.filename)
         self.arguments = []
         self.commas = []
-        self.columns = []
+        self.colons = []
         self.kwargs = {}
         self.order_error = False
 
@@ -556,17 +556,17 @@ class ForeachClauseNode(BaseNode):
     foreach_: SymbolNode = field(hash=False)
     varnames: T.List[IdNode] = field(hash=False)
     commas: T.List[SymbolNode] = field(hash=False)
-    column: SymbolNode = field(hash=False)
+    colon: SymbolNode = field(hash=False)
     items: BaseNode
     block: CodeBlockNode
     endforeach: SymbolNode = field(hash=False)
 
-    def __init__(self, foreach_: SymbolNode, varnames: T.List[IdNode], commas: T.List[SymbolNode], column: SymbolNode, items: BaseNode, block: CodeBlockNode, endforeach: SymbolNode):
+    def __init__(self, foreach_: SymbolNode, varnames: T.List[IdNode], commas: T.List[SymbolNode], colon: SymbolNode, items: BaseNode, block: CodeBlockNode, endforeach: SymbolNode):
         super().__init__(foreach_.lineno, foreach_.colno, foreach_.filename)
         self.foreach_ = foreach_
         self.varnames = varnames
         self.commas = commas
-        self.column = column
+        self.colon = colon
         self.items = items
         self.block = block
         self.endforeach = endforeach
@@ -629,15 +629,15 @@ class TernaryNode(BaseNode):
     condition: BaseNode
     questionmark: SymbolNode
     trueblock: BaseNode
-    column: SymbolNode
+    colon: SymbolNode
     falseblock: BaseNode
 
-    def __init__(self, condition: BaseNode, questionmark: SymbolNode, trueblock: BaseNode, column: SymbolNode, falseblock: BaseNode):
+    def __init__(self, condition: BaseNode, questionmark: SymbolNode, trueblock: BaseNode, colon: SymbolNode, falseblock: BaseNode):
         super().__init__(condition.lineno, condition.colno, condition.filename)
         self.condition = condition
         self.questionmark = questionmark
         self.trueblock = trueblock
-        self.column = column
+        self.colon = colon
         self.falseblock = falseblock
 
 
@@ -780,10 +780,10 @@ class Parser:
             self.in_ternary = True
             trueblock = self.e1()
             self.expect('colon')
-            column_node = self.create_node(SymbolNode, self.previous)
+            colon_node = self.create_node(SymbolNode, self.previous)
             falseblock = self.e1()
             self.in_ternary = False
-            return self.create_node(TernaryNode, left, qm_node, trueblock, column_node, falseblock)
+            return self.create_node(TernaryNode, left, qm_node, trueblock, colon_node, falseblock)
         return left
 
     def e2(self) -> BaseNode:
@@ -946,7 +946,7 @@ class Parser:
 
         while not isinstance(s, EmptyNode):
             if self.accept('colon'):
-                a.columns.append(self.create_node(SymbolNode, self.previous))
+                a.colons.append(self.create_node(SymbolNode, self.previous))
                 a.set_kwarg_no_check(s, self.statement())
                 if not self.accept('comma'):
                     return a
@@ -966,7 +966,7 @@ class Parser:
                 a.commas.append(self.create_node(SymbolNode, self.previous))
                 a.append(s)
             elif self.accept('colon'):
-                a.columns.append(self.create_node(SymbolNode, self.previous))
+                a.colons.append(self.create_node(SymbolNode, self.previous))
                 if not isinstance(s, IdNode):
                     raise ParseException('Dictionary key must be a plain identifier.',
                                          self.getline(), s.lineno, s.colno)
@@ -1021,11 +1021,11 @@ class Parser:
             varnames.append(self.create_node(IdNode, self.previous))
 
         self.expect('colon')
-        column = self.create_node(SymbolNode, self.previous)
+        colon = self.create_node(SymbolNode, self.previous)
         items = self.statement()
         block = self.codeblock()
         endforeach = self.create_node(SymbolNode, self.current)
-        return self.create_node(ForeachClauseNode, foreach_, varnames, commas, column, items, block, endforeach)
+        return self.create_node(ForeachClauseNode, foreach_, varnames, commas, colon, items, block, endforeach)
 
     def ifblock(self) -> IfClauseNode:
         if_node = self.create_node(SymbolNode, self.previous)
