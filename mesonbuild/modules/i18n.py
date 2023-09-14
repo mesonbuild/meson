@@ -354,7 +354,7 @@ class I18nModule(ExtensionModule):
 
         mo_fnames = []
         for target in mo_targets:
-            mo_fnames.append(path.join(target.get_subdir(), target.get_outputs()[0]))
+            mo_fnames.append(path.join(target.get_source_subdir(), target.get_outputs()[0]))
 
         command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
                                 build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []

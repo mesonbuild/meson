@@ -3168,7 +3168,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
-        subdir = tobj.get_subdir()
+        subdir = tobj.get_output_subdir()
         namedir = (name, subdir)
 
         if idname in self.build.targets:
