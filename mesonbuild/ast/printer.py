@@ -401,7 +401,7 @@ class RawPrinter(AstVisitor):
             varname.accept(self)
             if comma is not None:
                 comma.accept(self)
-        node.column.accept(self)
+        node.colon.accept(self)
         node.items.accept(self)
         node.block.accept(self)
         node.endforeach.accept(self)
@@ -437,7 +437,7 @@ class RawPrinter(AstVisitor):
         node.condition.accept(self)
         node.questionmark.accept(self)
         node.trueblock.accept(self)
-        node.column.accept(self)
+        node.colon.accept(self)
         node.falseblock.accept(self)
         if node.whitespaces:
             node.whitespaces.accept(self)
@@ -453,10 +453,10 @@ class RawPrinter(AstVisitor):
             except StopIteration:
                 pass
 
-        assert len(node.columns) == len(node.kwargs)
-        for (key, val), column in zip(node.kwargs.items(), node.columns):
+        assert len(node.colons) == len(node.kwargs)
+        for (key, val), colon in zip(node.kwargs.items(), node.colons):
             key.accept(self)
-            column.accept(self)
+            colon.accept(self)
             val.accept(self)
             try:
                 comma = next(commas_iter)
