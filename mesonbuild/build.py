@@ -614,8 +614,11 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_basename(self) -> str:
         return self.name
 
-    def get_subdir(self) -> str:
+    def get_source_subdir(self) -> str:
         return self.subdir
+
+    def get_output_subdir(self) -> str:
+        return self.get_source_subdir()
 
     def get_typename(self) -> str:
         return self.typename
@@ -1052,7 +1055,7 @@ class BuildTarget(Target):
                 self.link_depends.append(s)
             elif isinstance(s, str):
                 self.link_depends.append(
-                    File.from_source_file(self.environment.source_dir, self.subdir, s))
+                    File.from_source_file(self.environment.source_dir, self.get_source_subdir(), s))
             elif hasattr(s, 'get_outputs'):
                 self.link_depends.append(s)
             else:
@@ -1118,7 +1121,7 @@ class BuildTarget(Target):
         result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
             if not isinstance(i, StaticLibrary):
-                result.add(i.get_subdir())
+                result.add(i.get_output_subdir())
             result.update(i.get_link_dep_subdirs())
         return result
 
@@ -1193,7 +1196,7 @@ class BuildTarget(Target):
         for r in resources:
             if not isinstance(r, str):
                 raise InvalidArguments('Resource argument is not a string.')
-            trial = os.path.join(self.environment.get_source_dir(), self.subdir, r)
+            trial = os.path.join(self.environment.get_source_dir(), self.get_source_subdir(), r)
             if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing resource {r}.')
         self.resources = resources
@@ -1320,9 +1323,6 @@ class BuildTarget(Target):
                 t.get_dependencies_recurse(result, include_internals)
         for t in self.link_whole_targets:
             t.get_dependencies_recurse(result, include_internals)
-
-    def get_source_subdir(self):
-        return self.subdir
 
     def get_sources(self):
         return self.sources
@@ -1533,7 +1533,7 @@ class BuildTarget(Target):
         for f in pchlist:
             if not isinstance(f, str):
                 raise MesonException('PCH arguments must be strings.')
-            if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
+            if not os.path.isfile(os.path.join(self.environment.source_dir, self.get_source_subdir(), f)):
                 raise MesonException(f'File {f} does not exist.')
         self.pch[language] = pchlist
 
@@ -1732,7 +1732,7 @@ class BuildTarget(Target):
             self.vs_module_defs = path
         elif isinstance(path, (CustomTarget, CustomTargetIndex)):
             # When passing output of a Custom Target
-            self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
+            self.vs_module_defs = File.from_built_file(path.get_output_subdir(), path.get_filename())
         else:
             raise InvalidArguments(
                 'vs_module_defs must be either a string, '
@@ -1849,7 +1849,7 @@ class Generator(HoldableObject):
                 output.depends.add(e.target)
             if isinstance(e, (CustomTarget, CustomTargetIndex)):
                 output.depends.add(e)
-                fs = [File.from_built_file(state.subdir, f) for f in e.get_outputs()]
+                fs = [File.from_built_file(e.get_output_subdir(), f) for f in e.get_outputs()]
             elif isinstance(e, GeneratedList):
                 if preserve_path_from:
                     raise InvalidArguments("generator.process: 'preserve_path_from' is not allowed if one input is a 'generated_list'.")
@@ -1939,8 +1939,11 @@ class GeneratedList(HoldableObject):
     def get_extra_args(self) -> T.List[str]:
         return self.extra_args
 
-    def get_subdir(self) -> str:
+    def get_source_subdir(self) -> str:
         return self.subdir
+
+    def get_output_subdir(self) -> str:
+        return self.get_source_subdir()
 
 
 class Executable(BuildTarget):
@@ -2547,7 +2550,7 @@ class CommandBase:
             elif isinstance(c, CustomTargetIndex):
                 FeatureNew.single_use('CustomTargetIndex for command argument', '0.60', self.subproject)
                 self.dependencies.append(c.target)
-                final_cmd += self.flatten_command(File.from_built_file(c.get_subdir(), c.get_filename()))
+                final_cmd += self.flatten_command(File.from_built_file(c.get_source_subdir(), c.get_filename()))
             elif isinstance(c, list):
                 final_cmd += self.flatten_command(c)
             else:
@@ -2950,7 +2953,7 @@ class Jar(BuildTarget):
         return True
 
     def get_classpath_args(self):
-        cp_paths = [os.path.join(l.get_subdir(), l.get_filename()) for l in self.link_targets]
+        cp_paths = [os.path.join(l.get_source_subdir(), l.get_filename()) for l in self.link_targets]
         cp_string = os.pathsep.join(cp_paths)
         if cp_string:
             return ['-cp', os.pathsep.join(cp_paths)]
@@ -2986,8 +2989,11 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_outputs(self) -> T.List[str]:
         return [self.output]
 
-    def get_subdir(self) -> str:
-        return self.target.get_subdir()
+    def get_source_subdir(self) -> str:
+        return self.target.get_source_subdir()
+
+    def get_output_subdir(self) -> str:
+        return self.target.get_output_subdir()
 
     def get_filename(self) -> str:
         return self.output

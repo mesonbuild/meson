@@ -124,7 +124,7 @@ class MesonMain(MesonInterpreterObject):
                 script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
             elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 new = True
-                script_args.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
+                script_args.extend([os.path.join(a.get_source_subdir(), o) for o in a.get_outputs()])
 
                 # This feels really hacky, but I'm not sure how else to fix
                 # this without completely rewriting install script handling.

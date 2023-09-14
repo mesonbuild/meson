@@ -1506,7 +1506,7 @@ class NinjaBackend(backends.Backend):
         args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
         args += target.get_classpath_args()
-        curdir = target.get_subdir()
+        curdir = target.get_source_subdir()
         sourcepath = os.path.join(self.build_to_src, curdir) + os.pathsep
         sourcepath += os.path.normpath(curdir) + os.pathsep
         for i in target.include_dirs:
@@ -1627,7 +1627,7 @@ class NinjaBackend(backends.Backend):
         # All sources that are passed to valac on the commandline
         all_files = list(vapi_src)
         # Passed as --basedir
-        srcbasedir = os.path.join(self.build_to_src, target.get_subdir())
+        srcbasedir = os.path.join(self.build_to_src, target.get_source_subdir())
         for (vala_file, gensrc) in vala_src.items():
             all_files.append(vala_file)
             # Figure out where the Vala compiler will write the compiled C file
@@ -1646,13 +1646,13 @@ class NinjaBackend(backends.Backend):
             if isinstance(gensrc, (build.CustomTarget, build.GeneratedList)) or gensrc.is_built:
                 vala_c_file = os.path.splitext(os.path.basename(vala_file))[0] + '.c'
                 # Check if the vala file is in a subdir of --basedir
-                abs_srcbasedir = os.path.join(self.environment.get_source_dir(), target.get_subdir())
+                abs_srcbasedir = os.path.join(self.environment.get_source_dir(), target.get_source_subdir())
                 abs_vala_file = os.path.join(self.environment.get_build_dir(), vala_file)
                 if PurePath(os.path.commonpath((abs_srcbasedir, abs_vala_file))) == PurePath(abs_srcbasedir):
                     vala_c_subdir = PurePath(abs_vala_file).parent.relative_to(abs_srcbasedir)
                     vala_c_file = os.path.join(str(vala_c_subdir), vala_c_file)
             else:
-                path_to_target = os.path.join(self.build_to_src, target.get_subdir())
+                path_to_target = os.path.join(self.build_to_src, target.get_source_subdir())
                 if vala_file.startswith(path_to_target):
                     vala_c_file = os.path.splitext(os.path.relpath(vala_file, path_to_target))[0] + '.c'
                 else:
@@ -1773,7 +1773,7 @@ class NinjaBackend(backends.Backend):
                 if isinstance(gen, GeneratedList):
                     ssrc = os.path.join(self.get_target_private_dir(target), ssrc)
                 else:
-                    ssrc = os.path.join(gen.get_subdir(), ssrc)
+                    ssrc = os.path.join(gen.get_output_subdir(), ssrc)
                 if ssrc.endswith('.pyx'):
                     output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.{ext}')
                     element = NinjaBuildElement(
@@ -1786,7 +1786,7 @@ class NinjaBackend(backends.Backend):
                     # TODO: introspection?
                     cython_sources.append(output)
                 else:
-                    generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_subdir(), ssrc)
+                    generated_sources[ssrc] = mesonlib.File.from_built_file(gen.get_output_subdir(), ssrc)
                     # Following logic in L883-900 where we determine whether to add generated source
                     # as a header(order-only) dep to the .so compilation rule
                     if not self.environment.is_source(ssrc) and \
@@ -1899,7 +1899,7 @@ class NinjaBackend(backends.Backend):
                 elif isinstance(g, GeneratedList):
                     main_rust_file = os.path.join(self.get_target_private_dir(target), g.get_outputs()[0])
                 else:
-                    main_rust_file = os.path.join(g.get_subdir(), g.get_outputs()[0])
+                    main_rust_file = os.path.join(g.get_output_subdir(), g.get_outputs()[0])
 
                 for f in target.structured_sources.as_list():
                     if isinstance(f, File):
@@ -1920,13 +1920,13 @@ class NinjaBackend(backends.Backend):
                 if isinstance(g, GeneratedList):
                     fname = os.path.join(self.get_target_private_dir(target), i)
                 else:
-                    fname = os.path.join(g.get_subdir(), i)
+                    fname = os.path.join(g.get_output_subdir(), i)
                 if main_rust_file is None:
                     main_rust_file = fname
                 orderdeps.append(fname)
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
-        target_name = os.path.join(target.subdir, target.get_filename())
+        target_name = os.path.join(target.get_output_subdir(), target.get_filename())
         cratetype = target.rust_crate_type
         args.extend(['--crate-type', cratetype])
 

@@ -221,12 +221,12 @@ class XCodeBackend(backends.Backend):
 
     @functools.lru_cache(maxsize=None)
     def get_target_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
-        dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.get_option(OptionKey('buildtype'))))
+        dirname = os.path.join(target.get_source_subdir(), T.cast('str', self.environment.coredata.get_option(OptionKey('buildtype'))))
         #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
     def get_custom_target_output_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
-        dirname = target.get_subdir()
+        dirname = target.get_source_subdir()
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -1636,7 +1636,7 @@ class XCodeBackend(backends.Backend):
                 if pchs:
                     if len(pchs) > 1:
                         mlog.warning(f'Unsupported Xcode configuration: More than 1 precompiled header found "{pchs!s}". Target "{target.name}" might not compile correctly.')
-                    relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
+                    relative_pch_path = os.path.join(target.get_source_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
                     settings_dict.add_item('GCC_PRECOMPILE_PREFIX_HEADER', 'YES')
                     settings_dict.add_item('GCC_PREFIX_HEADER', f'"$(PROJECT_DIR)/{relative_pch_path}"')
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
@@ -1645,8 +1645,8 @@ class XCodeBackend(backends.Backend):
             unquoted_headers = []
             unquoted_headers.append(self.get_target_private_dir_abs(target))
             if target.implicit_include_directories:
-                unquoted_headers.append(os.path.join(self.environment.get_build_dir(), target.get_subdir()))
-                unquoted_headers.append(os.path.join(self.environment.get_source_dir(), target.get_subdir()))
+                unquoted_headers.append(os.path.join(self.environment.get_build_dir(), target.get_output_subdir()))
+                unquoted_headers.append(os.path.join(self.environment.get_source_dir(), target.get_source_subdir()))
             if headerdirs:
                 for i in headerdirs:
                     i = os.path.normpath(i)
