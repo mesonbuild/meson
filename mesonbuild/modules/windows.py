@@ -204,10 +204,11 @@ class WindowsModule(ExtensionModule):
                 command,
                 [src],
                 [output],
+                state.is_build_only_subproject,
                 depfile=depfile,
                 depend_files=wrc_depend_files,
                 extra_depends=wrc_depends,
-                description='Compiling Windows resource {}',
+                description='Compiling Windows resource {}'
             ))
 
         return ModuleReturnValue(res_targets, [res_targets])

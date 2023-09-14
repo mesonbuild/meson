@@ -67,6 +67,7 @@ class ModuleState:
         self.host_machine = T.cast('MachineHolder', interpreter.builtin['host_machine']).held_object
         self.target_machine = T.cast('MachineHolder', interpreter.builtin['target_machine']).held_object
         self.current_node = interpreter.current_node
+        self.is_build_only_subproject = interpreter.build.is_build_only
 
     def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], prefix: str = '-I') -> T.List[str]:
         if not include_dirs:

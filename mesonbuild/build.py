@@ -283,6 +283,7 @@ class Build:
             environment.is_cross_build(), {}, {})
         self.devenv: T.List[EnvironmentVariables] = []
         self.modules: T.List[str] = []
+        self.is_build_only = False
 
     def get_build_targets(self):
         build_targets = OrderedDict()
@@ -527,6 +528,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     build_by_default: bool
     for_machine: MachineChoice
     environment: environment.Environment
+    build_only_subproject: bool
     install: bool = False
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
@@ -541,6 +543,13 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         pass
 
     def __post_init__(self, overrides: T.Optional[T.Dict[OptionKey, str]]) -> None:
+        # Patch up a few things if this is a build_only_subproject.
+        # We don't want to do any installation from such a project,
+        # and we need to set the machine to build to get the right compilers
+        if self.build_only_subproject:
+            self.install = False
+            self.for_machine = MachineChoice.BUILD
+
         if overrides:
             ovr = {k.evolve(machine=self.for_machine) if k.lang else k: v
                    for k, v in overrides.items()}
@@ -733,8 +742,9 @@ class BuildTarget(Target):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
+            build_only_subproject: bool,
             kwargs: T.Dict[str, T.Any]):
-        super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
+        super().__init__(name, subdir, subproject, True, for_machine, environment, build_only_subproject, install=kwargs.get('install', False))
         self.all_compilers = compilers
         self.compilers: OrderedDict[str, Compiler] = OrderedDict()
         self.objects: T.List[ObjectTypes] = []
@@ -1822,12 +1832,18 @@ class Generator(HoldableObject):
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None) -> 'GeneratedList':
+        # TODO: need a test for a generator in a build-only subproject
+        is_build_only: T.Optional[bool] = getattr(state, 'is_build_only_subproject', None)
+        if is_build_only is None:
+            is_build_only = T.cast('Interpreter', state).build.is_build_only
         output = GeneratedList(
             self,
             state.subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
-            env=env if env is not None else EnvironmentVariables())
+            env=env if env is not None else EnvironmentVariables(),
+            is_build_only_subproject=is_build_only,
+        )
 
         for e in files:
             if isinstance(e, CustomTarget):
@@ -1867,6 +1883,7 @@ class GeneratedList(HoldableObject):
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
+    is_build_only_subproject: bool
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
@@ -1945,12 +1962,13 @@ class Executable(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
+            build_only_subproject: bool,
             kwargs):
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.options:
             kwargs['pie'] = environment.coredata.options[key].value
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
@@ -2101,10 +2119,11 @@ class StaticLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
+            build_only_subproject: bool,
             kwargs):
         self.prelink = T.cast('bool', kwargs.get('prelink', False))
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
 
     def post_init(self) -> None:
         super().post_init()
@@ -2196,6 +2215,7 @@ class SharedLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
+            build_only_subproject: bool,
             kwargs):
         self.soversion: T.Optional[str] = None
         self.ltversion: T.Optional[str] = None
@@ -2209,7 +2229,7 @@ class SharedLibrary(BuildTarget):
         # Use by the pkgconfig module
         self.shared_library_only = False
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
 
     def post_init(self) -> None:
         super().post_init()
@@ -2461,13 +2481,14 @@ class SharedModule(SharedLibrary):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
+            build_only_subproject: bool,
             kwargs):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
             raise MesonException('Shared modules must not specify the soversion kwarg.')
         super().__init__(name, subdir, subproject, for_machine, sources,
-                         structured_sources, objects, environment, compilers, kwargs)
+                         structured_sources, objects, environment, compilers, build_only_subproject, kwargs)
         # We need to set the soname in cases where build files link the module
         # to build targets, see: https://github.com/mesonbuild/meson/issues/9492
         self.force_soname = False
@@ -2546,6 +2567,7 @@ class CustomTarget(Target, CommandBase):
                      str, File, BuildTargetTypes, ExtractedObjects,
                      GeneratedList, programs.ExternalProgram]],
                  outputs: T.List[str],
+                 build_only_subproject: bool,
                  *,
                  build_always_stale: bool = False,
                  build_by_default: T.Optional[bool] = None,
@@ -2566,7 +2588,7 @@ class CustomTarget(Target, CommandBase):
                  ):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST, environment,
-                         install, build_always_stale)
+                         build_only_subproject, install, build_always_stale)
         self.sources = list(sources)
         self.outputs = substitute_values(
             outputs, get_filenames_templates_dict(
@@ -2752,7 +2774,8 @@ class CompileTarget(BuildTarget):
                  backend: Backend,
                  compile_args: T.List[str],
                  include_directories: T.List[IncludeDirs],
-                 dependencies: T.List[dependencies.Dependency]):
+                 dependencies: T.List[dependencies.Dependency],
+                 build_only_subproject: bool):
         compilers = {compiler.get_language(): compiler}
         kwargs = {
             'build_by_default': False,
@@ -2761,7 +2784,8 @@ class CompileTarget(BuildTarget):
             'dependencies': dependencies,
         }
         super().__init__(name, subdir, subproject, compiler.for_machine,
-                         sources, None, [], environment, compilers, kwargs)
+                         sources, None, [], environment, compilers,
+                         build_only_subproject, kwargs)
         self.filename = name
         self.compiler = compiler
         self.output_templ = output_templ
@@ -2802,7 +2826,7 @@ class RunTarget(Target, CommandBase):
                  env: T.Optional['EnvironmentVariables'] = None,
                  default_env: bool = True):
         # These don't produce output artifacts
-        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
+        super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment, False)
         self.dependencies = dependencies
         self.depend_files = []
         self.command = self.flatten_command(command)
@@ -2860,9 +2884,9 @@ class Jar(BuildTarget):
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[SourceOutputs], structured_sources: T.Optional['StructuredSources'],
                  objects, environment: environment.Environment, compilers: T.Dict[str, 'Compiler'],
-                 kwargs):
+                 build_only_subproject: bool, kwargs):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
-                         environment, compilers, kwargs)
+                         environment, compilers, build_only_subproject, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
                 raise InvalidArguments(f'Jar source {s} is not a java file.')
