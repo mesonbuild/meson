@@ -331,7 +331,7 @@ class Backend:
         return os.path.join(self.environment.get_build_dir(), self.get_target_debug_filename(target))
 
     def get_source_dir_include_args(self, target: build.BuildTarget, compiler: 'Compiler', *, absolute_path: bool = False) -> T.List[str]:
-        curdir = target.get_subdir()
+        curdir = target.get_source_subdir()
         if absolute_path:
             lead = self.source_dir
         else:
@@ -341,9 +341,9 @@ class Backend:
 
     def get_build_dir_include_args(self, target: build.BuildTarget, compiler: 'Compiler', *, absolute_path: bool = False) -> T.List[str]:
         if absolute_path:
-            curdir = os.path.join(self.build_dir, target.get_subdir())
+            curdir = os.path.join(self.build_dir, target.get_output_subdir())
         else:
-            curdir = target.get_subdir()
+            curdir = target.get_output_subdir()
             if curdir == '':
                 curdir = '.'
         return compiler.get_include_args(curdir, False)
@@ -375,7 +375,7 @@ class Backend:
             # this produces no output, only a dummy top-level name
             dirname = ''
         elif self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
-            dirname = target.get_subdir()
+            dirname = target.get_output_subdir()
         else:
             dirname = 'meson-out'
         return dirname
@@ -487,7 +487,7 @@ class Backend:
         for obj in objects:
             if isinstance(obj, str):
                 o = os.path.join(proj_dir_to_build_root,
-                                 self.build_to_src, target.get_subdir(), obj)
+                                 self.build_to_src, target.get_source_subdir(), obj)
                 obj_list.append(o)
             elif isinstance(obj, mesonlib.File):
                 if obj.is_built:
@@ -867,7 +867,7 @@ class Backend:
                 gen_source = rel_src
             else:
                 gen_source = os.path.relpath(os.path.join(build_dir, rel_src),
-                                             os.path.join(self.environment.get_source_dir(), target.get_subdir()))
+                                             os.path.join(self.environment.get_source_dir(), target.get_source_subdir()))
         machine = self.environment.machines[target.for_machine]
         return self.canonicalize_filename(gen_source) + '.' + machine.get_object_suffix()
 
@@ -1271,7 +1271,7 @@ class Backend:
                     if isinstance(d, build.BuildTarget):
                         for l in d.get_all_link_deps():
                             if isinstance(l, build.SharedLibrary):
-                                ld_lib_path.add(os.path.join(self.environment.get_build_dir(), l.get_subdir()))
+                                ld_lib_path.add(os.path.join(self.environment.get_build_dir(), l.get_output_subdir()))
                 if ld_lib_path:
                     t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
 
@@ -1455,7 +1455,7 @@ class Backend:
         srcs: T.List[str] = []
         for i in target.get_sources():
             if isinstance(i, str):
-                fname = [os.path.join(self.build_to_src, target.subdir, i)]
+                fname = [os.path.join(self.build_to_src, target.get_source_subdir(), i)]
             elif isinstance(i, build.BuildTarget):
                 fname = [self.get_target_filename(i)]
             elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
@@ -1486,9 +1486,9 @@ class Backend:
                     deps.append(i.rel_to_builddir(self.build_to_src))
             else:
                 if absolute_paths:
-                    deps.append(os.path.join(self.environment.get_source_dir(), target.subdir, i))
+                    deps.append(os.path.join(self.environment.get_source_dir(), target.get_output_subdir(), i))
                 else:
-                    deps.append(os.path.join(self.build_to_src, target.subdir, i))
+                    deps.append(os.path.join(self.build_to_src, target.get_output_subdir(), i))
         return deps
 
     def get_custom_target_output_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
@@ -1568,7 +1568,7 @@ class Backend:
                 if '@BUILD_ROOT@' in i:
                     i = i.replace('@BUILD_ROOT@', build_root)
                 if '@CURRENT_SOURCE_DIR@' in i:
-                    i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.subdir))
+                    i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.get_source_subdir()))
                 if '@DEPFILE@' in i:
                     if target.depfile is None:
                         msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
@@ -1615,7 +1615,7 @@ class Backend:
             introspect_cmd = join_args(self.environment.get_build_command() + ['introspect'])
             env.set('MESON_SOURCE_ROOT', [self.environment.get_source_dir()])
             env.set('MESON_BUILD_ROOT', [self.environment.get_build_dir()])
-            env.set('MESON_SUBDIR', [target.subdir])
+            env.set('MESON_SUBDIR', [target.get_source_subdir()])
             env.set('MESONINTROSPECT', [introspect_cmd])
         return env
 
@@ -1951,7 +1951,7 @@ class Backend:
                 elif isinstance(j, str):
                     source_list += [os.path.join(self.source_dir, j)]
                 elif isinstance(j, (build.CustomTarget, build.BuildTarget)):
-                    source_list += [os.path.join(self.build_dir, j.get_subdir(), o) for o in j.get_outputs()]
+                    source_list += [os.path.join(self.build_dir, j.get_output_subdir(), o) for o in j.get_outputs()]
             source_list = [os.path.normpath(s) for s in source_list]
 
             compiler: T.List[str] = []
