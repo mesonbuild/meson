@@ -17,6 +17,7 @@ from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 import abc
+import copy
 import hashlib
 import itertools, pathlib
 import os
@@ -308,9 +309,56 @@ class Build:
                 other.__dict__[k] = v
         return other
 
+    def copy_for_build_machine(self) -> Build:
+        if not self.environment.is_cross_build() or self.is_build_only:
+            return self.copy()
+        new = copy.copy(self)
+        new.is_build_only = True
+        new.environment = self.environment.copy_for_build()
+        new.projects = PerMachineDefaultable(self.projects.build.copy()).default_missing()
+        new.subprojects = PerMachineDefaultable(self.subprojects.build.copy()).default_missing()
+        new.find_overrides = PerMachineDefaultable(self.find_overrides.build.copy()).default_missing()
+        new.searched_programs = PerMachineDefaultable(self.searched_programs.build.copy()).default_missing()
+        new.static_linker = PerMachineDefaultable(self.static_linker.build).default_missing()
+        new.dependency_overrides = PerMachineDefaultable(self.dependency_overrides.build).default_missing()
+        # TODO: the following doesn't seem like it should be necessary
+        new.emptydir = []
+        new.headers = []
+        new.man = []
+        new.data = []
+        new.symlinks = []
+        new.install_scripts = []
+        new.postconf_scripts = []
+        new.install_dirs = []
+        # TODO: what about dist scripts?
+
+        return new
+
     def merge(self, other: Build) -> None:
+        # TODO: this is incorrect for build-only
         for k, v in other.__dict__.items():
-            self.__dict__[k] = v
+            # These are modified for the build-only config, and we don't want to
+            # copy them into the build != host config
+            if k in {'is_build_only', 'environment'}:
+                continue
+
+            # These are install data, and we don't want to install from a build only config
+            if other.is_build_only and k in {'emptydir', 'headers', 'man', 'data', 'symlinks',
+                                             'install_dirs', 'install_scripts', 'postconf_scripts'}:
+                continue
+
+            if self.is_build_only != other.is_build_only:
+                assert self.is_build_only is False, 'We should never merge a multi machine subproject into a single machine subproject, right?'
+                # TODO: we likely need to drop some other values we're not going to
+                #      use like install, man, postconf, etc
+                if isinstance(v, PerMachine):
+                    # In this case v.build is v.host, and they are both for the
+                    # build machine. As such, we need to take only the build values
+                    # and not the host values
+                    pm: PerMachine = getattr(self, k)
+                    pm.build = v.build
+                    continue
+            setattr(self, k, v)
 
     def ensure_static_linker(self, compiler: Compiler) -> None:
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
