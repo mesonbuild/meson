@@ -11,13 +11,6 @@ from .visitor import AstVisitor, FullAstVisitor
 import re
 import typing as T
 
-arithmic_map = {
-    'add': '+',
-    'sub': '-',
-    'mod': '%',
-    'mul': '*',
-    'div': '/'
-}
 
 class AstPrinter(AstVisitor):
     def __init__(self, indent: int = 2, arg_newline_cutoff: int = 5, update_ast_line_nos: bool = False):
@@ -126,7 +119,7 @@ class AstPrinter(AstVisitor):
 
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
         node.left.accept(self)
-        self.append_padded(arithmic_map[node.operation], node)
+        self.append_padded(node.operator.value, node)
         node.lineno = self.curr_line or node.lineno
         node.right.accept(self)
 
@@ -379,7 +372,7 @@ class AstJSONPrinter(AstVisitor):
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
         self._accept('left', node.left)
         self._accept('right', node.right)
-        self.current['op'] = arithmic_map[node.operation]
+        self.current['op'] = node.operator.value
         self.setbase(node)
 
     def visit_NotNode(self, node: mparser.NotNode) -> None:
