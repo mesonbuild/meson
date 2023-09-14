@@ -432,16 +432,56 @@ class Build:
             setattr(other, k, copy_value(v))
         return other
 
+    def copy_for_build_machine(self) -> Build:
+        """Create a build-only copy for build machine subprojects.
+
+        Build-only subprojects run with host==build configuration so that get_compiler(),
+        dependency() etc. look up the native (non-cross) environments.  However, note
+        that the environment is still a cross one so that the build-machine options,
+        dependencies, etc. are looked up.
+        """
+        new = self.copy()
+        new.is_build_only = True
+        if not self.environment.is_cross_build() or self.is_build_only:
+            return new
+
+        new.environment = self.environment.copy_for_build_machine()
+
+        # Share build machine state between host/build slots
+        new.projects = PerMachineDefaultable(new.projects.build).default_missing()
+        new.find_overrides = PerMachineDefaultable(new.find_overrides.build).default_missing()
+        new.dependency_overrides = PerMachineDefaultable(new.dependency_overrides.build).default_missing()
+        new.searched_programs = PerMachineDefaultable(new.searched_programs.build).default_missing()
+        new.stdlibs = PerMachineDefaultable(new.stdlibs.build).default_missing()
+        new.static_linker = PerMachineDefaultable(new.static_linker.build).default_missing()
+        return new
+
     def merge(self, other: Build) -> None:
+        if self.is_build_only != other.is_build_only:
+            assert self.is_build_only is False, 'We should never merge a multi machine subproject into a single machine subproject, right?'
+
         for k, v in other.__dict__.items():
+            # These are modified for the build-only config, and are the same
+            # for all build != host config.  No need to copy them.
+            if k in {'is_build_only', 'environment'}:
+                continue
             # These are not modified in subprojects
             if k in {'global_args', 'global_link_args'}:
+                continue
+            if other.is_build_only and k in {'data', 'emptydir', 'headers', 'install_dirs',
+                                             'install_scripts', 'man', 'symlinks'}:
                 continue
 
             if isinstance(v, PerMachine):
                 dest = getattr(self, k)
-                dest.build = v.build
-                dest.host = v.host
+                # If.build is v.host are both for the build machine, take the
+                # build value only
+                if other.is_build_only and not self.is_build_only and self.environment.is_cross_build():
+                    dest.build = v.host
+                    assert v.build is None or v.host is None or v.host is v.build, f'invalid {k} for build machine subproject'
+                else:
+                    dest.build = v.build
+                    dest.host = v.host
             else:
                 setattr(self, k, v)
 
