@@ -1,8 +1,8 @@
 {
   "installed": [
     {"type": "exe", "file": "usr/bin/rust-program"},
-    {"type": "pdb", "file": "usr/bin/rust-program"},
+    {"type": "pdb", "file": "usr/bin/rust-program.exe.pdb"},
     {"type": "exe", "file": "usr/bin/rust-program2"},
-    {"type": "pdb", "file": "usr/bin/rust-program2"}
+    {"type": "pdb", "file": "usr/bin/rust-program2.exe.pdb"}
   ]
 }

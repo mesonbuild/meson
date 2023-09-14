@@ -2,7 +2,7 @@
   "installed": [
     {"type": "file", "file": "usr/bin/runscript.sh"},
     {"type": "exe", "file": "usr/bin/trivialprog"},
-    {"type": "pdb", "file": "usr/bin/trivialprog"},
+    {"type": "pdb", "file": "usr/bin/trivialprog.exe.pdb"},
     {"type": "file", "file": "usr/include/config.h"},
     {"type": "file", "file": "usr/include/rootdir.h"},
     {"type": "file", "file": "usr/libtest/libstat.a"},

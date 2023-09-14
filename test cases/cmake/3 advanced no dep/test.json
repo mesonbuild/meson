@@ -1,8 +1,8 @@
 {
   "installed": [
-    {"type": "pdb", "file": "usr/bin/cm_meson_testEXE"},
+    {"type": "pdb", "file": "usr/bin/cm_meson_testEXE.exe.pdb"},
     {"type": "exe", "file": "usr/bin/cm_meson_testEXE"},
-    {"type": "pdb", "file": "usr/bin/cm_benchmark"},
+    {"type": "pdb", "file": "usr/bin/cm_benchmark.exe.pdb"},
     {"type": "exe", "file": "usr/bin/cm_benchmark"}
   ]
 }

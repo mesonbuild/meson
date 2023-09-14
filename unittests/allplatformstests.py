@@ -4183,8 +4183,8 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_argument_syntax() == 'msvc':
-            main_expected.append('bin/foo.pdb')
-            bar_expected.append('bin/bar.pdb')
+            main_expected.append('bin/foo' + exe_suffix + '.pdb')
+            bar_expected.append('bin/bar' + exe_suffix + '.pdb')
         prefix = destdir_join(self.installdir, self.prefix)
         main_expected = [Path(prefix, p) for p in main_expected]
         bar_expected = [Path(prefix, p) for p in bar_expected]
@@ -4370,20 +4370,20 @@ class AllPlatformTests(BasePlatformTests):
         if cc.get_id() in {'msvc', 'clang-cl'}:
             expected_devel |= {
                 Path(installpath, 'usr/bin'),
-                Path(installpath, 'usr/bin/app.pdb'),
-                Path(installpath, 'usr/bin/app2.pdb'),
-                Path(installpath, 'usr/bin/both.pdb'),
-                Path(installpath, 'usr/bin/both2.pdb'),
-                Path(installpath, 'usr/bin/bothcustom.pdb'),
-                Path(installpath, 'usr/bin/shared.pdb'),
-                Path(installpath, 'usr/bin/versioned_shared-1.pdb'),
+                Path(installpath, 'usr/bin/app.exe.pdb'),
+                Path(installpath, 'usr/bin/app2.exe.pdb'),
+                Path(installpath, 'usr/bin/both.dll.pdb'),
+                Path(installpath, 'usr/bin/both2.dll.pdb'),
+                Path(installpath, 'usr/bin/bothcustom.dll.pdb'),
+                Path(installpath, 'usr/bin/shared.dll.pdb'),
+                Path(installpath, 'usr/bin/versioned_shared-1.dll.pdb'),
                 Path(installpath, 'usr/lib/both.lib'),
                 Path(installpath, 'usr/lib/both2.lib'),
                 Path(installpath, 'usr/lib/bothcustom.lib'),
                 Path(installpath, 'usr/lib/shared.lib'),
                 Path(installpath, 'usr/lib/versioned_shared.lib'),
                 Path(installpath, 'usr/otherbin'),
-                Path(installpath, 'usr/otherbin/app-otherdir.pdb'),
+                Path(installpath, 'usr/otherbin/app-otherdir.exe.pdb'),
             }
         elif is_windows() or is_cygwin():
             expected_devel |= {

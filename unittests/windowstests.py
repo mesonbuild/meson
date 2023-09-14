@@ -284,7 +284,7 @@ class WindowsTests(BasePlatformTests):
         installed = self.introspect('--installed')
         files = [os.path.basename(path) for path in installed.values()]
 
-        self.assertIn('prog.pdb', files)
+        self.assertIn('prog.exe.pdb', files)
 
     def _check_ld(self, name: str, lang: str, expected: str) -> None:
         if not shutil.which(name):

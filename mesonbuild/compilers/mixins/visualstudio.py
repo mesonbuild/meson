@@ -316,10 +316,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return not (warning_text in p.stderr or warning_text in p.stdout), p.cached
 
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
-        pdbarr = rel_obj.split('.')[:-1]
-        pdbarr += ['pdb']
-        args = ['/Fd' + '.'.join(pdbarr)]
-        return args
+        return ['/Fd' + '.'.join((rel_obj, 'pdb'))]
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         if self.is_64:

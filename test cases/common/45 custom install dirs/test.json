@@ -1,9 +1,9 @@
 {
   "installed": [
     {"type": "exe", "file": "usr/dib/dab/dub/prog"},
-    {"type": "pdb", "file": "usr/dib/dab/dub/prog"},
+    {"type": "pdb", "file": "usr/dib/dab/dub/prog.exe.pdb"},
     {"type": "exe", "file": "usr/dib/dab/dub2/prog2"},
-    {"type": "pdb", "file": "usr/dib/dab/dub2/prog2"},
+    {"type": "pdb", "file": "usr/dib/dab/dub2/prog2.exe.pdb"},
     {"type": "file", "file": "usr/some/dir/sample.h"},
     {"type": "file", "file": "usr/some/dir2/sample.h"},
     {"type": "file", "file": "usr/woman/prog.1"},

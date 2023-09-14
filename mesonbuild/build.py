@@ -1978,7 +1978,7 @@ class Executable(BuildTarget):
             and self.environment.coredata.get_option(OptionKey("debug"))
         )
         if create_debug_file:
-            self.debug_filename = self.name + '.pdb'
+            self.debug_filename = self.filename + '.pdb'
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_bindir(), '{bindir}'
@@ -2295,7 +2295,7 @@ class SharedLibrary(BuildTarget):
         # only replace the first entry
         self.outputs[0] = self.filename
         if create_debug_file:
-            self.debug_filename = os.path.splitext(self.filename)[0] + '.pdb'
+            self.debug_filename = self.filename + '.pdb'
 
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)

@@ -2,6 +2,6 @@
   "installed": [
     {"type": "expr", "file": "usr/lib/modules/libnosyms?so"},
     {"type": "implibempty", "file": "usr/lib/modules/libnosyms"},
-    {"type": "pdb", "file": "usr/lib/modules/nosyms"}
+    {"type": "pdb", "file": "usr/lib/modules/nosyms.dll.pdb"}
   ]
 }

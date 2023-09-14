@@ -1,8 +1,8 @@
 {
   "installed": [
-    {"type": "pdb", "file": "usr/bin/baz"},
-    {"type": "pdb", "file": "usr/bin/bowcorge"},
-    {"type": "pdb", "file": "usr/bin/foo"},
+    {"type": "pdb", "file": "usr/bin/baz.cheese.pdb"},
+    {"type": "pdb", "file": "usr/bin/bowcorge.stern.pdb"},
+    {"type": "pdb", "file": "usr/bin/foo.dll.pdb"},
     {"type": "expr", "file": "usr/?lib/bowcorge.stern"},
     {"type": "expr", "file": "usr/lib/?libbaz.cheese"},
     {"type": "file", "file": "usr/lib/bar.a"},
@@ -14,6 +14,6 @@
     {"type": "file", "file": "usr/lib/libqux.cheese"},
     {"type": "expr", "file": "usr/?lib/libgarply?so"},
     {"type": "implib", "file": "usr/lib/libgarply"},
-    {"type": "pdb", "file": "usr/bin/garply"}
+    {"type": "pdb", "file": "usr/bin/garply.dll.pdb"}
   ]
 }

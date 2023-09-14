@@ -1575,7 +1575,7 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(link, 'ModuleDefinitionFile').text = relpath
         if self.debug:
             pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
-            pdb.text = f'$(OutDir){target.name}.pdb'
+            pdb.text = f'$(OutDir){target.get_filename()}.pdb'
         targetmachine = ET.SubElement(link, 'TargetMachine')
         if target.for_machine is MachineChoice.BUILD:
             targetplatform = platform.lower()

@@ -1,7 +1,7 @@
 {
   "installed": [
     {"type": "exe", "file": "usr/bin/app_s"},
-    {"type": "pdb", "file": "usr/bin/app_s", "language": "d"},
+    {"type": "pdb", "file": "usr/bin/app_s.exe.pdb", "language": "d"},
     {"type": "file", "file": "usr/lib/libstuff.a"}
   ]
 }

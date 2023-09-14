@@ -232,9 +232,8 @@ class InstalledFile:
             elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
                 return p.with_suffix('.exe')
         elif self.typ == 'pdb':
-            if self.version:
-                p = p.with_name('{}-{}'.format(p.name, self.version[0]))
-            return p.with_suffix('.pdb') if has_pdb else None
+            if not has_pdb:
+                return None
         elif self.typ in {'implib', 'implibempty'}:
             if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                 # only MSVC doesn't generate empty implibs
