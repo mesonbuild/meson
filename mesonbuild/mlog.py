@@ -49,32 +49,6 @@ def _windows_ansi() -> bool:
     # original behavior
     return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
 
-def colorize_console() -> bool:
-    _colorize_console: bool = getattr(sys.stdout, 'colorize_console', None)
-    if _colorize_console is not None:
-        return _colorize_console
-
-    try:
-        if is_windows():
-            _colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()
-        else:
-            _colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
-    except Exception:
-        _colorize_console = False
-
-    sys.stdout.colorize_console = _colorize_console  # type: ignore[attr-defined]
-    return _colorize_console
-
-def setup_console() -> None:
-    # on Windows, a subprocess might call SetConsoleMode() on the console
-    # connected to stdout and turn off ANSI escape processing. Call this after
-    # running a subprocess to ensure we turn it on again.
-    if is_windows():
-        try:
-            delattr(sys.stdout, 'colorize_console')
-        except AttributeError:
-            pass
-
 _in_ci = 'CI' in os.environ
 _ci_is_github = 'GITHUB_ACTIONS' in os.environ
 
@@ -91,6 +65,7 @@ class _Logger:
 
     log_dir: T.Optional[str] = None
     log_depth: T.List[str] = field(default_factory=list)
+    log_to_stderr: bool = False
     log_file: T.Optional[T.TextIO] = None
     log_timestamp_start: T.Optional[float] = None
     log_fatal_warnings = False
@@ -139,7 +114,7 @@ class _Logger:
         return None
 
     def start_pager(self) -> None:
-        if not colorize_console():
+        if not self.colorize_console():
             return
         pager_cmd = []
         if 'PAGER' in os.environ:
@@ -223,12 +198,17 @@ class _Logger:
             raw = '\n'.join(lines)
 
         # _Something_ is going to get printed.
+        if self.log_pager:
+            output = self.log_pager.stdin
+        elif self.log_to_stderr:
+            output = sys.stderr
+        else:
+            output = sys.stdout
         try:
-            output = self.log_pager.stdin if self.log_pager else None
             print(raw, end='', file=output)
         except UnicodeEncodeError:
             cleaned = raw.encode('ascii', 'replace').decode('ascii')
-            print(cleaned, end='')
+            print(cleaned, end='', file=output)
 
     def debug(self, *args: TV_Loggable, sep: T.Optional[str] = None,
               end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
@@ -244,7 +224,7 @@ class _Logger:
         if self.log_file is not None:
             print(*arr, file=self.log_file, sep=sep, end=end)
             self.log_file.flush()
-        if colorize_console():
+        if self.colorize_console():
             arr = process_markup(args, True, display_timestamp)
         if not self.log_errors_only or is_error:
             force_print(*arr, nested=nested, sep=sep, end=end)
@@ -403,8 +383,38 @@ class _Logger:
     def get_warning_count(self) -> int:
         return self.log_warnings_counter
 
+    def redirect(self, to_stderr: bool) -> None:
+        self.log_to_stderr = to_stderr
+
+    def colorize_console(self) -> bool:
+        output = sys.stderr if self.log_to_stderr else sys.stdout
+        _colorize_console: bool = getattr(output, 'colorize_console', None)
+        if _colorize_console is not None:
+            return _colorize_console
+        try:
+            if is_windows():
+                _colorize_console = os.isatty(output.fileno()) and _windows_ansi()
+            else:
+                _colorize_console = os.isatty(output.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
+        except Exception:
+            _colorize_console = False
+        output.colorize_console = _colorize_console  # type: ignore[attr-defined]
+        return _colorize_console
+
+    def setup_console(self) -> None:
+        # on Windows, a subprocess might call SetConsoleMode() on the console
+        # connected to stdout and turn off ANSI escape processing. Call this after
+        # running a subprocess to ensure we turn it on again.
+        output = sys.stderr if self.log_to_stderr else sys.stdout
+        if is_windows():
+            try:
+                delattr(output, 'colorize_console')
+            except AttributeError:
+                pass
+
 _logger = _Logger()
 cmd_ci_include = _logger.cmd_ci_include
+colorize_console = _logger.colorize_console
 debug = _logger.debug
 deprecation = _logger.deprecation
 error = _logger.error
@@ -421,9 +431,11 @@ nested_warnings = _logger.nested_warnings
 no_logging = _logger.no_logging
 notice = _logger.notice
 process_markup = _logger.process_markup
+redirect = _logger.redirect
 set_quiet = _logger.set_quiet
 set_timestamp_start = _logger.set_timestamp_start
 set_verbose = _logger.set_verbose
+setup_console = _logger.setup_console
 shutdown = _logger.shutdown
 start_pager = _logger.start_pager
 stop_pager = _logger.stop_pager
