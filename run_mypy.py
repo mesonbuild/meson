@@ -43,6 +43,7 @@ modules = [
     'mesonbuild/utils/universal.py',
     'mesonbuild/mconf.py',
     'mesonbuild/mdist.py',
+    'mesonbuild/mformat.py',
     'mesonbuild/minit.py',
     'mesonbuild/minstall.py',
     'mesonbuild/mintro.py',

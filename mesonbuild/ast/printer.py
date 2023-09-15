@@ -16,8 +16,6 @@
 # or an interpreter-based tool
 from __future__ import annotations
 
-from mesonbuild import mparser
-
 from .. import mparser
 from .visitor import AstVisitor, FullAstVisitor
 
@@ -244,7 +242,7 @@ class RawPrinter(FullAstVisitor):
         assert hasattr(node, 'value')
         self.result += node.value
         self.exit_node(node)
-    
+
     def visit_EmptyNode(self, node: mparser.EmptyNode) -> None:
         self.enter_node(node)
         self.exit_node(node)
