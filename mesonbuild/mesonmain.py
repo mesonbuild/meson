@@ -61,7 +61,7 @@ def errorhandler(e: Exception, command: str) -> int:
 class CommandLineParser:
     def __init__(self) -> None:
         # only import these once we do full argparse processing
-        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
+        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv, mformat
         from .scripts import env2mfile
         from .wrap import wraptool
         import shutil
@@ -100,6 +100,8 @@ class CommandLineParser:
                          help_msg='Run commands in developer environment')
         self.add_command('env2mfile', env2mfile.add_arguments, env2mfile.run,
                          help_msg='Convert current environment to a cross or native file')
+        self.add_command('format', mformat.add_arguments, mformat.run, aliases=['fmt'],
+                         help_msg='Format meson source file')
         # Add new commands above this line to list them in help command
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help_msg='Print help of a subcommand')

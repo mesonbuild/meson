@@ -1,0 +1,1 @@
+option('fmt_config', type: 'string', value: 'default')

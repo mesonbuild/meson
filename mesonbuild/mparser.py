@@ -343,6 +343,9 @@ class ArgumentNode(BaseNode):
         self.kwargs = {}
         self.order_error = False
 
+        # Attributes for the visitors
+        self.is_multiline = False
+
     def prepend(self, statement: BaseNode) -> None:
         if self.num_kwargs() > 0:
             self.order_error = True

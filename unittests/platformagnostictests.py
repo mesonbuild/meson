@@ -16,6 +16,7 @@ from pathlib import Path
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command
+from mesonbuild.mformat import match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from run_tests import Backend
 
@@ -290,6 +291,48 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
+
+    def test_editorconfig_match_path(self):
+        '''match_path function used to parse editorconfig in meson format'''
+        cases = [
+            ('a.txt', '*.txt', True),
+            ('a.txt', '?.txt', True),
+            ('a.txt', 'a.t?t', True),
+            ('a.txt', '*.build', False),
+
+            ('/a.txt', '*.txt', True),
+            ('/a.txt', '/*.txt', True),
+            ('a.txt', '/*.txt', False),
+
+            ('a/b/c.txt', 'a/b/*.txt', True),
+            ('a/b/c.txt', 'a/*/*.txt', True),
+            ('a/b/c.txt', '*/*.txt', True),
+            ('a/b/c.txt', 'b/*.txt', True),
+            ('a/b/c.txt', 'a/*.txt', False),
+
+            ('a/b/c/d.txt', 'a/**/*.txt', True),
+            ('a/b/c/d.txt', 'a/*', False),
+            ('a/b/c/d.txt', 'a/**', True),
+
+            ('a.txt', '[abc].txt', True),
+            ('a.txt', '[!xyz].txt', True),
+            ('a.txt', '[xyz].txt', False),
+            ('a.txt', '[!abc].txt', False),
+
+            ('a.txt', '{a,b,c}.txt', True),
+            ('a.txt', '*.{txt,tex,cpp}', True),
+            ('a.hpp', '*.{txt,tex,cpp}', False),
+            
+            ('a1.txt', 'a{0..9}.txt', True),
+            ('a001.txt', 'a{0..9}.txt', True),
+            ('a-1.txt', 'a{-10..10}.txt', True),
+            ('a99.txt', 'a{0..9}.txt', False),
+            ('a099.txt', 'a{0..9}.txt', False),
+            ('a-1.txt', 'a{0..10}.txt', False),
+        ]
+
+        for filename, pattern, expected in cases:
+            self.assertTrue(match_path(filename, pattern) is expected, f'{filename} -> {pattern}')
 
     def test_error_configuring_subdir(self):
         testdir = os.path.join(self.common_test_dir, '152 index customtarget')
