@@ -1,0 +1,47 @@
+# SPDX-FileCopyrightText: Stone Tickle <lattis@mochiro.moe>
+# SPDX-License-Identifier: GPL-3.0-only
+
+project('a')
+
+if (
+	# comment
+	false  # in a weird
+)  # place!  # test
+else
+endif  # test2
+
+foreach a : (
+	# test 7
+	b  # test 4
+)  # test 6 # test 3
+endforeach
+# test 5
+
+a = [
+	1,
+	# inner
+	2,  # between comma
+	# between comma 2
+]  # trailing
+
+(
+	# hello
+	a()
+)
+(
+	# comment 1
+	# comment 2
+	# comment 3
+	a  # comment 4
+	# comment 5
+	# comment 6
+	= (
+		# comment 7
+		1  # comment 8
+		# comment 9
+		+ 2  # comment 10
+	)  # comment 11
+	# comment 12
+)  # comment 13
+
+# trailing comment
