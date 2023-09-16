@@ -53,7 +53,8 @@ OPT2XCODEOPT = {'plain': None,
                 }
 BOOL2XCODEBOOL = {True: 'YES', False: 'NO'}
 LINKABLE_EXTENSIONS = {'.o', '.a', '.obj', '.so', '.dylib'}
-XCODEVERSIONS = {'1400': ('Xcode 14.0', 56),
+XCODEVERSIONS = {'1500': ('Xcode 15.0', 60),
+                 '1400': ('Xcode 14.0', 56),
                  '1300': ('Xcode 13.0', 55),
                  '1200': ('Xcode 12.0', 54),
                  '1140': ('Xcode 11.4', 53),
