@@ -57,6 +57,9 @@ It takes the following keyword arguments
 - `input`: a list of Files, Strings, or CustomTargets. The first element is
   the header bindgen will parse, additional elements are dependencies.
 - `output`: the name of the output rust file
+- `output_inline_wrapper`: the name of the optional output c file containing
+  wrappers for static inline function. This requires `bindgen-0.65` or
+  newer (*since 1.3.0*).
 - `include_directories`: A list of `include_directories` or `string` objects,
   these are passed to clang as `-I` arguments *(string since 1.0.0)*
 - `c_args`: a list of string arguments to pass to clang untouched
