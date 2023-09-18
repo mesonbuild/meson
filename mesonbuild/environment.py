@@ -411,6 +411,11 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
 
 def detect_kernel(system: str) -> T.Optional[str]:
     if system == 'sunos':
+        # Solaris 5.10 uname doesn't support the -o switch, and illumos started
+        # with version 5.11 so shortcut the logic to report 'solaris' in such
+        # cases where the version is 5.10 or below.
+        if mesonlib.version_compare(platform.uname().release, '<=5.10'):
+            return 'solaris'
         # This needs to be /usr/bin/uname because gnu-uname could be installed and
         # won't provide the necessary information
         p, out, _ = Popen_safe(['/usr/bin/uname', '-o'])
