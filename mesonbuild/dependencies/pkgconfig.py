@@ -28,6 +28,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
+    from .._typing import ImmutableListProtocol
 
     from ..environment import Environment
     from ..utils.core import EnvironOrDict
@@ -95,14 +96,14 @@ class PkgConfigInterface:
         raise NotImplementedError
 
     def cflags(self, name: str, allow_system: bool = False,
-               define_variable: PkgConfigDefineType = None) -> T.List[str]:
+               define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
         '''Return module cflags
            @allow_system: If False, remove default system include paths
         '''
         raise NotImplementedError
 
     def libs(self, name: str, static: bool = False, allow_system: bool = False,
-             define_variable: PkgConfigDefineType = None) -> T.List[str]:
+             define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
         '''Return module libs
            @static: If True, also include private libraries
            @allow_system: If False, remove default system libraries search paths
@@ -114,7 +115,7 @@ class PkgConfigInterface:
         '''Return module variable or None if variable is not defined'''
         raise NotImplementedError
 
-    def list_all(self) -> T.List[str]:
+    def list_all(self) -> ImmutableListProtocol[str]:
         '''Return all available pkg-config modules'''
         raise NotImplementedError
 
@@ -144,7 +145,7 @@ class PkgConfigCLI(PkgConfigInterface):
 
     @lru_cache(maxsize=None)
     def cflags(self, name: str, allow_system: bool = False,
-               define_variable: PkgConfigDefineType = None) -> T.List[str]:
+               define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
         env = None
         if allow_system:
             env = os.environ.copy()
@@ -159,7 +160,7 @@ class PkgConfigCLI(PkgConfigInterface):
 
     @lru_cache(maxsize=None)
     def libs(self, name: str, static: bool = False, allow_system: bool = False,
-             define_variable: PkgConfigDefineType = None) -> T.List[str]:
+             define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
         env = None
         if allow_system:
             env = os.environ.copy()
@@ -194,7 +195,7 @@ class PkgConfigCLI(PkgConfigInterface):
         return variable
 
     @lru_cache(maxsize=None)
-    def list_all(self) -> T.List[str]:
+    def list_all(self) -> ImmutableListProtocol[str]:
         ret, out, err = self._call_pkgbin(['--list-all'])
         if ret != 0:
             raise DependencyException(f'could not list modules:\n{err}\n')
@@ -319,7 +320,7 @@ class PkgConfigDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _convert_mingw_paths(self, args: T.List[str]) -> T.List[str]:
+    def _convert_mingw_paths(self, args: ImmutableListProtocol[str]) -> T.List[str]:
         '''
         Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
         paths so convert them to C:/foo. We cannot resolve other paths starting
@@ -327,7 +328,7 @@ class PkgConfigDependency(ExternalDependency):
         error/warning from the compiler/linker.
         '''
         if not self.env.machines.build.is_windows():
-            return args
+            return args.copy()
         converted = []
         for arg in args:
             pargs: T.Tuple[str, ...] = tuple()
@@ -359,7 +360,7 @@ class PkgConfigDependency(ExternalDependency):
         cflags = self.pkgconfig.cflags(self.name, allow_system)
         self.compile_args = self._convert_mingw_paths(cflags)
 
-    def _search_libs(self, libs_in: T.List[str], raw_libs_in: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+    def _search_libs(self, libs_in: ImmutableListProtocol[str], raw_libs_in: ImmutableListProtocol[str]) -> T.Tuple[T.List[str], T.List[str]]:
         '''
         @libs_in: PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 pkg-config --libs
         @raw_libs_in: pkg-config --libs
