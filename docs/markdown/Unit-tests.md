@@ -49,7 +49,7 @@ targets. These targets are `coverage-xml` and `coverage-text` which
 are both provided by [Gcovr](http://gcovr.com) (version 3.3 or higher)
 `coverage-sonarqube` which is provided by [Gcovr](http://gcovr.com) (version 4.2 or higher)
 and `coverage-html`, which requires
-[Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and
+[lcov](https://github.com/linux-test-project/lcov) and
 [GenHTML](https://linux.die.net/man/1/genhtml) or
 [Gcovr](http://gcovr.com). As a convenience, a high-level `coverage`
 target is also generated which will produce all 3 coverage report
