@@ -167,8 +167,8 @@ format files
  - [Venom](https://github.com/naxuroqa/Venom), a modern Tox client for the GNU/Linux desktop
  - [vkQuake](https://github.com/Novum/vkQuake), a port of id Software's Quake using Vulkan instead of OpenGL for rendering
  - [VMAF](https://github.com/Netflix/vmaf) (by Netflix), a perceptual video quality assessment based on multi-method fusion
- - [Wayland](https://github.com/wayland-project/wayland) and [Weston](https://github.com/wayland-project/weston), a next generation display server
- - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
+ - [Wayland](https://gitlab.freedesktop.org/wayland/wayland) and [Weston](https://gitlab.freedesktop.org/wayland/weston), a next generation display server
+ - [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots), a modular Wayland compositor library
  - [xi-gtk](https://github.com/eyelash/xi-gtk), a GTK+ front-end for the Xi editor
  - [Xorg](https://gitlab.freedesktop.org/xorg/xserver), the X.org display server (not the default yet)
  - [X Test Suite](https://gitlab.freedesktop.org/xorg/test/xts), The X.org test suite
