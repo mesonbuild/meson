@@ -99,6 +99,34 @@ rust_bin2 = executable(
 
 test('generated header', rust_bin2)
 
+if prog_bindgen.version().version_compare('>= 0.65')
+  # Test generating a static inline wrapper
+  gen3 = rust.bindgen(
+    input : 'src/header3.h',
+    output : 'header3.rs',
+    output_inline_wrapper : 'header3.c',
+    include_directories : 'include',
+  )
+  c_inline_wrapper = static_library('c_wrapper', gen3[1])
+
+  f = configure_file(
+    input : 'src/main3.rs',
+    output : 'main3.rs',
+    copy : true,
+  )
+
+  rust_bin3 = executable(
+    'rust_bin3',
+    [f, gen3[0]],
+    link_with : [
+      c_lib,
+      c_inline_wrapper,
+    ],
+  )
+
+  test('static inline wrapper', rust_bin3)
+endif
+
 subdir('sub')
 subdir('dependencies')
 
