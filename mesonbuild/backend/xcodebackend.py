@@ -296,7 +296,8 @@ class XCodeBackend(backends.Backend):
         self.build_targets = self.build.get_build_targets()
         self.custom_targets = self.build.get_custom_targets()
         self.generate_filemap()
-        self.generate_buildstylemap()
+        if self.objversion < 50:
+            self.generate_buildstylemap()
         self.generate_build_phase_map()
         self.generate_build_configuration_map()
         self.generate_build_configurationlist_map()
@@ -328,9 +329,10 @@ class XCodeBackend(backends.Backend):
         self.generate_pbx_build_rule(objects_dict)
         objects_dict.add_comment(PbxComment('End PBXBuildRule section'))
         objects_dict.add_comment(PbxComment('Begin PBXBuildStyle section'))
-        self.generate_pbx_build_style(objects_dict)
-        objects_dict.add_comment(PbxComment('End PBXBuildStyle section'))
-        objects_dict.add_comment(PbxComment('Begin PBXContainerItemProxy section'))
+        if self.objversion < 50:
+            self.generate_pbx_build_style(objects_dict)
+            objects_dict.add_comment(PbxComment('End PBXBuildStyle section'))
+            objects_dict.add_comment(PbxComment('Begin PBXContainerItemProxy section'))
         self.generate_pbx_container_item_proxy(objects_dict)
         objects_dict.add_comment(PbxComment('End PBXContainerItemProxy section'))
         objects_dict.add_comment(PbxComment('Begin PBXFileReference section'))
@@ -758,8 +760,8 @@ class XCodeBackend(backends.Backend):
             odict.add_item('isa', 'PBXBuildFile')
             odict.add_item('fileRef', ref_id)
 
+    # This is skipped if Xcode 9 or above is installed, as PBXBuildStyle was removed on that version.
     def generate_pbx_build_style(self, objects_dict: PbxDict) -> None:
-        # FIXME: Xcode 9 and later does not uses PBXBuildStyle and it gets removed. Maybe we can remove this part.
         for name, idval in self.buildstylemap.items():
             styledict = PbxDict()
             objects_dict.add_item(idval, styledict, name)
@@ -1267,10 +1269,11 @@ class XCodeBackend(backends.Backend):
         attr_dict.add_item('BuildIndependentTargetsInParallel', 'YES')
         project_dict.add_item('buildConfigurationList', self.project_conflist, f'Build configuration list for PBXProject "{self.build.project_name}"')
         project_dict.add_item('buildSettings', PbxDict())
-        style_arr = PbxArray()
-        project_dict.add_item('buildStyles', style_arr)
-        for name, idval in self.buildstylemap.items():
-            style_arr.add_item(idval, name)
+        if self.objversion < 50:
+            style_arr = PbxArray()
+            project_dict.add_item('buildStyles', style_arr)
+            for name, idval in self.buildstylemap.items():
+                style_arr.add_item(idval, name)
         project_dict.add_item('compatibilityVersion', f'"{self.xcodeversion}"')
         project_dict.add_item('hasScannedForEncodings', 0)
         project_dict.add_item('mainGroup', self.maingroup_id)
