@@ -383,6 +383,9 @@ class IncludeDirs(HoldableObject):
     # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
 
+    # We need to know this for stringifying correctly
+    is_build_only_subproject: bool = False
+
     def __repr__(self) -> str:
         r = '<{} {}/{}>'
         return r.format(self.__class__.__name__, self.curdir, self.incdirs)
@@ -1539,7 +1542,7 @@ class BuildTarget(Target):
             set_is_system = 'preserve'
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
+            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs(), x.is_build_only_subproject) for x in ids]
         self.include_dirs += ids
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
