@@ -2149,8 +2149,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                        args: T.Tuple[T.Union[build.Executable, ExternalProgram]],
                        kwargs: 'kwtypes.FuncGenerator') -> build.Generator:
         for rule in kwargs['output']:
-            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
-                raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
+            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule and '@INDEX@' not in rule:
+                raise InvalidArguments('Every element of "output" must contain @BASENAME@, @PLAINNAME@ or @INDEX@')
             if has_path_sep(rule):
                 raise InvalidArguments('"output" must not contain a directory separator.')
         if len(kwargs['output']) > 1:

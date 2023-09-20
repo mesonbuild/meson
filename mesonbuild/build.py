@@ -19,6 +19,7 @@ from functools import lru_cache
 import abc
 import hashlib
 import itertools, pathlib
+import math
 import os
 import pickle
 import re
@@ -1761,10 +1762,11 @@ class Generator(HoldableObject):
     def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
         return self.exe
 
-    def get_base_outnames(self, inname: str) -> T.List[str]:
+    def get_base_outnames(self, inname: str, index: int, fileCount: int) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
-        bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
+        index_str = str(index).zfill(int(1 + math.log10(fileCount)))
+        bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname).replace('@INDEX@', index_str) for x in self.outputs]
         return bases
 
     def get_dep_outname(self, inname: str) -> T.List[str]:
@@ -1774,10 +1776,11 @@ class Generator(HoldableObject):
         basename = os.path.splitext(plainname)[0]
         return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
 
-    def get_arglist(self, inname: str) -> T.List[str]:
+    def get_arglist(self, inname: str, index: int, fileCount: int) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
-        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
+        index_str = str(index).zfill(int(1 + math.log10(fileCount)))
+        return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname).replace('@INDEX@', index_str) for x in self.arglist]
 
     @staticmethod
     def is_parent_path(parent: str, trial: str) -> bool:
@@ -1790,7 +1793,7 @@ class Generator(HoldableObject):
                       extra_args: T.Optional[T.List[str]] = None) -> 'GeneratedList':
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
 
-        for e in files:
+        for index, e in enumerate(files):
             if isinstance(e, CustomTarget):
                 output.depends.add(e)
             if isinstance(e, CustomTargetIndex):
@@ -1814,9 +1817,8 @@ class Generator(HoldableObject):
                     if not self.is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
                 f = FileMaybeInTargetPrivateDir(f)
-                output.add_file(f, state)
+                output.add_file(f, state, index, len(files))
         return output
-
 
 @dataclass(eq=False)
 class GeneratedList(HoldableObject):
@@ -1859,9 +1861,9 @@ class GeneratedList(HoldableObject):
             result.append(os.path.join(path_segment, of))
         return result
 
-    def add_file(self, newfile: FileMaybeInTargetPrivateDir, state: T.Union['Interpreter', 'ModuleState']) -> None:
+    def add_file(self, newfile: FileMaybeInTargetPrivateDir, state: T.Union['Interpreter', 'ModuleState'], index: int, fileCount: int) -> None:
         self.infilelist.append(newfile)
-        outfiles = self.generator.get_base_outnames(newfile.fname)
+        outfiles = self.generator.get_base_outnames(newfile.fname, index, fileCount)
         if self.preserve_path_from:
             outfiles = self.add_preserved_path_segment(newfile, outfiles, state)
         self.outfilelist += outfiles

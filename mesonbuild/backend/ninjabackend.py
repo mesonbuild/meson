@@ -2628,7 +2628,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             else:
                 sole_output = f'{curfile}'
             infilename = curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target))
-            base_args = generator.get_arglist(infilename)
+            base_args = generator.get_arglist(infilename, i, len(infilelist))
             outfiles = genlist.get_outputs_for(curfile)
             outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
             if generator.depfile is None:
