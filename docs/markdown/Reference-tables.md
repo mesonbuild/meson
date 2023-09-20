@@ -132,6 +132,7 @@ set in the cross file.
 | wasm64              | 64 bit Webassembly       |
 | x86                 | 32 bit x86 processor     |
 | x86_64              | 64 bit x86 processor     |
+| sw_64               | 64 bit sunway processor  |
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
