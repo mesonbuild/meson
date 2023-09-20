@@ -834,7 +834,7 @@ class Backend:
             fname = fname.replace(ch, '_')
         return hashed + fname
 
-    def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString') -> str:
+    def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString', targetdir: T.Optional[str] = None) -> str:
         assert isinstance(source, mesonlib.File)
         if isinstance(target, build.CompileTarget):
             return target.sources_map[source]
@@ -855,9 +855,8 @@ class Backend:
         elif source.is_built:
             if os.path.isabs(rel_src):
                 rel_src = rel_src[len(build_dir) + 1:]
-            targetdir = self.get_target_private_dir(target)
             # A meson- prefixed directory is reserved; hopefully no-one creates a file name with such a weird prefix.
-            gen_source = 'meson-generated_' + os.path.relpath(rel_src, targetdir)
+            gen_source = 'meson-generated_' + os.path.relpath(rel_src, self.get_target_private_dir(target))
         else:
             if os.path.isabs(rel_src):
                 # Use the absolute path directly to avoid file name conflicts
@@ -866,7 +865,10 @@ class Backend:
                 gen_source = os.path.relpath(os.path.join(build_dir, rel_src),
                                              os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         machine = self.environment.machines[target.for_machine]
-        return self.canonicalize_filename(gen_source) + '.' + machine.get_object_suffix()
+        ret = self.canonicalize_filename(gen_source) + '.' + machine.get_object_suffix()
+        if targetdir is not None:
+            return os.path.join(targetdir, ret)
+        return ret
 
     def _determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str) -> T.List[str]:
         result: T.List[str] = []
@@ -920,8 +922,8 @@ class Backend:
                     sources.append(_src)
 
         for osrc in sources:
-            objname = self.object_filename_from_source(extobj.target, osrc)
-            objpath = os.path.join(proj_dir_to_build_root, targetdir, objname)
+            objname = self.object_filename_from_source(extobj.target, osrc, targetdir)
+            objpath = os.path.join(proj_dir_to_build_root, objname)
             result.append(objpath)
 
         return result
