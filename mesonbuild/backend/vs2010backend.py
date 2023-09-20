@@ -1448,12 +1448,10 @@ class Vs2010Backend(backends.Backend):
                                 extra_link_args.append(path[:-len(gen_src_ext)] + '.obj')
 
                     for src in l.srclist:
-                        obj_basename = None
                         if self.environment.is_source(src):
-                            obj_basename = self.object_filename_from_source(t, src)
                             target_private_dir = self.relpath(self.get_target_private_dir(t),
                                                               self.get_target_dir(t))
-                            rel_obj = os.path.join(target_private_dir, obj_basename)
+                            rel_obj = self.object_filename_from_source(t, src, target_private_dir)
                             extra_link_args.append(rel_obj)
 
                     extra_link_args.extend(self.flatten_object_list(t))
