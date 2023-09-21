@@ -48,6 +48,11 @@ kwargs:
       compiler flags to use for the given language;
       eg: `cpp_args` for C++
 
+  vala_args:
+    type: list[str | file]
+    description: |
+      Compiler flags for Vala. Unlike other languages this may contain Files
+
   sources:
     type: str | file | custom_tgt | custom_idx | generated_list | structured_src
     description: Additional source files. Same as the source varargs.
