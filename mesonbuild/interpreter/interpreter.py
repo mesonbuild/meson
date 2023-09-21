@@ -25,7 +25,7 @@ from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
                         FileMode, MachineChoice, OptionKey, listify,
-                        extract_as_list, has_path_sep, path_is_in_root, PerMachine)
+                        extract_as_list, has_path_sep, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -2774,57 +2774,32 @@ class Interpreter(InterpreterBase, HoldableObject):
         absbase_build = os.path.join(build_root, self.subdir)
 
         for a in incdir_strings:
-            if path_is_in_root(Path(a), Path(src_root)):
-                raise InvalidArguments(textwrap.dedent('''\
-                    Tried to form an absolute path to a dir in the source tree.
-                    You should not do that but use relative paths instead, for
-                    directories that are part of your project.
+            try:
+                self.validate_within_subproject(self.subdir, a)
+            except InterpreterException:
+                mlog.warning('include_directories sandbox violation!', location=self.current_node)
+                print(textwrap.dedent(f'''\
+                    The project is trying to access the directory {a!r} which belongs to a different
+                    subproject. This is a problem as it hardcodes the relative paths of these two projects.
+                    This makes it impossible to compile the project in any other directory layout and also
+                    prevents the subproject from changing its own directory layout.
 
-                    To get include path to any directory relative to the current dir do
+                    Instead of poking directly at the internals the subproject should be executed and
+                    it should set a variable that the caller can then use. Something like:
 
-                    incdir = include_directories(dirname)
+                    # In subproject
+                    some_dep = declare_dependency(include_directories: include_directories('include'))
 
-                    After this incdir will contain both the current source dir as well as the
-                    corresponding build dir. It can then be used in any subdirectory and
-                    Meson will take care of all the busywork to make paths work.
+                    # In subproject wrap file
+                    [provide]
+                    some = some_dep
 
-                    Dirname can even be '.' to mark the current directory. Though you should
-                    remember that the current source and build directories are always
-                    put in the include directories by default so you only need to do
-                    include_directories('.') if you intend to use the result in a
-                    different subdirectory.
+                    # In parent project
+                    some_dep = dependency('some')
+                    executable(..., dependencies: [some_dep])
 
-                    Note that this error message can also be triggered by
-                    external dependencies being installed within your source
-                    tree - it's not recommended to do this.
+                    This warning will become a hard error in a future Meson release.
                     '''))
-            else:
-                try:
-                    self.validate_within_subproject(self.subdir, a)
-                except InterpreterException:
-                    mlog.warning('include_directories sandbox violation!', location=self.current_node)
-                    print(textwrap.dedent(f'''\
-                        The project is trying to access the directory {a!r} which belongs to a different
-                        subproject. This is a problem as it hardcodes the relative paths of these two projects.
-                        This makes it impossible to compile the project in any other directory layout and also
-                        prevents the subproject from changing its own directory layout.
-
-                        Instead of poking directly at the internals the subproject should be executed and
-                        it should set a variable that the caller can then use. Something like:
-
-                        # In subproject
-                        some_dep = declare_dependency(include_directories: include_directories('include'))
-
-                        # In subproject wrap file
-                        [provide]
-                        some = some_dep
-
-                        # In parent project
-                        some_dep = dependency('some')
-                        executable(..., dependencies: [some_dep])
-
-                        This warning will become a hard error in a future Meson release.
-                        '''))
             absdir_src = os.path.join(absbase_src, a)
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
