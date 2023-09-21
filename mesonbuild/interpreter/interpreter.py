@@ -3224,6 +3224,44 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
+    def __convert_file_args(self, raw: T.List[mesonlib.FileOrString]) -> T.Tuple[T.List[mesonlib.File], T.List[str]]:
+        """Convert raw target arguments from File | str to File.
+
+        This removes files from the command line and replaces them with string
+        values, but adds the files to depends list
+
+        :param raw: the raw arguments
+        :return: A tuple of file dependecnies and raw arguments
+        """
+        depend_files: T.List[mesonlib.File] = []
+        args: T.List[str] = []
+        build_to_source = mesonlib.relpath(self.environment.get_source_dir(),
+                                           self.environment.get_build_dir())
+
+        for a in raw:
+            if isinstance(a, mesonlib.File):
+                depend_files.append(a)
+                args.append(a.rel_to_builddir(build_to_source))
+            else:
+                args.append(a)
+
+        return depend_files, args
+
+    def __process_language_args(self, kwargs: T.Dict[str, T.List[mesonlib.FileOrString]]) -> None:
+        """Convert split language args into a combined dictionary.
+
+        The Meson DSL takes arguments in the form `<lang>_args : args`, but in the
+        build layer we store these in a single dictionary as `{<lang>: args}`.
+        This function extracts the arguments from the DSL format and prepares
+        them for the IR.
+        """
+        d = kwargs.setdefault('depend_files', [])
+
+        for l in compilers.all_languages:
+            deps, args = self.__convert_file_args(kwargs[f'{l}_args'])
+            kwargs[f'{l}_args'] = args
+            d.extend(deps)
+
     def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass):
         @FeatureNewKwargs('build target', '1.2.0', ['rust_dependency_map'])
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
@@ -3267,6 +3305,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
         self.kwarg_strings_to_includedirs(kwargs)
+        self.__process_language_args(kwargs)
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
