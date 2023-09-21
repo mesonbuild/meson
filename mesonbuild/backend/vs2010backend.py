@@ -187,7 +187,7 @@ class Vs2010Backend(backends.Backend):
                 else:
                     sole_output = ''
                 infilename = os.path.join(down, curfile.rel_to_builddir(self.build_to_src, target_private_dir))
-                deps = self.get_custom_target_depend_files(genlist, True)
+                deps = self.get_target_depend_files(genlist, True)
                 base_args = generator.get_arglist(infilename)
                 outfiles_rel = genlist.get_outputs_for(curfile)
                 outfiles = [os.path.join(target_private_dir, of) for of in outfiles_rel]
@@ -699,7 +699,7 @@ class Vs2010Backend(backends.Backend):
         (root, type_config) = self.create_basic_project(target.name,
                                                         temp_dir=target.get_id(),
                                                         guid=guid)
-        depend_files = self.get_custom_target_depend_files(target)
+        depend_files = self.get_target_depend_files(target)
 
         if not target.command:
             # This is an alias target and thus doesn't run any command. It's
@@ -738,7 +738,7 @@ class Vs2010Backend(backends.Backend):
         # from the target dir, not the build root.
         target.absolute_paths = True
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
-        depend_files = self.get_custom_target_depend_files(target, True)
+        depend_files = self.get_target_depend_files(target, True)
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))

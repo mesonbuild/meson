@@ -735,6 +735,7 @@ class BuildTarget(Target):
         self.link_language = kwargs.get('link_language')
         self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
+        self.depend_files: T.List[File] = []
         self.link_depends = []
         self.added_deps = set()
         self.name_prefix_set = False
@@ -746,7 +747,7 @@ class BuildTarget(Target):
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
         self.pch: T.Dict[str, T.List[str]] = {}
-        self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
+        self.extra_args: T.Dict[str, T.List[str]] = {}
         self.sources: T.List[File] = []
         self.generated: T.List['GeneratedTypes'] = []
         self.extra_files: T.List[File] = []
@@ -1278,7 +1279,7 @@ class BuildTarget(Target):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_extra_args(self, language):
+    def get_extra_args(self, language) -> T.List[str]:
         return self.extra_args.get(language, [])
 
     @lru_cache(maxsize=None)

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import typing as T
 
-from typing_extensions import TypedDict, Literal, Protocol
+from typing_extensions import TypedDict, Literal, Protocol, NotRequired
 
 from .. import build
 from .. import coredata
@@ -326,6 +326,7 @@ class _BaseBuildTarget(TypedDict):
     """
 
     override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    depend_files: NotRequired[T.List[File]]
 
 
 class _BuildTarget(_BaseBuildTarget):
