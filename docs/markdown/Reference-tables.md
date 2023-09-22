@@ -52,7 +52,7 @@ These are return values of the `get_id` (Compiler family) and
 | cctc            | TASKING VX-toolset for TriCore compiler     | |
 | ccarm           | TASKING VX-toolset for ARM compiler         | |
 | cc51            | TASKING VX-toolset for 8051 compiler        | |
-| ccmsc           | TASKING VX-toolset for MCS compiler         | |
+| ccmcs           | TASKING VX-toolset for MCS compiler         | |
 | ccpcp           | TASKING VX-toolset for PCP compiler         | |
 
 ## Linker ids
