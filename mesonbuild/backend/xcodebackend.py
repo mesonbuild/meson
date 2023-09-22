@@ -1271,7 +1271,7 @@ class XCodeBackend(backends.Backend):
         project_dict.add_item('buildStyles', style_arr)
         for name, idval in self.buildstylemap.items():
             style_arr.add_item(idval, name)
-        project_dict.add_item('compatibilityVersion', '"Xcode 3.2"')
+        project_dict.add_item('compatibilityVersion', f'"{self.xcodeversion}"')
         project_dict.add_item('hasScannedForEncodings', 0)
         project_dict.add_item('mainGroup', self.maingroup_id)
         project_dict.add_item('projectDirPath', '"' + self.environment.get_source_dir() + '"')
@@ -1870,7 +1870,7 @@ class XCodeBackend(backends.Backend):
     def generate_prefix(self, pbxdict: PbxDict) -> PbxDict:
         pbxdict.add_item('archiveVersion', '1')
         pbxdict.add_item('classes', PbxDict())
-        pbxdict.add_item('objectVersion', '46')
+        pbxdict.add_item('objectVersion', self.objversion)
         objects_dict = PbxDict()
         pbxdict.add_item('objects', objects_dict)
 
