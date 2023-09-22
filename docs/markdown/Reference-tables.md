@@ -128,10 +128,12 @@ set in the cross file.
 | sh4                 | SuperH SH-4              |
 | sparc               | 32 bit SPARC             |
 | sparc64             | SPARC v9 processor       |
+| sw_64               | 64 bit sunway processor  |
 | wasm32              | 32 bit Webassembly       |
 | wasm64              | 64 bit Webassembly       |
 | x86                 | 32 bit x86 processor     |
 | x86_64              | 64 bit x86 processor     |
+
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
