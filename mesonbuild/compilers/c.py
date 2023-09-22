@@ -26,6 +26,7 @@ from .mixins.pgi import PGICompiler
 from .mixins.emscripten import EmscriptenMixin
 from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
+from .mixins.tasking import TaskingCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -791,3 +792,28 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
         if std.value != 'none':
             args.append('-lang ' + std.value)
         return args
+
+class _TaskingCCompiler(TaskingCompiler, CCompiler):
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        CCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, linker=linker, full_version=full_version)
+        TaskingCompiler.__init__(self)
+
+class TaskingTricoreCCompiler(_TaskingCCompiler):
+    id = 'cctc'
+
+class TaskingArmCCompiler(_TaskingCCompiler):
+    id = 'ccarm'
+
+class Tasking8051CCompiler(_TaskingCCompiler):
+    id = 'cc51'
+
+class TaskingMCSCCompiler(_TaskingCCompiler):
+    id = 'ccmcs'
+
+class TaskingPCPCCompiler(_TaskingCCompiler):
+    id = 'ccpcp'

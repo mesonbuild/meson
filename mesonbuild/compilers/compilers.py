@@ -234,6 +234,7 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
                                                    MSCRT_VALS + ['from_buildtype', 'static_from_buildtype'],
                                                    'from_buildtype'),
+    OptionKey('b_tasking_mil_link'): coredata.UserBooleanOption('Use TASKING compiler families MIL linking feature', False),
 }
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
@@ -1307,6 +1308,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Get compiler's preprocessor.
         """
         raise EnvironmentException(f'{self.get_id()} does not support preprocessor')
+
+    def get_tasking_mil_link_args(self, option_enabled: bool) -> T.List[str]:
+        """
+        Argument for enabling TASKING's MIL link feature,
+        for most compilers, this will return nothing.
+        """
+        return []
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
