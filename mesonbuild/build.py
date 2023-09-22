@@ -2019,6 +2019,8 @@ class Executable(BuildTarget):
             elif ('c' in self.compilers and self.compilers['c'].get_id() in {'mwccarm', 'mwcceppc'} or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id() in {'mwccarm', 'mwcceppc'}):
                 self.suffix = 'nef'
+            elif ('c' in self.compilers and self.compilers['c'].get_id() in {'cctc', 'ccarm', 'cc51', 'ccmcs', 'ccpcp'}):
+                self.suffix = 'elf'
             else:
                 self.suffix = machine.get_exe_suffix()
         self.filename = self.name

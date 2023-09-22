@@ -526,6 +526,38 @@ class MetrowerksStaticLinkerARM(MetrowerksStaticLinker):
 class MetrowerksStaticLinkerEmbeddedPowerPC(MetrowerksStaticLinker):
     id = 'mwldeppc'
 
+class TaskingStaticLinker(StaticLinker):
+
+    def __init__(self, exelist: T.List[str]):
+        super().__init__(exelist)
+
+    def can_linker_accept_rsp(self) -> bool:
+        return True
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return RSPFileSyntax.TASKING
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return ['-n', target]
+
+    def get_linker_always_args(self) -> T.List[str]:
+        return ['-r']
+
+class TaskingTricoreStaticLinker(TaskingStaticLinker):
+    id = 'artc'
+
+class TaskingARMStaticLinker(TaskingStaticLinker):
+    id = 'ararm'
+
+class Tasking8051StaticLinker(TaskingStaticLinker):
+    id = 'ar51'
+
+class TaskingMCSStaticLinker(TaskingStaticLinker):
+    id = 'armcs'
+
+class TaskingPCPStaticLinker(TaskingStaticLinker):
+    id = 'arpcp'
+
 def prepare_rpaths(raw_rpaths: T.Tuple[str, ...], build_dir: str, from_dir: str) -> T.List[str]:
     # The rpaths we write must be relative if they point to the build dir,
     # because otherwise they have different length depending on the build
@@ -1663,3 +1695,67 @@ class MetrowerksLinkerARM(MetrowerksLinker):
 
 class MetrowerksLinkerEmbeddedPowerPC(MetrowerksLinker):
     id = 'mwldeppc'
+
+class TaskingLinker(DynamicLinker):
+
+    _OPTIMIZATION_ARGS: T.Dict[str, T.List[str]] = {
+        'plain': [],
+        '0': ['-O0'],
+        'g': ['-O1'], # There is no debug specific level, O1 is recommended by the compiler
+        '1': ['-O1'],
+        '2': ['-O2'],
+        '3': ['-O2'], # There is no 3rd level optimization for the linker
+        's': ['-Os'],
+    }
+
+    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__(exelist, for_machine, '', [],
+                         version=version)
+
+    def get_accepts_rsp(self) -> bool:
+        return True
+
+    def get_lib_prefix(self) -> str:
+        return ""
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def invoked_by_compiler(self) -> bool:
+        return True
+
+    def get_search_args(self, dirname: str) -> T.List[str]:
+        return self._apply_prefix('-L' + dirname)
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return RSPFileSyntax.TASKING
+
+    def fatal_warnings(self) -> T.List[str]:
+        """Arguments to make all warnings errors."""
+        return self._apply_prefix('--warnings-as-errors')
+
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
+        args = mesonlib.listify(args)
+        l: T.List[str] = []
+        for a in args:
+            l.extend(self._apply_prefix('-Wl--whole-archive=' + a))
+        return l
+
+class TaskingTricoreLinker(TaskingLinker):
+    id = 'ltc'
+
+class TaskingARMLinker(TaskingLinker):
+    id = 'lkarm'
+
+class Tasking8051Linker(TaskingLinker):
+    id = 'lk51'
+
+class TaskingMCSLinker(TaskingLinker):
+    id = 'lmsc'
+
+class TaskingPCPLinker(TaskingLinker):
+    id = 'lpcp'
