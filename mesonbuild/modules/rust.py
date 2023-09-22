@@ -236,6 +236,12 @@ class RustModule(ExtensionModule):
                 elif isinstance(s, CustomTarget):
                     depends.append(s)
 
+        clang_args.extend(state.global_args.get('c', []))
+        clang_args.extend(state.project_args.get('c', []))
+        cargs = state.get_option('args', state.subproject, lang='c')
+        assert isinstance(cargs, list), 'for mypy'
+        clang_args.extend(cargs)
+
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen')
 
