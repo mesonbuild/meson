@@ -245,7 +245,7 @@ class NinjaRule:
     def write(self, outfile: T.TextIO) -> None:
         rspfile_args = self.args
         rspfile_quote_func: T.Callable[[str], str]
-        if self.rspfile_quote_style is RSPFileSyntax.MSVC:
+        if self.rspfile_quote_style in {RSPFileSyntax.MSVC, RSPFileSyntax.TASKING}:
             rspfile_quote_func = cmd_quote
             rspfile_args = [NinjaCommandArg('$in_newline', arg.quoting) if arg.s == '$in' else arg for arg in rspfile_args]
         else:
@@ -260,7 +260,10 @@ class NinjaRule:
         for rsp in rule_iter():
             outfile.write(f'rule {self.name}{rsp}\n')
             if rsp == '_RSP':
-                outfile.write(' command = {} @$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
+                if self.rspfile_quote_style is RSPFileSyntax.TASKING:
+                    outfile.write(' command = {} --option-file=$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
+                else:
+                    outfile.write(' command = {} @$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
                 outfile.write(' rspfile = $out.rsp\n')
                 outfile.write(' rspfile_content = {}\n'.format(' '.join([self._quoter(x, rspfile_quote_func) for x in rspfile_args])))
             else:
@@ -412,7 +415,7 @@ class NinjaBuildElement:
         outfile.write(line)
 
         if use_rspfile:
-            if self.rule.rspfile_quote_style is RSPFileSyntax.MSVC:
+            if self.rule.rspfile_quote_style in {RSPFileSyntax.MSVC, RSPFileSyntax.TASKING}:
                 qf = cmd_quote
             else:
                 qf = gcc_rsp_quote
@@ -726,6 +729,12 @@ class NinjaBackend(backends.Backend):
                           for ext in ['', '_RSP']]
                 rules += [f"{rule}{ext}" for rule in [self.compiler_to_pch_rule_name(compiler)]
                           for ext in ['', '_RSP']]
+                # Add custom MIL link rules to get the files compiled by the TASKING compiler family to MIL files included in the database
+                key = OptionKey('b_tasking_mil_link')
+                if key in compiler.base_options:
+                    rule = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
+                    rules.append(rule)
+                    rules.append(f'{rule}_RSP')
         compdb_options = ['-x'] if mesonlib.version_compare(self.ninja_version, '>=1.9') else []
         ninja_compdb = self.ninja_command + ['-t', 'compdb'] + compdb_options + rules
         builddir = self.environment.get_build_dir()
@@ -1071,8 +1080,19 @@ class NinjaBackend(backends.Backend):
             # Skip the link stage for this special type of target
             return
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
-        if isinstance(target, build.StaticLibrary) and target.prelink:
+        # For prelinking and TASKING mil linking there needs to be an additional link target and the object list is modified
+        if not isinstance(target, build.StaticLibrary):
+            final_obj_list = obj_list
+        elif target.prelink:
             final_obj_list = self.generate_prelink(target, obj_list)
+        elif 'c' in target.compilers:
+            key = OptionKey('b_tasking_mil_link')
+            if key not in target.get_options() or key not in target.compilers['c'].base_options:
+                final_obj_list = obj_list
+            elif target.get_option(key):
+                final_obj_list = self.generate_mil_link(target, obj_list)
+            else:
+                final_obj_list = obj_list
         else:
             final_obj_list = obj_list
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
@@ -2476,6 +2496,33 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_rule(NinjaRule(rule, command, args, description, **options))
         self.created_llvm_ir_rule[compiler.for_machine] = True
 
+    def generate_tasking_mil_compile_rules(self, compiler: Compiler) -> None:
+        rule = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
+        depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$out', '$DEPFILE'), Quoting.none)
+        command = compiler.get_exelist()
+        args = ['$ARGS'] + depargs + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + ['-cm', '$in']
+        description = 'Compiling to C object $in'
+        if compiler.get_argument_syntax() == 'msvc':
+            deps = 'msvc'
+            depfile = None
+        else:
+            deps = 'gcc'
+            depfile = '$DEPFILE'
+
+        options = self._rsp_options(compiler)
+
+        self.add_rule(NinjaRule(rule, command, args, description, **options, deps=deps, depfile=depfile))
+
+    def generate_tasking_mil_link_rules(self, compiler: Compiler) -> None:
+        rule = self.get_compiler_rule_name('tasking_mil_link', compiler.for_machine)
+        command = compiler.get_exelist()
+        args = ['$ARGS', '--mil-link'] + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + ['-c', '$in']
+        description = 'MIL linking object $out'
+
+        options = self._rsp_options(compiler)
+
+        self.add_rule(NinjaRule(rule, command, args, description, **options))
+
     def generate_compile_rule_for(self, langname: str, compiler: Compiler) -> None:
         if langname == 'java':
             self.generate_java_compile_rule(compiler)
@@ -2566,6 +2613,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             for langname, compiler in clist.items():
                 if compiler.get_id() == 'clang':
                     self.generate_llvm_ir_compile_rule(compiler)
+                if OptionKey('b_tasking_mil_link') in compiler.base_options:
+                    self.generate_tasking_mil_compile_rules(compiler)
+                    self.generate_tasking_mil_link_rules(compiler)
                 self.generate_compile_rule_for(langname, compiler)
                 self.generate_pch_rule_for(langname, compiler)
                 for mode in compiler.get_modes():
@@ -3008,6 +3058,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             raise InvalidArguments(f'Invalid source type: {src!r}')
         obj_basename = self.object_filename_from_source(target, src)
+        # If mil linking is enabled for the target, then compilation output has to be MIL files instead of object files
+        if compiler.get_language() == 'c':
+            key = OptionKey('b_tasking_mil_link')
+            if key in compiler.base_options and target.get_option(key) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
+                obj_basename = f'{os.path.splitext(obj_basename)[0]}.mil'
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         dep_file = compiler.depfile_for_object(rel_obj)
 
@@ -3028,8 +3083,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             i = os.path.join(self.get_target_private_dir(target), compiler.get_pch_name(pchlist[0]))
             arr.append(i)
             pch_dep = arr
-
-        compiler_name = self.compiler_to_rule_name(compiler)
+        # If TASKING compiler family is used and MIL linking is enabled for the target,
+        # then compilation rule name is a special one to output MIL files
+        # instead of object files for .c files
+        key = OptionKey('b_tasking_mil_link')
+        if key in compiler.base_options and target.get_option(key) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
+            compiler_name = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
+        else:
+            compiler_name = self.compiler_to_rule_name(compiler)
         extra_deps = []
         if compiler.get_language() == 'fortran':
             # Can't read source file to scan for deps if it's generated later
@@ -3414,6 +3475,29 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
         return [prelink_name]
 
+    def generate_mil_link(self, target: build.StaticLibrary, obj_list: T.List[str]) -> T.List[str]:
+        assert isinstance(target, build.StaticLibrary)
+
+        mil_linked_name = os.path.join(self.get_target_private_dir(target), target.name + '-mil_link.o')
+        mil_link_list = []
+        obj_file_list = []
+        for obj in obj_list:
+            if obj.endswith('.mil'):
+                mil_link_list.append(obj)
+            else:
+                obj_file_list.append(obj)
+        obj_file_list.append(mil_linked_name)
+        compiler = get_compiler_for_source(target.compilers.values(), mil_link_list[0][:-3] + '.c')
+        commands = self._generate_single_compile_base_args(target, compiler)
+        commands += self._generate_single_compile_target_args(target, compiler)
+        commands = commands.compiler.compiler_args(commands)
+
+        elem = NinjaBuildElement(self.all_outputs, [mil_linked_name], self.get_compiler_rule_name('tasking_mil_link', compiler.for_machine), mil_link_list)
+        elem.add_item('ARGS', commands)
+        self.add_build(elem)
+
+        return obj_file_list
+
     def generate_link(self, target: build.BuildTarget, outname, obj_list, linker: T.Union['Compiler', 'StaticLinker'], extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
         stdlib_args = stdlib_args if stdlib_args is not None else []
@@ -3445,6 +3529,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                                      linker,
                                                      isinstance(target, build.SharedModule),
                                                      self.environment.get_build_dir())
+        # Add --mil-link if the option is enabled
+        if isinstance(target, build.Executable) and 'c' in target.compilers and OptionKey('b_tasking_mil_link') in target.get_options():
+            commands += target.compilers['c'].get_tasking_mil_link_args(target.get_option(OptionKey('b_tasking_mil_link')))
         # Add -nostdlib if needed; can't be overridden
         commands += self.get_no_stdlib_link_args(target, linker)
         # Add things like /NOLOGO; usually can't be overridden

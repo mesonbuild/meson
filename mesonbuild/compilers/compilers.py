@@ -247,6 +247,7 @@ BASE_OPTIONS: T.Mapping[OptionKey, BaseOption] = {
     OptionKey('b_bitcode'): BaseOption(options.UserBooleanOption, 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
     OptionKey('b_vscrt'): BaseOption(options.UserComboOption, 'VS run-time library type to use.', 'from_buildtype',
                                      choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
+    OptionKey('b_tasking_mil_link'): BaseOption(options.UserBooleanOption, 'Use TASKING compiler families MIL linking feature', False),
 }
 
 base_options = {key: base_opt.init_option(key) for key, base_opt in BASE_OPTIONS.items()}
@@ -1349,6 +1350,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
         return OptionKey(f'{self.language}_{basename}', machine=self.for_machine)
+
+    def get_tasking_mil_link_args(self, option_enabled: bool) -> T.List[str]:
+        """
+        Argument for enabling TASKING's MIL link feature,
+        for most compilers, this will return nothing.
+        """
+        return []
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],

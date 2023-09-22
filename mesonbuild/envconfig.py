@@ -64,6 +64,7 @@ known_cpu_families = (
     'wasm64',
     'x86',
     'x86_64',
+    'tricore'
 )
 
 # It would feel more natural to call this "64_BIT_CPU_FAMILIES", but
