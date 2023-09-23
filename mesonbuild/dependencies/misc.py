@@ -85,6 +85,8 @@ class DlSystemDependency(SystemDependency):
 class OpenMPDependency(SystemDependency):
     # Map date of specification release (which is the macro value) to a version.
     VERSIONS = {
+        '202111': '5.2',
+        '202011': '5.1',
         '201811': '5.0',
         '201611': '5.0-revision1',  # This is supported by ICC 19.x
         '201511': '4.5',
