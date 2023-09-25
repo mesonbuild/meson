@@ -1461,7 +1461,7 @@ class NinjaBackend(backends.Backend):
         src_list = target.get_sources()
         compiler = target.compilers['cs']
         rel_srcs = [os.path.normpath(s.rel_to_builddir(self.build_to_src)) for s in src_list]
-        deps = []
+        deps = self.get_target_depend_files(target)
         commands = compiler.compiler_args(target.extra_args['cs'])
         commands += compiler.get_buildtype_args(buildtype)
         commands += compiler.get_optimization_args(target.get_option(OptionKey('optimization')))
@@ -1878,6 +1878,7 @@ class NinjaBackend(backends.Backend):
             os.path.join(t.subdir, t.get_filename())
             for t in itertools.chain(target.link_targets, target.link_whole_targets)
         ]
+        deps.extend(self.get_target_depend_files(target))
 
         # Dependencies for rust-project.json
         project_deps: T.List[RustDep] = []
@@ -2196,8 +2197,8 @@ class NinjaBackend(backends.Backend):
                 result.append(self.swift_module_file_name(l))
         return result
 
-    def get_swift_link_deps(self, target):
-        result = []
+    def get_swift_link_deps(self, target: build.BuildTarget) -> T.List[str]:
+        result = self.get_target_depend_files(target)
         for l in target.link_targets:
             result.append(self.get_target_filename(l))
         return result
@@ -3035,7 +3036,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             pch_dep = arr
 
         compiler_name = self.compiler_to_rule_name(compiler)
-        extra_deps = []
+        extra_deps = self.get_target_depend_files(target)
         if compiler.get_language() == 'fortran':
             # Can't read source file to scan for deps if it's generated later
             # at build-time. Skip scanning for deps, and just set the module

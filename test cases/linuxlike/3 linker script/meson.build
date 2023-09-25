@@ -1,4 +1,4 @@
-project('linker script', 'c')
+project('linker script', 'c', meson_version : '>= 1.3.0')
 
 # Solaris 11.4 ld supports --version-script only when you also specify
 # -z gnu-version-script-compat
@@ -13,6 +13,10 @@ vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfil
 l = shared_library('bob', 'bob.c', link_args : vflag, link_depends : mapfile)
 e = executable('prog', 'prog.c', link_with : l)
 test('core', e)
+
+l2 = shared_library('bob-file-argument', 'bob.c', link_args : file_argument('-Wl,--version-script,', files('bob.map')))
+e2 = executable('prog2', 'prog.c', link_with : l2)
+test('using file_argument', e2)
 
 # configure_file
 conf = configuration_data()

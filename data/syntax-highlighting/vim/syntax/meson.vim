@@ -92,6 +92,7 @@ syn keyword mesonBuiltin
   \ error
   \ executable
   \ files
+  \ file_argument
   \ find_program
   \ generator
   \ get_option

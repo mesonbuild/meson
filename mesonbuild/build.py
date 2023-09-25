@@ -143,6 +143,14 @@ def get_target_macos_dylib_install_name(ld) -> str:
 class InvalidArguments(MesonException):
     pass
 
+
+@dataclass
+class FileArgument(HoldableObject):
+
+    arg: str
+    file: File
+
+
 @dataclass(eq=False)
 class DependencyOverride(HoldableObject):
     dep: dependencies.Dependency

@@ -9,7 +9,7 @@ import re
 import typing as T
 
 from .. import compilers
-from ..build import (CustomTarget, BuildTarget,
+from ..build import (CustomTarget, BuildTarget, FileArgument,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..coredata import UserFeatureOption
@@ -513,11 +513,12 @@ RUST_ABI_KW: KwargInfo[T.Union[str, None]] = KwargInfo(
     since='1.3.0',
     validator=in_set_validator({'rust', 'c'}))
 
-_BASE_LANG_KW: KwargInfo[T.List[str]] = KwargInfo(
+_BASE_LANG_KW: KwargInfo[T.List[T.Union[str, FileArgument]]] = KwargInfo(
     'UNKNOWN',
-    ContainerTypeInfo(list, (str)),
+    ContainerTypeInfo(list, (str, FileArgument)),
     listify=True,
     default=[],
+    since_values={FileArgument: '1.3.0'},
 )
 
 _LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
@@ -525,7 +526,7 @@ _LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
     for lang in compilers.all_languages - {'rust', 'vala', 'java'}
 ]
 _LANGUAGE_KWS.append(KwargInfo( # cannot use _BASE_LANG_KW because type is not evolveable
-    'vala_args', ContainerTypeInfo(list, (str, File)), listify=True, default=[]))
+    'vala_args', ContainerTypeInfo(list, (str, File, FileArgument)), listify=True, default=[], since_values={FileArgument: '1.3.0'}))
 _LANGUAGE_KWS.append(_BASE_LANG_KW.evolve(name='rust_args', since='0.41.0'))
 
 # We need this deprecated values more than the non-deprecated values. So we'll evolve them out elsewhere.

@@ -696,6 +696,9 @@ class IncludeDirsHolder(ObjectHolder[build.IncludeDirs]):
 class FileHolder(ObjectHolder[mesonlib.File]):
     pass
 
+class FileArgumentHolder(ObjectHolder[build.FileArgument]):
+    pass
+
 class HeadersHolder(ObjectHolder[build.Headers]):
     pass
 

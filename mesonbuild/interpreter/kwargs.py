@@ -332,21 +332,21 @@ class _BuildTarget(_BaseBuildTarget):
 
     """Arguments shared by non-JAR functions"""
 
-    c_args: T.List[str]
-    cpp_args: T.List[str]
-    cuda_args: T.List[str]
-    fortran_args: T.List[str]
-    d_args: T.List[str]
-    objc_args: T.List[str]
-    objcpp_args: T.List[str]
-    rust_args: T.List[str]
-    vala_args: T.List[T.Union[str, File]]  # Yes, Vala is really special
-    cs_args: T.List[str]
-    swift_args: T.List[str]
-    cython_args: T.List[str]
-    nasm_args: T.List[str]
-    masm_args: T.List[str]
-    link_args: T.List[str]
+    c_args: T.List[T.Union[str, build.FileArgument]]
+    cpp_args: T.List[T.Union[str, build.FileArgument]]
+    cuda_args: T.List[T.Union[str, build.FileArgument]]
+    fortran_args: T.List[T.Union[str, build.FileArgument]]
+    d_args: T.List[T.Union[str, build.FileArgument]]
+    objc_args: T.List[T.Union[str, build.FileArgument]]
+    objcpp_args: T.List[T.Union[str, build.FileArgument]]
+    rust_args: T.List[T.Union[str, build.FileArgument]]
+    vala_args: T.List[T.Union[str, build.FileArgument, File]]  # Yes, Vala is really special
+    cs_args: T.List[T.Union[str, build.FileArgument]]
+    swift_args: T.List[T.Union[str, build.FileArgument]]
+    cython_args: T.List[T.Union[str, build.FileArgument]]
+    nasm_args: T.List[T.Union[str, build.FileArgument]]
+    masm_args: T.List[T.Union[str, build.FileArgument]]
+    link_args: T.List[T.Union[str, build.FileArgument]]
 
 
 class Executable(_BuildTarget):
