@@ -1596,15 +1596,27 @@ class InternalTests(unittest.TestCase):
             ('aarch64_be', 'aarch64'),
         ]
 
+        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, False, mock.Mock())
+
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=False)):
             for test, expected in cases:
                 with self.subTest(test, has_define=False), mock_trial(test):
-                    actual = mesonbuild.environment.detect_cpu_family({})
+                    actual = mesonbuild.environment.detect_cpu_family({'c': cc})
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=True)):
             for test, expected in [('x86_64', 'x86'), ('aarch64', 'arm'), ('ppc', 'ppc64'), ('mips64', 'mips64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
+                    actual = mesonbuild.environment.detect_cpu_family({'c': cc})
+                    self.assertEqual(actual, expected)
+
+        # machine_info_can_run calls detect_cpu_family with no compilers at all
+        with mock.patch(
+            'mesonbuild.environment.any_compiler_has_define',
+            mock.Mock(side_effect=AssertionError('Should not be called')),
+        ):
+            for test, expected in [('mips64', 'mips64')]:
+                with self.subTest(test, has_compiler=False), mock_trial(test):
                     actual = mesonbuild.environment.detect_cpu_family({})
                     self.assertEqual(actual, expected)
 
@@ -1633,15 +1645,26 @@ class InternalTests(unittest.TestCase):
             ('aarch64_be', 'aarch64'),
         ]
 
+        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, False, mock.Mock())
+
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=False)):
             for test, expected in cases:
                 with self.subTest(test, has_define=False), mock_trial(test):
-                    actual = mesonbuild.environment.detect_cpu({})
+                    actual = mesonbuild.environment.detect_cpu({'c': cc})
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=True)):
             for test, expected in [('x86_64', 'i686'), ('aarch64', 'arm'), ('ppc', 'ppc64'), ('mips64', 'mips64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
+                    actual = mesonbuild.environment.detect_cpu({'c': cc})
+                    self.assertEqual(actual, expected)
+
+        with mock.patch(
+            'mesonbuild.environment.any_compiler_has_define',
+            mock.Mock(side_effect=AssertionError('Should not be called')),
+        ):
+            for test, expected in [('mips64', 'mips64')]:
+                with self.subTest(test, has_compiler=False), mock_trial(test):
                     actual = mesonbuild.environment.detect_cpu({})
                     self.assertEqual(actual, expected)
 
