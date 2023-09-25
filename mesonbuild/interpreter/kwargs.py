@@ -346,6 +346,7 @@ class _BuildTarget(_BaseBuildTarget):
     cython_args: T.List[str]
     nasm_args: T.List[str]
     masm_args: T.List[str]
+    link_args: T.List[str]
 
 
 class Executable(_BuildTarget):

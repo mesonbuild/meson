@@ -544,6 +544,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_LANGUAGE_KWS,
+    _BASE_LANG_KW.evolve(name='link_args'),
     RUST_CRATE_TYPE_KW,
 ]
 
