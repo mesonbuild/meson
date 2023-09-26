@@ -1862,7 +1862,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('jar', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('jar', *JAR_KWS, allow_unknown=True)
     def func_jar(self, node: mparser.BaseNode,
-                 args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
+                 args: T.Tuple[str, SourcesVarargsType],
                  kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, args, kwargs, build.Jar)
 
@@ -3224,7 +3224,30 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
-    def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass):
+    @T.overload
+    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.Executable, targetclass: T.Type[build.Executable]) -> build.Executable: ...
+
+    @T.overload
+    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.StaticLibrary, targetclass: T.Type[build.StaticLibrary]) -> build.StaticLibrary: ...
+
+    @T.overload
+    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.SharedLibrary, targetclass: T.Type[build.SharedLibrary]) -> build.SharedLibrary: ...
+
+    @T.overload
+    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.SharedModule, targetclass: T.Type[build.SharedModule]) -> build.SharedModule: ...
+
+    @T.overload
+    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
+                     kwargs: kwtypes.Jar, targetclass: T.Type[build.Jar]) -> build.Jar: ...
+
+    def build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
+                     kwargs: T.Union[kwtypes.Executable, kwtypes.StaticLibrary, kwtypes.SharedLibrary, kwtypes.SharedModule, kwtypes.Jar],
+                     targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]]
+                     ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]:
         @FeatureNewKwargs('build target', '1.2.0', ['rust_dependency_map'])
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
         @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
