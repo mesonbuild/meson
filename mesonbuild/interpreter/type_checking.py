@@ -522,6 +522,12 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     RUST_CRATE_TYPE_KW,
+    KwargInfo(
+        'rust_dependency_map',
+        ContainerTypeInfo(dict, str),
+        default={},
+        since='1.2.0',
+    ),
 ]
 
 def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:
