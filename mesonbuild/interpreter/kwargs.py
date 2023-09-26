@@ -331,6 +331,8 @@ class _BuildTarget(_BaseBuildTarget):
 
     """Arguments shared by non-JAR functions"""
 
+    rust_dependency_map: T.Dict[str, str]
+
 
 class _LibraryMixin(TypedDict):
 
