@@ -65,9 +65,7 @@ class AstPrinter(AstVisitor):
         node.lineno = self.curr_line or node.lineno
 
     def escape(self, val: str) -> str:
-        return val.translate(str.maketrans(T.cast(
-            'T.Dict[str, T.Union[str, int]]',
-            {'\'': '\\\'', '\\': '\\\\'})))
+        return val.replace('\\', '\\\\').replace("'", "\'")
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         assert isinstance(node.value, str)
@@ -79,12 +77,12 @@ class AstPrinter(AstVisitor):
         self.append("f'" + self.escape(node.value) + "'", node)
         node.lineno = self.curr_line or node.lineno
 
-    def visit_MultilineStringNode(self, node: mparser.MultilineFormatStringNode) -> None:
+    def visit_MultilineStringNode(self, node: mparser.MultilineStringNode) -> None:
         assert isinstance(node.value, str)
         self.append("'''" + node.value + "'''", node)
         node.lineno = self.curr_line or node.lineno
 
-    def visit_FormatMultilineStringNode(self, node: mparser.FormatStringNode) -> None:
+    def visit_FormatMultilineStringNode(self, node: mparser.MultilineFormatStringNode) -> None:
         assert isinstance(node.value, str)
         self.append("f'''" + node.value + "'''", node)
         node.lineno = self.curr_line or node.lineno
