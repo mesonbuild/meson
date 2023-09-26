@@ -285,11 +285,11 @@ class RustModule(ExtensionModule):
                       'link_args', 'link_depends', 'link_with', 'override_options'})
     @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('rust.proc_macro', *SHARED_LIB_KWS, allow_unknown=True)
-    def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: T.Dict) -> SharedLibrary:
-        kwargs['native'] = True
-        kwargs['rust_crate_type'] = 'proc-macro'
+    def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
+        kwargs['native'] = True  # type: ignore
+        kwargs['rust_crate_type'] = 'proc-macro'  # type: ignore
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
-        return T.cast('SharedLibrary', target)
+        return target
 
 
 def initialize(interp: Interpreter) -> RustModule:
