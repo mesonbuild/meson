@@ -652,16 +652,19 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         if '\n' in warning_str:
             mlog.warning(warning_str)
 
+    @abc.abstractmethod
     def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
-        raise InterpreterException('log_usage_warning not implemented')
+        pass
 
     @staticmethod
+    @abc.abstractmethod
     def get_warning_str_prefix(tv: str) -> str:
-        raise InterpreterException('get_warning_str_prefix not implemented')
+        pass
 
     @staticmethod
+    @abc.abstractmethod
     def get_notice_str_prefix(tv: str) -> str:
-        raise InterpreterException('get_notice_str_prefix not implemented')
+        pass
 
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
