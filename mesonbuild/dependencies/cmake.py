@@ -226,7 +226,7 @@ class CMakeDependency(ExternalDependency):
         module_paths = [x for x in module_paths if os.path.isdir(x)]
         archs = temp_parser.get_cmake_var('MESON_ARCH_LIST')
 
-        common_paths = ['lib', 'lib32', 'lib64', 'libx32', 'share']
+        common_paths = ['lib', 'lib32', 'lib64', 'libx32', 'share', '']
         for i in archs:
             common_paths += [os.path.join('lib', i)]
 
