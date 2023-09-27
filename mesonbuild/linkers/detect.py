@@ -236,6 +236,9 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         linker = linkers.AIXDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override,
             version=search_version(e))
+    elif o.startswith('zig ld'):
+        linker = linkers.ZigCCDynamicLinker(
+            compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     else:
         __failed_to_detect_linker(compiler, check_args, o, e)
     return linker

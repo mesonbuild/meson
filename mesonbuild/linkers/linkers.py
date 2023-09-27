@@ -938,6 +938,13 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
             raise mesonlib.MesonBugException(f'win_subsystem: {value} not handled in lld linker. This should not be possible.')
 
 
+class ZigCCDynamicLinker(LLVMDynamicLinker):
+    id = 'ld.zigcc'
+
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return []
+
+
 class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Emscripten's wasm-ld."""
