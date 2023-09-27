@@ -39,7 +39,7 @@ from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
 from mesonbuild.linkers import linkers
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
+from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder, FeatureExperimental
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
@@ -1701,3 +1701,37 @@ class InternalTests(unittest.TestCase):
         for raw, expected in cases:
             with self.subTest(raw):
                 self.assertEqual(OptionKey.from_string(raw), expected)
+
+    @mock.patch('mesonbuild.mesonlib.project_meson_versions', {'project': '1.9.0'})
+    def test_feature_experimental(self) -> None:
+
+        @contextlib.contextmanager
+        def setup() -> T.Iterator[mock.Mock]:
+            with mock.patch.dict(FeatureExperimental.feature_registry, clear=True):
+                with mock.patch('mesonbuild.mlog.warning', mock.Mock()) as warned:
+                    yield warned
+
+        CHECK_STR = 'and uses an experimental feature introduced in'
+
+        with self.subTest('newer using experimental'), setup() as warned:
+            FeatureExperimental.single_use('feature', '1.3.0', 'project')
+            warned.assert_called()
+            self.assertIn(CHECK_STR, warned.call_args_list[0].args)
+
+        with self.subTest('older using experimental'), setup() as warned:
+            FeatureExperimental.single_use('feature', '1.11.0', 'project')
+            warned.assert_called()
+            self.assertIn(CHECK_STR, warned.call_args_list[0].args)
+
+        with self.subTest('before stable'), setup() as warned:
+            FeatureExperimental.single_use('feature', '1.3.0', 'project', stable_version='1.9.1')
+            warned.assert_called()
+            self.assertIn(CHECK_STR, warned.call_args_list[0].args)
+
+        with self.subTest('after stable'), setup() as warned:
+            FeatureExperimental.single_use('feature', '1.2.0', 'project', stable_version='1.3.0')
+            warned.assert_not_called()
+
+        with self.subTest('stable this version'), setup() as warned:
+            FeatureExperimental.single_use('feature', '1.2.0', 'project', stable_version='1.9.0')
+            warned.assert_not_called()
