@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import typing as T
 
-from typing_extensions import TypedDict, Literal, Protocol
+from typing_extensions import TypedDict, Literal, Protocol, NotRequired
 
 from .. import build
 from .. import coredata
@@ -325,11 +325,28 @@ class _BaseBuildTarget(TypedDict):
     """
 
     override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    depend_files: NotRequired[T.List[File]]
 
 
 class _BuildTarget(_BaseBuildTarget):
 
     """Arguments shared by non-JAR functions"""
+
+    c_args: T.List[T.Union[str, build.FileArgument]]
+    cpp_args: T.List[T.Union[str, build.FileArgument]]
+    cuda_args: T.List[T.Union[str, build.FileArgument]]
+    fortran_args: T.List[T.Union[str, build.FileArgument]]
+    d_args: T.List[T.Union[str, build.FileArgument]]
+    objc_args: T.List[T.Union[str, build.FileArgument]]
+    objcpp_args: T.List[T.Union[str, build.FileArgument]]
+    rust_args: T.List[T.Union[str, build.FileArgument]]
+    vala_args: T.List[T.Union[str, build.FileArgument, File]]  # Yes, Vala is really special
+    cs_args: T.List[T.Union[str, build.FileArgument]]
+    swift_args: T.List[T.Union[str, build.FileArgument]]
+    cython_args: T.List[T.Union[str, build.FileArgument]]
+    nasm_args: T.List[T.Union[str, build.FileArgument]]
+    masm_args: T.List[T.Union[str, build.FileArgument]]
+    link_args: T.List[T.Union[str, build.FileArgument]]
 
 
 class Executable(_BuildTarget):
@@ -372,6 +389,7 @@ class Jar(_BaseBuildTarget):
 
     main_class: str
     java_resources: T.Optional[build.StructuredSources]
+    java__args: T.List[str]
 
 
 class FuncDeclareDependency(TypedDict):

@@ -374,6 +374,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'error': self.func_error,
                            'executable': self.func_executable,
                            'files': self.func_files,
+                           'file_argument': self.func_file_argument,
                            'find_program': self.func_find_program,
                            'generator': self.func_generator,
                            'get_option': self.func_get_option,
@@ -435,6 +436,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             # Meson types
             mesonlib.File: OBJ.FileHolder,
+            build.FileArgument: OBJ.FileArgumentHolder,
             build.SharedLibrary: OBJ.SharedLibraryHolder,
             build.StaticLibrary: OBJ.StaticLibraryHolder,
             build.BothLibraries: OBJ.BothLibrariesHolder,
@@ -675,6 +677,12 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noKwargs
     def func_files(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[mesonlib.File]:
         return self.source_strings_to_files(args[0])
+
+    @FeatureNew('file_argument', '1.3.0')
+    @typed_pos_args('file_argument', str, mesonlib.File)
+    @noKwargs
+    def func_file_argument(self, node: mparser.FunctionNode, args: T.Tuple[str, mesonlib.File], kwargs: TYPE_kwargs) -> build.FileArgument:
+        return build.FileArgument(*args)
 
     @noPosargs
     @typed_kwargs(
@@ -3224,10 +3232,52 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             raise InterpreterException(f'Unknown default_library value: {default_library}.')
 
+    def __convert_file_args(self, raw: T.List[T.Union[str, mesonlib.File, build.FileArgument]]) -> T.Tuple[T.List[mesonlib.File], T.List[str]]:
+        """Convert raw target arguments from File | str to File.
+
+        This removes files from the command line and replaces them with string
+        values, but adds the files to depends list
+
+        :param raw: the raw arguments
+        :return: A tuple of file dependecnies and raw arguments
+        """
+        depend_files: T.List[mesonlib.File] = []
+        args: T.List[str] = []
+        build_to_source = mesonlib.relpath(self.environment.get_source_dir(),
+                                           self.environment.get_build_dir())
+
+        for a in raw:
+            if isinstance(a, mesonlib.File):
+                depend_files.append(a)
+                args.append(a.rel_to_builddir(build_to_source))
+            elif isinstance(a, build.FileArgument):
+                depend_files.append(a.file)
+                args.append(f'{a.arg}{a.file.rel_to_builddir(build_to_source)}')
+            else:
+                args.append(a)
+
+        return depend_files, args
+
+    def __process_language_args(self, kwargs: T.Dict[str, T.List[mesonlib.FileOrString]]) -> None:
+        """Convert split language args into a combined dictionary.
+
+        The Meson DSL takes arguments in the form `<lang>_args : args`, but in the
+        build layer we store these in a single dictionary as `{<lang>: args}`.
+        This function extracts the arguments from the DSL format and prepares
+        them for the IR.
+        """
+        d = kwargs.setdefault('depend_files', [])
+        new_args: T.DefaultDict[str, T.List[str]] = collections.defaultdict(list)
+
+        for l in compilers.all_languages:
+            deps, args = self.__convert_file_args(kwargs[f'{l}_args'])
+            new_args[l] = args
+            d.extend(deps)
+        kwargs['language_args'] = new_args
+
     def build_target(self, node: mparser.BaseNode, args, kwargs, targetclass):
         @FeatureNewKwargs('build target', '1.2.0', ['rust_dependency_map'])
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
-        @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
         @FeatureNewKwargs('build target', '0.38.0', ['build_by_default'])
         @FeatureNewKwargs('build target', '0.48.0', ['gnu_symbol_visibility'])
         def build_target_decorator_caller(self, node, args, kwargs):
@@ -3267,10 +3317,22 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
         self.kwarg_strings_to_includedirs(kwargs)
+        self.__process_language_args(kwargs)
+        if 'link_args' in kwargs:
+            new_link_args: T.List[str] = []
+            ld: T.List[mesonlib.File] = kwargs.setdefault('link_depends', [])
+            build_to_source = mesonlib.relpath(self.environment.source_dir, self.environment.build_dir)
+            for l in kwargs['link_args']:
+                if isinstance(l, build.FileArgument):
+                    ld.append(l.file)
+                    new_link_args.append(f'{l.arg}{l.file.rel_to_builddir(build_to_source)}')
+                else:
+                    new_link_args.append(l)
+            kwargs['link_args'] = new_link_args
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
-        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
+        kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs | {'language_args'}}
 
         srcs: T.List['SourceInputs'] = []
         struct: T.Optional[build.StructuredSources] = build.StructuredSources()

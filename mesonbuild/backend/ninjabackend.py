@@ -1068,7 +1068,7 @@ class NinjaBackend(backends.Backend):
             return True
         if 'cpp' not in target.compilers:
             return False
-        if '-fmodules-ts' in target.extra_args.get('cpp', []):
+        if '-fmodules-ts' in target.extra_args['cpp']:
             return True
         # Currently only the preview version of Visual Studio is supported.
         cpp = target.compilers['cpp']
@@ -1151,7 +1151,7 @@ class NinjaBackend(backends.Backend):
         self.custom_target_generator_inputs(target)
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
-        deps += self.get_custom_target_depend_files(target)
+        deps += self.get_target_depend_files(target)
         if target.build_always_stale:
             deps.append('PHONY')
         if target.depfile is None:
@@ -1214,7 +1214,7 @@ class NinjaBackend(backends.Backend):
             elem.add_item('description', f'Running external command {target.name}{cmd_type}')
             elem.add_item('pool', 'console')
         deps = self.unwrap_dep_list(target)
-        deps += self.get_custom_target_depend_files(target)
+        deps += self.get_target_depend_files(target)
         elem.add_dep(deps)
         self.add_build(elem)
         self.processed_targets.add(target.get_id())
@@ -1461,8 +1461,8 @@ class NinjaBackend(backends.Backend):
         src_list = target.get_sources()
         compiler = target.compilers['cs']
         rel_srcs = [os.path.normpath(s.rel_to_builddir(self.build_to_src)) for s in src_list]
-        deps = []
-        commands = compiler.compiler_args(target.extra_args.get('cs', []))
+        deps = self.get_target_depend_files(target)
+        commands = compiler.compiler_args(target.extra_args['cs'])
         commands += compiler.get_buildtype_args(buildtype)
         commands += compiler.get_optimization_args(target.get_option(OptionKey('optimization')))
         commands += compiler.get_debug_args(target.get_option(OptionKey('debug')))
@@ -1712,18 +1712,10 @@ class NinjaBackend(backends.Backend):
             if isinstance(gensrc, modules.GResourceTarget):
                 gres_xml, = self.get_custom_target_sources(gensrc)
                 args += ['--gresources=' + gres_xml]
-        extra_args = []
-
-        for a in target.extra_args.get('vala', []):
-            if isinstance(a, File):
-                relname = a.rel_to_builddir(self.build_to_src)
-                extra_dep_files.append(relname)
-                extra_args.append(relname)
-            else:
-                extra_args.append(a)
         dependency_vapis = self.determine_dep_vapis(target)
         extra_dep_files += dependency_vapis
-        args += extra_args
+        extra_dep_files.extend(self.get_target_depend_files(target))
+        args += target.get_extra_args('vala')
         element = NinjaBuildElement(self.all_outputs, valac_outputs,
                                     self.compiler_to_rule_name(valac),
                                     all_files + dependency_vapis)
@@ -1886,6 +1878,7 @@ class NinjaBackend(backends.Backend):
             os.path.join(t.subdir, t.get_filename())
             for t in itertools.chain(target.link_targets, target.link_whole_targets)
         ]
+        deps.extend(self.get_target_depend_files(target))
 
         # Dependencies for rust-project.json
         project_deps: T.List[RustDep] = []
@@ -2204,8 +2197,8 @@ class NinjaBackend(backends.Backend):
                 result.append(self.swift_module_file_name(l))
         return result
 
-    def get_swift_link_deps(self, target):
-        result = []
+    def get_swift_link_deps(self, target: build.BuildTarget) -> T.List[str]:
+        result = self.get_target_depend_files(target)
         for l in target.link_targets:
             result.append(self.get_target_filename(l))
         return result
@@ -2622,7 +2615,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         exe = generator.get_exe()
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
-        extra_dependencies = self.get_custom_target_depend_files(genlist)
+        extra_dependencies = self.get_target_depend_files(genlist)
         for i, curfile in enumerate(infilelist):
             if len(generator.outputs) == 1:
                 sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
@@ -3043,7 +3036,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             pch_dep = arr
 
         compiler_name = self.compiler_to_rule_name(compiler)
-        extra_deps = []
+        extra_deps = self.get_target_depend_files(target)
         if compiler.get_language() == 'fortran':
             # Can't read source file to scan for deps if it's generated later
             # at build-time. Skip scanning for deps, and just set the module

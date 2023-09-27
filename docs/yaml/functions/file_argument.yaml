@@ -1,0 +1,32 @@
+name: file_argument
+since: 1.3.0
+returns: file_arg
+description: |
+  Passes a string argument that must be joined to a file path in [[@build_tgt]]
+
+  This allows passing [[@file]] objects to the `<lang>_args` and `link_args`
+  parameters of a [[@build_tgt]]. Once passed they will be converted to a string
+  argument, and the [[@file]] will be added to the appropriate dependencies
+  (either build or link).
+
+example: |
+  This is particularly useful when working with linker scripts:
+
+  ```meson
+  tgt = build_tgt(
+    ...,
+    link_with : file_argument('-Wl,--linker-script,' files('link.map')),
+  )
+  ```
+
+  In this case Meson will pass `-Wl,--linker-script,link.map` (or a relative
+  path for `link.map`), and will add it to the link dependencies for `tgt`
+
+posargs:
+  arg:
+    type: str
+    description: The string part of the argument
+
+  file:
+    type: file
+    description: The file part of the argument
