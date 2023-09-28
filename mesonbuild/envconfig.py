@@ -410,6 +410,8 @@ class BinaryTable:
                     mlog.deprecation('"pkgconfig" entry is deprecated and should be replaced by "pkg-config"')
                     name = 'pkg-config'
                 self.binaries[name] = mesonlib.listify(command)
+                if name == 'pkgconfig':
+                    self.binaries['pkg-config'] = self.binaries[name]
 
     @staticmethod
     def detect_ccache() -> T.List[str]:
