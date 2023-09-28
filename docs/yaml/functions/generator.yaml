@@ -48,6 +48,13 @@ kwargs:
     type: list[str]
     description: A list of template strings that will be the command line arguments passed to the executable.
 
+  depend_files:
+    type: list[str | file]
+    description: |
+      files ([[@str]],
+      [[@file]], or the return value of [[configure_file]] that
+      this target depends on.
+
   depends:
     # Not sure why this is not just `target`
     type: list[build_tgt | custom_tgt]
