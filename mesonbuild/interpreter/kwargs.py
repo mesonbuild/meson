@@ -16,7 +16,7 @@ from ..dependencies.base import Dependency
 from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString, OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
-from .type_checking import PkgConfigDefineType
+from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
 class FuncAddProjectArgs(TypedDict):
 
@@ -332,6 +332,7 @@ class _BuildTarget(_BaseBuildTarget):
     """Arguments shared by non-JAR functions"""
 
     rust_dependency_map: T.Dict[str, str]
+    sources: SourcesVarargsType
 
 
 class _LibraryMixin(TypedDict):
@@ -390,6 +391,7 @@ class Jar(_BaseBuildTarget):
 
     main_class: str
     java_resources: T.Optional[build.StructuredSources]
+    sources: T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget]
 
 
 class FuncDeclareDependency(TypedDict):
