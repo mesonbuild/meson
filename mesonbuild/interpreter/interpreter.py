@@ -3265,8 +3265,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Silently force to native because that's the only sensible value
             # and rust_crate_type is deprecated any way.
             for_machine = MachineChoice.BUILD
-        if 'sources' in kwargs:
-            sources += listify(kwargs['sources'])
+        # Avoid mutating, since there could be other references to sources
+        sources = sources + kwargs['sources']
         if any(isinstance(s, build.BuildTarget) for s in sources):
             FeatureBroken.single_use('passing references to built targets as a source file', '1.1.0', self.subproject,
                                      'Consider using `link_with` or `link_whole` if you meant to link, or dropping them as otherwise they are ignored.',
