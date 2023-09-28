@@ -16,7 +16,7 @@ from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject
 from ..mesonlib import MachineChoice, OptionKey
-from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, BaseStringNode
+from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 from .interpreter import AstInterpreter
 
 if T.TYPE_CHECKING:
@@ -118,7 +118,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
-            if isinstance(spdirname, BaseStringNode):
+            if isinstance(spdirname, StringNode):
                 assert isinstance(spdirname.value, str)
                 self.subproject_dir = spdirname.value
         if not self.is_subproject():
@@ -165,7 +165,7 @@ class IntrospectionInterpreter(AstInterpreter):
         for l in self.flatten_args(raw_langs):
             if isinstance(l, str):
                 langs.append(l)
-            elif isinstance(l, BaseStringNode):
+            elif isinstance(l, StringNode):
                 langs.append(l.value)
 
         for lang in sorted(langs, key=compilers.sort_clink):
@@ -254,7 +254,7 @@ class IntrospectionInterpreter(AstInterpreter):
                 # Pop the first element if the function is a build target function
                 if isinstance(curr, FunctionNode) and curr.func_name.value in BUILD_TARGET_FUNCTIONS:
                     arg_nodes.pop(0)
-                elementary_nodes = [x for x in arg_nodes if isinstance(x, (str, BaseStringNode))]
+                elementary_nodes = [x for x in arg_nodes if isinstance(x, (str, StringNode))]
                 inqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]
                 if elementary_nodes:
                     res += [curr]
@@ -369,6 +369,6 @@ class IntrospectionInterpreter(AstInterpreter):
             assert isinstance(kw, IdNode), 'for mypy'
             if kw.value == 'subproject_dir':
                 # mypy does not understand "and isinstance"
-                if isinstance(val, BaseStringNode):
+                if isinstance(val, StringNode):
                     return val.value
         return None

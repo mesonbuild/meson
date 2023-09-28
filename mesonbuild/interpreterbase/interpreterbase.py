@@ -198,11 +198,12 @@ class InterpreterBase:
             self.assignment(cur)
         elif isinstance(cur, mparser.MethodNode):
             return self.method_call(cur)
-        elif isinstance(cur, mparser.BaseStringNode):
-            if isinstance(cur, mparser.MultilineFormatStringNode):
-                return self.evaluate_multiline_fstring(cur)
-            elif isinstance(cur, mparser.FormatStringNode):
-                return self.evaluate_fstring(cur)
+        elif isinstance(cur, mparser.StringNode):
+            if cur.is_fstring:
+                if cur.is_multiline:
+                    return self.evaluate_multiline_fstring(cur)
+                else:
+                    return self.evaluate_fstring(cur)
             else:
                 return self._holderify(cur.value)
         elif isinstance(cur, mparser.BooleanNode):
@@ -256,7 +257,7 @@ class InterpreterBase:
     @FeatureNew('dict', '0.47.0')
     def evaluate_dictstatement(self, cur: mparser.DictNode) -> InterpreterObject:
         def resolve_key(key: mparser.BaseNode) -> str:
-            if not isinstance(key, mparser.BaseStringNode):
+            if not isinstance(key, mparser.StringNode):
                 FeatureNew.single_use('Dictionary entry using non literal key', '0.53.0', self.subproject)
             key_holder = self.evaluate_statement(key)
             if key_holder is None:
@@ -424,11 +425,11 @@ class InterpreterBase:
             return self.evaluate_statement(node.falseblock)
 
     @FeatureNew('multiline format strings', '0.63.0')
-    def evaluate_multiline_fstring(self, node: mparser.MultilineFormatStringNode) -> InterpreterObject:
+    def evaluate_multiline_fstring(self, node: mparser.StringNode) -> InterpreterObject:
         return self.evaluate_fstring(node)
 
     @FeatureNew('format strings', '0.58.0')
-    def evaluate_fstring(self, node: T.Union[mparser.FormatStringNode, mparser.MultilineFormatStringNode]) -> InterpreterObject:
+    def evaluate_fstring(self, node: mparser.StringNode) -> InterpreterObject:
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:

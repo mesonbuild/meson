@@ -30,15 +30,6 @@ class AstVisitor:
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         self.visit_default_func(node)
 
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
-        self.visit_default_func(node)
-
-    def visit_MultilineStringNode(self, node: mparser.MultilineStringNode) -> None:
-        self.visit_default_func(node)
-
-    def visit_FormatMultilineStringNode(self, node: mparser.MultilineFormatStringNode) -> None:
-        self.visit_default_func(node)
-
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
         self.visit_default_func(node)
 
