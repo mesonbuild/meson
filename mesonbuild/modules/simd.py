@@ -36,6 +36,17 @@ class SimdModule(ExtensionModule):
                       'avx2',
                       'neon',
                       )
+        self.checks = {
+            'neon': '''
+#include <arm_neon.h>
+int main(void) {
+    int32x4_t arg, sum;
+    arg = vmovq_n_s32(1);
+    sum = vaddq_s32(arg, arg);
+    return vgetq_lane_s32(sum, 1);
+}
+'''
+        }
         self.methods.update({
             'check': self.check,
         })
@@ -63,14 +74,17 @@ class SimdModule(ExtensionModule):
             if iset not in kwargs:
                 continue
             iset_fname = kwargs[iset] # Might also be an array or Files. static_library will validate.
-            args = compiler.get_instruction_set_args(iset)
-            if args is None:
-                mlog.log('Compiler supports %s:' % iset, mlog.red('NO'))
-                continue
-            if args:
-                if not compiler.has_multi_arguments(args, state.environment)[0]:
+            if iset in self.checks and compiler.compiles(self.checks[iset], state.environment)[0]:
+                args = []
+            else:
+                args = compiler.get_instruction_set_args(iset)
+                if args is None:
                     mlog.log('Compiler supports %s:' % iset, mlog.red('NO'))
                     continue
+                if args:
+                    if not compiler.has_multi_arguments(args, state.environment)[0]:
+                        mlog.log('Compiler supports %s:' % iset, mlog.red('NO'))
+                        continue
             mlog.log('Compiler supports %s:' % iset, mlog.green('YES'))
             conf.values['HAVE_' + iset.upper()] = ('1', 'Compiler supports %s.' % iset)
             libname = prefix + '_' + iset
