@@ -779,8 +779,20 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
 
             if 'flang' in out or 'clang' in out:
                 cls = fortran.FlangFortranCompiler
-                linker = guess_nix_linker(env,
-                                          compiler, cls, version, for_machine)
+                if 'windows' in out or env.machines[for_machine].is_windows():
+                    # If we're in a MINGW context this actually will use a gnu
+                    # style ld, but for flang on "real" windows we'll use
+                    # either link.exe or lld-link.exe
+                    try:
+                        linker = guess_win_linker(
+                            env, compiler, cls, version,
+                            for_machine, invoked_directly=False
+                        )
+                    except MesonException:
+                        pass
+                if linker is None:
+                    linker = guess_nix_linker(env, compiler, cls,
+                                              version, for_machine)
                 return cls(
                     compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
