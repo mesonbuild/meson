@@ -1859,10 +1859,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.build_library(node, args, kwargs)
 
     @permittedKwargs(build.known_jar_kwargs)
-    @typed_pos_args('jar', str, varargs=SOURCES_VARARGS)
+    @typed_pos_args('jar', str, varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.ExtractedObjects, build.BuildTarget))
     @typed_kwargs('jar', *JAR_KWS, allow_unknown=True)
     def func_jar(self, node: mparser.BaseNode,
-                 args: T.Tuple[str, SourcesVarargsType],
+                 args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, build.GeneratedTypes]]],
                  kwargs: kwtypes.Jar) -> build.Jar:
         return self.build_target(node, args, kwargs, build.Jar)
 
