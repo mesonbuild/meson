@@ -207,8 +207,8 @@ class AstInterpreter(InterpreterBase):
     def method_call(self, node: BaseNode) -> bool:
         return True
 
-    def evaluate_fstring(self, node: mparser.FormatStringNode) -> str:
-        assert isinstance(node, mparser.FormatStringNode)
+    def evaluate_fstring(self, node: mparser.StringNode) -> str:
+        assert isinstance(node, mparser.StringNode)
         return node.value
 
     def evaluate_arraystatement(self, cur: mparser.ArrayNode) -> TYPE_var:
@@ -231,7 +231,7 @@ class AstInterpreter(InterpreterBase):
 
     def evaluate_dictstatement(self, node: mparser.DictNode) -> TYPE_nkwargs:
         def resolve_key(node: mparser.BaseNode) -> str:
-            if isinstance(node, mparser.BaseStringNode):
+            if isinstance(node, mparser.StringNode):
                 return node.value
             return '__AST_UNKNOWN__'
         arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)

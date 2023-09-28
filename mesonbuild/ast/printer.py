@@ -61,22 +61,13 @@ class AstPrinter(AstVisitor):
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         assert isinstance(node.value, str)
-        self.append("'" + self.escape(node.value) + "'", node)
-        node.lineno = self.curr_line or node.lineno
 
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
-        assert isinstance(node.value, str)
-        self.append("f'" + self.escape(node.value) + "'", node)
-        node.lineno = self.curr_line or node.lineno
-
-    def visit_MultilineStringNode(self, node: mparser.MultilineStringNode) -> None:
-        assert isinstance(node.value, str)
-        self.append("'''" + node.value + "'''", node)
-        node.lineno = self.curr_line or node.lineno
-
-    def visit_FormatMultilineStringNode(self, node: mparser.MultilineFormatStringNode) -> None:
-        assert isinstance(node.value, str)
-        self.append("f'''" + node.value + "'''", node)
+        if node.is_fstring:
+            self.append('f', node)
+        if node.is_multiline:
+            self.append("'''" + node.value + "'''", node)
+        else:
+            self.append("'" + self.escape(node.value) + "'", node)
         node.lineno = self.curr_line or node.lineno
 
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
@@ -258,22 +249,12 @@ class RawPrinter(FullAstVisitor):
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         self.enter_node(node)
-        self.result += f"'{node.raw_value}'"
-        self.exit_node(node)
-
-    def visit_MultilineStringNode(self, node: mparser.MultilineStringNode) -> None:
-        self.enter_node(node)
-        self.result += f"'''{node.value}'''"
-        self.exit_node(node)
-
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
-        self.enter_node(node)
-        self.result += f"f'{node.raw_value}'"
-        self.exit_node(node)
-
-    def visit_MultilineFormatStringNode(self, node: mparser.MultilineFormatStringNode) -> None:
-        self.enter_node(node)
-        self.result += f"f'''{node.value}'''"
+        if node.is_fstring:
+            self.result += 'f'
+        if node.is_multiline:
+            self.result += f"'''{node.value}'''"
+        else:
+            self.result += f"'{node.raw_value}'"
         self.exit_node(node)
 
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
@@ -340,9 +321,6 @@ class AstJSONPrinter(AstVisitor):
         self.gen_ElementaryNode(node)
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
-        self.gen_ElementaryNode(node)
-
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
         self.gen_ElementaryNode(node)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:

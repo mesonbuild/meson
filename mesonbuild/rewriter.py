@@ -13,7 +13,7 @@ from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionL
 from mesonbuild.mesonlib import MesonException, setup_vsenv
 from . import mlog, environment
 from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseStringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode, SymbolNode
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, StringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, SymbolNode
 import json, os, re, sys
 import typing as T
 
@@ -142,7 +142,7 @@ class MTypeStr(MTypeBase):
     def new_node(cls, value=None):
         if value is None:
             value = ''
-        return StringNode(Token('', '', 0, 0, 0, None, str(value)))
+        return StringNode(Token('string', '', 0, 0, 0, None, str(value)))
 
     @classmethod
     def supported_nodes(cls):
@@ -259,17 +259,17 @@ class MTypeStrList(MTypeList):
 
     @classmethod
     def _new_element_node(cls, value):
-        return StringNode(Token('', '', 0, 0, 0, None, str(value)))
+        return StringNode(Token('string', '', 0, 0, 0, None, str(value)))
 
     @staticmethod
     def _check_is_equal(node, value) -> bool:
-        if isinstance(node, BaseStringNode):
+        if isinstance(node, StringNode):
             return node.value == value
         return False
 
     @staticmethod
     def _check_regex_matches(node, regex: str) -> bool:
-        if isinstance(node, BaseStringNode):
+        if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
@@ -293,7 +293,7 @@ class MTypeIDList(MTypeList):
 
     @staticmethod
     def _check_regex_matches(node, regex: str) -> bool:
-        if isinstance(node, BaseStringNode):
+        if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
@@ -657,7 +657,7 @@ class Rewriter:
             src_list = []
             for i in target['sources']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, BaseStringNode):
+                    if isinstance(j, StringNode):
                         src_list += [j.value]
 
             # Generate the new String nodes
@@ -691,7 +691,7 @@ class Rewriter:
             def find_node(src):
                 for i in target['sources']:
                     for j in arg_list_from_node(i):
-                        if isinstance(j, BaseStringNode):
+                        if isinstance(j, StringNode):
                             if j.value == src:
                                 return i, j
                 return None, None
@@ -750,7 +750,7 @@ class Rewriter:
             extra_files_list = []
             for i in target['extra_files']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, BaseStringNode):
+                    if isinstance(j, StringNode):
                         extra_files_list += [j.value]
 
             # Generate the new String nodes
@@ -781,7 +781,7 @@ class Rewriter:
             def find_node(src):
                 for i in target['extra_files']:
                     for j in arg_list_from_node(i):
-                        if isinstance(j, BaseStringNode):
+                        if isinstance(j, StringNode):
                             if j.value == src:
                                 return i, j
                 return None, None
@@ -850,12 +850,12 @@ class Rewriter:
             src_list = []
             for i in target['sources']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, BaseStringNode):
+                    if isinstance(j, StringNode):
                         src_list += [j.value]
             extra_files_list = []
             for i in target['extra_files']:
                 for j in arg_list_from_node(i):
-                    if isinstance(j, BaseStringNode):
+                    if isinstance(j, StringNode):
                         extra_files_list += [j.value]
             test_data = {
                 'name': target['name'],
@@ -870,8 +870,8 @@ class Rewriter:
             alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
             path_sorter = lambda key: ([(key.count('/') <= idx, alphanum_key(x)) for idx, x in enumerate(key.split('/'))])
 
-            unknown = [x for x in i.arguments if not isinstance(x, BaseStringNode)]
-            sources = [x for x in i.arguments if isinstance(x, BaseStringNode)]
+            unknown = [x for x in i.arguments if not isinstance(x, StringNode)]
+            sources = [x for x in i.arguments if isinstance(x, StringNode)]
             sources = sorted(sources, key=lambda x: path_sorter(x.value))
             i.arguments = unknown + sources
 

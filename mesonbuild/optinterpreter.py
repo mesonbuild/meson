@@ -105,15 +105,14 @@ class OptionInterpreter:
             return arg
         if isinstance(arg, mparser.ParenthesizedNode):
             return self.reduce_single(arg.inner)
-        elif isinstance(arg, (mparser.BaseStringNode, mparser.BooleanNode,
-                              mparser.NumberNode)):
+        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
             return arg.value
         elif isinstance(arg, mparser.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
         elif isinstance(arg, mparser.DictNode):
             d = {}
             for k, v in arg.args.kwargs.items():
-                if not isinstance(k, mparser.BaseStringNode):
+                if not isinstance(k, mparser.StringNode):
                     raise OptionException('Dictionary keys must be a string literal')
                 d[k.value] = self.reduce_single(v)
             return d

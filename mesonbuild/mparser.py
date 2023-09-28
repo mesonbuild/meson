@@ -298,31 +298,25 @@ class NumberNode(ElementaryNode[int]):
         self.value = int(token.value, base=0)
         self.bytespan = token.bytespan
 
-class BaseStringNode(ElementaryNode[str]):
-    pass
-
 @dataclass(unsafe_hash=True)
-class StringNode(BaseStringNode):
+class StringNode(ElementaryNode[str]):
 
     raw_value: str = field(hash=False)
+    is_multiline: bool
+    is_fstring: bool
 
     def __init__(self, token: Token[str], escape: bool = True):
         super().__init__(token)
-        self.value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, token.value) if escape else token.value
+
+        self.is_multiline = 'multiline' in token.tid
+        self.is_fstring = 'fstring' in token.tid
         self.raw_value = token.value
 
-class FormatStringNode(StringNode):
-    pass
+        if escape and not self.is_multiline:
+            self.value = self.escape()
 
-@dataclass(unsafe_hash=True)
-class MultilineStringNode(BaseStringNode):
-
-    def __init__(self, token: Token[str]):
-        super().__init__(token)
-        self.value = token.value
-
-class MultilineFormatStringNode(MultilineStringNode):
-    pass
+    def escape(self) -> str:
+        return ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, self.raw_value)
 
 class ContinueNode(ElementaryNode):
     pass
@@ -930,14 +924,8 @@ class Parser:
             return self.create_node(IdNode, t)
         if self.accept('number'):
             return self.create_node(NumberNode, t)
-        if self.accept('string'):
+        if self.accept_any(('string', 'fstring', 'multiline_string', 'multiline_fstring')):
             return self.create_node(StringNode, t)
-        if self.accept('fstring'):
-            return self.create_node(FormatStringNode, t)
-        if self.accept('multiline_string'):
-            return self.create_node(MultilineStringNode, t)
-        if self.accept('multiline_fstring'):
-            return self.create_node(MultilineFormatStringNode, t)
         return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
     def key_values(self) -> ArgumentNode:
