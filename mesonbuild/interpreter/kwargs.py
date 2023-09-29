@@ -326,6 +326,7 @@ class _BaseBuildTarget(TypedDict):
     """
 
     build_by_default: bool
+    extra_files: T.List[FileOrString]
     install: bool
     install_mode: FileMode
     native: MachineChoice

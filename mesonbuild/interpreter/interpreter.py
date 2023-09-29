@@ -3322,9 +3322,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         sources = self.source_strings_to_files(sources)
         objs = extract_as_list(kwargs, 'objects')
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
-        if 'extra_files' in kwargs:
-            ef = extract_as_list(kwargs, 'extra_files')
-            kwargs['extra_files'] = self.source_strings_to_files(ef)
+        kwargs['extra_files'] = self.source_strings_to_files(kwargs['extra_files'])
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
         if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
             mlog.debug('Unknown target type:', str(targetclass))
