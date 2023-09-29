@@ -325,6 +325,7 @@ class _BaseBuildTarget(TypedDict):
     BuildTarget functions.
     """
 
+    build_by_default: bool
     override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     depend_files: NotRequired[T.List[File]]
 
