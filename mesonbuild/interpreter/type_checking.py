@@ -458,7 +458,7 @@ LINK_WHOLE_KW: KwargInfo[T.List[T.Union[BothLibraries, StaticLibrary, CustomTarg
     validator=link_whole_validator,
 )
 
-SOURCES_KW: KwargInfo[T.List[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]]] = KwargInfo(
+DEPENDENCY_SOURCES_KW: KwargInfo[T.List[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]]] = KwargInfo(
     'sources',
     ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, GeneratedList)),
     listify=True,
