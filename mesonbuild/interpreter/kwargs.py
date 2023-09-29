@@ -336,6 +336,7 @@ class _BaseBuildTarget(TypedDict):
     link_depends: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.BuildTarget]]
     link_language: T.Optional[str]
     name_prefix: T.Optional[str]
+    name_suffix: T.Optional[str]
     native: MachineChoice
     override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     depend_files: NotRequired[T.List[File]]
