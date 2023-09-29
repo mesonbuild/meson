@@ -577,6 +577,13 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         since='1.2.0',
     ),
     KwargInfo('build_rpath', str, default='', since='0.42.0'),
+    KwargInfo(
+        'gnu_symbol_visibility',
+        str,
+        default='',
+        validator=in_set_validator({'', 'default', 'internal', 'hidden', 'protected', 'inlineshidden'}),
+        since='0.48.0',
+    ),
     KwargInfo('install_rpath', str, default=''),
     KwargInfo(
         'link_language',
