@@ -560,12 +560,27 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
     NATIVE_KW,
 ]
 
+
+def _name_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
+    if isinstance(arg, list) and arg:
+        return 'must be empty when passed as an array to signify the default value.'
+    return None
+
+
+_NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
+    'name_prefix',
+    (str, NoneType, list),
+    validator=_name_validator,
+    convertor=lambda x: None if isinstance(x, list) else x,
+)
+
 # Applies to all build_target classes except jar
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_LANGUAGE_KWS,
     BT_SOURCES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
+    _NAME_PREFIX_KW,
     RUST_CRATE_TYPE_KW,
     KwargInfo('d_debug', ContainerTypeInfo(list, (str, int)), default=[], listify=True),
     D_MODULE_VERSIONS_KW,

@@ -1181,7 +1181,7 @@ class BuildTarget(Target):
             if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing resource {r}.')
         self.resources = resources
-        if 'name_prefix' in kwargs:
+        if kwargs.get('name_prefix') is not None:
             name_prefix = kwargs['name_prefix']
             if isinstance(name_prefix, list):
                 if name_prefix:
