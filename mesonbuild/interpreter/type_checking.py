@@ -578,6 +578,12 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     ),
     KwargInfo('build_rpath', str, default='', since='0.42.0'),
     KwargInfo('install_rpath', str, default=''),
+    KwargInfo(
+        'link_language',
+        (str, NoneType),
+        validator=in_set_validator(set(compilers.all_languages)),
+        since='0.51.0',
+    ),
 ]
 
 def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:

@@ -332,6 +332,7 @@ class _BaseBuildTarget(TypedDict):
     install_mode: FileMode
     install_rpath: str
     implicit_include_directories: bool
+    link_language: T.Optional[str]
     native: MachineChoice
     override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     depend_files: NotRequired[T.List[File]]
