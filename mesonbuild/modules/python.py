@@ -232,7 +232,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = target_suffix
 
-        if 'gnu_symbol_visibility' not in kwargs and \
+        if kwargs['gnu_symbol_visibility'] == '' and \
                 (self.is_pypy or mesonlib.version_compare(self.version, '>=3.9')):
             kwargs['gnu_symbol_visibility'] = 'inlineshidden'
 

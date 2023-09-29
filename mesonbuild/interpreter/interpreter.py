@@ -3292,12 +3292,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                      kwargs: T.Union[kwtypes.Executable, kwtypes.StaticLibrary, kwtypes.SharedLibrary, kwtypes.SharedModule, kwtypes.Jar],
                      targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]]
                      ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]:
-        @FeatureNewKwargs('build target', '0.48.0', ['gnu_symbol_visibility'])
-        def build_target_decorator_caller(self, node, args, kwargs):
-            return True
-
-        build_target_decorator_caller(self, node, args, kwargs)
-
         name, sources = args
         for_machine = kwargs['native']
         if kwargs.get('rust_crate_type') == 'proc-macro':
