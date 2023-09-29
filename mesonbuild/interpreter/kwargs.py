@@ -340,7 +340,7 @@ class _LibraryMixin(TypedDict):
 
 class Executable(_BuildTarget):
 
-    export_dynamic: bool
+    export_dynamic: T.Optional[bool]
     gui_app: T.Optional[bool]
     implib: T.Optional[T.Union[str, bool]]
     pie: T.Optional[bool]

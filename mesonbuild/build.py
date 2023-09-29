@@ -1938,10 +1938,6 @@ class Executable(BuildTarget):
         self.implib = kwargs.get('implib')
         if not isinstance(self.implib, (bool, str, type(None))):
             raise InvalidArguments('"export_dynamic" keyword argument must be a boolean or string')
-        if self.implib:
-            self.export_dynamic = True
-        if self.export_dynamic and self.implib is False:
-            raise InvalidArguments('"implib" keyword argument must not be false for if "export_dynamic" is true')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
         # Remember that this exe was returned by `find_program()` through an override
