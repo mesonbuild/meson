@@ -2425,27 +2425,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             pass
         self.subdir = prev_subdir
 
-    def _get_kwarg_install_mode(self, kwargs: T.Dict[str, T.Any]) -> T.Optional[FileMode]:
-        if kwargs.get('install_mode', None) is None:
-            return None
-        if isinstance(kwargs['install_mode'], FileMode):
-            return kwargs['install_mode']
-        install_mode: T.List[str] = []
-        mode = mesonlib.typeslistify(kwargs.get('install_mode', []), (str, int))
-        for m in mode:
-            # We skip any arguments that are set to `false`
-            if m is False:
-                m = None
-            install_mode.append(m)
-        if len(install_mode) > 3:
-            raise InvalidArguments('Keyword argument install_mode takes at '
-                                   'most 3 arguments.')
-        if len(install_mode) > 0 and install_mode[0] is not None and \
-           not isinstance(install_mode[0], str):
-            raise InvalidArguments('Keyword argument install_mode requires the '
-                                   'permissions arg to be a string or false')
-        return FileMode(*install_mode)
-
     # This is either ignored on basically any OS nowadays, or silently gets
     # ignored (Solaris) or triggers an "illegal operation" error (FreeBSD).
     # It was likely added "because it exists", but should never be used. In
@@ -3343,7 +3322,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         sources = self.source_strings_to_files(sources)
         objs = extract_as_list(kwargs, 'objects')
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
-        kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
         if 'extra_files' in kwargs:
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)

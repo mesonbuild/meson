@@ -554,6 +554,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
     INSTALL_KW,
+    INSTALL_MODE_KW,
 ]
 
 # Applies to all build_target classes except jar

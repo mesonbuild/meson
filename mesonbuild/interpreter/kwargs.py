@@ -327,6 +327,7 @@ class _BaseBuildTarget(TypedDict):
 
     build_by_default: bool
     install: bool
+    install_mode: FileMode
     override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     depend_files: NotRequired[T.List[File]]
 
