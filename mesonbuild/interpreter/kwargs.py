@@ -338,6 +338,7 @@ class _BaseBuildTarget(TypedDict):
     name_prefix: T.Optional[str]
     name_suffix: T.Optional[str]
     native: MachineChoice
+    objects: T.List[build.ObjectTypes]
     override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     depend_files: NotRequired[T.List[File]]
     resources: T.List[str]
