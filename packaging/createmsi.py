@@ -291,7 +291,7 @@ class PackageGenerator:
                 })
 
         for dirname in cur_node.dirs:
-            dir_id = os.path.join(current_dir, dirname).replace('\\', '_').replace('/', '_')
+            dir_id = os.path.join(current_dir, dirname).replace('\\', '_').replace('/', '_').replace('-', '_')
             dir_node = ET.SubElement(parent_xml_node, 'Directory', {
                 'Id': dir_id,
                 'Name': dirname,
