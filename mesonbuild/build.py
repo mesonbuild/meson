@@ -1191,7 +1191,7 @@ class BuildTarget(Target):
                     raise InvalidArguments('name_prefix must be a string.')
                 self.prefix = name_prefix
                 self.name_prefix_set = True
-        if 'name_suffix' in kwargs:
+        if kwargs.get('name_suffix') is not None:
             name_suffix = kwargs['name_suffix']
             if isinstance(name_suffix, list):
                 if name_suffix:
