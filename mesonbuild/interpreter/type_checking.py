@@ -590,6 +590,7 @@ _DARWIN_VERSIONS_KW: KwargInfo[T.List[T.Union[str, int]]] = KwargInfo(
 _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     KwargInfo('export_dynamic', bool, default=False, since='0.45.0'),
     KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead"),
+    KwargInfo('pie', (bool, NoneType)),
     KwargInfo(
         'win_subsystem',
         (str, NoneType),
