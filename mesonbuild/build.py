@@ -652,7 +652,8 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             self.build_by_default = kwargs['build_by_default']
             if not isinstance(self.build_by_default, bool):
                 raise InvalidArguments('build_by_default must be a boolean value.')
-        elif kwargs.get('install', False):
+
+        if not self.build_by_default and kwargs.get('install', False):
             # For backward compatibility, if build_by_default is not explicitly
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
