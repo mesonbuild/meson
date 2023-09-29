@@ -197,7 +197,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
             # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
             # directives. We manually override these here as this interferes with the intended
             # use of the 'limited_api' kwarg
-            for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+            for_machine = kwargs['native']
             compilers = self.interpreter.environment.coredata.compilers[for_machine]
             if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
                 pydep_copy = copy.copy(pydep)

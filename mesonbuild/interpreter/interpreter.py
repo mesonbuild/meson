@@ -3300,7 +3300,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         build_target_decorator_caller(self, node, args, kwargs)
 
         name, sources = args
-        for_machine = self.machine_from_native_kwarg(kwargs)
+        for_machine = kwargs['native']
         if kwargs.get('rust_crate_type') == 'proc-macro':
             # Silently force to native because that's the only sensible value
             # and rust_crate_type is deprecated any way.
