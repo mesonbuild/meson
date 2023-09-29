@@ -25,6 +25,7 @@ NoneType: T.Type[None] = type(None)
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
+    from ..build import ObjectTypes
     from ..interpreterbase import TYPE_var
     from ..mesonlib import EnvInitValueType
 
@@ -549,6 +550,24 @@ _JAVA_LANG_KW: KwargInfo[T.List[str]] = _BASE_LANG_KW.evolve(
     deprecated_message='This does not, and never has, done anything. It should be removed'
 )
 
+def _objects_validator(vals: T.List[ObjectTypes]) -> T.Optional[str]:
+    non_objects: T.List[str] = []
+
+    for val in vals:
+        if isinstance(val, ExtractedObjects):
+            continue
+        elif isinstance(val, (str, File)):
+            if not compilers.is_object(val):
+                non_objects.append(str(val))
+        else:
+            non_objects.extend(o for o in val.get_outputs() if not compilers.is_object(o))
+
+    if non_objects:
+        return f'File{"s" if len(non_objects) > 1 else ""}: "{", ".join(non_objects)}" are not objects'
+
+    return None
+
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
@@ -559,6 +578,17 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
     KwargInfo('implicit_include_directories', bool, default=True, since='0.42.0'),
     NATIVE_KW,
     KwargInfo('resources', ContainerTypeInfo(list, str), default=[], listify=True),
+    KwargInfo(
+        'objects',
+        ContainerTypeInfo(list, (str, File, CustomTarget, CustomTargetIndex, GeneratedList, ExtractedObjects)),
+        listify=True,
+        default=[],
+        validator=_objects_validator,
+        since_values={
+            ContainerTypeInfo(list, (GeneratedList, CustomTarget, CustomTargetIndex)):
+                ('1.1.0', 'generated sources as positional "objects" arguments')
+        },
+    ),
 ]
 
 
@@ -580,6 +610,7 @@ _NAME_PREFIX_KW: KwargInfo[T.Optional[T.Union[str, T.List]]] = KwargInfo(
     validator=_name_validator,
     convertor=lambda x: None if isinstance(x, list) else x,
 )
+
 
 # Applies to all build_target classes except jar
 _BUILD_TARGET_KWS: T.List[KwargInfo] = [
