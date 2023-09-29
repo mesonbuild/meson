@@ -556,6 +556,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
     KwargInfo('extra_files', ContainerTypeInfo(list, (str, File)), default=[], listify=True),
     INSTALL_KW,
     INSTALL_MODE_KW,
+    KwargInfo('implicit_include_directories', bool, default=True, since='0.42.0'),
     NATIVE_KW,
 ]
 
