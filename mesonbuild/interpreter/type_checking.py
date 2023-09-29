@@ -553,6 +553,7 @@ _JAVA_LANG_KW: KwargInfo[T.List[str]] = _BASE_LANG_KW.evolve(
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
+    INSTALL_KW,
 ]
 
 # Applies to all build_target classes except jar
