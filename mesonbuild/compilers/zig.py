@@ -43,6 +43,16 @@ _OPTIMIZATION_ARGS: T.Mapping[str, ImmutableListProtocol[str]] = {
 class ZigCompiler(Compiler):
     language = 'zig'
 
+    # TODO: lto
+    # TODO: threads? That seems more like code sanitizers than actual threading
+    # TODO: rpath
+    # TODO: darwin specific things
+    # TODO: emit header?
+    # TODO: structured_sources?
+    # TODO: tests?
+    # TODO: good solution for the need to link with libc
+    # TODO: demonstrate linking with rust
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, info: 'MachineInfo',
                  linker: DynamicLinker, exe_wrapper: T.Optional['ExternalProgram'] = None, is_cross: bool = False):
         super().__init__([], exelist + ['build-obj'], version, for_machine, info, linker, is_cross=is_cross)
