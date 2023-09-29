@@ -1806,7 +1806,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_disabler(self, node, args, kwargs):
         return Disabler()
 
-    @FeatureNewKwargs('executable', '0.42.0', ['implib'])
     @permittedKwargs(build.known_exe_kwargs)
     @typed_pos_args('executable', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('executable', *EXECUTABLE_KWS, allow_unknown=True)
