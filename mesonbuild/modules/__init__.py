@@ -112,7 +112,7 @@ class ModuleState:
         if dep.found() and dep.type_name == 'pkgconfig':
             value = dep.get_variable(pkgconfig=varname)
             if value:
-                return ExternalProgram(name, [value])
+                return ExternalProgram(value)
 
         # Normal program lookup
         return self.find_program(name, required=required, wanted=wanted)
