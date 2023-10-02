@@ -1186,27 +1186,26 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.coredata.update_project_options(oi.options)
             self.add_build_def_file(option_file)
 
+        # If this is the first time we configure this (sub)project, initialize builtin options.
+        if self.subproject not in self.coredata.initialized_subprojects:
+            self.coredata.init_builtins(self.subproject)
+            self.coredata.initialized_subprojects.add(self.subproject)
+
         # Subprojects can only set default_options on themself.
         default_options = kwargs['default_options']
         if self.subproject:
             default_options = {k.evolve(subproject=self.subproject): v
                                for k, v in default_options.items() if not k.subproject}
+        default_options.update(self.parent_default_options)
 
-        # Do not set default_options on reconfigure otherwise it would override
-        # values previously set from command line. That means that changing
-        # default_options in a project will trigger a reconfigure but won't
-        # have any effect.
-        #
-        # If this is the first invocation we always need to initialize
-        # builtins, if this is a subproject that is new in a re-invocation we
-        # need to initialize builtins for that
-        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
-            default_options.update(self.parent_default_options)
-            self.coredata.init_builtins(self.subproject)
-            self.coredata.initialized_subprojects.add(self.subproject)
-        else:
-            default_options = {}
-        self.coredata.set_default_options(default_options, self.subproject, self.environment)
+        # Environment will update its value only if it does not have a higher priority source.
+        for k, v in default_options.items():
+            self.environment.set_option(k, v, mesonlib.OptionSource.DEFAULT)
+
+        # Set all options for this (sub)project we collected in the Environment object.
+        # This will only update those that did not have a higher priority source already
+        # stored in coredata.
+        self.coredata.set_project_options(self.environment, self.subproject)
 
         if not self.is_subproject():
             self.build.project_name = proj_name

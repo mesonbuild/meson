@@ -23,7 +23,7 @@ from . import mesonlib
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey,
-    search_version, MesonBugException
+    search_version, MesonBugException, OptionSource, RawOption
 )
 from . import mlog
 from .programs import ExternalProgram
@@ -551,7 +551,9 @@ class Environment:
         #
         # Note that order matters because of 'buildtype', if it is after
         # 'optimization' and 'debug' keys, it override them.
-        self.options: T.MutableMapping[OptionKey, T.Union[str, T.List[str]]] = collections.OrderedDict()
+        self.options: T.MutableMapping[OptionKey, RawOption] = collections.OrderedDict()
+        for k, v in options.cmd_line_options.items():
+            self.set_option(k, v, OptionSource.CMD_LINE)
 
         ## Read in native file(s) to override build machine configuration
 
@@ -575,11 +577,6 @@ class Environment:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
-            # Keep only per machine options from the native file. The cross
-            # file takes precedence over all other options.
-            for key, value in list(self.options.items()):
-                if self.coredata.is_per_machine_option(key):
-                    self.options[key.as_build()] = value
             self._load_machine_file_options(config, properties.host, MachineChoice.HOST)
 
         ## "freeze" now initialized configuration, and "save" to the class.
@@ -588,9 +585,6 @@ class Environment:
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
         self.cmakevars = cmakevars.default_missing()
-
-        # Command line options override those from cross/native files
-        self.options.update(options.cmd_line_options)
 
         # Take default value from env if not set in cross/native files or command line.
         self._set_default_options_from_env()
@@ -618,6 +612,13 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
 
+    def set_option(self, key: OptionKey, value: T.Union[str, int, bool, T.List[str]], source: OptionSource) -> None:
+        # Pop the old value to reinsert it last in dict order.
+        raw = self.options.pop(key, None)
+        if raw is None or raw.source <= source:
+            raw = RawOption(value, source)
+        self.options[key] = raw
+
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
 
@@ -628,7 +629,7 @@ class Environment:
         if paths:
             mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
             for k, v in paths.items():
-                self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
+                self.set_option(OptionKey.from_string(k).evolve(machine=machine), v, OptionSource.MACHINE_FILE)
 
         # Next look for compiler options in the "properties" section, this is
         # also deprecated, and these will also be overwritten by the "built-in
@@ -640,7 +641,7 @@ class Environment:
         for k, v in properties.properties.copy().items():
             if k in deprecated_properties:
                 mlog.deprecation(f'{k} in the [properties] section of the machine file is deprecated, use the [built-in options] section.')
-                self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
+                self.set_option(OptionKey.from_string(k).evolve(machine=machine), v, OptionSource.MACHINE_FILE)
                 del properties.properties[k]
 
         for section, values in config.items():
@@ -656,7 +657,7 @@ class Environment:
                         mlog.deprecation('Setting build machine options in cross files, please use a native file instead, this will be removed in meson 0.60', once=True)
                     if key.subproject:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
-                    self.options[key.evolve(subproject=subproject, machine=machine)] = v
+                    self.set_option(key.evolve(subproject=subproject, machine=machine), v, OptionSource.MACHINE_FILE)
             elif section == 'project options' and machine is MachineChoice.HOST:
                 # Project options are only for the host machine, we don't want
                 # to read these from the native file
@@ -665,7 +666,7 @@ class Environment:
                     key = OptionKey.from_string(k)
                     if key.subproject:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
-                    self.options[key.evolve(subproject=subproject)] = v
+                    self.set_option(key.evolve(subproject=subproject), v, OptionSource.MACHINE_FILE)
 
     def _set_default_options_from_env(self) -> None:
         opts: T.List[T.Tuple[str, str]] = (
@@ -677,8 +678,6 @@ class Environment:
                 ('CPPFLAGS', 'cppflags'),
             ]
         )
-
-        env_opts: T.DefaultDict[OptionKey, T.List[str]] = collections.defaultdict(list)
 
         for (evar, keyname), for_machine in itertools.product(opts, MachineChoice):
             p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
@@ -699,47 +698,36 @@ class Environment:
                     p_list = split_args(p_env)
                 p_list = [e for e in p_list if e]  # filter out any empty elements
 
-                # Take env vars only on first invocation, if the env changes when
-                # reconfiguring it gets ignored.
-                # FIXME: We should remember if we took the value from env to warn
-                # if it changes on future invocations.
-                if self.first_invocation:
-                    if keyname == 'ldflags':
-                        key = OptionKey('link_args', machine=for_machine, lang='c')  # needs a language to initialize properly
-                        for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
-                            key = key.evolve(lang=lang)
-                            env_opts[key].extend(p_list)
-                    elif keyname == 'cppflags':
-                        key = OptionKey('env_args', machine=for_machine, lang='c')
-                        for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
-                            key = key.evolve(lang=lang)
-                            env_opts[key].extend(p_list)
-                    else:
-                        key = OptionKey.from_string(keyname).evolve(machine=for_machine)
-                        if evar in compilers.compilers.CFLAGS_MAPPING.values():
-                            # If this is an environment variable, we have to
-                            # store it separately until the compiler is
-                            # instantiated, as we don't know whether the
-                            # compiler will want to use these arguments at link
-                            # time and compile time (instead of just at compile
-                            # time) until we're instantiating that `Compiler`
-                            # object. This is required so that passing
-                            # `-Dc_args=` on the command line and `$CFLAGS`
-                            # have subtly different behavior. `$CFLAGS` will be
-                            # added to the linker command line if the compiler
-                            # acts as a linker driver, `-Dc_args` will not.
-                            #
-                            # We still use the original key as the base here, as
-                            # we want to inherit the machine and the compiler
-                            # language
-                            key = key.evolve('env_args')
-                        env_opts[key].extend(p_list)
-
-        # Only store options that are not already in self.options,
-        # otherwise we'd override the machine files
-        for k, v in env_opts.items():
-            if k not in self.options:
-                self.options[k] = v
+                if keyname == 'ldflags':
+                    key = OptionKey('link_args', machine=for_machine, lang='c')  # needs a language to initialize properly
+                    for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
+                        key = key.evolve(lang=lang)
+                        self.set_option(key, p_list, OptionSource.ENVIRONMENT)
+                elif keyname == 'cppflags':
+                    key = OptionKey('env_args', machine=for_machine, lang='c')
+                    for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
+                        key = key.evolve(lang=lang)
+                        self.set_option(key, p_list, OptionSource.ENVIRONMENT)
+                else:
+                    key = OptionKey.from_string(keyname).evolve(machine=for_machine)
+                    if evar in compilers.compilers.CFLAGS_MAPPING.values():
+                        # If this is an environment variable, we have to
+                        # store it separately until the compiler is
+                        # instantiated, as we don't know whether the
+                        # compiler will want to use these arguments at link
+                        # time and compile time (instead of just at compile
+                        # time) until we're instantiating that `Compiler`
+                        # object. This is required so that passing
+                        # `-Dc_args=` on the command line and `$CFLAGS`
+                        # have subtly different behavior. `$CFLAGS` will be
+                        # added to the linker command line if the compiler
+                        # acts as a linker driver, `-Dc_args` will not.
+                        #
+                        # We still use the original key as the base here, as
+                        # we want to inherit the machine and the compiler
+                        # language
+                        key = key.evolve('env_args')
+                    self.set_option(key, p_list, OptionSource.ENVIRONMENT)
 
     def _set_default_binaries_from_env(self) -> None:
         """Set default binaries from the environment.

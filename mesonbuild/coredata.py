@@ -29,7 +29,7 @@ from .mesonlib import (
     default_prefix, default_datadir, default_includedir, default_infodir,
     default_localedir, default_mandir, default_sbindir, default_sysconfdir,
     split_args, OptionKey, OptionType, stringlistify,
-    pickle_load
+    pickle_load, OptionSource, RawOption
 )
 from .wrap import WrapMode
 import ast
@@ -111,6 +111,7 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.yielding = yielding
         self.deprecated = deprecated
         self.readonly = False
+        self.source = OptionSource.UNSET
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
@@ -249,7 +250,7 @@ class UserComboOption(UserOption[str]):
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
-    def __init__(self, description: str, value: T.Union[str, T.List[str]],
+    def __init__(self, description: str, value: T.Any,
                  split_args: bool = False,
                  allow_dups: bool = False, yielding: bool = DEFAULT_YIELDING,
                  choices: T.Optional[T.List[str]] = None,
@@ -283,7 +284,7 @@ class UserArrayOption(UserOption[T.List[str]]):
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return self.listify_value(value, self.split_args)
 
-    def validate_value(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
+    def validate_value(self, value: T.Any) -> T.List[str]:
         newvalue = self.listify(value)
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
@@ -300,7 +301,7 @@ class UserArrayOption(UserOption[T.List[str]]):
                     ', '.join(bad), ', '.join(self.choices)))
         return newvalue
 
-    def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
+    def extend_value(self, value: T.Any) -> None:
         """Extend the value with an additional value."""
         new = self.validate_value(value)
         self.set_value(self.value + new)
@@ -760,7 +761,7 @@ class CoreData:
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
-    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
+    def set_option(self, key: OptionKey, value, source: OptionSource, first_invocation: bool = False) -> bool:
         dirty = False
         if key.is_builtin():
             if key.name == 'prefix':
@@ -788,7 +789,7 @@ class CoreData:
                     return newvalue
                 return v
             newvalue = [replace(v) for v in opt.listify(value)]
-            value = ','.join(newvalue)
+            value = newvalue[0] if len(newvalue) == 1 else newvalue
         elif isinstance(opt.deprecated, str):
             # Option is deprecated and replaced by another. Note that a project
             # option could be replaced by a built-in or module option, which is
@@ -801,7 +802,13 @@ class CoreData:
             newname = opt.deprecated
             newkey = OptionKey.from_string(newname).evolve(subproject=key.subproject)
             mlog.deprecation(f'Option {key.name!r} is replaced by {newname!r}')
-            dirty |= self.set_option(newkey, value, first_invocation)
+            dirty |= self.set_option(newkey, value, source, first_invocation)
+
+        # Do not override an option with a lower priority source.
+        if opt.source > source:
+            return dirty
+        dirty |= opt.source != source
+        opt.source = source
 
         changed = opt.set_value(value)
         if changed and opt.readonly and not first_invocation:
@@ -891,20 +898,12 @@ class CoreData:
         for key, value in options.items():
             if not key.is_project():
                 continue
-            if key not in self.options:
-                self.options[key] = value
-                continue
-
-            oldval = self.options[key]
-            if type(oldval) is not type(value):
-                self.options[key] = value
-            elif oldval.choices != value.choices:
-                # If the choices have changed, use the new value, but attempt
-                # to keep the old options. If they are not valid keep the new
-                # defaults but warn.
-                self.options[key] = value
+            oldval = self.options.get(key)
+            self.options[key] = value
+            if oldval is not None and oldval.source > OptionSource.UNSET:
+                # Try to keep user defined value, but it may not be valid anymore.
                 try:
-                    value.set_value(oldval.value)
+                    self.set_option(key, oldval.value, oldval.source)
                 except MesonException:
                     mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).',
                                  fatal=False)
@@ -931,25 +930,31 @@ class CoreData:
 
         return dirty
 
-    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
+    def set_options(self, options: T.Dict[OptionKey, RawOption], subproject: str = '', first_invocation: bool = False) -> bool:
         dirty = False
         if not self.is_cross_build():
             options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
         # Set prefix first because it's needed to sanitize other options
         pfk = OptionKey('prefix')
-        if pfk in options:
-            prefix = self.sanitize_prefix(options[pfk])
-            dirty |= self.options[OptionKey('prefix')].set_value(prefix)
+        raw = options.get(pfk)
+        if raw is not None and self.set_option(pfk, raw.value, raw.source):
+            # Prefix value changed, update dir options that depend on the
+            # prefix value, but only if their value wasn't previously set.
+            prefix = self.options[pfk].value
             for key in BUILTIN_DIR_NOPREFIX_OPTIONS:
                 if key not in options:
-                    dirty |= self.options[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
+                    opt = self.options[key]
+                    if opt.source == OptionSource.UNSET:
+                        default_value = BUILTIN_OPTIONS[key].prefixed_default(key, prefix)
+                        opt.set_value(default_value)
+            dirty = True
 
         unknown_options: T.List[OptionKey] = []
-        for k, v in options.items():
+        for k, raw in options.items():
             if k == pfk:
                 continue
             elif k in self.options:
-                dirty |= self.set_option(k, v, first_invocation)
+                dirty |= self.set_option(k, raw.value, raw.source, first_invocation)
             elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
                 unknown_options.append(k)
         if unknown_options:
@@ -962,28 +967,17 @@ class CoreData:
 
         return dirty
 
-    def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
-        # Main project can set default options on subprojects, but subprojects
-        # can only set default options on themselves.
-        # Preserve order: if env.options has 'buildtype' it must come after
-        # 'optimization' if it is in default_options.
-        options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
-        for k, v in default_options.items():
-            if not subproject or k.subproject == subproject:
-                options[k] = v
-        options.update(env.options)
-        env.options = options
-
+    def set_project_options(self, env: Environment, subproject: str) -> None:
         # Create a subset of options, keeping only project and builtin
-        # options for this subproject.
+        # options for this (sub)project.
         # Language and backend specific options will be set later when adding
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
         options = OrderedDict()
 
         for k, v in env.options.items():
-            # If this is a subproject, don't use other subproject options
-            if k.subproject and k.subproject != subproject:
+            # Keep only options for this (sub)project
+            if k.subproject != subproject:
                 continue
             # If the option is a builtin and is yielding then it's not allowed per subproject.
             #
@@ -1003,9 +997,9 @@ class CoreData:
     def add_compiler_options(self, options: 'MutableKeyedOptionDictType', lang: str, for_machine: MachineChoice,
                              env: 'Environment') -> None:
         for k, o in options.items():
-            value = env.options.get(k)
-            if value is not None:
-                o.set_value(value)
+            raw = env.options.get(k)
+            if raw is not None:
+                o.set_value(raw.value)
             self.options.setdefault(k, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
@@ -1027,8 +1021,10 @@ class CoreData:
             if key in self.options:
                 continue
             oobj = copy.deepcopy(compilers.base_options[key])
-            if key in env.options:
-                oobj.set_value(env.options[key])
+            raw = env.options.get(key)
+            if raw is not None:
+                oobj.set_value(raw.value)
+                oobj.source = raw.source
                 enabled_opts.append(key)
             self.options[key] = oobj
         self.emit_base_options_warnings(enabled_opts)

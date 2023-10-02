@@ -13,7 +13,7 @@ from .. import mlog, coredata
 
 from ..mesonlib import MachineChoice, OptionKey, MesonException
 from ..programs import OverrideProgram, ExternalProgram
-from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
+from ..interpreter.type_checking import ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
                                typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
                                typed_kwargs, KwargInfo, InterpreterException,

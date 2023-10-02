@@ -27,6 +27,7 @@ from ..mesonlib import (
     HoldableObject,
     EnvironmentException, MesonException,
     Popen_safe_logged, LibType, TemporaryDirectoryWinProof, OptionKey,
+    RawOption, OptionSource
 )
 
 from ..arglist import CompilerArgs
@@ -1375,16 +1376,17 @@ def get_global_options(lang: str,
 
     comp_key = argkey if argkey in env.options else envkey
 
-    comp_options = env.options.get(comp_key, [])
-    link_options = env.options.get(largkey, [])
+    empty = RawOption([], OptionSource.UNSET)
+    comp_options = env.options.get(comp_key, empty)
+    link_options = env.options.get(largkey, empty)
 
     cargs = coredata.UserArrayOption(
         description + ' compiler',
-        comp_options, split_args=True, allow_dups=True)
+        comp_options.value, split_args=True, allow_dups=True)
 
     largs = coredata.UserArrayOption(
         description + ' linker',
-        link_options, split_args=True, allow_dups=True)
+        link_options.value, split_args=True, allow_dups=True)
 
     if comp.INVOKES_LINKER and comp_key == envkey:
         # If the compiler acts as a linker driver, and we're using the
@@ -1392,7 +1394,7 @@ def get_global_options(lang: str,
         # arguments, then put the compiler flags in the linker flags as well.
         # This is how autotools works, and the env vars feature is for
         # autotools compatibility.
-        largs.extend_value(comp_options)
+        largs.extend_value(comp_options.value)
 
     opts: 'KeyedOptionDictType' = {argkey: cargs, largkey: largs}
 
