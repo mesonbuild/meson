@@ -72,6 +72,8 @@ def links_against_libpython():
 variables = sysconfig.get_config_vars()
 variables.update({'base_prefix': getattr(sys, 'base_prefix', sys.prefix)})
 
+is_pypy = '__pypy__' in sys.builtin_module_names
+
 if sys.version_info < (3, 0):
     suffix = variables.get('SO')
 elif sys.version_info < (3, 8, 7):
@@ -92,7 +94,7 @@ if sys.version_info >= (3, 2):
 # pypy supports modules targetting the limited api but
 # does not use a special suffix to distinguish them:
 # https://doc.pypy.org/en/latest/cpython_differences.html#permitted-abi-tags-in-extensions
-if '__pypy__' in sys.builtin_module_names:
+if is_pypy:
     limited_api_suffix = suffix
 
 print(json.dumps({
@@ -102,7 +104,7 @@ print(json.dumps({
   'install_paths': install_paths,
   'version': sysconfig.get_python_version(),
   'platform': sysconfig.get_platform(),
-  'is_pypy': '__pypy__' in sys.builtin_module_names,
+  'is_pypy': is_pypy,
   'is_venv': sys.prefix != variables['base_prefix'],
   'link_libpython': links_against_libpython(),
   'suffix': suffix,
