@@ -86,6 +86,7 @@ from .type_checking import (
     LANGUAGE_KW,
     NATIVE_KW,
     PRESERVE_PATH_KW,
+    PROJECT_DEFAULT_OPTIONS,
     REQUIRED_KW,
     SHARED_LIB_KWS,
     SHARED_MOD_KWS,
@@ -1142,7 +1143,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('project', str, varargs=str)
     @typed_kwargs(
         'project',
-        DEFAULT_OPTIONS,
+        PROJECT_DEFAULT_OPTIONS,
         KwargInfo('meson_version', (str, NoneType)),
         KwargInfo(
             'version',

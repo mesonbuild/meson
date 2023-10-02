@@ -24,8 +24,6 @@ NoneType: T.Type[None] = type(None)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
-
-    from ..interpreterbase import TYPE_var
     from ..mesonlib import EnvInitValueType
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
@@ -260,7 +258,7 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTarge
     default=[],
 )
 
-def _override_options_convertor(value: T.Union[str, T.List[str], T.Dict[str, T.Union[str, int, bool, T.List[str]]]]) -> T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]:
+def _options_convertor(value: T.Union[str, T.List[str], T.Dict[str, T.Union[str, int, bool, T.List[str]]]]) -> T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]:
     if isinstance(value, (str, list)):
         value = dict(split_equal_string(v) for v in listify(value))
     else:
@@ -268,6 +266,13 @@ def _override_options_convertor(value: T.Union[str, T.List[str], T.Dict[str, T.U
             if isinstance(dv, list) and any(not isinstance(i, str) for i in dv):
                 raise MesonException(f"dictionary element {k!r} must be a list of strings, not {dv!r}")
     return {OptionKey.from_string(k): v for k, v in value.items()}
+
+def _override_options_convertor(value: T.Union[str, T.List[str], T.Dict[str, T.Union[str, int, bool, T.List[str]]]]) -> T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]:
+    ret = _options_convertor(value)
+    for k, v in ret.items():
+        if k.subproject:
+            raise MesonException(f'does not allow subproject part in option name {str(k)!r}')
+    return ret
 
 OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, T.Union[str, int, bool, T.List[str]]], T.List[str]]] = KwargInfo(
     'override_options',
@@ -371,6 +376,7 @@ INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
 )
 
 DEFAULT_OPTIONS = OVERRIDE_OPTIONS_KW.evolve(name='default_options')
+PROJECT_DEFAULT_OPTIONS = DEFAULT_OPTIONS.evolve(convertor=_options_convertor)
 
 ENV_METHOD_KW = KwargInfo('method', str, default='set', since='0.62.0',
                           validator=in_set_validator({'set', 'prepend', 'append'}))

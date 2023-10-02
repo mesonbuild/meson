@@ -30,4 +30,8 @@ assert(w_level == '3', 'warning level "' + w_level + '" instead of "3"')
 #   assert(cc.compiles('int foobar;', no_builtin_args : true), 'No_builtin did not disable builtins.')
 # endif
 
+testcase expect_error('subproject keyword argument "default_options" does not allow subproject part in option name \'sub1:test_option\'')
+  subproject('sub1', default_options: 'sub1:test_option=true')
+endtestcase
+
 subproject('sub1')
