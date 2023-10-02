@@ -874,6 +874,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subprojects[subp_name] = sub
         return sub
 
+    def _has_user_defined_options(self, subproject: str) -> bool:
+        for k, v in self.coredata.options.items():
+            if k.subproject == subproject and v.source >= mesonlib.OptionSource.MACHINE_FILE:
+                return True
+        return False
+
     def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
@@ -944,6 +950,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                     # fatal and VS CI treat any logs with "ERROR:" as fatal.
                     mlog.exception(e, prefix=mlog.yellow('Exception:'))
                 mlog.log('\nSubproject', mlog.bold(subdir), 'is buildable:', mlog.red('NO'), '(disabling)')
+                if self._has_user_defined_options(subp_name):
+                    raise InterpreterException(f'Cannot disable subproject {subp_name} because it has user defined options')
                 return self.disabled_subproject(subp_name, exception=e)
             raise e
 
