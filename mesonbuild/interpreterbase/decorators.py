@@ -574,7 +574,10 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                         mlog.warning(info.not_set_warning)
 
                 if info.convertor:
-                    kwargs[info.name] = info.convertor(kwargs[info.name])
+                    try:
+                        kwargs[info.name] = info.convertor(kwargs[info.name])
+                    except mesonlib.MesonException as e:
+                        raise InvalidArguments(f'{name} keyword argument "{info.name}" {str(e)}')
 
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast('TV_func', wrapper)
