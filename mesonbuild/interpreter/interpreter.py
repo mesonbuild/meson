@@ -272,7 +272,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                default_project_options: T.Optional[T.Dict[OptionKey, str]] = None,
+                parent_default_options: T.Optional[T.Dict[OptionKey, str]] = None,
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 is_translated: bool = False,
@@ -306,12 +306,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
         self.subproject_stack: T.List[str] = []
         self.configure_file_outputs: T.Dict[str, int] = {}
-        # Passed from the outside, only used in subprojects.
-        if default_project_options:
-            self.default_project_options = default_project_options.copy()
-        else:
-            self.default_project_options = {}
-        self.project_default_options: T.Dict[OptionKey, str] = {}
+        # Those are options passed as subproject(..., default_options: {}), or
+        # when doing a fallback.
+        self.parent_default_options = parent_default_options or {}
+        assert all(k.subproject == self.subproject for k in self.parent_default_options.keys())
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
@@ -1188,11 +1186,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.coredata.update_project_options(oi.options)
             self.add_build_def_file(option_file)
 
+        # Subprojects can only set default_options on themself.
+        default_options = kwargs['default_options']
         if self.subproject:
-            self.project_default_options = {k.evolve(subproject=self.subproject): v
-                                            for k, v in kwargs['default_options'].items()}
-        else:
-            self.project_default_options = kwargs['default_options']
+            default_options = {k.evolve(subproject=self.subproject): v
+                               for k, v in default_options.items() if not k.subproject}
 
         # Do not set default_options on reconfigure otherwise it would override
         # values previously set from command line. That means that changing
@@ -1203,8 +1201,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # builtins, if this is a subproject that is new in a re-invocation we
         # need to initialize builtins for that
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
-            default_options = self.project_default_options.copy()
-            default_options.update(self.default_project_options)
+            default_options.update(self.parent_default_options)
             self.coredata.init_builtins(self.subproject)
             self.coredata.initialized_subprojects.add(self.subproject)
         else:
