@@ -211,7 +211,8 @@ class Vs2010Backend(backends.Backend):
                     self.replace_extra_args(args, genlist),
                     workdir=tdir_abs,
                     capture=outfiles[0] if generator.capture else None,
-                    force_serialize=True
+                    force_serialize=True,
+                    env=genlist.env
                 )
                 deps = cmd[-1:] + deps
                 abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
