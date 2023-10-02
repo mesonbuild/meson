@@ -103,6 +103,7 @@ class GeneratorProcess(TypedDict):
 
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
+    env: EnvironmentVariables
 
 class DependencyMethodPartialDependency(TypedDict):
 

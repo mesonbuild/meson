@@ -2649,7 +2649,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist, reason = self.as_meson_exe_cmdline(exe,
                                                         self.replace_extra_args(args, genlist),
-                                                        capture=outfiles[0] if generator.capture else None)
+                                                        capture=outfiles[0] if generator.capture else None,
+                                                        env=genlist.env)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
 

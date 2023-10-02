@@ -1809,8 +1809,14 @@ class Generator(HoldableObject):
     def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
                       state: T.Union['Interpreter', 'ModuleState'],
                       preserve_path_from: T.Optional[str] = None,
-                      extra_args: T.Optional[T.List[str]] = None) -> 'GeneratedList':
-        output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
+                      extra_args: T.Optional[T.List[str]] = None,
+                      env: T.Optional[EnvironmentVariables] = None) -> 'GeneratedList':
+        output = GeneratedList(
+            self,
+            state.subdir,
+            preserve_path_from,
+            extra_args=extra_args if extra_args is not None else [],
+            env=env if env is not None else EnvironmentVariables())
 
         for e in files:
             if isinstance(e, CustomTarget):
@@ -1849,6 +1855,7 @@ class GeneratedList(HoldableObject):
     subdir: str
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
+    env: T.Optional[EnvironmentVariables]
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
@@ -1861,6 +1868,9 @@ class GeneratedList(HoldableObject):
 
         if self.extra_args is None:
             self.extra_args: T.List[str] = []
+
+        if self.env is None:
+            self.env: EnvironmentVariables = EnvironmentVariables()
 
         if isinstance(self.generator.exe, programs.ExternalProgram):
             if not self.generator.exe.found():

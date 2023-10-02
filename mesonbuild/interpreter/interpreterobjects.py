@@ -21,7 +21,7 @@ from ..interpreterbase import (
                                typed_pos_args, typed_kwargs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
-from ..interpreter.type_checking import NoneType, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
+from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import HoldableObject, OptionKey, listify, Popen_safe
@@ -1043,6 +1043,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
         'generator.process',
         KwargInfo('preserve_path_from', (str, NoneType), since='0.45.0'),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        ENV_KW.evolve(since='1.3.0')
     )
     def process_method(self,
                        args: T.Tuple[T.List[T.Union[str, mesonlib.File, 'build.GeneratedTypes']]],
@@ -1060,7 +1061,7 @@ class GeneratorHolder(ObjectHolder[build.Generator]):
                 '0.57.0', self.interpreter.subproject)
 
         gl = self.held_object.process_files(args[0], self.interpreter,
-                                            preserve_path_from, extra_args=kwargs['extra_args'])
+                                            preserve_path_from, extra_args=kwargs['extra_args'], env=kwargs['env'])
 
         return gl
 
