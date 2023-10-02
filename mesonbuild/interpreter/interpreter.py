@@ -2161,15 +2161,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                   kwargs: 'kwtypes.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> EnvironmentVariables:
-        envlist = kwargs.get('env')
-        if envlist is None:
-            return EnvironmentVariables()
-        msg = ENV_KW.validator(envlist)
-        if msg:
-            raise InvalidArguments(f'"env": {msg}')
-        return ENV_KW.convertor(envlist)
-
     def make_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
                   kwargs: 'kwtypes.BaseTest') -> Test:
@@ -2184,8 +2175,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments('Tried to use not-found external program as test exe')
         elif isinstance(exe, mesonlib.File):
             exe = self.find_program_impl([exe])
-
-        env = self.unpack_env_kwarg(kwargs)
 
         if kwargs['timeout'] <= 0:
             FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)
@@ -2205,7 +2194,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     kwargs['depends'],
                     kwargs.get('is_parallel', False),
                     kwargs['args'],
-                    env,
+                    kwargs['env'],
                     kwargs['should_fail'],
                     kwargs['timeout'],
                     kwargs['workdir'],
