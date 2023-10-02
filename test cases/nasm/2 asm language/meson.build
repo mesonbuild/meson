@@ -7,6 +7,8 @@ endif
 
 if host_machine.system() == 'windows'
   error('MESON_SKIP_TEST: this test asm is not made for Windows')
+elif host_machine.system() == 'sunos'
+  error('MESON_SKIP_TEST: this test asm is not made for Solaris or illumos')
 endif
 
 if meson.backend().startswith('vs')
