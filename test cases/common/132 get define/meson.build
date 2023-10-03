@@ -43,7 +43,7 @@ foreach lang : ['c', 'cpp']
   elif system_define.length() == 1
     assert(def_val != '', '@0@ value is unset'.format(def_name))
   else
-    assert('Invalid number of items in system_define array, this is a bug in the test!')
+    error('Invalid number of items in system_define array, this is a bug in the test!')
   endif
 
   if cc.find_library('z', required : false).found()
