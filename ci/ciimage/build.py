@@ -143,13 +143,14 @@ class ImageTester(BuilderBase):
         shutil.copytree(
             self.meson_root,
             self.temp_dir / 'meson',
+            symlinks=True,
             ignore=shutil.ignore_patterns(
                 '.git',
                 '*_cache',
                 '__pycache__',
                 # 'work area',
                 self.temp_dir.name,
-            )
+            ),
         )
 
     def do_test(self, tty: bool = False) -> None:
