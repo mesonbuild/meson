@@ -40,6 +40,7 @@ jobs:
           - { name: Arch Linux,       id: arch     }
           - { name: CUDA (on Arch),   id: cuda     }
           - { name: Fedora,           id: fedora   }
+          - { name: Gentoo,           id: gentoo   }
           - { name: OpenSUSE,         id: opensuse }
           - { name: Ubuntu Bionic,    id: bionic   }
     container: mesonbuild/${{ matrix.cfg.id }}:latest
