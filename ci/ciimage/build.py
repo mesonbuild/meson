@@ -78,6 +78,10 @@ class Builder(BuilderBase):
             if [ -f "$HOME/.cargo/env" ]; then
                 source "$HOME/.cargo/env"
             fi
+
+            if [ -f /etc/profile.env ]; then
+                source /etc/profile.env
+            fi
         '''
 
         out_file.write_text(out_data, encoding='utf-8')
