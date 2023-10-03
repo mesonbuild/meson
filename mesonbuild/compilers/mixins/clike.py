@@ -697,7 +697,7 @@ class CLikeCompiler(Compiler):
         star_idx = p.stdout.find(delim_start)
         end_idx = p.stdout.rfind(delim_end)
         if (star_idx == -1) or (end_idx == -1) or (star_idx == end_idx):
-            raise AssertionError('BUG: Delimiters not found in preprocessor output!')
+            raise mesonlib.MesonBugException('Delimiters not found in preprocessor output.')
         define_value = p.stdout[star_idx + len(delim_start):end_idx]
 
         if define_value == sentinel_undef:
