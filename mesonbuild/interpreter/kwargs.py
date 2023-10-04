@@ -336,6 +336,7 @@ class _BuildTarget(_BaseBuildTarget):
     d_debug: T.List[T.Union[str, int]]
     d_import_dirs: T.List[T.Union[str, build.IncludeDirs]]
     d_module_versions: T.List[T.Union[str, int]]
+    d_unittest: bool
     rust_dependency_map: T.Dict[str, str]
     sources: SourcesVarargsType
     c_args: T.List[str]
