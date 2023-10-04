@@ -559,6 +559,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     *_ALL_TARGET_KWS,
     *_LANGUAGE_KWS,
     BT_SOURCES_KW,
+    INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     RUST_CRATE_TYPE_KW,
     KwargInfo('d_debug', ContainerTypeInfo(list, (str, int)), default=[], listify=True),
     KwargInfo(
