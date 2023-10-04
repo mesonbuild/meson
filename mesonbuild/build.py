@@ -1124,12 +1124,8 @@ class BuildTarget(Target):
         dfeature_debug = kwargs.get('d_debug', [])
         if dfeature_debug:
             dfeatures['debug'] = dfeature_debug
-        if 'd_import_dirs' in kwargs:
-            dfeature_import_dirs = extract_as_list(kwargs, 'd_import_dirs')
-            for d in dfeature_import_dirs:
-                if not isinstance(d, IncludeDirs):
-                    raise InvalidArguments('Arguments to d_import_dirs must be include_directories.')
-            dfeatures['import_dirs'] = dfeature_import_dirs
+        if kwargs.get('d_import_dirs') is not None:
+            dfeatures['import_dirs'] = kwargs['d_import_dirs']
         if dfeatures:
             self.d_features = dfeatures
 

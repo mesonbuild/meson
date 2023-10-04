@@ -3352,7 +3352,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
-        self.kwarg_strings_to_includedirs(kwargs)
         self.__process_language_args(kwargs)
         if targetclass is build.StaticLibrary:
             for lang in compilers.all_languages - {'java'}:
@@ -3364,6 +3363,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))
                 kwargs['language_args'][lang].extend(args)
                 kwargs['depend_files'].extend(deps)
+        if targetclass is not build.Jar:
+            self.kwarg_strings_to_includedirs(kwargs)
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
@@ -3436,10 +3437,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.project_args_frozen = True
         return target
 
-    def kwarg_strings_to_includedirs(self, kwargs):
-        if 'd_import_dirs' in kwargs:
-            items = mesonlib.extract_as_list(kwargs, 'd_import_dirs')
-            cleaned_items = []
+    def kwarg_strings_to_includedirs(self, kwargs: kwtypes._BuildTarget) -> None:
+        if kwargs['d_import_dirs']:
+            items = kwargs['d_import_dirs']
+            cleaned_items: T.List[build.IncludeDirs] = []
             for i in items:
                 if isinstance(i, str):
                     # BW compatibility. This was permitted so we must support it

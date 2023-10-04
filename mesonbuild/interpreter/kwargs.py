@@ -334,6 +334,7 @@ class _BuildTarget(_BaseBuildTarget):
     """Arguments shared by non-JAR functions"""
 
     d_debug: T.List[T.Union[str, int]]
+    d_import_dirs: T.List[T.Union[str, build.IncludeDirs]]
     rust_dependency_map: T.Dict[str, str]
     sources: SourcesVarargsType
     c_args: T.List[str]
