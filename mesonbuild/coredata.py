@@ -112,6 +112,9 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.deprecated = deprecated
         self.readonly = False
 
+    def __str__(self) -> str:
+        return str(self.printable_value())
+
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
 
