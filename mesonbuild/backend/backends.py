@@ -764,7 +764,7 @@ class Backend:
         srcdir = self.environment.get_source_dir()
 
         for dep in target.external_deps:
-            if dep.type_name not in {'library', 'pkgconfig'}:
+            if dep.type_name not in {'library', 'pkgconfig', 'cmake'}:
                 continue
             for libpath in dep.link_args:
                 # For all link args that are absolute paths to a library file, add RPATH args
