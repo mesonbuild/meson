@@ -231,7 +231,9 @@ class Runner:
         try:
             self.git_output(['-c', 'rebase.autoStash=true', 'rebase', 'FETCH_HEAD'])
         except GitException as e:
-            self.log('  -> Could not rebase', mlog.bold(self.repo_dir), 'onto', mlog.bold(revision))
+            self.git_output(['-c', 'rebase.autoStash=true', 'rebase', '--abort'])
+            self.log('  -> Could not rebase', mlog.bold(self.repo_dir), 'onto', mlog.bold(revision),
+                     '-- aborted')
             self.log(mlog.red(e.output))
             self.log(mlog.red(str(e)))
             return False
