@@ -787,7 +787,11 @@ class Backend:
                 # Windows doesn't support rpaths, but we use this function to
                 # emulate rpaths by setting PATH
                 # .dll is there for mingw gcc
-                if os.path.splitext(libpath)[1] not in {'.dll', '.lib', '.so', '.dylib'}:
+                # .so's may be extended with version information, e.g. libxyz.so.1.2.3
+                if not (
+                    os.path.splitext(libpath)[1] in {'.dll', '.lib', '.so', '.dylib'}
+                    or re.match(r'.+\.so(\.|$)', os.path.basename(libpath))
+                ):
                     continue
 
                 try:
