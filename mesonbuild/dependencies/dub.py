@@ -456,7 +456,7 @@ class DubDependency(ExternalDependency):
 
         ret, res = self._call_compbin(['--version'])[0:2]
         if ret != 0:
-            mlog.error('Failed to run {!r}', mlog.bold(dub_comp_id))
+            mlog.error('Failed to run', mlog.bold(' '.join(self.dubbin.get_command() + ['--version'])))
             return []
         d_ver_reg = re.search('v[0-9].[0-9][0-9][0-9].[0-9]', res)  # Ex.: v2.081.2
 
