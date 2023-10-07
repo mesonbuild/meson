@@ -421,7 +421,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
             'c++2a', 'c++20', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
             'gnu++1z', 'gnu++2a', 'gnu++20',
         ]
-        if version_compare(self.version, '>=12.2.0'):
+        if version_compare(self.version, '>=11.0.0'):
             cppstd_choices.append('c++23')
             cppstd_choices.append('gnu++23')
         opts[key].choices = cppstd_choices
