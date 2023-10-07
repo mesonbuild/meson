@@ -128,9 +128,9 @@ class DubDependency(ExternalDependency):
         # A command that might be useful in case of missing DUB package
         def dub_build_deep_command() -> str:
             if self._dub_has_build_deep:
-                cmd = [ 'dub', 'build', '--deep' ]
+                cmd = ['dub', 'build', '--deep']
             else:
-                cmd = [ 'dub', 'run', '--yes', 'dub-build-deep', '--' ]
+                cmd = ['dub', 'run', '--yes', 'dub-build-deep', '--']
 
             return join_args(cmd + [
                 main_pack_spec,
