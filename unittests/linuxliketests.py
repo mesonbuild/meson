@@ -520,10 +520,10 @@ class LinuxlikeTests(BasePlatformTests):
                      compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=10.0.0'))
         has_cpp2b = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=12.0.0', None) or
-                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=12.2.0'))
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=11.0.0'))
         has_cpp23 = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=17.0.0', None) or
-                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=12.2.0'))
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=11.0.0'))
         has_cpp26 = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=17.0.0', None) or
                      compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=14.0.0'))

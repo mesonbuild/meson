@@ -426,7 +426,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
             'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
             'c++2a', 'c++20',
         ]
-        if version_compare(self.version, '>=12.2.0'):
+        if version_compare(self.version, '>=11.0.0'):
             cppstd_choices.append('c++23')
         if version_compare(self.version, '>=14.0.0'):
             cppstd_choices.append('c++26')
