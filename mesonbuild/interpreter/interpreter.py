@@ -3186,7 +3186,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
     @FeatureNew('both_libraries', '0.46.0')
-    def build_both_libraries(self, node, args, kwargs):
+    def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
 
@@ -3219,12 +3219,13 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return build.BothLibraries(shared_lib, static_lib)
 
-    def build_library(self, node, args, kwargs):
+    def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library):
         default_library = self.coredata.get_option(OptionKey('default_library', subproject=self.subproject))
+        assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
-            return self.build_target(node, args, kwargs, build.SharedLibrary)
+            return self.build_target(node, args, T.cast('kwtypes.StaticLibrary', kwargs), build.SharedLibrary)
         elif default_library == 'static':
-            return self.build_target(node, args, kwargs, build.StaticLibrary)
+            return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.StaticLibrary)
         elif default_library == 'both':
             return self.build_both_libraries(node, args, kwargs)
         else:
