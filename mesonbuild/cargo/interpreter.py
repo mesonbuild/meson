@@ -400,43 +400,39 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
 def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CRATE_TYPE) -> T.List[mparser.BaseNode]:
     dependencies: T.List[mparser.BaseNode] = []
     dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
-    rust_args: T.List[mparser.BaseNode] = []
     for name, dep in cargo.dependencies.items():
         package_name = dep.package or name
         dependencies.append(build.identifier(_dependency_varname(package_name)))
         if name != package_name:
             dependency_map[build.string(fixup_meson_varname(package_name))] = build.string(name)
 
-    if cargo.lib.proc_macro:
-        crate_type = 'proc-macro'
+    posargs: T.List[mparser.BaseNode] = [
+        build.string(fixup_meson_varname(cargo.package.name)),
+        build.string(os.path.join('src', 'lib.rs')),
+    ]
 
-    if crate_type == 'proc-macro':
-        rust_args += [build.string('--extern'), build.string('proc_macro')]
+    kwargs: T.Dict[str, mparser.BaseNode] = {
+        'dependencies': build.array(dependencies),
+        'rust_dependency_map': build.dict(dependency_map),
+    }
 
-    if crate_type in {'lib', 'rlib', 'staticlib'}:
-        target_type = 'static_library'
-    elif crate_type in {'dylib', 'cdylib', 'proc-macro'}:
-        target_type = 'shared_library'
+    lib: mparser.BaseNode
+    if cargo.lib.proc_macro or crate_type == 'proc-macro':
+        kwargs['rust_args'] = build.array([build.string('--extern'), build.string('proc_macro')])
+        lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
     else:
-        raise MesonException(f'Unsupported crate type {crate_type}')
+        if crate_type in {'lib', 'rlib', 'staticlib'}:
+            target_type = 'static_library'
+        elif crate_type in {'dylib', 'cdylib'}:
+            target_type = 'shared_library'
+        else:
+            raise MesonException(f'Unsupported crate type {crate_type}')
+        if crate_type in {'staticlib', 'cdylib'}:
+            kwargs['rust_abi'] = build.string('c')
+        lib = build.function(target_type, posargs, kwargs)
 
     return [
-        build.assign(
-            build.function(
-                target_type,
-                [
-                    build.string(fixup_meson_varname(cargo.package.name)),
-                    build.string(os.path.join('src', 'lib.rs')),
-                ],
-                {
-                    'dependencies': build.array(dependencies),
-                    'rust_dependency_map': build.dict(dependency_map),
-                    'rust_crate_type': build.string(crate_type),
-                    'rust_args': build.array(rust_args)
-                },
-            ),
-            'lib'
-        ),
+        build.assign(lib, 'lib'),
         build.assign(
             build.function(
                 'declare_dependency',
@@ -468,6 +464,7 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> mparser.CodeBloc
     build = builder.Builder(filename)
 
     ast = _create_project(cargo, build, env)
+    ast += [build.assign(build.function('import', [build.string('rust')]), 'rust')]
     ast += _create_dependencies(cargo, build)
 
     # Libs are always auto-discovered and there's no other way to handle them,
