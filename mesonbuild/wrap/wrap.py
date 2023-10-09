@@ -547,7 +547,10 @@ class Resolver:
         if 'lead_directory_missing' in self.wrap.values:
             os.mkdir(self.dirname)
             extract_dir = self.dirname
-        shutil.unpack_archive(path, extract_dir)
+        try:
+            shutil.unpack_archive(path, extract_dir)
+        except OSError as e:
+            raise WrapException(f'failed to unpack archive with error: {str(e)}') from e
 
     def get_git(self) -> None:
         if not GIT:
