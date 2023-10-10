@@ -1043,6 +1043,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
+        mlog.warning('Cargo subproject is an experimental feature and has no backwards compatibility guarantees.',
+                     once=True, location=self.current_node)
         with mlog.nested(subp_name):
             ast, options = cargo.interpret(subp_name, subdir, self.environment)
             self.coredata.update_project_options(options, subp_name)
