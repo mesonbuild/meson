@@ -1044,6 +1044,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
+        FeatureExperimental.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
         with mlog.nested(subp_name):
             ast = cargo.interpret(subp_name, subdir, self.environment)
             return self._do_subproject_meson(

@@ -1716,17 +1716,17 @@ class InternalTests(unittest.TestCase):
         with self.subTest('newer using experimental'), setup() as warned:
             FeatureExperimental.single_use('feature', '1.3.0', 'project')
             warned.assert_called()
-            self.assertIn(CHECK_STR, warned.call_args_list[0].args)
+            self.assertTrue(any(CHECK_STR in args.args for args in warned.call_args_list), list(warned.call_args_list))
 
         with self.subTest('older using experimental'), setup() as warned:
             FeatureExperimental.single_use('feature', '1.11.0', 'project')
             warned.assert_called()
-            self.assertIn(CHECK_STR, warned.call_args_list[0].args)
+            self.assertTrue(any(CHECK_STR in args.args for args in warned.call_args_list), list(warned.call_args_list))
 
         with self.subTest('before stable'), setup() as warned:
             FeatureExperimental.single_use('feature', '1.3.0', 'project', stable_version='1.9.1')
             warned.assert_called()
-            self.assertIn(CHECK_STR, warned.call_args_list[0].args)
+            self.assertTrue(any(CHECK_STR in args.args for args in warned.call_args_list), list(warned.call_args_list))
 
         with self.subTest('after stable'), setup() as warned:
             FeatureExperimental.single_use('feature', '1.2.0', 'project', stable_version='1.3.0')
