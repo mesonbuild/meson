@@ -243,34 +243,27 @@ class _Logger:
             sep: T.Optional[str] = None,
             end: T.Optional[str] = None,
             display_timestamp: bool = True) -> None:
-        if once:
-            self._log_once(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
-        else:
+        if self._should_log(*args, once=once):
             self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
 
     def log_timestamp(self, *args: TV_Loggable) -> None:
         if self.log_timestamp_start:
             self.log(*args)
 
-    def _log_once(self, *args: TV_Loggable, is_error: bool = False,
-                  nested: bool = True, sep: T.Optional[str] = None,
-                  end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
-        """Log variant that only prints a given message one time per meson invocation.
-
-        This considers ansi decorated values by the values they wrap without
-        regard for the AnsiDecorator itself.
-        """
+    def _should_log(self, *args: TV_Loggable, once: bool) -> bool:
         def to_str(x: TV_Loggable) -> str:
             if isinstance(x, str):
                 return x
             if isinstance(x, AnsiDecorator):
                 return x.text
             return str(x)
+        if not once:
+            return True
         t = tuple(to_str(a) for a in args)
         if t in self.logged_once:
-            return
+            return False
         self.logged_once.add(t)
-        self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
+        return True
 
     def _log_error(self, severity: _Severity, *rargs: TV_Loggable,
                    once: bool = False, fatal: bool = True,
@@ -293,6 +286,9 @@ class _Logger:
         # rargs is a tuple, not a list
         args = label + list(rargs)
 
+        if not self._should_log(*args, once=once):
+            return
+
         if location is not None:
             location_file = relpath(location.filename, os.getcwd())
             location_str = get_error_location_string(location_file, location.lineno)
@@ -301,7 +297,7 @@ class _Logger:
             location_list = T.cast('TV_LoggableList', [location_str])
             args = location_list + args
 
-        log(*args, once=once, nested=nested, sep=sep, end=end, is_error=is_error)
+        self._log(*args, nested=nested, sep=sep, end=end, is_error=is_error)
 
         self.log_warnings_counter += 1
 
