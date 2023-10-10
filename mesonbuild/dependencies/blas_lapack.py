@@ -526,7 +526,7 @@ class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
 
     def check_macOS_recent_enough(self) -> bool:
         cmd = ['xcrun', '-sdk', 'macosx', '--show-sdk-version']
-        sdk_version = str(subprocess.run(cmd, capture_output=True, check=True).stdout)
+        sdk_version = subprocess.run(cmd, capture_output=True, check=True, text=True).stdout.strip()
         return sdk_version >= '13.3'
 
     def detect(self, kwargs: T.Dict[str, T.Any]) -> None:
