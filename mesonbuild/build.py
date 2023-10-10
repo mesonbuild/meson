@@ -2171,6 +2171,9 @@ class SharedLibrary(BuildTarget):
 
     typename = 'shared library'
 
+    # Used by AIX to decide whether to archive shared library or not.
+    aix_so_archive = True
+
     def __init__(
             self,
             name: str,
@@ -2435,6 +2438,9 @@ class SharedModule(SharedLibrary):
     known_kwargs = known_shmod_kwargs
 
     typename = 'shared module'
+
+    # Used by AIX to not archive shared library for dlopen mechanism
+    aix_so_archive = False
 
     def __init__(
             self,

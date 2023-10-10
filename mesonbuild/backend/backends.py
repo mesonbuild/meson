@@ -355,6 +355,9 @@ class Backend:
         # On all other platforms, we link to the library directly.
         if isinstance(target, build.SharedLibrary):
             link_lib = target.get_import_filename() or target.get_filename()
+            # In AIX, if we archive .so, the blibpath must link to archived shared library otherwise to the .so file.
+            if mesonlib.is_aix() and target.aix_so_archive:
+                link_lib = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', link_lib.replace('.so', '.a'))
             return os.path.join(self.get_target_dir(target), link_lib)
         elif isinstance(target, build.StaticLibrary):
             return os.path.join(self.get_target_dir(target), target.get_filename())
