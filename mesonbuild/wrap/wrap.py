@@ -389,6 +389,7 @@ class Resolver:
                 directory = f'{dep.package}-{version}'
                 filename = f'{directory}.tar.gz'
                 wrap_fname = os.path.join(self.subdir_root, f'{subp_name}.wrap')
+                patch_directory = os.path.join(self.subdir_root, 'packagefiles', subp_name)
                 os.makedirs(self.subdir_root, exist_ok=True)
                 with open(wrap_fname, 'w', encoding='utf-8') as f:
                     f.write(textwrap.dedent(f'''\
@@ -399,6 +400,8 @@ class Resolver:
                         source_hash = {checksum}
                         method = cargo
                         '''))
+                    if os.path.exists(patch_directory):
+                        f.write(f'patch_directory = {patch_directory}\n')
                 return wrap_fname
         return None
 
