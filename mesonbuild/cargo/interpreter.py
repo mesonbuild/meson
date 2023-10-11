@@ -20,6 +20,8 @@ import shutil
 import collections
 import typing as T
 
+from functools import lru_cache
+
 from . import builder
 from . import version
 from ..mesonlib import MesonException, Popen_safe, OptionKey
@@ -324,6 +326,7 @@ def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = 
     )
 
 
+@lru_cache(maxsize=None)
 def _load_manifests(subdir: str) -> T.Dict[str, Manifest]:
     filename = os.path.join(subdir, 'Cargo.toml')
     raw = load_toml(filename)
@@ -731,3 +734,13 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
             ast.extend(_create_lib(cargo, build, crate_type))
 
     return build.block(ast), options
+
+
+def dependencies(source_dir: str) -> T.Dict[str, Dependency]:
+    deps: T.Dict[str, Dependency] = {}
+    manifests = _load_manifests(source_dir)
+    for cargo in manifests.values():
+        for name, dep in cargo.dependencies.items():
+            depname = _dependency_name(dep.package, dep.api)
+            deps[depname] = dep
+    return deps
