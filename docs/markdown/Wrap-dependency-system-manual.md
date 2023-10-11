@@ -316,11 +316,24 @@ foo-bar-1.0 = foo_bar_dep
 ```
 ### Cargo wraps
 
-Cargo subprojects automatically override the `<package_name>-rs` dependency name.
-`package_name` is defined in `[package] name = ...` section of the `Cargo.toml`
-and `-rs` suffix is added. That means the `.wrap` file should have
-`dependency_names = foo-rs` in their `[provide]` section when `Cargo.toml` has
-package name `foo`.
+Cargo subprojects automatically override the `<package_name>-<version>-rs` dependency
+name:
+- `package_name` is defined in `[package] name = ...` section of the `Cargo.toml`.
+- `version` is the API version deduced from `[package] version = ...` as follow:
+  * `x.y.z` -> 'x'
+  * `0.x.y` -> '0.x'
+  * `0.0.x` -> '0'
+  It allows to make different dependencies for uncompatible versions of the same
+  crate.
+- `-rs` suffix is added to distinguish from regular system dependencies, for
+  example `gstreamer-1.0` is a system pkg-config dependency and `gstreamer-0.22-rs`
+  is a Cargo dependency.
+
+That means the `.wrap` file should have `dependency_names = foo-1-rs` in their
+`[provide]` section when `Cargo.toml` has package name `foo` and version `1.2`.
+
+Note that the version component was added in Meson 1.4, previous versions were
+using `<package_name>-rs` format.
 
 Cargo subprojects require a toml parser. Python >= 3.11 have one built-in, older
 Python versions require either the external `tomli` module or `toml2json` program.
@@ -332,26 +345,26 @@ file like that:
 ...
 method = cargo
 [provide]
-dependency_names = foo-bar-rs
+dependency_names = foo-bar-0.1-rs
 ```
 
 Cargo features are exposed as Meson boolean options, with the `feature-` prefix.
 For example the `default` feature is named `feature-default` and can be set from
-the command line with `-Dfoo-rs:feature-default=false`. When a cargo subproject
+the command line with `-Dfoo-1-rs:feature-default=false`. When a cargo subproject
 depends on another cargo subproject, it will automatically enable features it
-needs using the `dependency('foo-rs', default_options: ...)` mechanism. However,
+needs using the `dependency('foo-1-rs', default_options: ...)` mechanism. However,
 unlike Cargo, the set of enabled features is not managed globally. Let's assume
-the main project depends on `foo-rs` and `bar-rs`, and they both depend on
-`common-rs`. The main project will first look up `foo-rs` which itself will
-configure `common-rs` with a set of features. Later, when `bar-rs` does a lookup
-for `common-rs` it has already been configured and the set of features cannot be
-changed. If `bar-rs` wants extra features from `common-rs`, Meson will error out.
+the main project depends on `foo-1-rs` and `bar-1-rs`, and they both depend on
+`common-1-rs`. The main project will first look up `foo-1-rs` which itself will
+configure `common-rs` with a set of features. Later, when `bar-1-rs` does a lookup
+for `common-1-rs` it has already been configured and the set of features cannot be
+changed. If `bar-1-rs` wants extra features from `common-1-rs`, Meson will error out.
 It is currently the responsability of the main project to resolve those
 issues by enabling extra features on each subproject:
 ```meson
 project(...,
   default_options: {
-    'common-rs:feature-something': true,
+    'common-1-rs:feature-something': true,
   },
 )
 ```
