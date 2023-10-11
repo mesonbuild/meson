@@ -162,9 +162,23 @@ class Dependency:
     package: str = ''
     default_features: bool = True
     features: T.List[str] = dataclasses.field(default_factory=list)
+    api: str = dataclasses.field(init=False)
 
     def __post_init__(self, name: str) -> None:
         self.package = self.package or name
+        # Extract wanted API version from version constraints.
+        api = set()
+        for v in self.version:
+            if v.startswith(('>=', '==')):
+                api.add(_version_to_api(v[2:].strip()))
+            elif v.startswith('='):
+                api.add(_version_to_api(v[1:].strip()))
+        if not api:
+            self.api = '0'
+        elif len(api) == 1:
+            self.api = list(api)[0]
+        else:
+            raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
     @classmethod
     def from_raw(cls, raw: manifest.DependencyV, name: str) -> Dependency:
@@ -351,8 +365,21 @@ def _load_manifests(subdir: str) -> T.Dict[str, Manifest]:
     return manifests
 
 
-def _dependency_name(package_name: str) -> str:
-    return package_name if package_name.endswith('-rs') else f'{package_name}-rs'
+def _version_to_api(version: str) -> str:
+    # x.y.z -> x
+    # 0.x.y -> 0.x
+    # 0.0.x -> 0
+    vers = version.split('.')
+    if int(vers[0]) > 0:
+        return vers[0]
+    elif len(vers) >= 2 and int(vers[1]) > 0:
+        return f'0.{vers[1]}'
+    return '0'
+
+
+def _dependency_name(package_name: str, api: str) -> str:
+    basename = package_name[:-3] if package_name.endswith('-rs') else package_name
+    return f'{basename}-{api}-rs'
 
 
 def _dependency_varname(package_name: str) -> str:
@@ -517,7 +544,7 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
             build.assign(
                 build.function(
                     'dependency',
-                    [build.string(_dependency_name(dep.package))],
+                    [build.string(_dependency_name(dep.package, dep.api))],
                     kw,
                 ),
                 _dependency_varname(dep.package),
@@ -559,7 +586,7 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
                     build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
                         build.function('error', [
                             build.string('Dependency'),
-                            build.string(_dependency_name(dep.package)),
+                            build.string(_dependency_name(dep.package, dep.api)),
                             build.string('previously configured with features'),
                             build.identifier('actual_features'),
                             build.string('but need'),
@@ -666,7 +693,7 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
             'override_dependency',
             build.identifier('meson'),
             [
-                build.string(_dependency_name(cargo.package.name)),
+                build.string(_dependency_name(cargo.package.name, _version_to_api(cargo.package.version))),
                 build.identifier('dep'),
             ],
         ),
@@ -674,7 +701,8 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
 
 
 def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode, KeyedOptionDictType]:
-    package_name = subp_name[:-3] if subp_name.endswith('-rs') else subp_name
+    # subp_name should be in the form "foo-0.1-rs"
+    package_name = subp_name.rsplit('-', 2)[0]
     manifests = _load_manifests(os.path.join(env.source_dir, subdir))
     cargo = manifests.get(package_name)
     if not cargo:
