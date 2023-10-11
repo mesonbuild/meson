@@ -151,6 +151,7 @@ class Dependency:
 
     """Representation of a Cargo Dependency Entry."""
 
+    name: dataclasses.InitVar[str]
     version: T.List[str]
     registry: T.Optional[str] = None
     git: T.Optional[str] = None
@@ -158,16 +159,19 @@ class Dependency:
     rev: T.Optional[str] = None
     path: T.Optional[str] = None
     optional: bool = False
-    package: T.Optional[str] = None
+    package: str = ''
     default_features: bool = True
     features: T.List[str] = dataclasses.field(default_factory=list)
 
+    def __post_init__(self, name: str) -> None:
+        self.package = self.package or name
+
     @classmethod
-    def from_raw(cls, raw: manifest.DependencyV) -> Dependency:
+    def from_raw(cls, name: str, raw: manifest.DependencyV) -> Dependency:
         """Create a dependency from a raw cargo dictionary"""
         if isinstance(raw, str):
-            return cls(version.convert(raw))
-        return cls(**_fixup_raw_mappings(raw))
+            return cls(name, version.convert(raw))
+        return cls(name, **_fixup_raw_mappings(raw))
 
 
 @dataclasses.dataclass
@@ -290,16 +294,16 @@ def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = 
 
     return Manifest(
         Package(**pkg),
-        {k: Dependency.from_raw(v) for k, v in raw_manifest.get('dependencies', {}).items()},
-        {k: Dependency.from_raw(v) for k, v in raw_manifest.get('dev-dependencies', {}).items()},
-        {k: Dependency.from_raw(v) for k, v in raw_manifest.get('build-dependencies', {}).items()},
+        {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('dependencies', {}).items()},
+        {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('dev-dependencies', {}).items()},
+        {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('build-dependencies', {}).items()},
         Library(**lib),
         [Binary(**_fixup_raw_mappings(b)) for b in raw_manifest.get('bin', {})],
         [Test(**_fixup_raw_mappings(b)) for b in raw_manifest.get('test', {})],
         [Benchmark(**_fixup_raw_mappings(b)) for b in raw_manifest.get('bench', {})],
         [Example(**_fixup_raw_mappings(b)) for b in raw_manifest.get('example', {})],
         raw_manifest.get('features', {}),
-        {k: {k2: Dependency.from_raw(v2) for k2, v2 in v.get('dependencies', {}).items()}
+        {k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
          for k, v in raw_manifest.get('target', {}).items()},
         subdir,
         path,
@@ -480,8 +484,6 @@ def _create_features(cargo: Manifest, build: builder.Builder) -> T.List[mparser.
 def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     ast: T.List[mparser.BaseNode] = []
     for name, dep in cargo.dependencies.items():
-        package_name = dep.package or name
-
         # xxx_options += {'feature-default': true, ...}
         extra_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
             build.string(_option_name('default')): build.bool(dep.default_features),
@@ -515,20 +517,20 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
             build.assign(
                 build.function(
                     'dependency',
-                    [build.string(_dependency_name(package_name))],
+                    [build.string(_dependency_name(dep.package))],
                     kw,
                 ),
-                _dependency_varname(package_name),
+                _dependency_varname(dep.package),
             ),
             # if xxx_dep.found()
-            build.if_(build.method('found', build.identifier(_dependency_varname(package_name))), build.block([
+            build.if_(build.method('found', build.identifier(_dependency_varname(dep.package))), build.block([
                 # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
                 build.assign(
                     build.method(
                         'split',
                         build.method(
                             'get_variable',
-                            build.identifier(_dependency_varname(package_name)),
+                            build.identifier(_dependency_varname(dep.package)),
                             [build.string('features')],
                             {'default_value': build.string('')}
                         ),
@@ -557,7 +559,7 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
                     build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
                         build.function('error', [
                             build.string('Dependency'),
-                            build.string(_dependency_name(package_name)),
+                            build.string(_dependency_name(dep.package)),
                             build.string('previously configured with features'),
                             build.identifier('actual_features'),
                             build.string('but need'),
@@ -593,10 +595,9 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
     dependencies: T.List[mparser.BaseNode] = []
     dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
     for name, dep in cargo.dependencies.items():
-        package_name = dep.package or name
-        dependencies.append(build.identifier(_dependency_varname(package_name)))
-        if name != package_name:
-            dependency_map[build.string(fixup_meson_varname(package_name))] = build.string(name)
+        dependencies.append(build.identifier(_dependency_varname(dep.package)))
+        if name != dep.package:
+            dependency_map[build.string(fixup_meson_varname(dep.package))] = build.string(name)
 
     rust_args: T.List[mparser.BaseNode] = [
         build.identifier('features_args'),
