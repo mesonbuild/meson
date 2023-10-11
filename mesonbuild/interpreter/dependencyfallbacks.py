@@ -140,9 +140,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # Verify the subproject is found
         subproject = self._get_subproject(subp_name)
         if not subproject:
-            mlog.log('Dependency', mlog.bold(self._display_name), 'from subproject',
-                     mlog.bold(subp_name), 'found:', mlog.red('NO'),
-                     mlog.blue('(subproject failed to configure)'))
+            self._log_found(False, subproject=subp_name, extra_args=[mlog.blue('(subproject failed to configure)')])
             return None
 
         # The subproject has been configured. If for any reason the dependency
@@ -175,29 +173,36 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                     break
         if not varname:
             mlog.warning(f'Subproject {subp_name!r} did not override {self._display_name!r} dependency and no variable name specified')
-            mlog.log('Dependency', mlog.bold(self._display_name), 'from subproject',
-                     mlog.bold(subproject.subdir), 'found:', mlog.red('NO'))
+            self._log_found(False, subproject=subproject.subdir)
             return self._notfound_dependency()
 
         var_dep = self._get_subproject_variable(subproject, varname) or self._notfound_dependency()
         if not var_dep.found():
-            mlog.log('Dependency', mlog.bold(self._display_name), 'from subproject',
-                     mlog.bold(subproject.subdir), 'found:', mlog.red('NO'))
+            self._log_found(False, subproject=subproject.subdir)
             return var_dep
 
         wanted = stringlistify(kwargs.get('version', []))
         found = var_dep.get_version()
         if not self._check_version(wanted, found):
-            mlog.log('Dependency', mlog.bold(self._display_name), 'from subproject',
-                     mlog.bold(subproject.subdir), 'found:', mlog.red('NO'),
-                     'found', mlog.normal_cyan(found), 'but need:',
-                     mlog.bold(', '.join([f"'{e}'" for e in wanted])))
+            self._log_found(False, subproject=subproject.subdir,
+                            extra_args=['found', mlog.normal_cyan(found), 'but need:',
+                                        mlog.bold(', '.join([f"'{e}'" for e in wanted]))])
             return self._notfound_dependency()
 
-        mlog.log('Dependency', mlog.bold(self._display_name), 'from subproject',
-                 mlog.bold(subproject.subdir), 'found:', mlog.green('YES'),
-                 mlog.normal_cyan(found) if found else None)
+        self._log_found(True, subproject=subproject.subdir,
+                        extra_args=[mlog.normal_cyan(found) if found else None])
         return var_dep
+
+    def _log_found(self, found: bool, extra_args: T.Optional[mlog.TV_LoggableList] = None,
+                   subproject: T.Optional[str] = None) -> None:
+        msg: mlog.TV_LoggableList = ['Dependency', mlog.bold(self._display_name)]
+        if subproject:
+            msg.extend(['from subproject:', subproject])
+        msg.extend(['found:', mlog.red('NO') if not found else mlog.green('YES')])
+        if extra_args:
+            msg.extend(extra_args)
+
+        mlog.log(*msg)
 
     def _get_cached_dep(self, name: str, kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
         # Unlike other methods, this one returns not-found dependency instead
@@ -216,8 +221,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             # have explicitly called meson.override_dependency() with a not-found
             # dep.
             if not cached_dep.found():
-                mlog.log('Dependency', mlog.bold(self._display_name),
-                         'found:', mlog.red('NO'), *info)
+                self._log_found(False, extra_args=info)
                 return cached_dep
         elif self.forcefallback and self.subproject_name:
             cached_dep = None
@@ -232,16 +236,15 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                     # We cached this dependency on disk from a previous run,
                     # but it could got updated on the system in the meantime.
                     return None
-                mlog.log('Dependency', mlog.bold(name),
-                         'found:', mlog.red('NO'),
-                         'found', mlog.normal_cyan(found_vers), 'but need:',
+                self._log_found(
+                    False, extra_args=[
+                        'found', mlog.normal_cyan(found_vers), 'but need:',
                          mlog.bold(', '.join([f"'{e}'" for e in wanted_vers])),
-                         *info)
+                         *info])
                 return self._notfound_dependency()
             if found_vers:
                 info = [mlog.normal_cyan(found_vers), *info]
-            mlog.log('Dependency', mlog.bold(self._display_name),
-                     'found:', mlog.green('YES'), *info)
+            self._log_found(True, extra_args=info)
             return cached_dep
         return None
 
