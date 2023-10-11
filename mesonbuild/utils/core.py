@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
     from hashlib import _Hash
     from typing_extensions import Literal
     from ..mparser import BaseNode
+    from ..interpreterbase import SubProject
     from .. import programs
 
     EnvironOrDict = T.Union[T.Dict[str, str], os._Environ[str]]
@@ -167,5 +168,5 @@ class ExecutableSerialisation:
     def __post_init__(self) -> None:
         self.pickled = False
         self.skip_if_destdir = False
-        self.subproject = ''
+        self.subproject = T.cast('SubProject', '')  # avoid circular import
         self.dry_run = False

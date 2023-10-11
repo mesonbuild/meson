@@ -118,7 +118,7 @@ if T.TYPE_CHECKING:
     from .. import cargo
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
-    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
+    from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs, SubProject
     from ..options import OptionDict
     from .type_checking import SourcesVarargsType
 
@@ -248,7 +248,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self,
                 _build: build.Build,
                 backend: T.Optional[Backend] = None,
-                subproject: str = '',
+                subproject: SubProject = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
                 invoker_method_default_options: T.Optional[OptionDict] = None,
@@ -854,17 +854,15 @@ class Interpreter(InterpreterBase, HoldableObject):
         }
         return self.do_subproject(args[0], kw)
 
-    def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
+    def disabled_subproject(self, subp_name: SubProject, disabled_feature: T.Optional[str] = None,
                             exception: T.Optional[Exception] = None) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub
         return sub
 
-    def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
+    def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
                       forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
-        if subp_name == 'sub_static':
-            pass
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -933,7 +931,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             m += ['method', mlog.bold(method)]
         mlog.log(*m, '\n', nested=False)
 
-        methods_map: T.Dict[wrap.Method, T.Callable[[str, str, OptionDict, kwtypes.DoSubproject],
+        methods_map: T.Dict[wrap.Method, T.Callable[[SubProject, str, OptionDict, kwtypes.DoSubproject],
                                                     SubprojectHolder]] = {
             'meson': self._do_subproject_meson,
             'cmake': self._do_subproject_cmake,
@@ -968,7 +966,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('Generated Meson AST:', meson_filename)
         mlog.cmd_ci_include(meson_filename)
 
-    def _do_subproject_meson(self, subp_name: str, subdir: str,
+    def _do_subproject_meson(self, subp_name: SubProject, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
@@ -1020,7 +1018,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.subprojects[subp_name] = subi.project_version
         return self.subprojects[subp_name]
 
-    def _do_subproject_cmake(self, subp_name: str, subdir: str,
+    def _do_subproject_cmake(self, subp_name: SubProject, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
@@ -1045,7 +1043,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             result.cm_interpreter = cm_int
         return result
 
-    def _do_subproject_cargo(self, subp_name: str, subdir: str,
+    def _do_subproject_cargo(self, subp_name: SubProject, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo

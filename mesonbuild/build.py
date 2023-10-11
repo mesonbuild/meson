@@ -33,7 +33,7 @@ from .compilers import (
     is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
     is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS
 )
-from .interpreterbase import FeatureNew, FeatureDeprecated
+from .interpreterbase import FeatureNew, FeatureDeprecated, SubProject
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypeAlias, TypedDict
@@ -44,7 +44,6 @@ if T.TYPE_CHECKING:
     from .compilers import Compiler
     from .interpreter.interpreter import SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
-    from .interpreterbase import SubProject
     from .linkers.linkers import StaticLinker
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .mparser import BaseNode
@@ -338,7 +337,7 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects: T.Dict[str, str] = {}
+        self.projects: T.Dict[SubProject, str] = {}
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -353,7 +352,7 @@ class Build:
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
         self.static_linker: PerMachine[T.Optional[StaticLinker]] = PerMachine(None, None)
-        self.subprojects: T.Dict[str, str] = {}
+        self.subprojects: T.Dict[SubProject, str] = {}
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
@@ -423,8 +422,8 @@ class Build:
             if not self.environment.is_cross_build():
                 self.static_linker[MachineChoice.BUILD] = self.static_linker[MachineChoice.HOST]
 
-    def get_project(self) -> T.Dict[str, str]:
-        return self.projects['']
+    def get_project(self) -> str:
+        return self.projects[SubProject('')]
 
     def get_subproject_dir(self):
         return self.subproject_dir
