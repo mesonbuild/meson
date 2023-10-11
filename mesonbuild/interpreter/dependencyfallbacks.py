@@ -195,7 +195,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
 
     def _log_found(self, found: bool, extra_args: T.Optional[mlog.TV_LoggableList] = None,
                    subproject: T.Optional[str] = None) -> None:
-        msg: mlog.TV_LoggableList = ['Dependency', mlog.bold(self._display_name)]
+        msg: mlog.TV_LoggableList = [
+            'Dependency', mlog.bold(self._display_name),
+            'for', mlog.bold(self.for_machine.get_lower_case_name()), 'machine']
         if subproject:
             msg.extend(['from subproject:', subproject])
         msg.extend(['found:', mlog.red('NO') if not found else mlog.green('YES')])
@@ -314,7 +316,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
 
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.log('Dependency', mlog.bold(self._display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Dependency', mlog.bold(self._display_name),
+                     'for', mlog.bold(self.for_machine.get_lower_case_name()), 'machine',
+                     'skipped: feature', mlog.bold(feature), 'disabled')
             return self._notfound_dependency()
 
         # Check if usage of the subproject fallback is forced
