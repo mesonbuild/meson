@@ -35,6 +35,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         super().__init__(subproject=interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
+        self.for_machine = MachineChoice.HOST
         self.coredata = interpreter.coredata
         self.build = interpreter.build
         self.environment = interpreter.environment
@@ -200,7 +201,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
 
     def _log_found(self, found: bool, extra_args: T.Optional[mlog.TV_LoggableList] = None,
                    subproject: T.Optional[str] = None) -> None:
-        msg: mlog.TV_LoggableList = ['Dependency', mlog.bold(self._display_name)]
+        msg: mlog.TV_LoggableList = [
+            'Dependency', mlog.bold(self._display_name),
+            'for', mlog.bold(self.for_machine.get_lower_case_name()), 'machine']
         if subproject:
             msg.extend(['from subproject', subproject])
         msg.extend(['found:', mlog.red('NO') if not found else mlog.green('YES')])
