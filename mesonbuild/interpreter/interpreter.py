@@ -1764,6 +1764,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if len(names) > 1:
             FeatureNew('dependency with more than one name', '0.60.0').use(self.subproject)
         default_options = kwargs.get('default_options')
+        for_machine = kwargs['native']
         df = DependencyFallbacksHolder(self, names, kwargs['allow_fallback'], default_options)
         df.set_fallback(kwargs['fallback'])
         not_found_message = kwargs['not_found_message']
@@ -1774,7 +1775,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if kwargs['modules']:
                 name = name + '(modules: {})'.format(', '.join(kwargs['modules']))
             mlog.log('Dependency', mlog.bold(name),
-                     'for', mlog.bold(self.for_machine.get_lower_case_name()), 'machine',
+                     'for', mlog.bold(for_machine.get_lower_case_name()), 'machine',
                      'skipped: feature', mlog.bold(feature), 'disabled')
             return dependencies.NotFoundDependency(names[0], self.environment)
 
