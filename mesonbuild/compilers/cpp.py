@@ -93,6 +93,9 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def get_no_stdinc_args(self) -> T.List[str]:
         return ['-nostdinc++']
 
+    def get_no_stdlib_link_args(self) -> T.List[str]:
+        return ['-nostdlib++']
+
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'class breakCCompiler;int main(void) { return 0; }\n'
         return self._sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
