@@ -22,6 +22,7 @@ from ..interpreterbase import (
 
     InvalidArguments,
     InterpreterException,
+    SubProject,
 
     typed_pos_args,
     typed_kwargs,
@@ -430,7 +431,7 @@ class CmakeModule(ExtensionModule):
     def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs_: Subproject) -> T.Union[SubprojectHolder, CMakeSubproject]:
         if kwargs_['cmake_options'] and kwargs_['options'] is not None:
             raise InterpreterException('"options" cannot be used together with "cmake_options"')
-        dirname = args[0]
+        subp_name = SubProject(args[0])
         kw: kwargs.DoSubproject = {
             'required': kwargs_['required'],
             'options': kwargs_['options'],
@@ -438,7 +439,7 @@ class CmakeModule(ExtensionModule):
             'default_options': {},
             'version': [],
         }
-        subp = self.interpreter.do_subproject(dirname, kw, force_method='cmake')
+        subp = self.interpreter.do_subproject(subp_name, kw, force_method='cmake')
         if not subp.found():
             return subp
         return CMakeSubproject(subp)

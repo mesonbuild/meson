@@ -12,7 +12,7 @@ from ..mesonlib import stringlistify, version_compare_many
 from ..options import OptionKey
 from ..dependencies import Dependency, DependencyException, NotFoundDependency
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
-                               InterpreterException, InvalidArguments)
+                               InterpreterException, InvalidArguments, SubProject)
 
 import typing as T
 if T.TYPE_CHECKING:
@@ -130,7 +130,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             forced_options[OptionKey('default_library')] = default_library
 
         # Configure the subproject
-        subp_name = self.subproject_name
+        subp_name = SubProject(self.subproject_name)
         varname = self.subproject_varname
         self.interpreter.do_subproject(subp_name, func_kwargs, forced_options=forced_options)
         return self._get_subproject_dep(subp_name, varname, kwargs)
