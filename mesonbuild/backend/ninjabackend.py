@@ -2355,7 +2355,12 @@ class NinjaBackend(backends.Backend):
                 # ranlib, not to ar
                 cmdlist.extend(args)
                 args = []
-                cmdlist.extend(['&&', 'ranlib', '-c', '$out'])
+                # Ensure that we use the user-specified ranlib if any, and
+                # fallback to just picking up some ranlib otherwise
+                ranlib = self.environment.lookup_binary_entry(for_machine, 'ranlib')
+                if ranlib is None:
+                    ranlib = ['ranlib']
+                cmdlist.extend(['&&'] + ranlib + ['-c', '$out'])
             description = 'Linking static target $out'
             if num_pools > 0:
                 pool = 'pool = link_pool'
