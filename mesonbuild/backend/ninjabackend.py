@@ -1971,7 +1971,8 @@ class NinjaBackend(backends.Backend):
         else:
             whole_archive = ''
 
-        if mesonlib.version_compare(rustc.version, '>= 1.67.0'):
+        # FIXME: Seems broken on MacOS: https://github.com/rust-lang/rust/issues/116674
+        if mesonlib.version_compare(rustc.version, '>= 1.67.0') and not mesonlib.is_osx():
             verbatim = '+verbatim'
         else:
             verbatim = ''
