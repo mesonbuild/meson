@@ -2135,7 +2135,7 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
         mlog.log('No test dependencies to build')
         return True
 
-    ret = subprocess.run(ninja + ['-C', wd] + sorted(targets)).returncode
+    ret = subprocess.run(ninja + ['-C', wd] + targets).returncode
     if ret != 0:
         print(f'Could not rebuild {wd}')
         return False
