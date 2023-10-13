@@ -11,6 +11,7 @@ import typing as T
 from ...mesonlib import EnvironmentException, OptionKey
 
 if T.TYPE_CHECKING:
+    from ...build.include_dirs import IncludeType
     from ...envconfig import MachineInfo
     from ...compilers.compilers import Compiler, CompileCheckMode
 else:
@@ -210,7 +211,7 @@ class MetrowerksCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'd'
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if not path:
             path = '.'
         return ['-I' + path]

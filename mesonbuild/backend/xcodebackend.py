@@ -10,6 +10,7 @@ from . import backends
 from .. import build
 from .. import mesonlib
 from .. import mlog
+from ..build.include_dirs import IncludeType
 from ..mesonlib import MesonBugException, MesonException, OptionKey
 
 if T.TYPE_CHECKING:
@@ -1583,7 +1584,7 @@ class XCodeBackend(backends.Backend):
                     # but adding -I/path to manual args does work.
                     swift_dep_dirs = self.determine_swift_dep_dirs(target)
                     for d in swift_dep_dirs:
-                        args += compiler.get_include_args(d, False)
+                        args += compiler.get_include_args(d, IncludeType.NORMAL)
                 if args:
                     lang_cargs = cargs
                     if compiler and target.implicit_include_directories:

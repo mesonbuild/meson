@@ -8,6 +8,7 @@ import os.path
 import string
 import typing as T
 
+from ..build.include_dirs import IncludeType
 from .. import coredata
 from .. import mlog
 from ..mesonlib import (
@@ -714,10 +715,10 @@ class CudaCompiler(Compiler):
     def get_warn_args(self, level: str) -> T.List[str]:
         return self.warn_args[level]
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if path == '':
             path = '.'
-        return ['-isystem=' + path] if is_system else ['-I' + path]
+        return ['-isystem=' + path] if kind is IncludeType.SYSTEM else ['-I' + path]
 
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_compile_debugfile_args(rel_obj, pch))

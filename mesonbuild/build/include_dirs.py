@@ -4,10 +4,19 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import enum
 import os
 import typing as T
 
 from ..mesonlib import HoldableObject
+
+
+class IncludeType(enum.Enum):
+
+    """What Kind of include is this"""
+
+    NORMAL = enum.auto()
+    SYSTEM = enum.auto()
 
 
 @dataclass(eq=False)
@@ -23,14 +32,14 @@ class IncludeDirs(HoldableObject):
         dependencies
     :param incdirs: a list of paths, either relative to the source dir, or
         absolute
-    :param is_system: is a system path. Use this if you want these to be used
+    :param kind: What kind of
         with `-isystem` (or equivalent) when possible
     :param extra_build_dirs: Extra build directory relative paths to include
     """
 
     curdir: T.Optional[str]
     incdirs: T.List[str]
-    is_system: bool = False
+    kind: IncludeType = IncludeType.NORMAL
     # Interpreter has validated that all given directories
     # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
@@ -65,8 +74,8 @@ class IncludeDirs(HoldableObject):
 
     def to_system(self) -> IncludeDirs:
         """Create a shallow copy of this IncludeDirs as a system dependency."""
-        return IncludeDirs(self.curdir, self.incdirs, True, self.extra_build_dirs)
+        return IncludeDirs(self.curdir, self.incdirs, IncludeType.SYSTEM, self.extra_build_dirs)
 
     def to_non_system(self) -> IncludeDirs:
         """Create a shallow copy of this IncludeDirs as a non-system dependency."""
-        return IncludeDirs(self.curdir, self.incdirs, False, self.extra_build_dirs)
+        return IncludeDirs(self.curdir, self.incdirs, IncludeType.NORMAL, self.extra_build_dirs)

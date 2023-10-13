@@ -8,6 +8,7 @@ import typing as T
 
 from .. import coredata
 from .. import mlog
+from ..build.include_dirs import IncludeType
 from ..mesonlib import MesonException, version_compare, OptionKey
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
@@ -610,7 +611,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if path == '':
             path = '.'
         return ['-include=' + path]
@@ -656,7 +657,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if path == '':
             path = '.'
         return ['-I' + path]
@@ -689,7 +690,7 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if path == '':
             path = '.'
         return ['-I' + path]

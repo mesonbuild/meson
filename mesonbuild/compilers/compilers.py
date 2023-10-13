@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget, DFeatures
+    from ..build.include_dirs import IncludeType
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -1190,7 +1191,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # TODO: is this a linker property?
         return []
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         return []
 
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:

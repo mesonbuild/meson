@@ -24,6 +24,7 @@ from .. import dependencies
 from .. import programs
 from .. import mesonlib
 from .. import mlog
+from ..build.include_dirs import IncludeType
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet,
@@ -327,7 +328,7 @@ class Backend:
         else:
             lead = self.build_to_src
         tmppath = os.path.normpath(os.path.join(lead, curdir))
-        return compiler.get_include_args(tmppath, False)
+        return compiler.get_include_args(tmppath, IncludeType.NORMAL)
 
     def get_build_dir_include_args(self, target: build.BuildTarget, compiler: 'Compiler', *, absolute_path: bool = False) -> T.List[str]:
         if absolute_path:
@@ -336,7 +337,7 @@ class Backend:
             curdir = target.get_subdir()
             if curdir == '':
                 curdir = '.'
-        return compiler.get_include_args(curdir, False)
+        return compiler.get_include_args(curdir, IncludeType.NORMAL)
 
     def get_target_filename_for_linking(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> T.Optional[str]:
         # On some platforms (msvc for instance), the file that is used for
@@ -930,7 +931,7 @@ class Backend:
     def get_pch_include_args(self, compiler: 'Compiler', target: build.BuildTarget) -> T.List[str]:
         args: T.List[str] = []
         pchpath = self.get_target_private_dir(target)
-        includeargs = compiler.get_include_args(pchpath, False)
+        includeargs = compiler.get_include_args(pchpath, IncludeType.NORMAL)
         p = target.get_pch(compiler.get_language())
         if p:
             args += compiler.get_pch_use_args(pchpath, p[0])
@@ -1067,7 +1068,7 @@ class Backend:
         if compiler.language == 'fortran':
             for lt in chain(target.link_targets, target.link_whole_targets):
                 priv_dir = self.get_target_private_dir(lt)
-                commands += compiler.get_include_args(priv_dir, False)
+                commands += compiler.get_include_args(priv_dir, IncludeType.NORMAL)
         return commands
 
     def build_target_link_arguments(self, compiler: 'Compiler', deps: T.List[build.Target]) -> T.List[str]:
@@ -1516,7 +1517,7 @@ class Backend:
             absolute_path: bool = False) -> T.List[str]:
         incs: T.List[str] = []
         for i in self.get_custom_target_dirs(target, compiler, absolute_path=absolute_path):
-            incs += compiler.get_include_args(i, False)
+            incs += compiler.get_include_args(i, IncludeType.NORMAL)
         return incs
 
     def eval_custom_target_command(

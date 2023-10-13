@@ -16,6 +16,7 @@ import typing as T
 
 from ... import mesonlib
 from ... import mlog
+from ...build.include_dirs import IncludeType
 from ...mesonlib import OptionKey
 from mesonbuild.compilers.compilers import CompileCheckMode
 
@@ -513,10 +514,10 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_compile_only_args(self) -> T.List[str]:
         return ['-c']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if not path:
             path = '.'
-        if is_system:
+        if kind is IncludeType.SYSTEM:
             return ['-isystem' + path]
         return ['-I' + path]
 

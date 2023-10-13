@@ -14,6 +14,7 @@ import typing as T
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
+from ...build.include_dirs import IncludeType
 from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
@@ -277,7 +278,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_werror_args(self) -> T.List[str]:
         return ['/WX']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if path == '':
             path = '.'
         # msvc does not have a concept of system header dirs.
@@ -455,10 +456,10 @@ class ClangClCompiler(VisualStudioLikeCompiler):
     def get_pch_base_name(self, header: str) -> str:
         return header
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if path == '':
             path = '.'
-        return ['/clang:-isystem' + path] if is_system else ['-I' + path]
+        return ['/clang:-isystem' + path] if kind is IncludeType.SYSTEM else ['-I' + path]
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:

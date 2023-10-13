@@ -11,6 +11,7 @@ import typing as T
 from ...mesonlib import EnvironmentException
 
 if T.TYPE_CHECKING:
+    from ...build.include_dirs import IncludeType
     from ...envconfig import MachineInfo
     from ...environment import Environment
     from ...compilers.compilers import Compiler
@@ -97,7 +98,7 @@ class TICompiler(Compiler):
     def get_werror_args(self) -> T.List[str]:
         return ['--emit_warnings_as_errors']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, is_system: IncludeType) -> T.List[str]:
         if path == '':
             path = '.'
         return ['-I=' + path]

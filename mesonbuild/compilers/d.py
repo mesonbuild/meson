@@ -10,6 +10,7 @@ import typing as T
 
 from .. import mesonlib
 from ..arglist import CompilerArgs
+from ..build.include_dirs import IncludeType
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
     EnvironmentException, version_compare, OptionKey, is_windows
@@ -116,7 +117,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     def get_linker_output_args(self, outputname: str) -> T.List[str]:
         return ['-of=' + outputname]
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if path == "":
             path = "."
         return ['-I=' + path]
