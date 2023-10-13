@@ -317,46 +317,57 @@ These dependencies can never be found for non-OSX hosts.
 
 ## BLAS and LAPACK
 
-*(added 1.2.0)*
+*(added 1.3.0)*
 
 Enables compiling and linking against BLAS and LAPACK libraries. BLAS and
 LAPACK are generic APIs, which can be provided by a number of different
 implementations. It is possible to request either any implementation that
 provides the API, or a specific implementation like OpenBLAS or MKL.
-Furthermore, a preferred order may be specified, as well as the bitness (32 or
-64) of the interface and whether to use the C or Fortran APIs.
+Furthermore, a preferred order may be specified, as well as the default
+integer size (LP64/32-bit or ILP64/64-bit) and whether to detect the Fortran
+and/or C APIs.
 
-Using the generic `'blas'` or `'lapack'` will try to find any matching
-implementation. The search order over implementations is not guaranteed; Meson
-aims to search them from higher to lower performance.
+The common API between all BLAS and LAPACK dependencies uses the `modules`
+keyword, with possible values:
+
+- `'interface: lp64'` (default) or `'interface: ilp64'`: to select the default
+  integer size
+- `'cblas'`: require the dependency to provide CBLAS (in addition to BLAS,
+  which is always present)
+- `'lapack'`: require the dependency to provide LAPACK
+
+The `get_variable` method on the returned dependency object may be used to
+query the symbol suffix for the found library. Different libraries use
+different symbol suffixes, and those are needed to link against the library
+from C/Fortran code. Those suffixes may be fixed, like is the case for MKL and
+Accelerate, or depend on the build configuration of the library, like is the
+case for OpenBLAS.
+
+Usage may look like:
 
 ```meson
-dependency('blas', interface : 'lp64', cblas : true)
-dependency('lapack', interface : 'ilp64', lapacke : false)
-```
+dep_mkl = dependency('mkl', modules: ['interface: ilp64', 'cblas', 'lapack'])
 
-Keywords:
-- `interface`: options are `lp64` for 32-bit LP64, and `ilp64` for 64-bit
-  ILP64. Default is `lp64`.
-- `cblas`: `true` or `false`. Default is `true`. (TBD: is `auto` needed?)
-- `lapacke`: `true` or `false`. Default is `false`.
+# Or, to select one of multiple BLAS/LAPACK implementations:
 
-The search order can be controlled by explicitly specifying it:
+blas = dependency(
+  ['accelerate', 'mkl', 'openblas', 'blas'],
+  modules: ['interface: ilp64', 'cblas', 'lapack'],
+)
+blas_symbol_suffix = blas.get_variable('symbol_suffix')
+if blas_symbol_suffix != ''
+  # The define here will be specific to the users code
+  _args_blas = ['-DBLAS_SYMBOL_SUFFIX=' + blas_symbol_suffix]
+endif
+blas_dep = declare_dependency(dependencies: [blas], compile_args: _args_blas)
 
-```meson
-# Specify what implementations to look for, and in what order
-blas_dep = dependency('accelerate', 'mkl', 'openblas', 'blis', 'atlas', 'netlib')
-lapack_dep = dependency('accelerate', 'mkl', 'openblas', 'atlas', 'netlib')
-
-# You can also add the generic BLAS or LAPACK as a fallback, this may help
-# portability
-blas_dep = dependency('openblas', 'mkl', 'blis', 'netlib', 'blas')
-lapack_dep = dependency('openblas', 'mkl', 'atlas', 'netlib')
+# Adding the generic BLAS or LAPACK as a fallback, this may improve portability
+blas_dep = dependency(['accelerate', 'mkl', 'openblas', 'blas')
+lapack_dep = dependency(['accelerate', 'mkl', 'openblas', 'lapack')
 ```
 
 Note that it is not necessary to specify both `'lapack'` and `'blas'` for the
-same build target, because LAPACK itself depends on BLAS. (TBD: is this okay
-for libflame?).
+same build target, because LAPACK itself depends on BLAS.
 
 
 ### Specific BLAS and LAPACK implementations
@@ -369,19 +380,12 @@ specific version and interface, correspondingly:
 ```meson
 openblas_dep = dependency('openblas',
   version : '>=0.3.21',
-  language: 'c',          # can be c/cpp/fortran
   modules: [
-    'interface: ilp64',   # can be lp64 or ilp64 (or auto?)
-    'symbol-suffix: 64_', # check/auto-detect? default to 64_ or no suffix?
+    'interface: ilp64',   # can be lp64 or ilp64
     'cblas',
-    'lapack',             # OpenBLAS can be built without LAPACK support
+    'lapack',
   ]
 )
-
-# Query properties as needed:
-has_cblas = openblas.get_variable('cblas')
-is_ilp64 = openblas_dep.get_variable('interface') == 'ilp64'
-blas_symbol_suffix = openblas_dep.get_variable('symbol-suffix')
 ```
 
 If OpenBLAS is installed in a nonstandard location *with* pkg-config files,
@@ -395,82 +399,67 @@ openblas_includedir = '/path/to/include_dir'  # should contain openblas_config.h
 openblas_librarydir = '/path/to/library_dir'
 ```
 
-Note that OpenBLAS can be built with either pthreads or OpenMP. Information on
+OpenBLAS build configurations may include different symbol suffixes for ILP64 builds,
+differences in library and pkg-config file naming conventions, and with or without
+CBLAS or LAPACK. Meson will autodetect common symbol suffix conventions and validate
+that, if `'cblas'` or `'lapack'` modules are requested, the found library actually
+was built with support for those APIs.
+
+OpenBLAS can be built with either pthreads or OpenMP threading. Information on
 this is not available through Meson.
 
-#### MKL
+#### Intel MKL
+
+MKL is built in a fixed build configuration per release by Intel, and always
+includes both LP64 and ILP64, and CBLAS and LAPACK. MKL provides a number of
+options for the threading layer - these can be selected through an MKL-specific
+`'threading'` module:
 
 ```meson
 mkl_dep = dependency('mkl',
-  version: '>=2021.1.0',
+  version: '>=2023.2.0',
   modules: [
     interface: 'lp64',   # options are 'lp64' or 'ilp64'
-    threading: 'seq',    # options are 'seq' or 'omp'
-    library: 'dynamic',  # options are 'dynamic' or 'static'
+    threading: 'seq',    # options are 'seq', 'iomp', 'gomp', 'tbb'
   ]
 )
 ```
 
-#### Netlib BLAS and LAPACK
-
-```meson
-netlib_blas_dep = dependency('netlib-blas', version: '>=3.9.0')
-netlib_lapack_dep = dependency('netlib-lapack', version: '>=3.9.0')
-```
-
-Note that this dependency will look for `libblas` or `liblapack`. No attempt is made
-to enforce that they're the original Netlib reference libraries; if another library
-is built with the same name, it's assumed that the APIs match.
-
-TODO: the Netlib BLAS library typically ships CBLAS as a separate library and a separate
-      cblas.pc file.
-
-
-#### ArmPL
-
-```meson
-armpl_dep = dependency('armpl',
-  version: '>=22.1',
-  modules: [
-    interface: 'lp64',
-    threading: 'seq',
-    library: 'dynamic',
-  ]
-)
-```
-
-The options for the `interface`, `threading` and `library` modules are the same
-as for MKL.
-
-
-
-#### ATLAS
-
-TODO
-
-#### BLIS
-
-TODO
-
-### libflame
-
-TODO
+In addition to all combinations of LP64/ILP64, threading, and dynamic/static
+libraries, MLK provides a "Single Dynamic Library" (SDL). To select it, use the
+`'sdl'` module. The SDL defaults to the LP64 interface and Intel OpenMP
+(`'iomp'`) threading, with switching other interface and threading options
+being accessible at runtime. When using the `'sdl'` module, either leave out
+the interface and threading modules or use values that match the SDL defaults -
+anything else will raise an error.
 
 ### Accelerate
 
-Supports the BLAS and LAPACK components of macOS Accelerate, also referred to
-as the vecLib framework. ILP64 support is only available on macOS 13.3 and up.
-From macOS 13.3, Accelerate ships with two different builds of 32-bit (LP64)
-BLAS and LAPACK. Meson will default to the newer of those builds, by defining
-`ACCELERATE_NEW_LAPACK`, unless `MACOS_DEPLOYMENT_TARGET` is set to a version
-lower than 13.3.
+Apple's Accelerate framework provides BLAS and LAPACK. It received a major update
+in macOS 13.3, with LAPACK updated from 3.2 to 3.9, ILP64 support added, and
+many longstanding bugs fixed. The `accelerate` dependency therefore only supports
+this new version, and won't return a result on macOS <13.3 (note: the
+corresponding 13.3 XCode SDK must also be installed) or if
+`MACOS_DEPLOYMENT_TARGET` is set to a version lower than 13.3.
 
 ```meson
-accelerate_dep = dependency('accelerate',
-  version: '>818.60',  # vecLib version (TODO: can this be determined?)
-  modules: [interface: 'lp64']
-)
+accelerate_dep = dependency('accelerate', modules: [interface: 'lp64'])
 ```
+
+Note that the default, older Accelerate version can still be detected through
+Meson's `appleframeworks` detection method:
+
+```meson
+dependency('Accelerate')
+# Or:
+dependency('appleframeworks', modules : 'Accelerate')
+```
+Those methods do not support any of the BLAS/LAPACK-specific modules.
+
+### Other BLAS and LAPACK libraries
+
+Specific support for other BLAS/LAPACK libraries is not (yet) included. They
+can still be detected via the regular pkg-config or CMake support.
 
 
 ## Blocks
