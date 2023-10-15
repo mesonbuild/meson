@@ -18,6 +18,7 @@ import json, os, re, sys
 import typing as T
 
 if T.TYPE_CHECKING:
+    from argparse import ArgumentParser, HelpFormatter
     from .mparser import BaseNode
 
 class RewriterException(MesonException):
@@ -25,7 +26,7 @@ class RewriterException(MesonException):
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser, formatter):
+def add_arguments(parser: ArgumentParser, formatter: T.Callable[[str], HelpFormatter]) -> None:
     parser.add_argument('-s', '--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
     parser.add_argument('-V', '--verbose', action='store_true', default=False, help='Enable verbose output')
     parser.add_argument('-S', '--skip-errors', dest='skip', action='store_true', default=False, help='Skip errors instead of aborting')
