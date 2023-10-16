@@ -1951,40 +1951,16 @@ class NinjaBackend(backends.Backend):
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
 
-        # Have we already injected msvc-crt args?
-        #
-        # If we don't have A C, C++, or Fortran compiler that is
-        # VisualStudioLike treat this as if we've already injected them
-        #
-        # We handle this here rather than in the rust compiler because in
-        # general we don't want to link rust targets to a non-default crt.
-        # However, because of the way that MSCRTs work you can only link to one
-        # per target, so if A links to the debug one, and B links to the normal
-        # one you can't link A and B. Rust is hardcoded to the default one,
-        # so if we compile C/C++ code and link against a non-default MSCRT then
-        # linking will fail. We can work around this by injecting MSCRT link
-        # arguments early in the rustc command line
+        # Rustc always use non-debug Windows runtime. Inject the one selected
+        # by Meson options instead.
         # https://github.com/rust-lang/rust/issues/39016
-        crt_args_injected = not any(x is not None and x.get_argument_syntax() == 'msvc' for x in
-                                    (self.environment.coredata.compilers[target.for_machine].get(l)
-                                     for l in ['c', 'cpp', 'fortran']))
-
-        crt_link_args: T.List[str] = []
-        try:
-            buildtype = target.get_option(OptionKey('buildtype'))
-            crt = target.get_option(OptionKey('b_vscrt'))
-            crt = rustc.get_crt_val(crt, buildtype)
-            if crt == 'mdd':
-                crt_link_args = ['-l', 'static=msvcrtd']
-            elif crt == 'md':
-                # this is the default, no need to inject anything
-                crt_args_injected = True
-            elif crt == 'mtd':
-                crt_link_args = ['-l', 'static=libcmtd']
-            elif crt == 'mt':
-                crt_link_args = ['-l', 'static=libcmt']
-        except KeyError:
-            crt_args_injected = True
+        if not isinstance(target, build.StaticLibrary):
+            try:
+                buildtype = target.get_option(OptionKey('buildtype'))
+                crt = target.get_option(OptionKey('b_vscrt'))
+                args += rustc.get_crt_link_args(crt, buildtype)
+            except KeyError:
+                pass
 
         # TODO: we likely need to use verbatim to handle name_prefix and name_suffix
         for d in target.link_targets:
@@ -2000,10 +1976,6 @@ class NinjaBackend(backends.Backend):
                 args += ['--extern', '{}={}'.format(d_name, os.path.join(d.subdir, d.filename))]
                 project_deps.append(RustDep(d_name, self.rust_crates[d.name].order))
                 continue
-
-            if not crt_args_injected and not {'c', 'cpp', 'fortran'}.isdisjoint(d.compilers):
-                args += crt_link_args
-                crt_args_injected = True
 
             if isinstance(d, build.StaticLibrary):
                 # Rustc doesn't follow Meson's convention that static libraries
@@ -2045,10 +2017,6 @@ class NinjaBackend(backends.Backend):
                 args += ['--extern', '{}={}'.format(d_name, os.path.join(d.subdir, d.filename))]
                 project_deps.append(RustDep(d_name, self.rust_crates[d.name].order))
             else:
-                if not crt_args_injected and not {'c', 'cpp', 'fortran'}.isdisjoint(d.compilers):
-                    crt_args_injected = True
-                    crt_args_injected = True
-
                 if rustc.linker.id in {'link', 'lld-link'}:
                     if verbatim:
                         # If we can use the verbatim modifier, then everything is great
