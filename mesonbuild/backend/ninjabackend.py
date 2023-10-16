@@ -1973,13 +1973,7 @@ class NinjaBackend(backends.Backend):
         try:
             buildtype = target.get_option(OptionKey('buildtype'))
             crt = target.get_option(OptionKey('b_vscrt'))
-            is_debug = buildtype == 'debug'
-
-            if crt == 'from_buildtype':
-                crt = 'mdd' if is_debug else 'md'
-            elif crt == 'static_from_buildtype':
-                crt = 'mtd' if is_debug else 'mt'
-
+            crt = rustc.get_crt_val(crt, buildtype)
             if crt == 'mdd':
                 crt_link_args = ['-l', 'static=msvcrtd']
             elif crt == 'md':
@@ -1989,7 +1983,6 @@ class NinjaBackend(backends.Backend):
                 crt_link_args = ['-l', 'static=libcmtd']
             elif crt == 'mt':
                 crt_link_args = ['-l', 'static=libcmt']
-
         except KeyError:
             crt_args_injected = True
 
