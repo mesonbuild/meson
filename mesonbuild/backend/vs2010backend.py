@@ -1311,28 +1311,15 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
         # CRT type; debug or release
         vscrt_type = target.get_option(OptionKey('b_vscrt'))
-        if vscrt_type == 'from_buildtype':
-            if self.buildtype == 'debug':
-                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
-            else:
-                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
-        elif vscrt_type == 'static_from_buildtype':
-            if self.buildtype == 'debug':
-                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
-            else:
-                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif vscrt_type == 'mdd':
+        vscrt_val = compiler.get_crt_val(vscrt_type, self.buildtype)
+        if vscrt_val == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
-        elif vscrt_type == 'mt':
+        elif vscrt_val == 'mt':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
-        elif vscrt_type == 'mtd':
+        elif vscrt_val == 'mtd':
             # FIXME, wrong
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
