@@ -32,12 +32,17 @@ if result.returncode() != 0
   error('MESON_SKIP_TEST bindgen does not seem to work')
 endif
 
+rust = import('unstable-rust')
+
+# Check version, this case is obviously impossible
+testcase expect_error('Program \'bindgen\' not found or not executable')
+  rust.bindgen(input : 'include/other.h', output : 'other.rs', bindgen_version : ['< 0.1', '> 10000'])
+endtestcase
+
 # This is to test the include_directories argument to bindgen
 inc = include_directories('include')
 
 c_lib = static_library('clib', 'src/source.c', include_directories : inc)
-
-rust = import('unstable-rust')
 
 gen = rust.bindgen(
   input : 'src/header.h',

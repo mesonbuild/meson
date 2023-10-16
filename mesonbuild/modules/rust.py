@@ -48,6 +48,7 @@ if T.TYPE_CHECKING:
         output: str
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         language: T.Optional[Literal['c', 'cpp']]
+        bindgen_version: T.List[str]
 
 
 class RustModule(ExtensionModule):
@@ -192,6 +193,7 @@ class RustModule(ExtensionModule):
             required=True,
         ),
         KwargInfo('language', (str, NoneType), since='1.4.0', validator=in_set_validator({'c', 'cpp'})),
+        KwargInfo('bindgen_version', ContainerTypeInfo(list, str), default=[], listify=True, since='1.4.0'),
         INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
         OUTPUT_KW,
         DEPENDENCIES_KW.evolve(since='1.0.0'),
@@ -236,7 +238,7 @@ class RustModule(ExtensionModule):
                     depends.append(s)
 
         if self._bindgen_bin is None:
-            self._bindgen_bin = state.find_program('bindgen')
+            self._bindgen_bin = state.find_program('bindgen', wanted=kwargs['bindgen_version'])
 
         name: str
         if isinstance(header, File):
