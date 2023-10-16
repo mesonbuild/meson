@@ -268,6 +268,23 @@ class RustModule(ExtensionModule):
         if language == 'cpp':
             clang_args.extend(['-x', 'c++'])
 
+        # Add the C++ standard to the clang arguments. Attempt to translate VS
+        # extension versions into the nearest standard version
+        std = state.get_option('std', lang=language)
+        assert isinstance(std, str), 'for mypy'
+        if std.startswith('vc++'):
+            if std.endswith('latest'):
+                mlog.warning('Attempting to translate vc++latest into a clang compatible version.',
+                             'Currently this is hardcoded for c++20', once=True, fatal=False)
+                std = 'c++20'
+            else:
+                mlog.debug('The current C++ standard is a Visual Studio extension version.',
+                           'bindgen will use a the nearest C++ standard instead')
+                std = std[1:]
+
+        if std != 'none':
+            clang_args.append(f'-std={std}')
+
         cmd = self._bindgen_bin.get_command() + \
             [
                 '@INPUT@', '--output',
