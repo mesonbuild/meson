@@ -3,7 +3,7 @@ short-description: Rust language integration module
 authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
-      years: [2020, 2021, 2022]
+      years: [2020, 2021, 2022, 2024]
 ...
 
 # Rust module
@@ -62,6 +62,7 @@ It takes the following keyword arguments
 - `c_args`: a list of string arguments to pass to clang untouched
 - `args`: a list of string arguments to pass to `bindgen` untouched.
 - `dependencies`: a list of `Dependency` objects to pass to the underlying clang call (*since 1.0.0*)
+- `language`: A literal string value of `c` or `cpp`. When set this will force bindgen to treat a source as the given language. Defaults to checking based on the input file extension. *(since 1.4.0)*
 
 ```meson
 rust = import('unstable-rust')

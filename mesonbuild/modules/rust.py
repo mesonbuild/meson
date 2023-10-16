@@ -13,7 +13,10 @@ from .. import mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
 from ..compilers.compilers import are_asserts_disabled, lang_suffixes
-from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS
+from ..interpreter.type_checking import (
+    DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW,
+    INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
+)
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..mesonlib import File
 
@@ -27,7 +30,7 @@ if T.TYPE_CHECKING:
     from ..programs import ExternalProgram, OverrideProgram
     from ..interpreter.type_checking import SourcesVarargsType
 
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, Literal
 
     class FuncTest(_kwargs.BaseTest):
 
@@ -44,6 +47,7 @@ if T.TYPE_CHECKING:
         input: T.List[SourceInputs]
         output: str
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
+        language: T.Optional[Literal['c', 'cpp']]
 
 
 class RustModule(ExtensionModule):
@@ -187,6 +191,7 @@ class RustModule(ExtensionModule):
             listify=True,
             required=True,
         ),
+        KwargInfo('language', (str, NoneType), since='1.4.0', validator=in_set_validator({'c', 'cpp'})),
         INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
         OUTPUT_KW,
         DEPENDENCIES_KW.evolve(since='1.0.0'),
@@ -243,7 +248,15 @@ class RustModule(ExtensionModule):
 
         # bindgen assumes that C++ headers will be called .hpp. We want to
         # ensure that anything Meson considers a C++ header is treated as one.
-        language = 'cpp' if os.path.splitext(name)[1][1:] in lang_suffixes['cpp'] else 'c'
+        language = kwargs['language']
+        if language is None:
+            ext = os.path.splitext(name)[1][1:]
+            if ext in lang_suffixes['cpp']:
+                language = 'cpp'
+            elif ext == 'h':
+                language = 'c'
+            else:
+                raise InterpreterException(f'Unknown file type extension for: {name}')
 
         # We only want include directories and defines, other things may not be valid
         cargs = state.get_option('args', state.subproject, lang=language)
@@ -252,8 +265,6 @@ class RustModule(ExtensionModule):
             if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
                 clang_args.append(a)
 
-        # bindgen assumes that C++ headers will be called .hpp. We want to
-        # ensure that anything Meson considers a C++ header is treated as one.
         if language == 'cpp':
             clang_args.extend(['-x', 'c++'])
 
