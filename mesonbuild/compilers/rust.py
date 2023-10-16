@@ -55,6 +55,17 @@ class RustCompiler(Compiler):
         '3': ['-W', 'warnings'],
     }
 
+    # Those are static libraries, but we use dylib= here as workaround to avoid
+    # rust --tests to use /WHOLEARCHIVE.
+    # https://github.com/rust-lang/rust/issues/116910
+    MSVCRT_ARGS: T.Mapping[str, T.List[str]] = {
+        'none': [],
+        'md': [], # this is the default, no need to inject anything
+        'mdd': ['-l', 'dylib=msvcrtd'],
+        'mt': ['-l', 'dylib=libcmt'],
+        'mtd': ['-l', 'dylib=libcmtd'],
+    }
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -176,6 +187,11 @@ class RustCompiler(Compiler):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         # Rust handles this for us, we don't need to do anything
         return []
+
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        if self.linker.id not in {'link', 'lld-link'}:
+            return []
+        return self.MSVCRT_ARGS[self.get_crt_val(crt_val, buildtype)]
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if colortype in {'always', 'never', 'auto'}:
