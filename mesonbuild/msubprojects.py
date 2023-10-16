@@ -153,6 +153,11 @@ class Runner:
         try:
             wrapdb_version = self.wrap.get('wrapdb_version')
             branch, revision = wrapdb_version.split('-', 1)
+        except ValueError:
+            if not options.force:
+                self.log('  ->', mlog.red('Malformed wrapdb_version field, use --force to update any way'))
+                return False
+            branch = revision = None
         except WrapException:
             # Fallback to parsing the patch URL to determine current version.
             # This won't work for projects that have upstream Meson support.
