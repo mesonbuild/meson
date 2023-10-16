@@ -1,7 +1,7 @@
 # SPDX-license-identifer: Apache-2.0
 # Copyright © 2021-2022 Intel Corporation
 
-project('rustmod bindgen', ['c', 'rust'], meson_version : '>= 0.63')
+project('rustmod bindgen', ['c', 'cpp', 'rust'], meson_version : '>= 0.63')
 
 prog_bindgen = find_program('bindgen', required : false)
 if not prog_bindgen.found()
@@ -107,3 +107,17 @@ gp_exe = executable(
 )
 
 test('global and project arguments', gp_exe)
+
+cpp_lib = static_library('cpplib', 'src/impl.cpp')
+
+cpp_bind = rust.bindgen(
+  input : 'src/header.hpp',
+  output : 'generated-cpp.rs',
+)
+
+cpp_exe = executable(
+  'cpp_exe',
+  structured_sources(['src/cpp.rs', cpp_bind]),
+  link_with : cpp_lib,
+)
+test('cpp', cpp_exe)
