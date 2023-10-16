@@ -73,7 +73,7 @@ class ModuleState:
     def find_program(self, prog: T.Union[mesonlib.FileOrString, T.List[mesonlib.FileOrString]],
                      required: bool = True,
                      version_func: T.Optional[ProgramVersionFunc] = None,
-                     wanted: T.Optional[str] = None, silent: bool = False,
+                     wanted: T.Union[str, T.List[str]] = '', silent: bool = False,
                      for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[ExternalProgram, build.Executable, OverrideProgram]:
         if not isinstance(prog, list):
             prog = [prog]
