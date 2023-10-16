@@ -12,7 +12,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
-from ..compilers.compilers import are_asserts_disabled
+from ..compilers.compilers import are_asserts_disabled, lang_suffixes
 from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..mesonlib import File
@@ -230,13 +230,6 @@ class RustModule(ExtensionModule):
                 elif isinstance(s, CustomTarget):
                     depends.append(s)
 
-        # We only want include directories and defines, other things may not be valid
-        cargs = state.get_option('args', state.subproject, lang='c')
-        assert isinstance(cargs, list), 'for mypy'
-        for a in itertools.chain(state.global_args.get('c', []), state.project_args.get('c', []), cargs):
-            if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
-                clang_args.append(a)
-
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen')
 
@@ -247,6 +240,22 @@ class RustModule(ExtensionModule):
             raise InterpreterException('bindgen source file must be a C header, not an object or build target')
         else:
             name = header.get_outputs()[0]
+
+        # bindgen assumes that C++ headers will be called .hpp. We want to
+        # ensure that anything Meson considers a C++ header is treated as one.
+        language = 'cpp' if os.path.splitext(name)[1][1:] in lang_suffixes['cpp'] else 'c'
+
+        # We only want include directories and defines, other things may not be valid
+        cargs = state.get_option('args', state.subproject, lang=language)
+        assert isinstance(cargs, list), 'for mypy'
+        for a in itertools.chain(state.global_args.get(language, []), state.project_args.get(language, []), cargs):
+            if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
+                clang_args.append(a)
+
+        # bindgen assumes that C++ headers will be called .hpp. We want to
+        # ensure that anything Meson considers a C++ header is treated as one.
+        if language == 'cpp':
+            clang_args.extend(['-x', 'c++'])
 
         cmd = self._bindgen_bin.get_command() + \
             [
