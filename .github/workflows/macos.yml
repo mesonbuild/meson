@@ -26,11 +26,29 @@ permissions:
 jobs:
   unittests-appleclang:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        homebrew: [True, False]
+        builtin-python: [True, False]
     steps:
     - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - name: Install Python with setup-python action
+      if: ! ${{ matrix.builtin_python }}
+      uses: actions/setup-python@v4
       with:
         python-version: '3.x'
+    - name: Install Homebrew Python
+      if: ${{ matrix.homebrew }}
+      run: |
+        eval "$(brew shellenv)"
+        echo HOMEBREW_PREFIX="$HOMEBREW_PREFIX" >> $GITHUB_ENV
+        echo HOMEBREW_REPOSITORY="$HOMEBREW_REPOSITORY" >> $GITHUB_ENV
+        echo HOMEBREW_CELLAR="$HOMEBREW_CELLAR" >> $GITHUB_ENV
+        echo PATH="$PATH" >> $GITHUB_ENV
+        echo MANPATH="$MANPATH" >> $GITHUB_ENV
+        echo INFOPATH="$INFOPATH" >> $GITHUB_ENV
+        brew install python@3
+
     - run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-xdist pytest-subtests jsonschema coverage
@@ -69,6 +87,8 @@ jobs:
           unity: off
         - NAME: macos-clang-unity
           unity: on
+        homebrew: [True, False]
+        builtin-python: [True, False]
 
     name: ${{ matrix.NAME }}
     env:
@@ -76,16 +96,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    # Avoid picking up an older version of LLVM that does not work.
-    - run: brew update
-    # github actions overwrites brew's python. Force it to reassert itself, by running in a separate step.
-    - name: unbreak python in github actions
+    - name: Install Python with setup-python action
+      if: ! ${{ matrix.builtin_python }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: Install Homebrew Python
+      if: ${{ matrix.homebrew }}
       run: |
-        find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
-        sudo rm -rf /Library/Frameworks/Python.framework/
-        brew install --force python3 && brew unlink python3 && brew unlink python3 && brew link --overwrite python3
-    # use python3 from homebrew because it is a valid framework, unlike the actions one:
-    # https://github.com/actions/setup-python/issues/58
+        eval "$(brew shellenv)"
+        echo HOMEBREW_PREFIX="$HOMEBREW_PREFIX" >> $GITHUB_ENV
+        echo HOMEBREW_REPOSITORY="$HOMEBREW_REPOSITORY" >> $GITHUB_ENV
+        echo HOMEBREW_CELLAR="$HOMEBREW_CELLAR" >> $GITHUB_ENV
+        echo PATH="$PATH" >> $GITHUB_ENV
+        echo MANPATH="$MANPATH" >> $GITHUB_ENV
+        echo INFOPATH="$INFOPATH" >> $GITHUB_ENV
+        brew install python@3
+
+
     - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 boost-python3 gtk-doc
     - run: |
         python3 -m pip install --upgrade setuptools
