@@ -243,7 +243,6 @@ class RustModule(ExtensionModule):
         # We only want include directories and defines, other things may not be valid
         cargs = state.get_option('args', state.subproject, lang='c')
         assert isinstance(cargs, list), 'for mypy'
-        clang_args.extend(cargs)
         for a in itertools.chain(state.global_args.get('c', []), state.project_args.get('c', []), cargs):
             if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
                 clang_args.append(a)
