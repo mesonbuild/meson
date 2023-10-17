@@ -4810,6 +4810,34 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(cm.exception.returncode, 1)
         self.assertIn('exit status 39', cm.exception.stdout)
 
+    @skip_if_not_language('rust')
+    def test_bindgen_drops_invalid(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        testdir = os.path.join(self.rust_test_dir, '12 bindgen')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        # bindgen understands compiler args that clang understands, but not
+        # flags by other compilers
+        if cc.get_id() == 'gcc':
+            bad_arg = '-fdse'
+        elif cc.get_id() == 'msvc':
+            bad_arg = '/fastfail'
+        else:
+            raise unittest.SkipTest('Test only supports GCC and MSVC')
+        self.init(testdir, extra_args=[f"-Dc_args=['-DCMD_ARG', '{bad_arg}']"])
+        intro = self.introspect(['--targets'])
+        for i in intro:
+            if i['type'] == 'custom' and i['id'].startswith('rustmod-bindgen'):
+                args = i['target_sources'][0]['compiler']
+                self.assertIn('-DCMD_ARG', args)
+                self.assertIn('-DPROJECT_ARG', args)
+                self.assertIn('-DGLOBAL_ARG', args)
+                self.assertNotIn(bad_arg, args)
+                self.assertNotIn('-mtls-dialect=gnu2', args)
+                self.assertNotIn('/fp:fast', args)
+                return
+
     def test_custom_target_name(self):
         testdir = os.path.join(self.unit_test_dir, '100 custom target name')
         self.init(testdir)

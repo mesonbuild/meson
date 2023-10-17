@@ -8,8 +8,16 @@ if not prog_bindgen.found()
   error('MESON_SKIP_TEST bindgen not found')
 endif
 
-add_project_arguments('-DPROJECT_ARG', language : 'c')
-add_global_arguments('-DGLOBAL_ARG', language : 'c')
+cc_id = meson.get_compiler('c').get_id()
+compiler_specific_args = []
+if cc_id == 'gcc'
+  compiler_specific_args = ['-mtls-dialect=gnu2']
+elif cc_id == 'msvc'
+  compiler_specific_args = ['/fp:fast']
+endif
+
+add_project_arguments(['-DPROJECT_ARG', compiler_specific_args], language : 'c')
+add_global_arguments(['-DGLOBAL_ARG', compiler_specific_args], language : 'c')
 
 # This seems to happen on windows when libclang.dll is not in path or is not
 # valid. We must try to process a header file for this to work.
