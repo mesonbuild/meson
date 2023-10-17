@@ -6,10 +6,10 @@ string representation of the integer with leading zeroes:
 ```meson
 n = 4
 message(n.to_string())
-message(n.to_string(length: 3))
+message(n.to_string(fill: 3))
 
 n = -4
-message(n.to_string(length: 3))
+message(n.to_string(fill: 3))
 ```
 
 OUTPUT:
