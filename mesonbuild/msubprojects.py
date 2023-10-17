@@ -155,7 +155,7 @@ class Runner:
             branch, revision = wrapdb_version.split('-', 1)
         except ValueError:
             if not options.force:
-                self.log('  ->', mlog.red('Malformed wrapdb_version field, use --force to update any way'))
+                self.log('  ->', mlog.red('Malformed wrapdb_version field, use --force to update anyway'))
                 return False
             branch = revision = None
         except WrapException:
@@ -166,7 +166,7 @@ class Runner:
                 branch, revision = parse_patch_url(patch_url)
             except WrapException:
                 if not options.force:
-                    self.log('  ->', mlog.red('Could not determine current version, use --force to update any way'))
+                    self.log('  ->', mlog.red('Could not determine current version, use --force to update anyway'))
                     return False
                 branch = revision = None
 
