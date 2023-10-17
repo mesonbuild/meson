@@ -883,8 +883,7 @@ class Backend:
         for gensrc in extobj.genlist:
             for r in gensrc.get_outputs():
                 path = self.get_target_generated_dir(extobj.target, gensrc, r)
-                dirpart, fnamepart = os.path.split(path)
-                raw_sources.append(File(True, dirpart, fnamepart))
+                raw_sources.append(File.from_built_relative(path))
 
         # Filter out headers and all non-source files
         sources: T.List['FileOrString'] = []
