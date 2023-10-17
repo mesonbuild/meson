@@ -48,7 +48,7 @@ lib_suffixes = {'a', 'lib', 'dll', 'dll.a', 'dylib', 'so', 'js'}
 # First suffix is the language's default.
 lang_suffixes = {
     'c': ('c',),
-    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx', 'C'),
+    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx', 'C', 'H'),
     'cuda': ('cu',),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
