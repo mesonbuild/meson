@@ -86,6 +86,7 @@ from .type_checking import (
     LANGUAGE_KW,
     NATIVE_KW,
     PRESERVE_PATH_KW,
+    PROJECT_DEFAULT_OPTIONS,
     REQUIRED_KW,
     SHARED_LIB_KWS,
     SHARED_MOD_KWS,
@@ -273,7 +274,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                default_project_options: T.Optional[T.Dict[OptionKey, str]] = None,
+                parent_default_options: T.Optional[T.Dict[OptionKey, str]] = None,
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 is_translated: bool = False,
@@ -307,12 +308,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
         self.subproject_stack: T.List[str] = []
         self.configure_file_outputs: T.Dict[str, int] = {}
-        # Passed from the outside, only used in subprojects.
-        if default_project_options:
-            self.default_project_options = default_project_options.copy()
-        else:
-            self.default_project_options = {}
-        self.project_default_options: T.Dict[OptionKey, str] = {}
+        # Those are options passed as subproject(..., default_options: {}), or
+        # when doing a fallback.
+        self.parent_default_options = parent_default_options or {}
+        assert all(k.subproject == self.subproject for k in self.parent_default_options.keys())
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
@@ -877,6 +876,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subprojects[subp_name] = sub
         return sub
 
+    def _has_user_defined_options(self, subproject: str) -> bool:
+        for k, v in self.coredata.options.items():
+            if k.subproject == subproject and v.source >= mesonlib.OptionSource.MACHINE_FILE:
+                return True
+        return False
+
     def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
@@ -948,6 +953,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                     # fatal and VS CI treat any logs with "ERROR:" as fatal.
                     mlog.exception(e, prefix=mlog.yellow('Exception:'))
                 mlog.log('\nSubproject', mlog.bold(subdir), 'is buildable:', mlog.red('NO'), '(disabling)')
+                if self._has_user_defined_options(subp_name):
+                    raise InterpreterException(f'Cannot disable subproject {subp_name} because it has user defined options')
                 return self.disabled_subproject(subp_name, exception=e)
             raise e
 
@@ -1157,7 +1164,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('project', str, varargs=str)
     @typed_kwargs(
         'project',
-        DEFAULT_OPTIONS,
+        PROJECT_DEFAULT_OPTIONS,
         KwargInfo('meson_version', (str, NoneType)),
         KwargInfo(
             'version',
@@ -1202,28 +1209,26 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.coredata.update_project_options(oi.options)
             self.add_build_def_file(option_file)
 
-        if self.subproject:
-            self.project_default_options = {k.evolve(subproject=self.subproject): v
-                                            for k, v in kwargs['default_options'].items()}
-        else:
-            self.project_default_options = kwargs['default_options']
-
-        # Do not set default_options on reconfigure otherwise it would override
-        # values previously set from command line. That means that changing
-        # default_options in a project will trigger a reconfigure but won't
-        # have any effect.
-        #
-        # If this is the first invocation we always need to initialize
-        # builtins, if this is a subproject that is new in a re-invocation we
-        # need to initialize builtins for that
-        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
-            default_options = self.project_default_options.copy()
-            default_options.update(self.default_project_options)
+        # If this is the first time we configure this (sub)project, initialize builtin options.
+        if self.subproject not in self.coredata.initialized_subprojects:
             self.coredata.init_builtins(self.subproject)
             self.coredata.initialized_subprojects.add(self.subproject)
-        else:
-            default_options = {}
-        self.coredata.set_default_options(default_options, self.subproject, self.environment)
+
+        # Subprojects can only set default_options on themself.
+        default_options = kwargs['default_options']
+        if self.subproject:
+            default_options = {k.evolve(subproject=self.subproject): v
+                               for k, v in default_options.items() if not k.subproject}
+        default_options.update(self.parent_default_options)
+
+        # Environment will update its value only if it does not have a higher priority source.
+        for k, v in default_options.items():
+            self.environment.set_option(k, v, mesonlib.OptionSource.DEFAULT)
+
+        # Set all options for this (sub)project we collected in the Environment object.
+        # This will only update those that did not have a higher priority source already
+        # stored in coredata.
+        self.coredata.set_project_options(self.environment, self.subproject)
 
         if not self.is_subproject():
             self.build.project_name = proj_name
@@ -2176,15 +2181,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                   kwargs: 'kwtypes.FuncTest') -> None:
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> EnvironmentVariables:
-        envlist = kwargs.get('env')
-        if envlist is None:
-            return EnvironmentVariables()
-        msg = ENV_KW.validator(envlist)
-        if msg:
-            raise InvalidArguments(f'"env": {msg}')
-        return ENV_KW.convertor(envlist)
-
     def make_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
                   kwargs: 'kwtypes.BaseTest') -> Test:
@@ -2199,8 +2195,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments('Tried to use not-found external program as test exe')
         elif isinstance(exe, mesonlib.File):
             exe = self.find_program_impl([exe])
-
-        env = self.unpack_env_kwarg(kwargs)
 
         if kwargs['timeout'] <= 0:
             FeatureNew.single_use('test() timeout <= 0', '0.57.0', self.subproject, location=node)
@@ -2220,7 +2214,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     kwargs['depends'],
                     kwargs.get('is_parallel', False),
                     kwargs['args'],
-                    env,
+                    kwargs['env'],
                     kwargs['should_fail'],
                     kwargs['timeout'],
                     kwargs['workdir'],
@@ -2999,12 +2993,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         init = args[0]
         if init is not None:
             FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject, location=node)
-            msg = ENV_KW.validator(init)
-            if msg:
-                raise InvalidArguments(f'"environment": {msg}')
             if isinstance(init, dict) and any(i for i in init.values() if isinstance(i, list)):
                 FeatureNew.single_use('List of string in dictionary value', '0.62.0', self.subproject, location=node)
-            return env_convertor_with_method(init, kwargs['method'], kwargs['separator'])
+            try:
+                return env_convertor_with_method(init, kwargs['method'], kwargs['separator'])
+            except MesonException as e:
+                raise InvalidArguments(f'environment positional argument {str(e)}')
         return EnvironmentVariables()
 
     @typed_pos_args('join_paths', varargs=str, min_varargs=1)

@@ -416,7 +416,7 @@ class KwargInfo(T.Generic[_T]):
                deprecated_message: T.Union[str, None, _NULL_T] = _NULL,
                deprecated_values: T.Union[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
                validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
-               convertor: T.Union[T.Callable[[_T], TYPE_var], None, _NULL_T] = _NULL) -> 'KwargInfo':
+               convertor: T.Union[T.Callable[[_T], object], None, _NULL_T] = _NULL) -> 'KwargInfo':
         """Create a shallow copy of this KwargInfo, with modifications.
 
         This allows us to create a new copy of a KwargInfo with modifications.
@@ -574,7 +574,10 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                         mlog.warning(info.not_set_warning)
 
                 if info.convertor:
-                    kwargs[info.name] = info.convertor(kwargs[info.name])
+                    try:
+                        kwargs[info.name] = info.convertor(kwargs[info.name])
+                    except mesonlib.MesonException as e:
+                        raise InvalidArguments(f'{name} keyword argument "{info.name}" {str(e)}')
 
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast('TV_func', wrapper)

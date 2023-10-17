@@ -16,7 +16,7 @@ from ..coredata import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
-                        OptionKey, EnvironmentVariables)
+                        OptionKey, EnvironmentVariables, MesonException)
 from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`
@@ -24,8 +24,6 @@ NoneType: T.Type[None] = type(None)
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
-
-    from ..interpreterbase import TYPE_var
     from ..mesonlib import EnvInitValueType
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
@@ -193,66 +191,33 @@ REQUIRED_KW: KwargInfo[T.Union[bool, UserFeatureOption]] = KwargInfo(
 
 DISABLER_KW: KwargInfo[bool] = KwargInfo('disabler', bool, default=False)
 
-def _env_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None],
-                   only_dict_str: bool = True) -> T.Optional[str]:
-    def _splitter(v: str) -> T.Optional[str]:
-        split = v.split('=', 1)
-        if len(split) == 1:
-            return f'"{v}" is not two string values separated by an "="'
-        return None
 
-    if isinstance(value, str):
-        v = _splitter(value)
-        if v is not None:
-            return v
-    elif isinstance(value, list):
-        for i in listify(value):
-            if not isinstance(i, str):
-                return f"All array elements must be a string, not {i!r}"
-            v = _splitter(i)
-            if v is not None:
-                return v
-    elif isinstance(value, dict):
-        # We don't need to spilt here, just do the type checking
-        for k, dv in value.items():
-            if only_dict_str:
-                if any(i for i in listify(dv) if not isinstance(i, str)):
-                    return f"Dictionary element {k} must be a string or list of strings not {dv!r}"
-            elif isinstance(dv, list):
-                if any(not isinstance(i, str) for i in dv):
-                    return f"Dictionary element {k} must be a string, bool, integer or list of strings, not {dv!r}"
-            elif not isinstance(dv, (str, bool, int)):
-                return f"Dictionary element {k} must be a string, bool, integer or list of strings, not {dv!r}"
-    # We know that otherwise we have an EnvironmentVariables object or None, and
-    # we're okay at this point
-    return None
-
-def _options_validator(value: T.Union[EnvironmentVariables, T.List['TYPE_var'], T.Dict[str, 'TYPE_var'], str, None]) -> T.Optional[str]:
-    # Reusing the env validator is a little overkill, but nicer than duplicating the code
-    return _env_validator(value, only_dict_str=False)
-
-def split_equal_string(input: str) -> T.Tuple[str, str]:
+def split_equal_string(s: str) -> T.Tuple[str, str]:
     """Split a string in the form `x=y`
-
-    This assumes that the string has already been validated to split properly.
     """
-    a, b = input.split('=', 1)
-    return (a, b)
+    split = s.split('=', 1)
+    if len(split) != 2:
+        raise MesonException(f'{s!r} is not two string values separated by an "="')
+    return split[0], split[1]
 
 # Split _env_convertor() and env_convertor_with_method() to make mypy happy.
 # It does not want extra arguments in KwargInfo convertor callable.
 def env_convertor_with_method(value: _FullEnvInitValueType,
                               init_method: Literal['set', 'prepend', 'append'] = 'set',
                               separator: str = os.pathsep) -> EnvironmentVariables:
-    if isinstance(value, str):
-        return EnvironmentVariables(dict([split_equal_string(value)]), init_method, separator)
-    elif isinstance(value, list):
-        return EnvironmentVariables(dict(split_equal_string(v) for v in listify(value)), init_method, separator)
+    if isinstance(value, EnvironmentVariables):
+        return value
+    elif isinstance(value, (str, list)):
+        v = listify(value)
+        if any(not isinstance(i, str) for i in v):
+            raise MesonException(f"array elements must be a string or list of strings, not {value!r}")
+        return EnvironmentVariables(dict(split_equal_string(i) for i in v), init_method, separator)
     elif isinstance(value, dict):
+        for k, dv in value.items():
+            if any(not isinstance(i, str) for i in listify(dv)):
+                raise MesonException(f"dictionary element {k!r} must be a string or list of strings, not {dv!r}")
         return EnvironmentVariables(value, init_method, separator)
-    elif value is None:
-        return EnvironmentVariables()
-    return value
+    return EnvironmentVariables()
 
 def _env_convertor(value: _FullEnvInitValueType) -> EnvironmentVariables:
     return env_convertor_with_method(value)
@@ -260,7 +225,6 @@ def _env_convertor(value: _FullEnvInitValueType) -> EnvironmentVariables:
 ENV_KW: KwargInfo[T.Union[EnvironmentVariables, T.List, T.Dict, str, None]] = KwargInfo(
     'env',
     (EnvironmentVariables, list, dict, str, NoneType),
-    validator=_env_validator,
     convertor=_env_convertor,
 )
 
@@ -294,23 +258,26 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTarge
     default=[],
 )
 
-def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, T.Union[str, int, bool, T.List[str]]]]) -> T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]:
-    if isinstance(raw, str):
-        raw = [raw]
-    if isinstance(raw, list):
-        output: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]] = {}
-        for each in raw:
-            k, v = split_equal_string(each)
-            output[OptionKey.from_string(k)] = v
-        return output
-    return {OptionKey.from_string(k): v for k, v in raw.items()}
+def _options_convertor(value: T.Union[str, T.List[str], T.Dict[str, T.Union[str, int, bool, T.List[str]]]]) -> T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]:
+    if isinstance(value, (str, list)):
+        value = dict(split_equal_string(v) for v in listify(value))
+    else:
+        for k, dv in value.items():
+            if isinstance(dv, list) and any(not isinstance(i, str) for i in dv):
+                raise MesonException(f"dictionary element {k!r} must be a list of strings, not {dv!r}")
+    return {OptionKey.from_string(k): v for k, v in value.items()}
 
+def _override_options_convertor(value: T.Union[str, T.List[str], T.Dict[str, T.Union[str, int, bool, T.List[str]]]]) -> T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]:
+    ret = _options_convertor(value)
+    for k, v in ret.items():
+        if k.subproject:
+            raise MesonException(f'does not allow subproject part in option name {str(k)!r}')
+    return ret
 
 OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, T.Union[str, int, bool, T.List[str]]], T.List[str]]] = KwargInfo(
     'override_options',
     (str, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, (str, int, bool, list))),
     default={},
-    validator=_options_validator,
     convertor=_override_options_convertor,
     since_values={dict: '1.2.0'},
 )
@@ -409,6 +376,7 @@ INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
 )
 
 DEFAULT_OPTIONS = OVERRIDE_OPTIONS_KW.evolve(name='default_options')
+PROJECT_DEFAULT_OPTIONS = DEFAULT_OPTIONS.evolve(convertor=_options_convertor)
 
 ENV_METHOD_KW = KwargInfo('method', str, default='set', since='0.62.0',
                           validator=in_set_validator({'set', 'prepend', 'append'}))

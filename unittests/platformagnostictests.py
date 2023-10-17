@@ -278,3 +278,64 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
+
+    def test_option_source(self):
+        # Create a temporary srcdir because we need to modify meson.build file.
+        srcdir = os.path.join(self.builddir, 'myproject')
+        os.mkdir(srcdir)
+        self.new_builddir()
+        meson_build = Path(srcdir, 'meson.build')
+        meson_build.write_text("project('myproject')")
+        meson_options = Path(srcdir, 'meson_options.txt')
+        meson_options.write_text("option('opt', type: 'string', value: 'from_meson_options')")
+        native_file = Path(srcdir, 'native.ini')
+        native_file.write_text("[built-in options]\ndefault_library='static'")
+
+        # First invocation
+        self.init(srcdir, extra_args=['--native-file', str(native_file)])
+        self.build()
+        self.assertEqual(self.getconf('opt'), 'from_meson_options')
+        self.assertEqual(self.getconf('default_library'), 'static')
+
+        # Update default value in meson_options.txt should change value on
+        # reconfigure.
+        meson_options.write_text("option('opt', type: 'string', value: 'from_meson_options_updated')")
+        self.build()
+        self.assertEqual(self.getconf('opt'), 'from_meson_options_updated')
+
+        # Update in project() default_options takes precedence over meson_options.txt
+        meson_build.write_text("project('myproject', default_options: {'opt': 'from_default_options'})")
+        self.build()
+        self.assertEqual(self.getconf('opt'), 'from_default_options')
+
+        # Update again meson_options.txt should not affect the value.
+        meson_options.write_text("option('opt', type: 'string', value: 'from_meson_options_updated_again')")
+        self.build()
+        self.assertEqual(self.getconf('opt'), 'from_default_options')
+
+        # Update native file should change value
+        native_file.write_text("[project options]\ndefault_library='both'")
+        self.build()
+        self.assertEqual(self.getconf('default_library'), 'both')
+
+        # Override value from native file with command line.
+        self.init(srcdir, extra_args=['--reconfigure', '-Ddefault_library=shared'])
+        self.assertEqual(self.getconf('default_library'), 'shared')
+
+        # Update native file again should not affect the value.
+        native_file.write_text("[project options]\ndefault_library='static'")
+        self.build()
+        self.assertEqual(self.getconf('default_library'), 'shared')
+
+        # Reconfigure should use new env
+        self.assertEqual(self.getconf('pkg_config_path'), [])
+        self.init(srcdir, extra_args=['--reconfigure'], override_envvars={'PKG_CONFIG_PATH': '/path1'})
+        self.assertEqual(self.getconf('pkg_config_path'), ['/path1'])
+
+        # If env is missing value is preserved
+        self.init(srcdir, extra_args=['--reconfigure'])
+        self.assertEqual(self.getconf('pkg_config_path'), ['/path1'])
+
+        # Command line overrides env
+        self.init(srcdir, extra_args=['--reconfigure', '-Dpkg_config_path=/path2'], override_envvars={'PKG_CONFIG_PATH': '/path3'})
+        self.assertEqual(self.getconf('pkg_config_path'), ['/path2'])

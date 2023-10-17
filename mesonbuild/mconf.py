@@ -27,7 +27,7 @@ from . import mesonlib
 from . import mintro
 from . import mlog
 from .ast import AstIDGenerator, IntrospectionInterpreter
-from .mesonlib import MachineChoice, OptionKey
+from .mesonlib import MachineChoice, OptionKey, RawOption, OptionSource
 
 if T.TYPE_CHECKING:
     import argparse
@@ -92,7 +92,8 @@ class Conf:
         self.coredata.clear_cache()
 
     def set_options(self, options: T.Dict[OptionKey, str]) -> bool:
-        return self.coredata.set_options(options)
+        d = {k: RawOption(v, OptionSource.CMD_LINE) for k, v in options.items()}
+        return self.coredata.set_options(d)
 
     def save(self) -> None:
         # Do nothing when using introspection

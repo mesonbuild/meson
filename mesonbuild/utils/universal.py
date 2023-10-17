@@ -27,6 +27,7 @@ import collections
 from functools import lru_cache, wraps, total_ordering
 from itertools import tee
 from tempfile import TemporaryDirectory, NamedTemporaryFile
+from dataclasses import dataclass
 import typing as T
 import textwrap
 import pickle
@@ -78,6 +79,7 @@ __all__ = [
     'GitException',
     'OptionKey',
     'dump_conf_header',
+    'OptionSource',
     'OptionType',
     'OrderedSet',
     'PerMachine',
@@ -146,6 +148,7 @@ __all__ = [
     'Popen_safe_logged',
     'quiet_git',
     'quote_arg',
+    'RawOption',
     'relative_to_if_possible',
     'relpath',
     'replace_if_different',
@@ -2133,6 +2136,30 @@ def generate_list(func: T.Callable[..., T.Generator[_T, None, None]]) -> T.Calla
         return list(func(*args, **kwargs))
 
     return wrapper
+
+
+class OptionSource(enum.IntEnum):
+    '''
+    Where current option value comes from, in priority order.
+    A value can only be updated with a value from a higher priority source.
+    '''
+    UNSET = 0
+    DEFAULT = 1
+    ENVIRONMENT = 2
+    MACHINE_FILE = 3
+    CMD_LINE = 4
+
+
+@dataclass
+class RawOption:
+    '''
+    Raw option value, together with its source, before being parsed and
+    validated by UserOption class. Most of the time this is a raw string from -D
+    command line arguments, from environment, or from machine file. But it can
+    also be other types from default_options kwarg dict.
+    '''
+    value: T.Union[str, int, bool, T.List[str]]
+    source: OptionSource
 
 
 class OptionType(enum.IntEnum):
