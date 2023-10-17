@@ -404,12 +404,21 @@ class BinaryTable:
                 if not isinstance(command, (list, str)):
                     raise mesonlib.MesonException(
                         f'Invalid type {command!r} for entry {name!r} in cross file')
-                if name == 'pkgconfig':
-                    if 'pkg-config' in binaries:
-                        raise mesonlib.MesonException('Both pkgconfig and pkg-config entries in machine file.')
-                    mlog.deprecation('"pkgconfig" entry is deprecated and should be replaced by "pkg-config"')
-                    name = 'pkg-config'
                 self.binaries[name] = mesonlib.listify(command)
+            if 'pkgconfig' in self.binaries:
+                if 'pkg-config' not in self.binaries:
+                    mlog.deprecation('"pkgconfig" entry is deprecated and should be replaced by "pkg-config"', fatal=False)
+                    self.binaries['pkg-config'] = self.binaries['pkgconfig']
+                elif self.binaries['pkgconfig'] != self.binaries['pkg-config']:
+                    raise mesonlib.MesonException('Mismatched pkgconfig and pkg-config binaries in the machine file.')
+                else:
+                    # Both are defined with the same value, this is allowed
+                    # for backward compatibility.
+                    # FIXME: We should still print deprecation warning if the
+                    # project targets Meson >= 1.3.0, but we have no way to know
+                    # that here.
+                    pass
+                del self.binaries['pkgconfig']
 
     @staticmethod
     def detect_ccache() -> T.List[str]:
