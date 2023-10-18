@@ -8,6 +8,11 @@ if not d.found()
   error('MESON_SKIP_TEST llvm not found.')
 endif
 
+if method != 'config-tool' and d.version().startswith('17.0') and host_machine.system() == 'windows'
+  # https://github.com/llvm/llvm-project/commit/e7fc7540daa9333f0be4f380fc9c619236d17f57#r130257253
+  error('MESON_SKIP_TEST broken llvm cmake files on MSYS2')
+endif
+
 modules_to_find = [
   'bitwriter', 'asmprinter', 'executionengine', 'mcjit', 'target',
   'nativecodegen', 'amdgpu', 'engine'
