@@ -2178,7 +2178,7 @@ class NinjaBackend(backends.Backend):
 
     @classmethod
     def compiler_to_rule_name(cls, compiler: Compiler) -> str:
-        return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, compiler.mode)
+        return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, compiler.mode.name)
 
     @classmethod
     def compiler_to_pch_rule_name(cls, compiler: Compiler) -> str:
