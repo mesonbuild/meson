@@ -1418,6 +1418,15 @@ class SingleTestRunner:
         if ('MALLOC_PERTURB_' not in env or not env['MALLOC_PERTURB_']) and not options.benchmark:
             env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
+        # Sanitizers do not default to aborting on error. This is counter to
+        # expectations when using -Db_sanitize and has led to confusion in the wild
+        # in CI. Set our own values of {ASAN,UBSAN}_OPTOINS to rectify this, but
+        # only if the user has not defined them.
+        if ('ASAN_OPTIONS' not in env or not env['ASAN_OPTIONS']):
+            env['ASAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1'
+        if ('UBSAN_OPTIONS' not in env or not env['UBSAN_OPTIONS']):
+            env['UBSAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1'
+
         if self.options.gdb or self.test.timeout is None or self.test.timeout <= 0:
             timeout = None
         elif self.options.timeout_multiplier is None:
