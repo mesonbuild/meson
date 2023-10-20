@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from os import path
+import shlex
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
@@ -360,11 +361,14 @@ class I18nModule(ExtensionModule):
         command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
                                 build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []
         command.extend(state.environment.get_build_command())
+
+        itstool_cmd = self.tools['itstool'].get_command()
+        # TODO: python 3.8 can use shlex.join()
         command.extend([
             '--internal', 'itstool', 'join',
             '-i', '@INPUT@',
             '-o', '@OUTPUT@',
-            '--itstool=' + self.tools['itstool'].get_path(),
+            '--itstool=' + ' '.join(shlex.quote(c) for c in itstool_cmd),
         ])
         if its_files:
             for fname in its_files:
