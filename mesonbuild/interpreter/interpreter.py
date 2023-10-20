@@ -3163,12 +3163,15 @@ class Interpreter(InterpreterBase, HoldableObject):
         # To permit an executable and a shared library to have the
         # same name, such as "foo.exe" and "libfoo.a".
         idname = tobj.get_id()
-        for t in self.build.targets.values():
-            if t.get_id() == idname:
-                raise InvalidCode(f'Tried to create target "{name}", but a target of that name already exists.')
-            if isinstance(tobj, build.Executable) and isinstance(t, build.Executable) and t.name == tobj.name:
-                FeatureNew.single_use('multiple executables with the same name but different suffixes',
-                                      '1.3.0', self.subproject, location=self.current_node)
+        subdir = tobj.get_subdir()
+        namedir = (name, subdir)
+
+        if idname in self.build.targets:
+            raise InvalidCode(f'Tried to create target "{name}", but a target of that name already exists.')
+
+        if isinstance(tobj, build.Executable) and namedir in self.build.targetnames:
+            FeatureNew.single_use(f'multiple executables with the same name, "{tobj.name}", but different suffixes in the same directory',
+                                  '1.3.0', self.subproject, location=self.current_node)
 
         if isinstance(tobj, build.BuildTarget):
             self.add_languages(tobj.missing_languages, True, tobj.for_machine)
@@ -3176,6 +3179,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.add_stdlib_info(tobj)
 
         self.build.targets[idname] = tobj
+        # Only need to add executables to this set
+        if isinstance(tobj, build.Executable):
+            self.build.targetnames.update([namedir])
         if idname not in self.coredata.target_guids:
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
