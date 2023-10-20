@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import copy, json, os, shutil, re
+import copy, json, os, shutil, re, sys
 import typing as T
 
 from . import ExtensionModule, ModuleInfo
@@ -407,7 +407,10 @@ class PythonModule(ExtensionModule):
         import importlib.resources
         pycompile = os.path.join(self.interpreter.environment.get_scratch_dir(), 'pycompile.py')
         with open(pycompile, 'wb') as f:
-            f.write(importlib.resources.read_binary('mesonbuild.scripts', 'pycompile.py'))
+            if sys.version_info >= (3, 13):
+                f.write(importlib.resources.files('mesonbuild.scripts').joinpath('pycompile.py').read_bytes())
+            else:
+                f.write(importlib.resources.read_binary('mesonbuild.scripts', 'pycompile.py'))
 
         for i in self.installations.values():
             if isinstance(i, PythonExternalProgram) and i.run_bytecompile[i.info['version']]:

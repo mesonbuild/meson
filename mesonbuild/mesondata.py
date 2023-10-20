@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import importlib.resources
 from pathlib import PurePosixPath, Path
+import sys
 import typing as T
 
 if T.TYPE_CHECKING:
@@ -27,10 +28,12 @@ class DataFile:
 
     def write_once(self, path: Path) -> None:
         if not path.exists():
-            data = importlib.resources.read_text( # [ignore encoding] it's on the next lines, Mr. Lint
-                    ('mesonbuild' / self.path.parent).as_posix().replace('/', '.'),
-                    self.path.name,
-                    encoding='utf-8')
+
+            package = ('mesonbuild' / self.path.parent).as_posix().replace('/', '.')
+            if sys.version_info >= (3, 13):
+                data = importlib.resources.files(package).joinpath(self.path.name).read_text(encoding='utf-8')
+            else:
+                data = importlib.resources.read_text(package, self.path.name, encoding='utf-8')
             path.write_text(data, encoding='utf-8')
 
     def write_to_private(self, env: 'Environment') -> Path:

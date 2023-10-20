@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import functools, json, os, textwrap
 from pathlib import Path
+import sys
 import typing as T
 
 from .. import mesonlib, mlog
@@ -112,8 +113,13 @@ class BasicPythonExternalProgram(ExternalProgram):
         # Sanity check, we expect to have something that at least quacks in tune
 
         import importlib.resources
+        if sys.version_info >= (3, 13):
+            traversable = importlib.resources.files('mesonbuild.scripts').joinpath('python_info.py')
+            context_mgr = importlib.resources.as_file(traversable)
+        else:
+            context_mgr = importlib.resources.path('mesonbuild.scripts', 'python_info.py')
 
-        with importlib.resources.path('mesonbuild.scripts', 'python_info.py') as f:
+        with context_mgr as f:
             cmd = self.get_command() + [str(f)]
             env = os.environ.copy()
             env['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
