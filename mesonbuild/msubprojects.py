@@ -638,7 +638,7 @@ def add_common_arguments(p: argparse.ArgumentParser) -> None:
                    help='Path to source directory')
     p.add_argument('--types', default='',
                    help=f'Comma-separated list of subproject types. Supported types are: {ALL_TYPES_STRING} (default: all)')
-    p.add_argument('--num-processes', default=None, type=int,
+    p.add_argument('-j', '--num-processes', default=None, type=int,
                    help='How many parallel processes to use (Since 0.59.0).')
     p.add_argument('--allow-insecure', default=False, action='store_true',
                    help='Allow insecure server connections.')
