@@ -105,11 +105,11 @@ class ExternalProgram(mesonlib.HoldableObject):
         if not self.cached_version:
             raw_cmd = self.get_command() + ['--version']
             if interpreter:
-                res = interpreter.run_command_impl((self, ['--version']),
+                res = interpreter.run_command_impl([self, '--version'],
                                                    {'capture': True,
                                                     'check': True,
                                                     'env': mesonlib.EnvironmentVariables()},
-                                                   True)
+                                                   in_builddir=True)
                 o, e = res.stdout, res.stderr
             else:
                 p, o, e = mesonlib.Popen_safe(raw_cmd)

@@ -27,6 +27,7 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
+    from ..build import BuildTargetTypes
 
     class FuncOverrideDependency(TypedDict):
 
@@ -87,43 +88,37 @@ class MesonMain(MesonInterpreterObject):
                              })
 
     def _find_source_script(
-            self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
-            args: T.List[str]) -> 'ExecutableSerialisation':
-        largs: T.List[T.Union[str, build.Executable, ExternalProgram]] = []
+            self, name: str,
+            cmd: T.Sequence[T.Union[str, mesonlib.File, ExternalProgram, BuildTargetTypes]]) -> 'ExecutableSerialisation':
+        largs: T.List[T.Union[str, mesonlib.File, ExternalProgram, BuildTargetTypes]] = []
 
+        prog, *args = cmd
         if isinstance(prog, (build.Executable, ExternalProgram)):
             FeatureNew.single_use(f'Passing executable/found program object to script parameter of {name}',
                                   '0.55.0', self.subproject, location=self.current_node)
             largs.append(prog)
-        else:
+        elif isinstance(prog, (str, mesonlib.File)):
             if isinstance(prog, mesonlib.File):
                 FeatureNew.single_use(f'Passing file object to script parameter of {name}',
                                       '0.57.0', self.subproject, location=self.current_node)
             found = self.interpreter.find_program_impl([prog])
             largs.append(found)
+        else:
+            FeatureNew.single_use(
+                f'Calling "{name}" with CustomTarget or Index of CustomTarget as first argument',
+                '1.3.0', self.interpreter.subproject, location=self.current_node)
+            largs.append(prog)
 
-        largs.extend(args)
-        es = self.interpreter.backend.get_executable_serialisation(largs, verbose=True)
-        es.subproject = self.interpreter.subproject
-        return es
-
-    def _process_script_args(
-            self, name: str, args: T.Sequence[T.Union[
-                str, mesonlib.File, build.BuildTarget, build.CustomTarget,
-                build.CustomTargetIndex,
-                ExternalProgram,
-            ]]) -> T.List[str]:
-        script_args = []  # T.List[str]
         new = False
         for a in args:
             if isinstance(a, str):
-                script_args.append(a)
+                largs.append(a)
             elif isinstance(a, mesonlib.File):
                 new = True
-                script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
+                largs.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
             elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 new = True
-                script_args.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
+                largs.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
 
                 # This feels really hacky, but I'm not sure how else to fix
                 # this without completely rewriting install script handling.
@@ -134,7 +129,7 @@ class MesonMain(MesonInterpreterObject):
                 else:
                     a.build_by_default = True
             else:
-                script_args.extend(a.command)
+                largs.extend(a.command)
                 new = True
 
         if new:
@@ -142,12 +137,15 @@ class MesonMain(MesonInterpreterObject):
                 f'Calling "{name}" with File, CustomTarget, Index of CustomTarget, '
                 'Executable, or ExternalProgram',
                 '0.55.0', self.interpreter.subproject, location=self.current_node)
-        return script_args
+
+        es = self.interpreter.backend.get_executable_serialisation(largs, verbose=True)
+        es.subproject = self.interpreter.subproject
+        return es
 
     @typed_pos_args(
         'meson.add_install_script',
-        (str, mesonlib.File, build.Executable, ExternalProgram),
-        varargs=(str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram)
+        varargs=(str, mesonlib.File, ExternalProgram, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex),
+        min_varargs=1,
     )
     @typed_kwargs(
         'meson.add_install_script',
@@ -157,11 +155,9 @@ class MesonMain(MesonInterpreterObject):
     )
     def add_install_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
-                          T.List[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, ExternalProgram]]],
+            args: T.Tuple[T.List[T.Union[str, mesonlib.File, ExternalProgram, BuildTargetTypes]]],
             kwargs: 'AddInstallScriptKW') -> None:
-        script_args = self._process_script_args('add_install_script', args[1])
-        script = self._find_source_script('add_install_script', args[0], script_args)
+        script = self._find_source_script('add_install_script', args[0])
         script.skip_if_destdir = kwargs['skip_if_destdir']
         script.tag = kwargs['install_tag']
         script.dry_run = kwargs['dry_run']
@@ -169,38 +165,34 @@ class MesonMain(MesonInterpreterObject):
 
     @typed_pos_args(
         'meson.add_postconf_script',
-        (str, mesonlib.File, ExternalProgram),
-        varargs=(str, mesonlib.File, ExternalProgram)
+        varargs=(str, mesonlib.File, ExternalProgram),
+        min_varargs=1,
     )
     @noKwargs
     def add_postconf_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
-                          T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
+            args: T.Tuple[T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
-        script_args = self._process_script_args('add_postconf_script', args[1])
-        script = self._find_source_script('add_postconf_script', args[0], script_args)
+        script = self._find_source_script('add_postconf_script', args[0])
         self.build.postconf_scripts.append(script)
 
     @typed_pos_args(
         'meson.add_dist_script',
-        (str, mesonlib.File, ExternalProgram),
-        varargs=(str, mesonlib.File, ExternalProgram)
+        varargs=(str, mesonlib.File, ExternalProgram),
+        min_varargs=1,
     )
     @noKwargs
     def add_dist_script_method(
             self,
-            args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
-                          T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
+            args: T.Tuple[T.List[T.Union[str, mesonlib.File, ExternalProgram]]],
             kwargs: 'TYPE_kwargs') -> None:
-        if args[1]:
+        if len(args[0]) > 1:
             FeatureNew.single_use('Calling "add_dist_script" with multiple arguments',
                                   '0.49.0', self.interpreter.subproject, location=self.current_node)
         if self.interpreter.subproject != '':
             FeatureNew.single_use('Calling "add_dist_script" in a subproject',
                                   '0.58.0', self.interpreter.subproject, location=self.current_node)
-        script_args = self._process_script_args('add_dist_script', args[1])
-        script = self._find_source_script('add_dist_script', args[0], script_args)
+        script = self._find_source_script('add_dist_script', args[0])
         self.build.dist_scripts.append(script)
 
     @noPosargs
