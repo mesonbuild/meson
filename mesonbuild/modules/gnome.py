@@ -518,6 +518,7 @@ class GnomeModule(ExtensionModule):
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             install_tag=['runtime'],
         )
+        target_c.source_dirs = source_dirs
 
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
