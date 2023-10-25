@@ -55,7 +55,7 @@ $ pip3 install --user meson
 ```
 Install as root:
 ```console
-$ pip3 install meson
+# pip3 install meson
 ```
 
 *If you are unsure whether to install as root or a local user, install
