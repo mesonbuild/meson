@@ -1714,6 +1714,11 @@ class NinjaBackend(backends.Backend):
             if isinstance(gensrc, modules.GResourceTarget):
                 gres_xml, = self.get_custom_target_sources(gensrc)
                 args += ['--gresources=' + gres_xml]
+                # Ensure that resources are built before vala sources
+                # This is required since vala code using [GtkTemplate] effectively depends on .ui files
+                # GResourceHeaderTarget is not suitable due to lacking depfile
+                gres_c, = gensrc.get_outputs()
+                extra_dep_files.append(os.path.join(self.get_target_dir(gensrc), gres_c))
         dependency_vapis = self.determine_dep_vapis(target)
         extra_dep_files += dependency_vapis
         extra_dep_files.extend(self.get_target_depend_files(target))
