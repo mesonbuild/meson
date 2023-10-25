@@ -9,7 +9,7 @@ endif
 deps = [
   dependency('glib-2.0', version : '>=2.50'),
   dependency('gobject-2.0'),
-  dependency('gtk4'),
+  dependency('gtk+-3.0'),
 ]
 
 ui_tgt = custom_target(
