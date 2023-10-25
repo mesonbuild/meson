@@ -16,8 +16,8 @@ choose.
 # Major releases
 
 Major releases are currently in the form 0.X.0, where X is an
-increasing number. We aim to do a major release roughly once a month,
-though the schedule is not set in stone.
+increasing number. We aim to do a major release roughly once every 3 to 4
+months, though the schedule is not set in stone.
 
 Before a major release is made a stable branch will be made, and
 0.X.0-rc1 release candidate will be made. A new milestone for 0.X.0
