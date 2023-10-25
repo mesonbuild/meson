@@ -188,9 +188,9 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     # first might be apple clang, second is for real gcc, the third is icc
     elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e:
         if isinstance(comp_class.LINKER_PREFIX, str):
-            cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
+            cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + [comp_class.LINKER_PREFIX + '-dylib'] + extra_args
         else:
-            cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args
+            cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + comp_class.LINKER_PREFIX + ['-dylib'] + extra_args
         _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
 
         for line in newerr.split('\n'):
