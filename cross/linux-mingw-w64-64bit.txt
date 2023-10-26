@@ -4,9 +4,9 @@ cpp = '/usr/bin/x86_64-w64-mingw32-g++'
 objc = '/usr/bin/x86_64-w64-mingw32-gcc'
 ar = '/usr/bin/x86_64-w64-mingw32-ar'
 strip = '/usr/bin/x86_64-w64-mingw32-strip'
-pkgconfig = '/usr/bin/x86_64-w64-mingw32-pkg-config'
+pkg-config = '/usr/bin/x86_64-w64-mingw32-pkg-config'
 windres = '/usr/bin/x86_64-w64-mingw32-windres'
-exe_wrapper = 'wine64'
+exe_wrapper = 'wine'
 cmake = '/usr/bin/cmake'
 
 [properties]

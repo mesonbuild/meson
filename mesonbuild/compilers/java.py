@@ -100,7 +100,7 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
             raise EnvironmentException(f'Java compiler {self.name_string()} cannot compile programs.')
         runner = shutil.which(self.javarunner)
         if runner:
-            cmdlist = [runner, obj]
+            cmdlist = [runner, '-cp', '.', obj]
             pe = subprocess.Popen(cmdlist, cwd=work_dir)
             pe.wait()
             if pe.returncode != 0:

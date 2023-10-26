@@ -22,7 +22,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
     outfiles = []
     exitcode = 0
 
-    (gcovr_exe, gcovr_version, lcov_exe, genhtml_exe, llvm_cov_exe) = environment.find_coverage_tools()
+    (gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe) = environment.find_coverage_tools()
 
     # load config files for tools if available in the source tree
     # - lcov requires manually specifying a per-project config
@@ -34,6 +34,11 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
         lcov_config = ['--config-file', lcovrc]
     else:
         lcov_config = []
+
+    if lcov_exe and mesonlib.version_compare(lcov_version, '>=2.0'):
+        lcov_exe_rc_branch_coverage = ['--rc', 'branch_coverage=1']
+    else:
+        lcov_exe_rc_branch_coverage = ['--rc', 'lcov_branch_coverage=1']
 
     gcovr_config = ['-e', re.escape(subproject_root)]
 
@@ -90,6 +95,9 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
             initial_tracefile = covinfo + '.initial'
             run_tracefile = covinfo + '.run'
             raw_tracefile = covinfo + '.raw'
+            lcov_subpoject_exclude = []
+            if os.path.exists(subproject_root):
+                lcov_subpoject_exclude.append(os.path.join(subproject_root, '*'))
             if use_llvm_cov:
                 # Create a shim to allow using llvm-cov as a gcov tool.
                 if mesonlib.is_windows():
@@ -117,26 +125,26 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    '--capture',
                                    '--output-file', run_tracefile,
                                    '--no-checksum',
-                                   '--rc', 'lcov_branch_coverage=1'] +
+                                   *lcov_exe_rc_branch_coverage] +
                                   lcov_config +
                                   gcov_tool_args)
             # Join initial and test results.
             subprocess.check_call([lcov_exe,
                                    '-a', initial_tracefile,
                                    '-a', run_tracefile,
-                                   '--rc', 'lcov_branch_coverage=1',
+                                   *lcov_exe_rc_branch_coverage,
                                    '-o', raw_tracefile] + lcov_config)
             # Remove all directories outside the source_root from the covinfo
             subprocess.check_call([lcov_exe,
                                    '--extract', raw_tracefile,
                                    os.path.join(source_root, '*'),
-                                   '--rc', 'lcov_branch_coverage=1',
+                                   *lcov_exe_rc_branch_coverage,
                                    '--output-file', covinfo] + lcov_config)
             # Remove all directories inside subproject dir
             subprocess.check_call([lcov_exe,
                                    '--remove', covinfo,
-                                   os.path.join(subproject_root, '*'),
-                                   '--rc', 'lcov_branch_coverage=1',
+                                   *lcov_subpoject_exclude,
+                                   *lcov_exe_rc_branch_coverage,
                                    '--output-file', covinfo] + lcov_config)
             subprocess.check_call([genhtml_exe,
                                    '--prefix', build_root,

@@ -142,3 +142,7 @@ assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compo
 subdir('subdir')
 
 subproject('subbie')
+
+testcase expect_error('File notfound does not exist.')
+  fs.read('notfound')
+endtestcase

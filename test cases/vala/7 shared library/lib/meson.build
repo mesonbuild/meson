@@ -33,3 +33,8 @@ shared_library('installed_vala_onlyvapi', 'mylib.vala',
   dependencies : valadeps,
   install : true,
   install_dir : [false, false, join_paths(get_option('datadir'), 'vala', 'vapi')])
+
+# Regression test: Vala libraries were broken when also installing python modules.
+# https://gitlab.gnome.org/GNOME/gitg/-/issues/412
+python = import('python').find_installation()
+python.install_sources('source.py')

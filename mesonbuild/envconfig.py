@@ -68,6 +68,7 @@ known_cpu_families = (
     'sh4',
     'sparc',
     'sparc64',
+    'sw_64',
     'wasm32',
     'wasm64',
     'x86',
@@ -86,6 +87,7 @@ CPU_FAMILIES_64_BIT = [
     'riscv64',
     's390x',
     'sparc64',
+    'sw_64',
     'wasm64',
     'x86_64',
 ]

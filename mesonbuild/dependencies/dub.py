@@ -53,7 +53,7 @@ class DubDependency(ExternalDependency):
             self.is_found = False
             return
 
-        (self.dubbin, dubver) = DubDependency.class_dubbin
+        (self.dubbin, dubver) = DubDependency.class_dubbin  # pylint: disable=unpacking-non-sequence
 
         assert isinstance(self.dubbin, ExternalProgram)
 

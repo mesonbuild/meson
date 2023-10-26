@@ -25,7 +25,11 @@ datas += collect_data_files('mesonbuild.scripts', include_py_files=True, exclude
 datas += collect_data_files('mesonbuild.cmake.data')
 datas += collect_data_files('mesonbuild.dependencies.data')
 
+# lazy-loaded
+hiddenimports += get_all_modules_from_dir('mesonbuild/dependencies')
+# imported by meson.build files
 hiddenimports += get_all_modules_from_dir('mesonbuild/modules')
+# executed when named on CLI
 hiddenimports += get_all_modules_from_dir('mesonbuild/scripts')
 
 # Python packagers want to be minimal and only copy the things

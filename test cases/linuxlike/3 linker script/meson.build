@@ -22,7 +22,7 @@ m = configure_file(
   output : 'bob-conf.map',
   configuration : conf,
 )
-vflag = '-Wl,--version-script,@0@'.format(m)
+vflag = '-Wl,--version-script,@0@'.format(meson.current_build_dir() / 'bob-conf.map')
 
 l = shared_library('bob-conf', 'bob.c', link_args : vflag, link_depends : m)
 e = executable('prog-conf', 'prog.c', link_with : l)
@@ -41,14 +41,6 @@ vflag = '-Wl,--version-script,@0@'.format(m.full_path())
 
 l = shared_library('bob-ct', ['bob.c', m], link_args : vflag, link_depends : m)
 e = executable('prog-ct', 'prog.c', link_with : l)
-test('core', e)
-
-# File
-mapfile = files('bob.map')
-vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile[0])
-
-l = shared_library('bob-files', 'bob.c', link_args : vflag, link_depends : mapfile)
-e = executable('prog-files', 'prog.c', link_with : l)
 test('core', e)
 
 subdir('sub')

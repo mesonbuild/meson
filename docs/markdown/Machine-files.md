@@ -90,7 +90,7 @@ arch = 'aarch64-linux-gnu'
 c = arch + '-gcc'
 cpp = arch + '-g++'
 strip = arch + '-strip'
-pkgconfig = arch + '-pkg-config'
+pkg-config = arch + '-pkg-config'
 ...
 ```
 
@@ -165,7 +165,7 @@ c_ld = 'gold'
 cpp_ld = 'gold'
 ar = '/usr/i586-mingw32msvc/bin/ar'
 strip = '/usr/i586-mingw32msvc/bin/strip'
-pkgconfig = '/usr/bin/i586-mingw32msvc-pkg-config'
+pkg-config = '/usr/bin/i586-mingw32msvc-pkg-config'
 ```
 
 An incomplete list of internally used programs that can be overridden
@@ -179,7 +179,7 @@ here is:
 - libwmf-config
 - llvm-config
 - pcap-config
-- pkgconfig
+- pkg-config
 - sdl2-config
 - wx-config (or wx-3.0-config or wx-config-gtk)
 

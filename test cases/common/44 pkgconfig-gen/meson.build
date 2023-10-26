@@ -8,7 +8,7 @@ if not cc.find_library('z', required: false).found()
 endif
 
 # First check we have pkg-config >= 0.29
-pkgconfig = find_program('pkg-config', required: false)
+pkgconfig = find_program('pkg-config', native: true, required: false)
 if not pkgconfig.found()
   error('MESON_SKIP_TEST: pkg-config not found')
 endif
