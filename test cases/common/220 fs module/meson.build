@@ -39,7 +39,9 @@ assert(fs.expanduser('~/foo').endswith('foo'), 'expanduser with tail failed')
 # -- as_posix
 assert(fs.as_posix('/') == '/', 'as_posix idempotent')
 assert(fs.as_posix('\\') == '/', 'as_posix simple')
-assert(fs.as_posix('\\\\') == '/', 'as_posix simple')
+# Python 3.12 changed how these paths are handled, so deal with both.
+drivepath = fs.as_posix('\\\\')
+assert(drivepath == '/' or drivepath == '//', 'as_posix simple')
 assert(fs.as_posix('foo\\bar/baz') == 'foo/bar/baz', 'as_posix mixed slash')
 
 # -- is_absolute
