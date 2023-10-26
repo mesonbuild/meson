@@ -32,17 +32,18 @@ to be the last file written.
 
 The `meson-info` directory should contain the following files:
 
-| File                           | Description                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------- |
-| `intro-benchmarks.json`        | Lists all benchmarks                                                          |
-| `intro-buildoptions.json`      | Contains a full list of Meson configuration options for the project           |
-| `intro-buildsystem_files.json` | Full list of all Meson build files                                            |
-| `intro-dependencies.json`      | Lists all dependencies used in the project                                    |
-| `intro-installed.json`         | Contains mapping of files to their installed location                         |
-| `intro-install_plan.json`      | Dictionary of data types with the source files and their installation details |
-| `intro-projectinfo.json`       | Stores basic information about the project (name, version, etc.)              |
-| `intro-targets.json`           | Full list of all build targets                                                |
-| `intro-tests.json`             | Lists all tests with instructions how to run them                             |
+| File                           | Description                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| `intro-benchmarks.json`        | Lists all benchmarks                                                                    |
+| `intro-buildoptions.json`      | Contains a full list of Meson configuration options for the project                     |
+| `intro-buildsystem_files.json` | Full list of all Meson build files                                                      |
+| `intro-dependencies.json`      | Lists all dependencies used in the project                                              |
+| `intro-devenv.json`            | Dictionary of environment variable to run executable in build directory (*since 1.4.0*) |
+| `intro-installed.json`         | Contains mapping of files to their installed location                                   |
+| `intro-install_plan.json`      | Dictionary of data types with the source files and their installation details           |
+| `intro-projectinfo.json`       | Stores basic information about the project (name, version, etc.)                        |
+| `intro-targets.json`           | Full list of all build targets                                                          |
+| `intro-tests.json`             | Lists all tests with instructions how to run them                                       |
 
 The content of the JSON files is further specified in the remainder of
 this document.

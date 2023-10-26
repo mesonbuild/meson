@@ -29,7 +29,7 @@ from pathlib import Path, PurePath
 import sys
 import typing as T
 
-from . import build, mesonlib, coredata as cdata
+from . import build, mesonlib, mdevenv, coredata as cdata
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
 from .dependencies import Dependency
@@ -81,6 +81,7 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         ('buildsystem_files', IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata, interpreter))),
         ('compilers', IntroCommand('List used compilers', func=lambda: list_compilers(coredata))),
         ('dependencies', IntroCommand('List external dependencies', func=lambda: list_deps(coredata, backend), no_bd=list_deps_from_source)),
+        ('devenv', IntroCommand('List environment variables required to run project from the build directory', func=lambda: dump_devenv(builddata))),
         ('scan_dependencies', IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source)),
         ('installed', IntroCommand('List all installed files and directories', func=lambda: list_installed(installdata))),
         ('install_plan', IntroCommand('List all installed files and directories with their details', func=lambda: list_install_plan(installdata))),
@@ -433,6 +434,10 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
                     result[d.name] = _create_result(d, varname)
 
     return list(result.values())
+
+def dump_devenv(builddata: build.Build) -> T.Dict[str, str]:
+    env, varnames = mdevenv.get_env(builddata, None)
+    return {varname: env[varname] for varname in varnames}
 
 def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
     result: T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]] = []
