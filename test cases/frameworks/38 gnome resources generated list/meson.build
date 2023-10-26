@@ -6,6 +6,12 @@ if not gnome.found()
   error('MESON_SKIP_TEST: gnome module not supported')
 endif
 
+glib = dependency('glib-2.0', required: false)
+
+if not glib.found()
+  error('MESON_SKIP_TEST glib not found.')
+endif
+
 test_generator = generator(
   find_program('cat'),
   output: '@BASENAME@.gen.txt',
