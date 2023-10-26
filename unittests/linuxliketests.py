@@ -1366,7 +1366,7 @@ class LinuxlikeTests(BasePlatformTests):
         see: https://github.com/mesonbuild/meson/issues/9000
              https://stackoverflow.com/questions/48532868/gcc-library-option-with-a-colon-llibevent-a
         '''
-        testdir = os.path.join(self.unit_test_dir, '98 link full name','libtestprovider')
+        testdir = os.path.join(self.unit_test_dir, '97 link full name','libtestprovider')
         oldprefix = self.prefix
         # install into installdir without using DESTDIR
         installdir = self.installdir
@@ -1379,7 +1379,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
                'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
-        testdir = os.path.join(self.unit_test_dir, '98 link full name','proguser')
+        testdir = os.path.join(self.unit_test_dir, '97 link full name','proguser')
         self.init(testdir,override_envvars=env)
 
         # test for link with full path
@@ -1791,7 +1791,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipUnless(is_linux() or is_osx(), 'Test only applicable to Linux and macOS')
     def test_install_strip(self):
-        testdir = os.path.join(self.unit_test_dir, '104 strip')
+        testdir = os.path.join(self.unit_test_dir, '103 strip')
         self.init(testdir)
         self.build()
 
@@ -1847,7 +1847,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipUnless(is_linux(), "Ninja file differs on different platforms")
     def test_complex_link_cases(self):
-        testdir = os.path.join(self.unit_test_dir, '113 complex link cases')
+        testdir = os.path.join(self.unit_test_dir, '114 complex link cases')
         self.init(testdir)
         self.build()
         with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:

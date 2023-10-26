@@ -402,7 +402,7 @@ class RewriterTests(BasePlatformTests):
         self.assertDictEqual(out, expected)
 
     def test_raw_printer_is_idempotent(self):
-        test_path = Path(self.unit_test_dir, '118 rewrite')
+        test_path = Path(self.unit_test_dir, '120 rewrite')
         meson_build_file = test_path / 'meson.build'
         # original_contents = meson_build_file.read_bytes()
         original_contents = meson_build_file.read_text(encoding='utf-8')
