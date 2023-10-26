@@ -555,7 +555,7 @@ class GnomeModule(ExtensionModule):
     @staticmethod
     def _get_gresource_dependencies(
             state: 'ModuleState', input_file: str, source_dirs: T.List[str],
-            dependencies: T.Sequence[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex]]
+            dependencies: T.Sequence[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList]]
             ) -> T.Tuple[T.List[mesonlib.FileOrString], T.List[T.Union[CustomTarget, CustomTargetIndex, GeneratedList]], T.List[str]]:
 
         cmd = ['glib-compile-resources',
@@ -578,31 +578,19 @@ class GnomeModule(ExtensionModule):
 
         raw_dep_files: T.List[str] = stdout.split('\n')[:-1]
 
-        depends: T.List[T.Union[CustomTarget, CustomTargetIndex]] = []
+        depends: T.List[T.Union[CustomTarget, CustomTargetIndex, GeneratedList]] = []
         subdirs: T.List[str] = []
         dep_files: T.List[mesonlib.FileOrString] = []
         for resfile in raw_dep_files.copy():
             resbasename = os.path.basename(resfile)
             for dep in dependencies:
-                if isinstance(dep, mesonlib.File):
-                    if dep.fname != resbasename:
-                        continue
-                    raw_dep_files.remove(resfile)
-                    dep_files.append(dep)
-                    subdirs.append(dep.subdir)
-                    break
-                elif isinstance(dep, (CustomTarget, CustomTargetIndex)):
-                    fname = None
-                    outputs = {(o, os.path.basename(o)) for o in dep.get_outputs()}
-                    for o, baseo in outputs:
-                        if baseo == resbasename:
-                            fname = o
-                            break
-                    if fname is not None:
-                        raw_dep_files.remove(resfile)
-                        depends.append(dep)
-                        subdirs.append(dep.get_subdir())
-                        break
+                assert isinstance(dep, mesonlib.File)
+                if dep.fname != resbasename:
+                    continue
+                raw_dep_files.remove(resfile)
+                dep_files.append(dep)
+                subdirs.append(dep.subdir)
+                break
             else:
                 # In generate-dependencies mode, glib-compile-resources doesn't raise
                 # an error for missing resources but instead prints whatever filename
