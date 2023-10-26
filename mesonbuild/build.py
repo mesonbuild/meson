@@ -2662,7 +2662,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
 
     def get_generated_lists(self) -> T.List[GeneratedList]:
         genlists: T.List[GeneratedList] = []
-        for c in self.sources:
+        for c in [*self.sources, *self.extra_depends]:
             if isinstance(c, GeneratedList):
                 genlists.append(c)
         return genlists

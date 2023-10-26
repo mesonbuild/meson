@@ -68,7 +68,7 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         c_name: T.Optional[str]
-        dependencies: T.List[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex]]
+        dependencies: T.List[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList]]
         export: bool
         extra_args: T.List[str]
         gresource_bundle: bool
@@ -382,7 +382,7 @@ class GnomeModule(ExtensionModule):
         INSTALL_KW.evolve(name='install_header', since='0.37.0'),
         INSTALL_DIR_KW,
         KwargInfo('c_name', (str, NoneType)),
-        KwargInfo('dependencies', ContainerTypeInfo(list, (mesonlib.File, CustomTarget, CustomTargetIndex)), default=[], listify=True),
+        KwargInfo('dependencies', ContainerTypeInfo(list, (mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList)), default=[], listify=True),
         KwargInfo('export', bool, default=False, since='0.37.0'),
         KwargInfo('gresource_bundle', bool, default=False, since='0.37.0'),
         KwargInfo('source_dir', ContainerTypeInfo(list, str), default=[], listify=True),
@@ -403,12 +403,16 @@ class GnomeModule(ExtensionModule):
         # Validate dependencies
         subdirs: T.List[str] = []
         depends: T.List[T.Union[CustomTarget, CustomTargetIndex]] = []
+        generated_lists: T.List[GeneratedList] = []
         for dep in dependencies:
             if isinstance(dep, mesonlib.File):
                 subdirs.append(dep.subdir)
             else:
-                depends.append(dep)
-                subdirs.append(dep.get_subdir())
+                if isinstance(dep, GeneratedList):
+                    generated_lists.append(dep)
+                else:
+                    depends.append(dep)
+                    subdirs.append(dep.get_subdir())
                 if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
                     m = 'The "dependencies" argument of gnome.compile_resources() cannot\n' \
                         'be used with the current version of glib-compile-resources due to\n' \
@@ -441,19 +445,6 @@ class GnomeModule(ExtensionModule):
             depend_files, depends, subdirs = self._get_gresource_dependencies(
                 state, ifile, source_dirs, dependencies)
 
-        # Make source dirs relative to build dir now
-        source_dirs = [os.path.join(state.build_to_src, state.subdir, d) for d in source_dirs]
-        # Ensure build directories of generated deps are included
-        source_dirs += subdirs
-        # Always include current directory, but after paths set by user
-        source_dirs.append(os.path.join(state.build_to_src, state.subdir))
-
-        # Clean up duplicate directories
-        source_dirs = list(OrderedSet(os.path.normpath(dir) for dir in source_dirs))
-
-        for source_dir in source_dirs:
-            cmd += ['--sourcedir', source_dir]
-
         if kwargs['c_name']:
             cmd += ['--c-name', kwargs['c_name']]
         if not kwargs['export']:
@@ -475,6 +466,24 @@ class GnomeModule(ExtensionModule):
                 name = f'{target_name}_cpp'
             else:
                 raise MesonException('Compiling GResources into code is only supported in C and C++ projects')
+
+        # Make source dirs relative to build dir now
+        source_dirs = [os.path.join(state.build_to_src, state.subdir, d) for d in source_dirs]
+        # Ensure build directories of generated deps are included
+        source_dirs += subdirs
+        # Always include current directory, but after paths set by user
+        source_dirs.append(os.path.join(state.build_to_src, state.subdir))
+
+        # Include target private directory if generated lists are used
+        if generated_lists:
+            FeatureNew('gnome.compile_resources with GeneratedList dependency', '1.3.2').use(state.subproject, state.current_node)
+            source_dirs.append(os.path.join(state.subdir, f"{output}.p"))
+
+        # Clean up duplicate directories
+        source_dirs = list(OrderedSet(os.path.normpath(dir) for dir in source_dirs))
+
+        for source_dir in source_dirs:
+            cmd += ['--sourcedir', source_dir]
 
         if kwargs['install'] and not gresource:
             raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
@@ -505,7 +514,7 @@ class GnomeModule(ExtensionModule):
             build_by_default=kwargs['build_by_default'],
             depfile=depfile,
             depend_files=depend_files,
-            extra_depends=depends,
+            extra_depends=depends + generated_lists,
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             install_tag=['runtime'],
@@ -526,7 +535,7 @@ class GnomeModule(ExtensionModule):
             [input_file],
             [f'{target_name}.h'],
             build_by_default=kwargs['build_by_default'],
-            extra_depends=depends,
+            extra_depends=depends + [target_c],
             install=install_header,
             install_dir=[install_dir],
             install_tag=['devel'],
