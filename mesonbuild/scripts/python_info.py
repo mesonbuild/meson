@@ -13,7 +13,6 @@ if sys.path[0].endswith('scripts'):
     del sys.path[0]
 
 import json, os, sysconfig
-import distutils.command.install
 
 def get_distutils_paths(scheme=None, prefix=None):
     import distutils.dist
@@ -37,24 +36,51 @@ def get_distutils_paths(scheme=None, prefix=None):
 # default scheme to a custom one pointing to /usr/local and replacing
 # site-packages with dist-packages.
 # See https://github.com/mesonbuild/meson/issues/8739.
-# XXX: We should be using sysconfig, but Debian only patches distutils.
+#
+# We should be using sysconfig, but before 3.10.3, Debian only patches distutils.
+# So we may end up falling back.
 
-if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
-    paths = get_distutils_paths(scheme='deb_system')
-    install_paths = get_distutils_paths(scheme='deb_system', prefix='')
-else:
-    paths = sysconfig.get_paths()
+def get_install_paths():
+    if sys.version_info >= (3, 10):
+        scheme = sysconfig.get_default_scheme()
+    else:
+        scheme = sysconfig._get_default_scheme()
+
+    if sys.version_info >= (3, 10, 3):
+        if 'deb_system' in sysconfig.get_scheme_names():
+            scheme = 'deb_system'
+    else:
+        import distutils.command.install
+        if 'deb_system' in distutils.command.install.INSTALL_SCHEMES:
+            paths = get_distutils_paths(scheme='deb_system')
+            install_paths = get_distutils_paths(scheme='deb_system', prefix='')
+            return paths, install_paths
+
+    paths = sysconfig.get_paths(scheme=scheme)
     empty_vars = {'base': '', 'platbase': '', 'installed_base': ''}
-    install_paths = sysconfig.get_paths(vars=empty_vars)
+    install_paths = sysconfig.get_paths(scheme=scheme, vars=empty_vars)
+    return paths, install_paths
+
+paths, install_paths = get_install_paths()
 
 def links_against_libpython():
-    from distutils.core import Distribution, Extension
-    cmd = Distribution().get_command_obj('build_ext')
-    cmd.ensure_finalized()
-    return bool(cmd.get_libraries(Extension('dummy', [])))
+    # on versions supporting python-embed.pc, this is the non-embed lib
+    #
+    # PyPy is not yet up to 3.12 and work is still pending to export the
+    # relevant information (it doesn't automatically provide arbitrary
+    # Makefile vars)
+    if sys.version_info >= (3, 8) and not is_pypy:
+        variables = sysconfig.get_config_vars()
+        return bool(variables.get('LIBPYTHON', 'yes'))
+    else:
+        from distutils.core import Distribution, Extension
+        cmd = Distribution().get_command_obj('build_ext')
+        cmd.ensure_finalized()
+        return bool(cmd.get_libraries(Extension('dummy', [])))
 
 variables = sysconfig.get_config_vars()
 variables.update({'base_prefix': getattr(sys, 'base_prefix', sys.prefix)})
+is_pypy = '__pypy__' in sys.builtin_module_names
 
 if sys.version_info < (3, 0):
     suffix = variables.get('SO')
@@ -72,7 +98,7 @@ print(json.dumps({
   'install_paths': install_paths,
   'version': sysconfig.get_python_version(),
   'platform': sysconfig.get_platform(),
-  'is_pypy': '__pypy__' in sys.builtin_module_names,
+  'is_pypy': is_pypy,
   'is_venv': sys.prefix != variables['base_prefix'],
   'link_libpython': links_against_libpython(),
   'suffix': suffix,

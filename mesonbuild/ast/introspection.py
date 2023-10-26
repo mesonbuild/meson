@@ -362,3 +362,22 @@ class IntrospectionInterpreter(AstInterpreter):
         self.sanity_check_ast()
         self.parse_project()
         self.run()
+
+    def extract_subproject_dir(self) -> T.Optional[str]:
+        '''Fast path to extract subproject_dir kwarg.
+           This is faster than self.parse_project() which also initialize options
+           and also calls parse_project() on every subproject.
+        '''
+        if not self.ast.lines:
+            return
+        project = self.ast.lines[0]
+        # first line is always project()
+        if not isinstance(project, FunctionNode):
+            return
+        for kw, val in project.args.kwargs.items():
+            assert isinstance(kw, IdNode), 'for mypy'
+            if kw.value == 'subproject_dir':
+                # mypy does not understand "and isinstance"
+                if isinstance(val, StringNode):
+                    return val.value
+        return None

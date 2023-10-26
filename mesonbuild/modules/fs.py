@@ -261,8 +261,10 @@ class FSModule(ExtensionModule):
         try:
             with open(path, encoding=encoding) as f:
                 data = f.read()
+        except FileNotFoundError:
+            raise MesonException(f'File {args[0]} does not exist.')
         except UnicodeDecodeError:
-            raise MesonException(f'decoding failed for {path}')
+            raise MesonException(f'decoding failed for {args[0]}')
         # Reconfigure when this file changes as it can contain data used by any
         # part of the build configuration (e.g. `project(..., version:
         # fs.read_file('VERSION')` or `configure_file(...)`

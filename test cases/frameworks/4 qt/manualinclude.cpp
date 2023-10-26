@@ -1,4 +1,5 @@
 #include"manualinclude.h"
+#include <mocdep.h>
 #include<QCoreApplication>
 
 #include<QObject>

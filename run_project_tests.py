@@ -40,6 +40,7 @@ import time
 import typing as T
 import xml.etree.ElementTree as ET
 import collections
+import importlib.util
 
 from mesonbuild import build
 from mesonbuild import environment
@@ -167,7 +168,7 @@ class InstalledFile:
             return None
 
         # Handle the different types
-        if self.typ in {'py_implib', 'python_lib', 'python_file'}:
+        if self.typ in {'py_implib', 'python_lib', 'python_file', 'python_bytecode'}:
             val = p.as_posix()
             val = val.replace('@PYTHON_PLATLIB@', python.platlib)
             val = val.replace('@PYTHON_PURELIB@', python.purelib)
@@ -184,6 +185,8 @@ class InstalledFile:
                     return p.with_suffix('.dll.a')
                 else:
                     return None
+            if self.typ == 'python_bytecode':
+                return p.parent / importlib.util.cache_from_source(p.name)
         elif self.typ in {'file', 'dir'}:
             return p
         elif self.typ == 'shared_lib':
@@ -288,6 +291,7 @@ class TestDef:
             return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
         return NotImplemented
 
+failing_testcases: T.List[str] = []
 failing_logs: T.List[str] = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
@@ -432,9 +436,9 @@ def _run_ci_include(args: T.List[str]) -> str:
         return 'At least one parameter required'
     try:
         data = Path(args[0]).read_text(errors='ignore', encoding='utf-8')
-        return f'{header}\n{data}\n{footer}'
+        return f'{header}\n{data}\n{footer}\n'
     except Exception:
-        return 'Failed to open {}'.format(args[0])
+        return 'Failed to open {}\n'.format(args[0])
 
 ci_commands = {
     'ci_include': _run_ci_include
@@ -448,7 +452,7 @@ def run_ci_commands(raw_log: str) -> T.List[str]:
         cmd = shlex.split(l[11:])
         if not cmd or cmd[0] not in ci_commands:
             continue
-        res += ['CI COMMAND {}:\n{}\n'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
+        res += ['CI COMMAND {}:\n{}'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
     return res
 
 class OutputMatch:
@@ -552,11 +556,11 @@ def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
     sys.stderr = mystderr = StringIO()
     old_cwd = os.getcwd()
     os.chdir(testdir)
-    test_log_fname = Path('meson-logs', 'testlog.txt')
+    test_log_fname = os.path.join('meson-logs', 'testlog.txt')
     try:
         returncode_test = mtest.run_with_args(['--no-rebuild'])
-        if test_log_fname.exists():
-            test_log = test_log_fname.open(encoding='utf-8', errors='ignore').read()
+        if os.path.exists(test_log_fname):
+            test_log = _run_ci_include([test_log_fname])
         else:
             test_log = ''
         returncode_benchmark = mtest.run_with_args(['--no-rebuild', '--benchmark', '--logbase', 'benchmarklog'])
@@ -666,11 +670,10 @@ def _run_test(test: TestDef,
     returncode, stdo, stde = res
     cmd = '(inprocess) $ ' if inprocess else '$ '
     cmd += mesonlib.join_args(gen_args)
-    try:
-        logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
-        with logfile.open(errors='ignore', encoding='utf-8') as fid:
-            mesonlog = '\n'.join((cmd, fid.read()))
-    except Exception:
+    logfile = os.path.join(test_build_dir, 'meson-logs', 'meson-log.txt')
+    if os.path.exists(logfile):
+        mesonlog = '\n'.join((cmd, _run_ci_include([logfile])))
+    else:
         mesonlog = no_meson_log_msg
     cicmds = run_ci_commands(mesonlog)
     testresult = TestResult(cicmds)
@@ -698,8 +701,8 @@ def _run_test(test: TestDef,
     # Build with subprocess
     def build_step() -> None:
         build_start = time.time()
-        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
-        testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
+        pc, o, _ = Popen_safe(compile_commands + dir_args, cwd=test_build_dir, stderr=subprocess.STDOUT)
+        testresult.add_step(BuildStep.build, o, '', '', time.time() - build_start)
         if should_fail == 'build':
             if pc.returncode != 0:
                 raise testresult
@@ -1369,7 +1372,11 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             left_w = max(3, left_w)
             right_w = cols - left_w - name_len - 2
             right_w = max(3, right_w)
+            failing_testcases.append(name_str)
             failing_logs.append(f'\n\x1b[31m{"="*left_w}\x1b[0m {name_str} \x1b[31m{"="*right_w}\x1b[0m\n')
+            _during = bold('Failed during:')
+            _reason = bold('Reason:')
+            failing_logs.append(f'{_during} {result.step.name}\n{_reason} {result.msg}\n')
             if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
                 # For configure failures, instead of printing stdout,
                 # print the meson log if available since it's a superset
@@ -1624,10 +1631,6 @@ if __name__ == '__main__':
         (passing_tests, failing_tests, skipped_tests) = res
     except StopException:
         pass
-    print()
-    print('Total passed tests: ', green(str(passing_tests)))
-    print('Total failed tests: ', red(str(failing_tests)))
-    print('Total skipped tests:', yellow(str(skipped_tests)))
     if failing_tests > 0:
         print('\nMesonlogs of failing tests\n')
         for l in failing_logs:
@@ -1635,6 +1638,14 @@ if __name__ == '__main__':
                 print(l, '\n')
             except UnicodeError:
                 print(l.encode('ascii', errors='replace').decode(), '\n')
+    print()
+    print('Total passed tests: ', green(str(passing_tests)))
+    print('Total failed tests: ', red(str(failing_tests)))
+    print('Total skipped tests:', yellow(str(skipped_tests)))
+    if failing_tests > 0:
+        print('\nAll failures:')
+        for c in failing_testcases:
+            print(f'  -> {c}')
     for name, dirs, _ in all_tests:
         dir_names = list({x.path.name for x in dirs})
         for k, g in itertools.groupby(dir_names, key=lambda x: x.split()[0]):

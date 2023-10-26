@@ -2,6 +2,9 @@ project('qt4, qt5, and qt6 build test', 'cpp',
   # Qt6 requires C++ 17 support
   default_options : ['cpp_std=c++17'])
 
+# Visit the subdir before entering the loop
+subdir('mocdep')
+
 qt5_modules = ['Widgets']
 qt6_modules = ['Widgets']
 foreach qt : ['qt4', 'qt5', 'qt6']
@@ -114,17 +117,21 @@ foreach qt : ['qt4', 'qt5', 'qt6']
       moc_extra_arguments : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
       moc_sources : 'manualinclude.cpp',
       moc_headers : 'manualinclude.h',
-      method : get_option('method'))
+      method : get_option('method'),
+      dependencies: mocdep,
+    )
 
     manpreprocessed = qtmodule.compile_moc(
       extra_args : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
       sources : 'manualinclude.cpp',
       headers : 'manualinclude.h',
-      method : get_option('method'))
+      method : get_option('method'),
+      dependencies: mocdep,
+    )
 
     qtmaninclude = executable(qt + 'maninclude',
       sources : ['manualinclude.cpp', manpreprocessed],
-      dependencies : qtcore)
+      dependencies : [qtcore, mocdep])
 
     test(qt + 'maninclude', qtmaninclude)
 

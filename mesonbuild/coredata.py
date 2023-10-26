@@ -89,9 +89,10 @@ def get_genvs_default_buildtype_list() -> list[str]:
 
 class MesonVersionMismatchException(MesonException):
     '''Build directory generated with Meson version is incompatible with current version'''
-    def __init__(self, old_version: str, current_version: str) -> None:
+    def __init__(self, old_version: str, current_version: str, extra_msg: str = '') -> None:
         super().__init__(f'Build directory has been generated with Meson version {old_version}, '
-                         f'which is incompatible with the current version {current_version}.')
+                         f'which is incompatible with the current version {current_version}.'
+                         + extra_msg)
         self.old_version = old_version
         self.current_version = current_version
 
@@ -807,7 +808,7 @@ class CoreData:
                 continue
 
             oldval = self.options[key]
-            if type(oldval) != type(value):
+            if type(oldval) is not type(value):
                 self.options[key] = value
             elif oldval.choices != value.choices:
                 # If the choices have changed, use the new value, but attempt
@@ -992,9 +993,11 @@ class MachineFileParser():
             value = value.replace('\\', '\\\\')
             try:
                 ast = mparser.Parser(value, 'machinefile').parse()
+                if not ast.lines:
+                    raise EnvironmentException('value cannot be empty')
                 res = self._evaluate_statement(ast.lines[0])
-            except MesonException:
-                raise EnvironmentException(f'Malformed value in machine file variable {entry!r}.')
+            except MesonException as e:
+                raise EnvironmentException(f'Malformed value in machine file variable {entry!r}: {str(e)}.')
             except KeyError as e:
                 raise EnvironmentException(f'Undefined constant {e.args[0]!r} in machine file variable {entry!r}.')
             section[entry] = res
@@ -1091,9 +1094,9 @@ def major_versions_differ(v1: str, v2: str) -> bool:
     # Major version differ, or one is development version but not the other.
     return v1_major != v2_major or ('99' in {v1_minor, v2_minor} and v1_minor != v2_minor)
 
-def load(build_dir: str) -> CoreData:
+def load(build_dir: str, suggest_reconfigure: bool = True) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
-    return pickle_load(filename, 'Coredata', CoreData)
+    return pickle_load(filename, 'Coredata', CoreData, suggest_reconfigure)
 
 
 def save(obj: CoreData, build_dir: str) -> str:

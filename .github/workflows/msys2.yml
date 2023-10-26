@@ -51,9 +51,6 @@ jobs:
             TOOLCHAIN: clang
     env:
       MESON_CI_JOBNAME: msys2-${{ matrix.NAME }}
-      # XXX: For some reason enabling jit debugging "fixes" random python crashes
-      # see https://github.com/msys2/MINGW-packages/issues/11864
-      MSYS: "winjitdebug"
 
     defaults:
       run:

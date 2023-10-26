@@ -14,7 +14,7 @@ import tarfile
 import zipfile
 
 from . import mlog
-from .ast import IntrospectionInterpreter, AstIDGenerator
+from .ast import IntrospectionInterpreter
 from .mesonlib import quiet_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
 from .wrap.wrap import (Resolver, WrapException, ALL_TYPES, PackageDefinition,
                         parse_patch_url, update_wrap_file, get_releases)
@@ -153,6 +153,11 @@ class Runner:
         try:
             wrapdb_version = self.wrap.get('wrapdb_version')
             branch, revision = wrapdb_version.split('-', 1)
+        except ValueError:
+            if not options.force:
+                self.log('  ->', mlog.red('Malformed wrapdb_version field, use --force to update anyway'))
+                return False
+            branch = revision = None
         except WrapException:
             # Fallback to parsing the patch URL to determine current version.
             # This won't work for projects that have upstream Meson support.
@@ -161,7 +166,7 @@ class Runner:
                 branch, revision = parse_patch_url(patch_url)
             except WrapException:
                 if not options.force:
-                    self.log('  ->', mlog.red('Could not determine current version, use --force to update any way'))
+                    self.log('  ->', mlog.red('Could not determine current version, use --force to update anyway'))
                     return False
                 branch = revision = None
 
@@ -229,7 +234,9 @@ class Runner:
         try:
             self.git_output(['-c', 'rebase.autoStash=true', 'rebase', 'FETCH_HEAD'])
         except GitException as e:
-            self.log('  -> Could not rebase', mlog.bold(self.repo_dir), 'onto', mlog.bold(revision))
+            self.git_output(['-c', 'rebase.autoStash=true', 'rebase', '--abort'])
+            self.log('  -> Could not rebase', mlog.bold(self.repo_dir), 'onto', mlog.bold(revision),
+                     '-- aborted')
             self.log(mlog.red(e.output))
             self.log(mlog.red(str(e)))
             return False
@@ -282,6 +289,19 @@ class Runner:
         if success:
             success = self.git_rebase(revision)
         return success
+
+    def git_branch_has_upstream(self, urls: set) -> bool:
+        cmd = ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}']
+        ret, upstream = quiet_git(cmd, self.repo_dir)
+        if not ret:
+            return False
+        try:
+            remote = upstream.split('/', maxsplit=1)[0]
+        except IndexError:
+            return False
+        cmd = ['remote', 'get-url', remote]
+        ret, remote_url = quiet_git(cmd, self.repo_dir)
+        return remote_url.strip() in urls
 
     def update_git(self) -> bool:
         options = T.cast('UpdateArguments', self.options)
@@ -374,12 +394,16 @@ class Runner:
                 success = self.git_rebase(revision)
         else:
             # We are in another branch, either the user created their own branch and
-            # we should rebase it, or revision changed in the wrap file and we need
-            # to checkout the new branch.
+            # we should rebase it, or revision changed in the wrap file (we
+            # know this when the current branch has an upstream) and we need to
+            # checkout the new branch.
             if options.reset:
                 success = self.git_checkout_and_reset(revision)
             else:
-                success = self.git_rebase(revision)
+                if self.git_branch_has_upstream({url, push_url}):
+                    success = self.git_checkout_and_rebase(revision)
+                else:
+                    success = self.git_rebase(revision)
         if success:
             self.update_git_done()
         return success
@@ -691,11 +715,9 @@ def run(options: 'Arguments') -> int:
         mlog.error('Directory', mlog.bold(source_dir), 'does not seem to be a Meson source directory.')
         return 1
     with mlog.no_logging():
-        intr = IntrospectionInterpreter(source_dir, '', 'none', visitors = [AstIDGenerator()])
+        intr = IntrospectionInterpreter(source_dir, '', 'none')
         intr.load_root_meson_file()
-        intr.sanity_check_ast()
-        intr.parse_project()
-    subproject_dir = intr.subproject_dir
+        subproject_dir = intr.extract_subproject_dir() or 'subprojects'
     if not os.path.isdir(os.path.join(source_dir, subproject_dir)):
         mlog.log('Directory', mlog.bold(source_dir), 'does not seem to have subprojects.')
         return 0

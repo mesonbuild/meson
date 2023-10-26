@@ -22,7 +22,7 @@ c = ['/opt/arm/developmentstudio-2019.0/sw/ARMCompiler6.12/bin/armclang', '--tar
 #cpp = '/usr/bin/arm-linux-gnueabihf-g++'
 ar = '/opt/arm/developmentstudio-2019.0/sw/ARMCompiler6.12/bin/armar'
 #strip = '/usr/arm-linux-gnueabihf/bin/strip'
-#pkgconfig = '/usr/bin/arm-linux-gnueabihf-pkg-config'
+#pkg-config = '/usr/bin/arm-linux-gnueabihf-pkg-config'
 
 [host_machine]
 system = 'baremetal'

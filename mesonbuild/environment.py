@@ -96,6 +96,20 @@ def detect_gcovr(min_version: str = '3.3', log: bool = False):
         return gcovr_exe, found
     return None, None
 
+def detect_lcov(log: bool = False):
+    lcov_exe = 'lcov'
+    try:
+        p, found = Popen_safe([lcov_exe, '--version'])[0:2]
+    except (FileNotFoundError, PermissionError):
+        # Doesn't exist in PATH or isn't executable
+        return None, None
+    found = search_version(found)
+    if p.returncode == 0 and found:
+        if log:
+            mlog.log('Found lcov-{} at {}'.format(found, quote_arg(shutil.which(lcov_exe))))
+        return lcov_exe, found
+    return None, None
+
 def detect_llvm_cov():
     tools = get_llvm_tool_names('llvm-cov')
     for tool in tools:
@@ -103,20 +117,18 @@ def detect_llvm_cov():
             return tool
     return None
 
-def find_coverage_tools() -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
+def find_coverage_tools() -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
     gcovr_exe, gcovr_version = detect_gcovr()
 
     llvm_cov_exe = detect_llvm_cov()
 
-    lcov_exe = 'lcov'
+    lcov_exe, lcov_version = detect_lcov()
     genhtml_exe = 'genhtml'
 
-    if not mesonlib.exe_exists([lcov_exe, '--version']):
-        lcov_exe = None
     if not mesonlib.exe_exists([genhtml_exe, '--version']):
         genhtml_exe = None
 
-    return gcovr_exe, gcovr_version, lcov_exe, genhtml_exe, llvm_cov_exe
+    return gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe
 
 def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.List[str]:
     r = detect_ninja_command_and_version(version, log)
@@ -157,6 +169,7 @@ def get_llvm_tool_names(tool: str) -> T.List[str]:
     # unless it becomes a stable release.
     suffixes = [
         '', # base (no suffix)
+        '-17',  '17',
         '-16',  '16',
         '-15',  '15',
         '-14',  '14',
@@ -410,6 +423,11 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
 
 def detect_kernel(system: str) -> T.Optional[str]:
     if system == 'sunos':
+        # Solaris 5.10 uname doesn't support the -o switch, and illumos started
+        # with version 5.11 so shortcut the logic to report 'solaris' in such
+        # cases where the version is 5.10 or below.
+        if mesonlib.version_compare(platform.uname().release, '<=5.10'):
+            return 'solaris'
         # This needs to be /usr/bin/uname because gnu-uname could be installed and
         # won't provide the necessary information
         p, out, _ = Popen_safe(['/usr/bin/uname', '-o'])
@@ -490,7 +508,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata: coredata.CoreData = coredata.load(self.get_build_dir())
+                self.coredata: coredata.CoreData = coredata.load(self.get_build_dir(), suggest_reconfigure=False)
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(options)
@@ -508,7 +526,7 @@ class Environment:
                     coredata.read_cmd_line_file(self.build_dir, options)
                     self.create_new_coredata(options)
                 else:
-                    raise e
+                    raise MesonException(f'{str(e)} Try regenerating using "meson setup --wipe".')
         else:
             # Just create a fresh coredata in this case
             self.scratch_dir = ''
