@@ -402,7 +402,7 @@ class GnomeModule(ExtensionModule):
 
         # Validate dependencies
         subdirs: T.List[str] = []
-        depends: T.List[T.Union[CustomTarget, CustomTargetIndex]] = []
+        depends: T.List[T.Union[CustomTarget, CustomTargetIndex, GeneratedList]] = []
         generated_lists: T.List[GeneratedList] = []
         for dep in dependencies:
             if isinstance(dep, mesonlib.File):
@@ -477,7 +477,10 @@ class GnomeModule(ExtensionModule):
         # Include target private directory if generated lists are used
         if generated_lists:
             FeatureNew('gnome.compile_resources with GeneratedList dependency', '1.3.2').use(state.subproject, state.current_node)
-            source_dirs.append(os.path.join(state.subdir, f"{output}.p"))
+            if gresource:
+                source_dirs.append(os.path.join(state.subdir, f"{output}.p"))
+            else:
+                source_dirs.append(os.path.join(state.subdir, f"{target_name}.h.p"))
 
         # Clean up duplicate directories
         source_dirs = list(OrderedSet(os.path.normpath(dir) for dir in source_dirs))
@@ -503,7 +506,29 @@ class GnomeModule(ExtensionModule):
             depfile = f'{output}.d'
             depend_files = []
             target_cmd = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = GResourceTarget(
+        if not gresource:
+            header_install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
+            assert isinstance(header_install_dir, str), 'for mypy'
+            target_h = GResourceHeaderTarget(
+                f'{target_name}_h',
+                state.subdir,
+                state.subproject,
+                state.environment,
+                cmd,
+                [input_file],
+                [f'{target_name}.h'],
+                build_by_default=kwargs['build_by_default'],
+                extra_depends=[*depends, *generated_lists],
+                install=install_header,
+                install_dir=[header_install_dir],
+                install_tag=['devel'],
+            )
+            if generated_lists:
+                depends.append(target_h)
+        else:
+            depends += generated_lists
+
+        target_main = GResourceTarget(
             name,
             state.subdir,
             state.subproject,
@@ -514,40 +539,24 @@ class GnomeModule(ExtensionModule):
             build_by_default=kwargs['build_by_default'],
             depfile=depfile,
             depend_files=depend_files,
-            extra_depends=depends + generated_lists,
+            extra_depends=depends,
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             install_tag=['runtime'],
         )
-        target_c.source_dirs = source_dirs
+        target_main.source_dirs = source_dirs
 
         if gresource: # Only one target for .gresource files
-            return ModuleReturnValue(target_c, [target_c])
+            return ModuleReturnValue(target_main, [target_main])
 
-        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
-        assert isinstance(install_dir, str), 'for mypy'
-        target_h = GResourceHeaderTarget(
-            f'{target_name}_h',
-            state.subdir,
-            state.subproject,
-            state.environment,
-            cmd,
-            [input_file],
-            [f'{target_name}.h'],
-            build_by_default=kwargs['build_by_default'],
-            extra_depends=depends + [target_c],
-            install=install_header,
-            install_dir=[install_dir],
-            install_tag=['devel'],
-        )
-        rv = [target_c, target_h]
+        rv = [target_main, target_h]
         return ModuleReturnValue(rv, rv)
 
     @staticmethod
     def _get_gresource_dependencies(
             state: 'ModuleState', input_file: str, source_dirs: T.List[str],
             dependencies: T.Sequence[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex]]
-            ) -> T.Tuple[T.List[mesonlib.FileOrString], T.List[T.Union[CustomTarget, CustomTargetIndex]], T.List[str]]:
+            ) -> T.Tuple[T.List[mesonlib.FileOrString], T.List[T.Union[CustomTarget, CustomTargetIndex, GeneratedList]], T.List[str]]:
 
         cmd = ['glib-compile-resources',
                input_file,

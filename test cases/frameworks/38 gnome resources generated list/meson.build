@@ -25,3 +25,11 @@ gnome.compile_resources(
   c_name: 'test_res',
   dependencies: generated
 )
+
+gnome.compile_resources(
+  'demo-gresource',
+  'test.gresource.xml',
+  gresource_bundle: true,
+  build_by_default: true,
+  dependencies: generated
+)
