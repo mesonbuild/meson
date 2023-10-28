@@ -292,7 +292,7 @@ def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = 
         [Benchmark(**_fixup_raw_mappings(b)) for b in raw_manifest.get('bench', {})],
         [Example(**_fixup_raw_mappings(b)) for b in raw_manifest.get('example', {})],
         raw_manifest.get('features', {}),
-        {k: {k2: Dependency.from_raw(v2) for k2, v2 in v['dependencies'].items()}
+        {k: {k2: Dependency.from_raw(v2) for k2, v2 in v.get('dependencies', {}).items()}
          for k, v in raw_manifest.get('target', {}).items()},
         subdir,
         path,
