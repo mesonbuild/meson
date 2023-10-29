@@ -470,7 +470,7 @@ SOURCES_VARARGS = (str, File, CustomTarget, CustomTargetIndex, GeneratedList, St
 
 BT_SOURCES_KW: KwargInfo[SourcesVarargsType] = KwargInfo(
     'sources',
-    ContainerTypeInfo(list, SOURCES_VARARGS),
+    (NoneType, ContainerTypeInfo(list, SOURCES_VARARGS)),
     listify=True,
     default=[],
 )

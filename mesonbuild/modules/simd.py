@@ -71,7 +71,7 @@ class SimdModule(ExtensionModule):
     @typed_pos_args('simd.check', str)
     @typed_kwargs('simd.check',
                   KwargInfo('compiler', Compiler, required=True),
-                  *[BT_SOURCES_KW.evolve(name=iset) for iset in ISETS],
+                  *[BT_SOURCES_KW.evolve(name=iset, default=None) for iset in ISETS],
                   *[a for a in STATIC_LIB_KWS if a.name != 'sources'],
                   allow_unknown=True) # Because we also accept STATIC_LIB_KWS, but build targets have not been completely ported to typed_pos_args/typed_kwargs.
     @permittedKwargs({'compiler', *ISETS, *build.known_stlib_kwargs}) # Also remove this, per above comment
@@ -90,6 +90,8 @@ class SimdModule(ExtensionModule):
 
         for iset in ISETS:
             sources = kwargs[iset]
+            if sources is None:
+                continue
 
             compile_args = compiler.get_instruction_set_args(iset)
             if compile_args is None:
