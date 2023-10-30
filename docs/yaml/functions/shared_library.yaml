@@ -54,3 +54,9 @@ kwargs:
       Set the specific ABI to compile (when compiling rust).
       - 'rust' (default): Create a "dylib" crate.
       - 'c': Create a "cdylib" crate.
+
+  shortname:
+    type: str
+    since: 1.10.0
+    description: |
+      A string specifying a DLL name fitting to 8.3 limit on OS/2 of this shared library.
