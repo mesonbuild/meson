@@ -278,3 +278,11 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
+
+    def test_error_configuring_subdir(self):
+        testdir = os.path.join(self.common_test_dir, '152 index customtarget')
+        out = self.init(os.path.join(testdir, 'subdir'), allow_fail=True)
+
+        self.assertIn('first statement must be a call to project()', out)
+        # provide guidance diagnostics by finding a file whose first AST statement is project()
+        self.assertIn(f'Did you mean to run meson from the directory: "{testdir}"?', out)

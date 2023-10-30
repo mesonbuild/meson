@@ -132,20 +132,30 @@ class InterpreterBase:
         self.evaluate_codeblock(self.ast, end=1)
 
     def sanity_check_ast(self) -> None:
-        if not isinstance(self.ast, mparser.CodeBlockNode):
-            raise InvalidCode('AST is of invalid type. Possibly a bug in the parser.')
-        if not self.ast.lines:
-            raise InvalidCode('No statements in code.')
-        first = self.ast.lines[0]
-        if not isinstance(first, mparser.FunctionNode) or first.func_name.value != 'project':
+        def _is_project(ast: mparser.CodeBlockNode) -> object:
+            if not isinstance(ast, mparser.CodeBlockNode):
+                raise InvalidCode('AST is of invalid type. Possibly a bug in the parser.')
+            if not ast.lines:
+                raise InvalidCode('No statements in code.')
+            first = ast.lines[0]
+            return isinstance(first, mparser.FunctionNode) and first.func_name.value == 'project'
+
+        if not _is_project(self.ast):
             p = pathlib.Path(self.source_root).resolve()
             found = p
             for parent in p.parents:
                 if (parent / 'meson.build').is_file():
                     with open(parent / 'meson.build', encoding='utf-8') as f:
-                        if f.readline().startswith('project('):
-                            found = parent
-                            break
+                        code = f.read()
+
+                    try:
+                        ast = mparser.Parser(code, 'empty').parse()
+                    except mparser.ParseException:
+                        continue
+
+                    if _is_project(ast):
+                        found = parent
+                        break
                 else:
                     break
 
