@@ -811,13 +811,15 @@ class Resolver:
             relpath = os.path.relpath(str(path), self.dirname)
             if PATCH:
                 # Always pass a POSIX path to patch, because on Windows it's MSYS
-                cmd = [PATCH, '-f', '-p1', '-i', str(Path(relpath).as_posix())]
+                # Ignore whitespace when applying patches to workaround
+                # line-ending differences
+                cmd = [PATCH, '-l', '-f', '-p1', '-i', str(Path(relpath).as_posix())]
             elif GIT:
                 # If the `patch` command is not available, fall back to `git
                 # apply`. The `--work-tree` is necessary in case we're inside a
                 # Git repository: by default, Git will try to apply the patch to
                 # the repository root.
-                cmd = [GIT, '--work-tree', '.', 'apply', '-p1', relpath]
+                cmd = [GIT, '--work-tree', '.', 'apply', '--ignore-whitespace', '-p1', relpath]
             else:
                 raise WrapException('Missing "patch" or "git" commands to apply diff files')
 
