@@ -124,6 +124,7 @@ if T.TYPE_CHECKING:
         version: str
         soversion: str
         darwin_versions: T.Tuple[str, str]
+        shortname: str
 
     class StaticLibraryKeywordArguments(BuildTargetKeywordArguments, total=False):
 
@@ -198,7 +199,7 @@ known_build_target_kwargs = (
     swift_kwargs)
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs', 'android_exe_type'}
-known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi'}
+known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi', 'shortname'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
 known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
@@ -2464,6 +2465,7 @@ class SharedLibrary(BuildTarget):
         # Max length 2, first element is compatibility_version, second is current_version
         self.darwin_versions: T.Optional[T.Tuple[str, str]] = None
         self.vs_module_defs = None
+        self.shortname: T.Optional[str] = None
         # The import library this target will generate
         self.import_filename = None
         # The debugging information file this target will generate
@@ -2594,12 +2596,11 @@ class SharedLibrary(BuildTarget):
             # Import library is called foo_dll.a
             import_suffix = import_suffix if import_suffix is not None else '_dll.a'
             import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
+            filename_tpl = '{0.shortname}' if self.shortname else '{0.prefix}{0.name}'
             if self.soversion:
                 # fooX.dll
-                filename_tpl = '{0.prefix}{0.name}{0.soversion}.{0.suffix}'
-            else:
-                # No versioning, foo.dll
-                filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+                filename_tpl += '{0.soversion}'
+            filename_tpl += '.{0.suffix}'
         else:
             prefix = prefix if prefix is not None else 'lib'
             suffix = suffix if suffix is not None else 'so'
@@ -2672,6 +2673,9 @@ class SharedLibrary(BuildTarget):
 
         # Visual Studio module-definitions file
         self.process_vs_module_defs_kw(kwargs)
+
+        # OS/2 uses a 8.3 name for a DLL
+        self.shortname = kwargs.get('shortname')
 
     def get_import_filename(self) -> T.Optional[str]:
         """

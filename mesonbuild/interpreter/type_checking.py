@@ -803,12 +803,18 @@ STATIC_LIB_KWS = [
     _JAVA_LANG_KW,
 ]
 
+def _shortname_validator(shortname: T.Optional[str]) -> T.Optional[str]:
+    if shortname is not None and len(shortname) > 8:
+        return 'must have a maximum of 8 characters'
+    return None
+
 # Arguments exclusive to SharedLibrary. These are separated to make integrating
 # them into build_target easier
 _EXCLUSIVE_SHARED_LIB_KWS: T.List[KwargInfo] = [
     _DARWIN_VERSIONS_KW,
     KwargInfo('soversion', (str, int, NoneType), convertor=lambda x: str(x) if x is not None else None),
     KwargInfo('version', (str, NoneType), validator=_validate_shlib_version),
+    KwargInfo('shortname', (str, NoneType), since='1.10.0', validator=_shortname_validator),
 ]
 
 # The total list of arguments used by SharedLibrary

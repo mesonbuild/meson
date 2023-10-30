@@ -181,7 +181,7 @@ class RustModule(ExtensionModule):
 
         new_target_kwargs = T.cast('ExecutableKeywordArguments', base_target.original_kwargs.copy())
         del new_target_kwargs['rust_crate_type']
-        for kw in ('pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions'):
+        for kw in ('pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions', 'shortname'):
             if kw in new_target_kwargs:
                 del new_target_kwargs[kw]  # type: ignore[misc]
 
