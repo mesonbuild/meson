@@ -15,6 +15,7 @@
 import functools
 import os
 from pathlib import Path
+import platform
 import re
 import subprocess
 import sys
@@ -263,9 +264,12 @@ class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
             self.detect(kwargs)
 
     def check_macOS_recent_enough(self) -> bool:
+        # We need the SDK to be >=13.3 (meaning at least XCode 14.3)
         cmd = ['xcrun', '-sdk', 'macosx', '--show-sdk-version']
         sdk_version = subprocess.run(cmd, capture_output=True, check=True, text=True).stdout.strip()
-        return sdk_version >= '13.3'
+        macos_version = platform.mac_ver()[0]
+        deploy_target = os.environ.get('MACOSX_DEPLOYMENT_TARGET', macos_version)
+        return sdk_version >= '13.3' and deploy_target >= '13.3'
 
     def detect(self, kwargs: T.Dict[str, T.Any]) -> None:
         from .framework import ExtraFrameworkDependency
