@@ -24,12 +24,12 @@ import typing as T
 from ast import literal_eval
 import os
 
-def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, args: T.List[str]) -> int:
+def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, subprojdir: Path, args: T.List[str]) -> int:
     # In case of problems leave the temp directory around
     # so it can be debugged.
     scandir = tempfile.mkdtemp(dir=str(privdir))
     meson_cmd = exelist + args
-    build_cmd = exelist + ['-o', str(logdir)] + detect_ninja() + ['-C', scandir]
+    build_cmd = exelist + ['--exclude', str(subprojdir), '-o', str(logdir)] + detect_ninja() + ['-C', scandir]
     rc = subprocess.call(meson_cmd + [str(srcdir), scandir])
     if rc != 0:
         return rc
@@ -41,8 +41,9 @@ def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, l
 def run(args: T.List[str]) -> int:
     srcdir = Path(args[0])
     bldpath = Path(args[1])
+    subprojdir = srcdir / Path(args[2])
     blddir = args[1]
-    meson_cmd = args[2:]
+    meson_cmd = args[3:]
     privdir = bldpath / 'meson-private'
     logdir = bldpath / 'meson-logs' / 'scanbuild'
     shutil.rmtree(str(logdir), ignore_errors=True)
@@ -63,4 +64,4 @@ def run(args: T.List[str]) -> int:
         print('Could not execute scan-build "%s"' % ' '.join(exelist))
         return 1
 
-    return scanbuild(exelist, srcdir, bldpath, privdir, logdir, meson_cmd)
+    return scanbuild(exelist, srcdir, bldpath, privdir, logdir, subprojdir, meson_cmd)

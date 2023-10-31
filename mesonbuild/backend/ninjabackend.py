@@ -3587,7 +3587,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if 'scan-build' in self.all_outputs:
             return
         cmd = self.environment.get_build_command() + \
-            ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir] + \
+            ['--internal', 'scanbuild', self.environment.source_dir, self.environment.build_dir, self.build.get_subproject_dir()] + \
             self.environment.get_build_command() + self.get_user_option_args()
         elem = self.create_phony_target('scan-build', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
