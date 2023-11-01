@@ -144,8 +144,8 @@ class Identifier(IR):
 @dataclasses.dataclass
 class Equal(IR):
 
-    lhs: IR
-    rhs: IR
+    lhs: Identifier
+    rhs: String
 
 
 @dataclasses.dataclass
@@ -231,19 +231,16 @@ def _(ir: String, build: builder.Builder) -> mparser.BaseNode:
 
 @ir_to_meson.register
 def _(ir: Identifier, build: builder.Builder) -> mparser.BaseNode:
-    host_machine = build.identifier('host_machine')
-    if ir.value == "target_arch":
-        return build.method('cpu_family', host_machine)
-    elif ir.value in {"target_os", "target_family"}:
-        return build.method('system', host_machine)
-    elif ir.value == "target_endian":
-        return build.method('endian', host_machine)
-    raise MesonBugException(f"Unhandled Cargo identifier: {ir.value}")
+    # cfg.has_key('identifier')
+    return build.method('has_key', build.identifier('cfg'), [build.string(ir.value)])
 
 
 @ir_to_meson.register
 def _(ir: Equal, build: builder.Builder) -> mparser.BaseNode:
-    return build.equal(ir_to_meson(ir.lhs, build), ir_to_meson(ir.rhs, build))
+    # cfg.get('identifier', '') == 'value'
+    return build.equal(
+        build.method('get', build.identifier('cfg'), [build.string(ir.lhs.value), build.string('')]),
+        build.string(ir.rhs.value))
 
 
 @ir_to_meson.register
@@ -273,3 +270,7 @@ def _(ir: All, build: builder.Builder) -> mparser.BaseNode:
     for a in args:
         cur = build.and_(ir_to_meson(a, build), cur)
     return cur
+
+
+def cfg_to_meson(raw: str, build: builder.Builder) -> mparser.BaseNode:
+    return ir_to_meson(parse(lexer(raw)), build)

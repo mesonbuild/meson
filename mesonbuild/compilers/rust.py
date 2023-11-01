@@ -121,10 +121,13 @@ class RustCompiler(Compiler):
         return stdo.split('\n', maxsplit=1)[0]
 
     @functools.lru_cache(maxsize=None)
-    def get_crt_static(self) -> bool:
+    def get_cfgs(self) -> T.List[str]:
         cmd = self.get_exelist(ccache=False) + ['--print', 'cfg']
         p, stdo, stde = Popen_safe_logged(cmd)
-        return bool(re.search('^target_feature="crt-static"$', stdo, re.MULTILINE))
+        return stdo.splitlines()
+
+    def get_crt_static(self) -> bool:
+        return 'target_feature="crt-static"' in self.get_cfgs()
 
     @functools.lru_cache(maxsize=None)
     def get_target_triplet(self) -> str:

@@ -24,6 +24,7 @@ from functools import lru_cache
 
 from . import builder
 from . import version
+from .cfg import cfg_to_meson
 from ..mesonlib import MesonException, Popen_safe, OptionKey
 from .. import coredata
 
@@ -474,7 +475,7 @@ def _create_features(cargo: Manifest, build: builder.Builder) -> T.List[mparser.
     # and one per dependency.
     ast: T.List[mparser.BaseNode] = []
     ast.append(build.assign(build.dict({}), 'features'))
-    for depname in cargo.dependencies:
+    for depname in itertools.chain.from_iterable([cargo.dependencies] + [deps for deps in cargo.target.values()]):
         ast.append(build.assign(build.dict({}), _options_varname(depname)))
 
     # Declare a dict that map required dependencies to true
@@ -509,6 +510,36 @@ def _create_features(cargo: Manifest, build: builder.Builder) -> T.List[mparser.
     ))
 
     return ast
+
+
+def _create_cfg(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    # Allow Cargo subprojects to add extra Rust args in meson/meson.build file.
+    # This is used to replace build.rs logic.
+
+    # extra_args = []
+    # extra_deps = []
+    # fs = import('fs')
+    # has_meson_build = fs.is_dir('meson')
+    # if has_meson_build
+    #  subdir('meson')
+    # endif
+    # cfg = rust.cargo_cfg(features, skip_build_rs: has_meson_build)
+    return [
+        build.assign(build.array([]), _extra_args_varname()),
+        build.assign(build.array([]), _extra_deps_varname()),
+        build.assign(build.function('import', [build.string('fs')]), 'fs'),
+        build.assign(build.method('is_dir', build.identifier('fs'), [build.string('meson')]), 'has_meson_build'),
+        build.if_(build.identifier('has_meson_build'),
+                  build.block([build.function('subdir', [build.string('meson')])])),
+        build.assign(
+            build.method(
+                'cargo_cfg',
+                build.identifier('rust'),
+                [build.method('keys', build.identifier('features'))],
+                {'skip_build_rs': build.identifier('has_meson_build')},
+            ),
+            'cfg'),
+    ]
 
 
 def _create_dependency(name: str, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
@@ -603,34 +634,25 @@ def _create_dependency(name: str, dep: Dependency, build: builder.Builder) -> T.
 
 def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     ast: T.List[mparser.BaseNode] = []
+    for condition, dependencies in cargo.target.items():
+        ifblock: T.List[mparser.BaseNode] = []
+        elseblock: T.List[mparser.BaseNode] = []
+        notfound = build.function('dependency', [build.string('')], {'required': build.bool(False)})
+        for name, dep in dependencies.items():
+            ifblock += _create_dependency(name, dep, build)
+            elseblock.append(build.assign(notfound, _dependency_varname(dep.package)))
+        ast.append(build.if_(cfg_to_meson(condition, build), build.block(ifblock), build.block(elseblock)))
     for name, dep in cargo.dependencies.items():
         ast += _create_dependency(name, dep, build)
     return ast
 
 
-def _create_meson_subdir(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
-    # Allow Cargo subprojects to add extra Rust args in meson/meson.build file.
-    # This is used to replace build.rs logic.
-
-    # extra_args = []
-    # extra_deps = []
-    # fs = import('fs')
-    # if fs.is_dir('meson')
-    #  subdir('meson')
-    # endif
-    return [
-        build.assign(build.array([]), _extra_args_varname()),
-        build.assign(build.array([]), _extra_deps_varname()),
-        build.assign(build.function('import', [build.string('fs')]), 'fs'),
-        build.if_(build.method('is_dir', build.identifier('fs'), [build.string('meson')]),
-                  build.block([build.function('subdir', [build.string('meson')])]))
-    ]
-
-
 def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CRATE_TYPE) -> T.List[mparser.BaseNode]:
     dependencies: T.List[mparser.BaseNode] = []
     dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
-    for name, dep in cargo.dependencies.items():
+    deps_i = [cargo.dependencies.items()]
+    deps_i += [deps.items() for deps in cargo.target.values()]
+    for name, dep in itertools.chain.from_iterable(deps_i):
         dependencies.append(build.identifier(_dependency_varname(dep.package)))
         if name != dep.package:
             dependency_map[build.string(fixup_meson_varname(dep.package))] = build.string(name)
@@ -730,8 +752,8 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
     ast = _create_project(cargo, build)
     ast += [build.assign(build.function('import', [build.string('rust')]), 'rust')]
     ast += _create_features(cargo, build)
+    ast += _create_cfg(cargo, build)
     ast += _create_dependencies(cargo, build)
-    ast += _create_meson_subdir(cargo, build)
 
     # Libs are always auto-discovered and there's no other way to handle them,
     # which is unfortunate for reproducability
@@ -746,7 +768,13 @@ def dependencies(source_dir: str) -> T.Dict[str, Dependency]:
     deps: T.Dict[str, Dependency] = {}
     manifests = _load_manifests(source_dir)
     for cargo in manifests.values():
-        for name, dep in cargo.dependencies.items():
+        deps_i = [
+            cargo.dependencies.values(),
+            cargo.dev_dependencies.values(),
+            cargo.build_dependencies.values(),
+        ]
+        deps_i += [deps.values() for deps in cargo.target.values()]
+        for dep in itertools.chain.from_iterable(deps_i):
             depname = _dependency_name(dep.package, dep.api)
             deps[depname] = dep
     return deps

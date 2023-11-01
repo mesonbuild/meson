@@ -20,6 +20,7 @@ if T.TYPE_CHECKING:
     from ..programs import OverrideProgram
     from ..wrap import WrapMode
     from ..dependencies import Dependency
+    from ..compilers import Compiler
 
 class ModuleState:
     """Object passed to all module methods.
@@ -163,6 +164,9 @@ class ModuleState:
     def add_arguments(self, args: T.List[str], lang: str, for_machine: MachineChoice,
                        is_global: bool = False, is_link: bool = False) -> None:
         self._interpreter._add_arguments(args, [lang], for_machine, is_global, is_link)
+
+    def get_compiler(self, lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
+        return self._interpreter.coredata.compilers[for_machine].get(lang)
 
 
 class ModuleObject(HoldableObject):
