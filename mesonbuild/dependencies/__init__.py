@@ -238,6 +238,8 @@ packages.defaults.update({
 
     # From blas_lapack:
     'accelerate': 'blas_lapack',
+    'blas': 'blas_lapack',
+    'lapack': 'blas_lapack',
     'mkl': 'blas_lapack',
     'openblas': 'blas_lapack',
 

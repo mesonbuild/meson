@@ -40,6 +40,28 @@ if T.TYPE_CHECKING:
 # detection implementations and distro recipes, etc.
 
 
+def check_blas_machine_file(self, name: str, props: dict) -> T.Tuple[bool, T.List[str]]:
+    # TBD: do we need to support multiple extra dirs?
+    incdir = props.get(f'{name}_includedir')
+    assert incdir is None or isinstance(incdir, str)
+    libdir = props.get(f'{name}_librarydir')
+    assert libdir is None or isinstance(libdir, str)
+
+    if incdir and libdir:
+        has_dirs = True
+        if not Path(incdir).is_absolute() or not Path(libdir).is_absolute():
+            raise mesonlib.MesonException('Paths given for openblas_includedir and '
+                                          'openblas_librarydir in machine file must be absolute')
+        return has_dirs, [libdir, incdir]
+    elif incdir or libdir:
+        raise mesonlib.MesonException('Both openblas_includedir *and* openblas_librarydir '
+                                      'have to be set in your machine file (one is not enough)')
+    else:
+        raise mesonlib.MesonBugException('issue with openblas dependency detection, should not '
+                                         'be possible to reach this else clause')
+    return (False, [])
+
+
 class BLASLAPACKMixin():
     def parse_modules(self, kwargs: T.Dict[str, T.Any]) -> None:
         modules: T.List[str] = mesonlib.extract_as_list(kwargs, 'modules')
@@ -60,14 +82,17 @@ class BLASLAPACKMixin():
         self.needs_lapack = 'lapack' in modules
         self.needs_lapacke = 'lapacke' in modules
 
-    def check_symbols(self, compile_args, suffix=None) -> None:
+    def check_symbols(self, compile_args, suffix=None, check_cblas=True,
+                      check_lapacke=True, lapack_only=False) -> None:
         # verify that we've found the right LP64/ILP64 interface
-        symbols = ['dgemm_']
-        if self.needs_cblas:
+        symbols = []
+        if not lapack_only:
+            symbols += ['dgemm_']
+        if check_cblas and self.needs_cblas:
             symbols += ['cblas_dgemm']
         if self.needs_lapack:
             symbols += ['zungqr_']
-        if self.needs_lapacke:
+        if check_lapacke and self.needs_lapacke:
             symbols += ['LAPACKE_zungqr']
 
         if suffix is None:
@@ -154,13 +179,14 @@ class OpenBLASSystemDependency(BLASLAPACKMixin, OpenBLASMixin, SystemDependency)
 
         for libname in libnames:
             link_arg = self.clib_compiler.find_library(libname, self.env, lib_dirs)
-            incdir_args = [f'-I{inc_dir}' for inc_dir in inc_dirs]
-            for hdr in ['openblas_config.h', 'openblas/openblas_config.h']:
-                found_header, _ = self.clib_compiler.has_header(hdr, '', self.env, dependencies=[self],
-                                                                extra_args=incdir_args)
-                if found_header:
-                    self._openblas_config_header = hdr
-                    break
+            if link_arg:
+                incdir_args = [f'-I{inc_dir}' for inc_dir in inc_dirs]
+                for hdr in ['openblas_config.h', 'openblas/openblas_config.h']:
+                    found_header, _ = self.clib_compiler.has_header(hdr, '', self.env, dependencies=[self],
+                                                                    extra_args=incdir_args)
+                    if found_header:
+                        self._openblas_config_header = hdr
+                        break
 
             if link_arg and found_header:
                 if not self.probe_symbols(link_arg):
@@ -171,25 +197,10 @@ class OpenBLASSystemDependency(BLASLAPACKMixin, OpenBLASMixin, SystemDependency)
                 break
 
     def detect_openblas_machine_file(self, props: dict) -> None:
-        # TBD: do we need to support multiple extra dirs?
-        incdir = props.get('openblas_includedir')
-        assert incdir is None or isinstance(incdir, str)
-        libdir = props.get('openblas_librarydir')
-        assert libdir is None or isinstance(libdir, str)
-
-        if incdir and libdir:
-            self.is_found = True
-            if not Path(incdir).is_absolute() or not Path(libdir).is_absolute():
-                raise mesonlib.MesonException('Paths given for openblas_includedir and '
-                                              'openblas_librarydir in machine file must be absolute')
-        elif incdir or libdir:
-            raise mesonlib.MesonException('Both openblas_includedir *and* openblas_librarydir '
-                                          'have to be set in your machine file (one is not enough)')
-        else:
-            raise mesonlib.MesonBugException('issue with openblas dependency detection, should not '
-                                             'be possible to reach this else clause')
-
-        self.detect([libdir], [incdir])
+        has_dirs, _dirs = check_blas_machine_file('openblas', props)
+        if has_dirs:
+            libdir, incdir = _dirs
+            self.detect([libdir], [incdir])
 
     def detect_openblas_version(self) -> str:
         v, _ = self.clib_compiler.get_define('OPENBLAS_VERSION',
@@ -214,7 +225,7 @@ class OpenBLASPkgConfigDependency(BLASLAPACKMixin, OpenBLASMixin, PkgConfigDepen
 
         super().__init__(name, env, kwargs)
 
-        if not self.probe_symbols(self.link_args):
+        if self.is_found and not self.probe_symbols(self.link_args):
             self.is_found = False
 
 
@@ -227,19 +238,224 @@ class OpenBLASCMakeDependency(BLASLAPACKMixin, OpenBLASMixin, CMakeDependency):
 
         if self.interface == 'ilp64':
             self.is_found = False
-        elif not self.probe_symbols(self.link_args):
+        elif self.is_found and not self.probe_symbols(self.link_args):
             self.is_found = False
 
 
-class NetlibPkgConfigDependency(BLASLAPACKMixin, PkgConfigDependency):
+class NetlibMixin():
+    def get_symbol_suffix(self) -> str:
+        self._ilp64_suffix = ''  # Handle `64_` suffix, or custom suffixes?
+        return '' if self.interface == 'lp64' else self._ilp64_suffix
+
+    def probe_symbols(self, compile_args, check_cblas=True, check_lapacke=True,
+                      lapack_only=False) -> bool:
+        """Most ILP64 BLAS builds will not use a suffix, but the new standard will be _64
+        (see Reference-LAPACK/lapack#666). Check which one we're dealing with"""
+        if self.interface == 'lp64':
+            return self.check_symbols(compile_args, check_cblas=check_cblas,
+                                      check_lapacke=check_lapacke, lapack_only=lapack_only)
+
+        if self.check_symbols(compile_args, '_64', check_cblas=check_cblas,
+                              check_lapacke=check_lapacke, lapack_only=lapack_only):
+            self._ilp64_suffix = '_64'
+        elif self.check_symbols(compile_args, '', check_cblas=check_cblas,
+                                check_lapacke=check_lapacke, lapack_only=lapack_only):
+            self._ilp64_suffix = ''
+        else:
+            return False
+        return True
+
+
+class NetlibBLASPkgConfigDependency(BLASLAPACKMixin, NetlibMixin, PkgConfigDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
-        # TODO: add 'cblas'
-        super().__init__('blas', env, kwargs)
+        # TODO: add ILP64 - needs factory function like for OpenBLAS
+        super().__init__(name, env, kwargs)
         self.feature_since = ('1.3.0', '')
         self.parse_modules(kwargs)
 
-    def get_symbol_suffix(self) -> str:
-        return ''
+        if self.is_found:
+            if self.needs_cblas:
+                # `name` may be 'blas' or 'blas64'; CBLAS library naming should be consistent
+                # with BLAS library naming, so just prepend 'c' and try to detect it.
+                try:
+                    cblas_pc = PkgConfigDependency('c'+name, env, kwargs)
+                    if cblas_pc.found():
+                        self.link_args += cblas_pc.link_args
+                        self.compile_args += cblas_pc.compile_args
+                except DependencyException:
+                    pass
+
+            if not self.probe_symbols(self.link_args):
+                self.is_found = False
+
+
+class NetlibBLASSystemDependency(BLASLAPACKMixin, NetlibMixin, SystemDependency):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+        super().__init__(name, environment, kwargs)
+        self.feature_since = ('1.3.0', '')
+        self.parse_modules(kwargs)
+
+        # First, look for paths specified in a machine file
+        props = self.env.properties[self.for_machine].properties
+        if any(x in props for x in ['blas_includedir', 'blas_librarydir']):
+            self.detect_blas_machine_file(props)
+
+        # Then look in standard directories by attempting to link
+        if not self.is_found:
+            extra_libdirs: T.List[str] = []
+            self.detect(extra_libdirs)
+
+        if self.is_found:
+            self.version = 'unknown'  # no way to derive this from standard headers
+
+    def detect(self, lib_dirs: T.Optional[T.List[str]] = None, inc_dirs: T.Optional[T.List[str]] = None) -> None:
+        if lib_dirs is None:
+            lib_dirs = []
+        if inc_dirs is None:
+            inc_dirs = []
+
+        if self.interface == 'lp64':
+            libnames = ['blas']
+            cblas_headers = ['cblas.h']
+        elif self.interface == 'ilp64':
+            libnames = ['blas64', 'blas']
+            cblas_headers = ['cblas_64.h', 'cblas.h']
+
+        for libname in libnames:
+            link_arg = self.clib_compiler.find_library(libname, self.env, lib_dirs)
+            if not link_arg:
+                continue
+
+            # libblas may include CBLAS symbols (Debian builds it like this),
+            # but more often than not there's a separate libcblas library. Handle both cases.
+            if not self.probe_symbols(link_arg, check_cblas=False):
+                continue
+            if self.needs_cblas:
+                cblas_in_blas = self.probe_symbols(link_arg, check_cblas=True)
+
+            if self.needs_cblas and not cblas_in_blas:
+                # We found libblas and it does not contain CBLAS symbols, so we need libcblas
+                cblas_libname = 'c' + libname
+                link_arg_cblas = self.clib_compiler.find_library(cblas_libname, self.env, lib_dirs)
+                if link_arg_cblas:
+                    link_arg.extend(link_arg_cblas)
+                else:
+                    # We didn't find CBLAS
+                    continue
+
+            self.is_found = True
+            self.link_args += link_arg
+            if self.needs_cblas:
+                incdir_args = [f'-I{inc_dir}' for inc_dir in inc_dirs]
+                for hdr in cblas_headers:
+                    found_header, _ = self.clib_compiler.has_header(hdr, '', self.env, dependencies=[self],
+                                                                    extra_args=incdir_args)
+                    if found_header:
+                        # If we don't get here, we found the library but not the header - this may
+                        # be okay, since projects may ship their own CBLAS header for portability)
+                        self.compile_args += incdir_args
+                        break
+
+    def detect_blas_machine_file(self, props: dict) -> None:
+        has_dirs, _dirs = check_blas_machine_file('blas', props)
+        if has_dirs:
+            libdir, incdir = _dirs
+            self.detect([libdir], [incdir])
+
+
+class NetlibLAPACKPkgConfigDependency(BLASLAPACKMixin, NetlibMixin, PkgConfigDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+        # TODO: add ILP64 (needs factory function like for OpenBLAS)
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.3.0', '')
+        self.parse_modules(kwargs)
+
+        if self.is_found:
+            if self.needs_lapacke:
+                # Similar to CBLAS: there may be a separate liblapacke.so
+                try:
+                    lapacke_pc = PkgConfigDependency(name+'e', env, kwargs)
+                    if lapacke_pc.found():
+                        self.link_args += lapacke_pc.link_args
+                        self.compile_args += lapacke_pc.compile_args
+                except DependencyException:
+                    pass
+
+            if not self.probe_symbols(self.link_args, lapack_only=True):
+                self.is_found = False
+
+
+class NetlibLAPACKSystemDependency(BLASLAPACKMixin, NetlibMixin, SystemDependency):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+        super().__init__(name, environment, kwargs)
+        self.feature_since = ('1.3.0', '')
+        self.parse_modules(kwargs)
+
+        # First, look for paths specified in a machine file
+        props = self.env.properties[self.for_machine].properties
+        if any(x in props for x in ['lapack_includedir', 'lapack_librarydir']):
+            self.detect_lapack_machine_file(props)
+
+        # Then look in standard directories by attempting to link
+        if not self.is_found:
+            extra_libdirs: T.List[str] = []
+            self.detect(extra_libdirs)
+
+        if self.is_found:
+            self.version = 'unknown'  # no way to derive this from standard headers
+
+    def detect(self, lib_dirs: T.Optional[T.List[str]] = None, inc_dirs: T.Optional[T.List[str]] = None) -> None:
+        if lib_dirs is None:
+            lib_dirs = []
+        if inc_dirs is None:
+            inc_dirs = []
+
+        if self.interface == 'lp64':
+            libnames = ['lapack']
+            lapacke_headers = ['lapacke.h']
+        elif self.interface == 'ilp64':
+            libnames = ['lapack64', 'lapack']
+            lapacke_headers = ['lapacke_64.h', 'lapacke.h']
+
+        for libname in libnames:
+            link_arg = self.clib_compiler.find_library(libname, self.env, lib_dirs)
+            if not link_arg:
+                continue
+
+            if not self.probe_symbols(link_arg, check_lapacke=False, lapack_only=True):
+                continue
+            if self.needs_lapacke:
+                lapacke_in_lapack = self.probe_symbols(link_arg, check_lapacke=True, lapack_only=True)
+
+            if self.needs_lapacke and not lapacke_in_lapack:
+                # We found liblapack and it does not contain LAPACKE symbols, so we need liblapacke
+                lapacke_libname = libname + 'e'
+                link_arg_lapacke = self.clib_compiler.find_library(lapacke_libname, self.env, lib_dirs)
+                if link_arg_lapacke:
+                    link_arg.extend(link_arg_lapacke)
+                else:
+                    # We didn't find LAPACKE
+                    continue
+
+            self.is_found = True
+            self.link_args += link_arg
+            if self.needs_lapacke:
+                incdir_args = [f'-I{inc_dir}' for inc_dir in inc_dirs]
+                for hdr in lapacke_headers:
+                    found_header, _ = self.clib_compiler.has_header(hdr, '', self.env, dependencies=[self],
+                                                                    extra_args=incdir_args)
+                    if found_header:
+                        # If we don't get here, we found the library but not the header - this may
+                        # be okay, since projects may ship their own LAPACKE header for portability)
+                        self.compile_args += incdir_args
+                        break
+
+    def detect_lapack_machine_file(self, props: dict) -> None:
+        has_dirs, _dirs = check_blas_machine_file('lapack', props)
+        if has_dirs:
+            libdir, incdir = _dirs
+            self.detect([libdir], [incdir])
+
 
 
 class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
@@ -421,9 +637,10 @@ class MKLSystemDependency(BLASLAPACKMixin, MKLMixin, SystemDependency):
                 mlog.warning(f'MKLROOT env var set to {mklroot}, but not pointing to an MKL install')
 
         link_arg = self.clib_compiler.find_library('mkl_rt', self.env, lib_dirs)
-        incdir_args = [f'-I{inc_dir}' for inc_dir in inc_dirs]
-        found_header, _ = self.clib_compiler.has_header('mkl_version.h', '', self.env,
-                                                        dependencies=[self], extra_args=incdir_args)
+        if link_arg:
+            incdir_args = [f'-I{inc_dir}' for inc_dir in inc_dirs]
+            found_header, _ = self.clib_compiler.has_header('mkl_version.h', '', self.env,
+                                                            dependencies=[self], extra_args=incdir_args)
         if link_arg and found_header:
             self.is_found = True
             self.compile_args += incdir_args
@@ -472,11 +689,18 @@ def openblas_factory(env: 'Environment', for_machine: 'MachineChoice',
 packages['openblas'] = openblas_factory
 
 
-packages['netlib-blas'] = netlib_factory = DependencyFactory(
-    'netlib-blas',
-    [DependencyMethods.PKGCONFIG],  #, DependencyMethods.SYSTEM],
-    #system_class=NetlibSystemDependency,
-    pkgconfig_class=NetlibPkgConfigDependency,
+packages['blas'] = netlib_factory = DependencyFactory(
+    'blas',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    pkgconfig_class=NetlibBLASPkgConfigDependency,
+    system_class=NetlibBLASSystemDependency,
+)
+
+packages['lapack'] = netlib_factory = DependencyFactory(
+    'lapack',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    pkgconfig_class=NetlibLAPACKPkgConfigDependency,
+    system_class=NetlibLAPACKSystemDependency,
 )
 
 
