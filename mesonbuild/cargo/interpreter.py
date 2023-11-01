@@ -511,94 +511,100 @@ def _create_features(cargo: Manifest, build: builder.Builder) -> T.List[mparser.
     return ast
 
 
+def _create_dependency(name: str, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    ast: T.List[mparser.BaseNode] = []
+    # xxx_options += {'feature-default': true, ...}
+    extra_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
+        build.string(_option_name('default')): build.bool(dep.default_features),
+    }
+    for f in dep.features:
+        extra_options[build.string(_option_name(f))] = build.bool(True)
+    ast.append(build.plusassign(build.dict(extra_options), _options_varname(name)))
+
+    kw = {
+        'version': build.array([build.string(s) for s in dep.version]),
+        'default_options': build.identifier(_options_varname(name)),
+    }
+    if dep.optional:
+        kw['required'] = build.method('get', build.identifier('required_deps'), [
+            build.string(name), build.bool(False)
+        ])
+
+    # Lookup for this dependency with the features we want in default_options kwarg.
+    #
+    # However, this subproject could have been previously configured with a
+    # different set of features. Cargo collects the set of features globally
+    # but Meson can only use features enabled by the first call that triggered
+    # the configuration of that subproject.
+    #
+    # Verify all features that we need are actually enabled for that dependency,
+    # otherwise abort with an error message. The user has to set the corresponding
+    # option manually with -Dxxx-rs:feature-yyy=true, or the main project can do
+    # that in its project(..., default_options: ['xxx-rs:feature-yyy=true']).
+    ast.extend([
+        # xxx_dep = dependency('xxx', version : ..., default_options : xxx_options)
+        build.assign(
+            build.function(
+                'dependency',
+                [build.string(_dependency_name(dep.package, dep.api))],
+                kw,
+            ),
+            _dependency_varname(dep.package),
+        ),
+        # if xxx_dep.found()
+        build.if_(build.method('found', build.identifier(_dependency_varname(dep.package))), build.block([
+            # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
+            build.assign(
+                build.method(
+                    'split',
+                    build.method(
+                        'get_variable',
+                        build.identifier(_dependency_varname(dep.package)),
+                        [build.string('features')],
+                        {'default_value': build.string('')}
+                    ),
+                    [build.string(',')],
+                ),
+                'actual_features'
+            ),
+            # needed_features = []
+            # foreach f, _ : xxx_options
+            #   needed_features += f.substring(8)
+            # endforeach
+            build.assign(build.array([]), 'needed_features'),
+            build.foreach(['f', 'enabled'], build.identifier(_options_varname(name)), build.block([
+                build.if_(build.identifier('enabled'), build.block([
+                    build.plusassign(
+                        build.method('substring', build.identifier('f'), [build.number(len(_OPTION_NAME_PREFIX))]),
+                        'needed_features'),
+                ])),
+            ])),
+            # foreach f : needed_features
+            #   if f not in actual_features
+            #     error()
+            #   endif
+            # endforeach
+            build.foreach(['f'], build.identifier('needed_features'), build.block([
+                build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
+                    build.function('error', [
+                        build.string('Dependency'),
+                        build.string(_dependency_name(dep.package, dep.api)),
+                        build.string('previously configured with features'),
+                        build.identifier('actual_features'),
+                        build.string('but need'),
+                        build.identifier('needed_features'),
+                    ])
+                ]))
+            ])),
+        ])),
+    ])
+    return ast
+
+
 def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     ast: T.List[mparser.BaseNode] = []
     for name, dep in cargo.dependencies.items():
-        # xxx_options += {'feature-default': true, ...}
-        extra_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
-            build.string(_option_name('default')): build.bool(dep.default_features),
-        }
-        for f in dep.features:
-            extra_options[build.string(_option_name(f))] = build.bool(True)
-        ast.append(build.plusassign(build.dict(extra_options), _options_varname(name)))
-
-        kw = {
-            'version': build.array([build.string(s) for s in dep.version]),
-            'default_options': build.identifier(_options_varname(name)),
-        }
-        if dep.optional:
-            kw['required'] = build.method('get', build.identifier('required_deps'), [
-                build.string(name), build.bool(False)
-            ])
-
-        # Lookup for this dependency with the features we want in default_options kwarg.
-        #
-        # However, this subproject could have been previously configured with a
-        # different set of features. Cargo collects the set of features globally
-        # but Meson can only use features enabled by the first call that triggered
-        # the configuration of that subproject.
-        #
-        # Verify all features that we need are actually enabled for that dependency,
-        # otherwise abort with an error message. The user has to set the corresponding
-        # option manually with -Dxxx-rs:feature-yyy=true, or the main project can do
-        # that in its project(..., default_options: ['xxx-rs:feature-yyy=true']).
-        ast.extend([
-            # xxx_dep = dependency('xxx', version : ..., default_options : xxx_options)
-            build.assign(
-                build.function(
-                    'dependency',
-                    [build.string(_dependency_name(dep.package, dep.api))],
-                    kw,
-                ),
-                _dependency_varname(dep.package),
-            ),
-            # if xxx_dep.found()
-            build.if_(build.method('found', build.identifier(_dependency_varname(dep.package))), build.block([
-                # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
-                build.assign(
-                    build.method(
-                        'split',
-                        build.method(
-                            'get_variable',
-                            build.identifier(_dependency_varname(dep.package)),
-                            [build.string('features')],
-                            {'default_value': build.string('')}
-                        ),
-                        [build.string(',')],
-                    ),
-                    'actual_features'
-                ),
-                # needed_features = []
-                # foreach f, _ : xxx_options
-                #   needed_features += f.substring(8)
-                # endforeach
-                build.assign(build.array([]), 'needed_features'),
-                build.foreach(['f', 'enabled'], build.identifier(_options_varname(name)), build.block([
-                    build.if_(build.identifier('enabled'), build.block([
-                        build.plusassign(
-                            build.method('substring', build.identifier('f'), [build.number(len(_OPTION_NAME_PREFIX))]),
-                            'needed_features'),
-                    ])),
-                ])),
-                # foreach f : needed_features
-                #   if f not in actual_features
-                #     error()
-                #   endif
-                # endforeach
-                build.foreach(['f'], build.identifier('needed_features'), build.block([
-                    build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
-                        build.function('error', [
-                            build.string('Dependency'),
-                            build.string(_dependency_name(dep.package, dep.api)),
-                            build.string('previously configured with features'),
-                            build.identifier('actual_features'),
-                            build.string('but need'),
-                            build.identifier('needed_features'),
-                        ])
-                    ]))
-                ])),
-            ])),
-        ])
+        ast += _create_dependency(name, dep, build)
     return ast
 
 
