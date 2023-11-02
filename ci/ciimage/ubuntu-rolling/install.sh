@@ -56,6 +56,7 @@ apt-get -y remove rustc || true
 wget -O - https://sh.rustup.rs | sh -s -- -y --profile minimal --component clippy
 source "$HOME/.cargo/env"
 rustup target add x86_64-pc-windows-gnu
+rustup target add arm-unknown-linux-gnueabihf
 
 # cleanup
 apt-get -y clean
