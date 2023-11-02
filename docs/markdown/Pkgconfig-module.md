@@ -46,6 +46,9 @@ keyword arguments.
 - `requires` list of strings, pkgconfig-dependencies or libraries that
    `pkgconfig.generate()` was used on to put in the `Requires` field
 - `requires_private` the same as `requires` but for the `Requires.private` field
+- `requires_internal` (*since 1.3.0*) the same as `requires` but for the
+  `Requires.internal` field. See description of `internal` keyword argument for
+  details.
 - `url` a string with a url for the library
 - `variables` a list of strings with custom variables to add to the
   generated file. The strings must be in the form `name=value` and may
@@ -72,6 +75,21 @@ keyword arguments.
 - `dataonly` field. (*since 0.54.0*) this is used for architecture-independent
    pkg-config files in projects which also have architecture-dependent outputs.
 - `conflicts` (*since 0.36.0, incorrectly issued a warning prior to 0.54.0*) list of strings to be put in the `Conflicts` field.
+- `internal` (*since 1.3.0*) boolean, if set to true `Requires.internal` field will
+  be used for dependencies instead of `Requires.private`. This create better pc files,
+  but only supported by `pkgconf` and not the original `pkg-config` implementation.
+  There are 3 types of dependencies: public, private and internal.
+  - public: To use libfoo an app also need to use symbols from libbar. An app that
+    uses libfoo must also link to libbar.
+  - private: To use libfoo an app don't generally use symbols from libbar, but headers
+    from libfoo still include headers from libbar, for example for type definitions.
+    An app that uses libfoo does not link to libbar, but libbar is still a build-dep
+    of the app.
+  - internal: libfoo uses libbar but does not expose any of its API. An app that
+    uses libfoo only need libbar for static linking, libbar is not a build-dep
+    unless the static libfoo library is used.
+  As a result, pkg-config will output cflags from `Requires.private` even without
+  `--static`, but not cflags from `Requires.internal`.
 
 Since 0.46 a `StaticLibrary` or `SharedLibrary` object can optionally
 be passed as first positional argument. If one is provided a default
