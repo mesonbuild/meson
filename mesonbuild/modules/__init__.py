@@ -160,6 +160,11 @@ class ModuleState:
     def add_language(self, lang: str, for_machine: MachineChoice) -> None:
         self._interpreter.add_languages([lang], True, for_machine)
 
+    def add_arguments(self, args: T.List[str], lang: str, for_machine: MachineChoice,
+                       is_global: bool = False, is_link: bool = False) -> None:
+        self._interpreter._add_arguments(args, [lang], for_machine, is_global, is_link)
+
+
 class ModuleObject(HoldableObject):
     """Base class for all objects returned by modules
     """
