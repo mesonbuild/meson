@@ -746,7 +746,7 @@ def run(options: 'Arguments') -> int:
         pre_func(options)
     logger = Logger(len(wraps))
     for wrap in wraps:
-        dirname = Path(subproject_dir, wrap.directory).as_posix()
+        dirname = Path(source_dir, subproject_dir, wrap.directory).as_posix()
         runner = Runner(logger, r, wrap, dirname, options)
         task = loop.run_in_executor(executor, runner.run)
         tasks.append(task)
