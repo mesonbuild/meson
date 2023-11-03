@@ -18,3 +18,6 @@ test(
   ),
   should_fail : true,
 )
+
+rustc = meson.get_compiler('rust')
+assert(rustc.run('fn main(){}').returncode() == 0)
