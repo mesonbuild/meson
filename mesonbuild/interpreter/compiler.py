@@ -302,6 +302,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_pos_args('compiler.run', (str, mesonlib.File))
     @typed_kwargs('compiler.run', *_COMPILES_KWS)
     def run_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> 'RunResult':
+        if self.compiler.language not in {'d', 'c', 'cpp', 'objc', 'objcpp'}:
+            FeatureNew.single_use(f'compiler.run for {self.compiler.get_display_language()} language',
+                                  '1.5.0', self.subproject, location=self.current_node)
         code = args[0]
         if isinstance(code, mesonlib.File):
             self.interpreter.add_build_def_file(code)
