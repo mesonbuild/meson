@@ -23,7 +23,8 @@ if c.get_id() == 'pgi'
   error('MESON_SKIP_TEST: PGI supports its own set of features, will need a separate list for PGI to test it.')
 endif
 
-expected_result = not ['msvc', 'clang-cl', 'intel-cl'].contains(c.get_id())
+expected = {}
+expected_default = not ['msvc', 'clang-cl', 'intel-cl'].contains(c.get_id())
 
 # Q: Why is ifunc not in this list or any of the below lists?
 # A: It's too damn hard to figure out if you actually support it, since it
@@ -56,7 +57,23 @@ attributes = [
   'vector_size',
   'warn_unused_result',
   'weak',
+  'dllexport',
+  'dllimport',
 ]
+
+expected += {
+  'dllexport': ['windows', 'cygwin'].contains(host_machine.system()),
+  'dllimport': ['windows', 'cygwin'].contains(host_machine.system()),
+}
+
+if c.get_id() == 'gcc' and ['windows', 'cygwin'].contains(host_machine.system())
+  expected += {
+    'visibility': false,
+    'visibility:hidden': false,
+    'visibility:internal': false,
+    'visibility:protected': false,
+  }
+endif
 
 if c.get_id() != 'intel'
   # not supported by icc as of 19.0.0
@@ -67,6 +84,10 @@ endif
 if host_machine.system() != 'darwin'
   attributes += 'alias'
   attributes += 'visibility'
+  attributes += 'visibility:default'
+  attributes += 'visibility:hidden'
+  attributes += 'visibility:internal'
+  attributes += 'visibility:protected'
   attributes += 'alloc_size'
 endif
 
@@ -94,24 +115,18 @@ endif
 if get_option('mode') == 'single'
   foreach a : attributes
     x = c.has_function_attribute(a)
+    expected_result = expected.get(a, expected_default)
     assert(x == expected_result, '@0@: @1@'.format(c.get_id(), a))
     x = cpp.has_function_attribute(a)
     assert(x == expected_result, '@0@: @1@'.format(cpp.get_id(), a))
   endforeach
-
-  win_expect = ['windows', 'cygwin'].contains(host_machine.system())
-  foreach a : ['dllexport', 'dllimport']
-    assert(c.has_function_attribute(a) == win_expect,
-          '@0@: @1@'.format(c.get_id(), a))
-    assert(cpp.has_function_attribute(a) == win_expect,
-          '@0@: @1@'.format(cpp.get_id(), a))
-  endforeach
 else
-  if not ['msvc', 'clang-cl', 'intel-cl'].contains(c.get_id())
-    multi_expected = attributes
-  else
-    multi_expected = []
-  endif
+  multi_expected = []
+  foreach a : attributes
+    if expected.get(a, expected_default)
+      multi_expected += a
+    endif
+  endforeach
 
   multi_check = c.get_supported_function_attributes(attributes)
   assert(multi_check == multi_expected, 'get_supported_function_arguments works (C)')
