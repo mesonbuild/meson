@@ -46,7 +46,6 @@ if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
     from ...environment import Environment
     from ...compilers.compilers import Compiler
-    from ...programs import ExternalProgram
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but
@@ -142,15 +141,9 @@ class CLikeCompiler(Compiler):
     find_framework_cache: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], bool], T.Optional[T.List[str]]] = {}
     internal_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS
 
-    def __init__(self, exe_wrapper: T.Optional['ExternalProgram'] = None):
+    def __init__(self) -> None:
         # If a child ObjC or CPP class has already set it, don't set it ourselves
         self.can_compile_suffixes.add('h')
-        # If the exe wrapper was not found, pretend it wasn't set so that the
-        # sanity check is skipped and compiler checks use fallbacks.
-        if not exe_wrapper or not exe_wrapper.found() or not exe_wrapper.get_command():
-            self.exe_wrapper = None
-        else:
-            self.exe_wrapper = exe_wrapper
         # Lazy initialized in get_preprocessor()
         self.preprocessor: T.Optional[Compiler] = None
 
@@ -296,9 +289,10 @@ class CLikeCompiler(Compiler):
         source_name = os.path.join(work_dir, sname)
         binname = sname.rsplit('.', 1)[0]
         mode = CompileCheckMode.LINK
+        exe_wrapper = self.get_exe_wrapper(environment)
         if self.is_cross:
             binname += '_cross'
-            if self.exe_wrapper is None:
+            if exe_wrapper is None:
                 # Linking cross built C/C++ apps is painful. You can't really
                 # tell if you should use -nostdlib or not and for example
                 # on OSX the compiler binary is the same but you need
@@ -329,10 +323,10 @@ class CLikeCompiler(Compiler):
             raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
         # Run sanity check
         if self.is_cross:
-            if self.exe_wrapper is None:
+            if exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper.get_command() + [binary_name]
+            cmdlist = exe_wrapper + [binary_name]
         else:
             cmdlist = [binary_name]
         mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))

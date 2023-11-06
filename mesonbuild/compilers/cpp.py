@@ -50,7 +50,6 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..programs import ExternalProgram
     CompilerMixinBase = CLikeCompiler
 else:
     CompilerMixinBase = object
@@ -77,14 +76,14 @@ class CPPCompiler(CLikeCompiler, Compiler):
     language = 'cpp'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         # If a child ObjCPP class has already set it, don't set it ourselves
         Compiler.__init__(self, ccache, exelist, version, for_machine, info,
                           is_cross=is_cross, linker=linker,
                           full_version=full_version)
-        CLikeCompiler.__init__(self, exe_wrapper)
+        CLikeCompiler.__init__(self)
 
     @classmethod
     def get_display_language(cls) -> str:
@@ -234,12 +233,12 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
     _CPP26_VERSION = '>=17.0.0'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -322,7 +321,7 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
     id = 'emscripten'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  full_version: T.Optional[str] = None):
@@ -331,7 +330,7 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
         if not version_compare(version, '>=1.39.19'):
             raise MesonException('Meson requires Emscripten >= 1.39.19')
         ClangCPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                                  info, exe_wrapper=exe_wrapper, linker=linker,
+                                  info, linker=linker,
                                   defines=defines, full_version=full_version)
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -349,11 +348,11 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
     '''
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         ArmclangCompiler.__init__(self)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -394,12 +393,12 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
 
 class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -478,11 +477,11 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
 
 class PGICPPCompiler(PGICompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         PGICompiler.__init__(self)
 
 
@@ -491,22 +490,22 @@ class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
     id = 'nvidia_hpc'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         PGICompiler.__init__(self)
 
 
 class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
@@ -574,11 +573,11 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
 
 class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         IntelGnuLikeCompiler.__init__(self)
         self.lang_header = 'c++-header'
         default_warn_args = ['-Wall', '-w3', '-Wpch-messages']
@@ -754,11 +753,10 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         MSVCCompiler.__init__(self, target)
 
         # By default, MSVC has a broken __cplusplus define that pretends to be c++98:
@@ -802,11 +800,10 @@ class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, Cl
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, [], exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         ClangClCompiler.__init__(self, target)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
@@ -818,11 +815,10 @@ class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLike
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, [], exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
@@ -842,11 +838,11 @@ class IntelLLVMClCPPCompiler(IntelClCPPCompiler):
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         ArmCompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
@@ -875,11 +871,11 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
 
 class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         CcrxCompiler.__init__(self)
 
     # Override CCompiler.get_always_args
@@ -903,11 +899,11 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
 
 class TICPPCompiler(TICompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         TICompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
@@ -940,11 +936,10 @@ class MetrowerksCPPCompilerARM(MetrowerksCompiler, CPPCompiler):
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         MetrowerksCompiler.__init__(self)
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
@@ -969,11 +964,10 @@ class MetrowerksCPPCompilerEmbeddedPowerPC(MetrowerksCompiler, CPPCompiler):
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         CPPCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                             info, exe_wrapper, linker=linker, full_version=full_version)
+                             info, linker=linker, full_version=full_version)
         MetrowerksCompiler.__init__(self)
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:

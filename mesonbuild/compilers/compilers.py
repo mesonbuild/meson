@@ -715,22 +715,29 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
+    def get_exe_wrapper(self, env: Environment) -> T.Optional[T.List[str]]:
+        ''' Get exe_wrapper if needed to run binaries.
+            Return None if an exe wrapper is needed but not found.
+        '''
+        if not env.need_exe_wrapper(self.for_machine):
+            return []
+        if env.exe_wrapper is None or not env.exe_wrapper.found():
+            return None
+        return env.exe_wrapper.get_command()
+
     def run(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
             dependencies: T.Optional[T.List['Dependency']] = None,
             run_env: T.Optional[T.Dict[str, str]] = None,
             run_cwd: T.Optional[str] = None) -> RunResult:
-        need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
-        if need_exe_wrapper and self.exe_wrapper is None:
+        exe_wrapper = self.get_exe_wrapper(env)
+        if exe_wrapper is None:
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
                 return RunResult(False)
-            if need_exe_wrapper:
-                cmdlist = self.exe_wrapper.get_command() + [p.output_name]
-            else:
-                cmdlist = [p.output_name]
+            cmdlist = exe_wrapper + [p.output_name]
             try:
                 pe, so, se = mesonlib.Popen_safe(cmdlist, env=run_env, cwd=run_cwd)
             except Exception as e:

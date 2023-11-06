@@ -36,7 +36,6 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..programs import ExternalProgram
 
 
 class _Phase(enum.Enum):
@@ -179,12 +178,11 @@ class CudaCompiler(Compiler):
     id = 'nvcc'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
-                 is_cross: bool, exe_wrapper: T.Optional['ExternalProgram'],
+                 is_cross: bool,
                  host_compiler: Compiler, info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         super().__init__(ccache, exelist, version, for_machine, info, linker=linker, full_version=full_version, is_cross=is_cross)
-        self.exe_wrapper = exe_wrapper
         self.host_compiler = host_compiler
         self.base_options = host_compiler.base_options
         self.warn_args = {level: self._to_host_flags(flags) for level, flags in host_compiler.warn_args.items()}
@@ -538,7 +536,8 @@ class CudaCompiler(Compiler):
         flags += self.get_ccbin_args(env.coredata.options)
 
         # If cross-compiling, we can't run the sanity check, only compile it.
-        if self.is_cross and self.exe_wrapper is None:
+        exe_wrapper = self.get_exe_wrapper(env)
+        if self.is_cross and exe_wrapper is None:
             # Linking cross built apps is painful. You can't really
             # tell if you should use -nostdlib or not and for example
             # on OSX the compiler binary is the same but you need
@@ -561,10 +560,10 @@ class CudaCompiler(Compiler):
 
         # Run sanity check (if possible)
         if self.is_cross:
-            if self.exe_wrapper is None:
+            if exe_wrapper is None:
                 return
             else:
-                cmdlist = self.exe_wrapper.get_command() + [binary_name]
+                cmdlist = exe_wrapper + [binary_name]
         else:
             cmdlist = self.exelist + ['--run', '"' + binary_name + '"']
         mlog.debug('Sanity check run command line: ', ' '.join(cmdlist))
