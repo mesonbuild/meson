@@ -1948,6 +1948,7 @@ class NinjaBackend(backends.Backend):
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', f'dep-info={depfile}', '--emit', f'link={target_name}']
         args += ['--out-dir', self.get_target_private_dir(target)]
+        args += ['-C', 'metadata=' + target.get_id()]
         args += target.get_extra_args('rust')
 
         # Rustc always use non-debug Windows runtime. Inject the one selected
