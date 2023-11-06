@@ -1434,7 +1434,7 @@ class BuildTarget(Target):
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
             self.check_can_link_together(t)
-            if isinstance(self, StaticLibrary) and not self.uses_rust():
+            if isinstance(self, StaticLibrary):
                 # When we're a static library and we link_whole: to another static
                 # library, we need to add that target's objects to ourselves.
                 self._bundle_static_library(t, promoted)
@@ -1461,7 +1461,10 @@ class BuildTarget(Target):
                 t.get_internal_static_libraries_recurse(result)
 
     def _bundle_static_library(self, t: T.Union[BuildTargetTypes], promoted: bool = False) -> None:
-        if isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
+        if self.uses_rust():
+            # Rustc can bundle static libraries, no need to extract objects.
+            self.link_whole_targets.append(t)
+        elif isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
             # To extract objects from a custom target we would have to extract
             # the archive, WIP implementation can be found in
             # https://github.com/mesonbuild/meson/pull/9218.
@@ -1476,7 +1479,8 @@ class BuildTarget(Target):
                 m += (f' Meson had to promote link to link_whole because {self.name!r} is installed but not {t.name!r},'
                       f' and thus has to include objects from {t.name!r} to be usable.')
             raise InvalidArguments(m)
-        self.objects.append(t.extract_all_objects())
+        else:
+            self.objects.append(t.extract_all_objects())
 
     def check_can_link_together(self, t: BuildTargetTypes) -> None:
         links_with_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
