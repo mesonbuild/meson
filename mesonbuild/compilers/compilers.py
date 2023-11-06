@@ -871,12 +871,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 no_ccache = True
                 contents = code
             else:
-                srcname = code.fname
-                if not is_object(code.fname):
-                    with open(code.fname, encoding='utf-8') as f:
-                        contents = f.read()
-                else:
-                    contents = '<binary>'
+                contents = srcname = code.fname
 
             # Construct the compiler command-line
             commands = self.compiler_args()
