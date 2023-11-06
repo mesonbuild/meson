@@ -1561,6 +1561,14 @@ def print_tool_versions() -> None:
         print('{0:<{2}}: {1}'.format(tool.tool, get_version(tool), max_width))
     print()
 
+tmpdir = list(Path('.').glob('**/*install functions and follow symlinks'))
+print(tmpdir)
+assert(len(tmpdir) == 1)
+symlink_test_dir = tmpdir[0]
+symlink_file1 = symlink_test_dir / 'foo/link1'
+symlink_file2 = symlink_test_dir / 'foo/link2.h'
+del tmpdir
+
 def clear_transitive_files() -> None:
     a = Path('test cases/common')
     for d in a.glob('*subproject subdir/subprojects/subsubsub*'):
@@ -1568,6 +1576,18 @@ def clear_transitive_files() -> None:
             mesonlib.windows_proof_rmtree(str(d))
         else:
             mesonlib.windows_proof_rm(str(d))
+    try:
+        symlink_file1.unlink()
+    except FileNotFoundError:
+        pass
+    try:
+        symlink_file2.unlink()
+    except FileNotFoundError:
+        pass
+
+def setup_symlinks() -> None:
+    symlink_file1.symlink_to('file1')
+    symlink_file2.symlink_to('file1')
 
 if __name__ == '__main__':
     if under_ci and not raw_ci_jobname:
@@ -1611,6 +1631,7 @@ if __name__ == '__main__':
         options.extra_args += ['--native-file', options.native_file]
 
     clear_transitive_files()
+    setup_symlinks()
 
     print('Meson build system', meson_version, 'Project Tests')
     print('Using python', sys.version.split('\n')[0], f'({sys.executable!r})')
