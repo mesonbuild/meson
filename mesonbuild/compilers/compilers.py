@@ -789,14 +789,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                     ofile.write(code)
                 # ccache would result in a cache miss
                 no_ccache = True
-                contents = code
+                code_debug = f'Code:\n{code}'
             else:
                 srcname = code.fname
-                if not is_object(code.fname):
-                    with open(code.fname, encoding='utf-8') as f:
-                        contents = f.read()
-                else:
-                    contents = '<binary>'
+                code_debug = f'Source file: {srcname}'
 
             # Construct the compiler command-line
             commands = self.compiler_args()
@@ -817,7 +813,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             command_list = self.get_exelist(ccache=not no_ccache) + commands.to_native()
             mlog.debug('Running compile:')
             mlog.debug('Working directory: ', tmpdirname)
-            mlog.debug('Code:\n', contents)
+            mlog.debug(code_debug)
             os_env = os.environ.copy()
             os_env['LC_ALL'] = 'C'
             if no_ccache:
