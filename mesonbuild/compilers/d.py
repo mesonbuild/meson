@@ -579,7 +579,9 @@ class DCompiler(Compiler):
 
     def run(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
-            dependencies: T.Optional[T.List['Dependency']] = None) -> compilers.RunResult:
+            dependencies: T.Optional[T.List['Dependency']] = None,
+            run_env: T.Optional[T.Dict[str, str]] = None,
+            run_cwd: T.Optional[str] = None) -> compilers.RunResult:
         extra_args = self._get_compile_extra_args(extra_args)
         return super().run(code, env, extra_args=extra_args, dependencies=dependencies)
 
