@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from .. import mesonlib, mlog
 from .disabler import Disabler
-from .exceptions import InterpreterException, InvalidArguments
+from .exceptions import InvalidArguments
 from ._unholder import _unholder
 
 from dataclasses import dataclass
@@ -652,16 +652,19 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         if '\n' in warning_str:
             mlog.warning(warning_str)
 
+    @abc.abstractmethod
     def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
-        raise InterpreterException('log_usage_warning not implemented')
+        pass
 
     @staticmethod
+    @abc.abstractmethod
     def get_warning_str_prefix(tv: str) -> str:
-        raise InterpreterException('get_warning_str_prefix not implemented')
+        pass
 
     @staticmethod
+    @abc.abstractmethod
     def get_notice_str_prefix(tv: str) -> str:
-        raise InterpreterException('get_notice_str_prefix not implemented')
+        pass
 
     def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
@@ -777,6 +780,55 @@ class FeatureBroken(FeatureCheckBase):
         if self.extra_message:
             args.append(self.extra_message)
         mlog.deprecation(*args, location=location)
+
+
+class FeatureExperimental(FeatureCheckBase):
+
+    """Checks for experimental features"""
+
+    feature_registry = {}
+
+    def __init__(self, feature_name: str, introduced_version: str, extra_message: str = '',
+                 stable_version: T.Optional[str] = None):
+        super().__init__(feature_name, stable_version or '', extra_message)
+        self.introduced = introduced_version
+
+    @staticmethod
+    def get_warning_str_prefix(tv: str) -> str:
+        return 'Experimental features used:'
+
+    @staticmethod
+    def get_notice_str_prefix(tv: str) -> str:
+        return ''
+
+    @staticmethod
+    def check_version(target_version: str, feature_version: str) -> bool:
+        if not feature_version:
+            return False
+        return mesonlib.version_compare_condition_with_min(target_version, feature_version)
+
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
+        args = [
+            'Project targets', f"'{tv}'",
+            'and uses an experimental feature introduced in',
+            f"'{self.introduced}':",
+            f'{self.feature_name}.',
+        ]
+        if self.feature_version:
+            args.append(f'which is stabilized in "{self.feature_version}"')
+        args.extend([
+            'Experimental features do not make forward or backward API guarantees,',
+            'and may be changed or removed in future releases, including point releases.'
+        ])
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.warning(*args, location=location, fatal=False)
+
+    @classmethod
+    def single_use(cls, feature_name: str, introduced_version: str, subproject: SubProject,
+                   extra_message: str = '', location: T.Optional[mparser.BaseNode] = None,
+                   stable_version: T.Optional[str] = None) -> None:
+        cls(feature_name, introduced_version, extra_message, stable_version).use(subproject, location)
 
 
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374

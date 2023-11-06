@@ -33,7 +33,7 @@ from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typ
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import Disabler, disablerIfNotFound
-from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
+from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs, FeatureExperimental
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..interpreterbase import stringifyUserArguments
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
@@ -1044,6 +1044,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
+        FeatureExperimental.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
         with mlog.nested(subp_name):
             ast = cargo.interpret(subp_name, subdir, self.environment)
             return self._do_subproject_meson(
@@ -3006,6 +3007,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         FeatureNew.report(self.subproject)
         FeatureDeprecated.report(self.subproject)
         FeatureBroken.report(self.subproject)
+        FeatureExperimental.report(self.subproject)
         if not self.is_subproject():
             self.print_extra_warnings()
             self._print_summary()
