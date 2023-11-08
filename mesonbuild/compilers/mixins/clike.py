@@ -1005,9 +1005,17 @@ class CLikeCompiler(Compiler):
 
     def _get_patterns(self, env: 'Environment', prefixes: T.List[str], suffixes: T.List[str], shared: bool = False) -> T.List[str]:
         patterns: T.List[str] = []
-        for p in prefixes:
-            for s in suffixes:
-                patterns.append(p + '{}.' + s)
+        # On OS/2, search order for shared libs is
+        #   1. libfoo_dll.a
+        #   2. foo_dll.a
+        #   3. libfoo.a
+        #   4. foo.a
+        #   5. foo.dll
+        # For static libs, `_s' is used instead of `_dll'.
+        for s in suffixes:
+            dot = '' if env.machines[self.for_machine].is_os2() and s.startswith(('_dll.', '_s.')) else '.'
+            for p in prefixes:
+                patterns.append(p + '{}' + dot + s)
         if shared and env.machines[self.for_machine].is_openbsd():
             # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
             # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
@@ -1030,7 +1038,8 @@ class CLikeCompiler(Compiler):
         # people depend on it. Also, some people use prebuilt `foo.so` instead
         # of `libfoo.so` for unknown reasons, and may also want to create
         # `foo.so` by setting name_prefix to ''
-        if strict and not isinstance(self, VisualStudioLikeCompiler): # lib prefix is not usually used with msvc
+        # lib prefix is not usually used with msvc and OS/2
+        if strict and not isinstance(self, VisualStudioLikeCompiler) and not env.machines[self.for_machine].is_os2():
             prefixes = ['lib']
         else:
             prefixes = ['lib', '']
@@ -1053,6 +1062,14 @@ class CLikeCompiler(Compiler):
             # TI C28x compilers can use both extensions for static or dynamic libs.
             stlibext = ['a', 'lib']
             shlibext = ['dll', 'so']
+        elif env.machines[self.for_machine].is_os2():
+            from ...options import OptionKey
+            if env.coredata.get_option(OptionKey('emxomf')):
+                stlibext = ['_s.lib', '_s.a', 'lib', 'a']
+                shlibext = ['_dll.lib', '_dll.a', 'lib', 'a', 'dll']
+            else:
+                stlibext = ['_s.a', 'a']
+                shlibext = ['_dll.a', 'a', 'dll']
         else:
             # Linux/BSDs
             shlibext = ['so']
