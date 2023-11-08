@@ -666,6 +666,12 @@ class GnuCompiler(GnuLikeCompiler):
     def get_profile_use_args(self) -> T.List[str]:
         return super().get_profile_use_args() + ['-fprofile-correction']
 
+    def get_always_args(self) -> T.List[str]:
+        args: T.List[str] = []
+        if self.info.is_os2() and self.get_linker_id() == 'emxomfld':
+            args += ['-Zomf']
+        return super().get_always_args() + args
+
 
 class GnuCStds(Compiler):
 
