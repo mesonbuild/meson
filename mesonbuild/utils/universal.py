@@ -2229,6 +2229,7 @@ _BUILTIN_NAMES = {
     'pkg_config_path',
     'cmake_prefix_path',
     'vsenv',
+    'emxomf',
 }
 
 
