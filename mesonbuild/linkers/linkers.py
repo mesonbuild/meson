@@ -571,6 +571,13 @@ class TaskingStaticLinker(StaticLinker):
     def get_linker_always_args(self) -> T.List[str]:
         return ['-r']
 
+
+class EmxomfArLinker(ArLinker):
+    id = 'emxomfar'
+
+    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
+        return ['cr']
+
 def prepare_rpaths(raw_rpaths: T.Tuple[str, ...], build_dir: str, from_dir: str) -> T.List[str]:
     # The rpaths we write must be relative if they point to the build dir,
     # because otherwise they have different length depending on the build
@@ -1823,8 +1830,6 @@ class TaskingLinker(DynamicLinker):
 class OS2DynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     """ld and emxomfld"""
 
-    id = 'ld.os2'
-
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
@@ -1840,3 +1845,11 @@ class OS2DynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_always_args(self) -> T.List[str]:
         return ['-Zomf']
+
+
+class OS2AoutDynamicLinker(OS2DynamicLinker):
+    id = 'ld.os2'
+
+
+class OS2OmfDynamicLinker(OS2DynamicLinker):
+    id = 'emxomfld'

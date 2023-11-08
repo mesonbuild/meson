@@ -80,6 +80,7 @@ defaults['clang_cl_static_linker'] = ['llvm-lib']
 defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
+defaults['emxomf_static_linker'] = ['emxomfar']
 defaults['nasm'] = ['nasm', 'yasm']
 
 
@@ -158,6 +159,7 @@ def _handle_exceptions(
 def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker:
     from . import d
     from ..linkers import linkers
+    from ..options import OptionKey
     linker = env.lookup_binary_entry(compiler.for_machine, 'ar')
     if linker is not None:
         trials = [linker]
@@ -167,6 +169,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [defaults['cuda_static_linker']] + default_linkers
         elif compiler.get_argument_syntax() == 'msvc':
             trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']]
+        elif env.machines[compiler.for_machine].is_os2() and env.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+            trials = [defaults['emxomf_static_linker']] + default_linkers
         elif compiler.id == 'gcc':
             # Use gcc-ar if available; needed for LTO
             trials = [defaults['gcc_static_linker']] + default_linkers
@@ -256,6 +260,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return linkers.AIXArLinker(linker)
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
             return linkers.ArLinker(compiler.for_machine, linker)
+        if p.returncode == 1 and err.startswith('emxomfar'):
+            return linkers.EmxomfArLinker(compiler.for_machine, linker)
     _handle_exceptions(popen_exceptions, trials, 'linker')
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 

@@ -2403,6 +2403,8 @@ class StaticLibrary(BuildTarget):
                     suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
                     suffix = 'a'
+            elif self.environment.machines[self.for_machine].is_os2() and self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')):
+                suffix = 'lib'
             else:
                 suffix = 'a'
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
@@ -2593,8 +2595,9 @@ class SharedLibrary(BuildTarget):
             # Shared library is of the form foo.dll
             prefix = prefix if prefix is not None else ''
             suffix = suffix if suffix is not None else 'dll'
-            # Import library is called foo_dll.a
-            import_suffix = import_suffix if import_suffix is not None else '_dll.a'
+            # Import library is called foo_dll.a or foo_dll.lib
+            if import_suffix is None:
+                import_suffix = '_dll.lib' if self.environment.coredata.optstore.get_value_for(OptionKey('os2_emxomf')) else '_dll.a'
             import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
             filename_tpl = '{0.shortname}' if self.shortname else '{0.prefix}{0.name}'
             if self.soversion:
