@@ -1299,7 +1299,7 @@ class BuildTarget(Target):
         for t in self.link_targets:
             if t in result:
                 continue
-            if isinstance(t, SharedLibrary) and t.rust_crate_type == 'proc-macro':
+            if t.rust_crate_type == 'proc-macro':
                 continue
             if include_internals or not t.is_internal():
                 result.add(t)
@@ -2523,7 +2523,26 @@ class CommandBase:
                 raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
         return final_cmd
 
-class CustomTarget(Target, CommandBase):
+class CustomTargetBase:
+    ''' Base class for CustomTarget and CustomTargetIndex
+
+    This base class can be used to provide a dummy implementation of some
+    private methods to avoid repeating `isinstance(t, BuildTarget)` when dealing
+    with custom targets.
+    '''
+
+    rust_crate_type = ''
+
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True) -> None:
+        pass
+
+    def get_internal_static_libraries(self) -> OrderedSet[BuildTargetTypes]:
+        return OrderedSet()
+
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[BuildTargetTypes]) -> None:
+        pass
+
+class CustomTarget(Target, CustomTargetBase, CommandBase):
 
     typename = 'custom'
 
@@ -2900,7 +2919,7 @@ class Jar(BuildTarget):
         return self.environment.get_jar_dir(), '{jardir}'
 
 @dataclass(eq=False)
-class CustomTargetIndex(HoldableObject):
+class CustomTargetIndex(CustomTargetBase, HoldableObject):
 
     """A special opaque object returned by indexing a CustomTarget. This object
     exists in Meson, but acts as a proxy in the backends, making targets depend
