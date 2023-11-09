@@ -1976,7 +1976,7 @@ class NinjaBackend(backends.Backend):
                 modifiers.append(verbatim)
             if modifiers:
                 type_ += ':' + ','.join(modifiers)
-            args.extend(['-l', f'{type_}={libname}'])
+            args.append(f'-l{type_}={libname}')
 
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
@@ -2042,9 +2042,8 @@ class NinjaBackend(backends.Backend):
                     args.append(f'-Clink-arg={a}')
 
         for d in linkdirs:
-            if d == '':
-                d = '.'
-            args += ['-L', d]
+            d = d or '.'
+            args.append(f'-L{d}')
 
         # Because of the way rustc links, this must come after any potential
         # library need to link with their stdlibs (C++ and Fortran, for example)
