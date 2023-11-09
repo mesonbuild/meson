@@ -1,4 +1,4 @@
-# Copyright 2012-2022 The Meson development team
+# Copyright 2012-2023 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
 
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
-    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
+    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic', '-Wl,-rpath')
     dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
     dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
 
