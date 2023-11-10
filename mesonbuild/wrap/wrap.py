@@ -35,6 +35,7 @@ import json
 from base64 import b64encode
 from netrc import netrc
 from pathlib import Path, PurePath
+from functools import lru_cache
 
 from . import WrapMode
 from .. import coredata
@@ -111,6 +112,7 @@ def get_releases_data(allow_insecure: bool) -> bytes:
     url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True)
     return url.read()
 
+@lru_cache(maxsize=None)
 def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
     data = get_releases_data(allow_insecure)
     return T.cast('T.Dict[str, T.Any]', json.loads(data.decode()))
