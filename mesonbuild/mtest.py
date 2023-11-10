@@ -143,9 +143,6 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
                         help='wrapper to run tests with (e.g. Valgrind)')
     parser.add_argument('-C', dest='wd', action=RealPathAction,
-                        # https://github.com/python/typeshed/issues/3107
-                        # https://github.com/python/mypy/issues/7177
-                        type=os.path.abspath,  # type: ignore
                         help='directory to cd into before running')
     parser.add_argument('--suite', default=[], dest='include_suites', action='append', metavar='SUITE',
                         help='Only run tests belonging to the given suite.')
