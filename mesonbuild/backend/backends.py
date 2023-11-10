@@ -896,7 +896,7 @@ class Backend:
                 result.append(s.relative_name())
 
         # MSVC generate an object file for PCH
-        if extobj.pch:
+        if extobj.pch and self.target_uses_pch(extobj.target):
             for lang, pch in extobj.target.pch.items():
                 compiler = extobj.target.compilers[lang]
                 if compiler.get_argument_syntax() == 'msvc':
