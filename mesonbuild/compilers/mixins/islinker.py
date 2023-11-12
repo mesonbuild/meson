@@ -79,7 +79,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_allow_undefined_link_args(self) -> T.List[str]:
         raise EnvironmentException(f'Linker {self.id} does not support allow undefined')
 
-    def get_pie_link_args(self) -> T.List[str]:
+    def get_pie_link_args(self, env: Environment) -> T.List[str]:
         raise EnvironmentException(f'Linker {self.id} does not support position-independent executable')
 
     def get_undefined_link_args(self) -> T.List[str]:

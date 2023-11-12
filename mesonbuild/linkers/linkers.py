@@ -14,6 +14,7 @@ from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
+    from ..compilers import Compiler
     from ..coredata import KeyedOptionDictType
     from ..environment import Environment
     from ..mesonlib import MachineChoice
@@ -195,7 +196,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return self.get_std_shared_lib_args()
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self, compiler: Compiler, env: Environment) -> T.List[str]:
         # TODO: this really needs to take a boolean and return the args to
         # disable pie, otherwise it only acts to enable pie if pie *isn't* the
         # default.
@@ -606,7 +607,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         # _BUILDTYPE_ARGS value.
         return mesonlib.listify([self._apply_prefix(a) for a in self._BUILDTYPE_ARGS[buildtype]])
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self, compiler: Compiler, env: Environment) -> T.List[str]:
         return ['-pie']
 
     def get_asneeded_args(self) -> T.List[str]:
@@ -763,7 +764,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return ['-bundle'] + self._apply_prefix('-undefined,dynamic_lookup')
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self, compiler: Compiler, env: Environment) -> T.List[str]:
         return []
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1376,7 +1377,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return args
         return self._apply_prefix('--whole-archive') + args + self._apply_prefix('--no-whole-archive')
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self, compiler: Compiler, env: Environment) -> T.List[str]:
         # Available in Solaris 11.2 and later
         pc, stdo, stde = mesonlib.Popen_safe(self.exelist + self._apply_prefix('-zhelp'))
         for line in (stdo + stde).split('\n'):

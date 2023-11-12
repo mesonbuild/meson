@@ -387,7 +387,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self, env: Environment) -> T.List[str]:
         return ['-fPIE']
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:

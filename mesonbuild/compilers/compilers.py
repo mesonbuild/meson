@@ -988,12 +988,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         m = 'Language {} does not support position-independent code'
         raise EnvironmentException(m.format(self.get_display_language()))
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self, env: Environment) -> T.List[str]:
         m = 'Language {} does not support position-independent executable'
         raise EnvironmentException(m.format(self.get_display_language()))
 
-    def get_pie_link_args(self) -> T.List[str]:
-        return self.linker.get_pie_args()
+    def get_pie_link_args(self, env: Environment) -> T.List[str]:
+        return self.linker.get_pie_args(self, env)
 
     def get_argument_syntax(self) -> str:
         """Returns the argument family type.
