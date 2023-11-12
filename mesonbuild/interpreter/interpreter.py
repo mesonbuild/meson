@@ -1063,6 +1063,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException(f'Invalid option name {optname!r}')
 
         opt = self.get_option_object(optname)
+        if optname == 'b_pie':
+            meson_version = mesonlib.project_meson_versions[self.subproject]
+            if mesonlib.version_compare(meson_version, '<1.4.0'):
+                return opt.is_enabled()
+
         if isinstance(opt, coredata.UserFeatureOption):
             opt.name = optname
             return opt

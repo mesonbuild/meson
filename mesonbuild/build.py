@@ -1210,13 +1210,13 @@ class BuildTarget(Target):
             if m.is_darwin() or m.is_windows():
                 self.pic = True
             else:
-                self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
+                self.pic = self._extract_pic(kwargs, 'pic', 'b_staticpic')
         if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
             # Executables must be PIE on Android
             if self.environment.machines[self.for_machine].is_android():
                 self.pie = True
             else:
-                self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie') or None
+                self.pie = self._extract_opt_or_arg(kwargs, 'pie', 'b_pie')
 
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
@@ -1267,7 +1267,7 @@ class BuildTarget(Target):
         assert allow_none or isinstance(val, bool)
         return val
 
-    def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
+    def _extract_pic(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
         val = self._extract_opt_or_arg(kwargs, arg, option, False)
         return T.cast('bool', val)
 

@@ -705,7 +705,7 @@ _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
     KwargInfo('export_dynamic', (bool, NoneType), since='0.45.0'),
     KwargInfo('gui_app', (bool, NoneType), deprecated='0.56.0', deprecated_message="Use 'win_subsystem' instead"),
     KwargInfo('implib', (bool, str, NoneType), since='0.42.0'),
-    KwargInfo('pie', (bool, NoneType)),
+    KwargInfo('pie', (bool, UserFeatureOption, NoneType)),
     KwargInfo(
         'win_subsystem',
         (str, NoneType),
