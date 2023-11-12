@@ -769,6 +769,15 @@ class CoreData:
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False,
                    meson_version: T.Optional[str] = None) -> bool:
+        try:
+            opt = self.options[key]
+        except KeyError:
+            raise MesonException(f'Tried to set unknown builtin option {str(key)}')
+
+        return self._set_option_value(key, opt, value, first_invocation, meson_version)
+
+    def _set_option_value(self, key: OptionKey, opt: UserOption, value, first_invocation: bool = False,
+                          meson_version: T.Optional[str] = None) -> bool:
         dirty = False
         if key.is_builtin():
             if key.name == 'prefix':
@@ -776,11 +785,6 @@ class CoreData:
             else:
                 prefix = self.options[OptionKey('prefix')].value
                 value = self.sanitize_dir_option_value(prefix, key, value)
-
-        try:
-            opt = self.options[key]
-        except KeyError:
-            raise MesonException(f'Tried to set unknown builtin option {str(key)}')
 
         deprecation_msg: T.Optional[str] = None
         if opt.deprecated is True:
@@ -1049,7 +1053,8 @@ class CoreData:
                 continue
             oobj = copy.deepcopy(compilers.base_options[key])
             if key in env.options:
-                oobj.set_value(env.options[key])
+                self._set_option_value(key, oobj, env.options[key],
+                                       meson_version=None) # use mesonlib.project_meson_versions?
                 enabled_opts.append(key)
             self.options[key] = oobj
         self.emit_base_options_warnings(enabled_opts)
