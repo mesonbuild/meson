@@ -756,7 +756,7 @@ class BuildTarget(Target):
             'unittest': kwargs.get('d_unittest', False),
         }
         self.pic = False
-        self.pie = False
+        self.pie: T.Optional[bool] = None
         # Track build_rpath entries so we can remove them at install time
         self.rpath_dirs_to_remove: T.Set[bytes] = set()
         self.process_sourcelist(sources)
@@ -1201,6 +1201,7 @@ class BuildTarget(Target):
                                            'for each platform pass `[]` (empty array)')
                 self.suffix = name_suffix
                 self.name_suffix_set = True
+
         if isinstance(self, StaticLibrary):
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
             # PIC is always on for Windows (all code is position-independent
@@ -1215,7 +1216,8 @@ class BuildTarget(Target):
             if self.environment.machines[self.for_machine].is_android():
                 self.pie = True
             else:
-                self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
+                self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie') or None
+
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
