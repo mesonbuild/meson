@@ -1962,22 +1962,21 @@ class NinjaBackend(backends.Backend):
             except KeyError:
                 pass
 
-        # Since 1.61.0 Rust has a special modifier for whole-archive linking,
-        # before that it would treat linking two static libraries as
-        # whole-archive linking. However, to make this work we have to disable
-        # bundling, which can't be done until 1.63.0… So for 1.61–1.62 we just
-        # have to hope that the default cases of +whole-archive are sufficient.
-        # See: https://github.com/rust-lang/rust/issues/99429
-        if mesonlib.version_compare(rustc.version, '>= 1.63.0'):
-            whole_archive = '+whole-archive,-bundle'
-        else:
-            whole_archive = ''
-
-        # FIXME: Seems broken on MacOS: https://github.com/rust-lang/rust/issues/116674
-        if mesonlib.version_compare(rustc.version, '>= 1.67.0') and not mesonlib.is_osx():
+        if mesonlib.version_compare(rustc.version, '>= 1.67.0'):
             verbatim = '+verbatim'
         else:
             verbatim = ''
+
+        def _link_library(libname: str, static: bool, bundle: bool = False):
+            type_ = 'static' if static else 'dylib'
+            modifiers = []
+            if not bundle and static:
+                modifiers.append('-bundle')
+            if verbatim:
+                modifiers.append(verbatim)
+            if modifiers:
+                type_ += ':' + ','.join(modifiers)
+            args.append(f'-l{type_}={libname}')
 
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
@@ -2001,72 +2000,54 @@ class NinjaBackend(backends.Backend):
             if isinstance(d, build.StaticLibrary):
                 external_deps.extend(d.external_deps)
 
-            lib = None
-            modifiers = []
+            # Pass native libraries directly to the linker with "-C link-arg"
+            # because rustc's "-l:+verbatim=" is not portable and we cannot rely
+            # on linker to find the right library without using verbatim filename.
+            # For example "-lfoo" won't find "foo.so" in the case name_prefix set
+            # to "", or would always pick the shared library when both "libfoo.so"
+            # and "libfoo.a" are available.
+            # See https://doc.rust-lang.org/rustc/command-line-arguments.html#linking-modifiers-verbatim.
+            #
+            # However, rustc static linker (rlib and staticlib) requires using
+            # "-l" argument and does not rely on platform specific dynamic linker.
+            lib = self.get_target_filename_for_linking(d)
             link_whole = d in target.link_whole_targets
-            if link_whole and whole_archive:
-                modifiers.append(whole_archive)
-            if verbatim:
-                modifiers.append(verbatim)
-                lib = self.get_target_filename_for_linking(d)
-            elif rustc.linker.id in {'link', 'lld-link'} and isinstance(d, build.StaticLibrary):
-                # Rustc doesn't follow Meson's convention that static libraries
-                # are called .a, and import libraries are .lib, so we have to
-                # manually handle that.
-                if link_whole:
-                    if isinstance(target, build.StaticLibrary):
-                        # If we don't, for static libraries the only option is
-                        # to make a copy, since we can't pass objects in, or
-                        # directly affect the archiver. but we're not going to
-                        # do that given how quickly rustc versions go out of
-                        # support unless there's a compelling reason to do so.
-                        # This only affects 1.61–1.66
-                        mlog.warning('Due to limitations in Rustc versions 1.61–1.66 and meson library naming,',
-                                     'whole-archive linking with MSVC may or may not work. Upgrade rustc to',
-                                     '>= 1.67. A best effort is being made, but likely won\'t work')
-                        lib = d.name
-                    else:
-                        # When doing dynamic linking (binaries and [c]dylibs),
-                        # we can instead just proxy the correct arguments to the linker
-                        for link_whole_arg in rustc.linker.get_link_whole_for([self.get_target_filename_for_linking(d)]):
-                            args += ['-C', f'link-arg={link_whole_arg}']
-                else:
-                    args += ['-C', f'link-arg={self.get_target_filename_for_linking(d)}']
+            if isinstance(target, build.StaticLibrary):
+                static = isinstance(d, build.StaticLibrary)
+                libname = os.path.basename(lib) if verbatim else d.name
+                _link_library(libname, static, bundle=link_whole)
+            elif link_whole:
+                link_whole_args = rustc.linker.get_link_whole_for([lib])
+                args += [f'-Clink-arg={a}' for a in link_whole_args]
             else:
-                lib = d.name
-
-            if lib:
-                _type = 'static' if isinstance(d, build.StaticLibrary) else 'dylib'
-                if modifiers:
-                    _type += ':' + ','.join(modifiers)
-                args += ['-l', f'{_type}={lib}']
+                args.append(f'-Clink-arg={lib}')
 
         for e in external_deps:
             for a in e.get_link_args():
                 if a in rustc.native_static_libs:
                     # Exclude link args that rustc already add by default
-                    continue
-                if a.endswith(('.dll', '.so', '.dylib', '.a', '.lib')):
-                    dir_, lib = os.path.split(a)
-                    linkdirs.add(dir_)
-                    lib, ext = os.path.splitext(lib)
-                    if lib.startswith('lib'):
-                        lib = lib[3:]
-                    _type = 'static' if a.endswith(('.a', '.lib')) else 'dylib'
-                    args.extend(['-l', f'{_type}={lib}'])
+                    pass
                 elif a.startswith('-L'):
                     args.append(a)
-                elif a.startswith('-l'):
-                    _type = 'static' if e.static else 'dylib'
-                    args.extend(['-l', f'{_type}={a[2:]}'])
+                elif a.endswith(('.dll', '.so', '.dylib', '.a', '.lib')) and isinstance(target, build.StaticLibrary):
+                    dir_, lib = os.path.split(a)
+                    linkdirs.add(dir_)
+                    if not verbatim:
+                        lib, ext = os.path.splitext(lib)
+                        if lib.startswith('lib'):
+                            lib = lib[3:]
+                    static = a.endswith(('.a', '.lib'))
+                    _link_library(lib, static)
+                else:
+                    args.append(f'-Clink-arg={a}')
+
         for d in linkdirs:
-            if d == '':
-                d = '.'
-            args += ['-L', d]
+            d = d or '.'
+            args.append(f'-L{d}')
 
         # Because of the way rustc links, this must come after any potential
         # library need to link with their stdlibs (C++ and Fortran, for example)
-        args.extend(target.get_used_stdlib_args('rust'))
+        args.extend(f'-Clink-arg={a}' for a in target.get_used_stdlib_args('rust'))
 
         has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target_deps)
         has_rust_shared_deps = any(dep.uses_rust()

@@ -11,7 +11,13 @@ adder* adder_create(int number) {
     return a;
 }
 
-// adder_add is implemented in the Rust file.
+// adder_add_r is implemented in the Rust file.
+int adder_add_r(adder *a, int number);
+
+int adder_add(adder *a, int number)
+{
+    return adder_add_r(a, number);
+}
 
 void adder_destroy(adder *a) {
     free(a);

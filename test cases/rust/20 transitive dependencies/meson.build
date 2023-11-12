@@ -25,3 +25,5 @@ exe = executable('footest', 'foo.c',
   link_with: foo,
 )
 test('footest', exe)
+
+subdir('diamond')

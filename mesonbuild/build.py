@@ -1276,13 +1276,13 @@ class BuildTarget(Target):
         return self.extra_args[language]
 
     @lru_cache(maxsize=None)
-    def get_dependencies(self) -> OrderedSet[Target]:
+    def get_dependencies(self) -> OrderedSet[BuildTargetTypes]:
         # Get all targets needed for linking. This includes all link_with and
         # link_whole targets, and also all dependencies of static libraries
         # recursively. The algorithm here is closely related to what we do in
         # get_internal_static_libraries(): Installed static libraries include
         # objects from all their dependencies already.
-        result: OrderedSet[Target] = OrderedSet()
+        result: OrderedSet[BuildTargetTypes] = OrderedSet()
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
             if t not in result:
                 result.add(t)
@@ -1290,7 +1290,7 @@ class BuildTarget(Target):
                     t.get_dependencies_recurse(result)
         return result
 
-    def get_dependencies_recurse(self, result: OrderedSet[Target], include_internals: bool = True) -> None:
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True) -> None:
         # self is always a static library because we don't need to pull dependencies
         # of shared libraries. If self is installed (not internal) it already
         # include objects extracted from all its internal dependencies so we can
@@ -1299,7 +1299,7 @@ class BuildTarget(Target):
         for t in self.link_targets:
             if t in result:
                 continue
-            if isinstance(t, SharedLibrary) and t.rust_crate_type == 'proc-macro':
+            if t.rust_crate_type == 'proc-macro':
                 continue
             if include_internals or not t.is_internal():
                 result.add(t)
@@ -1394,7 +1394,7 @@ class BuildTarget(Target):
     def is_internal(self) -> bool:
         return False
 
-    def link(self, targets):
+    def link(self, targets: T.List[BuildTargetTypes]) -> None:
         for t in targets:
             if not isinstance(t, (Target, CustomTargetIndex)):
                 if isinstance(t, dependencies.ExternalLibrary):
@@ -1420,7 +1420,7 @@ class BuildTarget(Target):
             self.check_can_link_together(t)
             self.link_targets.append(t)
 
-    def link_whole(self, targets, promoted: bool = False):
+    def link_whole(self, targets: T.List[BuildTargetTypes], promoted: bool = False) -> None:
         for t in targets:
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
@@ -1434,36 +1434,37 @@ class BuildTarget(Target):
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
             self.check_can_link_together(t)
-            if isinstance(self, StaticLibrary) and not self.uses_rust():
+            if isinstance(self, StaticLibrary):
                 # When we're a static library and we link_whole: to another static
                 # library, we need to add that target's objects to ourselves.
-                self.check_can_extract_objects(t, origin=self, promoted=promoted)
-                self.objects += [t.extract_all_objects()]
+                self._bundle_static_library(t, promoted)
                 # If we install this static library we also need to include objects
                 # from all uninstalled static libraries it depends on.
                 if self.install:
-                    for lib in t.get_internal_static_libraries(origin=self):
-                        self.objects += [lib.extract_all_objects()]
+                    for lib in t.get_internal_static_libraries():
+                        self._bundle_static_library(lib, True)
             self.link_whole_targets.append(t)
 
     @lru_cache(maxsize=None)
-    def get_internal_static_libraries(self, origin: StaticLibrary) -> OrderedSet[Target]:
-        result: OrderedSet[Target] = OrderedSet()
-        self.get_internal_static_libraries_recurse(result, origin)
+    def get_internal_static_libraries(self) -> OrderedSet[BuildTargetTypes]:
+        result: OrderedSet[BuildTargetTypes] = OrderedSet()
+        self.get_internal_static_libraries_recurse(result)
         return result
 
-    def get_internal_static_libraries_recurse(self, result: OrderedSet[Target], origin: StaticLibrary) -> None:
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[BuildTargetTypes]) -> None:
         for t in self.link_targets:
             if t.is_internal() and t not in result:
-                self.check_can_extract_objects(t, origin, promoted=True)
                 result.add(t)
-                t.get_internal_static_libraries_recurse(result, origin)
+                t.get_internal_static_libraries_recurse(result)
         for t in self.link_whole_targets:
             if t.is_internal():
-                t.get_internal_static_libraries_recurse(result, origin)
+                t.get_internal_static_libraries_recurse(result)
 
-    def check_can_extract_objects(self, t: T.Union[Target, CustomTargetIndex], origin: StaticLibrary, promoted: bool = False) -> None:
-        if isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
+    def _bundle_static_library(self, t: T.Union[BuildTargetTypes], promoted: bool = False) -> None:
+        if self.uses_rust():
+            # Rustc can bundle static libraries, no need to extract objects.
+            self.link_whole_targets.append(t)
+        elif isinstance(t, (CustomTarget, CustomTargetIndex)) or t.uses_rust():
             # To extract objects from a custom target we would have to extract
             # the archive, WIP implementation can be found in
             # https://github.com/mesonbuild/meson/pull/9218.
@@ -1472,12 +1473,14 @@ class BuildTarget(Target):
             # https://github.com/mesonbuild/meson/issues/10722
             # https://github.com/mesonbuild/meson/issues/10723
             # https://github.com/mesonbuild/meson/issues/10724
-            m = (f'Cannot link_whole a custom or Rust target {t.name!r} into a static library {origin.name!r}. '
+            m = (f'Cannot link_whole a custom or Rust target {t.name!r} into a static library {self.name!r}. '
                  'Instead, pass individual object files with the "objects:" keyword argument if possible.')
             if promoted:
-                m += (f' Meson had to promote link to link_whole because {origin.name!r} is installed but not {t.name!r},'
+                m += (f' Meson had to promote link to link_whole because {self.name!r} is installed but not {t.name!r},'
                       f' and thus has to include objects from {t.name!r} to be usable.')
             raise InvalidArguments(m)
+        else:
+            self.objects.append(t.extract_all_objects())
 
     def check_can_link_together(self, t: BuildTargetTypes) -> None:
         links_with_rust_abi = isinstance(t, BuildTarget) and t.uses_rust_abi()
@@ -2524,7 +2527,26 @@ class CommandBase:
                 raise InvalidArguments(f'Argument {c!r} in "command" is invalid')
         return final_cmd
 
-class CustomTarget(Target, CommandBase):
+class CustomTargetBase:
+    ''' Base class for CustomTarget and CustomTargetIndex
+
+    This base class can be used to provide a dummy implementation of some
+    private methods to avoid repeating `isinstance(t, BuildTarget)` when dealing
+    with custom targets.
+    '''
+
+    rust_crate_type = ''
+
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True) -> None:
+        pass
+
+    def get_internal_static_libraries(self) -> OrderedSet[BuildTargetTypes]:
+        return OrderedSet()
+
+    def get_internal_static_libraries_recurse(self, result: OrderedSet[BuildTargetTypes]) -> None:
+        pass
+
+class CustomTarget(Target, CustomTargetBase, CommandBase):
 
     typename = 'custom'
 
@@ -2901,7 +2923,7 @@ class Jar(BuildTarget):
         return self.environment.get_jar_dir(), '{jardir}'
 
 @dataclass(eq=False)
-class CustomTargetIndex(HoldableObject):
+class CustomTargetIndex(CustomTargetBase, HoldableObject):
 
     """A special opaque object returned by indexing a CustomTarget. This object
     exists in Meson, but acts as a proxy in the backends, making targets depend
