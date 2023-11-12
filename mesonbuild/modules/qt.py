@@ -24,11 +24,11 @@ from .. import build
 from .. import coredata
 from .. import mlog
 from ..dependencies import find_external_dependency, Dependency, ExternalLibrary, InternalDependency
-from ..mesonlib import MesonException, File, version_compare, Popen_safe
+from ..mesonlib import MesonException, File, version_compare, Popen_safe, MachineChoice
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
-from ..programs import NonExistingExternalProgram
+from ..programs import NonExistingExternalProgram, ExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -124,15 +124,41 @@ class QtBaseModule(ExtensionModule):
         })
 
     def compilers_detect(self, state: 'ModuleState', qt_dep: 'QtDependencyType') -> None:
-        """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
+        """Detect Qt (4, 5, or 6) moc, uic, rcc, lrelease binaries.
+
+        Look for them in these locations in this order:
+        * Locations specified in the config. Their names are formatted like this:
+          "qt<qt version>-<binary name>". For example, Qt5 moc is "qt5-moc".
+          This is mostly useful for cross compilation. qt<version>-moc, qt<version>-uic
+          etc. values can be placed in the cross file to directly specify where
+          these binaries are located.
+        * In the bindir that is specified by qt_dep.
+        * In the libexecdir that is specified by qt_dep.
+
+        If these fail, just try these binary names without a path
+        in case they are found in the paths specified by the
+        PATH environment variable:
+        * <binary name><qt version>
+        * <binary name>-qt<qt version>
+        * <binary name>
+        """
         wanted = f'== {qt_dep.version}'
 
         def gen_bins() -> T.Generator[T.Tuple[str, str], None, None]:
             for b in self.tools:
+                prog_name = f'qt{qt_dep.qtver}-{b}'
+                prog_list = state.environment.lookup_binary_entry(MachineChoice.HOST, prog_name)
+                if prog_list is not None:
+                    prog = ExternalProgram.from_entry(prog_name, prog_list)
+                    if prog.found():
+                        yield ' '.join(prog.get_command()), b
+
                 if qt_dep.bindir:
                     yield os.path.join(qt_dep.bindir, b), b
+
                 if qt_dep.libexecdir:
                     yield os.path.join(qt_dep.libexecdir, b), b
+
                 # prefer the (official) <tool><version> or (unofficial) <tool>-qt<version>
                 # of the tool to the plain one, as we
                 # don't know what the unsuffixed one points to without calling it.
