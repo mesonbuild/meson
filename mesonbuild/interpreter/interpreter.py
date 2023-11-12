@@ -1214,7 +1214,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.coredata.initialized_subprojects.add(self.subproject)
         else:
             default_options = {}
-        self.coredata.set_default_options(default_options, self.subproject, self.environment)
+        self.coredata.set_default_options(default_options, self.subproject, self.environment,
+                                          mesonlib.project_meson_versions.get(self.subproject, None))
 
         if not self.is_subproject():
             self.build.project_name = proj_name
