@@ -4,8 +4,7 @@
 """Helpers for strict type checking."""
 
 from __future__ import annotations
-import os
-import re
+import itertools, os, re
 import typing as T
 
 from .. import compilers
@@ -30,7 +29,7 @@ if T.TYPE_CHECKING:
     from ..mesonlib import EnvInitValueType
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
-    PkgConfigDefineType = T.Optional[T.Tuple[str, str]]
+    PkgConfigDefineType = T.Optional[T.Tuple[T.Tuple[str, str], ...]]
     SourcesVarargsType = T.List[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget]]
 
 
@@ -841,10 +840,16 @@ BUILD_TARGET_KWS = [
     )
 ]
 
+def _pkgconfig_define_convertor(x: T.List[str]) -> PkgConfigDefineType:
+    if x:
+        keys = itertools.islice(x, 0, None, 2)
+        vals = itertools.islice(x, 1, None, 2)
+        return tuple(zip(keys, vals))
+    return None
+
 PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
     'pkgconfig_define',
     ContainerTypeInfo(list, str, pairs=True),
     default=[],
-    validator=lambda x: 'must be of length 2 or empty' if len(x) not in {0, 2} else None,
-    convertor=lambda x: tuple(x) if x else None
+    convertor=_pkgconfig_define_convertor,
 )

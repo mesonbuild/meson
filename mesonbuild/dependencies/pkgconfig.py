@@ -139,9 +139,11 @@ class PkgConfigCLI(PkgConfigInterface):
 
     @staticmethod
     def _define_variable_args(define_variable: PkgConfigDefineType) -> T.List[str]:
+        ret = []
         if define_variable:
-            return ['--define-variable=' + '='.join(define_variable)]
-        return []
+            for pair in define_variable:
+                ret.append('--define-variable=' + '='.join(pair))
+        return ret
 
     @lru_cache(maxsize=None)
     def cflags(self, name: str, allow_system: bool = False,
