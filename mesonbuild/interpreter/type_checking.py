@@ -598,7 +598,7 @@ def _name_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
 
 def _name_suffix_validator(arg: T.Optional[T.Union[str, T.List]]) -> T.Optional[str]:
     if arg == '':
-        return 'must nt be a empty string. An empty array may be passed if you want Meson to use the default behavior.'
+        return 'must not be a empty string. An empty array may be passed if you want Meson to use the default behavior.'
     return _name_validator(arg)
 
 
