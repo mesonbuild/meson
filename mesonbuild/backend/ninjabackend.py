@@ -1877,10 +1877,7 @@ class NinjaBackend(backends.Backend):
         self.generate_generator_list_rules(target)
 
         # dependencies need to cause a relink, they're not just for ordering
-        deps = [
-            os.path.join(t.subdir, t.get_filename())
-            for t in itertools.chain(target.link_targets, target.link_whole_targets)
-        ]
+        deps: T.List[str] = []
 
         # Dependencies for rust-project.json
         project_deps: T.List[RustDep] = []
@@ -1983,6 +1980,7 @@ class NinjaBackend(backends.Backend):
         target_deps = target.get_dependencies()
         for d in target_deps:
             linkdirs.add(d.subdir)
+            deps.append(self.get_dependency_filename(d))
             if d.uses_rust_abi():
                 if d not in itertools.chain(target.link_targets, target.link_whole_targets):
                     # Indirect Rust ABI dependency, we only need its path in linkdirs.
