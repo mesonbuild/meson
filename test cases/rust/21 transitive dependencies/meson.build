@@ -27,3 +27,11 @@ exe = executable('footest', 'foo.c',
 test('footest', exe)
 
 subdir('diamond')
+
+# The ninja rule for libstatic2.a does not depend on libstatic1.a because it
+# only need static2.c.o to create the archive. That means that the ninja rule
+# for app must depend on both, otherwise libstatic1.a won't be built and linking
+# will fail.
+static1 = static_library('static1', 'static1.c', build_by_default: false)
+static2 = static_library('static2', 'static2.c', link_with: static1)
+exe = executable('app', 'app.rs', link_with: static2)
