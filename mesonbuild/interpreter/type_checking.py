@@ -560,7 +560,7 @@ def _objects_validator(vals: T.List[ObjectTypes]) -> T.Optional[str]:
             non_objects.extend(o for o in val.get_outputs() if not compilers.is_object(o))
 
     if non_objects:
-        return f'File{"s" if len(non_objects) > 1 else ""}: "{", ".join(non_objects)}" are not objects'
+        return f'{", ".join(non_objects)!r} are not objects'
 
     return None
 
