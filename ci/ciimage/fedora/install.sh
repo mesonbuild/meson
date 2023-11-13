@@ -8,7 +8,7 @@ pkgs=(
   python python-pip python3-devel
   ninja-build make git autoconf automake patch
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-objc++ vala rust bison flex ldc libasan libasan-static
-  mono-core boost-devel gtkmm30 gtest-devel gmock-devel protobuf-devel wxGTK3-devel gobject-introspection
+  mono-core boost-devel gtkmm30 gtest-devel gmock-devel protobuf-devel wxGTK-devel gobject-introspection
   boost-python3-devel
   itstool gtk3-devel java-latest-openjdk-devel gtk-doc llvm-devel clang-devel SDL2-devel graphviz-devel zlib zlib-devel zlib-static
   #hdf5-openmpi-devel hdf5-devel netcdf-openmpi-devel netcdf-devel netcdf-fortran-openmpi-devel netcdf-fortran-devel scalapack-openmpi-devel
