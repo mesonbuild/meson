@@ -554,11 +554,8 @@ def _objects_validator(vals: T.List[ObjectTypes]) -> T.Optional[str]:
     non_objects: T.List[str] = []
 
     for val in vals:
-        if isinstance(val, ExtractedObjects):
+        if isinstance(val, (str, File, ExtractedObjects)):
             continue
-        elif isinstance(val, (str, File)):
-            if not compilers.is_object(val):
-                non_objects.append(str(val))
         else:
             non_objects.extend(o for o in val.get_outputs() if not compilers.is_object(o))
 
