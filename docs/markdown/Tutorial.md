@@ -18,6 +18,8 @@ following command:
 sudo apt install libgtk-3-dev
 ```
 
+In addition, it is recommended to have the glib library with version 2.74 or higher.
+
 It is possible to build the GUI application on other platforms, such
 as Windows and macOS, but you need to install the needed dependencies.
 
