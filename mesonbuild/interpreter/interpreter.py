@@ -3530,11 +3530,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif isinstance(s, build.StructuredSources):
                 self.check_for_jar_sources(s.as_list(), targetclass)
 
-    # Only permit object extraction from the same subproject
-    def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
-        if self.subproject != buildtarget.subproject:
-            raise InterpreterException('Tried to extract objects from a different subproject.')
-
     def is_subproject(self) -> bool:
         return self.subproject != ''
 

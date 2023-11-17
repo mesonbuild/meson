@@ -950,6 +950,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @typed_pos_args('extract_objects', varargs=(mesonlib.File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     @InterpreterObject.method('extract_objects')
     def extract_objects_method(self, args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, 'build.GeneratedTypes']]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
+        if self.subproject != self.held_object.subproject:
+            raise InterpreterException('Tried to extract objects from a different subproject.')
         tobj = self._target_object
         unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
