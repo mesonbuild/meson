@@ -920,7 +920,7 @@ class Backend:
                 if comp.language in LANGS_CANT_UNITY:
                     sources += srcs
                     continue
-                for i in range(len(srcs) // unity_size + 1):
+                for i in range((len(srcs) + unity_size - 1) // unity_size):
                     _src = self.get_unity_source_file(extobj.target,
                                                       comp.get_default_suffix(), i)
                     sources.append(_src)
