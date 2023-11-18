@@ -624,7 +624,8 @@ class Vs2010Backend(backends.Backend):
                              guid,
                              conftype='Utility',
                              target_ext=None,
-                             target_platform=None) -> T.Tuple[ET.Element, ET.Element]:
+                             target_platform=None,
+                             target_id=None) -> T.Tuple[ET.Element, ET.Element]:
         root = ET.Element('Project', {'DefaultTargets': "Build",
                                       'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
@@ -692,6 +693,32 @@ class Vs2010Backend(backends.Backend):
 
             if target_ext:
                 ET.SubElement(direlem, 'TargetExt').text = target_ext
+
+            if target_id:
+                # Set the working dir and args from the the first test using this target.
+                for test in self.build.tests:
+                    if isinstance(test.exe, build.Target) and (target_id == test.exe.get_id()):
+                        if test.workdir:
+                            ET.SubElement(direlem, 'LocalDebuggerWorkingDirectory').text = test.workdir
+
+                        args = []
+                        for arg in test.cmd_args:
+                            if isinstance(arg, str):
+                                args.append(arg)
+                            elif isinstance(arg, File):
+                                args.append(arg.absolute_path(self.environment.get_source_dir(),
+                                                              self.environment.get_build_dir()))
+                            elif isinstance(arg, build.Executable):
+                                args.append(os.path.join(self.environment.get_build_dir(),
+                                                         arg.subdir, arg.filename))
+                            else:
+                                args = []
+                                break
+
+                        if args:
+                            quoted_args = '"' + '" "'.join(args) + '"'
+                            ET.SubElement(direlem, 'LocalDebuggerCommandArguments').text = quoted_args
+                        break
 
         return (root, type_config)
 
@@ -1622,7 +1649,8 @@ class Vs2010Backend(backends.Backend):
                                                         guid=guid,
                                                         conftype=conftype,
                                                         target_ext=tfilename[1],
-                                                        target_platform=platform)
+                                                        target_platform=platform,
+                                                        target_id=target.get_id())
 
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(
             target, root)
