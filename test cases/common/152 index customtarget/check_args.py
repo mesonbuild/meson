@@ -4,13 +4,18 @@ import sys
 from pathlib import Path
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 3:
         print(sys.argv)
         return 1
-    if sys.argv[1] != 'gen.c':
-        print(sys.argv)
-        return 2
-    Path('foo').touch()
+
+    output, expected, *args = sys.argv[1:]
+    actual = ','.join(args)
+    if actual != expected:
+        print('expected:', expected)
+        print('actual:', actual)
+        return 1
+
+    Path(output).touch()
 
     return 0
 

@@ -51,11 +51,33 @@ assert(has_not_changed, 'Static library has changed.')
 
 assert(not is_disabler(lib), 'Static library is a disabler.')
 
+# vs backend uses absolute paths
+expected = 'gen.c'
+if get_option('backend').startswith('vs')
+  expected = meson.current_build_dir() / expected
+endif
+
 custom_target(
   'foo',
   input: gen[0],
   output: 'foo',
-  command: [find_program('check_args.py'), '@INPUT@'],
+  command: [find_program('check_args.py'), '@OUTPUT@', expected, '@INPUT@'],
+  build_by_default: true,
+)
+
+custom_target(
+  output: 'foo2',
+  command: [find_program('check_args.py'), '@OUTPUT@', expected, gen[0]],
+  build_by_default: true,
+)
+
+custom_target(
+  output: 'foo3',
+  # FIXME: expected should actually be 'gen.c,gen.h' here, but Meson does not
+  # currently expand all CustomTarget outputs.
+  # See https://github.com/mesonbuild/meson/pull/12071.
+  command: [find_program('check_args.py'), '@OUTPUT@', expected, gen],
+  build_by_default: true,
 )
 
 subdir('subdir')

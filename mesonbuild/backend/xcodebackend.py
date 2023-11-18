@@ -225,13 +225,10 @@ class XCodeBackend(backends.Backend):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     def get_target_dir(self, target):
+        if isinstance(target, (build.CustomTarget, build.CustomTargetIndex)):
+            return target.get_subdir()
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.get_option(OptionKey('buildtype'))))
         #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
-        return dirname
-
-    def get_custom_target_output_dir(self, target):
-        dirname = target.get_subdir()
-        os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
     def target_to_build_root(self, target):
@@ -1400,15 +1397,8 @@ class XCodeBackend(backends.Backend):
         for l in target.link_targets:
             if isinstance(target, build.SharedModule) and isinstance(l, build.Executable):
                 continue
-            if isinstance(l, build.CustomTargetIndex):
-                rel_dir = self.get_custom_target_output_dir(l.target)
-                libname = l.get_filename()
-            elif isinstance(l, build.CustomTarget):
-                rel_dir = self.get_custom_target_output_dir(l)
-                libname = l.get_filename()
-            else:
-                rel_dir = self.get_target_dir(l)
-                libname = l.get_filename()
+            rel_dir = self.get_target_dir(l)
+            libname = l.get_filename()
             abs_path = os.path.join(self.environment.get_build_dir(), rel_dir, libname)
             dep_libs.append("'%s'" % abs_path)
             if isinstance(l, build.SharedLibrary):
