@@ -307,7 +307,7 @@ class DependenciesHelper:
         for name in reqs:
             vreqs = self.version_reqs.get(name, None)
             if vreqs:
-                result += [name + ' ' + self.format_vreq(vreq) for vreq in vreqs]
+                result += [name + ' ' + self.format_vreq(vreq) for vreq in sorted(vreqs)]
             else:
                 result += [name]
         return ', '.join(result)
