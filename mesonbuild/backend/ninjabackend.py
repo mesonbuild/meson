@@ -144,12 +144,13 @@ class TargetDependencyScannerInfo:
     :param private_dir: The private scratch directory for the target.
     :param source2object: A mapping of source file names to the objects that
         will be created from them.
-    :param sources: A list of all the sources in this target
+    :param sources: a list of sources mapping them to the language rules to use
+        to scan them.
     """
 
     private_dir: str
     source2object: T.Dict[str, str]
-    sources: T.List[str]
+    sources: T.List[T.Tuple[str, Literal['cpp', 'fortran']]]
 
 
 @unique
@@ -1098,7 +1099,7 @@ class NinjaBackend(backends.Backend):
         pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
         pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
         rule_name = 'depscan'
-        scan_sources = self.select_sources_to_scan(compiled_sources)
+        scan_sources = list(self.select_sources_to_scan(compiled_sources))
 
         scaninfo = TargetDependencyScannerInfo(
             self.get_target_private_dir(target), source2object, scan_sources)
@@ -1113,19 +1114,17 @@ class NinjaBackend(backends.Backend):
         elem.orderdeps.update(object_deps)
         self.add_build(elem)
 
-    def select_sources_to_scan(self, compiled_sources: T.List[str]) -> T.List[str]:
+    def select_sources_to_scan(self, compiled_sources: T.List[str]
+                               ) -> T.Iterable[T.Tuple[str, Literal['cpp', 'fortran']]]:
         # in practice pick up C++ and Fortran files. If some other language
         # requires scanning (possibly Java to deal with inner class files)
         # then add them here.
-        all_suffixes = set(compilers.lang_suffixes['cpp']) | set(compilers.lang_suffixes['fortran'])
-        selected_sources = []
         for source in compiled_sources:
             ext = os.path.splitext(source)[1][1:]
-            if ext != 'C':
-                ext = ext.lower()
-            if ext in all_suffixes:
-                selected_sources.append(source)
-        return selected_sources
+            if ext.lower() in compilers.lang_suffixes['cpp'] or ext == 'C':
+                yield source, 'cpp'
+            elif ext.lower() in compilers.lang_suffixes['fortran']:
+                yield source, 'fortran'
 
     def process_target_dependencies(self, target):
         for t in target.get_dependencies():
