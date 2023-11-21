@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2020 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
+import collections
 import json
 import os
 import pathlib
@@ -37,7 +39,7 @@ class DependencyScanner:
         self.sources = sources
         self.provided_by: T.Dict[str, str] = {}
         self.exports: T.Dict[str, str] = {}
-        self.needs: T.Dict[str, T.List[str]] = {}
+        self.needs: collections.defaultdict[str, T.List[str]] = collections.defaultdict(list)
         self.sources_with_exports: T.List[str] = []
 
     def scan_file(self, fname: str) -> None:
@@ -63,10 +65,7 @@ class DependencyScanner:
                 # In Fortran you have an using declaration also for the module
                 # you define in the same file. Prevent circular dependencies.
                 if needed not in modules_in_this_file:
-                    if fname in self.needs:
-                        self.needs[fname].append(needed)
-                    else:
-                        self.needs[fname] = [needed]
+                    self.needs[fname].append(needed)
             if export_match:
                 exported_module = export_match.group(1).lower()
                 assert exported_module not in modules_in_this_file
@@ -97,10 +96,7 @@ class DependencyScanner:
                 # submodule (a1:a2) a3        <- requires a1@a2.smod
                 #
                 # a3 does not depend on the a1 parent module directly, only transitively.
-                if fname in self.needs:
-                    self.needs[fname].append(parent_module_name_full)
-                else:
-                    self.needs[fname] = [parent_module_name_full]
+                self.needs[fname].append(parent_module_name_full)
 
     def scan_cpp_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
@@ -109,10 +105,7 @@ class DependencyScanner:
             export_match = CPP_EXPORT_RE.match(line)
             if import_match:
                 needed = import_match.group(1)
-                if fname in self.needs:
-                    self.needs[fname].append(needed)
-                else:
-                    self.needs[fname] = [needed]
+                self.needs[fname].append(needed)
             if export_match:
                 exported_module = export_match.group(1)
                 if exported_module in self.provided_by:
