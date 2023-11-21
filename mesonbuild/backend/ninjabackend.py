@@ -2782,10 +2782,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.machines[target.for_machine].get_object_suffix()
         commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
-        if isinstance(src, File) and src.is_built:
-            rel_src = src.fname
-        elif isinstance(src, File):
-            rel_src = src.rel_to_builddir(self.build_to_src)
+        if isinstance(src, File):
+            if src.is_built:
+                rel_src = src.fname
+            else:
+                rel_src = src.rel_to_builddir(self.build_to_src)
         else:
             raise InvalidArguments(f'Invalid source type: {src!r}')
         # Write the Ninja build command
