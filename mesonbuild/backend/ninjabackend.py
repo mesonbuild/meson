@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -134,10 +135,20 @@ Please report this error with a test case to the Meson bug tracker.'''
         raise MesonException(errmsg)
     return quote_re.sub(r'$\g<0>', text)
 
+
+@dataclass
 class TargetDependencyScannerInfo:
-    def __init__(self, private_dir: str, source2object: T.Dict[str, str]):
-        self.private_dir = private_dir
-        self.source2object = source2object
+
+    """Information passed to the depscanner about a target.
+
+    :param private_dir: The private scratch directory for the target.
+    :param source2object: A mapping of source file names to the objects that
+        will be created from them.
+    """
+
+    private_dir: str
+    source2object: T.Dict[str, str]
+
 
 @unique
 class Quoting(Enum):
