@@ -107,11 +107,6 @@ class DependencyScanner:
                 self.provided_by[exported_module] = fname
                 self.exports[fname] = exported_module
 
-    def objname_for(self, src: str) -> str:
-        objname = self.target_data.source2object[src]
-        assert isinstance(objname, str)
-        return objname
-
     def module_name_for(self, src: str, lang: Literal['cpp', 'fortran']) -> str:
         if lang == 'fortran':
             exported = self.exports[src]
@@ -131,7 +126,7 @@ class DependencyScanner:
         with open(self.outfile, 'w', encoding='utf-8') as ofile:
             ofile.write('ninja_dyndep_version = 1\n')
             for src, lang in self.sources:
-                objfilename = self.objname_for(src)
+                objfilename = self.target_data.source2object[src]
                 mods_and_submods_needed = []
                 module_files_generated = []
                 module_files_needed = []
