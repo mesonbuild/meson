@@ -1210,7 +1210,7 @@ def do_replacement(regex: T.Pattern[str], line: str,
                 var, _ = confdata.get(varname)
                 if isinstance(var, str):
                     var_str = var
-                elif isinstance(var, bool):
+                elif variable_format.startswith("cmake") and isinstance(var, bool):
                     var_str = str(int(var))
                 elif isinstance(var, int):
                     var_str = str(var)
