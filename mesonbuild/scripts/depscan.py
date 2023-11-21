@@ -9,13 +9,12 @@ import os
 import pathlib
 import pickle
 import re
-import sys
 import typing as T
 
 from ..backend.ninjabackend import ninja_quote
-from ..compilers.compilers import lang_suffixes
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
     from ..backend.ninjabackend import TargetDependencyScannerInfo
 
 CPP_IMPORT_RE = re.compile(r'\w*import ([a-zA-Z0-9]+);')
@@ -41,16 +40,11 @@ class DependencyScanner:
         self.needs: collections.defaultdict[str, T.List[str]] = collections.defaultdict(list)
         self.sources_with_exports: T.List[str] = []
 
-    def scan_file(self, fname: str) -> None:
-        suffix = os.path.splitext(fname)[1][1:]
-        if suffix != 'C':
-            suffix = suffix.lower()
-        if suffix in lang_suffixes['fortran']:
+    def scan_file(self, fname: str, lang: Literal['cpp', 'fortran']) -> None:
+        if lang == 'fortran':
             self.scan_fortran_file(fname)
-        elif suffix in lang_suffixes['cpp']:
-            self.scan_cpp_file(fname)
         else:
-            sys.exit(f'Can not scan files with suffix .{suffix}.')
+            self.scan_cpp_file(fname)
 
     def scan_fortran_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
@@ -118,9 +112,8 @@ class DependencyScanner:
         assert isinstance(objname, str)
         return objname
 
-    def module_name_for(self, src: str) -> str:
-        suffix = os.path.splitext(src)[1][1:].lower()
-        if suffix in lang_suffixes['fortran']:
+    def module_name_for(self, src: str, lang: Literal['cpp', 'fortran']) -> str:
+        if lang == 'fortran':
             exported = self.exports[src]
             # Module foo:bar goes to a file name foo@bar.smod
             # Module Foo goes to a file name foo.mod
@@ -130,23 +123,20 @@ class DependencyScanner:
             else:
                 extension = 'mod'
             return os.path.join(self.target_data.private_dir, f'{namebase}.{extension}')
-        elif suffix in lang_suffixes['cpp']:
-            return '{}.ifc'.format(self.exports[src])
-        else:
-            raise RuntimeError('Unreachable code.')
+        return '{}.ifc'.format(self.exports[src])
 
     def scan(self) -> int:
-        for s in self.sources:
-            self.scan_file(s)
+        for s, lang in self.sources:
+            self.scan_file(s, lang)
         with open(self.outfile, 'w', encoding='utf-8') as ofile:
             ofile.write('ninja_dyndep_version = 1\n')
-            for src in self.sources:
+            for src, lang in self.sources:
                 objfilename = self.objname_for(src)
                 mods_and_submods_needed = []
                 module_files_generated = []
                 module_files_needed = []
                 if src in self.sources_with_exports:
-                    module_files_generated.append(self.module_name_for(src))
+                    module_files_generated.append(self.module_name_for(src, lang))
                 if src in self.needs:
                     for modname in self.needs[src]:
                         if modname not in self.provided_by:
@@ -159,7 +149,7 @@ class DependencyScanner:
 
                 for modname in mods_and_submods_needed:
                     provider_src = self.provided_by[modname]
-                    provider_modfile = self.module_name_for(provider_src)
+                    provider_modfile = self.module_name_for(provider_src, lang)
                     # Prune self-dependencies
                     if provider_src != src:
                         module_files_needed.append(provider_modfile)
