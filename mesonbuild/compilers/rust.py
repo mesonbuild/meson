@@ -18,6 +18,8 @@ import textwrap
 import re
 import typing as T
 
+from functools import lru_cache
+
 from .. import coredata
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
@@ -126,6 +128,7 @@ class RustCompiler(Compiler):
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return rust_buildtype_args[buildtype]
 
+    @lru_cache(maxsize=None)
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
         p, stdo, stde = Popen_safe_logged(cmd)
