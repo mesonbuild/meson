@@ -438,6 +438,14 @@ def _create_project(cargo: Manifest, build: builder.Builder) -> T.List[mparser.B
     return [build.function('project', args, kwargs)]
 
 
+def _all_dependencies(cargo: Manifest) -> T.Iterable[T.Tuple[str, Dependency]]:
+    yield from cargo.dependencies.items()
+    yield from cargo.dev_dependencies.items()
+    yield from cargo.build_dependencies.items()
+    for deps in cargo.target.values():
+        yield from deps.items()
+
+
 def _process_feature(cargo: Manifest, feature: str) -> T.Tuple[T.Set[str], T.Dict[str, T.Set[str]], T.Set[str]]:
     # Set of features that must also be enabled if this feature is enabled.
     features: T.Set[str] = set()
@@ -475,7 +483,7 @@ def _create_features(cargo: Manifest, build: builder.Builder) -> T.List[mparser.
     # and one per dependency.
     ast: T.List[mparser.BaseNode] = []
     ast.append(build.assign(build.dict({}), 'features'))
-    for depname in itertools.chain.from_iterable([cargo.dependencies] + [deps for deps in cargo.target.values()]):
+    for depname, _ in _all_dependencies(cargo):
         ast.append(build.assign(build.dict({}), _options_varname(depname)))
 
     # Declare a dict that map required dependencies to true
@@ -768,13 +776,7 @@ def dependencies(source_dir: str) -> T.Dict[str, Dependency]:
     deps: T.Dict[str, Dependency] = {}
     manifests = _load_manifests(source_dir)
     for cargo in manifests.values():
-        deps_i = [
-            cargo.dependencies.values(),
-            cargo.dev_dependencies.values(),
-            cargo.build_dependencies.values(),
-        ]
-        deps_i += [deps.values() for deps in cargo.target.values()]
-        for dep in itertools.chain.from_iterable(deps_i):
+        for _, dep in _all_dependencies(cargo):
             depname = _dependency_name(dep.package, dep.api)
             deps[depname] = dep
     return deps
