@@ -1519,6 +1519,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     comp = compilers.detect_compiler_for(self.environment, lang, for_machine, skip_sanity_check)
                     if comp is None:
                         raise InvalidArguments(f'Tried to use unknown language "{lang}".')
+                    self.add_build_def_file(comp.get_exe_file())
                 except mesonlib.MesonException:
                     if not required:
                         mlog.log('Compiler for language',
