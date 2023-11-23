@@ -190,7 +190,7 @@ class _Logger:
             try:
                 self.log_pager.stdin.flush()
                 self.log_pager.stdin.close()
-            except BrokenPipeError:
+            except OSError:
                 pass
             self.log_pager.wait()
             self.log_pager = None
