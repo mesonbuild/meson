@@ -55,6 +55,7 @@ if T.TYPE_CHECKING:
 
     class FuncCargoCfg(TypedDict):
         skip_build_rs: bool
+        info: T.Dict[str, str]
 
 
 class RustModule(ExtensionModule):
@@ -376,7 +377,7 @@ class RustModule(ExtensionModule):
         return pair[0], value
 
     @staticmethod
-    def _get_build_rs_env(state: ModuleState, cfgs: T.Dict[str, str], features: T.List[str]) -> T.Dict[str, str]:
+    def _get_build_rs_env(state: ModuleState, cfgs: T.Dict[str, str], features: T.List[str], info: T.Dict[str, str]) -> T.Dict[str, str]:
         # https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-build-scripts
         out_dir = os.path.join(state.environment.build_dir, state.subdir, 'build.rs.p')
         rustc = T.cast('T.Optional[RustCompiler]', state.get_compiler('rust', MachineChoice.HOST))
@@ -392,6 +393,7 @@ class RustModule(ExtensionModule):
             env[f'CARGO_CFG_{conv(k)}'] = v
         for f in features:
             env[f'CARGO_FEATURE_{conv(f)}'] = ''
+        env.update(info)
         return env
 
     CARGO_CFG_PREFIX = 'cargo:rustc-cfg='
@@ -401,6 +403,7 @@ class RustModule(ExtensionModule):
     @typed_kwargs(
         'rust.cargo_cfg',
         KwargInfo('skip_build_rs', bool, default=False),
+        KwargInfo('info', ContainerTypeInfo(dict, str), default={}),
     )
     def cargo_cfg(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: FuncCargoCfg) -> T.Dict[str, str]:
         cfgs = dict(self._split_cfg(i) for i in self._get_cfgs(state, MachineChoice.HOST))
@@ -411,7 +414,7 @@ class RustModule(ExtensionModule):
             rustc = state.get_compiler('rust', MachineChoice.BUILD)
             if not rustc:
                 raise InterpreterException(f'build.rs file requires rust language for build machine')
-            env = self._get_build_rs_env(state, cfgs, args[0])
+            env = self._get_build_rs_env(state, cfgs, args[0], kwargs['info'])
             cwd = os.path.join(state.environment.source_dir, state.subdir)
             res = rustc.run(build_rs_file, state.environment, run_env=env, run_cwd=cwd)
             if res.returncode == 0:

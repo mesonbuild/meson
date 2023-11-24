@@ -523,7 +523,7 @@ def _create_features(cargo: Manifest, build: builder.Builder) -> T.List[mparser.
 def _create_cfg(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
     # Allow Cargo subprojects to add extra Rust args in meson/meson.build file.
     # This is used to replace build.rs logic.
-
+    # cargo_info = {'CARGO_...': 'value', ...}
     # extra_args = []
     # extra_deps = []
     # fs = import('fs')
@@ -531,8 +531,29 @@ def _create_cfg(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseN
     # if has_meson_build
     #  subdir('meson')
     # endif
-    # cfg = rust.cargo_cfg(features, skip_build_rs: has_meson_build)
+    # cfg = rust.cargo_cfg(features, skip_build_rs: has_meson_build, info: cargo_info)
+    version_arr = cargo.package.version.split('.')
+    version_arr += ['' * (4 - len(version_arr))]
     return [
+        build.assign(build.dict({
+            # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+            build.string('CARGO_MANIFEST_DIR'): build.string(os.path.join(cargo.subdir, cargo.path)),
+            build.string('CARGO_PKG_VERSION'): build.string(cargo.package.version),
+            build.string('CARGO_PKG_VERSION_MAJOR'): build.string(version_arr[0]),
+            build.string('CARGO_PKG_VERSION_MINOR'): build.string(version_arr[1]),
+            build.string('CARGO_PKG_VERSION_PATCH'): build.string(version_arr[2]),
+            build.string('CARGO_PKG_VERSION_PRE'): build.string(version_arr[3]),
+            build.string('CARGO_PKG_AUTHORS'): build.string(','.join(cargo.package.authors)),
+            build.string('CARGO_PKG_NAME'): build.string(cargo.package.name),
+            build.string('CARGO_PKG_DESCRIPTION'): build.string(cargo.package.description or ''),
+            build.string('CARGO_PKG_HOMEPAGE'): build.string(cargo.package.homepage or ''),
+            build.string('CARGO_PKG_REPOSITORY'): build.string(cargo.package.repository or ''),
+            build.string('CARGO_PKG_LICENSE'): build.string(cargo.package.license or ''),
+            build.string('CARGO_PKG_LICENSE_FILE'): build.string(cargo.package.license_file or ''),
+            build.string('CARGO_PKG_RUST_VERSION'): build.string(cargo.package.rust_version or ''),
+            build.string('CARGO_PKG_README'): build.string(cargo.package.readme or ''),
+            }),
+            'cargo_info'),
         build.assign(build.array([]), _extra_args_varname()),
         build.assign(build.array([]), _extra_deps_varname()),
         build.assign(build.function('import', [build.string('fs')]), 'fs'),
@@ -544,7 +565,8 @@ def _create_cfg(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseN
                 'cargo_cfg',
                 build.identifier('rust'),
                 [build.method('keys', build.identifier('features'))],
-                {'skip_build_rs': build.identifier('has_meson_build')},
+                {'skip_build_rs': build.identifier('has_meson_build'),
+                 'info': build.identifier('cargo_info')},
             ),
             'cfg'),
     ]
