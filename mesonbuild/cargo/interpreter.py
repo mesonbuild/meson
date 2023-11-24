@@ -766,8 +766,16 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
     # Libs are always auto-discovered and there's no other way to handle them,
     # which is unfortunate for reproducability
     if os.path.exists(os.path.join(env.source_dir, cargo.subdir, cargo.path, cargo.lib.path)):
-        for crate_type in cargo.lib.crate_type:
-            ast.extend(_create_lib(cargo, build, crate_type))
+        # FIXME: We can only build one library because Meson would otherwise
+        # complain that multiple targets have the same name. Ideally a single
+        # library() call should be able to build multiple crate types.
+        # For now, pick one in our preference order.
+        for crate_type in {'rlib', 'lib', 'dylib', 'staticlib', 'cdylib'}:
+            if crate_type in cargo.lib.crate_type:
+                break
+        else:
+            crate_type = cargo.lib.crate_type[0]
+        ast.extend(_create_lib(cargo, build, crate_type))
 
     return build.block(ast), options
 
