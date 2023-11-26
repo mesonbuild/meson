@@ -5,6 +5,7 @@ import argparse
 import tempfile
 import shutil
 import itertools
+import typing as T
 
 from pathlib import Path
 from . import build, minstall
@@ -12,9 +13,9 @@ from .mesonlib import (EnvironmentVariables, MesonException, is_windows, setup_v
                        get_wine_shortpath, MachineChoice)
 from . import mlog
 
-import typing as T
+
 if T.TYPE_CHECKING:
-    from .backends import InstallData
+    from .backend.backends import InstallData
 
 POWERSHELL_EXES = {'pwsh.exe', 'powershell.exe'}
 

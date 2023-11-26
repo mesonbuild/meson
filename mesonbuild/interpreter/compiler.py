@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from ..compilers import Compiler, RunResult
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from .kwargs import ExtractRequired, ExtractSearchDirs
-    from .interpreter.interpreter import SourceOutputs
+    from .interpreter import SourceOutputs
     from ..mlog import TV_LoggableList
 
     from typing_extensions import TypedDict, Literal
@@ -856,7 +856,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
     )
     def preprocess_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:
         compiler = self.compiler.get_preprocessor()
-        sources: 'SourceOutputs' = self.interpreter.source_strings_to_files(args[0])
+        _sources: T.List[mesonlib.File] = self.interpreter.source_strings_to_files(args[0])
+        sources = T.cast('T.List[SourceOutputs]', _sources)
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in sources):
             FeatureNew.single_use('compiler.preprocess with generated sources', '1.1.0', self.subproject,
                                   location=self.current_node)

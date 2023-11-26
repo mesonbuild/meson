@@ -20,7 +20,7 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
-    from envconfig import MachineInfo
+    from ...envconfig import MachineInfo
     from ...environment import Environment
     from ...compilers.compilers import Compiler
 else:
