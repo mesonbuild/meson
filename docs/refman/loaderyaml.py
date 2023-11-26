@@ -41,7 +41,7 @@ class Template:
 
 class StrictTemplate(Template):
     def __init__(self) -> None:
-        from strictyaml import Map, MapPattern, Optional, Str, Seq, Int, Bool, EmptyList, OrValidator
+        from strictyaml import Map, MapPattern, Optional, Str, Seq, Int, Bool, EmptyList, OrValidator # type: ignore[import-untyped]
 
         d_named_object = {
             'name': Str(),
