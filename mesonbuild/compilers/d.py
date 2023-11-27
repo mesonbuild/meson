@@ -27,7 +27,6 @@ from .mixins.gnu import gnu_common_warning_args
 if T.TYPE_CHECKING:
     from ..build import DFeatures
     from ..dependencies import Dependency
-    from ..programs import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
@@ -432,14 +431,12 @@ class DCompiler(Compiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', arch: str, *,
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None,
                  is_cross: bool = False):
         super().__init__([], exelist, version, for_machine, info, linker=linker,
                          full_version=full_version, is_cross=is_cross)
         self.arch = arch
-        self.exe_wrapper = exe_wrapper
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         source_name = os.path.join(work_dir, 'sanity.d')
@@ -450,11 +447,11 @@ class DCompiler(Compiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('D compiler %s cannot compile programs.' % self.name_string())
-        if self.is_cross:
-            if self.exe_wrapper is None:
+        if environment.need_exe_wrapper(self.for_machine):
+            if not environment.has_exe_wrapper():
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper.get_command() + [output_name]
+            cmdlist = environment.exe_wrapper.get_command() + [output_name]
         else:
             cmdlist = [output_name]
         if subprocess.call(cmdlist) != 0:
@@ -641,12 +638,11 @@ class GnuDCompiler(GnuCompiler, DCompiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', arch: str, *,
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None,
                  is_cross: bool = False):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch,
-                           exe_wrapper=exe_wrapper, linker=linker,
+                           linker=linker,
                            full_version=full_version, is_cross=is_cross)
         GnuCompiler.__init__(self, {})
         default_warn_args = ['-Wall', '-Wdeprecated']
@@ -725,12 +721,11 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', arch: str, *,
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None,
                  is_cross: bool = False, version_output: T.Optional[str] = None):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch,
-                           exe_wrapper=exe_wrapper, linker=linker,
+                           linker=linker,
                            full_version=full_version, is_cross=is_cross)
         DmdLikeCompilerMixin.__init__(self, dmd_frontend_version=find_ldc_dmd_frontend_version(version_output))
         self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
@@ -789,12 +784,11 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  info: 'MachineInfo', arch: str, *,
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None,
                  is_cross: bool = False):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch,
-                           exe_wrapper=exe_wrapper, linker=linker,
+                           linker=linker,
                            full_version=full_version, is_cross=is_cross)
         DmdLikeCompilerMixin.__init__(self, version)
         self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}

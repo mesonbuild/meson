@@ -568,13 +568,12 @@ class Backend:
         else:
             extra_paths = []
 
-        is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
-        if is_cross_built and self.environment.need_exe_wrapper():
-            exe_wrapper = self.environment.get_exe_wrapper()
-            if not exe_wrapper or not exe_wrapper.found():
+        if self.environment.need_exe_wrapper(exe_for_machine):
+            if not self.environment.has_exe_wrapper():
                 msg = 'An exe_wrapper is needed but was not found. Please define one ' \
                       'in cross file and check the command and/or add it to PATH.'
                 raise MesonException(msg)
+            exe_wrapper = self.environment.get_exe_wrapper()
         else:
             if exe_cmd[0].endswith('.jar'):
                 exe_cmd = ['java', '-jar'] + exe_cmd

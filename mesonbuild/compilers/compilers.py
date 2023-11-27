@@ -629,14 +629,14 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             run_env: T.Optional[T.Dict[str, str]] = None,
             run_cwd: T.Optional[str] = None) -> RunResult:
         need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
-        if need_exe_wrapper and self.exe_wrapper is None:
+        if need_exe_wrapper and not env.has_exe_wrapper():
             raise CrossNoRunException('Can not run test applications in this cross environment.')
         with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
                 return RunResult(False)
             if need_exe_wrapper:
-                cmdlist = self.exe_wrapper.get_command() + [p.output_name]
+                cmdlist = env.exe_wrapper.get_command() + [p.output_name]
             else:
                 cmdlist = [p.output_name]
             try:
