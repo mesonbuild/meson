@@ -1701,3 +1701,15 @@ class InternalTests(unittest.TestCase):
         for raw, expected in cases:
             with self.subTest(raw):
                 self.assertEqual(OptionKey.from_string(raw), expected)
+
+    def test_file_absolute(self) -> None:
+        f = File(False, '/foo/bar/build', 'name.txt')
+        with self.subTest('absolute_path'):
+            self.assertEqual(f.absolute_path('/sent', '/got'),
+                             '/foo/bar/build/name.txt')
+        with self.subTest('relative_name'):
+            self.assertEqual(f.relative_name(),
+                             '/foo/bar/build/name.txt')
+        with self.subTest('rel_to_builddir'):
+            self.assertEqual(f.rel_to_builddir('/foo'),
+                             'bar/build/name.txt')

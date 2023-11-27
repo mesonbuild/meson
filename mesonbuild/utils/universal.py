@@ -383,6 +383,7 @@ class File(HoldableObject):
             mlog.warning(dot_C_dot_H_warning, once=True)
         self.is_built = is_built
         self.subdir = subdir
+        self.is_absolute = os.path.isabs(fname)
         self.fname = fname
         self.hash = hash((is_built, subdir, fname))
 
@@ -420,11 +421,15 @@ class File(HoldableObject):
     def rel_to_builddir(self, build_to_src: str) -> str:
         if self.is_built:
             return self.relative_name()
-        else:
-            return os.path.join(build_to_src, self.subdir, self.fname)
+        path = os.path.join(self.subdir, self.fname)
+        if self.is_absolute:
+            return os.path.relpath(path, build_to_src)
+        return os.path.join(build_to_src, path)
 
     @lru_cache(maxsize=None)
     def absolute_path(self, srcdir: str, builddir: str) -> str:
+        if self.is_absolute:
+            return os.path.join(self.subdir, self.fname)
         absdir = srcdir
         if self.is_built:
             absdir = builddir
