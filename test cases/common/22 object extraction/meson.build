@@ -49,3 +49,30 @@ test('extraction test 6', e6)
 test('extraction test 7', e7)
 test('extraction test 8', e8)
 test('extraction test 9', e9)
+
+subdir('sub')
+
+test(
+  'nested extraction from string',
+  executable(
+    'nested_test1',
+    'lib_test.c',
+    objects : sub.extract_objects('lib.c')
+  )
+)
+test(
+  'nested extraction from File',
+  executable(
+    'nested_test2',
+    'lib_test.c',
+    objects : sub.extract_objects(files('sub/lib.c'))
+  )
+)
+
+testcase expect_error('Tried to extract unknown source sub/sub/lib.c.')
+  executable(
+    'nested_test2',
+    'lib_test.c',
+    objects : sub.extract_objects('sub/lib.c')
+  )
+endtestcase
