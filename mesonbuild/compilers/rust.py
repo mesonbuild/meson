@@ -19,7 +19,6 @@ if T.TYPE_CHECKING:
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..programs import ExternalProgram
     from ..dependencies import Dependency
 
 
@@ -59,13 +58,11 @@ class RustCompiler(Compiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  full_version: T.Optional[str] = None,
                  linker: T.Optional['DynamicLinker'] = None):
         super().__init__([], exelist, version, for_machine, info,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
-        self.exe_wrapper = exe_wrapper
         self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
@@ -87,11 +84,11 @@ class RustCompiler(Compiler):
         pc, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
-        if self.is_cross:
-            if self.exe_wrapper is None:
+        if environment.need_exe_wrapper(self.for_machine):
+            if not environment.has_exe_wrapper():
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper.get_command() + [output_name]
+            cmdlist = environment.exe_wrapper.get_command() + [output_name]
         else:
             cmdlist = [output_name]
         pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

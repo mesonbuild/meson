@@ -957,3 +957,6 @@ class Environment:
         if not self.need_exe_wrapper():
             return None
         return self.exe_wrapper
+
+    def has_exe_wrapper(self) -> bool:
+        return self.exe_wrapper and self.exe_wrapper.found()
