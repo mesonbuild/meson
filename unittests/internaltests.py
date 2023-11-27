@@ -44,7 +44,7 @@ from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_k
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException, OptionKey,
-    OptionType
+    OptionType, File
 )
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
@@ -1703,7 +1703,7 @@ class InternalTests(unittest.TestCase):
                 self.assertEqual(OptionKey.from_string(raw), expected)
 
     def test_file_absolute(self) -> None:
-        f = File(False, '/foo/bar/build', 'name.txt')
+        f = File(False, 'subdir', '/foo/bar/build/name.txt')
         with self.subTest('absolute_path'):
             self.assertEqual(f.absolute_path('/sent', '/got'),
                              '/foo/bar/build/name.txt')
@@ -1713,3 +1713,14 @@ class InternalTests(unittest.TestCase):
         with self.subTest('rel_to_builddir'):
             self.assertEqual(f.rel_to_builddir('/foo'),
                              'bar/build/name.txt')
+
+    def test_file_equality(self) -> None:
+        with self.subTest('same'):
+            self.assertEqual(File(False, '', 'foo'), File(False, '', 'foo'))
+        with self.subTest('different subdir'):
+            self.assertNotEqual(File(False, '', 'foo'), File(False, 'sub', 'foo'))
+        with self.subTest('generated'):
+            self.assertNotEqual(File(True, '', 'foo'), File(False, '', 'foo'))
+        with self.subTest('normalized'):
+            self.assertEqual(File(False, 'sub', 'foo'), File(False, '', 'sub/foo'))
+

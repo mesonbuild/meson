@@ -2266,8 +2266,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         ret_headers = []
         if kwargs['preserve_path']:
             for file in source_files:
-                dirname = os.path.dirname(file.fname)
-                dirs[dirname].append(file)
+                dirs[file.dirname].append(file)
         else:
             dirs[''].extend(source_files)
 
@@ -2489,8 +2488,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         dirs = collections.defaultdict(list)
         if preserve_path:
             for file in sources:
-                dirname = os.path.dirname(file.fname)
-                dirs[dirname].append(file)
+                dirs[file.dirname].append(file)
         else:
             dirs[''].extend(sources)
 

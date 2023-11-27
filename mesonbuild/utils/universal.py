@@ -382,10 +382,11 @@ class File(HoldableObject):
         if fname.endswith(".C") or fname.endswith(".H"):
             mlog.warning(dot_C_dot_H_warning, once=True)
         self.is_built = is_built
+        # Normalize files, so that File(False, 'sub', 'file') == File(False, '', 'sub/file')
+        self.dirname, self.fname = os.path.split(fname)
+        self.is_absolute = os.path.isabs(self.dirname)
         self.subdir = subdir
-        self.is_absolute = os.path.isabs(fname)
-        self.fname = fname
-        self.hash = hash((is_built, subdir, fname))
+        self.hash = hash((is_built, self.__relative_name()))
 
     def __str__(self) -> str:
         return self.relative_name()
@@ -421,15 +422,20 @@ class File(HoldableObject):
     def rel_to_builddir(self, build_to_src: str) -> str:
         if self.is_built:
             return self.relative_name()
-        path = os.path.join(self.subdir, self.fname)
+        path = os.path.join(self.dirname, self.fname)
         if self.is_absolute:
-            return os.path.relpath(path, build_to_src)
-        return os.path.join(build_to_src, path)
+            try:
+                return os.path.relpath(path, build_to_src)
+            except ValueError:
+                # On Windows this means the drives do not match, in that case
+                # the best we can do is return the absolute path
+                return path
+        return os.path.join(build_to_src, self.subdir, path)
 
     @lru_cache(maxsize=None)
     def absolute_path(self, srcdir: str, builddir: str) -> str:
         if self.is_absolute:
-            return os.path.join(self.subdir, self.fname)
+            return os.path.join(self.dirname, self.fname)
         absdir = srcdir
         if self.is_built:
             absdir = builddir
@@ -451,16 +457,19 @@ class File(HoldableObject):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, File):
             return NotImplemented
-        if self.hash != other.hash:
-            return False
-        return (self.fname, self.subdir, self.is_built) == (other.fname, other.subdir, other.is_built)
+        return self.hash == other.hash
 
     def __hash__(self) -> int:
         return self.hash
 
+    def __relative_name(self) -> str:
+        if self.is_absolute:
+            return os.path.join(self.dirname, self.fname)
+        return os.path.join(self.subdir, self.dirname, self.fname)
+
     @lru_cache(maxsize=None)
     def relative_name(self) -> str:
-        return os.path.join(self.subdir, self.fname)
+        return self.__relative_name()
 
 
 def get_compiler_for_source(compilers: T.Iterable['Compiler'], src: 'FileOrString') -> 'Compiler':
