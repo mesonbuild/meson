@@ -1708,7 +1708,7 @@ class InternalTests(unittest.TestCase):
             self.assertEqual(f.absolute_path('/sent', '/got'),
                              '/foo/bar/build/name.txt')
         with self.subTest('relative_name'):
-            self.assertEqual(f.relative_name(),
+            self.assertEqual(f.relative_name,
                              '/foo/bar/build/name.txt')
         with self.subTest('rel_to_builddir'):
             self.assertEqual(f.rel_to_builddir('/foo'),

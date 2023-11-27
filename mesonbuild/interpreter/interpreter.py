@@ -554,7 +554,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if isinstance(f, mesonlib.File):
             if f.is_built:
                 return
-            f = os.path.normpath(f.relative_name())
+            f = os.path.normpath(f.relative_name)
         elif os.path.isfile(f) and not f.startswith('/dev/'):
             srcdir = Path(self.environment.get_source_dir())
             builddir = Path(self.environment.get_build_dir())

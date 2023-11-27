@@ -386,17 +386,18 @@ class File(HoldableObject):
         self.dirname, self.fname = os.path.split(fname)
         self.is_absolute = os.path.isabs(self.dirname)
         self.subdir = subdir
-        self.hash = hash((is_built, self.__relative_name()))
+        self.relative_name = self.__relative_name()
+        self.hash = hash((is_built, self.relative_name))
 
     def __str__(self) -> str:
-        return self.relative_name()
+        return self.relative_name
 
     def __repr__(self) -> str:
         ret = '<File: {0}'
         if not self.is_built:
             ret += ' (not built)'
         ret += '>'
-        return ret.format(self.relative_name())
+        return ret.format(self.relative_name)
 
     @staticmethod
     @lru_cache(maxsize=None)
@@ -421,7 +422,7 @@ class File(HoldableObject):
     @lru_cache(maxsize=None)
     def rel_to_builddir(self, build_to_src: str) -> str:
         if self.is_built:
-            return self.relative_name()
+            return self.relative_name
         path = os.path.join(self.dirname, self.fname)
         if self.is_absolute:
             try:
@@ -439,7 +440,7 @@ class File(HoldableObject):
         absdir = srcdir
         if self.is_built:
             absdir = builddir
-        return os.path.join(absdir, self.relative_name())
+        return os.path.join(absdir, self.relative_name)
 
     @property
     def suffix(self) -> str:
@@ -466,10 +467,6 @@ class File(HoldableObject):
         if self.is_absolute:
             return os.path.join(self.dirname, self.fname)
         return os.path.join(self.subdir, self.dirname, self.fname)
-
-    @lru_cache(maxsize=None)
-    def relative_name(self) -> str:
-        return self.__relative_name()
 
 
 def get_compiler_for_source(compilers: T.Iterable['Compiler'], src: 'FileOrString') -> 'Compiler':

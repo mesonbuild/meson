@@ -851,7 +851,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 contents = code
             else:
                 assert code.is_absolute, 'A File must be absolute in this context'
-                srcname = code.relative_name()
+                srcname = code.relative_name
                 if not is_object(code.fname):
                     with open(srcname, encoding='utf-8') as f:
                         contents = f.read()

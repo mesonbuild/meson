@@ -162,7 +162,7 @@ class WindowsModule(ExtensionModule):
                 if isinstance(src, str):
                     yield os.path.join(state.subdir, src), src, src
                 elif isinstance(src, mesonlib.File):
-                    yield src.relative_name(), src.fname, src
+                    yield src.relative_name, src.fname, src
                 elif isinstance(src, build.CustomTargetIndex):
                     FeatureNew.single_use('windows.compile_resource CustomTargetIndex in positional arguments', '0.61.0',
                                           state.subproject, location=state.current_node)

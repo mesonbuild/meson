@@ -563,8 +563,8 @@ class QtBaseModule(ExtensionModule):
             if os.path.dirname(qresource) != '':
                 raise MesonException('qt.compile_translations: qresource file name must not contain a subdirectory.')
             qresource_file = File.from_built_file(state.subdir, qresource)
-            infile_abs = os.path.join(state.environment.source_dir, qresource_file.relative_name())
-            outfile_abs = os.path.join(state.environment.build_dir, qresource_file.relative_name())
+            infile_abs = os.path.join(state.environment.source_dir, qresource_file.relative_name)
+            outfile_abs = os.path.join(state.environment.build_dir, qresource_file.relative_name)
             os.makedirs(os.path.dirname(outfile_abs), exist_ok=True)
             shutil.copy2(infile_abs, outfile_abs)
             self.interpreter.add_build_def_file(infile_abs)
