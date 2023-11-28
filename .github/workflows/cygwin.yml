@@ -6,6 +6,10 @@ concurrency:
 
 on:
   push:
+    branches:
+      - master
+      # Stable branches such as 0.56 or 1.0
+      - '[0-9]+.[0-9]+'
     paths:
       - "mesonbuild/**"
       - "test cases/**"
