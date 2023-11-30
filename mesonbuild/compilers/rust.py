@@ -207,7 +207,7 @@ class RustCompiler(Compiler):
         # relocation-model=pic is rustc's default already.
         return []
 
-    def get_pie_args(self, env: Environment) -> T.List[str]:
+    def get_pie_args(self, pie: bool, env: Environment) -> T.List[str]:
         # Rustc currently has no way to toggle this, it's controlled by whether
         # pic is on by rustc
         return []

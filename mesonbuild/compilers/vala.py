@@ -44,10 +44,10 @@ class ValaCompiler(Compiler):
     def get_pic_args(self) -> T.List[str]:
         return []
 
-    def get_pie_args(self, env: Environment) -> T.List[str]:
+    def get_pie_args(self, pie: bool, env: Environment) -> T.List[str]:
         return []
 
-    def get_pie_link_args(self, env: Environment) -> T.List[str]:
+    def get_pie_link_args(self, pie: bool, env: Environment) -> T.List[str]:
         return []
 
     def get_always_args(self) -> T.List[str]:

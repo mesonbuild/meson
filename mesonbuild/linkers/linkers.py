@@ -136,6 +136,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         self.version = version
         self.prefix_arg = prefix_arg
         self.always_args = always_args
+        self.no_pie: T.Optional[T.List[str]] = None
         self.machine: T.Optional[str] = None
 
     def __repr__(self) -> str:
@@ -196,11 +197,10 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return self.get_std_shared_lib_args()
 
-    def get_pie_args(self, compiler: Compiler, env: Environment) -> T.List[str]:
-        # TODO: this really needs to take a boolean and return the args to
-        # disable pie, otherwise it only acts to enable pie if pie *isn't* the
-        # default.
-        raise EnvironmentException(f'Linker {self.id} does not support position-independent executable')
+    def get_pie_args(self, pie: bool, compiler: Compiler, env: Environment) -> T.List[str]:
+        if pie:
+            raise EnvironmentException(f'Linker {self.id} does not support position-independent executable')
+        return []
 
     def get_lto_args(self) -> T.List[str]:
         return []
@@ -607,8 +607,17 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         # _BUILDTYPE_ARGS value.
         return mesonlib.listify([self._apply_prefix(a) for a in self._BUILDTYPE_ARGS[buildtype]])
 
-    def get_pie_args(self, compiler: Compiler, env: Environment) -> T.List[str]:
-        return ['-pie']
+    def get_pie_args(self, pie: bool, compiler: Compiler, env: Environment) -> T.List[str]:
+        if pie:
+            return ['-pie']
+
+        if self.no_pie is None:
+            self.no_pie = []
+            # -no-pie was supposed to be a link-time argument, but some distros that
+            # did not know what they are doing changed it to a compile-time argument
+            if compiler.has_multi_link_arguments(['-no-pie'], env)[0]:
+                self.no_pie = ['-no-pie']
+        return self.no_pie
 
     def get_asneeded_args(self) -> T.List[str]:
         return self._apply_prefix('--as-needed')
@@ -764,7 +773,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return ['-bundle'] + self._apply_prefix('-undefined,dynamic_lookup')
 
-    def get_pie_args(self, compiler: Compiler, env: Environment) -> T.List[str]:
+    def get_pie_args(self, pie: bool, compiler: Compiler, env: Environment) -> T.List[str]:
         return []
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1377,13 +1386,15 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return args
         return self._apply_prefix('--whole-archive') + args + self._apply_prefix('--no-whole-archive')
 
-    def get_pie_args(self, compiler: Compiler, env: Environment) -> T.List[str]:
+    def get_pie_args(self, pie: bool, compiler: Compiler, env: Environment) -> T.List[str]:
         # Available in Solaris 11.2 and later
         pc, stdo, stde = mesonlib.Popen_safe(self.exelist + self._apply_prefix('-zhelp'))
         for line in (stdo + stde).split('\n'):
-            if '-z type' in line:
-                if 'pie' in line:
+            if '-z type' in line and 'pie' in line:
+                if pie:
                     return ['-z', 'type=pie']
+                else:
+                    return ['-z', 'type=exec']
                 break
         return []
 
