@@ -76,8 +76,6 @@ additional = [
     'run_project_tests.py',
     'run_single_test.py',
     'tools',
-    'docs/genrefman.py',
-    'docs/refman',
 ]
 
 if os.name == 'posix':

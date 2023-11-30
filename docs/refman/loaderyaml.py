@@ -153,22 +153,13 @@ class LoaderYAML(LoaderBase):
         self.strict = strict
 
         template: Template
-        if self.strict:
-            import strictyaml
-            def loader(file: str, template: T.Any, label: str) -> T.Dict:
-                r: T.Dict = strictyaml.load(file, template, label=label).data
-                return r
+        import strictyaml
+        def loader(file: str, template: T.Any, label: str) -> T.Dict:
+            r: T.Dict = strictyaml.load(file, template, label=label).data
+            return r
 
-            self._load = loader
-            template = StrictTemplate()
-        else:
-            import yaml
-            from yaml import CLoader
-            def loader(file: str, template: T.Any, label: str) -> T.Dict:
-                return {**template, **yaml.load(file, Loader=CLoader)}
-
-            self._load = loader
-            template = FastTemplate()
+        self._load = loader
+        template = StrictTemplate()
 
         self.template = template
 
