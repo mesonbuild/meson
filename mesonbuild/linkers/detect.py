@@ -185,8 +185,9 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             v = search_version(o)
 
         linker = linkers.LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
-    # first might be apple clang, second is for real gcc, the third is icc
-    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e:
+    # First might be apple clang, second is for real gcc, the third is icc.
+    # Note that "ld: unknown option: " sometimes instead is "ld: unknown options:".
+    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option' in e:
         if isinstance(comp_class.LINKER_PREFIX, str):
             cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
         else:
