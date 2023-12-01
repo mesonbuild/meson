@@ -54,10 +54,6 @@ class CythonCompiler(Compiler):
             if p.returncode != 0:
                 raise EnvironmentException(f'Cython compiler {self.id!r} cannot compile programs')
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        # Cython doesn't implement this, but Meson requires an implementation
-        return []
-
     def get_pic_args(self) -> T.List[str]:
         # We can lie here, it's fine
         return []

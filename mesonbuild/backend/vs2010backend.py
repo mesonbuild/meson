@@ -1126,9 +1126,8 @@ class Vs2010Backend(backends.Backend):
         return (target_args, file_args), (target_defines, file_defines), (target_inc_dirs, file_inc_dirs)
 
     @staticmethod
-    def get_build_args(compiler, buildtype: str, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
-        build_args = compiler.get_buildtype_args(buildtype)
-        build_args += compiler.get_optimization_args(optimization_level)
+    def get_build_args(compiler, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
+        build_args = compiler.get_optimization_args(optimization_level)
         build_args += compiler.get_debug_args(debug)
         build_args += compiler.sanitizer_compile_args(sanitize)
 
@@ -1290,7 +1289,7 @@ class Vs2010Backend(backends.Backend):
             file_args
             ) -> None:
         compiler = self._get_cl_compiler(target)
-        buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
+        buildtype_link_args = compiler.get_optimization_link_args(self.optimization)
 
         # Prefix to use to access the build root from the vcxproj dir
         down = self.target_to_build_root(target)
@@ -1403,10 +1402,7 @@ class Vs2010Backend(backends.Backend):
         # Linker options
         link = ET.SubElement(compiles, 'Link')
         extra_link_args = compiler.compiler_args()
-        # FIXME: Can these buildtype linker args be added as tags in the
-        # vcxproj file (similar to buildtype compiler args) instead of in
-        # AdditionalOptions?
-        extra_link_args += compiler.get_buildtype_linker_args(self.buildtype)
+        extra_link_args += compiler.get_optimization_link_args(self.optimization)
         # Generate Debug info
         if self.debug:
             self.generate_debug_information(link)
@@ -1634,7 +1630,7 @@ class Vs2010Backend(backends.Backend):
         gen_hdrs += custom_hdrs
 
         compiler = self._get_cl_compiler(target)
-        build_args = Vs2010Backend.get_build_args(compiler, self.buildtype, self.optimization, self.debug, self.sanitize)
+        build_args = Vs2010Backend.get_build_args(compiler, self.optimization, self.debug, self.sanitize)
 
         assert isinstance(target, (build.Executable, build.SharedLibrary, build.StaticLibrary, build.SharedModule)), 'for mypy'
         # Prefix to use to access the build root from the vcxproj dir

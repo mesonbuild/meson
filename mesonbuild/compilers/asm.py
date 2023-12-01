@@ -98,10 +98,6 @@ class NasmCompiler(Compiler):
         if self.info.cpu_family not in {'x86', 'x86_64'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        # FIXME: Not implemented
-        return []
-
     def get_pic_args(self) -> T.List[str]:
         return []
 
@@ -185,10 +181,6 @@ class MasmCompiler(Compiler):
         if self.info.cpu_family not in {'x86', 'x86_64'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        # FIXME: Not implemented
-        return []
-
     def get_pic_args(self) -> T.List[str]:
         return []
 
@@ -239,10 +231,6 @@ class MasmARMCompiler(Compiler):
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         if self.info.cpu_family not in {'arm', 'aarch64'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        # FIXME: Not implemented
-        return []
 
     def get_pic_args(self) -> T.List[str]:
         return []
