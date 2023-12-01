@@ -22,15 +22,6 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-pgi_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
 
 class PGICompiler(Compiler):
 
@@ -62,9 +53,6 @@ class PGICompiler(Compiler):
 
     def openmp_flags(self) -> T.List[str]:
         return ['-mp']
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return pgi_buildtype_args[buildtype]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return clike_optimization_args[optimization_level]

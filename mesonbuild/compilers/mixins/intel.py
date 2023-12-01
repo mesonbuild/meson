@@ -40,13 +40,9 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     minsize: -O2
     """
 
-    BUILD_ARGS: T.Dict[str, T.List[str]] = {
-        'plain': [],
-        'debug': ["-g", "-traceback"],
-        'debugoptimized': ["-g", "-traceback"],
-        'release': [],
-        'minsize': [],
-        'custom': [],
+    DEBUG_ARGS: T.Dict[bool, T.List[str]] = {
+        False: [],
+        True: ['-g', '-traceback']
     }
 
     OPTIM_ARGS: T.Dict[str, T.List[str]] = {
@@ -105,8 +101,8 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_profile_use_args(self) -> T.List[str]:
         return ['-prof-use']
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return self.BUILD_ARGS[buildtype]
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        return self.DEBUG_ARGS[is_debug]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
@@ -119,13 +115,9 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     """Abstractions for ICL, the Intel compiler on Windows."""
 
-    BUILD_ARGS: T.Dict[str, T.List[str]] = {
-        'plain': [],
-        'debug': ["/Zi", "/traceback"],
-        'debugoptimized': ["/Zi", "/traceback"],
-        'release': [],
-        'minsize': [],
-        'custom': [],
+    DEBUG_ARGS: T.Dict[bool, T.List[str]] = {
+        False: [],
+        True: ['/Zi', '/traceback']
     }
 
     OPTIM_ARGS: T.Dict[str, T.List[str]] = {
@@ -165,8 +157,8 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
     def openmp_flags(self) -> T.List[str]:
         return ['/Qopenmp']
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return self.BUILD_ARGS[buildtype]
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        return self.DEBUG_ARGS[is_debug]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]

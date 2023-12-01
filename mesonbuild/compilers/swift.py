@@ -8,7 +8,7 @@ import typing as T
 
 from ..mesonlib import EnvironmentException
 
-from .compilers import Compiler, swift_buildtype_args, clike_debug_args
+from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
@@ -63,9 +63,6 @@ class SwiftCompiler(Compiler):
 
     def get_warn_args(self, level: str) -> T.List[str]:
         return []
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return swift_buildtype_args[buildtype]
 
     def get_std_exe_link_args(self) -> T.List[str]:
         return ['-emit-executable']

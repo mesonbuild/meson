@@ -107,7 +107,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_asneeded_args(self) -> T.List[str]:
         return []
 
-    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
+    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
         return []
 
     def get_link_debugfile_name(self, targetfile: str) -> T.Optional[str]:

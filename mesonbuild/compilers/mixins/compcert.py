@@ -20,15 +20,6 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-ccomp_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [''],
-    'debug': ['-O0', '-g'],
-    'debugoptimized': ['-O0', '-g'],
-    'release': ['-O3'],
-    'minsize': ['-Os'],
-    'custom': ['-Obranchless'],
-}
-
 ccomp_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
@@ -41,7 +32,7 @@ ccomp_optimization_args: T.Dict[str, T.List[str]] = {
 
 ccomp_debug_args: T.Dict[bool, T.List[str]] = {
     False: [],
-    True: ['-g']
+    True: ['-O0', '-g']
 }
 
 # As of CompCert 20.04, these arguments should be passed to the underlying gcc linker (via -WUl,<arg>)
@@ -73,9 +64,6 @@ class CompCertCompiler(Compiler):
     def get_pic_args(self) -> T.List[str]:
         # As of now, CompCert does not support PIC
         return []
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return ccomp_buildtype_args[buildtype]
 
     def get_pch_suffix(self) -> str:
         return 'pch'

@@ -14,8 +14,7 @@ from ..mesonlib import (
     EnvironmentException, Popen_safe,
     is_windows, LibType, OptionKey, version_compare,
 )
-from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
-                        cuda_debug_args)
+from .compilers import Compiler
 
 if T.TYPE_CHECKING:
     from .compilers import CompileCheckMode
@@ -27,6 +26,22 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
+
+
+cuda_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': ['-G'],
+    'g': ['-O0'],
+    '1': ['-O1'],
+    '2': ['-O2', '-lineinfo'],
+    '3': ['-O3'],
+    's': ['-O3']
+}
+
+cuda_debug_args: T.Dict[bool, T.List[str]] = {
+    False: [],
+    True: ['-g']
+}
 
 
 class _Phase(enum.Enum):
@@ -692,12 +707,6 @@ class CudaCompiler(Compiler):
     def get_warn_args(self, level: str) -> T.List[str]:
         return self.warn_args[level]
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        # nvcc doesn't support msvc's "Edit and Continue" PDB format; "downgrade" to
-        # a regular PDB to avoid cl's warning to that effect (D9025 : overriding '/ZI' with '/Zi')
-        host_args = ['/Zi' if arg == '/ZI' else arg for arg in self.host_compiler.get_buildtype_args(buildtype)]
-        return cuda_buildtype_args[buildtype] + self._to_host_flags(host_args)
-
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         if path == '':
             path = '.'
@@ -712,8 +721,8 @@ class CudaCompiler(Compiler):
     def get_depfile_suffix(self) -> str:
         return 'd'
 
-    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
-        return self._to_host_flags(self.host_compiler.get_buildtype_linker_args(buildtype), _Phase.LINKER)
+    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+        return self._to_host_flags(self.host_compiler.get_optimization_link_args(optimization_level), _Phase.LINKER)
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,

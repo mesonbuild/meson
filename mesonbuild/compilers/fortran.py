@@ -13,9 +13,7 @@ from .compilers import (
     CompileCheckMode,
 )
 from .mixins.clike import CLikeCompiler
-from .mixins.gnu import (
-    GnuCompiler, gnulike_buildtype_args, gnu_optimization_args
-)
+from .mixins.gnu import GnuCompiler,  gnu_optimization_args
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
@@ -65,9 +63,6 @@ class FortranCompiler(CLikeCompiler, Compiler):
         source_name = 'sanitycheckf.f90'
         code = 'program main; print *, "Fortran compilation is working."; end program\n'
         return self._sanity_check_impl(work_dir, environment, source_name, code)
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return gnulike_buildtype_args[buildtype]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return gnu_optimization_args[optimization_level]

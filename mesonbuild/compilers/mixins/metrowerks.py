@@ -20,15 +20,6 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-mwcc_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
 mwccarm_instruction_set_args: T.Dict[str, T.List[str]] = {
     'generic': ['-proc', 'generic'],
     'v4': ['-proc', 'v4'],
@@ -202,9 +193,6 @@ class MetrowerksCompiler(Compiler):
 
     def get_always_args(self) -> T.List[str]:
         return ['-gccinc']
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return mwcc_buildtype_args[buildtype]
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         return []

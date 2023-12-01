@@ -1001,11 +1001,6 @@ class Backend:
         # command-line or default_options inside project().
         commands += compiler.get_option_compile_args(copt_proxy)
 
-        # Add buildtype args: optimization level, debugging, etc.
-        buildtype = target.get_option(OptionKey('buildtype'))
-        assert isinstance(buildtype, str), 'for mypy'
-        commands += compiler.get_buildtype_args(buildtype)
-
         optimization = target.get_option(OptionKey('optimization'))
         assert isinstance(optimization, str), 'for mypy'
         commands += compiler.get_optimization_args(optimization)

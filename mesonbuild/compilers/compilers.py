@@ -181,78 +181,6 @@ class CompileCheckMode(enum.Enum):
     LINK = 'link'
 
 
-cuda_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': ['-g', '-G'],
-    'debugoptimized': ['-g', '-lineinfo'],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
-java_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': ['-g'],
-    'debugoptimized': ['-g'],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
-rust_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
-d_gdc_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': ['-finline-functions'],
-    'release': ['-finline-functions'],
-    'minsize': [],
-    'custom': [],
-}
-
-d_ldc_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
-    'release': ['-enable-inlining', '-Hkeep-all-bodies'],
-    'minsize': [],
-    'custom': [],
-}
-
-d_dmd_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': ['-inline'],
-    'release': ['-inline'],
-    'minsize': [],
-    'custom': [],
-}
-
-mono_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': ['-optimize+'],
-    'release': ['-optimize+'],
-    'minsize': [],
-    'custom': [],
-}
-
-swift_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
                '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
 
@@ -270,25 +198,11 @@ clike_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Os'],
 }
 
-cuda_optimization_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    '0': [],
-    'g': ['-O0'],
-    '1': ['-O1'],
-    '2': ['-O2'],
-    '3': ['-O3'],
-    's': ['-O3']
-}
-
-cuda_debug_args: T.Dict[bool, T.List[str]] = {
-    False: [],
-    True: ['-g']
-}
-
 clike_debug_args: T.Dict[bool, T.List[str]] = {
     False: [],
     True: ['-g']
 }
+
 
 MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
 
@@ -1070,11 +984,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        raise EnvironmentException(f'{self.id} does not implement get_buildtype_args')
-
-    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
-        return self.linker.get_buildtype_args(buildtype)
+    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+        return self.linker.get_optimization_link_args(optimization_level)
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,

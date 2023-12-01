@@ -21,15 +21,6 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-ti_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
 ti_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
@@ -69,9 +60,6 @@ class TICompiler(Compiler):
         # PIC support is not enabled by default for TI compilers,
         # if users want to use it, they need to add the required arguments explicitly
         return []
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return ti_buildtype_args[buildtype]
 
     def get_pch_suffix(self) -> str:
         return 'pch'

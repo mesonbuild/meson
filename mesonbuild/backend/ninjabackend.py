@@ -1444,7 +1444,6 @@ class NinjaBackend(backends.Backend):
         return args, deps
 
     def generate_cs_target(self, target: build.BuildTarget):
-        buildtype = target.get_option(OptionKey('buildtype'))
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
@@ -1452,7 +1451,6 @@ class NinjaBackend(backends.Backend):
         rel_srcs = [os.path.normpath(s.rel_to_builddir(self.build_to_src)) for s in src_list]
         deps = []
         commands = compiler.compiler_args(target.extra_args['cs'])
-        commands += compiler.get_buildtype_args(buildtype)
         commands += compiler.get_optimization_args(target.get_option(OptionKey('optimization')))
         commands += compiler.get_debug_args(target.get_option(OptionKey('debug')))
         if isinstance(target, build.Executable):
@@ -1495,7 +1493,6 @@ class NinjaBackend(backends.Backend):
 
     def determine_single_java_compile_args(self, target, compiler):
         args = []
-        args += compiler.get_buildtype_args(target.get_option(OptionKey('buildtype')))
         args += self.build.get_global_args(compiler, target.for_machine)
         args += self.build.get_project_args(compiler, target.subproject, target.for_machine)
         args += target.get_java_args()
@@ -1726,7 +1723,6 @@ class NinjaBackend(backends.Backend):
 
         args: T.List[str] = []
         args += cython.get_always_args()
-        args += cython.get_buildtype_args(target.get_option(OptionKey('buildtype')))
         args += cython.get_debug_args(target.get_option(OptionKey('debug')))
         args += cython.get_optimization_args(target.get_option(OptionKey('optimization')))
         args += cython.get_option_compile_args(target.get_options())
@@ -3358,7 +3354,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        commands += linker.get_buildtype_linker_args(target.get_option(OptionKey('buildtype')))
+        commands += linker.get_optimization_link_args(target.get_option(OptionKey('optimization')))
         # Add /DEBUG and the pdb filename when using MSVC
         if target.get_option(OptionKey('debug')):
             commands += self.get_link_debugfile_args(linker, target)

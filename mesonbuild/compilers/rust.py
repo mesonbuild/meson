@@ -10,7 +10,7 @@ import typing as T
 
 from .. import coredata
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
-from .compilers import Compiler, rust_buildtype_args, clike_debug_args
+from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
@@ -112,9 +112,6 @@ class RustCompiler(Compiler):
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['--dep-info', outfile]
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return rust_buildtype_args[buildtype]
 
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']

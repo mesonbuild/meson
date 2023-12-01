@@ -91,11 +91,6 @@ class ValaCompiler(Compiler):
                 msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
                 raise EnvironmentException(msg)
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        if buildtype in {'debug', 'debugoptimized', 'minsize'}:
-            return ['--debug']
-        return []
-
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
                      libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
         if extra_dirs and isinstance(extra_dirs, str):

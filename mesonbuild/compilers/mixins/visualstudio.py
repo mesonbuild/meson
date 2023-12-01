@@ -178,9 +178,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return ['/Fe' + outputname]
         return ['/Fo' + outputname]
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return []
-
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return msvc_debug_args[is_debug]
 

@@ -24,15 +24,6 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-arm_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
 arm_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
@@ -41,15 +32,6 @@ arm_optimization_args: T.Dict[str, T.List[str]] = {
     '2': [], # Compiler defaults to -O2
     '3': ['-O3', '-Otime'],
     's': ['-O3'], # Compiler defaults to -Ospace
-}
-
-armclang_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
 }
 
 armclang_optimization_args: T.Dict[str, T.List[str]] = {
@@ -85,9 +67,6 @@ class ArmCompiler(Compiler):
     def get_pic_args(self) -> T.List[str]:
         # FIXME: Add /ropi, /rwpi, /fpic etc. qualifiers to --apcs
         return []
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return arm_buildtype_args[buildtype]
 
     # Override CCompiler.get_always_args
     def get_always_args(self) -> T.List[str]:
@@ -161,9 +140,6 @@ class ArmclangCompiler(Compiler):
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         return clang_color_args[colortype][:]
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return armclang_buildtype_args[buildtype]
 
     def get_pch_suffix(self) -> str:
         return 'gch'

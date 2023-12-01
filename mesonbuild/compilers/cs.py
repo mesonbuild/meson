@@ -10,7 +10,7 @@ import typing as T
 from ..mesonlib import EnvironmentException
 from ..linkers import RSPFileSyntax
 
-from .compilers import Compiler, mono_buildtype_args
+from .compilers import Compiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
@@ -103,9 +103,6 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return mono_buildtype_args[buildtype]
-
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return ['-debug'] if is_debug else []
 
@@ -129,16 +126,11 @@ class VisualStudioCsCompiler(CsCompiler):
 
     id = 'csc'
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        res = mono_buildtype_args[buildtype]
-        if not self.info.is_windows():
-            tmp = []
-            for flag in res:
-                if flag == '-debug':
-                    flag = '-debug:portable'
-                tmp.append(flag)
-            res = tmp
-        return res
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        if is_debug:
+            return ['-debug'] if self.info.is_windows() else ['-debug:portable']
+        else:
+            return []
 
     def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.MSVC

@@ -18,9 +18,6 @@ from ..mesonlib import (
 
 from . import compilers
 from .compilers import (
-    d_dmd_buildtype_args,
-    d_gdc_buildtype_args,
-    d_ldc_buildtype_args,
     clike_debug_args,
     Compiler,
     CompileCheckMode,
@@ -67,8 +64,8 @@ ldc_optimization_args: T.Dict[str, T.List[str]] = {
     '0': [],
     'g': [],
     '1': ['-O1'],
-    '2': ['-O2'],
-    '3': ['-O3'],
+    '2': ['-O2', '-enable-inlining', '-Hkeep-all-bodies'],
+    '3': ['-O3', '-enable-inlining', '-Hkeep-all-bodies'],
     's': ['-Oz'],
 }
 
@@ -77,9 +74,19 @@ dmd_optimization_args: T.Dict[str, T.List[str]] = {
     '0': [],
     'g': [],
     '1': ['-O'],
-    '2': ['-O'],
-    '3': ['-O'],
+    '2': ['-O', '-inline'],
+    '3': ['-O', '-inline'],
     's': ['-O'],
+}
+
+gdc_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': ['-O0'],
+    'g': ['-Og'],
+    '1': ['-O1'],
+    '2': ['-O2', '-finline-functions'],
+    '3': ['-O3', '-finline-functions'],
+    's': ['-Os'],
 }
 
 
@@ -161,8 +168,8 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             return []
         return ['-fPIC']
 
-    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
-        if buildtype != 'plain':
+    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+        if optimization_level != 'plain':
             return self._get_target_arch_args()
         return []
 
@@ -531,8 +538,8 @@ class DCompiler(Compiler):
 
         return res
 
-    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
-        if buildtype != 'plain':
+    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+        if optimization_level != 'plain':
             return self._get_target_arch_args()
         return []
 
@@ -697,8 +704,8 @@ class GnuDCompiler(GnuCompiler, DCompiler):
     def get_warn_args(self, level: str) -> T.List[str]:
         return self.warn_args[level]
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return d_gdc_buildtype_args[buildtype]
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return gdc_optimization_args[optimization_level]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
@@ -764,11 +771,6 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
             return ['-wi']
         return []
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        if buildtype != 'plain':
-            return self._get_target_arch_args() + d_ldc_buildtype_args[buildtype]
-        return d_ldc_buildtype_args[buildtype]
-
     def get_pic_args(self) -> T.List[str]:
         return ['-relocation-model=pic']
 
@@ -779,6 +781,8 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
         return self._unix_args_to_native(args, self.info, self.linker.id)
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        if optimization_level != 'plain':
+            return self._get_target_arch_args() + ldc_optimization_args[optimization_level]
         return ldc_optimization_args[optimization_level]
 
     @classmethod
@@ -824,11 +828,6 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             return ['-color=on']
         return []
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        if buildtype != 'plain':
-            return self._get_target_arch_args() + d_dmd_buildtype_args[buildtype]
-        return d_dmd_buildtype_args[buildtype]
-
     def get_std_exe_link_args(self) -> T.List[str]:
         if self.info.is_windows():
             # DMD links against D runtime only when main symbol is found,
@@ -870,6 +869,8 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
         return self._unix_args_to_native(args, self.info, self.linker.id)
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        if optimization_level != 'plain':
+            return self._get_target_arch_args() + dmd_optimization_args[optimization_level]
         return dmd_optimization_args[optimization_level]
 
     def can_linker_accept_rsp(self) -> bool:

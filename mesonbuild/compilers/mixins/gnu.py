@@ -37,15 +37,6 @@ clike_debug_args: T.Dict[bool, T.List[str]] = {
     True: ['-g'],
 }
 
-gnulike_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
 gnu_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
@@ -389,9 +380,6 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     def get_pie_args(self) -> T.List[str]:
         return ['-fPIE']
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return gnulike_buildtype_args[buildtype]
 
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:

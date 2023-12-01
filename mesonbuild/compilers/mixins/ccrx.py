@@ -21,15 +21,6 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-ccrx_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
 ccrx_optimization_args: T.Dict[str, T.List[str]] = {
     '0': ['-optimize=0'],
     'g': ['-optimize=0'],
@@ -70,9 +61,6 @@ class CcrxCompiler(Compiler):
         # PIC support is not enabled by default for CCRX,
         # if users want to use it, they need to add the required arguments explicitly
         return []
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return ccrx_buildtype_args[buildtype]
 
     def get_pch_suffix(self) -> str:
         return 'pch'

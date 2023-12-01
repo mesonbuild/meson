@@ -11,13 +11,19 @@ import textwrap
 import typing as T
 
 from ..mesonlib import EnvironmentException
-from .compilers import Compiler, java_buildtype_args
+from .compilers import Compiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+
+
+java_debug_args: T.Dict[bool, T.List[str]] = {
+    False: ['-g:none'],
+    True: ['-g']
+}
 
 class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
@@ -55,9 +61,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def get_pch_name(self, name: str) -> str:
         return ''
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return java_buildtype_args[buildtype]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
@@ -107,6 +110,4 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
         return []
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
-        if is_debug:
-            return ['-g']
-        return ['-g:none']
+        return java_debug_args[is_debug]

@@ -45,7 +45,7 @@ class StaticLinker:
     def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
         return []
 
-    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
+    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
         return []
 
     def get_output_args(self, target: str) -> T.List[str]:
@@ -103,13 +103,14 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     """Base class for dynamic linkers."""
 
-    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
+    _OPTIMIZATION_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
-        'debug': [],
-        'debugoptimized': [],
-        'release': [],
-        'minsize': [],
-        'custom': [],
+        '0': [],
+        'g': [],
+        '1': [],
+        '2': [],
+        '3': [],
+        's': [],
     }
 
     @abc.abstractproperty
@@ -189,6 +190,11 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         """
         return []
 
+    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+        # We can override these in children by just overriding the
+        # _OPTIMIZATION_ARGS value.
+        return mesonlib.listify([self._apply_prefix(a) for a in self._OPTIMIZATION_ARGS[optimization_level]])
+
     def get_std_shared_lib_args(self) -> T.List[str]:
         return []
 
@@ -209,11 +215,6 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     def sanitizer_args(self, value: str) -> T.List[str]:
         return []
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        # We can override these in children by just overriding the
-        # _BUILDTYPE_ARGS value.
-        return self._BUILDTYPE_ARGS[buildtype]
 
     def get_asneeded_args(self) -> T.List[str]:
         return []
@@ -580,13 +581,14 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         for_machine = MachineChoice.HOST
         def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
 
-    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
+    _OPTIMIZATION_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
-        'debug': [],
-        'debugoptimized': [],
-        'release': ['-O1'],
-        'minsize': [],
-        'custom': [],
+        '0': [],
+        'g': [],
+        '1': [],
+        '2': [],
+        '3': ['-O1'],
+        's': [],
     }
 
     _SUBSYSTEMS: T.Dict[str, str] = {
@@ -600,11 +602,6 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         "efi_rom": "13",
         "boot_application": "16",
     }
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        # We can override these in children by just overriding the
-        # _BUILDTYPE_ARGS value.
-        return mesonlib.listify([self._apply_prefix(a) for a in self._BUILDTYPE_ARGS[buildtype]])
 
     def get_pie_args(self) -> T.List[str]:
         return ['-pie']
@@ -1231,15 +1228,16 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
         for_machine = MachineChoice.HOST
         def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
 
-    _BUILDTYPE_ARGS: T.Dict[str, T.List[str]] = {
+    _OPTIMIZATION_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
-        'debug': [],
-        'debugoptimized': [],
+        '0': [],
+        'g': [],
+        '1': [],
+        '2': [],
         # The otherwise implicit REF and ICF linker optimisations are disabled by
         # /DEBUG. REF implies ICF.
-        'release': ['/OPT:REF'],
-        'minsize': ['/INCREMENTAL:NO', '/OPT:REF'],
-        'custom': [],
+        '3': ['/OPT:REF'],
+        's': ['/INCREMENTAL:NO', '/OPT:REF'],
     }
 
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
@@ -1249,9 +1247,6 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
         super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)
         self.machine = machine
         self.direct = direct
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return mesonlib.listify([self._apply_prefix(a) for a in self._BUILDTYPE_ARGS[buildtype]])
 
     def invoked_by_compiler(self) -> bool:
         return not self.direct
