@@ -151,5 +151,5 @@ class DarwinTests(BasePlatformTests):
 
     def test_darwin_get_object_archs(self):
         from mesonbuild.mesonlib import darwin_get_object_archs
-        archs = darwin_get_object_archs('/System/Library/CoreServices/Encodings/libSymbolConverter.dylib')
+        archs = darwin_get_object_archs('/bin/cat')
         self.assertEqual(archs, ['x86_64', 'aarch64'])
