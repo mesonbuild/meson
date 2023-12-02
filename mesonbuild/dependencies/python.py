@@ -245,14 +245,15 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.is_found = True
 
     def get_windows_python_arch(self) -> T.Optional[str]:
-        if self.platform == 'mingw':
-            pycc = self.variables.get('CC')
-            if pycc.startswith('x86_64'):
+        if self.platform.startswith('mingw'):
+            if 'x86_64' in self.platform:
                 return 'x86_64'
-            elif pycc.startswith(('i686', 'i386')):
+            elif 'i686' in self.platform:
                 return 'x86'
+            elif 'aarch64' in self.platform:
+                return 'aarch64'
             else:
-                mlog.log(f'MinGW Python built with unknown CC {pycc!r}, please file a bug')
+                mlog.log(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
                 return None
         elif self.platform == 'win32':
             return 'x86'
@@ -309,7 +310,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                             '''))
             # base_prefix to allow for virtualenvs.
             lib = Path(self.variables.get('base_prefix')) / libpath
-        elif self.platform == 'mingw':
+        elif self.platform.startswith('mingw'):
             if self.static:
                 libname = self.variables.get('LIBRARY')
             else:
