@@ -91,6 +91,11 @@ if host_machine.system() != 'darwin'
   attributes += 'alloc_size'
 endif
 
+# gcc doesn't support constructor_priority on darwin
+if c.get_id() == 'gcc' and host_machine.system() == 'darwin'
+  expected += {'constructor_priority': false}
+endif
+
 if ['gcc', 'intel'].contains(c.get_id())
   # not supported by clang as of 5.0.0 (at least up to 6.0.1)
   attributes += 'artificial'
