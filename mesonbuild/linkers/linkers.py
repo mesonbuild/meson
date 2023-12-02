@@ -792,7 +792,15 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return ['-fsanitize=' + value]
 
     def no_undefined_args(self) -> T.List[str]:
-        return self._apply_prefix('-undefined,error')
+        # We used to emit -undefined,error, but starting with Xcode 15 /
+        # Sonoma, doing so triggers "ld: warning: -undefined error is
+        # deprecated". Given that "-undefined error" is documented to be the
+        # linker's default behaviour, this warning seems ill advised. However,
+        # it does create a lot of noise.  As "-undefined error" is the default
+        # behaviour, the least bad way to deal with this seems to be to just
+        # not emit anything here. Of course that only works as long as nothing
+        # else injects -undefined dynamic_lookup, or such. Complain to Apple.
+        return []
 
     def headerpad_args(self) -> T.List[str]:
         return self._apply_prefix('-headerpad_max_install_names')
