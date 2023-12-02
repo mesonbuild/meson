@@ -618,7 +618,8 @@ class InternalTests(unittest.TestCase):
             out = name.with_suffix('.o')
             with src.open('w', encoding='utf-8') as f:
                 f.write('int meson_foobar (void) { return 0; }')
-            subprocess.check_call(['clang', '-c', str(src), '-o', str(out)])
+            # use of x86_64 is hardcoded in run_tests.py:get_fake_env()
+            subprocess.check_call(['clang', '-c', str(src), '-o', str(out), '-arch', 'x86_64'])
             subprocess.check_call(['ar', 'csr', str(name), str(out)])
 
         with tempfile.TemporaryDirectory() as tmpdir:
