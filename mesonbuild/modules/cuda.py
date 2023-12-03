@@ -237,6 +237,10 @@ class CudaModule(NewExtensionModule):
                 cuda_common_gpu_architectures += ['7.5+PTX']  # noqa: E221
                 cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
 
+        # need to account for the fact that Ampere is commonly assumed to include
+        # SM8.0 and SM8.6 even though CUDA 11.0 doesn't support SM8.6
+        cuda_ampere_bin = ['8.0']
+        cuda_ampere_ptx = ['8.0']
         if version_compare(cuda_version, '>=11.0'):
             cuda_known_gpu_architectures  += ['Ampere'] # noqa: E221
             cuda_common_gpu_architectures += ['8.0']    # noqa: E221
@@ -249,6 +253,9 @@ class CudaModule(NewExtensionModule):
                 cuda_hi_limit_gpu_architecture = '8.6'        # noqa: E221
 
         if version_compare(cuda_version, '>=11.1'):
+            cuda_ampere_bin += ['8.6'] # noqa: E221
+            cuda_ampere_ptx  = ['8.6'] # noqa: E221
+
             cuda_common_gpu_architectures += ['8.6']             # noqa: E221
             cuda_all_gpu_architectures    += ['8.6']             # noqa: E221
 
@@ -320,7 +327,7 @@ class CudaModule(NewExtensionModule):
                     'Volta':         (['7.0'],             ['7.0']),
                     'Xavier':        (['7.2'],             []),
                     'Turing':        (['7.5'],             ['7.5']),
-                    'Ampere':        (['8.0'],             ['8.0']),
+                    'Ampere':        (cuda_ampere_bin,     cuda_ampere_ptx),
                     'Orin':          (['8.7'],             []),
                     'Lovelace':      (['8.9'],             ['8.9']),
                     'Hopper':        (['9.0'],             ['9.0']),

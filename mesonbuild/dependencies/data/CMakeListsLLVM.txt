@@ -42,7 +42,7 @@ function(meson_llvm_cmake_dynamic_available mod out)
     return()
   endif()
 
-  # Complex heurisic to filter all pseudo-components and skip invalid names
+  # Complex heuristic to filter all pseudo-components and skip invalid names
   # LLVM_DYLIB_COMPONENTS will be 'all', because in other case we returned
   # in previous check. 'all' is also handled there.
   set(llvm_pseudo_components "native" "backend" "engine" "all-targets")

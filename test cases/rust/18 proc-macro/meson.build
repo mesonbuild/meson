@@ -13,7 +13,21 @@ pm = shared_library(
 main = executable(
   'main',
   'use.rs',
-  link_with : pm
+  link_with : pm,
+  rust_args : ['-C', 'panic=abort'],
 )
 
 test('main_test', main)
+
+rust = import('rust')
+
+pm = rust.proc_macro('proc_macro_examples2', 'proc.rs')
+
+main = executable(
+  'main2',
+  'use.rs',
+  link_with : pm,
+  rust_dependency_map : {'proc_macro_examples2' : 'proc_macro_examples'}
+)
+
+test('main_test2', main)

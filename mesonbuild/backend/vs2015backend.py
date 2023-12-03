@@ -23,9 +23,11 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
 
 class Vs2015Backend(Vs2010Backend):
+
+    name = 'vs2015'
+
     def __init__(self, build: T.Optional[Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
-        self.name = 'vs2015'
         self.vs_version = '2015'
         self.sln_file_version = '12.00'
         self.sln_version_comment = '14'

@@ -10,7 +10,7 @@ libwmf_ver = libwmf_dep.version()
 assert(libwmf_ver.split('.').length() > 1, 'libwmf version is "@0@"'.format(libwmf_ver))
 message('libwmf version is "@0@"'.format(libwmf_ver))
 # Workaround for Debian bug 912563 where libwmf-devel returns cflags
-# that do not not have Freetype include paths but their headers
+# that do not have Freetype include paths but their headers
 # use them unconditionally.
 ft_dep = dependency('freetype2')
 e = executable('libwmf_prog', 'libwmf_prog.c', dependencies : [libwmf_dep, ft_dep])

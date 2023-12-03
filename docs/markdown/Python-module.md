@@ -37,7 +37,10 @@ If provided, it can be:
 - One of `python2` or `python3`: in either case, the module will try
   some alternative names: `py -2` or `py -3` on Windows, and `python`
   everywhere. In the latter case, it will check whether the version
-  provided by the sysconfig module matches the required major version
+  provided by the sysconfig module matches the required major version.
+
+  *Since 1.2.0*, searching for minor version (e.g. `python3.11`) also
+  works on Windows.
 
 Keyword arguments are the following:
 
@@ -98,6 +101,11 @@ the addition of the following:
   `/usr/lib/site-packages`. When subdir is passed to this method,
   it will be appended to that location. This keyword argument is
   mutually exclusive with `install_dir`
+- `limited_api`: *since 1.3.0* A string containing the Python version
+  of the [Py_LIMITED_API](https://docs.python.org/3/c-api/stable.html) that
+  the extension targets. For example, '3.7' to target Python 3.7's version of
+  the limited API. This behavior can be disabled by setting the value of
+  `python.allow_limited_api`. See [Python module options](Builtin-options.md#python-module).
 
 Additionally, the following diverge from [[shared_module]]'s default behavior:
 

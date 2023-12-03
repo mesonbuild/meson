@@ -125,3 +125,15 @@ assert(mysubstring.substring(10, -25) == '', 'substring is broken')
 assert(mysubstring.substring(-4, 2) == '', 'substring is broken')
 assert(mysubstring.substring(10, 9) == '', 'substring is broken')
 assert(mysubstring.substring(8, 10) == 'z', 'substring is broken')
+
+# str.splitlines()
+assert('foo\nbar\nbaz'.splitlines() == ['foo', 'bar', 'baz'], 'splitlines is broken')
+assert(''.splitlines() == [], 'splitlines with empty string is broken')
+assert('foo\rbar\nbaz\n'.splitlines() == ['foo', 'bar', 'baz'], 'splitlines trailing newline is broken')
+assert('hello\r\nworld'.splitlines() == ['hello', 'world'])
+assert(
+  '  leading ws\nand trailing\t'.splitlines() == ['  leading ws', 'and trailing\t'],
+  'splitlines leading/trailing whitespace is broken',
+)
+assert('\n\r\n\r'.splitlines() == ['', '', ''], 'splitlines is broken')
+assert('foo'.splitlines() == ['foo'], 'splitlines is broken')

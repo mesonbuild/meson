@@ -144,7 +144,7 @@ class CMakeToolchain:
         return res
 
     def get_defaults(self) -> T.Dict[str, T.List[str]]:
-        defaults = {}  # type: T.Dict[str, T.List[str]]
+        defaults: T.Dict[str, T.List[str]] = {}
 
         # Do nothing if the user does not want automatic defaults
         if not self.properties.get_cmake_defaults():
@@ -153,13 +153,13 @@ class CMakeToolchain:
         # Best effort to map the meson system name to CMAKE_SYSTEM_NAME, which
         # is not trivial since CMake lacks a list of all supported
         # CMAKE_SYSTEM_NAME values.
-        SYSTEM_MAP = {
+        SYSTEM_MAP: T.Dict[str, str] = {
             'android': 'Android',
             'linux': 'Linux',
             'windows': 'Windows',
             'freebsd': 'FreeBSD',
             'darwin': 'Darwin',
-        }  # type: T.Dict[str, str]
+        }
 
         # Only set these in a cross build. Otherwise CMake will trip up in native
         # builds and thing they are cross (which causes TRY_RUN() to break)

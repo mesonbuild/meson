@@ -240,7 +240,7 @@ project('pch demo', 'cxx')
 executable('myapp', 'myapp.cpp', pch : 'pch/myapp.hh')
 ```
 
-The main reason other build systems can not provide pch support this
+The main reason other build systems cannot provide pch support this
 easily is because they don't enforce certain best practices. Due to
 the way include paths work, it is impossible to provide pch support
 that always works with both in-source and out-of-source

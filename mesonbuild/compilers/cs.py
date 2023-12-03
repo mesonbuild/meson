@@ -28,7 +28,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
-cs_optimization_args = {
+cs_optimization_args: T.Dict[str, T.List[str]] = {
                         'plain': [],
                         '0': [],
                         'g': [],
@@ -36,7 +36,7 @@ cs_optimization_args = {
                         '2': ['-optimize+'],
                         '3': ['-optimize+'],
                         's': ['-optimize+'],
-                        }  # type: T.Dict[str, T.List[str]]
+                        }
 
 
 class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
@@ -100,7 +100,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
         pc = subprocess.Popen(self.exelist + self.get_always_args() + [src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('C# compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('C# compiler %s cannot compile programs.' % self.name_string())
         if self.runner:
             cmdlist = [self.runner, obj]
         else:

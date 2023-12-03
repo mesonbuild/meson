@@ -3,7 +3,7 @@
 #include<windows.h>
 #include<stdio.h>
 
-DWORD WINAPI thread_func(void) {
+DWORD WINAPI thread_func(void *arg) {
     printf("Printing from a thread.\n");
     return 0;
 }

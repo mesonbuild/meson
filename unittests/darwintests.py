@@ -138,7 +138,7 @@ class DarwinTests(BasePlatformTests):
 
     def test_objc_versions(self):
         # Objective-C always uses the C standard version.
-        # Objecttive-C++ always uses the C++ standard version.
+        # Objective-C++ always uses the C++ standard version.
         # This is what most people seem to want and in addition
         # it is the only setup supported by Xcode.
         testdir = os.path.join(self.objc_test_dir, '1 simple')
@@ -148,3 +148,8 @@ class DarwinTests(BasePlatformTests):
         testdir = os.path.join(self.objcpp_test_dir, '1 simple')
         self.init(testdir)
         self.assertIn('-std=c++14', self.get_compdb()[0]['command'])
+
+    def test_darwin_get_object_archs(self):
+        from mesonbuild.mesonlib import darwin_get_object_archs
+        archs = darwin_get_object_archs('/bin/cat')
+        self.assertEqual(archs, ['x86_64', 'aarch64'])

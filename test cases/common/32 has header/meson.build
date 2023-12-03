@@ -49,6 +49,6 @@ foreach fallback : fallbacks
     # This header exists in the source and the builddir, but we still must not
     # find it since we are looking in the system directories.
     assert(not comp.has_header(non_existent_header, prefix : fallback),
-           'Found non-existent header.')
+           'Found nonexistent header.')
   endforeach
 endforeach

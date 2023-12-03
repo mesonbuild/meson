@@ -7,8 +7,9 @@ short-description: Build options to configure project properties
 Most non-trivial builds require user-settable options. As an example a
 program may have two different data backends that are selectable at
 build time. Meson provides for this by having a option definition
-file. Its name is `meson_options.txt` and it is placed at the root of
-your source tree.
+file. Its name is `meson.options` and it is placed at the root of
+your source tree. For versions of meson before 1.1, this file was called
+`meson_options.txt`.
 
 Here is a simple option file.
 
@@ -182,7 +183,7 @@ issue the following command:
 prefix = get_option('prefix')
 ```
 
-It should be noted that you can not set option values in your Meson
+It should be noted that you cannot set option values in your Meson
 scripts. They have to be set externally with the `meson configure`
 command line tool. Running `meson configure` without arguments in a
 build dir shows you all options you can set.

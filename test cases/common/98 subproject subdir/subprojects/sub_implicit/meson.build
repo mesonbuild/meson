@@ -10,4 +10,4 @@ sub_implicit_provide2_dep = dep
 # This one is not overridden but the wrap file tells the variable name to use.
 glib_dep = dep
 
-assert(get_option('opt') == 'overriden')
+assert(get_option('opt') == 'overridden')

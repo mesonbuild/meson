@@ -19,30 +19,21 @@ __all__ = [
     'CMakeExecutor',
     'CMakeExecScope',
     'CMakeException',
-    'CMakeFileAPI',
     'CMakeInterpreter',
     'CMakeTarget',
     'CMakeToolchain',
-    'CMakeTraceLine',
     'CMakeTraceParser',
-    'SingleTargetOptions',
     'TargetOptions',
-    'parse_generator_expressions',
     'language_map',
-    'backend_generator_map',
-    'cmake_get_generator_args',
     'cmake_defines_to_args',
     'check_cmake_args',
     'cmake_is_debug',
     'resolve_cmake_trace_targets',
-    'ResolvedTarget',
 ]
 
-from .common import CMakeException, SingleTargetOptions, TargetOptions, cmake_defines_to_args, language_map, backend_generator_map, cmake_get_generator_args, check_cmake_args, cmake_is_debug
+from .common import CMakeException, TargetOptions, cmake_defines_to_args, language_map, check_cmake_args, cmake_is_debug
 from .executor import CMakeExecutor
-from .fileapi import CMakeFileAPI
-from .generator import parse_generator_expressions
 from .interpreter import CMakeInterpreter
 from .toolchain import CMakeToolchain, CMakeExecScope
-from .traceparser import CMakeTarget, CMakeTraceLine, CMakeTraceParser
-from .tracetargets import resolve_cmake_trace_targets, ResolvedTarget
+from .traceparser import CMakeTarget, CMakeTraceParser
+from .tracetargets import resolve_cmake_trace_targets

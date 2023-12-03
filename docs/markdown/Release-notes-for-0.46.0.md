@@ -269,7 +269,7 @@ helper = static_library(
 final = shared_library(
   'final',
   ['final.c'],
-  dependencyes : dep,
+  dependencies : dep,
 )
 ```
 

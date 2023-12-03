@@ -18,14 +18,13 @@ from __future__ import annotations
 import functools
 import os
 import re
-import subprocess
 from pathlib import Path
 
-from ..mesonlib import Popen_safe, OrderedSet, join_args
-from ..programs import ExternalProgram
+from ..mesonlib import OrderedSet, join_args
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
-from .pkgconfig import PkgConfigDependency
+from .detect import packages
+from .pkgconfig import PkgConfigDependency, PkgConfigInterface
 from .factory import factory_methods
 import typing as T
 
@@ -49,7 +48,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
             return
 
         # some broken pkgconfig don't actually list the full path to the needed includes
-        newinc = []  # type: T.List[str]
+        newinc: T.List[str] = []
         for arg in self.compile_args:
             if arg.startswith('-I'):
                 stem = 'static' if self.static else 'shared'
@@ -57,7 +56,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
                     newinc.append('-I' + str(Path(arg[2:]) / stem))
         self.compile_args += newinc
 
-        link_args = []  # type: T.List[str]
+        link_args: T.List[str] = []
         for larg in self.get_link_args():
             lpath = Path(larg)
             # some pkg-config hdf5.pc (e.g. Ubuntu) don't include the commonly-used HL HDF5 libraries,
@@ -97,12 +96,15 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
         if language == 'c':
             cenv = 'CC'
+            lenv = 'C'
             tools = ['h5cc', 'h5pcc']
         elif language == 'cpp':
             cenv = 'CXX'
+            lenv = 'CXX'
             tools = ['h5c++', 'h5pc++']
         elif language == 'fortran':
             cenv = 'FC'
+            lenv = 'F'
             tools = ['h5fc', 'h5pfc']
         else:
             raise DependencyException('How did you get here?')
@@ -119,11 +121,11 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         compiler = environment.coredata.compilers[for_machine][language]
         try:
             os.environ[f'HDF5_{cenv}'] = join_args(compiler.get_exelist())
-            os.environ[f'HDF5_{cenv}LINKER'] = join_args(compiler.get_linker_exelist())
+            os.environ[f'HDF5_{lenv}LINKER'] = join_args(compiler.get_linker_exelist())
             super().__init__(name, environment, nkwargs, language)
         finally:
             del os.environ[f'HDF5_{cenv}']
-            del os.environ[f'HDF5_{cenv}LINKER']
+            del os.environ[f'HDF5_{lenv}LINKER']
         if not self.is_found:
             return
 
@@ -139,13 +141,6 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
             elif Path(arg).is_file():
                 self.link_args.append(arg)
 
-        # If the language is not C we need to add C as a subdependency
-        if language != 'c':
-            nkwargs = kwargs.copy()
-            nkwargs['language'] = 'c'
-            # I'm being too clever for mypy and pylint
-            self.is_found = self._add_sub_dependency(hdf5_factory(environment, for_machine, nkwargs))  # pylint: disable=no-value-for-parameter
-
     def _sanitize_version(self, ver: str) -> str:
         v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)
         return v.group(1)
@@ -160,21 +155,18 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
     if DependencyMethods.PKGCONFIG in methods:
         # Use an ordered set so that these remain the first tried pkg-config files
         pkgconfig_files = OrderedSet(['hdf5', 'hdf5-serial'])
-        PCEXE = PkgConfigDependency._detect_pkgbin(False, env, for_machine)
-        pcenv = PkgConfigDependency.setup_env(os.environ, env, for_machine)
-        if PCEXE:
-            assert isinstance(PCEXE, ExternalProgram)
+        pkg = PkgConfigInterface.instance(env, for_machine, silent=False)
+        if pkg:
             # some distros put hdf5-1.2.3.pc with version number in .pc filename.
-            ret, stdout, _ = Popen_safe(PCEXE.get_command() + ['--list-all'], stderr=subprocess.DEVNULL, env=pcenv)
-            if ret.returncode == 0:
-                for pkg in stdout.split('\n'):
-                    if pkg.startswith('hdf5'):
-                        pkgconfig_files.add(pkg.split(' ', 1)[0])
-
-        for pkg in pkgconfig_files:
-            candidates.append(functools.partial(HDF5PkgConfigDependency, pkg, env, kwargs, language))
+            for mod in pkg.list_all():
+                if mod.startswith('hdf5'):
+                    pkgconfig_files.add(mod)
+        for mod in pkgconfig_files:
+            candidates.append(functools.partial(HDF5PkgConfigDependency, mod, env, kwargs, language))
 
     if DependencyMethods.CONFIG_TOOL in methods:
         candidates.append(functools.partial(HDF5ConfigToolDependency, 'hdf5', env, kwargs, language))
 
     return candidates
+
+packages['hdf5'] = hdf5_factory

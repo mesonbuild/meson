@@ -87,6 +87,11 @@ previously reserved to `wrap-file`:
   `subprojects/packagefiles`.
 - `diff_files` - *Since 0.63.0* Comma-separated list of local diff files (see
   [Diff files](#diff-files) below).
+- `method` - *Since 1.3.0* The build system used by this subproject. Defaults to `meson`.
+  Supported methods:
+  - `meson` requires `meson.build` file.
+  - `cmake` requires `CMakeLists.txt` file. [See details](#cmake-wraps).
+  - `cargo` requires `Cargo.toml` file. [See details](#cargo-wraps).
 
 ### Specific to wrap-file
 - `source_url` - download url to retrieve the wrap-file source archive
@@ -108,6 +113,12 @@ Since *0.49.0* if `source_filename` or `patch_filename` is found in the
 project's `subprojects/packagecache` directory, it will be used instead
 of downloading the file, even if `--wrap-mode` option is set to
 `nodownload`. The file's hash will be checked.
+
+Since *1.3.0* if the `MESON_PACKAGE_CACHE_DIR` environment variable is set, it is used instead of
+the project's `subprojects/packagecache`. This allows sharing the cache across multiple
+projects. In addition it can contain an already extracted source tree as long as it
+has the same directory name as the `directory` field in the wrap file. In that
+case, the directory will be copied into `subprojects/` before applying patches.
 
 ### Specific to VCS-based wraps
 - `url` - name of the wrap-git repository to clone. Required.
@@ -283,6 +294,46 @@ program_names = myprog, otherprog
 With such wrap file, `find_program('myprog')` will automatically
 fallback to use the subproject, assuming it uses
 `meson.override_find_program('myprog')`.
+
+### CMake wraps
+
+Since the CMake module does not know the public name of the provided
+dependencies, a CMake `.wrap` file cannot use the `dependency_names = foo`
+syntax. Instead, the `dep_name = <target_name>_dep` syntax should be used, where
+`<target_name>` is the name of a CMake library with all non alphanumeric
+characters replaced by underscores `_`.
+
+For example, a CMake project that contains `add_library(foo-bar ...)` in its
+`CMakeList.txt` and that applications would usually find using the dependency
+name `foo-bar-1.0` (e.g. via pkg-config) would have a wrap file like this:
+
+```ini
+[wrap-file]
+...
+method = cmake
+[provide]
+foo-bar-1.0 = foo_bar_dep
+```
+### Cargo wraps
+
+Cargo subprojects automatically override the `<package_name>-rs` dependency name.
+`package_name` is defined in `[package] name = ...` section of the `Cargo.toml`
+and `-rs` suffix is added. That means the `.wrap` file should have
+`dependency_names = foo-rs` in their `[provide]` section when `Cargo.toml` has
+package name `foo`.
+
+Cargo subprojects require a toml parser. Python >= 3.11 have one built-in, older
+Python versions require either the external `tomli` module or `toml2json` program.
+
+For example, a Cargo project with the package name `foo-bar` would have a wrap
+file like that:
+```ini
+[wrap-file]
+...
+method = cargo
+[provide]
+dependency_names = foo-bar-rs
+```
 
 ## Using wrapped projects
 

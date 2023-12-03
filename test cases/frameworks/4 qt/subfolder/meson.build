@@ -23,7 +23,7 @@ rc_file = configure_file(
 extra_cpp_args = []
 if meson.is_unity()
   extra_cpp_args += '-DUNITY_BUILD'
-  qresources = qtmodule.preprocess(qt + '_subfolder_unity_ressource',qresources : ['resources/stuff3.qrc', rc_file])
+  qresources = qtmodule.preprocess(qt + '_subfolder_unity_resource',qresources : ['resources/stuff3.qrc', rc_file])
 else
   qresources = qtmodule.preprocess(qresources : ['resources/stuff3.qrc', rc_file])
 endif

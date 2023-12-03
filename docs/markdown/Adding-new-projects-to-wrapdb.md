@@ -106,7 +106,7 @@ Remember that all files go in the directory
 `subprojects/packagefiles/<project-name>`.
 
 ```
-${EDITOR} meson.build meson_options.txt
+${EDITOR} meson.build meson.options
 ```
 
 In order to apply the locally added build files to the upstream
@@ -170,6 +170,6 @@ The first command is to ensure the wrap is correctly fetched from the
 latest packagefiles. The second command configures meson and selects a
 set of subprojects to enable.
 
-The Github project contains automatic CI on pushing to run the project
+The GitHub project contains automatic CI on pushing to run the project
 and check the metadata for obvious mistakes. This can be checked from
 your fork before submitting a PR.

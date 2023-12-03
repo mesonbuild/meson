@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
-from ..mesonlib import listify, Popen_safe, split_args, version_compare, version_compare_many
+from ..mesonlib import listify, Popen_safe, Popen_safe_logged, split_args, version_compare, version_compare_many
 from ..programs import find_external_program
 from .. import mlog
 import re
@@ -24,6 +24,7 @@ from mesonbuild import mesonlib
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from ..interpreter.type_checking import PkgConfigDefineType
 
 class ConfigToolDependency(ExternalDependency):
 
@@ -43,6 +44,7 @@ class ConfigToolDependency(ExternalDependency):
     tool_name: T.Optional[str] = None
     version_arg = '--version'
     skip_version: T.Optional[str] = None
+    allow_default_for_cross = False
     __strip_version = re.compile(r'^[0-9][0-9.]+')
 
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
@@ -85,7 +87,7 @@ class ConfigToolDependency(ExternalDependency):
         best_match: T.Tuple[T.Optional[T.List[str]], T.Optional[str]] = (None, None)
         for potential_bin in find_external_program(
                 self.env, self.for_machine, self.tool_name,
-                self.tool_name, self.tools, allow_default_for_cross=False):
+                self.tool_name, self.tools, allow_default_for_cross=self.allow_default_for_cross):
             if not potential_bin.found():
                 continue
             tool = potential_bin.get_command()
@@ -142,23 +144,15 @@ class ConfigToolDependency(ExternalDependency):
         return self.config is not None
 
     def get_config_value(self, args: T.List[str], stage: str) -> T.List[str]:
-        p, out, err = Popen_safe(self.config + args)
+        p, out, err = Popen_safe_logged(self.config + args)
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(f'Could not generate {stage} for {self.name}.\n{err}')
             return []
         return split_args(out)
 
-    def get_configtool_variable(self, variable_name: str) -> str:
-        p, out, _ = Popen_safe(self.config + [f'--{variable_name}'])
-        if p.returncode != 0:
-            if self.required:
-                raise DependencyException(
-                    'Could not get variable "{}" for dependency {}'.format(
-                        variable_name, self.name))
-        variable = out.strip()
-        mlog.debug(f'Got config-tool variable {variable_name} : {variable}')
-        return variable
+    def get_variable_args(self, variable_name: str) -> T.List[str]:
+        return [f'--{variable_name}']
 
     @staticmethod
     def log_tried() -> str:
@@ -167,20 +161,13 @@ class ConfigToolDependency(ExternalDependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
         if configtool:
-            # In the not required case '' (empty string) will be returned if the
-            # variable is not found. Since '' is a valid value to return we
-            # set required to True here to force and error, and use the
-            # finally clause to ensure it's restored.
-            restore = self.required
-            self.required = True
-            try:
-                return self.get_configtool_variable(configtool)
-            except DependencyException:
-                pass
-            finally:
-                self.required = restore
+            p, out, _ = Popen_safe(self.config + self.get_variable_args(configtool))
+            if p.returncode == 0:
+                variable = out.strip()
+                mlog.debug(f'Got config-tool variable {configtool} : {variable}')
+                return variable
         if default_value is not None:
             return default_value
         raise DependencyException(f'Could not get config-tool variable and no default provided for {self!r}')

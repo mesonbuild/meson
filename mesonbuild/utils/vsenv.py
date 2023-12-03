@@ -6,9 +6,11 @@ import json
 import pathlib
 import shutil
 import tempfile
+import locale
 
 from .. import mlog
-from .universal import MesonException, is_windows, windows_detect_native_arch
+from .core import MesonException
+from .universal import is_windows, windows_detect_native_arch
 
 
 __all__ = [
@@ -70,7 +72,7 @@ def _setup_vsenv(force: bool) -> bool:
     )
     bat_info = json.loads(bat_json)
     if not bat_info:
-        # VS installer instelled but not VS itself maybe?
+        # VS installer installed but not VS itself maybe?
         raise MesonException('Could not parse vswhere.exe output')
     bat_root = pathlib.Path(bat_info[0]['installationPath'])
     if windows_detect_native_arch() == 'arm64':
@@ -92,7 +94,8 @@ def _setup_vsenv(force: bool) -> bool:
     bat_file.write(bat_contents)
     bat_file.flush()
     bat_file.close()
-    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True)
+    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True,
+                                         encoding=locale.getpreferredencoding(False))
     os.unlink(bat_file.name)
     bat_lines = bat_output.split('\n')
     bat_separator_seen = False

@@ -50,12 +50,16 @@ def resolve_cmake_trace_targets(target_name: str,
                 res.libraries += [curr]
             elif Path(curr).is_absolute() and Path(curr).exists():
                 res.libraries += [curr]
-            elif env.machines.build.is_windows() and reg_is_maybe_bare_lib.match(curr) and clib_compiler:
-                # On Windows, CMake library dependencies can be passed as bare library names,
+            elif reg_is_maybe_bare_lib.match(curr) and clib_compiler:
+                # CMake library dependencies can be passed as bare library names,
                 # CMake brute-forces a combination of prefix/suffix combinations to find the
                 # right library. Assume any bare argument passed which is not also a CMake
                 # target must be a system library we should try to link against.
-                res.libraries += clib_compiler.find_library(curr, env, [])
+                flib = clib_compiler.find_library(curr, env, [])
+                if flib is not None:
+                    res.libraries += flib
+                else:
+                    not_found_warning(curr)
             else:
                 not_found_warning(curr)
             continue

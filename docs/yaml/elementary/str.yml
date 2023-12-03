@@ -14,6 +14,10 @@ methods:
 
     See [the Meson syntax entry](Syntax.md#string-formatting) for more
     information.
+
+    *Since 1.3.0* values other than strings, integers, bools, options,
+    dictionaries and lists thereof are deprecated. They were previously printing
+    the internal representation of the raw Python object.
   example: |
     ```meson
     template = 'string: @0@, number: @1@, bool: @2@'
@@ -39,7 +43,7 @@ methods:
 
 # str.replace(old, new)
 - name: replace
-  description: Search all occurrences of `old` and and replace it with `new`
+  description: Search all occurrences of `old` and replace it with `new`
   returns: str
   since: 0.58.0
   example: |
@@ -61,7 +65,10 @@ methods:
 
 # str.strip()
 - name: strip
-  description: Removes leading/ending spaces and newlines from the string.
+  description: |
+    Removes leading/ending characters from the string.
+
+    By default the characters to remove are spaces and newlines.
   returns: str
   example: |
     ```meson
@@ -75,7 +82,7 @@ methods:
     strip_chars:
       type: str
       since: 0.43.0
-      description: All characters in this string will be stripped.
+      description: Instead of whitespace, strip all the characters in this string.
 
 # str.to_lower()
 - name: to_lower
@@ -157,6 +164,9 @@ methods:
     The method accepts negative values where negative `start` is relative to the end of
     string `len(string) - start` as well as negative `end`.
 
+    If `start` or `end` are out of bounds, the position of the closest character will be used.
+    If `start` is bigger than `end`, the result will be an empty substring.
+
   example: |
     ```meson
     # Similar to the Python str[start:end] syntax
@@ -171,6 +181,15 @@ methods:
     string = 'foobar'
     string.substring(-5, -3) # => 'oo'
     string.substring(1, -1) # => 'ooba'
+    ```
+
+    Example with out of bound values:
+
+    ```meson
+    string = 'foobar'
+    string.substring(64) # => ''
+    string.substring(0, 64) # => 'foobar'
+    string.substring(64, 0) # => ''
     ```
 
   optargs:
@@ -203,6 +222,28 @@ methods:
     split_string:
       type: str
       description: Specifies the character / substring where to split the string.
+
+- name: splitlines
+  returns: list[str]
+  since: 1.2.0
+  description: |
+    Splits the string into an array of lines.
+    Unlike .split('\n'), the empty string produced an empty array,
+    and if the string ends in a newline, splitlines() doesn't split
+    on that last newline.
+    '\n', '\r' and '\r\n' are all considered newlines.
+
+  example: |
+    ```meson
+    output = 'hello\nworld\n'.splitlines()
+    # Output value is ['hello', 'world']
+    output = ''.splitlines()
+    # Output value is []
+    fs = import('fs')
+    paths = fs.read('my_paths.list').splitlines()
+    # paths is now the paths listed in 'my_paths.list', or an empty list
+    # if 'my_paths.list' is empty
+    ```
 
 # str.join()
 - name: join

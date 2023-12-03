@@ -1,9 +1,9 @@
 name: add_project_link_arguments
 returns: void
 description: |
-  Adds global arguments to the linker command line.
+  Adds project specific arguments to the linker command line.
 
-  Like [[add_global_arguments]] but the arguments are passed to the linker.
+  Like [[add_project_arguments]] but the arguments are passed to the linker.
 
 notes:
   - You must pass always arguments individually `arg1, arg2, ...`
@@ -14,4 +14,4 @@ varargs:
   name: Linker argument
   description: The linker arguments to add
 
-kwargs_inherit: add_global_arguments
+kwargs_inherit: add_project_arguments

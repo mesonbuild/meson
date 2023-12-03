@@ -48,6 +48,7 @@ from ..mparser import (
     IndexNode,
     MethodNode,
     NumberNode,
+    SymbolNode,
 )
 
 
@@ -55,7 +56,6 @@ if T.TYPE_CHECKING:
     from .common import CMakeConfiguration, TargetOptions
     from .traceparser import CMakeGeneratorTarget
     from .._typing import ImmutableListProtocol
-    from ..build import Build
     from ..backend.backends import Backend
     from ..environment import Environment
 
@@ -765,10 +765,9 @@ class ConverterCustomTarget:
         mlog.log('  -- depends:      ', mlog.bold(str(self.depends)))
 
 class CMakeInterpreter:
-    def __init__(self, build: 'Build', subdir: Path, src_dir: Path, install_prefix: Path, env: 'Environment', backend: 'Backend'):
-        self.build = build
+    def __init__(self, subdir: Path, install_prefix: Path, env: 'Environment', backend: 'Backend'):
         self.subdir = subdir
-        self.src_dir = src_dir
+        self.src_dir = Path(env.get_source_dir(), subdir)
         self.build_dir_rel = subdir / '__CMake_build'
         self.build_dir = Path(env.get_build_dir()) / self.build_dir_rel
         self.install_prefix = install_prefix
@@ -959,14 +958,17 @@ class CMakeInterpreter:
         def token(tid: str = 'string', val: TYPE_mixed = '') -> Token:
             return Token(tid, self.subdir.as_posix(), 0, 0, 0, None, val)
 
+        def symbol(val: str) -> SymbolNode:
+            return SymbolNode(token('', val))
+
         def string(value: str) -> StringNode:
-            return StringNode(token(val=value))
+            return StringNode(token(val=value), escape=False)
 
         def id_node(value: str) -> IdNode:
             return IdNode(token(val=value))
 
         def number(value: int) -> NumberNode:
-            return NumberNode(token(val=value))
+            return NumberNode(token(val=str(value)))
 
         def nodeify(value: TYPE_mixed_list) -> BaseNode:
             if isinstance(value, str):
@@ -984,14 +986,14 @@ class CMakeInterpreter:
             raise RuntimeError('invalid type of value: {} ({})'.format(type(value).__name__, str(value)))
 
         def indexed(node: BaseNode, index: int) -> IndexNode:
-            return IndexNode(node, nodeify(index))
+            return IndexNode(node, symbol('['), nodeify(index), symbol(']'))
 
         def array(elements: TYPE_mixed_list) -> ArrayNode:
             args = ArgumentNode(token())
             if not isinstance(elements, list):
                 elements = [args]
             args.arguments += [nodeify(x) for x in elements if x is not None]
-            return ArrayNode(args, 0, 0, 0, 0)
+            return ArrayNode(symbol('['), args, symbol(']'))
 
         def function(name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> FunctionNode:
             args = [] if args is None else args
@@ -1002,7 +1004,7 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            func_n = FunctionNode(self.subdir.as_posix(), 0, 0, 0, 0, name, args_n)
+            func_n = FunctionNode(id_node(name), symbol('('), args_n, symbol(')'))
             return func_n
 
         def method(obj: BaseNode, name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> MethodNode:
@@ -1014,10 +1016,10 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            return MethodNode(self.subdir.as_posix(), 0, 0, obj, name, args_n)
+            return MethodNode(obj, symbol('.'), id_node(name), symbol('('), args_n, symbol(')'))
 
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:
-            return AssignmentNode(self.subdir.as_posix(), 0, 0, var_name, value)
+            return AssignmentNode(id_node(var_name), symbol('='), value)
 
         # Generate the root code block and the project function call
         root_cb = CodeBlockNode(token())

@@ -72,7 +72,8 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
 
     if p.returncode == 0xc0000135:
         # STATUS_DLL_NOT_FOUND on Windows indicating a common problem that is otherwise hard to diagnose
-        raise FileNotFoundError('due to missing DLLs')
+        strerror = 'Failed to run due to missing DLLs, with path: ' + child_env['PATH']
+        raise FileNotFoundError(p.returncode, strerror, cmd_args)
 
     if p.returncode != 0:
         if exe.pickled:

@@ -2,20 +2,20 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="210mm"
    height="297mm"
    viewBox="0 0 210 297"
    version="1.1"
    id="svg1769"
-   inkscape:version="0.92.3 (2405546, 2018-03-11)"
-   sodipodi:docname="meson_logo.svg">
+   inkscape:version="1.3 (0e150ed6c4, 2023-07-21)"
+   sodipodi:docname="meson_logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs1763">
     <marker
@@ -69,16 +69,19 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.4"
-     inkscape:cx="369.10197"
-     inkscape:cy="819.78077"
+     inkscape:cx="368.92857"
+     inkscape:cy="305.71429"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1226"
-     inkscape:window-height="910"
-     inkscape:window-x="536"
-     inkscape:window-y="82"
-     inkscape:window-maximized="0" />
+     inkscape:window-width="2504"
+     inkscape:window-height="1650"
+     inkscape:window-x="546"
+     inkscape:window-y="110"
+     inkscape:window-maximized="0"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
   <metadata
      id="metadata1766">
     <rdf:RDF>
@@ -87,7 +90,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -336,5 +339,21 @@
        style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26416996;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 96.975039,102.57831 c -3.04835,1.72126 -4.94049,4.94629 -4.95784,8.44909 3.18944,1.73892 6.93427,1.67939 9.836611,0.0181 2.6e-4,-0.008 7.9e-4,-0.0165 0.001,-0.0248 -0.004,-3.484 -1.863431,-6.70217 -4.879301,-8.44238 z m 1.64176,3.72948 c 0.45198,0.30715 0.38492,1.04655 0.31212,1.55288 -0.0926,0.55776 -0.62713,1.47487 -1.32188,2.07326 0.0899,0.12885 0.14181,0.28753 0.14108,0.45682 -0.43052,0.21761 -0.85742,-0.0278 -1.37408,-0.47026 -0.51665,-0.44244 -1.07391,-1.32905 -1.25884,-2.24017 -0.16403,0.0174 -0.33188,-0.0192 -0.47594,-0.11007 0.0376,-0.51089 0.57985,-0.8146 1.0604,-0.99374 0.48056,-0.17913 1.71868,-0.2395 2.59158,0.0708 0.0681,-0.1429 0.18071,-0.26288 0.32556,-0.339 z"
        id="path817-6-2-9-7-9-93-9-8-1-2-4-6" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52777px;line-height:1.25;font-family:Ubuntu;-inkscape-font-specification:Ubuntu;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="37.077953"
+       y="153.3485"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="stroke-width:0.264583"
+         x="37.077953"
+         y="153.3485">The official color of the logo is PANTONE 2105 C.</tspan><tspan
+         sodipodi:role="line"
+         style="stroke-width:0.264583"
+         x="37.077953"
+         y="157.75821"
+         id="tspan2">The sRGB substitute is (57, 32, 124).</tspan></text>
   </g>
 </svg>

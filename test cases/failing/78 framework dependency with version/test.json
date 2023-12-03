@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/78 framework dependency with version/meson.build:8:0: ERROR: Dependency lookup for appleframeworks with method 'framework' failed: Unknown version, but need ['>0']."
-    }
-  ]
-}

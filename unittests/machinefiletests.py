@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import subprocess
 import tempfile
 import textwrap
@@ -67,7 +69,7 @@ class NativeFileTests(BasePlatformTests):
         self.current_config = 0
         self.current_wrapper = 0
 
-    def helper_create_native_file(self, values):
+    def helper_create_native_file(self, values: T.Dict[str, T.Dict[str, T.Union[str, int, float, bool, T.Sequence[T.Union[str, int, float, bool]]]]]) -> str:
         """Create a config file as a temporary file.
 
         values should be a nested dictionary structure of {section: {key:
@@ -81,10 +83,10 @@ class NativeFileTests(BasePlatformTests):
                 for k, v in entries.items():
                     if isinstance(v, (bool, int, float)):
                         f.write(f"{k}={v}\n")
-                    elif isinstance(v, list):
-                        f.write("{}=[{}]\n".format(k, ', '.join([f"'{w}'" for w in v])))
-                    else:
+                    elif isinstance(v, str):
                         f.write(f"{k}='{v}'\n")
+                    else:
+                        f.write("{}=[{}]\n".format(k, ', '.join([f"'{w}'" for w in v])))
         return filename
 
     def helper_create_binary_wrapper(self, binary, dir_=None, extra_args=None, **kwargs):
@@ -140,7 +142,7 @@ class NativeFileTests(BasePlatformTests):
         return batfile
 
     def helper_for_compiler(self, lang, cb, for_machine = MachineChoice.HOST):
-        """Helper for generating tests for overriding compilers for langaugages
+        """Helper for generating tests for overriding compilers for languages
         with more than one implementation, such as C, C++, ObjC, ObjC++, and D.
         """
         env = get_fake_env()
@@ -373,7 +375,7 @@ class NativeFileTests(BasePlatformTests):
     def test_java_classpath(self):
         if self.backend is not Backend.ninja:
             raise SkipTest('Jar is only supported with Ninja')
-        testdir = os.path.join(self.unit_test_dir, '110 classpath')
+        testdir = os.path.join(self.unit_test_dir, '112 classpath')
         self.init(testdir)
         self.build()
         one_build_path = get_classpath(os.path.join(self.builddir, 'one.jar'))
@@ -622,6 +624,29 @@ class NativeFileTests(BasePlatformTests):
         else:
             self.fail('Did not find bindir in build options?')
 
+    @skip_if_not_language('rust')
+    def test_bindgen_clang_arguments(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Rust is only supported with Ninja')
+
+        testcase = os.path.join(self.rust_test_dir, '12 bindgen')
+        config = self.helper_create_native_file({
+            'properties': {'bindgen_clang_arguments': 'sentinal'}
+        })
+
+        self.init(testcase, extra_args=['--native-file', config])
+        targets: T.List[T.Dict[str, T.Any]] = self.introspect('--targets')
+        for t in targets:
+            if t['id'].startswith('rustmod-bindgen'):
+                args: T.List[str] = t['target_sources'][0]['compiler']
+                self.assertIn('sentinal', args, msg="Did not find machine file value")
+                cargs_start = args.index('--')
+                sent_arg = args.index('sentinal')
+                self.assertLess(cargs_start, sent_arg, msg='sentinal argument does not come after "--"')
+                break
+        else:
+            self.fail('Did not find a bindgen target')
+
 
 class CrossFileTests(BasePlatformTests):
 
@@ -719,7 +744,7 @@ class CrossFileTests(BasePlatformTests):
     # The test uses mocking and thus requires that the current process is the
     # one to run the Meson steps. If we are using an external test executable
     # (most commonly in Debian autopkgtests) then the mocking won't work.
-    @skipIf('MESON_EXE' in os.environ, 'MESON_EXE is defined, can not use mocking.')
+    @skipIf('MESON_EXE' in os.environ, 'MESON_EXE is defined, cannot use mocking.')
     def test_cross_file_system_paths(self):
         if is_windows():
             raise SkipTest('system crossfile paths not defined for Windows (yet)')
@@ -729,7 +754,7 @@ class CrossFileTests(BasePlatformTests):
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, 'meson', 'cross')
             os.makedirs(dir_)
-            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
+            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False, encoding='utf-8') as f:
                 f.write(cross_content)
             name = os.path.basename(f.name)
 
@@ -745,7 +770,7 @@ class CrossFileTests(BasePlatformTests):
         with tempfile.TemporaryDirectory() as d:
             dir_ = os.path.join(d, '.local', 'share', 'meson', 'cross')
             os.makedirs(dir_)
-            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False) as f:
+            with tempfile.NamedTemporaryFile('w', dir=dir_, delete=False, encoding='utf-8') as f:
                 f.write(cross_content)
             name = os.path.basename(f.name)
 

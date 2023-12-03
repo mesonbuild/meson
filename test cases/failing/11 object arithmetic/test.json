@@ -2,7 +2,7 @@
   "stdout": [
     {
       "match": "re",
-      "line": "test cases/failing/11 object arithmetic/meson\\.build:3:0: ERROR: The `\\+` operator of str does not accept objects of type MesonMain .*"
+      "line": "test cases/failing/11 object arithmetic/meson\\.build:3:12: ERROR: The `\\+` operator of str does not accept objects of type MesonMain .*"
     }
   ]
 }

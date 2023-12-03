@@ -5,19 +5,22 @@ import argparse
 import tempfile
 import shutil
 import itertools
+import typing as T
 
 from pathlib import Path
-from . import build, minstall, dependencies
-from .mesonlib import (MesonException, is_windows, setup_vsenv, OptionKey,
+from . import build, minstall
+from .mesonlib import (EnvironmentVariables, MesonException, is_windows, setup_vsenv, OptionKey,
                        get_wine_shortpath, MachineChoice)
 from . import mlog
 
-import typing as T
+
 if T.TYPE_CHECKING:
-    from .backends import InstallData
+    from .backend.backends import InstallData
 
 POWERSHELL_EXES = {'pwsh.exe', 'powershell.exe'}
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='builddir', type=Path, default='.',
                         help='Path to build directory')
@@ -55,7 +58,7 @@ def reduce_winepath(env: T.Dict[str, str]) -> None:
     mlog.log('Meson detected wine and has set WINEPATH accordingly')
 
 def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
-    extra_env = build.EnvironmentVariables()
+    extra_env = EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
 
@@ -75,16 +78,17 @@ def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, st
     return env, varnames
 
 def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List[str]:
+    from .dependencies.pkgconfig import PkgConfigDependency
     result = []
-    dep = dependencies.PkgConfigDependency('bash-completion', b.environment,
-                                           {'required': False, 'silent': True, 'version': '>=2.10'})
+    dep = PkgConfigDependency('bash-completion', b.environment,
+                              {'required': False, 'silent': True, 'version': '>=2.10'})
     if dep.found():
         prefix = b.environment.coredata.get_option(OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'
         datadir = b.environment.coredata.get_option(OptionKey('datadir'))
         assert isinstance(datadir, str), 'for mypy'
         datadir_abs = os.path.join(prefix, datadir)
-        completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=['datadir', datadir_abs])
+        completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=(('datadir', datadir_abs),))
         assert isinstance(completionsdir, str), 'for mypy'
         completionsdir_path = Path(completionsdir)
         for f in install_data.data:
@@ -159,7 +163,8 @@ def run(options: argparse.Namespace) -> int:
     b = build.load(options.builddir)
     workdir = options.workdir or options.builddir
 
-    setup_vsenv(b.need_vsenv)  # Call it before get_env to get vsenv vars as well
+    need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+    setup_vsenv(need_vsenv) # Call it before get_env to get vsenv vars as well
     dump_fmt = options.dump_format if options.dump else None
     devenv, varnames = get_env(b, dump_fmt)
     if options.dump:

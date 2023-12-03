@@ -109,7 +109,7 @@ Strings in Meson are declared with single quotes. To enter a literal
 single quote do it like this:
 
 ```meson
-single quote = 'contains a \' character'
+single_quote = 'contains a \' character'
 ```
 
 The full list of escape sequences is:
@@ -252,13 +252,13 @@ s = s.replace('as', 'are')
 #### .strip()
 
 ```meson
-# Similar to the Python str.strip(). Removes leading/ending spaces and newlines
+# Similar to the Python str.strip(). Removes leading/ending spaces and newlines.
 define = ' -Dsomedefine '
 stripped_define = define.strip()
 # 'stripped_define' now has the value '-Dsomedefine'
 
 # You may also pass a string to strip, which specifies the set of characters to
-# be removed.
+# be removed instead of the default whitespace.
 string = 'xyxHelloxyx'.strip('xy')
 # 'string' now has the value 'Hello'
 ```
@@ -452,6 +452,15 @@ Keys must be unique:
 ```meson
 # This will fail
 my_dict = {'foo': 42, 'foo': 43}
+```
+
+Accessing elements of a dictionary works similarly to array indexing:
+
+```meson
+my_dict = {'foo': 42, 'bar': 'baz'}
+forty_two = my_dict['foo']
+# This will fail
+my_dict['does_not_exist']
 ```
 
 Dictionaries are immutable and do not have a guaranteed order.
@@ -766,8 +775,8 @@ additive_expression: multiplicative_expression | (additive_expression additive_o
 additive_operator: "+" | "-"
 argument_list: positional_arguments ["," keyword_arguments] | keyword_arguments
 array_literal: "[" [expression_list] "]"
-assignment_statement: expression asssignment_operator expression
-assignment_operator: "=" | "*=" | "/=" | "%=" | "+=" | "-="
+assignment_statement: expression assignment_operator expression
+assignment_operator: "=" | "+="
 binary_literal: "0b" BINARY_NUMBER
 BINARY_NUMBER: /[01]+/
 boolean_literal: "true" | "false"
@@ -815,5 +824,5 @@ STRING_MULTILINE_VALUE: \.*?(''')\
 STRING_SIMPLE_VALUE: \.*?(?<!\\)(\\\\)*?'\
 subscript_expression: postfix_expression "[" expression "]"
 unary_expression: postfix_expression | (unary_operator unary_expression)
-unary_operator: "not" | "+" | "-"
+unary_operator: "not" | "-"
 ```

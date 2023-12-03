@@ -3,7 +3,7 @@
 " License:	VIM License
 " Maintainer:	Nirbheek Chauhan <nirbheek.chauhan@gmail.com>
 "		Liam Beguin <liambeguin@gmail.com>
-" Last Change:	2021 Aug 16
+" Last Change:	2023 Aug 27
 " Credits:	Zvezdan Petkovic <zpetkovic@acm.org>
 "		Neil Schemenauer <nas@meson.ca>
 "		Dmitry Vasiliev
@@ -64,6 +64,11 @@ syn keyword mesonBoolean	false true
 
 " Built-in functions
 syn keyword mesonBuiltin
+  \ build_machine
+  \ host_machine
+  \ meson
+  \ option
+  \ target_machine
   \ add_global_arguments
   \ add_global_link_arguments
   \ add_languages
@@ -75,11 +80,11 @@ syn keyword mesonBuiltin
   \ assert
   \ benchmark
   \ both_libraries
-  \ build_machine
   \ build_target
   \ configuration_data
   \ configure_file
   \ custom_target
+  \ debug
   \ declare_dependency
   \ dependency
   \ disabler
@@ -87,30 +92,26 @@ syn keyword mesonBuiltin
   \ error
   \ executable
   \ files
-  \ find_library
   \ find_program
   \ generator
   \ get_option
   \ get_variable
-  \ gettext
-  \ host_machine
   \ import
   \ include_directories
   \ install_data
+  \ install_emptydir
   \ install_headers
   \ install_man
   \ install_subdir
   \ install_symlink
-  \ install_emptydir
   \ is_disabler
   \ is_variable
   \ jar
   \ join_paths
   \ library
-  \ meson
   \ message
-  \ option
   \ project
+  \ range
   \ run_command
   \ run_target
   \ set_variable
@@ -122,13 +123,10 @@ syn keyword mesonBuiltin
   \ subdir_done
   \ subproject
   \ summary
-  \ target_machine
   \ test
   \ unset_variable
   \ vcs_tag
   \ warning
-  \ range
-  \ debug
 
 if exists("meson_space_error_highlight")
   " trailing whitespace
@@ -150,7 +148,7 @@ hi def link mesonEscape		Special
 hi def link mesonNumber		Number
 hi def link mesonBuiltin	Function
 hi def link mesonBoolean	Boolean
-if exists("meson_space_error_higlight")
+if exists("meson_space_error_highlight")
   hi def link mesonSpaceError	Error
 endif
 

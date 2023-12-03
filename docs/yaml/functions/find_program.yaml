@@ -42,6 +42,9 @@ description: |
   setcap = find_program(['setcap', '/usr/sbin/setcap', '/sbin/setcap'], required : false)
   ```
 
+  *Since 1.2.0* `find_program('meson')` is automatically overridden to the Meson
+  command used to execute the build script.
+
   The returned [[@external_program]] object also has documented methods.
 
 posargs:
@@ -110,3 +113,13 @@ kwargs:
     type: list[str]
     since: 0.53.0
     description: extra list of absolute paths where to look for program names.
+
+  default_options:
+    type: list[str] | dict[str | bool | int | list[str]]
+    since: 1.3.0
+    description: |
+      An array of default option values
+      that override those set in the subproject's `meson.options`
+      (like `default_options` in [[project]], they only have
+      effect when Meson is run for the first time, and command line
+      arguments override any default options in build files)

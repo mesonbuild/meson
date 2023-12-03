@@ -58,13 +58,16 @@ Builds a default or a specified target of a configured Meson project.
 
 *(since 0.55.0)*
 
-`TARGET` has the following syntax `[PATH/]NAME[:TYPE]`, where:
+`TARGET` has the following syntax `[PATH/]NAME.SUFFIX[:TYPE]`, where:
 - `NAME`: name of the target from `meson.build` (e.g. `foo` from `executable('foo', ...)`).
+- `SUFFIX`: name of the suffix of the target from `meson.build` (e.g. `exe` from `executable('foo', suffix: 'exe', ...)`).
 - `PATH`: path to the target relative to the root `meson.build` file. Note: relative path for a target specified in the root `meson.build` is `./`.
-- `TYPE`: type of the target. Can be one of the following: 'executable', 'static_library', 'shared_library', 'shared_module', 'custom', 'run', 'jar'.
+- `TYPE`: type of the target. Can be one of the following: 'executable', 'static_library', 'shared_library', 'shared_module', 'custom', 'alias', 'run', 'jar'.
 
-`PATH` and/or `TYPE` can be omitted if the resulting `TARGET` can be
+`PATH`, `SUFFIX`, and `TYPE` can all be omitted if the resulting `TARGET` can be
 used to uniquely identify the target in `meson.build`.
+
+Note that `SUFFIX` did not exist prior to 1.3.0.
 
 #### Backend specific arguments
 
@@ -244,6 +247,17 @@ Configures a build directory for the Meson project.
 was no COMMAND supplied). However, supplying the command is necessary to avoid
 clashes with future added commands, so "setup" should be used explicitly.
 
+*Since 1.1.0* `--reconfigure` is allowed even if the build directory does not
+already exist, that argument is ignored in that case.
+
+*Since 1.3.0* If the build directory already exists, options are updated with
+their new value given on the command line (`-Dopt=value`). Unless `--reconfigure`
+is also specified, this won't reconfigure immediately. This has the same behaviour
+as `meson configure <builddir> -Dopt=value`.
+
+*Since 1.3.0* It is possible to clear the cache and reconfigure in a single command
+with `meson setup --clearcache --reconfigure <builddir>`.
+
 {{ setup_arguments.inc }}
 
 See [Meson introduction
@@ -280,6 +294,12 @@ Run tests for the configure Meson project.
 {{ test_arguments.inc }}
 
 See [the unit test documentation](Unit-tests.md) for more info.
+
+Since *1.2.0* you can use wildcards in *args* for test names.
+For example, "bas*" will match all test with names beginning with "bas".
+
+Since *1.2.0* it is an error to provide a test name or wildcard that
+does not match any test.
 
 #### Examples:
 

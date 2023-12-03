@@ -123,8 +123,8 @@ class Elf(DataSizes):
     def __init__(self, bfile: str, verbose: bool = True) -> None:
         self.bfile = bfile
         self.verbose = verbose
-        self.sections = []  # type: T.List[SectionHeader]
-        self.dynamic = []   # type: T.List[DynamicEntry]
+        self.sections: T.List[SectionHeader] = []
+        self.dynamic: T.List[DynamicEntry] = []
         self.open_bf(bfile)
         try:
             (self.ptrsize, self.is_le) = self.detect_elf_type()
@@ -154,7 +154,7 @@ class Elf(DataSizes):
     def close_bf(self) -> None:
         if self.bf is not None:
             if self.bf_perms is not None:
-                os.fchmod(self.bf.fileno(), self.bf_perms)
+                os.chmod(self.bf.fileno(), self.bf_perms)
                 self.bf_perms = None
             self.bf.close()
             self.bf = None
@@ -329,7 +329,7 @@ class Elf(DataSizes):
         old_rpath = self.read_str()
         # Some rpath entries may come from multiple sources.
         # Only add each one once.
-        new_rpaths = OrderedSet()  # type: OrderedSet[bytes]
+        new_rpaths: OrderedSet[bytes] = OrderedSet()
         if new_rpath:
             new_rpaths.update(new_rpath.split(b':'))
         if old_rpath:
@@ -350,7 +350,7 @@ class Elf(DataSizes):
             sys.exit(msg)
         # The linker does read-only string deduplication. If there is a
         # string that shares a suffix with the rpath, they might get
-        # dedupped. This means changing the rpath string might break something
+        # deduped. This means changing the rpath string might break something
         # completely unrelated. This has already happened once with X.org.
         # Thus we want to keep this change as small as possible to minimize
         # the chance of obliterating other strings. It might still happen

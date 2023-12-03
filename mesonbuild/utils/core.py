@@ -99,6 +99,11 @@ class EnvironmentVariables(HoldableObject):
     def get_names(self) -> T.Set[str]:
         return self.varnames
 
+    def merge(self, other: EnvironmentVariables) -> None:
+        for method, name, values, separator in other.envvars:
+            self.varnames.add(name)
+            self.envvars.append((method, name, values, separator))
+
     def set(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
         self.varnames.add(name)
         self.envvars.append((self._set, name, values, separator))
@@ -136,17 +141,16 @@ class EnvironmentVariables(HoldableObject):
 @dataclass(eq=False)
 class ExecutableSerialisation:
 
-    # XXX: should capture and feed default to False, instead of None?
-
     cmd_args: T.List[str]
     env: T.Optional[EnvironmentVariables] = None
     exe_wrapper: T.Optional['programs.ExternalProgram'] = None
     workdir: T.Optional[str] = None
     extra_paths: T.Optional[T.List] = None
-    capture: T.Optional[bool] = None
-    feed: T.Optional[bool] = None
+    capture: T.Optional[str] = None
+    feed: T.Optional[str] = None
     tag: T.Optional[str] = None
     verbose: bool = False
+    installdir_map: T.Optional[T.Dict[str, str]] = None
 
     def __post_init__(self) -> None:
         self.pickled = False

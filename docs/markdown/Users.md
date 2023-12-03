@@ -31,6 +31,7 @@ topic](https://github.com/topics/meson).
  - [cglm](https://github.com/recp/cglm), a highly optimized graphics math library for C
  - [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop), the cinnamon desktop library
  - [Cozy](https://github.com/geigi/cozy), a modern audio book player for Linux and macOS using GTK+ 3
+ - [Criterion](https://github.com/Snaipe/Criterion), extensible cross-platform C and C++ unit testing framework
  - [dav1d](https://code.videolan.org/videolan/dav1d), an AV1 decoder
  - [dbus-broker](https://github.com/bus1/dbus-broker), Linux D-Bus Message Broker
  - [DOSBox Staging](https://github.com/dosbox-staging/dosbox-staging), DOS/x86 emulator
@@ -48,6 +49,7 @@ topic](https://github.com/topics/meson).
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
  - [GameMode](https://github.com/FeralInteractive/gamemode), a daemon/lib combo for Linux that allows games to request a set of optimisations be temporarily applied to the host OS
  - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
+ - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (experimental replacing autoconf)
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
  - [Glorytun](https://github.com/angt/glorytun), a multipath UDP tunnel
  - [GNOME Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a GNOME hypervisor
@@ -106,7 +108,7 @@ format files
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
  - [Mesa](https://mesa3d.org/), an open source graphics driver project
  - [Miniz](https://github.com/richgel999/miniz), a zlib replacement library
- - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via Wifi-Display specification aka Miracast
+ - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via WiFi-Display specification aka Miracast
  - [mpv](https://github.com/mpv-player/mpv), a free, open source, and cross-platform media player
  - [mrsh](https://github.com/emersion/mrsh), a minimal POSIX shell
  - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
@@ -137,10 +139,11 @@ format files
  - [Polari](https://gitlab.gnome.org/GNOME/polari), an IRC client
  - [PostgreSQL](https://www.postgresql.org/), an advanced open source relational database
  - [qboot](https://github.com/bonzini/qboot), a minimal x86 firmware for booting Linux kernels
- - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
- - [rmw](https://remove-to-waste.info), safe-remove utility for the command line
- - [Rizin](https://rizin.re), Free and Open Source Reverse Engineering Framework
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
+ - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
+ - [refivar](https://github.com/nvinson/refivar), A reimplementation of efivar in Rust.
+ - [Rizin](https://rizin.re), Free and Open Source Reverse Engineering Framework
+ - [rmw](https://remove-to-waste.info), safe-remove utility for the command line
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
  - [SciPy](https://scipy.org/), an open-source software for mathematics, science, and engineering
  - [scrcpy](https://github.com/Genymobile/scrcpy), a cross platform application that provides display and control of Android devices connected on USB or over TCP/IP
@@ -157,14 +160,18 @@ format files
  - [Terminology](https://github.com/billiob/terminology), a terminal emulator based on the Enlightenment Foundation Libraries
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
+ - [Trilobite XUnit Test](https://github.com/trilobite-stdlib/trilo-xtest-c), a framework for testing C code
+ - [Trilobite XType](https://github.com/trilobite-stdlib/trilo-xtype-c), a data type library for C code
+ - [Trilobite XCore](https://github.com/trilobite-stdlib/trilo-xcore-c), a core essential library for C code
+ - [Trilobite XData](https://github.com/trilobite-stdlib/trilo-xdata-c), a data structures and algorithms for C code
  - [UFJF-MLTK](https://github.com/mateus558/UFJF-Machine-Learning-Toolkit), A C++ cross-platform framework for machine learning algorithms development and testing
  - [Vala Language Server](https://github.com/benwaffle/vala-language-server), code intelligence engine for the Vala and Genie programming languages
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Venom](https://github.com/naxuroqa/Venom), a modern Tox client for the GNU/Linux desktop
  - [vkQuake](https://github.com/Novum/vkQuake), a port of id Software's Quake using Vulkan instead of OpenGL for rendering
  - [VMAF](https://github.com/Netflix/vmaf) (by Netflix), a perceptual video quality assessment based on multi-method fusion
- - [Wayland](https://github.com/wayland-project/wayland) and [Weston](https://github.com/wayland-project/weston), a next generation display server
- - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
+ - [Wayland](https://gitlab.freedesktop.org/wayland/wayland) and [Weston](https://gitlab.freedesktop.org/wayland/weston), a next generation display server
+ - [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots), a modular Wayland compositor library
  - [xi-gtk](https://github.com/eyelash/xi-gtk), a GTK+ front-end for the Xi editor
  - [Xorg](https://gitlab.freedesktop.org/xorg/xserver), the X.org display server (not the default yet)
  - [X Test Suite](https://gitlab.freedesktop.org/xorg/test/xts), The X.org test suite

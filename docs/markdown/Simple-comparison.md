@@ -29,7 +29,7 @@ how much time the build system takes to check the states of all source
 files because if any of them could potentially cause a rebuild.
 
 Since CMake has two different backends, Make and Ninja, we ran the
-tests on both of them. All tests were run on a 2011 era Macbook Pro
+tests on both of them. All tests were run on a 2011 era MacBook Pro
 running Ubuntu 13/04. The tests were run multiple times and we always
 took the fastest time.
 

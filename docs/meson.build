@@ -1,6 +1,70 @@
 project('Meson documentation', version: '1.0')
 
+yaml_modname = get_option('unsafe_yaml') ? 'yaml' : 'strictyaml'
+py = import('python').find_installation('python3', modules: [yaml_modname], required: false)
+if not py.found()
+    error(f'Cannot build documentation without yaml support')
+endif
+
 cur_bdir = meson.current_build_dir()
+
+sitemap = files('sitemap.txt')
+
+yaml_loader = get_option('unsafe_yaml') ? 'fastyaml' : 'yaml'
+genrefman = find_program('./genrefman.py')
+refman_binary = custom_target(
+    'gen_refman_bin',
+    input: sitemap,
+    output: 'reference_manual.bin',
+    depfile: 'reman_dep.d',
+    command: [
+        genrefman,
+        '-l', yaml_loader,
+        '-g', 'pickle',
+        '-o', '@OUTPUT@',
+        '--depfile', '@DEPFILE@',
+        '--force-color',
+    ]
+)
+
+refman_json = custom_target(
+    'gen_refman_json',
+    build_by_default: true,
+    input: refman_binary,
+    output: 'reference_manual.json',
+    command: [
+        genrefman,
+        '-l', 'pickle',
+        '-g', 'json',
+        '-i', '@INPUT@',
+        '-o', '@OUTPUT@',
+        '--force-color',
+    ],
+)
+test('validate_docs', find_program('./jsonvalidator.py'), args: [refman_json])
+
+refman_man = custom_target(
+    'gen_refman_man',
+    build_by_default: true,
+    input: refman_binary,
+    output: 'meson-reference.3',
+    command: [
+        genrefman,
+        '-l', 'pickle',
+        '-g', 'man',
+        '-i', '@INPUT@',
+        '-o', '@OUTPUT@',
+        '--force-color',
+        '--no-modules',
+    ],
+    install: true,
+    install_dir: get_option('mandir') / 'man3',
+)
+
+# Everything past here is HTML resources.
+if not get_option('html')
+    subdir_done()
+endif
 
 # Only the script knows which files are being generated
 docs_gen = custom_target(
@@ -13,24 +77,7 @@ docs_gen = custom_target(
         '--dummy-output-file', '@OUTPUT@',
     ],
     build_by_default: true,
-    install: false)
-
-sitemap = files('sitemap.txt')
-
-genrefman = find_program('./genrefman.py')
-refman_binary = custom_target(
-    'gen_refman_bin',
-    input: sitemap,
-    output: 'reference_manual.bin',
-    depfile: 'reman_dep.d',
-    command: [
-        genrefman,
-        '-l', 'yaml',
-        '-g', 'pickle',
-        '-o', '@OUTPUT@',
-        '--depfile', '@DEPFILE@',
-        '--force-color',
-    ]
+    install: false,
 )
 
 refman_md = custom_target(
@@ -51,37 +98,6 @@ refman_md = custom_target(
 )
 sitemap = refman_md[0]
 
-refman_json = custom_target(
-    'gen_refman_json',
-    build_by_default: true,
-    input: refman_binary,
-    output: 'reference_manual.json',
-    command: [
-        genrefman,
-        '-l', 'pickle',
-        '-g', 'json',
-        '-i', '@INPUT@',
-        '-o', '@OUTPUT@',
-        '--force-color',
-    ],
-)
-
-refman_man = custom_target(
-    'gen_refman_man',
-    build_by_default: true,
-    input: refman_binary,
-    output: 'meson-reference.3',
-    command: [
-        genrefman,
-        '-l', 'pickle',
-        '-g', 'man',
-        '-i', '@INPUT@',
-        '-o', '@OUTPUT@',
-        '--force-color',
-        '--no-modules',
-    ],
-)
-
 genrelnotes = custom_target(
     output: ['sitemap-genrelnotes.txt'],
     build_always_stale: true,
@@ -94,9 +110,11 @@ genrelnotes = custom_target(
 )
 sitemap = genrelnotes[0]
 
-test('validate_docs', find_program('./jsonvalidator.py'), args: [refman_json])
-
 hotdoc_prog = find_program('hotdoc', version: '>=0.13.7')
+py = import('python').find_installation('python3', modules: ['chevron'], required: false)
+if not py.found()
+    error('Building the HTML docs requires the chevron module to render generated markdown pages')
+endif
 
 hotdoc = import('hotdoc')
 documentation = hotdoc.generate_doc(meson.project_name(),
@@ -116,6 +134,7 @@ documentation = hotdoc.generate_doc(meson.project_name(),
     keep_markup_in_code_blocks: true,
     extra_extension: meson.current_source_dir() / 'extensions' / 'refman_links.py',
     refman_data_file: refman_md[1],
+    fatal_warnings: true,
 )
 
 run_target('upload',

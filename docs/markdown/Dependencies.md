@@ -43,7 +43,7 @@ You can pass the `opt_dep` variable to target construction functions
 whether the actual dependency was found or not. Meson will ignore
 non-found dependencies.
 
-Meson also allows to get variables that are defined in the
+Meson also allows one to get variables that are defined in a
 `pkg-config` file. This can be done by using the
 [[dep.get_pkgconfig_variable]] function.
 
@@ -69,8 +69,8 @@ page](#dependencies-with-custom-lookup-functionality).
 *Note* new in 0.51.0
 *new in 0.54.0, the `internal` keyword*
 
-When you need to get an arbitrary variables from a dependency that can
-be found multiple ways and you don't want to constrain the type you
+When you need to get an arbitrary variable from a dependency that can
+be found multiple ways and you don't want to constrain the type, you
 can use the generic `get_variable` method. This currently supports
 cmake, pkg-config, and config-tool based variables.
 
@@ -350,7 +350,7 @@ use those to link against your targets.
 If your boost headers or libraries are in non-standard locations you
 can set the `BOOST_ROOT`, or the `BOOST_INCLUDEDIR` and
 `BOOST_LIBRARYDIR` environment variables. *(added in 0.56.0)* You can
-also set these parameters as `boost_root`, `boost_include`, and
+also set these parameters as `boost_root`, `boost_includedir`, and
 `boost_librarydir` in your native or cross machine file. Note that
 machine file variables are preferred to environment variables, and
 that specifying any of these disables system-wide search for boost.
@@ -659,6 +659,12 @@ The `language` keyword may used.
 
 `method` may be `auto`, `config-tool` or `pkg-config`.
 
+## Pybind11
+
+*(added 1.1.0)*
+
+`method` may be `auto`, `pkg-config`, `config-tool`, or `cmake`.
+
 ## Python3
 
 Python3 is handled specially by Meson:
@@ -722,10 +728,10 @@ your own risk.
 ## SDL2
 
 SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool,
-or as an OSX framework.
+as an OSX framework, or `cmake`.
 
-`method` may be `auto`, `config-tool`, `extraframework` or
-`pkg-config`.
+`method` may be `auto`, `config-tool`, `extraframework`,
+`pkg-config` or `cmake`.
 
 ## Shaderc
 

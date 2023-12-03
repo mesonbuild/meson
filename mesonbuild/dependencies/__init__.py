@@ -12,36 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .boost import BoostDependency
-from .cuda import CudaDependency
-from .hdf5 import hdf5_factory
 from .base import Dependency, InternalDependency, ExternalDependency, NotFoundDependency, MissingCompiler
 from .base import (
         ExternalLibrary, DependencyException, DependencyMethods,
         BuiltinDependency, SystemDependency, get_leaf_external_dependencies)
-from .cmake import CMakeDependency
-from .configtool import ConfigToolDependency
-from .dub import DubDependency
-from .framework import ExtraFrameworkDependency
-from .pkgconfig import PkgConfigDependency
-from .factory import DependencyFactory
 from .detect import find_external_dependency, get_dep_identifier, packages, _packages_accept_language
-from .dev import (
-    ValgrindDependency, JNISystemDependency, JDKSystemDependency, gmock_factory, gtest_factory,
-    llvm_factory, zlib_factory)
-from .coarrays import coarray_factory
-from .mpi import mpi_factory
-from .scalapack import scalapack_factory
-from .misc import (
-    BlocksDependency, OpenMPDependency, cups_factory, curses_factory, gpgme_factory,
-    libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory,
-    shaderc_factory, threads_factory, ThreadDependency, iconv_factory, intl_factory,
-    dl_factory, openssl_factory, libcrypto_factory, libssl_factory,
-)
-from .platform import AppleFrameworks
-from .python import python_factory as python3_factory
-from .qt import qt4_factory, qt5_factory, qt6_factory
-from .ui import GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
 
 __all__ = [
     'Dependency',
@@ -54,16 +29,6 @@ __all__ = [
     'DependencyException',
     'DependencyMethods',
     'MissingCompiler',
-
-    'CMakeDependency',
-    'ConfigToolDependency',
-    'DubDependency',
-    'ExtraFrameworkDependency',
-    'PkgConfigDependency',
-
-    'DependencyFactory',
-
-    'ThreadDependency',
 
     'find_external_dependency',
     'get_dep_identifier',
@@ -227,59 +192,66 @@ this approach, and no new dependencies should do this.
 # - An ExternalDependency subclass
 # - A DependencyFactory object
 # - A callable with a signature of (Environment, MachineChoice, Dict[str, Any]) -> List[Callable[[], ExternalDependency]]
-packages.update({
+#
+# The internal "defaults" attribute contains a separate dictionary mapping
+# for lazy imports. The values must be:
+# - a string naming the submodule that should be imported from `mesonbuild.dependencies` to populate the dependency
+packages.defaults.update({
     # From dev:
-    'gtest': gtest_factory,
-    'gmock': gmock_factory,
-    'llvm': llvm_factory,
-    'valgrind': ValgrindDependency,
-    'zlib': zlib_factory,
-    'jni': JNISystemDependency,
-    'jdk': JDKSystemDependency,
+    'gtest': 'dev',
+    'gmock': 'dev',
+    'llvm': 'dev',
+    'valgrind': 'dev',
+    'zlib': 'dev',
+    'jni': 'dev',
+    'jdk': 'dev',
 
-    'boost': BoostDependency,
-    'cuda': CudaDependency,
+    'boost': 'boost',
+    'cuda': 'cuda',
 
     # per-file
-    'coarray': coarray_factory,
-    'hdf5': hdf5_factory,
-    'mpi': mpi_factory,
-    'scalapack': scalapack_factory,
+    'coarray': 'coarrays',
+    'hdf5': 'hdf5',
+    'mpi': 'mpi',
+    'scalapack': 'scalapack',
 
     # From misc:
-    'blocks': BlocksDependency,
-    'curses': curses_factory,
-    'netcdf': netcdf_factory,
-    'openmp': OpenMPDependency,
-    'threads': threads_factory,
-    'pcap': pcap_factory,
-    'cups': cups_factory,
-    'libwmf': libwmf_factory,
-    'libgcrypt': libgcrypt_factory,
-    'gpgme': gpgme_factory,
-    'shaderc': shaderc_factory,
-    'iconv': iconv_factory,
-    'intl': intl_factory,
-    'dl': dl_factory,
-    'openssl': openssl_factory,
-    'libcrypto': libcrypto_factory,
-    'libssl': libssl_factory,
+    'blocks': 'misc',
+    'curses': 'misc',
+    'netcdf': 'misc',
+    'openmp': 'misc',
+    'threads': 'misc',
+    'pcap': 'misc',
+    'cups': 'misc',
+    'libwmf': 'misc',
+    'libgcrypt': 'misc',
+    'gpgme': 'misc',
+    'shaderc': 'misc',
+    'iconv': 'misc',
+    'intl': 'misc',
+    'dl': 'misc',
+    'openssl': 'misc',
+    'libcrypto': 'misc',
+    'libssl': 'misc',
 
     # From platform:
-    'appleframeworks': AppleFrameworks,
+    'appleframeworks': 'platform',
 
     # from python:
-    'python3': python3_factory,
+    'python3': 'python',
+    'pybind11': 'python',
 
     # From ui:
-    'gl': gl_factory,
-    'gnustep': GnuStepDependency,
-    'qt4': qt4_factory,
-    'qt5': qt5_factory,
-    'qt6': qt6_factory,
-    'sdl2': sdl2_factory,
-    'wxwidgets': WxDependency,
-    'vulkan': vulkan_factory,
+    'gl': 'ui',
+    'gnustep': 'ui',
+    'sdl2': 'ui',
+    'wxwidgets': 'ui',
+    'vulkan': 'ui',
+
+    # from qt
+    'qt4': 'qt',
+    'qt5': 'qt',
+    'qt6': 'qt',
 })
 _packages_accept_language.update({
     'hdf5',

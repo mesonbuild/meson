@@ -78,7 +78,9 @@ class FailureTests(BasePlatformTests):
         super().setUp()
         self.srcdir = os.path.realpath(tempfile.mkdtemp())
         self.mbuild = os.path.join(self.srcdir, 'meson.build')
-        self.moptions = os.path.join(self.srcdir, 'meson_options.txt')
+        self.moptions = os.path.join(self.srcdir, 'meson.options')
+        if not os.path.exists(self.moptions):
+            self.moptions = os.path.join(self.srcdir, 'meson_options.txt')
 
     def tearDown(self):
         super().tearDown()
@@ -240,12 +242,12 @@ class FailureTests(BasePlatformTests):
         dep = declare_dependency(dependencies : zlib_dep)
         dep.get_pkgconfig_variable('foo')
         '''
-        self.assertMesonRaises(code, "Method.*pkgconfig.*is invalid.*internal")
+        self.assertMesonRaises(code, ".*is not a pkgconfig dependency")
         code = '''zlib_dep = dependency('zlib', required : false)
         dep = declare_dependency(dependencies : zlib_dep)
         dep.get_configtool_variable('foo')
         '''
-        self.assertMesonRaises(code, "Method.*configtool.*is invalid.*internal")
+        self.assertMesonRaises(code, ".* is not a config-tool dependency")
 
     def test_objc_cpp_detection(self):
         '''

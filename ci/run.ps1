@@ -3,7 +3,7 @@ if ($LastExitCode -ne 0) {
   exit 0
 }
 
-# remove Chocolately, MinGW, Strawberry Perl from path, so we don't find gcc/gfortran and try to use it
+# remove Chocolatey, MinGW, Strawberry Perl from path, so we don't find gcc/gfortran and try to use it
 # remove PostgreSQL from path so we don't pickup a broken zlib from it
 $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notmatch 'mingw|Strawberry|Chocolatey|PostgreSQL' }) -join ';'
 
@@ -59,6 +59,9 @@ if ($env:arch -eq 'x64') {
     Expand-Archive $env:AGENT_WORKFOLDER\pypy38.zip -DestinationPath $env:AGENT_WORKFOLDER\pypy38
     $ENV:Path = $ENV:Path + ";$ENV:AGENT_WORKFOLDER\pypy38\pypy3.8-v7.3.9-win64;$ENV:AGENT_WORKFOLDER\pypy38\pypy3.8-v7.3.9-win64\Scripts"
     pypy3 -m ensurepip
+
+    DownloadFile -Source https://www.python.org/ftp/python/2.7.18/python-2.7.18.amd64.msi -Destination $env:AGENT_WORKFOLDER\python27.msi
+    Start-Process msiexec.exe -Wait -ArgumentList "/I $env:AGENT_WORKFOLDER\python27.msi /quiet"
 }
 
 
@@ -76,7 +79,7 @@ foreach ($prog in $progs) {
 
 
 echo ""
-echo "Ninja / MSBuld version:"
+echo "Ninja / MSBuild version:"
 if ($env:backend -eq 'ninja') {
   ninja --version
 } else {
@@ -90,6 +93,9 @@ python --version
 # Needed for running unit tests in parallel.
 echo ""
 python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist pytest-subtests jsonschema coverage
+
+# Needed for running the Cython tests
+python -m pip --disable-pip-version-check install cython
 
 echo ""
 echo "=== Start running tests ==="

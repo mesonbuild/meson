@@ -1,3 +1,3 @@
 #pragma once
 
-// Git can not handle empty directories, so there must be something here.
+// Git cannot handle empty directories, so there must be something here.

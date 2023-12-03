@@ -11,7 +11,7 @@
 #endif
 
 #if !defined(GLOBAL_HOST) && !defined(GLOBAL_BUILD)
-  #error "Neither global_host nor glogal_build is set."
+  #error "Neither global_host nor global_build is set."
 #endif
 
 #if defined(GLOBAL_HOST) && defined(GLOBAL_BUILD)

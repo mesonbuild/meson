@@ -23,11 +23,13 @@ from .. import mlog
 from .. import mesonlib
 
 from .base import DependencyException, SystemDependency
+from .detect import packages
 from .pkgconfig import PkgConfigDependency
 from .misc import threads_factory
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment, Properties
+    from ..envconfig import Properties
+    from ..environment import Environment
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:
@@ -80,7 +82,7 @@ if T.TYPE_CHECKING:
 #   2. Find all boost libraries
 #     2.1 Add all libraries in lib*
 #     2.2 Filter out non boost libraries
-#     2.3 Filter the renaining libraries based on the meson requirements (static/shared, etc.)
+#     2.3 Filter the remaining libraries based on the meson requirements (static/shared, etc.)
 #     2.4 Ensure that all libraries have the same boost tag (and are thus compatible)
 #   3. Select the libraries matching the requested modules
 
@@ -243,10 +245,10 @@ class BoostLibraryFile():
         return any(self.mod_name.startswith(x) for x in BoostLibraryFile.boost_python_libs)
 
     def fix_python_name(self, tags: T.List[str]) -> T.List[str]:
-        # Handle the boost_python naming madeness.
+        # Handle the boost_python naming madness.
         # See https://github.com/mesonbuild/meson/issues/4788 for some distro
         # specific naming variations.
-        other_tags = []  # type: T.List[str]
+        other_tags: T.List[str] = []
 
         # Split the current modname into the base name and the version
         m_cur = BoostLibraryFile.reg_python_mod_split.match(self.mod_name)
@@ -329,9 +331,9 @@ class BoostLibraryFile():
         return True
 
     def get_compiler_args(self) -> T.List[str]:
-        args = []  # type: T.List[str]
+        args: T.List[str] = []
         if self.mod_name in boost_libraries:
-            libdef = boost_libraries[self.mod_name]  # type: BoostLibrary
+            libdef = boost_libraries[self.mod_name]
             if self.static:
                 args += libdef.static
             else:
@@ -353,19 +355,19 @@ class BoostDependency(SystemDependency):
         self.debug = buildtype.startswith('debug')
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
 
-        self.boost_root = None  # type: T.Optional[Path]
+        self.boost_root: T.Optional[Path] = None
         self.explicit_static = 'static' in kwargs
 
         # Extract and validate modules
-        self.modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
+        self.modules: T.List[str] = mesonlib.extract_as_list(kwargs, 'modules')
         for i in self.modules:
             if not isinstance(i, str):
                 raise DependencyException('Boost module argument is not a string.')
             if i.startswith('boost_'):
                 raise DependencyException('Boost modules must be passed without the boost_ prefix')
 
-        self.modules_found = []    # type: T.List[str]
-        self.modules_missing = []  # type: T.List[str]
+        self.modules_found: T.List[str] = []
+        self.modules_missing: T.List[str] = []
 
         # Do we need threads?
         if 'thread' in self.modules:
@@ -448,7 +450,7 @@ class BoostDependency(SystemDependency):
         mlog.debug('  - potential include dirs: {}'.format([x.path.as_posix() for x in inc_dirs]))
 
         #   2. Find all boost libraries
-        libs = []  # type: T.List[BoostLibraryFile]
+        libs: T.List[BoostLibraryFile] = []
         for i in lib_dirs:
             libs = self.detect_libraries(i)
             if libs:
@@ -469,8 +471,8 @@ class BoostDependency(SystemDependency):
                 mlog.debug(f'    - {j}')
 
             #   3. Select the libraries matching the requested modules
-            not_found = []  # type: T.List[str]
-            selected_modules = []  # type: T.List[BoostLibraryFile]
+            not_found: T.List[str] = []
+            selected_modules: T.List[BoostLibraryFile] = []
             for mod in modules:
                 found = False
                 for l in f_libs:
@@ -483,8 +485,8 @@ class BoostDependency(SystemDependency):
 
             # log the result
             mlog.debug('  - found:')
-            comp_args = []  # type: T.List[str]
-            link_args = []  # type: T.List[str]
+            comp_args: T.List[str] = []
+            link_args: T.List[str] = []
             for j in selected_modules:
                 c_args = j.get_compiler_args()
                 l_args = j.get_link_args()
@@ -522,7 +524,7 @@ class BoostDependency(SystemDependency):
         return False
 
     def detect_inc_dirs(self, root: Path) -> T.List[BoostIncludeDir]:
-        candidates = []  # type: T.List[Path]
+        candidates: T.List[Path] = []
         inc_root = root / 'include'
 
         candidates += [root / 'boost']
@@ -553,8 +555,8 @@ class BoostDependency(SystemDependency):
 
         # No system include paths were found --> fall back to manually looking
         # for library dirs in root
-        dirs = []     # type: T.List[Path]
-        subdirs = []  # type: T.List[Path]
+        dirs: T.List[Path] = []
+        subdirs: T.List[Path] = []
         for i in root.iterdir():
             if i.is_dir() and i.name.startswith('lib'):
                 dirs += [i]
@@ -576,7 +578,7 @@ class BoostDependency(SystemDependency):
         raw_list = dirs + subdirs
         no_arch = [x for x in raw_list if not any(y in x.name for y in arch_list_32 + arch_list_64)]
 
-        matching_arch = []  # type: T.List[Path]
+        matching_arch: T.List[Path] = []
         if '32' in self.arch:
             matching_arch = [x for x in raw_list if any(y in x.name for y in arch_list_32)]
         elif '64' in self.arch:
@@ -622,7 +624,7 @@ class BoostDependency(SystemDependency):
         return libs
 
     def detect_libraries(self, libdir: Path) -> T.List[BoostLibraryFile]:
-        libs = set()  # type: T.Set[BoostLibraryFile]
+        libs: T.Set[BoostLibraryFile] = set()
         for i in libdir.iterdir():
             if not i.is_file():
                 continue
@@ -653,14 +655,14 @@ class BoostDependency(SystemDependency):
         self.is_found = self.run_check([boost_inc_dir], [lib_dir])
 
     def detect_roots(self) -> None:
-        roots = []  # type: T.List[Path]
+        roots: T.List[Path] = []
 
         # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
         # allows BoostDependency to find boost from Conan. See #5438
         try:
             boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
             if boost_pc.found():
-                boost_root = boost_pc.get_pkgconfig_variable('prefix', [], None)
+                boost_root = boost_pc.get_variable(pkgconfig='prefix')
                 if boost_root:
                     roots += [Path(boost_root)]
         except DependencyException:
@@ -684,7 +686,7 @@ class BoostDependency(SystemDependency):
             # Where boost prebuilt binaries are
             local_boost = Path('C:/local')
 
-            candidates = []  # type: T.List[Path]
+            candidates: T.List[Path] = []
             if prog_files.is_dir():
                 candidates += [*prog_files.iterdir()]
             if local_boost.is_dir():
@@ -692,7 +694,7 @@ class BoostDependency(SystemDependency):
 
             roots += [x for x in candidates if x.name.lower().startswith('boost') and x.is_dir()]
         else:
-            tmp = []  # type: T.List[Path]
+            tmp: T.List[Path] = []
 
             # Add some default system paths
             tmp += [Path('/opt/local')]
@@ -738,6 +740,7 @@ class BoostDependency(SystemDependency):
         # BOOST_ALL_DYN_LINK should not be required with the known defines below
         return ['-DBOOST_ALL_NO_LIB']  # Disable automatic linking
 
+packages['boost'] = BoostDependency
 
 # See https://www.boost.org/doc/libs/1_72_0/more/getting_started/unix-variants.html#library-naming
 # See https://mesonbuild.com/Reference-tables.html#cpu-families

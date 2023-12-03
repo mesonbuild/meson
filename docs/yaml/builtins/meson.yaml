@@ -14,7 +14,7 @@ methods:
       distribution source has been generated but before it is
       archived. Note that this runs the script file that is in the
       _staging_ directory, not the one in the source directory. If the
-      script file can not be found in the staging directory, it is a hard
+      script file cannot be found in the staging directory, it is a hard
       error. The `MESON_DIST_ROOT` environment variables is set when dist scripts is
       run.
 
@@ -233,7 +233,7 @@ methods:
     returns: str
     since: 0.58.0
     description: |
-      Returns a string with the absolute path to the source root directory
+      Returns a string with the absolute path to the source root directory.
       This function will return the source root of the
       main project if called from a subproject, which is usually not what you want.
       It is usually preferable to use [[meson.current_source_dir]] or [[meson.project_source_root]].

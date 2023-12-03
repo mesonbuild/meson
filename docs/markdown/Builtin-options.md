@@ -74,11 +74,12 @@ machine](#specifying-options-per-machine) section for details.
 
 | Option                                 | Default value | Description                                                    | Is per machine | Is per subproject |
 | -------------------------------------- | ------------- | -----------                                                    | -------------- | ----------------- |
-| auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             | no                |
-| backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode} | ninja | Backend to use        | no             | no                |
-| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             | no                |
+| auto_features {enabled, disabled, auto} | auto         | Override value of all 'auto' features                          | no             | no                |
+| backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode, none} | ninja | Backend to use    | no             | no                |
+| genvslite {vs2022}                     | vs2022        | Setup multi-builtype ninja build directories and Visual Studio solution | no | no |
+| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | no                |
 | debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
-| default_library {shared, static, both} | shared      | Default library type                                           | no             | yes               |
+| default_library {shared, static, both} | shared        | Default library type                                           | no             | yes               |
 | errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
 | layout {mirror,flat}                   | mirror        | Build directory layout                                         | no             | no                |
@@ -92,8 +93,41 @@ machine](#specifying-options-per-machine) section for details.
 | unity_size {>=2}                       | 4             | Unity file block size                                          | no             | no                |
 | warning_level {0, 1, 2, 3, everything} | 1             | Set the warning level. From 0 = none to everything = highest   | no             | yes               |
 | werror                                 | false         | Treat warnings as errors                                       | no             | yes               |
-| wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                 | no             | no                |
+| wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                   | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
+| vsenv                                  | false         | Activate Visual Studio environment                             | no             | no                |
+
+#### Details for `backend`
+
+Several build file formats are supported as command runners to build the
+configured project. Meson prefers ninja by default, but platform-specific
+backends are also available for better IDE integration with native tooling:
+Visual Studio for Windows, and xcode for macOS. It is also possible to
+configure with no backend at all, which is an error if you have targets to
+build, but for projects that need configuration + testing + installation allows
+for a lighter automated build pipeline.
+
+#### Details for `genvslite`
+
+Setup multiple buildtype-suffixed, ninja-backend build directories (e.g.
+[builddir]_[debug/release/etc.]) and generate [builddir]_vs containing a Visual
+Studio solution with multiple configurations that invoke a meson compile of the
+setup build directories, as appropriate for the current configuration (builtype).
+
+This has the effect of a simple setup macro of multiple 'meson setup ...'
+invocations with a set of different buildtype values.  E.g.
+`meson setup ... --genvslite vs2022 somebuilddir` does the following -
+```
+meson setup ... --backend ninja --buildtype debug somebuilddir_debug
+meson setup ... --backend ninja --buildtype debugoptimized somebuilddir_debugoptimized
+meson setup ... --backend ninja --buildtype release somebuilddir_release
+```
+and additionally creates another 'somebuilddir_vs' directory that contains
+a generated multi-configuration visual studio solution and project(s) that are
+set to build/compile with the somebuilddir_[...] that's appropriate for the
+solution's selected buildtype configuration.
+
+#### Details for `buildtype`
 
 <a name="build-type-options"></a> For setting optimization levels and
 toggling debug, you can either set the `buildtype` option, or you can
@@ -112,6 +146,36 @@ the two-way mapping:
 | minsize        | true  | s            |
 
 All other combinations of `debug` and `optimization` set `buildtype` to `'custom'`.
+
+#### Details for `warning_level`
+
+Exact flags per warning level is compiler specific, but there is an approximative
+table for most common compilers.
+
+| Warning level | GCC/Clang                | MSVC  |
+| ------------- | ---                      | ----  |
+| 0             |                          |       |
+| 1             | -Wall                    | /W2   |
+| 2             | -Wall -Wextra            | /W3   |
+| 3             | -Wall -Wextra -Wpedantic | /W4   |
+| everything    | -Weverything             | /Wall |
+
+Clang's `-Weverything` is emulated on GCC by passing all known warning flags.
+
+#### Details for `vsenv`
+
+The `--vsenv` argument is supported since `0.60.0`, `-Dvsenv=true` syntax is supported
+since `1.1.0`.
+
+Since `0.59.0`, meson automatically activates a Visual Studio environment on Windows
+for all its subcommands, but only if no other compilers (e.g. `gcc` or `clang`)
+are found, and silently continues if Visual Studio activation fails.
+
+Setting the `vsenv` option to `true` forces Visual Studio activation even when other
+compilers are found. It also make Meson abort with an error message when activation
+fails.
+
+`vsenv` is `true` by default when using the `vs` backend.
 
 ## Base options
 
@@ -198,7 +262,7 @@ or compiler being used:
 | c_thread_count   | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
 | cpp_args         |               | free-form comma-separated list           | C++ compile arguments to use |
 | cpp_link_args    |               | free-form comma-separated list           | C++ link arguments to use |
-| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, c++20 <br/>c++2a, c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> gnu++2a, gnu++20, vc++14, vc++17, vc++latest | C++ language standard to use |
+| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, c++20 <br/>c++2a, c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> gnu++2a, gnu++20, vc++14, vc++17, vc++20, vc++latest | C++ language standard to use |
 | cpp_debugstl     | false         | true, false                              | C++ STL debug mode |
 | cpp_eh           | default       | none, default, a, s, sc                  | C++ exception handling type |
 | cpp_rtti         | true          | true, false                              | Whether to enable RTTI (runtime type identification) |
@@ -231,6 +295,21 @@ Since *0.63.0* all compiler options can be set per subproject, see
 is inherited from the main project. This is useful, for example, when the main
 project requires C++11, but a subproject requires C++14. The `cpp_std` value
 from the subproject's `default_options` is now respected.
+
+Since *1.3.0* `c_std` and `cpp_std` options now accept a list of values.
+Projects that prefer GNU C, but can fallback to ISO C, can now set, for
+example, `default_options: 'c_std=gnu11,c11'`, and it will use `gnu11` when
+available, but fallback to c11 otherwise. It is an error only if none of the
+values are supported by the current compiler.
+Likewise, a project that can take benefit of `c++17` but can still build with
+`c++11` can set `default_options: 'cpp_std=c++17,c++11'`.
+This allows us to deprecate `gnuXX` values from the MSVC compiler. That means
+that `default_options: 'c_std=gnu11'` will now print a warning with MSVC
+but fallback to `c11`. No warning is printed if at least one
+of the values is valid, i.e. `default_options: 'c_std=gnu11,c11'`.
+In the future that deprecation warning will become an hard error because
+`c_std=gnu11` should mean GNU is required, for projects that cannot be
+built with MSVC for example.
 
 ## Specifying options per machine
 
@@ -306,11 +385,13 @@ install prefix. For example: if the install prefix is `/usr` and the
 
 ### Python module
 
-| Option           | Default value | Possible values             | Description |
-| ------           | ------------- | -----------------           | ----------- |
-| install_env      | prefix        | {auto,prefix,system,venv}   | Which python environment to install to (Since 0.62.0) |
-| platlibdir       |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
-| purelibdir       |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
+| Option            | Default value | Possible values             | Description |
+| ------            | ------------- | -----------------           | ----------- |
+| bytecompile       | 0             | integer from -1 to 2        | What bytecode optimization level to use (Since 1.2.0) |
+| install_env       | prefix        | {auto,prefix,system,venv}   | Which python environment to install to (Since 0.62.0) |
+| platlibdir        |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
+| purelibdir        |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
+| allow_limited_api | true          | true, false                 | Disables project-wide use of the Python Limited API (Since 1.3.0) |
 
 *Since 0.60.0* The `python.platlibdir` and `python.purelibdir` options are used
 by the python module methods `python.install_sources()` and
@@ -330,3 +411,17 @@ installation is a virtualenv, and use `venv` or `system` as appropriate (but
 never `prefix`). This option is mutually exclusive with the `platlibdir`/`purelibdir`.
 
 For backwards compatibility purposes, the default `install_env` is `prefix`.
+
+*Since 1.2.0* The `python.bytecompile` option can be used to enable compiling
+python bytecode. Bytecode has 3 optimization levels:
+
+- 0, bytecode without optimizations
+- 1, bytecode with some optimizations
+- 2, bytecode with some more optimizations
+
+To this, Meson adds level `-1`, which is to not attempt to compile bytecode at
+all.
+
+*Since 1.3.0* The `python.allow_limited_api` option affects whether the
+`limited_api` keyword argument of the `extension_module` method is respected.
+If set to `false`, the effect of the `limited_api` argument is disabled.

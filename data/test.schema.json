@@ -26,11 +26,15 @@
               "exe",
               "shared_lib",
               "python_lib",
+              "python_limited_lib",
+              "python_bytecode",
               "pdb",
               "implib",
               "py_implib",
+              "py_limited_implib",
               "implibempty",
-              "expr"
+              "expr",
+              "link"
             ]
           },
           "platform": {

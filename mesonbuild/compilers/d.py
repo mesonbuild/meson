@@ -39,51 +39,58 @@ from .mixins.gnu import GnuCompiler
 from .mixins.gnu import gnu_common_warning_args
 
 if T.TYPE_CHECKING:
+    from ..build import DFeatures
     from ..dependencies import Dependency
     from ..programs import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import DynamicLinker
+    from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
 
     CompilerMixinBase = Compiler
 else:
     CompilerMixinBase = object
 
-d_feature_args = {'gcc':  {'unittest': '-funittest',
-                           'debug': '-fdebug',
-                           'version': '-fversion',
-                           'import_dir': '-J'
-                           },
-                  'llvm': {'unittest': '-unittest',
-                           'debug': '-d-debug',
-                           'version': '-d-version',
-                           'import_dir': '-J'
-                           },
-                  'dmd':  {'unittest': '-unittest',
-                           'debug': '-debug',
-                           'version': '-version',
-                           'import_dir': '-J'
-                           }
-                  }  # type: T.Dict[str, T.Dict[str, str]]
+d_feature_args: T.Dict[str, T.Dict[str, str]] = {
+    'gcc':  {
+        'unittest': '-funittest',
+        'debug': '-fdebug',
+        'version': '-fversion',
+        'import_dir': '-J'
+    },
+    'llvm': {
+        'unittest': '-unittest',
+        'debug': '-d-debug',
+        'version': '-d-version',
+        'import_dir': '-J'
+    },
+    'dmd':  {
+        'unittest': '-unittest',
+        'debug': '-debug',
+        'version': '-version',
+        'import_dir': '-J'
+    }
+}
 
-ldc_optimization_args = {'plain': [],
-                         '0': [],
-                         'g': [],
-                         '1': ['-O1'],
-                         '2': ['-O2'],
-                         '3': ['-O3'],
-                         's': ['-Oz'],
-                         }  # type: T.Dict[str, T.List[str]]
+ldc_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Oz'],
+}
 
-dmd_optimization_args = {'plain': [],
-                         '0': [],
-                         'g': [],
-                         '1': ['-O'],
-                         '2': ['-O'],
-                         '3': ['-O'],
-                         's': ['-O'],
-                         }  # type: T.Dict[str, T.List[str]]
+dmd_optimization_args: T.Dict[str, T.List[str]] = {
+    'plain': [],
+    '0': [],
+    'g': [],
+    '1': ['-O'],
+    '2': ['-O'],
+    '3': ['-O'],
+    's': ['-O'],
+}
 
 
 class DmdLikeCompilerMixin(CompilerMixinBase):
@@ -102,7 +109,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             self._dmd_has_depfile = version_compare(dmd_frontend_version, ">=2.095.0")
 
     if T.TYPE_CHECKING:
-        mscrt_args = {}  # type: T.Dict[str, T.List[str]]
+        mscrt_args: T.Dict[str, T.List[str]] = {}
 
         def _get_target_arch_args(self) -> T.List[str]: ...
 
@@ -164,94 +171,6 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             return []
         return ['-fPIC']
 
-    def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
-        # TODO: using a TypeDict here would improve this
-        res = []
-        # get_feature_args can be called multiple times for the same target when there is generated source
-        # so we have to copy the kwargs (target.d_features) dict before popping from it
-        kwargs = kwargs.copy()
-        if 'unittest' in kwargs:
-            unittest = kwargs.pop('unittest')
-            unittest_arg = d_feature_args[self.id]['unittest']
-            if not unittest_arg:
-                raise EnvironmentException('D compiler %s does not support the "unittest" feature.' % self.name_string())
-            if unittest:
-                res.append(unittest_arg)
-
-        if 'debug' in kwargs:
-            debug_level = -1
-            debugs = kwargs.pop('debug')
-            if not isinstance(debugs, list):
-                debugs = [debugs]
-
-            debug_arg = d_feature_args[self.id]['debug']
-            if not debug_arg:
-                raise EnvironmentException('D compiler %s does not support conditional debug identifiers.' % self.name_string())
-
-            # Parse all debug identifiers and the largest debug level identifier
-            for d in debugs:
-                if isinstance(d, int):
-                    if d > debug_level:
-                        debug_level = d
-                elif isinstance(d, str) and d.isdigit():
-                    if int(d) > debug_level:
-                        debug_level = int(d)
-                else:
-                    res.append(f'{debug_arg}={d}')
-
-            if debug_level >= 0:
-                res.append(f'{debug_arg}={debug_level}')
-
-        if 'versions' in kwargs:
-            version_level = -1
-            versions = kwargs.pop('versions')
-            if not isinstance(versions, list):
-                versions = [versions]
-
-            version_arg = d_feature_args[self.id]['version']
-            if not version_arg:
-                raise EnvironmentException('D compiler %s does not support conditional version identifiers.' % self.name_string())
-
-            # Parse all version identifiers and the largest version level identifier
-            for v in versions:
-                if isinstance(v, int):
-                    if v > version_level:
-                        version_level = v
-                elif isinstance(v, str) and v.isdigit():
-                    if int(v) > version_level:
-                        version_level = int(v)
-                else:
-                    res.append(f'{version_arg}={v}')
-
-            if version_level >= 0:
-                res.append(f'{version_arg}={version_level}')
-
-        if 'import_dirs' in kwargs:
-            import_dirs = kwargs.pop('import_dirs')
-            if not isinstance(import_dirs, list):
-                import_dirs = [import_dirs]
-
-            import_dir_arg = d_feature_args[self.id]['import_dir']
-            if not import_dir_arg:
-                raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
-            for idir_obj in import_dirs:
-                basedir = idir_obj.get_curdir()
-                for idir in idir_obj.get_incdirs():
-                    bldtreedir = os.path.join(basedir, idir)
-                    # Avoid superfluous '/.' at the end of paths when d is '.'
-                    if idir not in ('', '.'):
-                        expdir = bldtreedir
-                    else:
-                        expdir = basedir
-                    srctreedir = os.path.join(build_to_src, expdir)
-                    res.append(f'{import_dir_arg}{srctreedir}')
-                    res.append(f'{import_dir_arg}{bldtreedir}')
-
-        if kwargs:
-            raise EnvironmentException('Unknown D compiler feature(s) selected: %s' % ', '.join(kwargs.keys()))
-
-        return res
-
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         if buildtype != 'plain':
             return self._get_target_arch_args()
@@ -271,7 +190,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             # The way that dmd and ldc pass rpath to gcc is different than we would
             # do directly, each argument -rpath and the value to rpath, need to be
             # split into two separate arguments both prefaced with the -L=.
-            args = []
+            args: T.List[str] = []
             (rpath_args, rpath_dirs_to_remove) = super().build_rpath_args(
                     env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
             for r in rpath_args:
@@ -292,7 +211,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         # can understand.
         # The flags might have been added by pkg-config files,
         # and are therefore out of the user's control.
-        dcargs = []
+        dcargs: T.List[str] = []
         # whether we hit a linker argument that expect another arg
         # see the comment in the "-L" section
         link_expect_arg = False
@@ -301,7 +220,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         ]
         for arg in args:
             # Translate OS specific arguments first.
-            osargs = []  # type: T.List[str]
+            osargs: T.List[str] = []
             if info.is_windows():
                 osargs = cls.translate_arg_to_windows(arg)
             elif info.is_darwin():
@@ -415,7 +334,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
     @classmethod
     def translate_arg_to_windows(cls, arg: str) -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         if arg.startswith('-Wl,'):
             # Translate linker arguments here.
             linkargs = arg[arg.index(',') + 1:].split(',')
@@ -441,7 +360,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
     @classmethod
     def _translate_arg_to_osx(cls, arg: str) -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         if arg.startswith('-install_name'):
             args.append('-L=' + arg)
         return args
@@ -460,31 +379,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     def _get_crt_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if not self.info.is_windows():
             return []
-
-        if crt_val in self.mscrt_args:
-            return self.mscrt_args[crt_val]
-        assert crt_val in {'from_buildtype', 'static_from_buildtype'}
-
-        dbg = 'mdd'
-        rel = 'md'
-        if crt_val == 'static_from_buildtype':
-            dbg = 'mtd'
-            rel = 'mt'
-
-        # Match what build type flags used to do.
-        if buildtype == 'plain':
-            return []
-        elif buildtype == 'debug':
-            return self.mscrt_args[dbg]
-        elif buildtype == 'debugoptimized':
-            return self.mscrt_args[rel]
-        elif buildtype == 'release':
-            return self.mscrt_args[rel]
-        elif buildtype == 'minsize':
-            return self.mscrt_args[rel]
-        else:
-            assert buildtype == 'custom'
-            raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
+        return self.mscrt_args[self.get_crt_val(crt_val, buildtype)]
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
@@ -494,15 +389,14 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         # LDC and DMD actually do use a linker, but they proxy all of that with
         # their own arguments
+        soargs: T.List[str] = []
         if self.linker.id.startswith('ld.'):
-            soargs = []
             for arg in sargs:
                 a, b = arg.split(',', maxsplit=1)
                 soargs.append(a)
                 soargs.append(self.LINKER_PREFIX + b)
             return soargs
         elif self.linker.id.startswith('ld64'):
-            soargs = []
             for arg in sargs:
                 if not arg.startswith(self.LINKER_PREFIX):
                     soargs.append(self.LINKER_PREFIX + arg)
@@ -559,7 +453,7 @@ class DCompiler(Compiler):
         pc = subprocess.Popen(self.exelist + self.get_output_args(output_name) + self._get_target_arch_args() + [source_name], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('D compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('D compiler %s cannot compile programs.' % self.name_string())
         if self.is_cross:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
@@ -581,91 +475,69 @@ class DCompiler(Compiler):
             return []
         return ['-fPIC']
 
-    def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
-        # TODO: using a TypeDict here would improve this
-        res = []
-        # get_feature_args can be called multiple times for the same target when there is generated source
-        # so we have to copy the kwargs (target.d_features) dict before popping from it
-        kwargs = kwargs.copy()
-        if 'unittest' in kwargs:
-            unittest = kwargs.pop('unittest')
-            unittest_arg = d_feature_args[self.id]['unittest']
-            if not unittest_arg:
-                raise EnvironmentException('D compiler %s does not support the "unittest" feature.' % self.name_string())
-            if unittest:
-                res.append(unittest_arg)
+    def get_feature_args(self, kwargs: DFeatures, build_to_src: str) -> T.List[str]:
+        res: T.List[str] = []
+        unittest_arg = d_feature_args[self.id]['unittest']
+        if not unittest_arg:
+            raise EnvironmentException('D compiler %s does not support the "unittest" feature.' % self.name_string())
+        if kwargs['unittest']:
+            res.append(unittest_arg)
 
-        if 'debug' in kwargs:
-            debug_level = -1
-            debugs = kwargs.pop('debug')
-            if not isinstance(debugs, list):
-                debugs = [debugs]
+        debug_level = -1
+        debug_arg = d_feature_args[self.id]['debug']
+        if not debug_arg:
+            raise EnvironmentException('D compiler %s does not support conditional debug identifiers.' % self.name_string())
 
-            debug_arg = d_feature_args[self.id]['debug']
-            if not debug_arg:
-                raise EnvironmentException('D compiler %s does not support conditional debug identifiers.' % self.name_string())
+        # Parse all debug identifiers and the largest debug level identifier
+        for d in kwargs['debug']:
+            if isinstance(d, int):
+                if d > debug_level:
+                    debug_level = d
+            elif isinstance(d, str) and d.isdigit():
+                if int(d) > debug_level:
+                    debug_level = int(d)
+            else:
+                res.append(f'{debug_arg}={d}')
 
-            # Parse all debug identifiers and the largest debug level identifier
-            for d in debugs:
-                if isinstance(d, int):
-                    if d > debug_level:
-                        debug_level = d
-                elif isinstance(d, str) and d.isdigit():
-                    if int(d) > debug_level:
-                        debug_level = int(d)
+        if debug_level >= 0:
+            res.append(f'{debug_arg}={debug_level}')
+
+        version_level = -1
+        version_arg = d_feature_args[self.id]['version']
+        if not version_arg:
+            raise EnvironmentException('D compiler %s does not support conditional version identifiers.' % self.name_string())
+
+        # Parse all version identifiers and the largest version level identifier
+        for v in kwargs['versions']:
+            if isinstance(v, int):
+                if v > version_level:
+                    version_level = v
+            elif isinstance(v, str) and v.isdigit():
+                if int(v) > version_level:
+                    version_level = int(v)
+            else:
+                res.append(f'{version_arg}={v}')
+
+        if version_level >= 0:
+            res.append(f'{version_arg}={version_level}')
+
+        import_dir_arg = d_feature_args[self.id]['import_dir']
+        if not import_dir_arg:
+            raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
+        # TODO: ImportDirs.to_string_list(), but we need both the project source
+        # root and project build root for that.
+        for idir_obj in kwargs['import_dirs']:
+            basedir = idir_obj.get_curdir()
+            for idir in idir_obj.get_incdirs():
+                bldtreedir = os.path.join(basedir, idir)
+                # Avoid superfluous '/.' at the end of paths when d is '.'
+                if idir not in ('', '.'):
+                    expdir = bldtreedir
                 else:
-                    res.append(f'{debug_arg}={d}')
-
-            if debug_level >= 0:
-                res.append(f'{debug_arg}={debug_level}')
-
-        if 'versions' in kwargs:
-            version_level = -1
-            versions = kwargs.pop('versions')
-            if not isinstance(versions, list):
-                versions = [versions]
-
-            version_arg = d_feature_args[self.id]['version']
-            if not version_arg:
-                raise EnvironmentException('D compiler %s does not support conditional version identifiers.' % self.name_string())
-
-            # Parse all version identifiers and the largest version level identifier
-            for v in versions:
-                if isinstance(v, int):
-                    if v > version_level:
-                        version_level = v
-                elif isinstance(v, str) and v.isdigit():
-                    if int(v) > version_level:
-                        version_level = int(v)
-                else:
-                    res.append(f'{version_arg}={v}')
-
-            if version_level >= 0:
-                res.append(f'{version_arg}={version_level}')
-
-        if 'import_dirs' in kwargs:
-            import_dirs = kwargs.pop('import_dirs')
-            if not isinstance(import_dirs, list):
-                import_dirs = [import_dirs]
-
-            import_dir_arg = d_feature_args[self.id]['import_dir']
-            if not import_dir_arg:
-                raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
-            for idir_obj in import_dirs:
-                basedir = idir_obj.get_curdir()
-                for idir in idir_obj.get_incdirs():
-                    bldtreedir = os.path.join(basedir, idir)
-                    # Avoid superfluous '/.' at the end of paths when d is '.'
-                    if idir not in ('', '.'):
-                        expdir = bldtreedir
-                    else:
-                        expdir = basedir
-                    srctreedir = os.path.join(build_to_src, expdir)
-                    res.append(f'{import_dir_arg}{srctreedir}')
-                    res.append(f'{import_dir_arg}{bldtreedir}')
-
-        if kwargs:
-            raise EnvironmentException('Unknown D compiler feature(s) selected: %s' % ', '.join(kwargs.keys()))
+                    expdir = basedir
+                srctreedir = os.path.join(build_to_src, expdir)
+                res.append(f'{import_dir_arg}{srctreedir}')
+                res.append(f'{import_dir_arg}{bldtreedir}')
 
         return res
 
@@ -713,7 +585,7 @@ class DCompiler(Compiler):
         if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
         extra_args = self._get_compile_extra_args(extra_args)
-        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
+        with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
                 return compilers.RunResult(False)
@@ -735,7 +607,7 @@ class DCompiler(Compiler):
 
     def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
                extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-               dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+               dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         if extra_args is None:
             extra_args = []
         t = f'''
@@ -745,17 +617,17 @@ class DCompiler(Compiler):
             writeln(({typename}).sizeof);
         }}
         '''
-        res = self.run(t, env, extra_args=extra_args,
-                       dependencies=dependencies)
+        res = self.cached_run(t, env, extra_args=extra_args,
+                              dependencies=dependencies)
         if not res.compiled:
-            return -1
+            return -1, False
         if res.returncode != 0:
             raise mesonlib.EnvironmentException('Could not run sizeof test binary.')
-        return int(res.stdout)
+        return int(res.stdout), res.cached
 
     def alignment(self, typename: str, prefix: str, env: 'Environment', *,
                   extra_args: T.Optional[T.List[str]] = None,
-                  dependencies: T.Optional[T.List['Dependency']] = None) -> int:
+                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[int, bool]:
         if extra_args is None:
             extra_args = []
         t = f'''
@@ -774,7 +646,7 @@ class DCompiler(Compiler):
         align = int(res.stdout)
         if align == 0:
             raise mesonlib.EnvironmentException(f'Could not determine alignment of {typename}. Sorry. You might want to file a bug.')
-        return align
+        return align, res.cached
 
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
                    extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
@@ -786,7 +658,7 @@ class DCompiler(Compiler):
         import {hname};
         '''
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='compile', disable_cache=disable_cache)
+                             dependencies=dependencies, mode=CompileCheckMode.COMPILE, disable_cache=disable_cache)
 
 class GnuDCompiler(GnuCompiler, DCompiler):
 
@@ -855,8 +727,10 @@ class GnuDCompiler(GnuCompiler, DCompiler):
             return args
         return args + ['-shared-libphobos']
 
-    def get_disable_assert_args(self) -> T.List[str]:
-        return ['-frelease']
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        if disable:
+            return ['-frelease']
+        return []
 
 # LDC uses the DMD frontend code to parse and analyse the code.
 # It then uses LLVM for the binary code generation and optimizations.
@@ -927,8 +801,10 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
             return args
         return args + ['-link-defaultlib-shared']
 
-    def get_disable_assert_args(self) -> T.List[str]:
-        return ['--release']
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        if disable:
+            return ['--release']
+        return []
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         # We use `mesonlib.is_windows` here because we want to know what the
@@ -1015,8 +891,10 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             return args
         return args + ['-defaultlib=phobos2', '-debuglib=phobos2']
 
-    def get_disable_assert_args(self) -> T.List[str]:
-        return ['-release']
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        if disable:
+            return ['-release']
+        return []
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return RSPFileSyntax.MSVC

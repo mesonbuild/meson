@@ -38,6 +38,12 @@ set to a random value between 1..255. This can help find memory leaks on
 configurations using glibc, including with non-GCC compilers. This feature
 can be disabled as discussed in [[test]].
 
+### ASAN_OPTIONS and UBSAN_OPTIONS
+
+By default, the environment variables `ASAN_OPTIONS` and `UBSAN_OPTIONS` are
+set to enable aborting on detected violations and to give a backtrace. This
+feature can be disabled as discussed in [[test]].
+
 ## Coverage
 
 If you enable coverage measurements by giving Meson the command line
@@ -49,7 +55,7 @@ targets. These targets are `coverage-xml` and `coverage-text` which
 are both provided by [Gcovr](http://gcovr.com) (version 3.3 or higher)
 `coverage-sonarqube` which is provided by [Gcovr](http://gcovr.com) (version 4.2 or higher)
 and `coverage-html`, which requires
-[Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and
+[lcov](https://github.com/linux-test-project/lcov) and
 [GenHTML](https://linux.die.net/man/1/genhtml) or
 [Gcovr](http://gcovr.com). As a convenience, a high-level `coverage`
 target is also generated which will produce all 3 coverage report
@@ -61,7 +67,7 @@ your build directory.
 ## Parallelism
 
 To reduce test times, Meson will by default run multiple unit tests in
-parallel. It is common to have some tests which can not be run in
+parallel. It is common to have some tests which cannot be run in
 parallel because they require unique hold on some resource such as a
 file or a D-Bus name. You have to specify these tests with a keyword
 argument.
@@ -106,7 +112,7 @@ completed.
 
 ## Skipped tests and hard errors
 
-Sometimes a test can only determine at runtime that it can not be run.
+Sometimes a test can only determine at runtime that it cannot be run.
 
 For the default `exitcode` testing protocol, the GNU standard approach
 in this case is to exit the program with error code 77. Meson will
@@ -152,6 +158,27 @@ Specify test(s) by name like:
 ```console
 $ meson test A D
 ```
+
+You can run tests from specific (sub)project:
+
+```console
+$ meson test (sub)project_name:
+```
+
+or a specific test in a specific project:
+
+```console
+$ meson test (sub)project_name:test_name
+```
+
+Since version *1.2.0*, you can use wildcards in project
+and test names. For instance, to run all tests beginning with
+"foo" and all tests from projects beginning with "bar":
+
+```console
+$ meson test "foo*" "bar*:"
+```
+
 
 Tests belonging to a suite `suite` can be run as follows
 

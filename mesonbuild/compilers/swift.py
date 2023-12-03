@@ -23,10 +23,10 @@ from .compilers import Compiler, swift_buildtype_args, clike_debug_args
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import DynamicLinker
+    from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
 
-swift_optimization_args = {
+swift_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': [],
     'g': [],
@@ -34,7 +34,7 @@ swift_optimization_args = {
     '2': ['-O'],
     '3': ['-O'],
     's': ['-O'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
 class SwiftCompiler(Compiler):
 
@@ -116,7 +116,7 @@ class SwiftCompiler(Compiler):
         pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('Swift compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('Swift compiler %s cannot compile programs.' % self.name_string())
         if self.is_cross:
             # Can't check if the binaries run so we have to assume they do
             return

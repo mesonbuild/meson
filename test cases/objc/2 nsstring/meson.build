@@ -1,7 +1,7 @@
 project('nsstring', 'objc')
 
 if host_machine.system() == 'darwin'
-  dep = dependency('appleframeworks', modules : 'foundation')
+  dep = dependency('appleframeworks', modules : 'Foundation')
 elif host_machine.system() == 'cygwin'
   error('MESON_SKIP_TEST GNUstep is not packaged for Cygwin.')
 else

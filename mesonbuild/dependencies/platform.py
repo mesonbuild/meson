@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from .base import DependencyTypeName, ExternalDependency, DependencyException
+from .detect import packages
 from ..mesonlib import MesonException
 import typing as T
 
@@ -58,3 +59,5 @@ class AppleFrameworks(ExternalDependency):
     @staticmethod
     def log_tried() -> str:
         return 'framework'
+
+packages['appleframeworks'] = AppleFrameworks

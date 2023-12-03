@@ -38,8 +38,8 @@ def parse_generator_expressions(
     if '$<' not in raw:
         return raw
 
-    out = ''  # type: str
-    i = 0     # type: int
+    out = ''
+    i = 0
 
     def equal(arg: str) -> str:
         col_pos = arg.find(',')
@@ -98,9 +98,9 @@ def parse_generator_expressions(
             return ';'.join([x for x in tgt.properties['IMPORTED_LOCATION'] if x])
         return ''
 
-    supported = {
+    supported: T.Dict[str, T.Callable[[str], str]] = {
         # Boolean functions
-        'BOOL': lambda x: '0' if x.upper() in {'0', 'FALSE', 'OFF', 'N', 'NO', 'IGNORE', 'NOTFOUND'} or x.endswith('-NOTFOUND') else '1',
+        'BOOL': lambda x: '0' if x.upper() in {'', '0', 'FALSE', 'OFF', 'N', 'NO', 'IGNORE', 'NOTFOUND'} or x.endswith('-NOTFOUND') else '1',
         'AND': lambda x: '1' if all(y == '1' for y in x.split(',')) else '0',
         'OR': lambda x: '1' if any(y == '1' for y in x.split(',')) else '0',
         'NOT': lambda x: '0' if x == '1' else '1',
@@ -140,17 +140,17 @@ def parse_generator_expressions(
         'TARGET_NAME_IF_EXISTS': lambda x: x if x in trace.targets else '',
         'TARGET_PROPERTY': target_property,
         'TARGET_FILE': target_file,
-    }  # type: T.Dict[str, T.Callable[[str], str]]
+    }
 
     # Recursively evaluate generator expressions
     def eval_generator_expressions() -> str:
         nonlocal i
         i += 2
 
-        func = ''  # type: str
-        args = ''  # type: str
-        res = ''   # type: str
-        exp = ''   # type: str
+        func = ''
+        args = ''
+        res = ''
+        exp = ''
 
         # Determine the body of the expression
         while i < len(raw):

@@ -103,17 +103,17 @@ C_FUNC_ATTRIBUTES = {
     'vector_size':
         '__attribute__((vector_size(32))); int foo(void) { return 0; }',
     'visibility': '''
-        int foo_def(void) __attribute__((visibility("default")));
-        int foo_hid(void) __attribute__((visibility("hidden")));
-        int foo_int(void) __attribute__((visibility("internal")));''',
+        int foo_def(void) __attribute__((visibility("default"))); int foo_def(void) { return 0; }
+        int foo_hid(void) __attribute__((visibility("hidden"))); int foo_hid(void) { return 0; }
+        int foo_int(void) __attribute__((visibility("internal"))); int foo_int(void) { return 0; }''',
     'visibility:default':
-        'int foo(void) __attribute__((visibility("default")));',
+        'int foo(void) __attribute__((visibility("default"))); int foo(void) { return 0; }',
     'visibility:hidden':
-        'int foo(void) __attribute__((visibility("hidden")));',
+        'int foo(void) __attribute__((visibility("hidden"))); int foo(void) { return 0; }',
     'visibility:internal':
-        'int foo(void) __attribute__((visibility("internal")));',
+        'int foo(void) __attribute__((visibility("internal"))); int foo(void) { return 0; }',
     'visibility:protected':
-        'int foo(void) __attribute__((visibility("protected")));',
+        'int foo(void) __attribute__((visibility("protected"))); int foo(void) { return 0; }',
     'warning':
         'int foo(void) __attribute__((warning("")));',
     'warn_unused_result':

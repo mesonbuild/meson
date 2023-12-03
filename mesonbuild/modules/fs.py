@@ -20,19 +20,16 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from ..build import CustomTarget, InvalidArguments
+from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
 from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
 from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
-from ..mesonlib import (
-    File,
-    MesonException,
-    has_path_sep,
-    path_is_in_root,
-)
+from ..mesonlib import File, MesonException, has_path_sep, path_is_in_root, relpath
 
 if T.TYPE_CHECKING:
     from . import ModuleState
+    from ..build import BuildTargetTypes
     from ..interpreter import Interpreter
+    from ..interpreterbase import TYPE_kwargs
     from ..mesonlib import FileOrString, FileMode
 
     from typing_extensions import TypedDict
@@ -75,6 +72,7 @@ class FSModule(ExtensionModule):
             'stem': self.stem,
             'read': self.read,
             'copyfile': self.copyfile,
+            'relative_to': self.relative_to,
         })
 
     def _absolute_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
@@ -261,8 +259,10 @@ class FSModule(ExtensionModule):
         try:
             with open(path, encoding=encoding) as f:
                 data = f.read()
+        except FileNotFoundError:
+            raise MesonException(f'File {args[0]} does not exist.')
         except UnicodeDecodeError:
-            raise MesonException(f'decoding failed for {path}')
+            raise MesonException(f'decoding failed for {args[0]}')
         # Reconfigure when this file changes as it can contain data used by any
         # part of the build configuration (e.g. `project(..., version:
         # fs.read_file('VERSION')` or `configure_file(...)`
@@ -306,9 +306,27 @@ class FSModule(ExtensionModule):
             install_mode=kwargs['install_mode'],
             install_tag=[kwargs['install_tag']],
             backend=state.backend,
+            description='Copying file {}',
         )
 
         return ModuleReturnValue(ct, [ct])
+
+    @FeatureNew('fs.relative_to', '1.3.0')
+    @typed_pos_args('fs.relative_to', (str, File, CustomTarget, CustomTargetIndex, BuildTarget), (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    @noKwargs
+    def relative_to(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes], T.Union[FileOrString, BuildTargetTypes]], kwargs: TYPE_kwargs) -> str:
+        def to_path(arg: T.Union[FileOrString, CustomTarget, CustomTargetIndex, BuildTarget]) -> str:
+            if isinstance(arg, File):
+                return arg.absolute_path(state.environment.source_dir, state.environment.build_dir)
+            elif isinstance(arg, (CustomTarget, CustomTargetIndex, BuildTarget)):
+                return state.backend.get_target_filename_abs(arg)
+            else:
+                return os.path.join(state.environment.source_dir, state.subdir, arg)
+
+        t = to_path(args[0])
+        f = to_path(args[1])
+
+        return relpath(t, f)
 
 
 def initialize(*args: T.Any, **kwargs: T.Any) -> FSModule:

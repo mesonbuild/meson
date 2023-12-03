@@ -31,7 +31,7 @@ sys.path.append(os.getcwd())
 from mesonbuild import coredata
 
 # Elementtree does not support CDATA. So hack it.
-WINVER_CHECK = '<![CDATA[Installed OR (VersionNT64 > 602)]]>'
+WINVER_CHECK = 'Installed OR (VersionNT64 &gt; 602)>'
 
 def gen_guid():
     '''
@@ -102,7 +102,7 @@ class PackageGenerator:
                 'Title': 'Meson',
                 'Description': 'Meson executables',
                 'Level': '1',
-                'Absent': 'disallow',
+                'AllowAbsent': 'no',
             },
             self.staging_dirs[1]: {
                 'Id': 'NinjaProgram',
@@ -160,49 +160,44 @@ class PackageGenerator:
         '''
            Generate package files for MSI installer package
         '''
-        self.root = ET.Element('Wix', {'xmlns': 'http://schemas.microsoft.com/wix/2006/wi'})
-        product = ET.SubElement(self.root, 'Product', {
+        self.root = ET.Element('Wix', {
+            'xmlns': 'http://wixtoolset.org/schemas/v4/wxs',
+            'xmlns:ui': 'http://wixtoolset.org/schemas/v4/wxs/ui'
+        })
+
+        package = ET.SubElement(self.root, 'Package', {
             'Name': self.product_name,
             'Manufacturer': 'The Meson Development Team',
-            'Id': self.guid,
             'UpgradeCode': self.update_guid,
             'Language': '1033',
             'Codepage':  '1252',
             'Version': self.version,
         })
 
-        package = ET.SubElement(product, 'Package', {
-            'Id': '*',
+        ET.SubElement(package, 'SummaryInformation', {
             'Keywords': 'Installer',
             'Description': f'Meson {self.version} installer',
-            'Comments': 'Meson is a high performance build system',
             'Manufacturer': 'The Meson Development Team',
-            'InstallerVersion': '500',
-            'Languages': '1033',
-            'Compressed': 'yes',
-            'SummaryCodepage': '1252',
         })
 
-        condition = ET.SubElement(product, 'Condition', {'Message': 'This application is only supported on Windows 10 or higher.'})
+        ET.SubElement(package,
+                      'Launch',
+                      {'Message': 'This application is only supported on Windows 10 or higher.',
+                       'Condition': 'X'*len(WINVER_CHECK)})
 
-        condition.text = 'X'*len(WINVER_CHECK)
-        ET.SubElement(product, 'MajorUpgrade',
-                      {'DowngradeErrorMessage': 'A newer version of Meson is already installed.'})
+        ET.SubElement(package, 'MajorUpgrade',
+                      {'DowngradeErrorMessage':
+                       'A newer version of Meson is already installed.'})
 
-        package.set('Platform', 'x64')
-        ET.SubElement(product, 'Media', {
+        ET.SubElement(package, 'Media', {
             'Id': '1',
             'Cabinet': 'meson.cab',
             'EmbedCab': 'yes',
         })
-        targetdir = ET.SubElement(product, 'Directory', {
-            'Id': 'TARGETDIR',
-            'Name': 'SourceDir',
+        targetdir = ET.SubElement(package, 'StandardDirectory', {
+            'Id': 'ProgramFiles64Folder',
         })
-        progfiledir = ET.SubElement(targetdir, 'Directory', {
-            'Id': self.progfile_dir,
-        })
-        installdir = ET.SubElement(progfiledir, 'Directory', {
+        installdir = ET.SubElement(targetdir, 'Directory', {
             'Id': 'INSTALLDIR',
             'Name': 'Meson',
         })
@@ -213,16 +208,12 @@ class PackageGenerator:
             'Language': '0',
         })
 
-        ET.SubElement(product, 'Property', {
-            'Id': 'WIXUI_INSTALLDIR',
-            'Value': 'INSTALLDIR',
-        })
-        ET.SubElement(product, 'UIRef', {
+        ET.SubElement(package, 'ui:WixUI', {
             'Id': 'WixUI_FeatureTree',
         })
         for s_d in self.staging_dirs:
             assert os.path.isdir(s_d)
-        top_feature = ET.SubElement(product, 'Feature', {
+        top_feature = ET.SubElement(package, 'Feature', {
             'Id': 'Complete',
             'Title': 'Meson ' + self.version,
             'Description': 'The complete package',
@@ -246,7 +237,7 @@ class PackageGenerator:
         })
         ET.SubElement(vcredist_feature, 'MergeRef', {'Id': 'VCRedist'})
         ET.ElementTree(self.root).write(self.main_xml, encoding='utf-8', xml_declaration=True)
-        # ElementTree can not do prettyprinting so do it manually
+        # ElementTree cannot do pretty-printing, so do it manually
         import xml.dom.minidom
         doc = xml.dom.minidom.parse(self.main_xml)
         with open(self.main_xml, 'w') as open_file:
@@ -277,10 +268,10 @@ class PackageGenerator:
             component_id = f'ApplicationFiles{self.component_num}'
             comp_xml_node = ET.SubElement(parent_xml_node, 'Component', {
                 'Id': component_id,
+                'Bitness': 'always64',
                 'Guid': gen_guid(),
             })
             self.feature_components[staging_dir].append(component_id)
-            comp_xml_node.set('Win64', 'yes')
             if self.component_num == 0:
                 ET.SubElement(comp_xml_node, 'Environment', {
                     'Id': 'Environment',
@@ -300,7 +291,7 @@ class PackageGenerator:
                 })
 
         for dirname in cur_node.dirs:
-            dir_id = os.path.join(current_dir, dirname).replace('\\', '_').replace('/', '_')
+            dir_id = os.path.join(current_dir, dirname).replace('\\', '_').replace('/', '_').replace('-', '_')
             dir_node = ET.SubElement(parent_xml_node, 'Directory', {
                 'Id': dir_id,
                 'Name': dirname,
@@ -311,23 +302,40 @@ class PackageGenerator:
         '''
            Generate the Meson build MSI package.
         '''
-        wixdir = 'c:\\Program Files\\Wix Toolset v3.11\\bin'
-        if not os.path.isdir(wixdir):
-            wixdir = 'c:\\Program Files (x86)\\Wix Toolset v3.11\\bin'
-        if not os.path.isdir(wixdir):
-            print("ERROR: This script requires WIX")
-            sys.exit(1)
-        subprocess.check_call([os.path.join(wixdir, 'candle'), self.main_xml])
-        subprocess.check_call([os.path.join(wixdir, 'light'),
-                               '-ext', 'WixUIExtension',
-                               '-cultures:en-us',
-                               '-dWixUILicenseRtf=packaging\\License.rtf',
-                               '-out', self.final_output,
-                               self.main_o])
+        subprocess.check_call(['wix',
+                               'build',
+                               '-bindvariable', 'WixUILicenseRtf=packaging\\License.rtf',
+                               '-ext', 'WixToolset.UI.wixext',
+                               '-culture', 'en-us',
+                               '-arch', 'x64',
+                               '-o',
+                               self.final_output,
+                               self.main_xml,
+                               ])
+
+
+def install_wix():
+    subprocess.check_call(['dotnet',
+                           'nuget',
+                           'add',
+                           'source',
+                           'https://api.nuget.org/v3/index.json'])
+    subprocess.check_call(['dotnet',
+                           'tool',
+                           'install',
+                           '--global',
+                           'wix'])
+    subprocess.check_call(['wix',
+                           'extension',
+                           'add',
+                           'WixToolset.UI.wixext',
+                           ])
 
 if __name__ == '__main__':
     if not os.path.exists('meson.py'):
         sys.exit(print('Run me in the top level source dir.'))
+    if not shutil.which('wix'):
+        install_wix()
     subprocess.check_call(['pip', 'install', '--upgrade', 'pyinstaller'])
 
     p = PackageGenerator()

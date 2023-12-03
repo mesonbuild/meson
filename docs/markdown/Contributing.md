@@ -14,7 +14,7 @@ Thank you for your interest in participating to the development.
 ## Submitting patches
 
 All changes must be submitted as [pull requests to
-Github](https://github.com/mesonbuild/meson/pulls). This causes them
+GitHub](https://github.com/mesonbuild/meson/pulls). This causes them
 to be run through the CI system. All submissions must pass a full CI
 test run before they are even considered for submission.
 
@@ -110,7 +110,7 @@ Meson's merge strategy should fulfill the following guidelines:
 
 These goals are slightly contradictory so the correct thing to do
 often requires some judgement on part of the person doing the
-merge. Github provides three different merge options, The rules of
+merge. GitHub provides three different merge options, The rules of
 thumb for choosing between them goes like this:
 
 - single commit pull requests should always be rebased

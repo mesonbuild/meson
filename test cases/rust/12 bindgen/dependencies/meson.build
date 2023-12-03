@@ -12,6 +12,8 @@ external_dep_rs = rust.bindgen(
 external_dep = static_library(
   'external_dep',
   [external_dep_rs],
+  # for generated code, do not lint
+  rust_args: ['-A', 'warnings'],
   dependencies : dep_zlib.partial_dependency(links : true),
 )
 

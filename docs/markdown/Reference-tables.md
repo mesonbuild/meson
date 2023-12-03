@@ -25,9 +25,12 @@ These are return values of the `get_id` (Compiler family) and
 | lcc       | Elbrus C/C++/Fortran Compiler    |                 |
 | llvm      | LLVM-based compiler (Swift, D)   |                 |
 | mono      | Xamarin C# compiler              |                 |
+| mwccarm   | Metrowerks C/C++ compiler for Embedded ARM         |                 |
+| mwcceppc  | Metrowerks C/C++ compiler for Embedded PowerPC     |                 |
 | msvc      | Microsoft Visual Studio          | msvc            |
 | nagfor    | The NAG Fortran compiler         |                 |
 | nvidia_hpc| NVidia HPC SDK compilers         |                 |
+| nvcc      | NVidia CUDA compiler             |                 |
 | open64    | The Open64 Fortran Compiler      |                 |
 | pathscale | The Pathscale Fortran compiler   |                 |
 | pgi       | Portland PGI C/C++/Fortran compilers |             |
@@ -42,6 +45,8 @@ These are return values of the `get_id` (Compiler family) and
 | yasm      | The YASM compiler (Since 0.64.0) |                 |
 | ml        | Microsoft Macro Assembler for x86 and x86_64 (Since 0.64.0) | msvc |
 | armasm    | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) | |
+| mwasmarm        | Metrowerks Assembler for Embedded ARM | |
+| mwasmeppc       | Metrowerks Assembler for Embedded PowerPC | |
 
 ## Linker ids
 
@@ -69,6 +74,8 @@ These are return values of the `get_linker_id` method in a compiler object.
 | pgi        | Portland/Nvidia PGI                         |
 | nvlink     | Nvidia Linker used with cuda                |
 | ccomp      | CompCert used as the linker driver          |
+| mwldarm    | The Metrowerks Linker with the ARM interface, used with mwccarm only |
+| mwldeppc   | The Metrowerks Linker with the PowerPC interface, used with mwcceppc only |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
@@ -121,10 +128,12 @@ set in the cross file.
 | sh4                 | SuperH SH-4              |
 | sparc               | 32 bit SPARC             |
 | sparc64             | SPARC v9 processor       |
+| sw_64               | 64 bit sunway processor  |
 | wasm32              | 32 bit Webassembly       |
 | wasm64              | 64 bit Webassembly       |
 | x86                 | 32 bit x86 processor     |
 | x86_64              | 64 bit x86 processor     |
+
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
@@ -144,7 +153,7 @@ These are provided by the `.system()` method call.
 | cygwin              | The Cygwin environment for Windows |
 | darwin              | Either OSX or iOS |
 | dragonfly           | DragonFly BSD |
-| emscripten          | Emscripten's Javascript environment |
+| emscripten          | Emscripten's JavaScript environment |
 | freebsd             | FreeBSD and its derivatives |
 | gnu                 | GNU Hurd |
 | haiku               | |
@@ -157,15 +166,52 @@ These are provided by the `.system()` method call.
 Any string not listed above is not guaranteed to remain stable in
 future releases.
 
+## Kernel names (since 1.2.0)
+
+Native names as returned by the `.kernel()` method.
+
+| Value               | Comment                         |
+| -----               | -------                         |
+| linux   | |
+| freebsd | |
+| openbsd | |
+| netbsd  | |
+| nt      | |
+| xnu                 | Kernel of various Apple OSes    |
+| illumos             | Kernel derived from OpenSolaris by community efforts |
+| solaris             | Kernel derived from OpenSolaris by Oracle |
+| dragonfly | |
+| haiku| |
+| none                 | For e.g. bare metal embedded    |
+
+
+## Subsystem names (since 1.2.0)
+
+A more specific description of the system in question. Most values are
+meant to be used in cross files only, as those platforms can not run
+Meson natively.
+
+| Value               | Comment                         |
+| -----               | -------                         |
+| macos               | Apple macOS (formerly OSX)      |
+| ios                 | Apple iOS                       |
+| ios-simulator       |                                 |
+| tvos                | Apple tvOS                      |
+| tvos-simulator      |                                 |
+| watchos             | Apple watchOS                   |
+| watchos-simulator   |                                 |
+
 ## Language arguments parameter names
 
-These are the parameter names for passing language specific arguments to your build target.
+These are the parameter names for passing language specific arguments
+to your build target.
 
 | Language      | compiler name | linker name       |
 | ------------- | ------------- | ----------------- |
 | C             | c_args        | c_link_args       |
 | C++           | cpp_args      | cpp_link_args     |
 | C#            | cs_args       | cs_link_args      |
+| CUDA          | cuda_args     | cuda_link_args    |
 | D             | d_args        | d_link_args       |
 | Fortran       | fortran_args  | fortran_link_args |
 | Java          | java_args     | java_link_args    |
@@ -197,6 +243,7 @@ arguments](#language-arguments-parameter-names) instead.
 | -----       | -------                                  |
 | CFLAGS      | Flags for the C compiler                 |
 | CXXFLAGS    | Flags for the C++ compiler               |
+| CUFLAGS     | Flags for the CUDA compiler              |
 | OBJCFLAGS   | Flags for the Objective C compiler       |
 | FFLAGS      | Flags for the Fortran compiler           |
 | DFLAGS      | Flags for the D compiler                 |
@@ -329,8 +376,28 @@ machine](#Environment-variables-per-machine) section for details.
 | C#            | CSC      | CSC       | The linker is the compiler                  |
 | nasm          | NASM     |           | Uses the C linker                           |
 
-*The old environment variales are still supported, but are deprecated
+*The old environment variables are still supported, but are deprecated
 and will be removed in a future version of Meson.*
+
+*changed in 1.3.0* Paths with spaces were split unconditionally to extract
+components such as the [path to Ccache](Feature-autodetection.md#ccache),
+intrinsic compiler flags like `-m32` or `--target`, etc. This broke passing
+a hardcoded compiler path to CMake subprojects. To work around this, paths
+must be wrapped with double quotes:
+
+```bash
+export CC='"C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/cl.exe"'
+```
+
+You can also set the values through [machine files](Machine-files.md#binaries).
+
+*New in 1.3.0* Paths that point to an existing executable no longer need
+wrapping:
+
+```bash
+export CC='C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.34.31933/bin/Hostx64/x64/cl.exe'
+```
+
 
 ## Environment variables per machine
 

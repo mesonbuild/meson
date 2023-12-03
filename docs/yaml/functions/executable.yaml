@@ -10,6 +10,9 @@ description: |
 
   The returned object also has methods that are documented in [[@exe]].
 
+  *Since 1.3.0* executable names can be the same across multiple targets as
+  long as they each have a different `name_suffix`.
+
 warnings:
   - The `link_language` kwarg was broken until 0.55.0
 
@@ -44,3 +47,13 @@ kwargs:
     type: bool
     since: 0.49.0
     description: Build a position-independent executable.
+
+  vs_module_defs:
+    type: str | file | custom_tgt | custom_idx
+    since: 1.3.0
+    description: |
+      Specify a Microsoft module definition file for controlling symbol exports,
+      etc., on platforms where that is possible (e.g. Windows).
+
+      This can be used to expose which functions a shared_module loaded by an
+      executable will be allowed to use.

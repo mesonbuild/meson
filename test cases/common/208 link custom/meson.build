@@ -84,3 +84,10 @@ test('custom_target_1', exe1)
 
 exe1_2 = executable('exe1_2', 'custom_target.c', link_with: lib2)
 test('custom_target_2', exe2)
+
+# Link with custom target containing a SONAME
+dummy3 = shared_library('dummy3', 'dummy.c', version: '1.0')
+t = custom_target(input: dummy, output: 'libcustom@PLAINNAME@', command: [custom_prog, '@INPUT@', '@OUTPUT@'])
+lib3 = static_library('lib3', 'outerlib.c', link_with: t)
+exe3 = executable('exe3', 'custom_target.c', link_with: lib3)
+test('custom_target_3', exe3)

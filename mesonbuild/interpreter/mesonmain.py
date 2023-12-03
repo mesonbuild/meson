@@ -21,13 +21,12 @@ from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
-    from ..backend.backends import ExecutableSerialisation
+    from typing_extensions import Literal, TypedDict
+
     from ..compilers import Compiler
     from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
-
-    from typing_extensions import TypedDict
 
     class FuncOverrideDependency(TypedDict):
 
@@ -54,37 +53,37 @@ class MesonMain(MesonInterpreterObject):
         super().__init__(subproject=interpreter.subproject)
         self.build = build
         self.interpreter = interpreter
-        self.methods.update({'get_compiler': self.get_compiler_method,
-                             'is_cross_build': self.is_cross_build_method,
-                             'has_exe_wrapper': self.has_exe_wrapper_method,
-                             'can_run_host_binaries': self.can_run_host_binaries_method,
-                             'is_unity': self.is_unity_method,
-                             'is_subproject': self.is_subproject_method,
-                             'current_source_dir': self.current_source_dir_method,
-                             'current_build_dir': self.current_build_dir_method,
-                             'source_root': self.source_root_method,
-                             'build_root': self.build_root_method,
-                             'project_source_root': self.project_source_root_method,
-                             'project_build_root': self.project_build_root_method,
-                             'global_source_root': self.global_source_root_method,
-                             'global_build_root': self.global_build_root_method,
+        self.methods.update({'add_devenv': self.add_devenv_method,
+                             'add_dist_script': self.add_dist_script_method,
                              'add_install_script': self.add_install_script_method,
                              'add_postconf_script': self.add_postconf_script_method,
-                             'add_dist_script': self.add_dist_script_method,
-                             'install_dependency_manifest': self.install_dependency_manifest_method,
-                             'override_dependency': self.override_dependency_method,
-                             'override_find_program': self.override_find_program_method,
-                             'project_version': self.project_version_method,
-                             'project_license': self.project_license_method,
-                             'project_license_files': self.project_license_files_method,
-                             'version': self.version_method,
-                             'project_name': self.project_name_method,
+                             'backend': self.backend_method,
+                             'build_options': self.build_options_method,
+                             'build_root': self.build_root_method,
+                             'can_run_host_binaries': self.can_run_host_binaries_method,
+                             'current_source_dir': self.current_source_dir_method,
+                             'current_build_dir': self.current_build_dir_method,
+                             'get_compiler': self.get_compiler_method,
                              'get_cross_property': self.get_cross_property_method,
                              'get_external_property': self.get_external_property_method,
+                             'global_build_root': self.global_build_root_method,
+                             'global_source_root': self.global_source_root_method,
+                             'has_exe_wrapper': self.has_exe_wrapper_method,
                              'has_external_property': self.has_external_property_method,
-                             'backend': self.backend_method,
-                             'add_devenv': self.add_devenv_method,
-                             'build_options': self.build_options_method,
+                             'install_dependency_manifest': self.install_dependency_manifest_method,
+                             'is_cross_build': self.is_cross_build_method,
+                             'is_subproject': self.is_subproject_method,
+                             'is_unity': self.is_unity_method,
+                             'override_dependency': self.override_dependency_method,
+                             'override_find_program': self.override_find_program_method,
+                             'project_build_root': self.project_build_root_method,
+                             'project_license': self.project_license_method,
+                             'project_license_files': self.project_license_files_method,
+                             'project_name': self.project_name_method,
+                             'project_source_root': self.project_source_root_method,
+                             'project_version': self.project_version_method,
+                             'source_root': self.source_root_method,
+                             'version': self.version_method,
                              })
 
     def _find_source_script(
@@ -377,7 +376,7 @@ class MesonMain(MesonInterpreterObject):
     def _override_dependency_impl(self, name: str, dep: dependencies.Dependency, kwargs: 'FuncOverrideDependency',
                                   static: T.Optional[bool], permissive: bool = False) -> None:
         # We need the cast here as get_dep_identifier works on such a dict,
-        # which FuncOverrideDependency is, but mypy can't fgure that out
+        # which FuncOverrideDependency is, but mypy can't figure that out
         nkwargs = T.cast('T.Dict[str, T.Any]', kwargs.copy())
         if static is None:
             del nkwargs['static']
@@ -456,15 +455,15 @@ class MesonMain(MesonInterpreterObject):
 
     @FeatureNew('add_devenv', '0.58.0')
     @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
-    @typed_pos_args('add_devenv', (str, list, dict, build.EnvironmentVariables))
-    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, build.EnvironmentVariables]],
+    @typed_pos_args('add_devenv', (str, list, dict, mesonlib.EnvironmentVariables))
+    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, mesonlib.EnvironmentVariables]],
                           kwargs: 'AddDevenvKW') -> None:
         env = args[0]
         msg = ENV_KW.validator(env)
         if msg:
             raise build.InvalidArguments(f'"add_devenv": {msg}')
         converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
-        assert isinstance(converted, build.EnvironmentVariables)
+        assert isinstance(converted, mesonlib.EnvironmentVariables)
         self.build.devenv.append(converted)
 
     @noPosargs

@@ -12,125 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+from .base import ArLikeLinker, RSPFileSyntax
 from .detect import (
     defaults,
     guess_win_linker,
     guess_nix_linker,
 )
-from .linkers import (
-    RSPFileSyntax,
-
-    StaticLinker,
-    VisualStudioLikeLinker,
-    VisualStudioLinker,
-    IntelVisualStudioLinker,
-    AppleArLinker,
-    ArLinker,
-    ArmarLinker,
-    DLinker,
-    CcrxLinker,
-    Xc16Linker,
-    CompCertLinker,
-    C2000Linker,
-    TILinker,
-    AIXArLinker,
-    PGIStaticLinker,
-    NvidiaHPC_StaticLinker,
-
-    DynamicLinker,
-    PosixDynamicLinkerMixin,
-    GnuLikeDynamicLinkerMixin,
-    AppleDynamicLinker,
-    GnuDynamicLinker,
-    GnuGoldDynamicLinker,
-    GnuBFDDynamicLinker,
-    LLVMDynamicLinker,
-    MoldDynamicLinker,
-    WASMDynamicLinker,
-    CcrxDynamicLinker,
-    Xc16DynamicLinker,
-    CompCertDynamicLinker,
-    C2000DynamicLinker,
-    TIDynamicLinker,
-    ArmDynamicLinker,
-    ArmClangDynamicLinker,
-    QualcommLLVMDynamicLinker,
-    PGIDynamicLinker,
-    NvidiaHPC_DynamicLinker,
-    NAGDynamicLinker,
-
-    VisualStudioLikeLinkerMixin,
-    MSVCDynamicLinker,
-    ClangClDynamicLinker,
-    XilinkDynamicLinker,
-    SolarisDynamicLinker,
-    AIXDynamicLinker,
-    OptlinkDynamicLinker,
-    CudaLinker,
-
-    prepare_rpaths,
-    order_rpaths,
-    evaluate_rpath,
-)
 
 __all__ = [
+    # base.py
+    'ArLikeLinker',
+    'RSPFileSyntax',
+
     # detect.py
     'defaults',
     'guess_win_linker',
     'guess_nix_linker',
-
-    # linkers.py
-    'RSPFileSyntax',
-
-    'StaticLinker',
-    'VisualStudioLikeLinker',
-    'VisualStudioLinker',
-    'IntelVisualStudioLinker',
-    'ArLinker',
-    'ArmarLinker',
-    'DLinker',
-    'CcrxLinker',
-    'Xc16Linker',
-    'CompCertLinker',
-    'C2000Linker',
-    'TILinker',
-    'AIXArLinker',
-    'AppleArLinker',
-    'PGIStaticLinker',
-    'NvidiaHPC_StaticLinker',
-
-    'DynamicLinker',
-    'PosixDynamicLinkerMixin',
-    'GnuLikeDynamicLinkerMixin',
-    'AppleDynamicLinker',
-    'GnuDynamicLinker',
-    'GnuGoldDynamicLinker',
-    'GnuBFDDynamicLinker',
-    'LLVMDynamicLinker',
-    'MoldDynamicLinker',
-    'WASMDynamicLinker',
-    'CcrxDynamicLinker',
-    'Xc16DynamicLinker',
-    'CompCertDynamicLinker',
-    'C2000DynamicLinker',
-    'TIDynamicLinker',
-    'ArmDynamicLinker',
-    'ArmClangDynamicLinker',
-    'QualcommLLVMDynamicLinker',
-    'PGIDynamicLinker',
-    'NvidiaHPC_DynamicLinker',
-    'NAGDynamicLinker',
-
-    'VisualStudioLikeLinkerMixin',
-    'MSVCDynamicLinker',
-    'ClangClDynamicLinker',
-    'XilinkDynamicLinker',
-    'SolarisDynamicLinker',
-    'AIXDynamicLinker',
-    'OptlinkDynamicLinker',
-    'CudaLinker',
-
-    'prepare_rpaths',
-    'order_rpaths',
-    'evaluate_rpath',
 ]

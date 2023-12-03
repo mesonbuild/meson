@@ -227,7 +227,7 @@ Furthermore, the `filename` and `install_filename` keys in the targets
 introspection are now lists of strings with identical length.
 
 The `--target-files` option is now deprecated, since the same information
-can be acquired from the `--tragets` introspection API.
+can be acquired from the `--targets` introspection API.
 
 ## Meson file rewriter
 
@@ -317,7 +317,7 @@ A complete introspection dump is also stored in the `meson-info`
 directory. This dump will be (re)generated each time meson updates the
 configuration of the build directory.
 
-Additionlly the format of `meson introspect target` was changed:
+Additionally the format of `meson introspect target` was changed:
 
   - New: the `sources` key. It stores the source files of a target and their compiler parameters.
   - New: the `defined_in` key. It stores the Meson file where a target is defined

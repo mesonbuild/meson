@@ -36,5 +36,6 @@ test('import test 2', e, args : m2)
 
 # Shared module that does not export any symbols
 shared_module('nosyms', 'nosyms.c',
+  override_options: ['werror=false'],
   install : true,
   install_dir : join_paths(get_option('libdir'), 'modules'))

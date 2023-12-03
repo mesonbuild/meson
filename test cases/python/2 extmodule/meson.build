@@ -1,5 +1,5 @@
 project('Python extension module', 'c',
-  default_options : ['buildtype=release'])
+  default_options : ['buildtype=release', 'werror=true', 'python.bytecompile=-1'])
 # Because Windows Python ships only with optimized libs,
 # we must build this project the same way.
 
@@ -10,6 +10,7 @@ endif
 
 py_mod = import('python')
 py = py_mod.find_installation()
+py2 = py_mod.find_installation('python2', required: get_option('python2'), disabler: true)
 py_dep = py.dependency(required: false)
 
 if not py_dep.found()
@@ -31,6 +32,12 @@ test('extmod',
 
 py.install_sources(blaster, pure: false)
 py.install_sources(blaster, subdir: 'pure')
+install_subdir('subinst', install_dir: py.get_install_dir(pure: false))
+
+py2.install_sources(blaster, pure: false)
+py2.install_sources(blaster, subdir: 'pure')
+install_subdir('subinst', install_dir: py2.get_install_dir(pure: false))
+
 
 py3_pkg_dep = dependency('python3', method: 'pkg-config', required : false)
 if py3_pkg_dep.found()

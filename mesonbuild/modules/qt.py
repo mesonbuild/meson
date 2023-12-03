@@ -23,7 +23,7 @@ from . import ModuleReturnValue, ExtensionModule
 from .. import build
 from .. import coredata
 from .. import mlog
-from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
+from ..dependencies import find_external_dependency, Dependency, ExternalLibrary, InternalDependency
 from ..mesonlib import MesonException, File, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
@@ -348,6 +348,7 @@ class QtBaseModule(ExtensionModule):
                 [f'{name}.cpp'],
                 depend_files=qrc_deps,
                 depfile=f'{name}.d',
+                description='Compiling Qt resources {}',
             )
             targets.append(res_target)
         else:
@@ -368,6 +369,7 @@ class QtBaseModule(ExtensionModule):
                     [f'{name}.cpp'],
                     depend_files=qrc_deps,
                     depfile=f'{name}.d',
+                    description='Compiling Qt resources {}',
                 )
                 targets.append(res_target)
 
@@ -455,7 +457,10 @@ class QtBaseModule(ExtensionModule):
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
         for dep in kwargs['dependencies']:
-            compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+            compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
+            if isinstance(dep, InternalDependency):
+                for incl in dep.include_directories:
+                    compile_args.extend(f'-I{i}' for i in incl.to_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
 
         output: T.List[build.GeneratedList] = []
 
@@ -472,7 +477,7 @@ class QtBaseModule(ExtensionModule):
         if kwargs['sources']:
             moc_gen = build.Generator(
                 self.tools['moc'], arguments, ['@BASENAME@.moc'],
-                depfile='@BASENAME.moc.d@',
+                depfile='@BASENAME@.moc.d',
                 name=f'Qt{self.qt_version} moc source')
             output.append(moc_gen.process_files(kwargs['sources'], state))
 
@@ -600,6 +605,7 @@ class QtBaseModule(ExtensionModule):
                 install_dir=[kwargs['install_dir']],
                 install_tag=['i18n'],
                 build_by_default=kwargs['build_by_default'],
+                description='Compiling Qt translations {}',
             )
             translations.append(lrelease_target)
         if qresource:

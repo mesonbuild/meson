@@ -32,14 +32,14 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-pgi_buildtype_args = {
+pgi_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
     'release': [],
     'minsize': [],
     'custom': [],
-}  # type: T.Dict[str, T.List[str]]
+}
 
 
 class PGICompiler(Compiler):

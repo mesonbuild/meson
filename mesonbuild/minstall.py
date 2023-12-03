@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 from glob import glob
-from pathlib import Path
 import argparse
 import errno
 import os
@@ -24,11 +23,12 @@ import shutil
 import subprocess
 import sys
 import typing as T
+import re
 
-from . import build
-from . import environment
+from . import build, environment
 from .backend.backends import InstallData
-from .mesonlib import MesonException, Popen_safe, RealPathAction, is_windows, setup_vsenv, pickle_load, is_osx
+from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
+                       is_aix, setup_vsenv, pickle_load, is_osx, OptionKey)
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:
@@ -40,10 +40,10 @@ except ImportError:
 
 if T.TYPE_CHECKING:
     from .backend.backends import (
-            ExecutableSerialisation, InstallDataBase, InstallEmptyDir,
+            InstallDataBase, InstallEmptyDir,
             InstallSymlinkData, TargetInstallData
     )
-    from .mesonlib import FileMode, EnvironOrDict
+    from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation
 
     try:
         from typing import Protocol
@@ -64,12 +64,16 @@ if T.TYPE_CHECKING:
         strip: bool
 
 
-symlink_warning = '''Warning: trying to copy a symlink that points to a file. This will copy the file,
-but this will be changed in a future version of Meson to copy the symlink as is. Please update your
-build definitions so that it will not break when the change happens.'''
+symlink_warning = '''\
+Warning: trying to copy a symlink that points to a file. This currently copies
+the file by default, but will be changed in a future version of Meson to copy
+the link instead.  Set follow_symlinks to true to preserve current behavior, or
+false to copy the link.'''
 
 selinux_updates: T.List[str] = []
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='wd', action=RealPathAction,
                         help='directory to cd into before running')
@@ -131,9 +135,7 @@ class DirMaker:
 
 
 def load_install_data(fname: str) -> InstallData:
-    obj = pickle_load(fname, 'InstallData', InstallData)
-    assert isinstance(obj, InstallData), 'fo mypy'
-    return obj
+    return pickle_load(fname, 'InstallData', InstallData)
 
 def is_executable(path: str, follow_symlinks: bool = False) -> bool:
     '''Checks whether any of the "x" bits are set in the source file mode.'''
@@ -210,10 +212,10 @@ def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str
         except PermissionError as e:
             print(f'{path!r}: Unable to set owner {mode.owner!r} and group {mode.group!r}: {e.strerror}, ignoring...')
         except LookupError:
-            print(f'{path!r}: Non-existent owner {mode.owner!r} or group {mode.group!r}: ignoring...')
+            print(f'{path!r}: Nonexistent owner {mode.owner!r} or group {mode.group!r}: ignoring...')
         except OSError as e:
             if e.errno == errno.EINVAL:
-                print(f'{path!r}: Non-existent numeric owner {mode.owner!r} or group {mode.group!r}: ignoring...')
+                print(f'{path!r}: Nonexistent numeric owner {mode.owner!r} or group {mode.group!r}: ignoring...')
             else:
                 raise
     # Must set permissions *after* setting owner/group otherwise the
@@ -391,7 +393,8 @@ class Installer:
         return from_time <= to_time
 
     def do_copyfile(self, from_file: str, to_file: str,
-                    makedirs: T.Optional[T.Tuple[T.Any, str]] = None) -> bool:
+                    makedirs: T.Optional[T.Tuple[T.Any, str]] = None,
+                    follow_symlinks: T.Optional[bool] = None) -> bool:
         outdir = os.path.split(to_file)[0]
         if not os.path.isfile(from_file) and not os.path.islink(from_file):
             raise MesonException(f'Tried to install something that isn\'t a file: {from_file!r}')
@@ -405,22 +408,24 @@ class Installer:
                 append_to_log(self.lf, f'# Preserving old file {to_file}\n')
                 self.preserved_file_count += 1
                 return False
+            self.log(f'Installing {from_file} to {outdir}')
             self.remove(to_file)
-        elif makedirs:
-            # Unpack tuple
-            dirmaker, outdir = makedirs
-            # Create dirs if needed
-            dirmaker.makedirs(outdir, exist_ok=True)
-        self.log(f'Installing {from_file} to {outdir}')
+        else:
+            self.log(f'Installing {from_file} to {outdir}')
+            if makedirs:
+                # Unpack tuple
+                dirmaker, outdir = makedirs
+                # Create dirs if needed
+                dirmaker.makedirs(outdir, exist_ok=True)
         if os.path.islink(from_file):
             if not os.path.exists(from_file):
                 # Dangling symlink. Replicate as is.
                 self.copy(from_file, outdir, follow_symlinks=False)
             else:
-                # Remove this entire branch when changing the behaviour to duplicate
-                # symlinks rather than copying what they point to.
-                print(symlink_warning)
-                self.copy2(from_file, to_file)
+                if follow_symlinks is None:
+                    follow_symlinks = True  # TODO: change to False when removing the warning
+                    print(symlink_warning)
+                self.copy2(from_file, to_file, follow_symlinks=follow_symlinks)
         else:
             self.copy2(from_file, to_file)
         selinux_updates.append(to_file)
@@ -454,7 +459,7 @@ class Installer:
 
     def do_copydir(self, data: InstallData, src_dir: str, dst_dir: str,
                    exclude: T.Optional[T.Tuple[T.Set[str], T.Set[str]]],
-                   install_mode: 'FileMode', dm: DirMaker) -> None:
+                   install_mode: 'FileMode', dm: DirMaker, follow_symlinks: T.Optional[bool] = None) -> None:
         '''
         Copies the contents of directory @src_dir into @dst_dir.
 
@@ -483,6 +488,8 @@ class Installer:
             raise ValueError(f'dst_dir must be absolute, got {dst_dir}')
         if exclude is not None:
             exclude_files, exclude_dirs = exclude
+            exclude_files = {os.path.normpath(x) for x in exclude_files}
+            exclude_dirs = {os.path.normpath(x) for x in exclude_dirs}
         else:
             exclude_files = exclude_dirs = set()
         for root, dirs, files in os.walk(src_dir):
@@ -517,7 +524,7 @@ class Installer:
                     dm.makedirs(parent_dir)
                     self.copystat(os.path.dirname(abs_src), parent_dir)
                 # FIXME: what about symlinks?
-                self.do_copyfile(abs_src, abs_dst)
+                self.do_copyfile(abs_src, abs_dst, follow_symlinks=follow_symlinks)
                 self.set_mode(abs_dst, install_mode, data.install_umask)
 
     def do_install(self, datafilename: str) -> None:
@@ -592,7 +599,7 @@ class Installer:
         self.log(f'Stripping target {fname!r}.')
         if is_osx():
             # macOS expects dynamic objects to be stripped with -x maximum.
-            # To also strip the debug info, -S must be added.
+            # To also strip the debug info, -S must be added.
             # See: https://www.unix.com/man-page/osx/1/strip/
             returncode, stdo, stde = self.Popen_safe(strip_bin + ['-S', '-x', outname])
         else:
@@ -611,7 +618,8 @@ class Installer:
             full_dst_dir = get_destdir_path(destdir, fullprefix, i.install_path)
             self.log(f'Installing subdir {i.path} to {full_dst_dir}')
             dm.makedirs(full_dst_dir, exist_ok=True)
-            self.do_copydir(d, i.path, full_dst_dir, i.exclude, i.install_mode, dm)
+            self.do_copydir(d, i.path, full_dst_dir, i.exclude, i.install_mode, dm,
+                            follow_symlinks=i.follow_symlinks)
 
     def install_data(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for i in d.data:
@@ -620,7 +628,7 @@ class Installer:
             fullfilename = i.path
             outfilename = get_destdir_path(destdir, fullprefix, i.install_path)
             outdir = os.path.dirname(outfilename)
-            if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
+            if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir), follow_symlinks=i.follow_symlinks):
                 self.did_install_something = True
             self.set_mode(outfilename, i.install_mode, d.install_umask)
 
@@ -666,15 +674,14 @@ class Installer:
             fname = os.path.basename(fullfilename)
             outdir = get_destdir_path(destdir, fullprefix, t.install_path)
             outfilename = os.path.join(outdir, fname)
-            if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
+            if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir),
+                                follow_symlinks=t.follow_symlinks):
                 self.did_install_something = True
             self.set_mode(outfilename, t.install_mode, d.install_umask)
 
     def run_install_script(self, d: InstallData, destdir: str, fullprefix: str) -> None:
         env = {'MESON_SOURCE_ROOT': d.source_dir,
                'MESON_BUILD_ROOT': d.build_dir,
-               'MESON_INSTALL_PREFIX': d.prefix,
-               'MESON_INSTALL_DESTDIR_PREFIX': fullprefix,
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in d.mesonintrospect]),
                }
         if self.options.quiet:
@@ -685,6 +692,15 @@ class Installer:
         for i in d.install_scripts:
             if not self.should_install(i):
                 continue
+
+            if i.installdir_map is not None:
+                mapp = i.installdir_map
+            else:
+                mapp = {'prefix': d.prefix}
+            localenv = env.copy()
+            localenv.update({'MESON_INSTALL_'+k.upper(): os.path.join(d.prefix, v) for k, v in mapp.items()})
+            localenv.update({'MESON_INSTALL_DESTDIR_'+k.upper(): get_destdir_path(destdir, fullprefix, v) for k, v in mapp.items()})
+
             name = ' '.join(i.cmd_args)
             if i.skip_if_destdir and destdir:
                 self.log(f'Skipping custom install script because DESTDIR is set {name!r}')
@@ -692,7 +708,7 @@ class Installer:
             self.did_install_something = True  # Custom script must report itself if it does nothing.
             self.log(f'Running custom install script {name!r}')
             try:
-                rc = self.run_exe(i, env)
+                rc = self.run_exe(i, localenv)
             except OSError:
                 print(f'FAILED: install script \'{name}\' could not be run, stopped')
                 # POSIX shells return 127 when a command could not be found
@@ -703,6 +719,13 @@ class Installer:
 
     def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.targets:
+            # In AIX, we archive our shared libraries.  When we install any package in AIX we need to
+            # install the archive in which the shared library exists. The below code does the same.
+            # We change the .so files having lt_version or so_version to archive file install.
+            # If .so does not exist then it means it is in the archive. Otherwise it is a .so that exists.
+            if is_aix():
+                if not os.path.exists(t.fname) and '.so' in t.fname:
+                    t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
             if not self.should_install(t):
                 continue
             if not os.path.exists(t.fname):
@@ -757,8 +780,11 @@ class Installer:
                 # file mode needs to be set last, after strip/depfixer editing
                 self.set_mode(outname, install_mode, d.install_umask)
 
-def rebuild_all(wd: str) -> bool:
-    if not (Path(wd) / 'build.ninja').is_file():
+def rebuild_all(wd: str, backend: str) -> bool:
+    if backend == 'none':
+        # nothing to build...
+        return True
+    if backend != 'ninja':
         print('Only ninja backend is supported to rebuild the project before installation.')
         return True
 
@@ -776,14 +802,26 @@ def rebuild_all(wd: str) -> bool:
                 orig_user = env.pop('SUDO_USER')
                 orig_uid = env.pop('SUDO_UID', 0)
                 orig_gid = env.pop('SUDO_GID', 0)
-                homedir = pwd.getpwuid(int(orig_uid)).pw_dir
+                try:
+                    homedir = pwd.getpwuid(int(orig_uid)).pw_dir
+                except KeyError:
+                    # `sudo chroot` leaves behind stale variable and builds as root without a user
+                    return None, None
             elif os.environ.get('DOAS_USER') is not None:
                 orig_user = env.pop('DOAS_USER')
-                pwdata = pwd.getpwnam(orig_user)
+                try:
+                    pwdata = pwd.getpwnam(orig_user)
+                except KeyError:
+                    # `doas chroot` leaves behind stale variable and builds as root without a user
+                    return None, None
                 orig_uid = pwdata.pw_uid
                 orig_gid = pwdata.pw_gid
                 homedir = pwdata.pw_dir
             else:
+                return None, None
+
+            if os.stat(os.path.join(wd, 'build.ninja')).st_uid != int(orig_uid):
+                # the entire build process is running with sudo, we can't drop privileges
                 return None, None
 
             env['USER'] = orig_user
@@ -817,8 +855,10 @@ def run(opts: 'ArgumentType') -> int:
         sys.exit('Install data not found. Run this command in build directory root.')
     if not opts.no_rebuild:
         b = build.load(opts.wd)
-        setup_vsenv(b.need_vsenv)
-        if not rebuild_all(opts.wd):
+        need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+        setup_vsenv(need_vsenv)
+        backend = T.cast('str', b.environment.coredata.get_option(OptionKey('backend')))
+        if not rebuild_all(opts.wd, backend):
             sys.exit(-1)
     os.chdir(opts.wd)
     with open(os.path.join(log_dir, 'install-log.txt'), 'w', encoding='utf-8') as lf:

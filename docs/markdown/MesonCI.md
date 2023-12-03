@@ -32,7 +32,7 @@ The Dockerfile is generated from the `image.json` file and basically
 only adds a few common files and runs the `install.sh` script which
 should contain all distribution specific setup steps. The `common.sh`
 can be sourced via `source /ci/common.sh` to access some shared
-functionalety.
+functionality.
 
 To generate the image run `build.py -t build <image>`. A generated
 image can be tested with `build.py -t test <image>`.

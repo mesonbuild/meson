@@ -1,4 +1,4 @@
-# Copyright © 2020-2022 Intel Corporation
+# Copyright © 2020-2023 Intel Corporation
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,24 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import annotations
-
+import itertools
 import os
 import typing as T
 
+from mesonbuild.interpreterbase.decorators import FeatureNew
+
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from ..build import BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList, IncludeDirs, CustomTarget, StructuredSources
-from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter.type_checking import DEPENDENCIES_KW, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, include_dir_string_new
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs
+from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
+                     CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
+from ..compilers.compilers import are_asserts_disabled
+from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS
+from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..mesonlib import File
 
 if T.TYPE_CHECKING:
     from . import ModuleState
+    from ..build import IncludeDirs, LibTypes
+    from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..programs import ExternalProgram, OverrideProgram
+    from ..interpreter.type_checking import SourcesVarargsType
 
     from typing_extensions import TypedDict
 
@@ -37,6 +43,8 @@ if T.TYPE_CHECKING:
 
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
+        link_with: T.List[LibTypes]
+        rust_args: T.List[str]
 
     class FuncBindgen(TypedDict):
 
@@ -60,6 +68,7 @@ class RustModule(ExtensionModule):
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
+            'proc_macro': self.proc_macro,
         })
 
     @typed_pos_args('rust.test', str, BuildTarget)
@@ -67,6 +76,14 @@ class RustModule(ExtensionModule):
         'rust.test',
         *TEST_KWS,
         DEPENDENCIES_KW,
+        LINK_WITH_KW.evolve(since='1.2.0'),
+        KwargInfo(
+            'rust_args',
+            ContainerTypeInfo(list, str),
+            listify=True,
+            default=[],
+            since='1.2.0',
+        ),
         KwargInfo('is_parallel', bool, default=False),
     )
     def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncTest) -> ModuleReturnValue:
@@ -111,6 +128,9 @@ class RustModule(ExtensionModule):
         rust.test('rust_lib_test', rust_lib)
         ```
         """
+        if any(isinstance(t, Jar) for t in kwargs.get('link_with', [])):
+            raise InvalidArguments('Rust tests cannot link with Jar targets')
+
         name = args[0]
         base_target: BuildTarget = args[1]
         if not base_target.uses_rust():
@@ -138,12 +158,17 @@ class RustModule(ExtensionModule):
         tkwargs['args'] = extra_args + ['--test', '--format', 'pretty']
         tkwargs['protocol'] = 'rust'
 
-        new_target_kwargs = base_target.kwargs.copy()
+        new_target_kwargs = base_target.original_kwargs.copy()
         # Don't mutate the shallow copied list, instead replace it with a new
         # one
-        new_target_kwargs['rust_args'] = new_target_kwargs.get('rust_args', []) + ['--test']
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
+        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
+        del new_target_kwargs['rust_crate_type']
+
+        lang_args = base_target.extra_args.copy()
+        lang_args['rust'] = base_target.extra_args['rust'] + kwargs['rust_args'] + ['--test']
+        new_target_kwargs['language_args'] = lang_args
 
         sources = T.cast('T.List[SourceOutputs]', base_target.sources.copy())
         sources.extend(base_target.generated)
@@ -172,7 +197,7 @@ class RustModule(ExtensionModule):
             listify=True,
             required=True,
         ),
-        INCLUDE_DIRECTORIES.evolve(feature_validator=include_dir_string_new),
+        INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
         OUTPUT_KW,
         DEPENDENCIES_KW.evolve(since='1.0.0'),
     )
@@ -193,11 +218,16 @@ class RustModule(ExtensionModule):
             else:
                 depends.append(d)
 
-        clang_args: T.List[str] = []
+        # Copy to avoid subsequent calls mutating the original
+        # TODO: if we want this to be per-machine we'll need a native kwarg
+        clang_args = state.environment.properties.host.get_bindgen_clang_args().copy()
+
         for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
             clang_args.extend([f'-I{x}' for x in i.to_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])
+        if are_asserts_disabled(state.environment.coredata.options):
+            clang_args.append('-DNDEBUG')
 
         for de in kwargs['dependencies']:
             for i in de.get_include_dirs():
@@ -209,6 +239,13 @@ class RustModule(ExtensionModule):
                     depend_files.append(s)
                 elif isinstance(s, CustomTarget):
                     depends.append(s)
+
+        # We only want include directories and defines, other things may not be valid
+        cargs = state.get_option('args', state.subproject, lang='c')
+        assert isinstance(cargs, list), 'for mypy'
+        for a in itertools.chain(state.global_args.get('c', []), state.project_args.get('c', []), cargs):
+            if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
+                clang_args.append(a)
 
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen')
@@ -241,9 +278,23 @@ class RustModule(ExtensionModule):
             extra_depends=depends,
             depend_files=depend_files,
             backend=state.backend,
+            description='Generating bindings for Rust {}',
         )
 
         return ModuleReturnValue([target], [target])
+
+    # Allow a limited set of kwargs, but still use the full set of typed_kwargs()
+    # because it could be setting required default values.
+    @FeatureNew('rust.proc_macro', '1.3.0')
+    @permittedKwargs({'rust_args', 'rust_dependency_map', 'sources', 'dependencies', 'extra_files',
+                      'link_args', 'link_depends', 'link_with', 'override_options'})
+    @typed_pos_args('rust.proc_macro', str, varargs=SOURCES_VARARGS)
+    @typed_kwargs('rust.proc_macro', *SHARED_LIB_KWS, allow_unknown=True)
+    def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
+        kwargs['native'] = True  # type: ignore
+        kwargs['rust_crate_type'] = 'proc-macro'  # type: ignore
+        target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
+        return target
 
 
 def initialize(interp: Interpreter) -> RustModule:

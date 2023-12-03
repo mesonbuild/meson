@@ -43,6 +43,13 @@ kwargs:
       (or generated header files
       that should be built before sources including them are built)
 
+  extra_files:
+    type: list[str | file]
+    since: 1.2.0
+    description: |
+      extra files to add to targets.
+      mostly used for IDE integration.
+      
   version:
     type: str
     description: |

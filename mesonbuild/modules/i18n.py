@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from os import path
+import shlex
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
@@ -23,6 +24,7 @@ from .. import mlog
 from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
+from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -32,7 +34,6 @@ if T.TYPE_CHECKING:
     from ..build import Target
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
-    from ..programs import ExternalProgram
 
     class MergeFile(TypedDict):
 
@@ -166,6 +167,15 @@ class I18nModule(ExtensionModule):
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
         if self.tools['msgfmt'] is None or not self.tools['msgfmt'].found():
             self.tools['msgfmt'] = state.find_program('msgfmt', for_machine=mesonlib.MachineChoice.BUILD)
+        if isinstance(self.tools['msgfmt'], ExternalProgram):
+            try:
+                have_version = self.tools['msgfmt'].get_version()
+            except mesonlib.MesonException as e:
+                raise mesonlib.MesonException('i18n.merge_file requires GNU msgfmt') from e
+            want_version = '>=0.19' if kwargs['type'] == 'desktop' else '>=0.19.7'
+            if not mesonlib.version_compare(have_version, want_version):
+                msg = f'i18n.merge_file requires GNU msgfmt {want_version} to produce files of type: ' + kwargs['type'] + f' (got: {have_version})'
+                raise mesonlib.MesonException(msg)
         podir = path.join(state.build_to_src, state.subdir, kwargs['po_dir'])
 
         ddirs = self._get_data_dirs(state, kwargs['data_dirs'])
@@ -203,11 +213,12 @@ class I18nModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
+            description='Merging translations for {}',
         )
 
         return ModuleReturnValue(ct, [ct])
 
-    @typed_pos_args('i81n.gettext', str)
+    @typed_pos_args('i18n.gettext', str)
     @typed_kwargs(
         'i18n.gettext',
         _ARGS,
@@ -285,7 +296,7 @@ class I18nModule(ExtensionModule):
                 path.join(state.subdir, l, 'LC_MESSAGES'),
                 state.subproject,
                 state.environment,
-                [self.tools['msgfmt'], '@INPUT@', '-o', '@OUTPUT@'],
+                [self.tools['msgfmt'], '-o', '@OUTPUT@', '@INPUT@'],
                 [po_file],
                 [f'{packagename}.mo'],
                 install=install,
@@ -295,6 +306,7 @@ class I18nModule(ExtensionModule):
                 # Bonus: the build tree has something usable as an uninstalled bindtextdomain() target dir.
                 install_dir=[path.join(install_dir, l, 'LC_MESSAGES')],
                 install_tag=['i18n'],
+                description='Building translation {}',
             )
             targets.append(gmotarget)
             gmotargets.append(gmotarget)
@@ -349,11 +361,14 @@ class I18nModule(ExtensionModule):
         command: T.List[T.Union[str, build.BuildTarget, build.CustomTarget,
                                 build.CustomTargetIndex, 'ExternalProgram', mesonlib.File]] = []
         command.extend(state.environment.get_build_command())
+
+        itstool_cmd = self.tools['itstool'].get_command()
+        # TODO: python 3.8 can use shlex.join()
         command.extend([
             '--internal', 'itstool', 'join',
             '-i', '@INPUT@',
             '-o', '@OUTPUT@',
-            '--itstool=' + self.tools['itstool'].get_path(),
+            '--itstool=' + ' '.join(shlex.quote(c) for c in itstool_cmd),
         ])
         if its_files:
             for fname in its_files:
@@ -381,6 +396,7 @@ class I18nModule(ExtensionModule):
             install=kwargs['install'],
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] is not None else None,
             install_tag=install_tag,
+            description='Merging translations for {}',
         )
 
         return ModuleReturnValue(ct, [ct])

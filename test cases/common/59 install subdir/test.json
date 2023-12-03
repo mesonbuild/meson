@@ -12,6 +12,7 @@
     {"type": "file", "file": "usr/share/sub1/sub2/data2.dat"},
     {"type": "file", "file": "usr/share/sub2/one.dat"},
     {"type": "file", "file": "usr/share/sub2/dircheck/excluded-three.dat"},
+    {"type": "file", "file": "usr/share/sub3/data/data.txt"},
     {"type": "dir", "file": "usr/share/new_directory"}
   ]
 }

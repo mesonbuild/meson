@@ -21,7 +21,7 @@ import typing as T
 from .. import coredata
 from .. import mlog
 from ..mesonlib import (
-    EnvironmentException, Popen_safe, OptionOverrideProxy,
+    EnvironmentException, Popen_safe,
     is_windows, LibType, OptionKey, version_compare,
 )
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
@@ -34,7 +34,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
-    from ..linkers import DynamicLinker
+    from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
 
@@ -557,7 +557,7 @@ class CudaCompiler(Compiler):
         mlog.debug(stde)
         mlog.debug('-----')
         if pc.returncode != 0:
-            raise EnvironmentException(f'Compiler {self.name_string()} can not compile programs.')
+            raise EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
 
         # Run sanity check (if possible)
         if self.is_cross:
@@ -650,7 +650,7 @@ class CudaCompiler(Compiler):
         host_options = {key: options.get(key, opt) for key, opt in self.host_compiler.get_options().items()}
         std_key = OptionKey('std', machine=self.for_machine, lang=self.host_compiler.language)
         overrides = {std_key: 'none'}
-        return OptionOverrideProxy(overrides, host_options)
+        return coredata.OptionsView(host_options, overrides=overrides)
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = self.get_ccbin_args(options)
@@ -749,7 +749,7 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), _Phase.LINKER)
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
+                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
         return ['-l' + libname] # FIXME
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
@@ -787,5 +787,5 @@ class CudaCompiler(Compiler):
     def get_profile_use_args(self) -> T.List[str]:
         return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_use_args()]
 
-    def get_disable_assert_args(self) -> T.List[str]:
-        return self.host_compiler.get_disable_assert_args()
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        return self.host_compiler.get_assert_args(disable)

@@ -50,14 +50,14 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     minsize: -O2
     """
 
-    BUILD_ARGS = {
+    BUILD_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
         'debug': ["-g", "-traceback"],
         'debugoptimized': ["-g", "-traceback"],
         'release': [],
         'minsize': [],
         'custom': [],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
     OPTIM_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
@@ -89,8 +89,8 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         return ['-pch', '-pch_dir', os.path.join(pch_dir), '-x',
                 self.lang_header, '-include', header, '-x', 'none']
 
-    def get_pch_name(self, header_name: str) -> str:
-        return os.path.basename(header_name) + '.' + self.get_pch_suffix()
+    def get_pch_name(self, name: str) -> str:
+        return os.path.basename(name) + '.' + self.get_pch_suffix()
 
     def openmp_flags(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=15.0.0'):
@@ -129,14 +129,14 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     """Abstractions for ICL, the Intel compiler on Windows."""
 
-    BUILD_ARGS = {
+    BUILD_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
         'debug': ["/Zi", "/traceback"],
         'debugoptimized': ["/Zi", "/traceback"],
         'release': [],
         'minsize': [],
         'custom': [],
-    }  # type: T.Dict[str, T.List[str]]
+    }
 
     OPTIM_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],

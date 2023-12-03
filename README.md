@@ -15,6 +15,11 @@ build system.
  - [Python](https://python.org) (version 3.7 or newer)
  - [Ninja](https://ninja-build.org) (version 1.8.2 or newer)
 
+Latest Meson version supporting previous Python versions:
+- Python 3.6: **0.61.5**
+- Python 3.5: **0.56.2**
+- Python 3.4: **0.45.1**
+
 #### Installing from source
 
 Meson is available on [PyPi](https://pypi.python.org/pypi/meson), so

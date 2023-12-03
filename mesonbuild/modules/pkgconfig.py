@@ -26,7 +26,7 @@ from .. import dependencies
 from .. import mesonlib
 from .. import mlog
 from ..coredata import BUILTIN_DIR_OPTIONS
-from ..dependencies import ThreadDependency
+from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -99,6 +99,7 @@ class DependenciesHelper:
     def __init__(self, state: ModuleState, name: str, metadata: T.Dict[str, MetaData]) -> None:
         self.state = state
         self.name = name
+        self.metadata = metadata
         self.pub_libs: T.List[LIBS] = []
         self.pub_reqs: T.List[str] = []
         self.priv_libs: T.List[LIBS] = []
@@ -106,7 +107,7 @@ class DependenciesHelper:
         self.cflags: T.List[str] = []
         self.version_reqs: T.DefaultDict[str, T.Set[str]] = defaultdict(set)
         self.link_whole_targets: T.List[T.Union[build.CustomTarget, build.CustomTargetIndex, build.StaticLibrary]] = []
-        self.metadata = metadata
+        self.uninstalled_incdirs: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
 
     def add_pub_libs(self, libs: T.List[ANY_DEP]) -> None:
         p_libs, reqs, cflags = self._process_libs(libs, True)
@@ -152,7 +153,7 @@ class DependenciesHelper:
                     and obj.get_id() in self.metadata):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(self.metadata[obj.get_id()].filebase)
-            elif isinstance(obj, dependencies.PkgConfigDependency):
+            elif isinstance(obj, PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
                     self.add_version_reqs(obj.name, obj.version_reqs)
@@ -162,7 +163,7 @@ class DependenciesHelper:
                 self.add_version_reqs(name, [version_req] if version_req is not None else None)
             elif isinstance(obj, dependencies.Dependency) and not obj.found():
                 pass
-            elif isinstance(obj, ThreadDependency):
+            elif isinstance(obj, dependencies.ExternalDependency) and obj.name == 'threads':
                 pass
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
@@ -172,6 +173,15 @@ class DependenciesHelper:
 
     def add_cflags(self, cflags: T.List[str]) -> None:
         self.cflags += mesonlib.stringlistify(cflags)
+
+    def _add_uninstalled_incdirs(self, incdirs: T.List[build.IncludeDirs], subdir: T.Optional[str] = None) -> None:
+        for i in incdirs:
+            curdir = i.get_curdir()
+            for d in i.get_incdirs():
+                path = os.path.join(curdir, d)
+                self.uninstalled_incdirs.add(path)
+        if subdir is not None:
+            self.uninstalled_incdirs.add(subdir)
 
     def _process_libs(
             self, libs: T.List[ANY_DEP], public: bool
@@ -185,9 +195,9 @@ class DependenciesHelper:
                     and obj.get_id() in self.metadata):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(self.metadata[obj.get_id()].filebase)
-            elif isinstance(obj, dependencies.ValgrindDependency):
+            elif isinstance(obj, dependencies.ExternalDependency) and obj.name == 'valgrind':
                 pass
-            elif isinstance(obj, dependencies.PkgConfigDependency):
+            elif isinstance(obj, PkgConfigDependency):
                 if obj.found():
                     processed_reqs.append(obj.name)
                     self.add_version_reqs(obj.name, obj.version_reqs)
@@ -198,6 +208,7 @@ class DependenciesHelper:
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
                     self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
+                    self._add_uninstalled_incdirs(obj.get_include_dirs())
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
@@ -210,8 +221,10 @@ class DependenciesHelper:
                 # than needed build deps.
                 # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
                 processed_libs.append(obj)
+                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
+                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
                 # If there is a static library in `Libs:` all its deps must be
                 # public too, otherwise the generated pc file will never be
                 # usable without --static.
@@ -294,7 +307,7 @@ class DependenciesHelper:
         for name in reqs:
             vreqs = self.version_reqs.get(name, None)
             if vreqs:
-                result += [name + ' ' + self.format_vreq(vreq) for vreq in vreqs]
+                result += [name + ' ' + self.format_vreq(vreq) for vreq in sorted(vreqs)]
             else:
                 result += [name]
         return ', '.join(result)
@@ -368,6 +381,7 @@ class PkgConfigModule(NewExtensionModule):
 
     # Track already generated pkg-config files This is stored as a class
     # variable so that multiple `import()`s share metadata
+    devenv: T.Optional[mesonlib.EnvironmentVariables] = None
     _metadata: T.ClassVar[T.Dict[str, MetaData]] = {}
 
     def __init__(self) -> None:
@@ -375,6 +389,10 @@ class PkgConfigModule(NewExtensionModule):
         self.methods.update({
             'generate': self.generate,
         })
+
+    def postconf_hook(self, b: build.Build) -> None:
+        if self.devenv is not None:
+            b.devenv.append(self.devenv)
 
     def _get_lname(self, l: T.Union[build.SharedLibrary, build.StaticLibrary, build.CustomTarget, build.CustomTargetIndex],
                    msg: str, pcfile: str) -> str:
@@ -424,8 +442,8 @@ class PkgConfigModule(NewExtensionModule):
         return ('${prefix}' / libdir).as_posix()
 
     def _generate_pkgconfig_file(self, state: ModuleState, deps: DependenciesHelper,
-                                 subdirs: T.List[str], name: T.Optional[str],
-                                 description: T.Optional[str], url: str, version: str,
+                                 subdirs: T.List[str], name: str,
+                                 description: str, url: str, version: str,
                                  pcfile: str, conflicts: T.List[str],
                                  variables: T.List[T.Tuple[str, str]],
                                  unescaped_variables: T.List[T.Tuple[str, str]],
@@ -556,27 +574,6 @@ class PkgConfigModule(NewExtensionModule):
                         if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)) or 'cs' not in l.compilers:
                             yield f'-l{lname}'
 
-            def get_uninstalled_include_dirs(libs: T.List[LIBS]) -> T.List[str]:
-                result: T.List[str] = []
-                for l in libs:
-                    if isinstance(l, (str, build.CustomTarget, build.CustomTargetIndex)):
-                        continue
-                    if l.get_subdir() not in result:
-                        result.append(l.get_subdir())
-                    for i in l.get_include_dirs():
-                        curdir = i.get_curdir()
-                        for d in i.get_incdirs():
-                            path = os.path.join(curdir, d)
-                            if path not in result:
-                                result.append(path)
-                return result
-
-            def generate_uninstalled_cflags(libs: T.List[LIBS]) -> T.Iterable[str]:
-                for d in get_uninstalled_include_dirs(libs):
-                    for basedir in ['${prefix}', '${srcdir}']:
-                        path = PurePath(basedir, d)
-                        yield '-I%s' % self._escape(path.as_posix())
-
             if len(deps.pub_libs) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))
             if len(deps.priv_libs) > 0:
@@ -584,7 +581,10 @@ class PkgConfigModule(NewExtensionModule):
 
             cflags: T.List[str] = []
             if uninstalled:
-                cflags += generate_uninstalled_cflags(deps.pub_libs + deps.priv_libs)
+                for d in deps.uninstalled_incdirs:
+                    for basedir in ['${prefix}', '${srcdir}']:
+                        path = self._escape(PurePath(basedir, d).as_posix())
+                        cflags.append(f'-I{path}')
             else:
                 for d in subdirs:
                     if d == '.':
@@ -638,16 +638,19 @@ class PkgConfigModule(NewExtensionModule):
         else:
             if kwargs['version'] is None:
                 FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
+            msg = ('pkgconfig.generate: if a library is not passed as a '
+                   'positional argument, the {!r} keyword argument is '
+                   'required.')
             if kwargs['name'] is None:
-                raise build.InvalidArguments(
-                    'pkgconfig.generate: if a library is not passed as a '
-                    'positional argument, the name keyword argument is '
-                    'required.')
+                raise build.InvalidArguments(msg.format('name'))
+            if kwargs['description'] is None:
+                raise build.InvalidArguments(msg.format('description'))
 
         dataonly = kwargs['dataonly']
         if dataonly:
             default_subdirs = []
             blocked_vars = ['libraries', 'libraries_private', 'requires_private', 'extra_cflags', 'subdirs']
+            # Mypy can't figure out that this TypedDict index is correct, without repeating T.Literal for the entire list
             if any(kwargs[k] for k in blocked_vars):  # type: ignore
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
             default_install_dir = os.path.join(state.environment.get_datadir(), 'pkgconfig')
@@ -679,7 +682,8 @@ class PkgConfigModule(NewExtensionModule):
         if dversions:
             compiler = state.environment.coredata.compilers.host.get('d')
             if compiler:
-                deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
+                deps.add_cflags(compiler.get_feature_args(
+                    {'versions': dversions, 'import_dirs': [], 'debug': [], 'unittest': False}, None))
 
         deps.remove_dups()
 
@@ -737,6 +741,8 @@ class PkgConfigModule(NewExtensionModule):
                 if not isinstance(lib, str) and lib.get_id() not in self._metadata:
                     self._metadata[lib.get_id()] = MetaData(
                         filebase, name, state.current_node)
+        if self.devenv is None:
+            self.devenv = PkgConfigInterface.get_env(state.environment, mesonlib.MachineChoice.HOST, uninstalled=True)
         return ModuleReturnValue(res, [res])
 
 

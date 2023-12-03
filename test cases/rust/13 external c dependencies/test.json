@@ -12,7 +12,8 @@
       ]
     },
     "exclude": [
-      { "static": true, "method": "pkg-config" }
+      { "static": true, "method": "pkg-config" },
+      { "static": true, "method": "cmake" }
     ]
   }
 }

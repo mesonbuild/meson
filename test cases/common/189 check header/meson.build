@@ -44,5 +44,5 @@ foreach comp : [meson.get_compiler('c'), meson.get_compiler('cpp')]
   # This header exists in the source and the builddir, but we still must not
   # find it since we are looking in the system directories.
   assert(not comp.check_header(non_existent_header, prefix : fallback),
-         'Found non-existent header.')
+         'Found nonexistent header.')
 endforeach

@@ -74,6 +74,12 @@ class Builder(BuilderBase):
         # Also add /ci to PATH
         out_data += 'export PATH="/ci:$PATH"\n'
 
+        out_data += '''
+            if [ -f "$HOME/.cargo/env" ]; then
+                source "$HOME/.cargo/env"
+            fi
+        '''
+
         out_file.write_text(out_data, encoding='utf-8')
 
         # make it executable
@@ -137,13 +143,14 @@ class ImageTester(BuilderBase):
         shutil.copytree(
             self.meson_root,
             self.temp_dir / 'meson',
+            symlinks=True,
             ignore=shutil.ignore_patterns(
                 '.git',
                 '*_cache',
                 '__pycache__',
                 # 'work area',
                 self.temp_dir.name,
-            )
+            ),
         )
 
     def do_test(self, tty: bool = False) -> None:
@@ -175,7 +182,7 @@ class ImageTester(BuilderBase):
             else:
                 test_cmd = [
                     self.docker, 'run', '--rm', '-t', 'meson_test_image',
-                    '/bin/bash', '-c', 'source /ci/env_vars.sh; cd meson; ./run_tests.py $CI_ARGS'
+                    '/bin/bash', '-xc', 'source /ci/env_vars.sh; cd meson; ./run_tests.py $CI_ARGS'
                 ]
 
             if subprocess.run(test_cmd).returncode != 0 and not tty:

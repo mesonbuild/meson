@@ -1,5 +1,9 @@
 project('pkgconfig-gen-dependencies', 'c', version: '1.0')
 
+if find_program('pkg-config').version() == '2.0.1'
+    error('MESON_SKIP_TEST: cannot test uninstalled.pc due to https://github.com/pkgconf/pkgconf/issues/310#issuecomment-1677844842')
+endif
+
 pkgg = import('pkgconfig')
 
 # libmain internally use libinternal and expose libexpose in its API
@@ -60,3 +64,11 @@ pkgg.generate(main_lib2,
   libraries : internal_lib,
   filebase : 'pub-lib-order',
 )
+
+# This will be built against both simple7.pc and simple7-uninstalled.pc, check
+# that include directories works in both cases.
+simple7 = dependency('simple7')
+exe = executable('test2', 'test2.c',
+  dependencies: simple7,
+)
+test('Test2', exe)

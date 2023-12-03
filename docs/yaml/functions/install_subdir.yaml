@@ -56,6 +56,9 @@ example: |
     new_directory/
   ```
 
+warnings:
+  - the `install_mode` kwarg ignored integer values between 0.59.0 -- 1.1.0.
+
 posargs:
   subdir_name:
     type: str
@@ -103,3 +106,11 @@ kwargs:
     description: |
       Install directory contents.
       If `strip_directory=true` only the last component of the source path is used.
+
+  follow_symlinks:
+    type: bool
+    since: 1.3.0
+    default: true
+    description: |
+      If true, dereferences links and copies their target instead.  The default
+      value will become false in the future.

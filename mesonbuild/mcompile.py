@@ -26,7 +26,6 @@ from pathlib import Path
 
 from . import mlog
 from . import mesonlib
-from . import coredata
 from .mesonlib import MesonException, RealPathAction, join_args, setup_vsenv
 from mesonbuild.environment import detect_ninja
 from mesonbuild.coredata import UserArrayOption
@@ -36,7 +35,7 @@ if T.TYPE_CHECKING:
     import argparse
 
 def array_arg(value: str) -> T.List[str]:
-    return UserArrayOption(None, value, allow_dups=True, user_input=True).value
+    return UserArrayOption.listify_value(value)
 
 def validate_builddir(builddir: Path) -> None:
     if not (builddir / 'meson-private' / 'coredata.dat').is_file():
@@ -55,16 +54,18 @@ def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     with path_to_intro.open(encoding='utf-8') as f:
         schema = json.load(f)
 
-    parsed_data = defaultdict(list) # type: T.Dict[str, T.List[dict]]
+    parsed_data: T.Dict[str, T.List[dict]] = defaultdict(list)
     for target in schema:
         parsed_data[target['name']] += [target]
     return parsed_data
 
 class ParsedTargetName:
     full_name = ''
+    base_name = ''
     name = ''
     type = ''
     path = ''
+    suffix = ''
 
     def __init__(self, target: str):
         self.full_name = target
@@ -81,6 +82,13 @@ class ParsedTargetName:
         else:
             self.name = split[0]
 
+        split = self.name.rsplit('.', 1)
+        if len(split) > 1:
+            self.base_name = split[0]
+            self.suffix = split[1]
+        else:
+            self.base_name = split[0]
+
     @staticmethod
     def _is_valid_type(type: str) -> bool:
         # Amend docs in Commands.md when editing this list
@@ -90,25 +98,39 @@ class ParsedTargetName:
             'shared_library',
             'shared_module',
             'custom',
+            'alias',
             'run',
             'jar',
         }
         return type in allowed_types
 
 def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
-    if target.name not in introspect_data:
+    if target.name not in introspect_data and target.base_name not in introspect_data:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
 
     intro_targets = introspect_data[target.name]
-    found_targets = []  # type: T.List[T.Dict[str, T.Any]]
+    # if target.name doesn't find anything, try just the base name
+    if not intro_targets:
+        intro_targets = introspect_data[target.base_name]
+    found_targets: T.List[T.Dict[str, T.Any]] = []
 
     resolved_bdir = builddir.resolve()
 
-    if not target.type and not target.path:
+    if not target.type and not target.path and not target.suffix:
         found_targets = intro_targets
     else:
         for intro_target in intro_targets:
+            # Parse out the name from the id if needed
+            intro_target_name = intro_target['name']
+            split = intro_target['id'].rsplit('@', 1)
+            if len(split) > 1:
+                split = split[0].split('@@', 1)
+                if len(split) > 1:
+                    intro_target_name = split[1]
+                else:
+                    intro_target_name = split[0]
             if ((target.type and target.type != intro_target['type'].replace(' ', '_')) or
+                (target.name != intro_target_name) or
                 (target.path and intro_target['filename'] != 'no_name' and
                  Path(target.path) != Path(intro_target['filename'][0]).relative_to(resolved_bdir).parent)):
                 continue
@@ -119,19 +141,27 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     elif len(found_targets) > 1:
         suggestions: T.List[str] = []
         for i in found_targets:
-            p = Path(i['filename'][0]).relative_to(resolved_bdir)
+            i_name = i['name']
+            split = i['id'].rsplit('@', 1)
+            if len(split) > 1:
+                split = split[0].split('@@', 1)
+                if len(split) > 1:
+                    i_name = split[1]
+                else:
+                    i_name = split[0]
+            p = Path(i['filename'][0]).relative_to(resolved_bdir).parent / i_name
             t = i['type'].replace(' ', '_')
             suggestions.append(f'- ./{p}:{t}')
         suggestions_str = '\n'.join(suggestions)
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambiguous name.'
-                             f'Add target type and/or path:\n{suggestions_str}')
+                             f' Add target type and/or path:\n{suggestions_str}')
 
     return found_targets[0]
 
 def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> T.List[str]:
     intro_target = get_target_from_intro_data(target, builddir, introspect_data)
 
-    if intro_target['type'] == 'run':
+    if intro_target['type'] in {'alias', 'run'}:
         return [target.name]
     else:
         return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
@@ -170,11 +200,11 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tu
 def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> str:
     intro_target = get_target_from_intro_data(target, builddir, introspect_data)
 
-    assert intro_target['type'] != 'run', 'Should not reach here: `run` targets must be handle above'
+    assert intro_target['type'] not in {'alias', 'run'}, 'Should not reach here: `run` targets must be handle above'
 
     # Normalize project name
     # Source: https://docs.microsoft.com/en-us/visualstudio/msbuild/how-to-build-specific-targets-in-solutions-by-using-msbuild-exe
-    target_name = re.sub(r"[\%\$\@\;\.\(\)']", '_', intro_target['id'])  # type: str
+    target_name = re.sub(r"[\%\$\@\;\.\(\)']", '_', intro_target['id'])
     rel_path = Path(intro_target['filename'][0]).relative_to(builddir.resolve()).parent
     if rel_path != Path('.'):
         target_name = str(rel_path / target_name)
@@ -190,7 +220,7 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
     if options.targets:
         intro_data = parse_introspect_data(builddir)
         has_run_target = any(
-            get_target_from_intro_data(ParsedTargetName(t), builddir, intro_data)['type'] == 'run'
+            get_target_from_intro_data(ParsedTargetName(t), builddir, intro_data)['type'] in {'alias', 'run'}
             for t in options.targets)
 
         if has_run_target:
@@ -271,6 +301,8 @@ def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tu
     cmd += options.xcode_args
     return cmd, None
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     """Add compile specific arguments."""
     parser.add_argument(
@@ -278,7 +310,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         metavar='TARGET',
         nargs='*',
         default=None,
-        help='Targets to build. Target has the following format: [PATH_TO_TARGET/]TARGET_NAME[:TARGET_TYPE].')
+        help='Targets to build. Target has the following format: [PATH_TO_TARGET/]TARGET_NAME.TARGET_SUFFIX[:TARGET_TYPE].')
     parser.add_argument(
         '--clean',
         action='store_true',
@@ -331,14 +363,14 @@ def run(options: 'argparse.Namespace') -> int:
     if options.targets and options.clean:
         raise MesonException('`TARGET` and `--clean` can\'t be used simultaneously')
 
-    cdata = coredata.load(options.wd)
     b = build.load(options.wd)
-    vsenv_active = setup_vsenv(b.need_vsenv)
-    if vsenv_active:
+    cdata = b.environment.coredata
+    need_vsenv = T.cast('bool', cdata.get_option(mesonlib.OptionKey('vsenv')))
+    if setup_vsenv(need_vsenv):
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
-    cmd = []    # type: T.List[str]
-    env = None  # type: T.Optional[T.Dict[str, str]]
+    cmd: T.List[str] = []
+    env: T.Optional[T.Dict[str, str]] = None
 
     backend = cdata.get_option(mesonlib.OptionKey('backend'))
     assert isinstance(backend, str)

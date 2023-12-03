@@ -1,5 +1,5 @@
 /* Do not use this as the basis of your own libc.
- * The code is probably unoptimal or wonky, as I
+ * The code is probably suboptimal or wonky, as I
  * had no prior experience with this, but instead
  * just fiddled with the code until it worked.
  */

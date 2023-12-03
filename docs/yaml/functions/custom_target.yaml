@@ -52,6 +52,9 @@ notes:
     is not portable, notably to Windows. Instead, consider using a
     `native: true` [[executable]], or a python script.
 
+warnings:
+  - the `install_mode` kwarg ignored integer values between 0.60.0 -- 1.1.0.
+
 optargs:
   name:
     type: str

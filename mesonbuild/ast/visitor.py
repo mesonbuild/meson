@@ -43,10 +43,22 @@ class AstVisitor:
     def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
         self.visit_default_func(node)
 
+    def visit_MultilineStringNode(self, node: mparser.StringNode) -> None:
+        self.visit_default_func(node)
+
+    def visit_FormatMultilineStringNode(self, node: mparser.FormatStringNode) -> None:
+        self.visit_default_func(node)
+
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
         self.visit_default_func(node)
 
     def visit_BreakNode(self, node: mparser.BreakNode) -> None:
+        self.visit_default_func(node)
+
+    def visit_SymbolNode(self, node: mparser.SymbolNode) -> None:
+        self.visit_default_func(node)
+
+    def visit_WhitespaceNode(self, node: mparser.WhitespaceNode) -> None:
         self.visit_default_func(node)
 
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
@@ -97,22 +109,28 @@ class AstVisitor:
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
         self.visit_default_func(node)
         node.source_object.accept(self)
+        node.name.accept(self)
         node.args.accept(self)
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         self.visit_default_func(node)
+        node.func_name.accept(self)
         node.args.accept(self)
 
     def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
         self.visit_default_func(node)
+        node.var_name.accept(self)
         node.value.accept(self)
 
     def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
         self.visit_default_func(node)
+        node.var_name.accept(self)
         node.value.accept(self)
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
         self.visit_default_func(node)
+        for varname in node.varnames:
+            varname.accept(self)
         node.items.accept(self)
         node.block.accept(self)
 
@@ -131,6 +149,10 @@ class AstVisitor:
         node.condition.accept(self)
         node.block.accept(self)
 
+    def visit_ElseNode(self, node: mparser.IfNode) -> None:
+        self.visit_default_func(node)
+        node.block.accept(self)
+
     def visit_TernaryNode(self, node: mparser.TernaryNode) -> None:
         self.visit_default_func(node)
         node.condition.accept(self)
@@ -144,3 +166,7 @@ class AstVisitor:
         for key, val in node.kwargs.items():
             key.accept(self)
             val.accept(self)
+
+    def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
+        self.visit_default_func(node)
+        node.inner.accept(self)

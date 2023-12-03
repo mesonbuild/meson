@@ -13,12 +13,15 @@
 # limitations under the License.
 from __future__ import annotations
 
-import functools, json, os
+import functools, json, os, textwrap
 from pathlib import Path
 import typing as T
 
 from .. import mesonlib, mlog
 from .base import process_method_kw, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
+from .configtool import ConfigToolDependency
+from .detect import packages
+from .factory import DependencyFactory
 from .framework import ExtraFrameworkDependency
 from .pkgconfig import PkgConfigDependency
 from ..environment import detect_cpu_family
@@ -41,12 +44,31 @@ if T.TYPE_CHECKING:
         paths: T.Dict[str, str]
         platform: str
         suffix: str
+        limited_api_suffix: str
         variables: T.Dict[str, str]
         version: str
 
     _Base = ExternalDependency
 else:
     _Base = object
+
+
+class Pybind11ConfigToolDependency(ConfigToolDependency):
+
+    tools = ['pybind11-config']
+
+    # any version of the tool is valid, since this is header-only
+    allow_default_for_cross = True
+
+    # pybind11 in 2.10.4 added --version, sanity-check another flag unique to it
+    # in the meantime
+    skip_version = '--pkgconfigdir'
+
+    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--includes'], 'compile_args')
 
 
 class BasicPythonExternalProgram(ExternalProgram):
@@ -58,6 +80,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             self.name = name
             self.command = ext_prog.command
             self.path = ext_prog.path
+            self.cached_version = None
 
         # We want strong key values, so we always populate this with bogus data.
         # Otherwise to make the type checkers happy we'd have to do .get() for
@@ -70,8 +93,9 @@ class BasicPythonExternalProgram(ExternalProgram):
             'link_libpython': False,
             'sysconfig_paths': {},
             'paths': {},
-            'platform': 'sentinal',
+            'platform': 'sentinel',
             'suffix': 'sentinel',
+            'limited_api_suffix': 'sentinel',
             'variables': {},
             'version': '0.0',
         }
@@ -91,7 +115,9 @@ class BasicPythonExternalProgram(ExternalProgram):
 
         with importlib.resources.path('mesonbuild.scripts', 'python_info.py') as f:
             cmd = self.get_command() + [str(f)]
-            p, stdout, stderr = mesonlib.Popen_safe(cmd)
+            env = os.environ.copy()
+            env['SETUPTOOLS_USE_DISTUTILS'] = 'stdlib'
+            p, stdout, stderr = mesonlib.Popen_safe(cmd, env=env)
 
         try:
             info = json.loads(stdout)
@@ -175,7 +201,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if self.link_libpython:
             # link args
             if mesonlib.is_windows():
-                self.find_libpy_windows(environment)
+                self.find_libpy_windows(environment, limited_api=False)
             else:
                 self.find_libpy(environment)
         else:
@@ -191,8 +217,8 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         # https://sourceforge.net/p/mingw-w64/mailman/message/30504611/
         # https://github.com/python/cpython/pull/100137
-        if mesonlib.is_windows() and self.get_windows_python_arch() == '64' and mesonlib.version_compare(self.version, '<3.12'):
-            self.compile_args += ['-DMS_WIN64']
+        if mesonlib.is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
+            self.compile_args += ['-DMS_WIN64=']
 
         if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args):
             self.is_found = False
@@ -222,20 +248,22 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if self.platform == 'mingw':
             pycc = self.variables.get('CC')
             if pycc.startswith('x86_64'):
-                return '64'
+                return 'x86_64'
             elif pycc.startswith(('i686', 'i386')):
-                return '32'
+                return 'x86'
             else:
                 mlog.log(f'MinGW Python built with unknown CC {pycc!r}, please file a bug')
                 return None
         elif self.platform == 'win32':
-            return '32'
+            return 'x86'
         elif self.platform in {'win64', 'win-amd64'}:
-            return '64'
+            return 'x86_64'
+        elif self.platform in {'win-arm64'}:
+            return 'aarch64'
         mlog.log(f'Unknown Windows Python platform {self.platform!r}')
         return None
 
-    def get_windows_link_args(self) -> T.Optional[T.List[str]]:
+    def get_windows_link_args(self, limited_api: bool) -> T.Optional[T.List[str]]:
         if self.platform.startswith('win'):
             vernum = self.variables.get('py_version_nodot')
             verdot = self.variables.get('py_version_short')
@@ -253,7 +281,32 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                     else:
                         libpath = Path(f'python{vernum}.dll')
                 else:
+                    if limited_api:
+                        vernum = vernum[0]
                     libpath = Path('libs') / f'python{vernum}.lib'
+                    # For a debug build, pyconfig.h may force linking with
+                    # pythonX_d.lib (see meson#10776). This cannot be avoided
+                    # and won't work unless we also have a debug build of
+                    # Python itself (except with pybind11, which has an ugly
+                    # hack to work around this) - so emit a warning to explain
+                    # the cause of the expected link error.
+                    buildtype = self.env.coredata.get_option(mesonlib.OptionKey('buildtype'))
+                    assert isinstance(buildtype, str)
+                    debug = self.env.coredata.get_option(mesonlib.OptionKey('debug'))
+                    # `debugoptimized` buildtype may not set debug=True currently, see gh-11645
+                    is_debug_build = debug or buildtype == 'debug'
+                    vscrt_debug = False
+                    if mesonlib.OptionKey('b_vscrt') in self.env.coredata.options:
+                        vscrt = self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value
+                        if vscrt in {'mdd', 'mtd', 'from_buildtype', 'static_from_buildtype'}:
+                            vscrt_debug = True
+                    if is_debug_build and vscrt_debug and not self.variables.get('Py_DEBUG'):
+                        mlog.warning(textwrap.dedent('''\
+                            Using a debug build type with MSVC or an MSVC-compatible compiler
+                            when the Python interpreter is not also a debug build will almost
+                            certainly result in a failed build. Prefer using a release build
+                            type or a debug Python interpreter.
+                            '''))
             # base_prefix to allow for virtualenvs.
             lib = Path(self.variables.get('base_prefix')) / libpath
         elif self.platform == 'mingw':
@@ -270,7 +323,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             return None
         return [str(lib)]
 
-    def find_libpy_windows(self, env: 'Environment') -> None:
+    def find_libpy_windows(self, env: 'Environment', limited_api: bool = False) -> None:
         '''
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
@@ -280,23 +333,12 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.is_found = False
             return
         arch = detect_cpu_family(env.coredata.compilers.host)
-        if arch == 'x86':
-            arch = '32'
-        elif arch == 'x86_64':
-            arch = '64'
-        else:
-            # We can't cross-compile Python 3 dependencies on Windows yet
-            mlog.log(f'Unknown architecture {arch!r} for',
-                     mlog.bold(self.name))
-            self.is_found = False
-            return
-        # Pyarch ends in '32' or '64'
         if arch != pyarch:
-            mlog.log('Need', mlog.bold(self.name), f'for {arch}-bit, but found {pyarch}-bit')
+            mlog.log('Need', mlog.bold(self.name), f'for {arch}, but found {pyarch}')
             self.is_found = False
             return
         # This can fail if the library is not found
-        largs = self.get_windows_link_args()
+        largs = self.get_windows_link_args(limited_api)
         if largs is None:
             self.is_found = False
             return
@@ -371,3 +413,11 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
         candidates.append(functools.partial(PythonFrameworkDependency, 'Python', env, nkwargs, installation))
 
     return candidates
+
+packages['python3'] = python_factory
+
+packages['pybind11'] = pybind11_factory = DependencyFactory(
+    'pybind11',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.CMAKE],
+    configtool_class=Pybind11ConfigToolDependency,
+)

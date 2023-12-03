@@ -18,12 +18,14 @@ import typing as T
 
 from .base import DependencyMethods, detect_compiler, SystemDependency
 from .cmake import CMakeDependency
+from .detect import packages
 from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
 
 if T.TYPE_CHECKING:
     from . factory import DependencyGenerator
-    from ..environment import Environment, MachineChoice
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM})
@@ -51,6 +53,7 @@ def coarray_factory(env: 'Environment',
         candidates.append(functools.partial(CoarrayDependency, env, kwargs))
 
     return candidates
+packages['coarray'] = coarray_factory
 
 
 class CoarrayDependency(SystemDependency):

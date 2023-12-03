@@ -27,7 +27,7 @@ from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments
 from ..mesonlib import MachineChoice, OptionKey
-from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, BaseStringNode
 from .interpreter import AstInterpreter
 
 if T.TYPE_CHECKING:
@@ -46,9 +46,9 @@ class IntrospectionHelper(argparse.Namespace):
     # mimic an argparse namespace
     def __init__(self, cross_file: str):
         super().__init__()
-        self.cross_file = cross_file  # type: str
-        self.native_file = None       # type: str
-        self.cmd_line_options = {}    # type: T.Dict[str, str]
+        self.cross_file = cross_file
+        self.native_file: str = None
+        self.cmd_line_options: T.Dict[str, str] = {}
 
     def __eq__(self, other: object) -> bool:
         return NotImplemented
@@ -76,13 +76,12 @@ class IntrospectionInterpreter(AstInterpreter):
             self.environment = env
         self.subproject_dir = subproject_dir
         self.coredata = self.environment.get_coredata()
-        self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
-        self.project_data = {}    # type: T.Dict[str, T.Any]
-        self.targets = []         # type: T.List[T.Dict[str, T.Any]]
-        self.dependencies = []    # type: T.List[T.Dict[str, T.Any]]
-        self.project_node = None  # type: BaseNode
+        self.project_data: T.Dict[str, T.Any] = {}
+        self.targets: T.List[T.Dict[str, T.Any]] = []
+        self.dependencies: T.List[T.Dict[str, T.Any]] = []
+        self.project_node: BaseNode = None
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -113,9 +112,12 @@ class IntrospectionInterpreter(AstInterpreter):
             proj_vers = 'undefined'
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
 
-        if os.path.exists(self.option_file):
+        optfile = os.path.join(self.source_root, self.subdir, 'meson.options')
+        if not os.path.exists(optfile):
+            optfile = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+        if os.path.exists(optfile):
             oi = optinterpreter.OptionInterpreter(self.subproject)
-            oi.process(self.option_file)
+            oi.process(optfile)
             self.coredata.update_project_options(oi.options)
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
@@ -126,7 +128,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
-            if isinstance(spdirname, StringNode):
+            if isinstance(spdirname, BaseStringNode):
                 assert isinstance(spdirname.value, str)
                 self.subproject_dir = spdirname.value
         if not self.is_subproject():
@@ -168,18 +170,18 @@ class IntrospectionInterpreter(AstInterpreter):
                 self._add_languages(args, required, for_machine)
 
     def _add_languages(self, raw_langs: T.List[TYPE_nvar], required: bool, for_machine: MachineChoice) -> None:
-        langs = []  # type: T.List[str]
+        langs: T.List[str] = []
         for l in self.flatten_args(raw_langs):
             if isinstance(l, str):
                 langs.append(l)
-            elif isinstance(l, StringNode):
+            elif isinstance(l, BaseStringNode):
                 langs.append(l.value)
 
         for lang in sorted(langs, key=compilers.sort_clink):
             lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
                 try:
-                    comp = detect_compiler_for(self.environment, lang, for_machine)
+                    comp = detect_compiler_for(self.environment, lang, for_machine, True)
                 except mesonlib.MesonException:
                     # do we even care about introspecting this language?
                     if required:
@@ -236,7 +238,7 @@ class IntrospectionInterpreter(AstInterpreter):
         kwargs = self.flatten_kwargs(kwargs_raw, True)
 
         def traverse_nodes(inqueue: T.List[BaseNode]) -> T.List[BaseNode]:
-            res = []  # type: T.List[BaseNode]
+            res: T.List[BaseNode] = []
             while inqueue:
                 curr = inqueue.pop(0)
                 arg_node = None
@@ -259,11 +261,11 @@ class IntrospectionInterpreter(AstInterpreter):
                     continue
                 arg_nodes = arg_node.arguments.copy()
                 # Pop the first element if the function is a build target function
-                if isinstance(curr, FunctionNode) and curr.func_name in BUILD_TARGET_FUNCTIONS:
+                if isinstance(curr, FunctionNode) and curr.func_name.value in BUILD_TARGET_FUNCTIONS:
                     arg_nodes.pop(0)
-                elemetary_nodes = [x for x in arg_nodes if isinstance(x, (str, StringNode))]
+                elementary_nodes = [x for x in arg_nodes if isinstance(x, (str, BaseStringNode))]
                 inqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]
-                if elemetary_nodes:
+                if elementary_nodes:
                     res += [curr]
             return res
 
@@ -275,13 +277,13 @@ class IntrospectionInterpreter(AstInterpreter):
         kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in kwargs_reduced.items()}
         kwargs_reduced = {k: v for k, v in kwargs_reduced.items() if not isinstance(v, BaseNode)}
         for_machine = MachineChoice.HOST
-        objects = []        # type: T.List[T.Any]
-        empty_sources = []  # type: T.List[T.Any]
+        objects: T.List[T.Any] = []
+        empty_sources: T.List[T.Any] = []
         # Passing the unresolved sources list causes errors
+        kwargs_reduced['_allow_no_sources'] = True
         target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, [], objects,
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
-        target.process_compilers()
-        target.process_compilers_late([])
+        target.process_compilers_late()
 
         new_target = {
             'name': target.get_basename(),
@@ -360,3 +362,22 @@ class IntrospectionInterpreter(AstInterpreter):
         self.sanity_check_ast()
         self.parse_project()
         self.run()
+
+    def extract_subproject_dir(self) -> T.Optional[str]:
+        '''Fast path to extract subproject_dir kwarg.
+           This is faster than self.parse_project() which also initialize options
+           and also calls parse_project() on every subproject.
+        '''
+        if not self.ast.lines:
+            return
+        project = self.ast.lines[0]
+        # first line is always project()
+        if not isinstance(project, FunctionNode):
+            return
+        for kw, val in project.args.kwargs.items():
+            assert isinstance(kw, IdNode), 'for mypy'
+            if kw.value == 'subproject_dir':
+                # mypy does not understand "and isinstance"
+                if isinstance(val, BaseStringNode):
+                    return val.value
+        return None

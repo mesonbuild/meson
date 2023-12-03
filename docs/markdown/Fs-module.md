@@ -7,6 +7,14 @@ Since 0.59.0, all functions accept `files()` objects if they can do something
 useful with them (this excludes `exists`, `is_dir`, `is_file`, `is_absolute`
 since a `files()` object is always the absolute path to an existing file).
 
+## Usage
+
+The module may be imported as follows:
+
+``` meson
+fs = [[#import]]('fs')
+```
+
 ## File lookup rules
 
 Non-absolute paths are looked up relative to the directory where the
@@ -16,7 +24,7 @@ If specified, a leading `~` is expanded to the user home directory.
 Environment variables are not available as is the rule throughout Meson.
 That is, $HOME, %USERPROFILE%, $MKLROOT, etc. have no meaning to the Meson
 filesystem module. If needed, pass such variables into Meson via command
-line options in `meson_options.txt`, native-file or cross-file.
+line options in `meson.options`, native-file or cross-file.
 
 Where possible, symlinks and parent directory notation are resolved to an
 absolute path.
@@ -90,7 +98,7 @@ Examples:
 x = 'foo.txt'
 y = 'sub/../foo.txt'
 z = 'bar.txt'  # a symlink pointing to foo.txt
-j = 'notafile.txt'  # non-existent file
+j = 'notafile.txt'  # nonexistent file
 
 fs.is_samepath(x, y)  # true
 fs.is_samepath(x, z)  # true
@@ -99,7 +107,7 @@ fs.is_samepath(x, j)  # false
 p = 'foo/bar'
 q = 'foo/bar/baz/..'
 r = 'buz'  # a symlink pointing to foo/bar
-s = 'notapath'  # non-existent directory
+s = 'notapath'  # nonexistent directory
 
 fs.is_samepath(p, q)  # true
 fs.is_samepath(p, r)  # true
@@ -216,6 +224,20 @@ fs.stem('foo/bar/baz.dll.a')  # baz.dll
    project. If the file specified by `path` is a `files()` object it
    cannot refer to a built file.
 
+### relative_to
+
+*Since 1.3.0*
+
+Return a relative filepath. In the event a relative path could not be found, the
+absolute path of `to` is returned. Relative path arguments will be assumed to be
+relative to `meson.current_source_dir()`.
+
+Has the following positional arguments:
+   - to `str | file | custom_tgt | custom_idx | build_tgt`: end path
+   - from `str | file | custom_tgt | custom_idx | build_tgt`: start path
+
+returns:
+   - a string
 
 ### copyfile
 

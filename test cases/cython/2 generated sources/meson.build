@@ -1,12 +1,16 @@
 project(
   'generated cython sources',
-  ['cython'],
+  ['cython', 'c'],
+  default_options : ['buildtype=release'],
 )
 
-py_mod = import('python')
-py3 = py_mod.find_installation('python3')
-py3_dep = py3.dependency(required : false)
+if meson.backend() != 'ninja'
+  error('MESON_SKIP_TEST: Ninja backend required')
+endif
+
 fs = import('fs')
+py3 = import('python').find_installation('python3')
+py3_dep = py3.dependency(required : false)
 if not py3_dep.found()
   error('MESON_SKIP_TEST: Python library not found.')
 endif
@@ -18,7 +22,7 @@ ct = custom_target(
   command : [py3, '@INPUT@', '@OUTPUT@'],
 )
 
-ct_ext = py3.extension_module('ct', ct, dependencies : py3_dep)
+ct_ext = py3.extension_module('ct', ct)
 
 test(
   'custom target',
@@ -35,7 +39,7 @@ cti = custom_target(
   command : [py3, '@INPUT@', '@OUTPUT@'],
 )
 
-cti_ext = py3.extension_module('cti', cti[0], dependencies : py3_dep)
+cti_ext = py3.extension_module('cti', cti[0])
 
 cf = configure_file(
   input : 'configure.pyx.in',
@@ -43,7 +47,7 @@ cf = configure_file(
   copy : true,
 )
 
-cf_ext = py3.extension_module('cf', cf, dependencies : py3_dep)
+cf_ext = py3.extension_module('cf', cf)
 
 test(
   'configure file',
@@ -61,7 +65,6 @@ gen = generator(
 g_ext = py3.extension_module(
   'g',
   gen.process('g.in'),
-  dependencies : py3_dep,
 )
 
 test(

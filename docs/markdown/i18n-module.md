@@ -27,7 +27,7 @@ argument which is the name of the gettext module.
 * `preset`: (*Added 0.37.0*) name of a preset list of arguments,
   current option is `'glib'`, see
   [source](https://github.com/mesonbuild/meson/blob/master/mesonbuild/modules/i18n.py)
-  for for their value
+  for their value
 * `install`: (*Added 0.43.0*) if false, do not install the built translations.
 * `install_dir`: (*Added 0.50.0*) override default install location, default is `localedir`
 

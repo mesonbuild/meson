@@ -14,12 +14,24 @@
 from __future__ import annotations
 
 import sysconfig
-from .. import mesonlib
+import typing as T
 
-from . import ExtensionModule, ModuleInfo
-from ..interpreterbase import typed_pos_args, noPosargs, noKwargs, permittedKwargs
-from ..build import known_shmod_kwargs
+from .. import mesonlib
+from . import ExtensionModule, ModuleInfo, ModuleState
+from ..build import (
+    BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects,
+    GeneratedList, SharedModule, StructuredSources, known_shmod_kwargs
+)
+from ..interpreter.type_checking import SHARED_MOD_KWS
+from ..interpreterbase import typed_kwargs, typed_pos_args, noPosargs, noKwargs, permittedKwargs
 from ..programs import ExternalProgram
+
+if T.TYPE_CHECKING:
+    from ..interpreter.interpreter import BuildTargetSource
+    from ..interpreter.kwargs import SharedModule as SharedModuleKW
+
+
+_MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_suffix'}]
 
 
 class Python3Module(ExtensionModule):
@@ -35,12 +47,10 @@ class Python3Module(ExtensionModule):
             'sysconfig_path': self.sysconfig_path,
         })
 
-    @permittedKwargs(known_shmod_kwargs)
-    def extension_module(self, state, args, kwargs):
-        if 'name_prefix' in kwargs:
-            raise mesonlib.MesonException('Name_prefix is set automatically, specifying it is forbidden.')
-        if 'name_suffix' in kwargs:
-            raise mesonlib.MesonException('Name_suffix is set automatically, specifying it is forbidden.')
+    @permittedKwargs(known_shmod_kwargs - {'name_prefix', 'name_suffix'})
+    @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
+    @typed_kwargs('python3.extension_module', *_MOD_KWARGS, allow_unknown=True)
+    def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW):
         host_system = state.host_machine.system
         if host_system == 'darwin':
             # Default suffix is 'dylib' but Python does not use it for extensions.
@@ -52,7 +62,7 @@ class Python3Module(ExtensionModule):
             suffix = []
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
-        return self.interpreter.func_shared_module(None, args, kwargs)
+        return self.interpreter.build_target(state.current_node, args, kwargs, SharedModule)
 
     @noPosargs
     @noKwargs

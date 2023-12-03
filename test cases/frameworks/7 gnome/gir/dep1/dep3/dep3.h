@@ -1,8 +1,8 @@
 #ifndef MESON_DEP3_H
 #define MESON_DEP3_H
 
-#if !defined (MESON_TEST)
-#error "MESON_TEST not defined."
+#if !defined (MESON_TEST_1)
+#error "MESON_TEST_1 not defined."
 #endif
 
 #include <glib-object.h>

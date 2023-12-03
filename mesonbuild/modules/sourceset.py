@@ -197,8 +197,6 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
             raise InterpreterException('add_all called with both positional and keyword arguments')
         keys, dependencies = self.check_conditions(when)
         for s in if_true:
-            if not isinstance(s, SourceSetImpl):
-                raise InvalidCode('Arguments to \'add_all\' after the first must be source sets')
             s.frozen = True
         self.rules.append(SourceSetRule(keys, dependencies, [], [], if_true, []))
 

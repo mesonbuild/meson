@@ -13,16 +13,13 @@
 # limitations under the License.
 from __future__ import annotations
 
+import collections, functools, importlib
+import typing as T
+
 from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
-from .cmake import CMakeDependency
-from .dub import DubDependency
-from .framework import ExtraFrameworkDependency
-from .pkgconfig import PkgConfigDependency
 
 from ..mesonlib import listify, MachineChoice, PerMachine
 from .. import mlog
-import functools
-import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -30,12 +27,25 @@ if T.TYPE_CHECKING:
 
     TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
+    PackageTypes = T.Union[T.Type[ExternalDependency], DependencyFactory, WrappedFactoryFunc]
+
+class DependencyPackages(collections.UserDict):
+    data: T.Dict[str, PackageTypes]
+    defaults: T.Dict[str, str] = {}
+
+    def __missing__(self, key: str) -> PackageTypes:
+        if key in self.defaults:
+            modn = self.defaults[key]
+            importlib.import_module(f'mesonbuild.dependencies.{modn}')
+
+            return self.data[key]
+        raise KeyError(key)
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.defaults or key in self.data
 
 # These must be defined in this file to avoid cyclical references.
-packages: T.Dict[
-    str,
-    T.Union[T.Type[ExternalDependency], 'DependencyFactory', 'WrappedFactoryFunc']
-] = {}
+packages = DependencyPackages()
 _packages_accept_language: T.Set[str] = set()
 
 def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
@@ -80,7 +90,7 @@ display_name_map = {
     'wxwidgets': 'WxWidgets',
 }
 
-def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object]) -> T.Union['ExternalDependency', NotFoundDependency]:
+def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object], candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
     assert name
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
@@ -101,7 +111,8 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
     # build a list of dependency methods to try
-    candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
+    if candidates is None:
+        candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
 
     pkg_exc: T.List[DependencyException] = []
     pkgdep:  T.List[ExternalDependency] = []
@@ -191,37 +202,34 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
 
     candidates: T.List['DependencyGenerator'] = []
 
-    # If it's explicitly requested, use the dub detection method (only)
-    if 'dub' == kwargs.get('method', ''):
+    if kwargs.get('method', 'auto') == 'auto':
+        # Just use the standard detection methods.
+        methods = ['pkg-config', 'extraframework', 'cmake']
+    else:
+        # If it's explicitly requested, use that detection method (only).
+        methods = [kwargs['method']]
+
+    # Exclusive to when it is explicitly requested
+    if 'dub' in methods:
+        from .dub import DubDependency
         candidates.append(functools.partial(DubDependency, name, env, kwargs))
-        return candidates
 
-    # If it's explicitly requested, use the pkgconfig detection method (only)
-    if 'pkg-config' == kwargs.get('method', ''):
-        candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
-        return candidates
-
-    # If it's explicitly requested, use the CMake detection method (only)
-    if 'cmake' == kwargs.get('method', ''):
-        candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
-        return candidates
-
-    # If it's explicitly requested, use the Extraframework detection method (only)
-    if 'extraframework' == kwargs.get('method', ''):
-        # On OSX, also try framework dependency detector
-        if env.machines[for_machine].is_darwin():
-            candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
-        return candidates
-
-    # Otherwise, just use the pkgconfig and cmake dependency detector
-    if 'auto' == kwargs.get('method', 'auto'):
+    # Preferred first candidate for auto.
+    if 'pkg-config' in methods:
+        from .pkgconfig import PkgConfigDependency
         candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
 
-        # On OSX, also try framework dependency detector
+    # On OSX only, try framework dependency detector.
+    if 'extraframework' in methods:
         if env.machines[for_machine].is_darwin():
+            from .framework import ExtraFrameworkDependency
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
 
-        # Only use CMake as a last resort, since it might not work 100% (see #6113)
+    # Only use CMake:
+    # - if it's explicitly requested
+    # - as a last resort, since it might not work 100% (see #6113)
+    if 'cmake' in methods:
+        from .cmake import CMakeDependency
         candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
 
     return candidates

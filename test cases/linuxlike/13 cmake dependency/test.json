@@ -8,7 +8,7 @@
       "line": "WARNING: Could not find and exact match for the CMake dependency cmMesonTestF1."
     },
     {
-      "line": "    ['CMMesonTESTf1::evil_non_standard_trget']"
+      "line": "    ['CMMesonTESTf1::evil_non_standard_target']"
     }
   ]
 }

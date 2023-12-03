@@ -18,6 +18,7 @@ __all__ = [
     'ObjectHolder',
     'IterableObject',
     'MutableInterpreterObject',
+    'ContextManagerObject',
 
     'MesonOperator',
 
@@ -34,6 +35,7 @@ __all__ = [
     'default_resolve_key',
     'flatten',
     'resolve_second_level_holders',
+    'stringifyUserArguments',
 
     'noPosargs',
     'noKwargs',
@@ -44,7 +46,6 @@ __all__ = [
     'disablerIfNotFound',
     'permittedKwargs',
     'typed_operator',
-    'unary_operator',
     'typed_pos_args',
     'ContainerTypeInfo',
     'KwargInfo',
@@ -52,6 +53,7 @@ __all__ = [
     'FeatureCheckBase',
     'FeatureNew',
     'FeatureDeprecated',
+    'FeatureBroken',
     'FeatureNewKwargs',
     'FeatureDeprecatedKwargs',
 
@@ -59,9 +61,6 @@ __all__ = [
 
     'SubProject',
 
-    'TV_fw_var',
-    'TV_fw_args',
-    'TV_fw_kwargs',
     'TV_func',
     'TYPE_elementary',
     'TYPE_var',
@@ -80,10 +79,8 @@ from .baseobjects import (
     ObjectHolder,
     IterableObject,
     MutableInterpreterObject,
+    ContextManagerObject,
 
-    TV_fw_var,
-    TV_fw_args,
-    TV_fw_kwargs,
     TV_func,
     TYPE_elementary,
     TYPE_var,
@@ -111,11 +108,11 @@ from .decorators import (
     ContainerTypeInfo,
     KwargInfo,
     typed_operator,
-    unary_operator,
     typed_kwargs,
     FeatureCheckBase,
     FeatureNew,
     FeatureDeprecated,
+    FeatureBroken,
     FeatureNewKwargs,
     FeatureDeprecatedKwargs,
 )
@@ -130,6 +127,11 @@ from .exceptions import (
 )
 
 from .disabler import Disabler, is_disabled
-from .helpers import default_resolve_key, flatten, resolve_second_level_holders
+from .helpers import (
+    default_resolve_key,
+    flatten,
+    resolve_second_level_holders,
+    stringifyUserArguments,
+)
 from .interpreterbase import InterpreterBase
 from .operator import MesonOperator

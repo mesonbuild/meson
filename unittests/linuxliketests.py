@@ -45,7 +45,7 @@ from mesonbuild.compilers.c import AppleClangCCompiler
 from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
-from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI, PkgConfigInterface
 import mesonbuild.modules.pkgconfig
 
 PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
@@ -164,18 +164,19 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(foo_dep.found())
         self.assertEqual(foo_dep.get_version(), '1.0')
         self.assertIn('-lfoo', foo_dep.get_link_args())
-        self.assertEqual(foo_dep.get_pkgconfig_variable('foo', [], None), 'bar')
-        self.assertPathEqual(foo_dep.get_pkgconfig_variable('datadir', [], None), '/usr/data')
+        self.assertEqual(foo_dep.get_variable(pkgconfig='foo'), 'bar')
+        self.assertPathEqual(foo_dep.get_variable(pkgconfig='datadir'), '/usr/data')
 
         libhello_nolib = PkgConfigDependency('libhello_nolib', env, kwargs)
         self.assertTrue(libhello_nolib.found())
         self.assertEqual(libhello_nolib.get_link_args(), [])
         self.assertEqual(libhello_nolib.get_compile_args(), [])
-        self.assertEqual(libhello_nolib.get_pkgconfig_variable('foo', [], None), 'bar')
-        self.assertEqual(libhello_nolib.get_pkgconfig_variable('prefix', [], None), self.prefix)
-        if version_compare(PkgConfigDependency.check_pkgconfig(env, libhello_nolib.pkgbin),">=0.29.1"):
-            self.assertEqual(libhello_nolib.get_pkgconfig_variable('escaped_var', [], None), r'hello\ world')
-        self.assertEqual(libhello_nolib.get_pkgconfig_variable('unescaped_var', [], None), 'hello world')
+        self.assertEqual(libhello_nolib.get_variable(pkgconfig='foo'), 'bar')
+        self.assertEqual(libhello_nolib.get_variable(pkgconfig='prefix'), self.prefix)
+        impl = libhello_nolib.pkgconfig
+        if not isinstance(impl, PkgConfigCLI) or version_compare(impl.pkgbin_version, ">=0.29.1"):
+            self.assertEqual(libhello_nolib.get_variable(pkgconfig='escaped_var'), r'hello\ world')
+        self.assertEqual(libhello_nolib.get_variable(pkgconfig='unescaped_var'), 'hello world')
 
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() in {'gcc', 'clang'}:
@@ -517,6 +518,15 @@ class LinuxlikeTests(BasePlatformTests):
         has_cpp20 = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=10.0.0', None) or
                      compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=10.0.0'))
+        has_cpp2b = (compiler.get_id() not in {'clang', 'gcc'} or
+                     compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=12.0.0', None) or
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=11.0.0'))
+        has_cpp23 = (compiler.get_id() not in {'clang', 'gcc'} or
+                     compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=17.0.0', None) or
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=11.0.0'))
+        has_cpp26 = (compiler.get_id() not in {'clang', 'gcc'} or
+                     compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=17.0.0', None) or
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=14.0.0'))
         has_c18 = (compiler.get_id() not in {'clang', 'gcc'} or
                    compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=8.0.0', '>=11.0') or
                    compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=8.0.0'))
@@ -532,6 +542,12 @@ class LinuxlikeTests(BasePlatformTests):
             elif '++2a' in v and not has_cpp2a_c17:  # https://en.cppreference.com/w/cpp/compiler_support
                 continue
             elif '++20' in v and not has_cpp20:
+                continue
+            elif '++2b' in v and not has_cpp2b:
+                continue
+            elif '++23' in v and not has_cpp23:
+                continue
+            elif ('++26' in v or '++2c' in v) and not has_cpp26:
                 continue
             # now C
             elif '17' in v and not has_cpp2a_c17:
@@ -1024,7 +1040,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     def test_cross_find_program(self):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')
-        crossfile = tempfile.NamedTemporaryFile(mode='w')
+        crossfile = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8')
         print(os.path.join(testdir, 'some_cross_tool.py'))
 
         tool_path = os.path.join(testdir, 'some_cross_tool.py')
@@ -1153,7 +1169,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         # Regression test: This used to modify the value of `pkg_config_path`
         # option, adding the meson-uninstalled directory to it.
-        PkgConfigDependency.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
+        PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
 
         pkg_config_path = env.coredata.options[OptionKey('pkg_config_path')].value
         self.assertEqual(pkg_config_path, [pkg_dir])
@@ -1350,7 +1366,7 @@ class LinuxlikeTests(BasePlatformTests):
         see: https://github.com/mesonbuild/meson/issues/9000
              https://stackoverflow.com/questions/48532868/gcc-library-option-with-a-colon-llibevent-a
         '''
-        testdir = os.path.join(self.unit_test_dir, '97 link full name','libtestprovider')
+        testdir = os.path.join(self.unit_test_dir, '98 link full name','libtestprovider')
         oldprefix = self.prefix
         # install into installdir without using DESTDIR
         installdir = self.installdir
@@ -1363,7 +1379,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.new_builddir()
         env = {'LIBRARY_PATH': os.path.join(installdir, self.libdir),
                'PKG_CONFIG_PATH': _prepend_pkg_config_path(os.path.join(installdir, self.libdir, 'pkgconfig'))}
-        testdir = os.path.join(self.unit_test_dir, '97 link full name','proguser')
+        testdir = os.path.join(self.unit_test_dir, '98 link full name','proguser')
         self.init(testdir,override_envvars=env)
 
         # test for link with full path
@@ -1517,14 +1533,14 @@ class LinuxlikeTests(BasePlatformTests):
     def test_identity_cross(self):
         testdir = os.path.join(self.unit_test_dir, '60 identity cross')
 
-        constantsfile = tempfile.NamedTemporaryFile(mode='w')
+        constantsfile = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8')
         constantsfile.write(textwrap.dedent('''\
             [constants]
             py_ext = '.py'
             '''))
         constantsfile.flush()
 
-        nativefile = tempfile.NamedTemporaryFile(mode='w')
+        nativefile = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8')
         nativefile.write(textwrap.dedent('''\
             [binaries]
             c = ['{}' + py_ext]
@@ -1532,7 +1548,7 @@ class LinuxlikeTests(BasePlatformTests):
         nativefile.flush()
         self.meson_native_files = [constantsfile.name, nativefile.name]
 
-        crossfile = tempfile.NamedTemporaryFile(mode='w')
+        crossfile = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8')
         crossfile.write(textwrap.dedent('''\
             [binaries]
             c = ['{}' + py_ext]
@@ -1549,7 +1565,7 @@ class LinuxlikeTests(BasePlatformTests):
             'CC_FOR_BUILD': '"' + os.path.join(testdir, 'build_wrapper.py') + '"',
             'CC': '"' + os.path.join(testdir, 'host_wrapper.py') + '"',
         }
-        crossfile = tempfile.NamedTemporaryFile(mode='w')
+        crossfile = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8')
         crossfile.write('')
         crossfile.flush()
         self.meson_cross_files = [crossfile.name]
@@ -1775,7 +1791,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipUnless(is_linux() or is_osx(), 'Test only applicable to Linux and macOS')
     def test_install_strip(self):
-        testdir = os.path.join(self.unit_test_dir, '103 strip')
+        testdir = os.path.join(self.unit_test_dir, '104 strip')
         self.init(testdir)
         self.build()
 
@@ -1822,9 +1838,31 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertFalse(cpp.compiler_args([f'-isystem{symlink}' for symlink in default_symlinks]).to_native())
 
     def test_freezing(self):
-        testdir = os.path.join(self.unit_test_dir, '109 freeze')
+        testdir = os.path.join(self.unit_test_dir, '110 freeze')
         self.init(testdir)
         self.build()
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.run_tests()
         self.assertNotIn('Traceback', e.exception.output)
+
+    @skipUnless(is_linux(), "Ninja file differs on different platforms")
+    def test_complex_link_cases(self):
+        testdir = os.path.join(self.unit_test_dir, '114 complex link cases')
+        self.init(testdir)
+        self.build()
+        with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
+            content = f.read()
+        # Verify link dependencies, see comments in meson.build.
+        self.assertIn('build libt1-s3.a: STATIC_LINKER libt1-s2.a.p/s2.c.o libt1-s3.a.p/s3.c.o\n', content)
+        self.assertIn('build t1-e1: c_LINKER t1-e1.p/main.c.o | libt1-s1.a libt1-s3.a\n', content)
+        self.assertIn('build libt2-s3.a: STATIC_LINKER libt2-s2.a.p/s2.c.o libt2-s1.a.p/s1.c.o libt2-s3.a.p/s3.c.o\n', content)
+        self.assertIn('build t2-e1: c_LINKER t2-e1.p/main.c.o | libt2-s3.a\n', content)
+        self.assertIn('build t3-e1: c_LINKER t3-e1.p/main.c.o | libt3-s3.so.p/libt3-s3.so.symbols\n', content)
+        self.assertIn('build t4-e1: c_LINKER t4-e1.p/main.c.o | libt4-s2.so.p/libt4-s2.so.symbols libt4-s3.a\n', content)
+        self.assertIn('build t5-e1: c_LINKER t5-e1.p/main.c.o | libt5-s1.so.p/libt5-s1.so.symbols libt5-s3.a\n', content)
+        self.assertIn('build t6-e1: c_LINKER t6-e1.p/main.c.o | libt6-s2.a libt6-s3.a\n', content)
+        self.assertIn('build t7-e1: c_LINKER t7-e1.p/main.c.o | libt7-s3.a\n', content)
+        self.assertIn('build t8-e1: c_LINKER t8-e1.p/main.c.o | libt8-s1.a libt8-s2.a libt8-s3.a\n', content)
+        self.assertIn('build t9-e1: c_LINKER t9-e1.p/main.c.o | libt9-s1.a libt9-s2.a libt9-s3.a\n', content)
+        self.assertIn('build t12-e1: c_LINKER t12-e1.p/main.c.o | libt12-s1.a libt12-s2.a libt12-s3.a\n', content)
+        self.assertIn('build t13-e1: c_LINKER t13-e1.p/main.c.o | libt12-s1.a libt13-s3.a\n', content)

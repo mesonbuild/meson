@@ -23,6 +23,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from ..interpreterbase import TYPE_var
 
 language_map = {
     'c': 'C',
@@ -121,16 +122,11 @@ def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
     assert backend_name in backend_generator_map
     return ['-G', backend_generator_map[backend_name]]
 
-def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
-    res = []  # type: T.List[str]
-    if not isinstance(raw, list):
-        raw = [raw]
+def cmake_defines_to_args(raw: T.List[T.Dict[str, TYPE_var]], permissive: bool = False) -> T.List[str]:
+    res: T.List[str] = []
 
     for i in raw:
-        if not isinstance(i, dict):
-            raise MesonException('Invalid CMake defines. Expected a dict, but got a {}'.format(type(i).__name__))
         for key, val in i.items():
-            assert isinstance(key, str)
             if key in blacklist_cmake_defs:
                 mlog.warning('Setting', mlog.bold(key), 'is not supported. See the meson docs for cross compilation support:')
                 mlog.warning('  - URL: https://mesonbuild.com/CMake-module.html#cross-compilation')
@@ -146,9 +142,9 @@ def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
 
     return res
 
-# TODO: this functuin will become obsolete once the `cmake_args` kwarg is dropped
+# TODO: this function will become obsolete once the `cmake_args` kwarg is dropped
 def check_cmake_args(args: T.List[str]) -> T.List[str]:
-    res = []  # type: T.List[str]
+    res: T.List[str] = []
     dis = ['-D' + x for x in blacklist_cmake_defs]
     assert dis  # Ensure that dis is not empty.
     for i in args:
@@ -170,14 +166,14 @@ class CMakeInclude:
 
 class CMakeFileGroup:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
-        self.defines = data.get('defines', '')                       # type: str
-        self.flags = _flags_to_list(data.get('compileFlags', ''))  # type: T.List[str]
-        self.is_generated = data.get('isGenerated', False)                # type: bool
-        self.language = data.get('language', 'C')                     # type: str
-        self.sources = [Path(x) for x in data.get('sources', [])]    # type: T.List[Path]
+        self.defines: str = data.get('defines', '')
+        self.flags = _flags_to_list(data.get('compileFlags', ''))
+        self.is_generated: bool = data.get('isGenerated', False)
+        self.language: str = data.get('language', 'C')
+        self.sources = [Path(x) for x in data.get('sources', [])]
 
         # Fix the include directories
-        self.includes = []  # type: T.List[CMakeInclude]
+        self.includes: T.List[CMakeInclude] = []
         for i in data.get('includePath', []):
             if isinstance(i, dict) and 'path' in i:
                 isSystem = i.get('isSystem', False)
@@ -200,21 +196,21 @@ class CMakeFileGroup:
 
 class CMakeTarget:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
-        self.artifacts = [Path(x) for x in data.get('artifacts', [])]               # type: T.List[Path]
-        self.src_dir = Path(data.get('sourceDirectory', ''))                        # type: Path
-        self.build_dir = Path(data.get('buildDirectory', ''))                       # type: Path
-        self.name = data.get('name', '')                                            # type: str
-        self.full_name = data.get('fullName', '')                                   # type: str
-        self.install = data.get('hasInstallRule', False)                            # type: bool
-        self.install_paths = [Path(x) for x in set(data.get('installPaths', []))]   # type: T.List[Path]
-        self.link_lang = data.get('linkerLanguage', '')                             # type: str
-        self.link_libraries = _flags_to_list(data.get('linkLibraries', ''))         # type: T.List[str]
-        self.link_flags = _flags_to_list(data.get('linkFlags', ''))                 # type: T.List[str]
-        self.link_lang_flags = _flags_to_list(data.get('linkLanguageFlags', ''))    # type: T.List[str]
-        # self.link_path = Path(data.get('linkPath', ''))                             # type: Path
-        self.type = data.get('type', 'EXECUTABLE')                                  # type: str
-        # self.is_generator_provided = data.get('isGeneratorProvided', False)         # type: bool
-        self.files = []                                                             # type: T.List[CMakeFileGroup]
+        self.artifacts = [Path(x) for x in data.get('artifacts', [])]
+        self.src_dir = Path(data.get('sourceDirectory', ''))
+        self.build_dir = Path(data.get('buildDirectory', ''))
+        self.name: str = data.get('name', '')
+        self.full_name: str = data.get('fullName', '')
+        self.install: bool = data.get('hasInstallRule', False)
+        self.install_paths = [Path(x) for x in set(data.get('installPaths', []))]
+        self.link_lang: str = data.get('linkerLanguage', '')
+        self.link_libraries = _flags_to_list(data.get('linkLibraries', ''))
+        self.link_flags = _flags_to_list(data.get('linkFlags', ''))
+        self.link_lang_flags = _flags_to_list(data.get('linkLanguageFlags', ''))
+        # self.link_path = Path(data.get('linkPath', ''))
+        self.type: str = data.get('type', 'EXECUTABLE')
+        # self.is_generator_provided: bool = data.get('isGeneratorProvided', False)
+        self.files: T.List[CMakeFileGroup] = []
 
         for i in data.get('fileGroups', []):
             self.files += [CMakeFileGroup(i)]
@@ -241,10 +237,10 @@ class CMakeTarget:
 
 class CMakeProject:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
-        self.src_dir = Path(data.get('sourceDirectory', ''))    # type: Path
-        self.build_dir = Path(data.get('buildDirectory', ''))   # type: Path
-        self.name = data.get('name', '')                        # type: str
-        self.targets = []                                       # type: T.List[CMakeTarget]
+        self.src_dir = Path(data.get('sourceDirectory', ''))
+        self.build_dir = Path(data.get('buildDirectory', ''))
+        self.name: str = data.get('name', '')
+        self.targets: T.List[CMakeTarget] = []
 
         for i in data.get('targets', []):
             self.targets += [CMakeTarget(i)]
@@ -260,8 +256,8 @@ class CMakeProject:
 
 class CMakeConfiguration:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
-        self.name = data.get('name', '')        # type: str
-        self.projects = []                      # type: T.List[CMakeProject]
+        self.name: str = data.get('name', '')
+        self.projects: T.List[CMakeProject] = []
         for i in data.get('projects', []):
             self.projects += [CMakeProject(i)]
 
@@ -274,9 +270,9 @@ class CMakeConfiguration:
 
 class SingleTargetOptions:
     def __init__(self) -> None:
-        self.opts = {}       # type: T.Dict[str, str]
-        self.lang_args = {}  # type: T.Dict[str, T.List[str]]
-        self.link_args = []  # type: T.List[str]
+        self.opts: T.Dict[str, str] = {}
+        self.lang_args: T.Dict[str, T.List[str]] = {}
+        self.link_args: T.List[str] = []
         self.install = 'preserve'
 
     def set_opt(self, opt: str, val: str) -> None:
@@ -294,7 +290,7 @@ class SingleTargetOptions:
         self.install = 'true' if install else 'false'
 
     def get_override_options(self, initial: T.List[str]) -> T.List[str]:
-        res = []  # type: T.List[str]
+        res: T.List[str] = []
         for i in initial:
             opt = i[:i.find('=')]
             if opt not in self.opts:
@@ -316,7 +312,7 @@ class SingleTargetOptions:
 class TargetOptions:
     def __init__(self) -> None:
         self.global_options = SingleTargetOptions()
-        self.target_options = {}  # type: T.Dict[str, SingleTargetOptions]
+        self.target_options: T.Dict[str, SingleTargetOptions] = {}
 
     def __getitem__(self, tgt: str) -> SingleTargetOptions:
         if tgt not in self.target_options:

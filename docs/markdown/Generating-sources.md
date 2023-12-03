@@ -179,7 +179,7 @@ gen2 = generator(someprog,
                  arguments : ['--out_dir=@BUILD_DIR@', '@INPUT@'])
 ```
 
-In this case you can not use the plain `@OUTPUT@` variable, as it
+In this case you cannot use the plain `@OUTPUT@` variable, as it
 would be ambiguous. This program only needs to know the output
 directory, it will generate the file names by itself.
 

@@ -21,11 +21,15 @@ def get_all_modules_from_dir(dirname):
     modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
     return modules
 
-datas += collect_data_files('mesonbuild.scripts')
+datas += collect_data_files('mesonbuild.scripts', include_py_files=True, excludes=['**/__pycache__'])
 datas += collect_data_files('mesonbuild.cmake.data')
 datas += collect_data_files('mesonbuild.dependencies.data')
 
+# lazy-loaded
+hiddenimports += get_all_modules_from_dir('mesonbuild/dependencies')
+# imported by meson.build files
 hiddenimports += get_all_modules_from_dir('mesonbuild/modules')
+# executed when named on CLI
 hiddenimports += get_all_modules_from_dir('mesonbuild/scripts')
 
 # Python packagers want to be minimal and only copy the things

@@ -23,19 +23,20 @@ from .. import mesonlib
 from .. import mlog
 from .base import DependencyException, DependencyMethods
 from .base import BuiltinDependency, SystemDependency
-from .cmake import CMakeDependency
+from .cmake import CMakeDependency, CMakeDependencyFactory
 from .configtool import ConfigToolDependency
+from .detect import packages
 from .factory import DependencyFactory, factory_methods
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment, MachineChoice
+    from ..environment import Environment
     from .factory import DependencyGenerator
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def netcdf_factory(env: 'Environment',
-                   for_machine: 'MachineChoice',
+                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: T.Dict[str, T.Any],
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language', 'c')
@@ -56,6 +57,8 @@ def netcdf_factory(env: 'Environment',
         candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs, language=language))
 
     return candidates
+
+packages['netcdf'] = netcdf_factory
 
 
 class DlBuiltinDependency(BuiltinDependency):
@@ -82,6 +85,8 @@ class DlSystemDependency(SystemDependency):
 class OpenMPDependency(SystemDependency):
     # Map date of specification release (which is the macro value) to a version.
     VERSIONS = {
+        '202111': '5.2',
+        '202011': '5.1',
         '201811': '5.0',
         '201611': '5.0-revision1',  # This is supported by ICC 19.x
         '201511': '4.5',
@@ -136,6 +141,8 @@ class OpenMPDependency(SystemDependency):
             if not self.is_found:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
 
+packages['openmp'] = OpenMPDependency
+
 
 class ThreadDependency(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
@@ -182,6 +189,8 @@ class BlocksDependency(SystemDependency):
                 return
 
             self.is_found = True
+
+packages['blocks'] = BlocksDependency
 
 
 class PcapDependencyConfigTool(ConfigToolDependency):
@@ -332,7 +341,7 @@ class CursesSystemDependency(SystemDependency):
             ('curses',  ['curses.h']),
         ]
 
-        # Not sure how else to elegently break out of both loops
+        # Not sure how else to elegantly break out of both loops
         for lib, headers in candidates:
             l = self.clib_compiler.find_library(lib, env, [])
             if l:
@@ -468,7 +477,7 @@ class OpensslSystemDependency(SystemDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment',
-                   for_machine: 'MachineChoice',
+                   for_machine: 'mesonlib.MachineChoice',
                    kwargs: T.Dict[str, T.Any],
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     candidates: T.List['DependencyGenerator'] = []
@@ -489,11 +498,12 @@ def curses_factory(env: 'Environment',
             candidates.append(functools.partial(CursesSystemDependency, 'curses', env, kwargs))
 
     return candidates
+packages['curses'] = curses_factory
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
 def shaderc_factory(env: 'Environment',
-                    for_machine: 'MachineChoice',
+                    for_machine: 'mesonlib.MachineChoice',
                     kwargs: T.Dict[str, T.Any],
                     methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     """Custom DependencyFactory for ShaderC.
@@ -524,85 +534,86 @@ def shaderc_factory(env: 'Environment',
         candidates.append(functools.partial(ShadercDependency, env, kwargs))
 
     return candidates
+packages['shaderc'] = shaderc_factory
 
 
-cups_factory = DependencyFactory(
+packages['cups'] = cups_factory = DependencyFactory(
     'cups',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool_class=CupsDependencyConfigTool,
     cmake_name='Cups',
 )
 
-dl_factory = DependencyFactory(
+packages['dl'] = dl_factory = DependencyFactory(
     'dl',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
     builtin_class=DlBuiltinDependency,
     system_class=DlSystemDependency,
 )
 
-gpgme_factory = DependencyFactory(
+packages['gpgme'] = gpgme_factory = DependencyFactory(
     'gpgme',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     configtool_class=GpgmeDependencyConfigTool,
 )
 
-libgcrypt_factory = DependencyFactory(
+packages['libgcrypt'] = libgcrypt_factory = DependencyFactory(
     'libgcrypt',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     configtool_class=LibGCryptDependencyConfigTool,
 )
 
-libwmf_factory = DependencyFactory(
+packages['libwmf'] = libwmf_factory = DependencyFactory(
     'libwmf',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     configtool_class=LibWmfDependencyConfigTool,
 )
 
-pcap_factory = DependencyFactory(
+packages['pcap'] = pcap_factory = DependencyFactory(
     'pcap',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     configtool_class=PcapDependencyConfigTool,
     pkgconfig_name='libpcap',
 )
 
-threads_factory = DependencyFactory(
+packages['threads'] = threads_factory = DependencyFactory(
     'threads',
     [DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     cmake_name='Threads',
     system_class=ThreadDependency,
 )
 
-iconv_factory = DependencyFactory(
+packages['iconv'] = iconv_factory = DependencyFactory(
     'iconv',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
     builtin_class=IconvBuiltinDependency,
     system_class=IconvSystemDependency,
 )
 
-intl_factory = DependencyFactory(
+packages['intl'] = intl_factory = DependencyFactory(
     'intl',
     [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
     builtin_class=IntlBuiltinDependency,
     system_class=IntlSystemDependency,
 )
 
-openssl_factory = DependencyFactory(
+packages['openssl'] = openssl_factory = DependencyFactory(
     'openssl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
-    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::Crypto', 'OpenSSL::SSL'])),
+    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::Crypto', 'OpenSSL::SSL']),
 )
 
-libcrypto_factory = DependencyFactory(
+packages['libcrypto'] = libcrypto_factory = DependencyFactory(
     'libcrypto',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
-    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::Crypto'])),
+    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::Crypto']),
 )
 
-libssl_factory = DependencyFactory(
+packages['libssl'] = libssl_factory = DependencyFactory(
     'libssl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
     system_class=OpensslSystemDependency,
-    cmake_class=lambda name, env, kwargs: CMakeDependency('OpenSSL', env, dict(kwargs, modules=['OpenSSL::SSL'])),
+    cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::SSL']),
 )

@@ -36,6 +36,7 @@ from mesonbuild.mesonlib import python_command, setup_vsenv
 import mesonbuild.modules.pkgconfig
 
 from unittests.allplatformstests import AllPlatformTests
+from unittests.cargotests import CargoVersionTest, CargoCfgTest
 from unittests.darwintests import DarwinTests
 from unittests.failuretests import FailureTests
 from unittests.linuxcrosstests import LinuxCrossArmTests, LinuxCrossMingwTests
@@ -135,7 +136,7 @@ def main():
         # Let there be colors!
         if 'CI' in os.environ:
             pytest_args += ['--color=yes']
-        pytest_args += ['./run_unittests.py']
+        pytest_args += ['unittests']
         pytest_args += convert_args(sys.argv[1:])
         # Always disable pytest-cov because we use a custom setup
         try:

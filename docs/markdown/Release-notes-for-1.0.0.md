@@ -54,7 +54,7 @@ Meson function name styling.
 
 The `bindgen` method of the `rust` module now accepts a dependencies argument.
 Any include paths in these dependencies will be passed to the underlying call to
-`clang`, and the call to `bindgen` will correctly depend on any generatd sources.
+`clang`, and the call to `bindgen` will correctly depend on any generated sources.
 
 ## String arguments to the rust.bindgen include_directories argument
 

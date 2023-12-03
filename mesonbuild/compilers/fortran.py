@@ -20,6 +20,7 @@ from .. import coredata
 from .compilers import (
     clike_debug_args,
     Compiler,
+    CompileCheckMode,
 )
 from .mixins.clike import CLikeCompiler
 from .mixins.gnu import (
@@ -40,10 +41,9 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import DynamicLinker
+    from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
-    from .compilers import CompileCheckMode
 
 
 class FortranCompiler(CLikeCompiler, Compiler):
@@ -117,9 +117,9 @@ class FortranCompiler(CLikeCompiler, Compiler):
         return filename
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
+                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
         code = 'stop; end program'
-        return self._find_library_impl(libname, env, extra_dirs, code, libtype)
+        return self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self._has_multi_arguments(args, env, 'stop; end program')
@@ -170,7 +170,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         if std.value != 'none':
@@ -207,7 +207,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         '''
         code = f'{prefix}\n#include <{hname}>'
         return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
+                             dependencies=dependencies, mode=CompileCheckMode.PREPROCESS, disable_cache=disable_cache)
 
 
 class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
@@ -311,7 +311,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
@@ -364,7 +364,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args: T.List[str] = []
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std = options[key]
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}

@@ -13,8 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-from mesonbuild.templates.sampleimpl import SampleImpl
-import re
+from mesonbuild.templates.sampleimpl import FileHeaderImpl
 
 
 lib_h_template = '''#pragma once
@@ -125,44 +124,13 @@ test('basic', exe)
 '''
 
 
-class ObjCppProject(SampleImpl):
-    def __init__(self, options):
-        super().__init__()
-        self.name = options.name
-        self.version = options.version
+class ObjCppProject(FileHeaderImpl):
 
-    def create_executable(self) -> None:
-        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
-        source_name = lowercase_token + '.mm'
-        open(source_name, 'w', encoding='utf-8').write(hello_objcpp_template.format(project_name=self.name))
-        open('meson.build', 'w', encoding='utf-8').write(
-            hello_objcpp_meson_template.format(project_name=self.name,
-                                               exe_name=lowercase_token,
-                                               source_name=source_name,
-                                               version=self.version))
-
-    def create_library(self) -> None:
-        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
-        uppercase_token = lowercase_token.upper()
-        function_name = lowercase_token[0:3] + '_func'
-        test_exe_name = lowercase_token + '_test'
-        lib_h_name = lowercase_token + '.h'
-        lib_objcpp_name = lowercase_token + '.mm'
-        test_objcpp_name = lowercase_token + '_test.mm'
-        kwargs = {'utoken': uppercase_token,
-                  'ltoken': lowercase_token,
-                  'header_dir': lowercase_token,
-                  'function_name': function_name,
-                  'header_file': lib_h_name,
-                  'source_file': lib_objcpp_name,
-                  'test_source_file': test_objcpp_name,
-                  'test_exe_name': test_exe_name,
-                  'project_name': self.name,
-                  'lib_name': lowercase_token,
-                  'test_name': lowercase_token,
-                  'version': self.version,
-                  }
-        open(lib_h_name, 'w', encoding='utf-8').write(lib_h_template.format(**kwargs))
-        open(lib_objcpp_name, 'w', encoding='utf-8').write(lib_objcpp_template.format(**kwargs))
-        open(test_objcpp_name, 'w', encoding='utf-8').write(lib_objcpp_test_template.format(**kwargs))
-        open('meson.build', 'w', encoding='utf-8').write(lib_objcpp_meson_template.format(**kwargs))
+    source_ext = 'mm'
+    header_ext = 'h'
+    exe_template = hello_objcpp_template
+    exe_meson_template = hello_objcpp_meson_template
+    lib_template = lib_objcpp_template
+    lib_header_template = lib_h_template
+    lib_test_template = lib_objcpp_test_template
+    lib_meson_template = lib_objcpp_meson_template

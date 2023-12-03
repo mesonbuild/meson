@@ -55,7 +55,7 @@ class KeyvalModule(ExtensionModule):
         return result
 
     @noKwargs
-    @typed_pos_args('keyval.laod', (str, mesonlib.File))
+    @typed_pos_args('keyval.load', (str, mesonlib.File))
     def load(self, state: 'ModuleState', args: T.Tuple['mesonlib.FileOrString'], kwargs: T.Dict[str, T.Any]) -> T.Dict[str, str]:
         s = args[0]
         is_built = False

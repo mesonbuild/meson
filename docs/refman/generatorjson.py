@@ -1,5 +1,6 @@
 # SPDX-License-Identifer: Apache-2.0
 # Copyright 2021 The Meson development team
+from __future__ import annotations
 
 from pathlib import Path
 import json

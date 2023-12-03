@@ -38,6 +38,7 @@ from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
 from mesonbuild.compilers.d import DmdDCompiler
+from mesonbuild.linkers import linkers
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
@@ -46,7 +47,7 @@ from mesonbuild.mesonlib import (
     OptionType
 )
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
-from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
 
@@ -223,7 +224,7 @@ class InternalTests(unittest.TestCase):
 
 
     def test_compiler_args_class_visualstudio(self):
-        linker = mesonbuild.linkers.MSVCDynamicLinker(MachineChoice.HOST, [])
+        linker = linkers.MSVCDynamicLinker(MachineChoice.HOST, [])
         # Version just needs to be > 19.0.0
         cc = VisualStudioCPPCompiler([], [], '20.00', MachineChoice.HOST, False, mock.Mock(), 'x64', linker=linker)
 
@@ -245,7 +246,7 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_class_gnuld(self):
         ## Test --start/end-group
-        linker = mesonbuild.linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
+        linker = linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
         gcc = GnuCCompiler([], [], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
@@ -273,7 +274,7 @@ class InternalTests(unittest.TestCase):
 
     def test_compiler_args_remove_system(self):
         ## Test --start/end-group
-        linker = mesonbuild.linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
+        linker = linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
         gcc = GnuCCompiler([], [], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
@@ -452,7 +453,7 @@ class InternalTests(unittest.TestCase):
         # Can not be used as context manager because we need to
         # open it a second time and this is not possible on
         # Windows.
-        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False, encoding='utf-8')
         configfilename = configfile.name
         config.write(configfile)
         configfile.flush()
@@ -468,7 +469,7 @@ class InternalTests(unittest.TestCase):
             'needs_exe_wrapper': 'true' if desired_value else 'false'
         }
 
-        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False)
+        configfile = tempfile.NamedTemporaryFile(mode='w+', delete=False, encoding='utf-8')
         configfilename = configfile.name
         config.write(configfile)
         configfile.close()
@@ -548,11 +549,14 @@ class InternalTests(unittest.TestCase):
         if platform != 'openbsd':
             return
         with tempfile.TemporaryDirectory() as tmpdir:
-            for i in ['libfoo.so.6.0', 'libfoo.so.5.0', 'libfoo.so.54.0', 'libfoo.so.66a.0b', 'libfoo.so.70.0.so.1']:
+            for i in ['libfoo.so.6.0', 'libfoo.so.5.0', 'libfoo.so.54.0', 'libfoo.so.66a.0b', 'libfoo.so.70.0.so.1',
+                      'libbar.so.7.10', 'libbar.so.7.9', 'libbar.so.7.9.3']:
                 libpath = Path(tmpdir) / i
                 libpath.write_text('', encoding='utf-8')
-            found = cc._find_library_real('foo', env, [tmpdir], '', LibType.PREFER_SHARED)
+            found = cc._find_library_real('foo', env, [tmpdir], '', LibType.PREFER_SHARED, lib_prefix_warning=True)
             self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
+            found = cc._find_library_real('bar', env, [tmpdir], '', LibType.PREFER_SHARED, lib_prefix_warning=True)
+            self.assertEqual(os.path.basename(found[0]), 'libbar.so.7.10')
 
     def test_find_library_patterns(self):
         '''
@@ -639,22 +643,19 @@ class InternalTests(unittest.TestCase):
             create_static_lib(p1 / 'libdl.a')
             create_static_lib(p1 / 'librt.a')
 
-            def fake_call_pkgbin(self, args, env=None):
-                if '--libs' not in args:
-                    return 0, '', ''
-                if args[-1] == 'foo':
-                    return 0, f'-L{p2.as_posix()} -lfoo -L{p1.as_posix()} -lbar', ''
-                if args[-1] == 'bar':
-                    return 0, f'-L{p2.as_posix()} -lbar', ''
-                if args[-1] == 'internal':
-                    return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
+            class FakeInstance(PkgConfigCLI):
+                def _call_pkgbin(self, args, env=None):
+                    if '--libs' not in args:
+                        return 0, '', ''
+                    if args[-1] == 'foo':
+                        return 0, f'-L{p2.as_posix()} -lfoo -L{p1.as_posix()} -lbar', ''
+                    if args[-1] == 'bar':
+                        return 0, f'-L{p2.as_posix()} -lbar', ''
+                    if args[-1] == 'internal':
+                        return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
 
-            old_call = PkgConfigDependency._call_pkgbin
-            old_check = PkgConfigDependency.check_pkgconfig
-            PkgConfigDependency._call_pkgbin = fake_call_pkgbin
-            PkgConfigDependency.check_pkgconfig = lambda x, _: pkgbin
-            # Test begins
-            try:
+            with mock.patch.object(PkgConfigInterface, 'instance') as instance_method:
+                instance_method.return_value = FakeInstance(env, MachineChoice.HOST, silent=True)
                 kwargs = {'required': True, 'silent': True}
                 foo_dep = PkgConfigDependency('foo', env, kwargs)
                 self.assertEqual(foo_dep.get_link_args(),
@@ -669,13 +670,6 @@ class InternalTests(unittest.TestCase):
                     for link_arg in link_args:
                         for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
                             self.assertNotIn(f'lib{lib}.a', link_arg, msg=link_args)
-            finally:
-                # Test ends
-                PkgConfigDependency._call_pkgbin = old_call
-                PkgConfigDependency.check_pkgconfig = old_check
-                # Reset dependency class to ensure that in-process configure doesn't mess up
-                PkgConfigDependency.pkgbin_cache = {}
-                PkgConfigDependency.class_pkgbin = PerMachine(None, None)
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
@@ -947,23 +941,23 @@ class InternalTests(unittest.TestCase):
 
     def test_log_once(self):
         f = io.StringIO()
-        with mock.patch('mesonbuild.mlog.log_file', f), \
-                mock.patch('mesonbuild.mlog._logged_once', set()):
-            mesonbuild.mlog.log_once('foo')
-            mesonbuild.mlog.log_once('foo')
+        with mock.patch('mesonbuild.mlog._logger.log_file', f), \
+                mock.patch('mesonbuild.mlog._logger.logged_once', set()):
+            mesonbuild.mlog.log('foo', once=True)
+            mesonbuild.mlog.log('foo', once=True)
             actual = f.getvalue().strip()
             self.assertEqual(actual, 'foo', actual)
 
     def test_log_once_ansi(self):
         f = io.StringIO()
-        with mock.patch('mesonbuild.mlog.log_file', f), \
-                mock.patch('mesonbuild.mlog._logged_once', set()):
-            mesonbuild.mlog.log_once(mesonbuild.mlog.bold('foo'))
-            mesonbuild.mlog.log_once(mesonbuild.mlog.bold('foo'))
+        with mock.patch('mesonbuild.mlog._logger.log_file', f), \
+                mock.patch('mesonbuild.mlog._logger.logged_once', set()):
+            mesonbuild.mlog.log(mesonbuild.mlog.bold('foo'), once=True)
+            mesonbuild.mlog.log(mesonbuild.mlog.bold('foo'), once=True)
             actual = f.getvalue().strip()
             self.assertEqual(actual.count('foo'), 1, actual)
 
-            mesonbuild.mlog.log_once('foo')
+            mesonbuild.mlog.log('foo', once=True)
             actual = f.getvalue().strip()
             self.assertEqual(actual.count('foo'), 1, actual)
 
@@ -1026,7 +1020,7 @@ class InternalTests(unittest.TestCase):
 
         schema = json.loads(Path('data/test.schema.json').read_text(encoding='utf-8'))
 
-        errors = []  # type: T.Tuple[str, Exception]
+        errors: T.List[T.Tuple[Path, Exception]] = []
         for p in Path('test cases').glob('**/test.json'):
             try:
                 validate(json.loads(p.read_text(encoding='utf-8')), schema=schema)
@@ -1101,7 +1095,7 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
         self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been "str"')
 
-    def test_typed_pos_args_varargs_invalid_mulitple_types(self) -> None:
+    def test_typed_pos_args_varargs_invalid_multiple_types(self) -> None:
         @typed_pos_args('foo', str, varargs=(str, list))
         def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
             self.assertTrue(False)  # should not be reachable
@@ -1415,6 +1409,11 @@ class InternalTests(unittest.TestCase):
                       since_values={list: '1.9'}),
             KwargInfo('new_dict', (ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str)), default={},
                       since_values={dict: '1.1'}),
+            KwargInfo('foo', (str, int, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, str), ContainerTypeInfo(list, int)), default={},
+                      since_values={str: '1.1', ContainerTypeInfo(list, str): '1.2', ContainerTypeInfo(dict, str): '1.3'},
+                      deprecated_values={int: '0.8', ContainerTypeInfo(list, int): '0.9'}),
+            KwargInfo('tuple', (ContainerTypeInfo(list, (str, int))), default=[], listify=True,
+                      since_values={ContainerTypeInfo(list, str): '1.1', ContainerTypeInfo(list, int): '1.2'}),
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             pass
@@ -1433,7 +1432,7 @@ class InternalTests(unittest.TestCase):
 
         with self.subTest('deprecated dict string value with msg'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'foo2': 'a'}})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo2". dont use it.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo2" in dict keys. dont use it.*""")
 
         with self.subTest('new dict string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'bar': 'b'}})
@@ -1441,7 +1440,40 @@ class InternalTests(unittest.TestCase):
 
         with self.subTest('new dict string value with msg'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'bar2': 'a'}})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*introduced in '1.1': "testfunc" keyword argument "output" value "bar2". use this.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*introduced in '1.1': "testfunc" keyword argument "output" value "bar2" in dict keys. use this.*""")
+
+        with self.subTest('new string type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'foo': 'foo'})
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '1.0'.*introduced in '1.1': "testfunc" keyword argument "foo" of type str.*""")
+
+        with self.subTest('new array of string type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'foo': ['foo']})
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '1.0'.*introduced in '1.2': "testfunc" keyword argument "foo" of type array\[str\].*""")
+
+        with self.subTest('new dict of string type'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'foo': {'plop': 'foo'}})
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '1.0'.*introduced in '1.3': "testfunc" keyword argument "foo" of type dict\[str\].*""")
+
+        with self.subTest('deprecated int value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'foo': 1})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.8': "testfunc" keyword argument "foo" of type int.*""")
+
+        with self.subTest('deprecated array int value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'foo': [1]})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "foo" of type array\[int\].*""")
+
+        with self.subTest('new list[str] value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'tuple': ['foo', 42]})
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '1.0'.*introduced in '1.1': "testfunc" keyword argument "tuple" of type array\[str\].*""")
+            self.assertRegex(out.getvalue(), r"""WARNING: Project targets '1.0'.*introduced in '1.2': "testfunc" keyword argument "tuple" of type array\[int\].*""")
+
+        with self.subTest('deprecated array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "input" value "foo".*""")
+
+        with self.subTest('new array string value'), mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'input': 'bar'})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*introduced in '1.1': "testfunc" keyword argument "input" value "bar".*""")
 
         with self.subTest('non string union'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'install_dir': False})
@@ -1541,12 +1573,12 @@ class InternalTests(unittest.TestCase):
             ('ppc', 'ppc'),
             ('macppc', 'ppc'),
             ('power macintosh', 'ppc'),
-            ('mips64el', 'mips64'),
-            ('mips64', 'mips64'),
+            ('mips64el', 'mips'),
+            ('mips64', 'mips'),
             ('mips', 'mips'),
             ('mipsel', 'mips'),
-            ('ip30', 'mips64'),
-            ('ip35', 'mips64'),
+            ('ip30', 'mips'),
+            ('ip35', 'mips'),
             ('parisc64', 'parisc'),
             ('sun4u', 'sparc64'),
             ('sun4v', 'sparc64'),
@@ -1557,15 +1589,27 @@ class InternalTests(unittest.TestCase):
             ('aarch64_be', 'aarch64'),
         ]
 
+        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, False, mock.Mock())
+
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=False)):
             for test, expected in cases:
                 with self.subTest(test, has_define=False), mock_trial(test):
-                    actual = mesonbuild.environment.detect_cpu_family({})
+                    actual = mesonbuild.environment.detect_cpu_family({'c': cc})
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=True)):
-            for test, expected in [('x86_64', 'x86'), ('aarch64', 'arm'), ('ppc', 'ppc64')]:
+            for test, expected in [('x86_64', 'x86'), ('aarch64', 'arm'), ('ppc', 'ppc64'), ('mips64', 'mips64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
+                    actual = mesonbuild.environment.detect_cpu_family({'c': cc})
+                    self.assertEqual(actual, expected)
+
+        # machine_info_can_run calls detect_cpu_family with no compilers at all
+        with mock.patch(
+            'mesonbuild.environment.any_compiler_has_define',
+            mock.Mock(side_effect=AssertionError('Should not be called')),
+        ):
+            for test, expected in [('mips64', 'mips64')]:
+                with self.subTest(test, has_compiler=False), mock_trial(test):
                     actual = mesonbuild.environment.detect_cpu_family({})
                     self.assertEqual(actual, expected)
 
@@ -1586,23 +1630,34 @@ class InternalTests(unittest.TestCase):
             ('x64', 'x86_64'),
             ('i86pc', 'x86_64'),
             ('earm', 'arm'),
-            ('mips64el', 'mips64'),
-            ('mips64', 'mips64'),
+            ('mips64el', 'mips'),
+            ('mips64', 'mips'),
             ('mips', 'mips'),
             ('mipsel', 'mips'),
             ('aarch64', 'aarch64'),
             ('aarch64_be', 'aarch64'),
         ]
 
+        cc = ClangCCompiler([], [], 'fake', MachineChoice.HOST, False, mock.Mock())
+
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=False)):
             for test, expected in cases:
                 with self.subTest(test, has_define=False), mock_trial(test):
-                    actual = mesonbuild.environment.detect_cpu({})
+                    actual = mesonbuild.environment.detect_cpu({'c': cc})
                     self.assertEqual(actual, expected)
 
         with mock.patch('mesonbuild.environment.any_compiler_has_define', mock.Mock(return_value=True)):
-            for test, expected in [('x86_64', 'i686'), ('aarch64', 'arm'), ('ppc', 'ppc64')]:
+            for test, expected in [('x86_64', 'i686'), ('aarch64', 'arm'), ('ppc', 'ppc64'), ('mips64', 'mips64')]:
                 with self.subTest(test, has_define=True), mock_trial(test):
+                    actual = mesonbuild.environment.detect_cpu({'c': cc})
+                    self.assertEqual(actual, expected)
+
+        with mock.patch(
+            'mesonbuild.environment.any_compiler_has_define',
+            mock.Mock(side_effect=AssertionError('Should not be called')),
+        ):
+            for test, expected in [('mips64', 'mips64')]:
+                with self.subTest(test, has_compiler=False), mock_trial(test):
                     actual = mesonbuild.environment.detect_cpu({})
                     self.assertEqual(actual, expected)
 

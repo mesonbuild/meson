@@ -29,7 +29,7 @@ if test_fortran
     # Search paths don't work correctly here and -lgfortran doesn't work
     test_fortran = false
   elif host_machine.system() == 'windows' and cpp.get_id() != 'gcc' and fc.get_id() == 'gcc'
-    # mixing gfotran with non-gcc doesn't work on windows
+    # mixing gfortran with non-gcc doesn't work on windows
     test_fortran = false
   endif
 

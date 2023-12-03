@@ -4,6 +4,13 @@ short-description: Videos about Meson
 
 # Videos
 
+ - [Lessons Learned From Porting LibreOffice's Build System To
+   Meson](https://www.youtube.com/watch?v=asB_hx_jJSw), CppNorth 2022
+
+ - [The Meson build system
+   overview](https://www.youtube.com/watch?v=rewhp5o0xZg), PyCon US
+   2022
+
  - [Behind (and under) the scenes of the Meson build
    system](https://www.youtube.com/watch?v=iLN6wL7ExHU), Linux.conf.au
    2020

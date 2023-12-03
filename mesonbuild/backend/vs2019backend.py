@@ -25,9 +25,11 @@ if T.TYPE_CHECKING:
 
 
 class Vs2019Backend(Vs2010Backend):
+
+    name = 'vs2019'
+
     def __init__(self, build: T.Optional[Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
-        self.name = 'vs2019'
         self.sln_file_version = '12.00'
         self.sln_version_comment = 'Version 16'
         if self.environment is not None:

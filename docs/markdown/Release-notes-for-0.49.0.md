@@ -279,7 +279,7 @@ associated with the generated pkg-config file should be passed as
 first positional argument instead of in the `libraries` keyword
 argument. The previous behaviour is maintained but prints a
 deprecation warning and support for this will be removed in a future
-Meson release. If you can not create the needed pkg-config file
+Meson release. If you cannot create the needed pkg-config file
 without this warning, please file an issue with as much details as
 possible about the situation.
 

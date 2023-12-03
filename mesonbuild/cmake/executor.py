@@ -39,9 +39,9 @@ if T.TYPE_CHECKING:
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakebin = PerMachine(None, None)   # type: PerMachine[T.Optional[ExternalProgram]]
-    class_cmakevers = PerMachine(None, None)  # type: PerMachine[T.Optional[str]]
-    class_cmake_cache = {}  # type: T.Dict[T.Any, TYPE_result]
+    class_cmakebin: PerMachine[T.Optional[ExternalProgram]] = PerMachine(None, None)
+    class_cmakevers: PerMachine[T.Optional[str]] = PerMachine(None, None)
+    class_cmake_cache: T.Dict[T.Any, TYPE_result] = {}
 
     def __init__(self, environment: 'Environment', version: str, for_machine: MachineChoice, silent: bool = False):
         self.min_version = version
@@ -50,8 +50,8 @@ class CMakeExecutor:
         self.cmakebin, self.cmakevers = self.find_cmake_binary(self.environment, silent=silent)
         self.always_capture_stderr = True
         self.print_cmout = False
-        self.prefix_paths = []      # type: T.List[str]
-        self.extra_cmake_args = []  # type: T.List[str]
+        self.prefix_paths: T.List[str] = []
+        self.extra_cmake_args: T.List[str] = []
 
         if self.cmakebin is None:
             return

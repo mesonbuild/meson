@@ -1,4 +1,4 @@
-project('fs module test')
+project('fs module test', 'c')
 
 is_windows = build_machine.system() == 'windows'
 
@@ -39,7 +39,9 @@ assert(fs.expanduser('~/foo').endswith('foo'), 'expanduser with tail failed')
 # -- as_posix
 assert(fs.as_posix('/') == '/', 'as_posix idempotent')
 assert(fs.as_posix('\\') == '/', 'as_posix simple')
-assert(fs.as_posix('\\\\') == '/', 'as_posix simple')
+# Python 3.12 changed how these paths are handled, so deal with both.
+drivepath = fs.as_posix('\\\\')
+assert(drivepath == '/' or drivepath == '//', 'as_posix simple')
 assert(fs.as_posix('foo\\bar/baz') == 'foo/bar/baz', 'as_posix mixed slash')
 
 # -- is_absolute
@@ -120,7 +122,7 @@ assert(not fs.is_samepath(f1, 'subdir/subdirfile.txt'), 'is_samepath known bad c
 assert(not fs.is_samepath('not-a-path', f2), 'is_samepath should not error if path(s) do not exist')
 
 f = files('meson.build', 'subdir/../meson.build')
-assert(fs.is_samepath(f[0], f[1]), 'is_samepath not detercting same files')
+assert(fs.is_samepath(f[0], f[1]), 'is_samepath not detecting same files')
 
 if not is_windows and build_machine.system() != 'cygwin'
   assert(fs.is_samepath(symlink, 'meson.build'), 'symlink is_samepath fail')
@@ -139,6 +141,33 @@ assert(fs.name('foo/bar/baz.dll.a') == 'baz.dll.a', 'failed to get basename with
 assert(fs.stem('foo/bar/baz.dll') == 'baz', 'failed to get stem with suffix')
 assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compound suffix')
 
+# relative_to
+if build_machine.system() == 'windows'
+  # strings
+  assert(fs.relative_to('c:\\prefix\\lib\\foo', 'c:\\prefix') == 'lib\\foo')
+  assert(fs.relative_to('c:\\prefix\\lib', 'c:\\prefix\\bin') == '..\\lib')
+  assert(fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar') == 'c:\\proj1\\foo')
+  assert(fs.relative_to('prefix\\lib\\foo', 'prefix') == 'lib\\foo')
+  assert(fs.relative_to('prefix\\lib', 'prefix\\bin') == '..\\lib')
+  assert(fs.relative_to('proj1\\foo', 'proj1\\bar') == '..\\foo')
+  assert(fs.relative_to('subdir/subdirfile.txt', meson.current_source_dir()) == 'subdir\\subdirfile.txt')
+  assert(fs.relative_to(files('meson.build'), files('subdir/meson.build')) == '..\\..\\meson.build')
+  assert(fs.relative_to(files('meson.build'), 'subdir/meson.build') == '..\\..\\meson.build')
+else
+  # strings
+  assert(fs.relative_to('/prefix/lib/foo', '/prefix') == 'lib/foo')
+  assert(fs.relative_to('/prefix/lib', '/prefix/bin') == '../lib')
+  assert(fs.relative_to('prefix/lib/foo', 'prefix') == 'lib/foo')
+  assert(fs.relative_to('prefix/lib', 'prefix/bin') == '../lib')
+  assert(fs.relative_to('subdir/subdirfile.txt', meson.current_source_dir()) == 'subdir/subdirfile.txt')
+  assert(fs.relative_to(files('meson.build'), files('subdir/meson.build')) == '../../meson.build')
+  assert(fs.relative_to(files('meson.build'), 'subdir/meson.build') == '../../meson.build')
+endif
+
 subdir('subdir')
 
 subproject('subbie')
+
+testcase expect_error('File notfound does not exist.')
+  fs.read('notfound')
+endtestcase

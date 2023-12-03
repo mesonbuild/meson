@@ -10,7 +10,7 @@ disabled_subproj = subproject('disabled_sub', required: get_option('disabled-sub
 assert(disabled_subproj.found() == false, 'Disabled subproject should be NOT found')
 
 disabled_dep = dependency('', fallback: ['disabled_sub', 'libSub'], required: false)
-assert(disabled_dep.found() == false, 'Subprojetc was disabled, it should never be built.')
+assert(disabled_dep.found() == false, 'Subproject was disabled, it should never be built.')
 nothing = executable('nothing', 'nothing.c', dependencies: [disabled_dep])
 
 subproj_with_missing_dep = subproject('auto_sub_with_missing_dep', required: get_option('auto-sub-with-missing-dep'))

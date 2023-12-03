@@ -20,7 +20,7 @@ from __future__ import annotations
 import fcntl
 import typing as T
 
-from .universal import MesonException
+from .core import MesonException
 from .platform import BuildDirLock as BuildDirLockBase
 
 __all__ = ['BuildDirLock']

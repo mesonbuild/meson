@@ -7,6 +7,8 @@
     { "type": "python_file", "file": "usr/@PYTHON_PLATLIB@/nested/blaster.py" },
     { "type": "python_lib",  "file": "usr/@PYTHON_PLATLIB@/nested/tachyon" },
     { "type": "py_implib",   "file": "usr/@PYTHON_PLATLIB@/nested/tachyon" },
+    { "type": "python_file", "file": "usr/@PYTHON_PLATLIB@/subinst/printer.py" },
+    { "type": "python_file", "file": "usr/@PYTHON_PLATLIB@/subinst/submod/printer.py" },
     { "type": "python_lib",  "file": "usr/lib/tachyon" },
     { "type": "py_implib",   "file": "usr/lib/tachyon" }
   ]

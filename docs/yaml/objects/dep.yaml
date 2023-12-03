@@ -38,6 +38,8 @@ methods:
           variable by passing a list to this kwarg
           that can affect the retrieved variable: `['prefix', '/'])`.
 
+          *(Since 1.3.0)* Multiple variables can be specified in pairs.
+
       default:
         type: str
         since: 0.45.0
@@ -173,6 +175,12 @@ methods:
       was found. If `default_value` is set and the value cannot be gotten
       from the object then `default_value` is returned, if it is not set
       then an error is raised.
+
+    warnings:
+      - Before 1.3.0, specifying multiple pkgconfig_define pairs would silently
+        malform the results. Only the first variable would be redefined, but
+        its value would contain both the second variable name, as well as its
+        value.
 
     optargs:
       varname:

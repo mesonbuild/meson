@@ -34,7 +34,7 @@ To link to functions, the function name should be put into the tag:
 `[[<func name>]]`.
 Methods (for all kinds of objects, including modules) can be linked to like
 this: `[[<object name>.<method name>]]`.
-To link to objects themself, the `[[@<object name>]]` syntax can be used.
+To link to objects themselves, the `[[@<object name>]]` syntax can be used.
 
 These tags do **not** need to be put in inline code! A hotdoc extension handles
 the formatting here. If tags need to be placed (for instance, to include reference
@@ -69,7 +69,7 @@ module has its own directory. The module itself **must** be in a file called
 `module.yaml`. All objects returned by the module are then located next to this
 file.
 
-The name of the YAML files themself are ignored (with the exception of
+The name of the YAML files themselves are ignored (with the exception of
 `module.yaml`) and carry no specific meaning. However, it is recommended to name
 the YAML files after the `name` entry of the object.
 
@@ -81,7 +81,7 @@ is to make inheriting functions and arguments easier.
 
 # YAML schema
 
-The YAML files themself are structured as follows:
+The YAML files themselves are structured as follows:
 
 ## Functions
 

@@ -177,6 +177,17 @@ class SubprojectsCommandTests(BasePlatformTests):
         self.assertEqual(self._git_local_commit(subp_name), self._git_remote_commit(subp_name, 'newbranch'))
         self.assertTrue(self._git_local(['stash', 'list'], subp_name))
 
+        # Untracked files need to be stashed too, or (re-)applying a patch
+        # creating one of those untracked files will fail.
+        untracked = self.subprojects_dir / subp_name / 'untracked.c'
+        untracked.write_bytes(b'int main(void) { return 0; }')
+        self._subprojects_cmd(['update', '--reset'])
+        self.assertTrue(self._git_local(['stash', 'list'], subp_name))
+        assert not untracked.exists()
+        # Ensure it was indeed stashed, and we can get it back.
+        self.assertTrue(self._git_local(['stash', 'pop'], subp_name))
+        assert untracked.exists()
+
         # Create a new remote tag and update the wrap file. Checks that
         # "meson subprojects update --reset" checkout the new tag in detached mode.
         self._git_create_remote_tag(subp_name, 'newtag')

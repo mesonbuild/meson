@@ -35,5 +35,5 @@ assert(prog.found(), 'Program version should match')
 prog = find_program('test_subdir.py', required : false)
 assert(not prog.found(), 'Program should not be found')
 
-prog = find_program('test_subdir.py', dirs : ['/donotexist', meson.current_source_dir() / 'scripts'])
+prog = find_program('test_subdir.py', dirs : ['/nonexistent', meson.current_source_dir() / 'scripts'])
 assert(prog.found(), 'Program should be found')

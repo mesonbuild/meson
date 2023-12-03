@@ -20,7 +20,7 @@ Compiles Windows `rc` files specified in the positional arguments.
 Returns a list of `CustomTarget` objects that you put in the list of sources for
 the target you want to have the resources in.
 
-*Since 0.61.0* CustomTargetIndexs and CustomTargets with more than out output
+*Since 0.61.0* CustomTargetIndexes and CustomTargets with more than out output
 *may be used as positional arguments.
 
 This method has the following keyword arguments:

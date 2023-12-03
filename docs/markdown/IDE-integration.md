@@ -260,7 +260,7 @@ The list of all _found_ dependencies can be acquired from
 `intro-dependencies.json`. Here, the name, version, compiler and
 linker arguments for a dependency are listed.
 
-### Scanning for dependecie with `--scan-dependencies`
+### Scanning for dependencies with `--scan-dependencies`
 
 It is also possible to get most dependencies used without a build
 directory. This can be done by running `meson introspect
@@ -338,7 +338,7 @@ The output format is as follows:
 ```json
 [
     "/Path/to/the/targets/meson.build",
-    "/Path/to/the/targets/meson_options.txt",
+    "/Path/to/the/targets/meson.options",
     "/Path/to/the/targets/subdir/meson.build"
 ]
 ```
@@ -424,4 +424,5 @@ schema is defined by the class structure given in
 - [Meson Syntax Highlighter](https://plugins.jetbrains.com/plugin/13269-meson-syntax-highlighter) plugin for JetBrains IDEs.
 - [vscode-meson](https://github.com/mesonbuild/vscode-meson) extension for VS Code/Codium
 - [Qt Creator](https://doc.qt.io/qtcreator/creator-project-meson.html)
+- [Meson-UI](https://github.com/dreamer-coding-555/meson-ui) (build GUI for Meson)
 - [mmeson](https://github.com/stephanlachnit/mmeson) (ccmake clone for Meson)

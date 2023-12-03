@@ -16,7 +16,7 @@ dep = dependency('foo')
 lib = shared_library('mylib', 'mylib.c',
   dependencies : dep)
 
-# And ín a third directory
+# And in a third directory
 
 exe = executable('mytest', 'mytest.c',
   link_with : lib)

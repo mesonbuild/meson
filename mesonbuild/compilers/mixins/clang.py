@@ -20,7 +20,7 @@ import shutil
 import typing as T
 
 from ... import mesonlib
-from ...linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
+from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
     MoldDynamicLinker
 from ...mesonlib import OptionKey
 from ..compilers import CompileCheckMode
@@ -30,13 +30,13 @@ if T.TYPE_CHECKING:
     from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
 
-clang_color_args = {
-    'auto': ['-fcolor-diagnostics'],
-    'always': ['-fcolor-diagnostics'],
-    'never': ['-fno-color-diagnostics'],
-}  # type: T.Dict[str, T.List[str]]
+clang_color_args: T.Dict[str, T.List[str]] = {
+    'auto': ['-fdiagnostics-color=auto'],
+    'always': ['-fdiagnostics-color=always'],
+    'never': ['-fdiagnostics-color=never'],
+}
 
-clang_optimization_args = {
+clang_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-Og'],
@@ -44,7 +44,7 @@ clang_optimization_args = {
     '2': ['-O2'],
     '3': ['-O3'],
     's': ['-Oz'],
-}  # type: T.Dict[str, T.List[str]]
+}
 
 class ClangCompiler(GnuLikeCompiler):
 

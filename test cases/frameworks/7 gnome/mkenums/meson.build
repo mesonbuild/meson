@@ -162,3 +162,13 @@ main = configure_file(
 enumexe6 = executable('enumprog6', main, enums_c2, enums_h6,
 dependencies : gobj)
 test('enum test 4', enumexe6)
+
+# Test with headers coming from other directories
+# https://github.com/mesonbuild/meson/pull/10855
+subdir('subdir')
+enums7 = gnome.mkenums_simple('enums7', sources: ['meson-sample.h', h2, h3])
+main = configure_file(
+  input : 'main.c',
+  output : 'mai7.c',
+  configuration : {'ENUM_FILE': 'enums7.h'})
+test('enums7 test', executable('enumprog7', main, enums7, dependencies : gobj))

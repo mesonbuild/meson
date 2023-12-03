@@ -17,11 +17,13 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import typing as T
 
 from .. import mlog
 from .. import mesonlib
+from ..compilers.compilers import CrossNoRunException
 from ..mesonlib import (
     Popen_safe, extract_as_list, version_compare_many
 )
@@ -29,6 +31,7 @@ from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency
+from .detect import packages
 from .factory import DependencyFactory
 
 if T.TYPE_CHECKING:
@@ -45,12 +48,20 @@ class GLDependencySystem(SystemDependency):
             self.link_args = ['-framework', 'OpenGL']
             # FIXME: Detect version using self.clib_compiler
             return
-        if self.env.machines[self.for_machine].is_windows():
+        elif self.env.machines[self.for_machine].is_windows():
             self.is_found = True
             # FIXME: Use self.clib_compiler.find_library()
             self.link_args = ['-lopengl32']
             # FIXME: Detect version using self.clib_compiler
             return
+        else:
+            links = self.clib_compiler.find_library('GL', environment, [])
+            has_header = self.clib_compiler.has_header('GL/gl.h', '', environment)[0]
+            if links and has_header:
+                self.is_found = True
+                self.link_args = links
+            elif links:
+                raise DependencyException('Found GL runtime library but no development header files')
 
 class GnuStepDependency(ConfigToolDependency):
 
@@ -128,6 +139,8 @@ class GnuStepDependency(ConfigToolDependency):
             version = '1'
         return version
 
+packages['gnustep'] = GnuStepDependency
+
 
 class SDL2DependencyConfigTool(ConfigToolDependency):
 
@@ -179,6 +192,7 @@ class WxDependency(ConfigToolDependency):
                 raise DependencyException('wxwidgets module argument is not a string')
         return candidates
 
+packages['wxwidgets'] = WxDependency
 
 class VulkanDependencySystem(SystemDependency):
 
@@ -223,10 +237,6 @@ class VulkanDependencySystem(SystemDependency):
             self.compile_args.append('-I' + inc_path)
             self.link_args.append('-L' + lib_path)
             self.link_args.append('-l' + lib_name)
-
-            # TODO: find a way to retrieve the version from the sdk?
-            # Usually it is a part of the path to it (but does not have to be)
-            return
         else:
             # simply try to guess it, usually works on linux
             libs = self.clib_compiler.find_library('vulkan', environment, [])
@@ -234,21 +244,48 @@ class VulkanDependencySystem(SystemDependency):
                 self.is_found = True
                 for lib in libs:
                     self.link_args.append(lib)
-                return
 
-gl_factory = DependencyFactory(
+        if self.is_found:
+            get_version = '''\
+#include <stdio.h>
+#include <vulkan/vulkan.h>
+
+int main() {
+    printf("%i.%i.%i", VK_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE),
+                       VK_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE),
+                       VK_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
+    return 0;
+}
+'''
+            try:
+                run = self.clib_compiler.run(get_version, environment, extra_args=self.compile_args)
+            except CrossNoRunException:
+                run = None
+            if run and run.compiled and run.returncode == 0:
+                self.version = run.stdout
+            elif self.vulkan_sdk:
+                # fall back to heuristics: detect version number in path
+                # matches the default install path on Windows
+                match = re.search(rf'VulkanSDK{re.escape(os.path.sep)}([0-9]+(?:\.[0-9]+)+)', self.vulkan_sdk)
+                if match:
+                    self.version = match.group(1)
+                else:
+                    mlog.warning(f'Environment variable VULKAN_SDK={self.vulkan_sdk} is present, but Vulkan version could not be extracted.')
+
+packages['gl'] = gl_factory = DependencyFactory(
     'gl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     system_class=GLDependencySystem,
 )
 
-sdl2_factory = DependencyFactory(
+packages['sdl2'] = sdl2_factory = DependencyFactory(
     'sdl2',
-    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK],
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool_class=SDL2DependencyConfigTool,
+    cmake_name='SDL2',
 )
 
-vulkan_factory = DependencyFactory(
+packages['vulkan'] = vulkan_factory = DependencyFactory(
     'vulkan',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     system_class=VulkanDependencySystem,

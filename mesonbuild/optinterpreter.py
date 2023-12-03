@@ -20,7 +20,7 @@ from . import coredata
 from . import mesonlib
 from . import mparser
 from . import mlog
-from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo, FeatureDeprecated
+from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
 from .interpreter.type_checking import NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
@@ -113,7 +113,9 @@ class OptionInterpreter:
     def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
         if isinstance(arg, str):
             return arg
-        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode,
+        if isinstance(arg, mparser.ParenthesizedNode):
+            return self.reduce_single(arg.inner)
+        elif isinstance(arg, (mparser.BaseStringNode, mparser.BooleanNode,
                               mparser.NumberNode)):
             return arg.value
         elif isinstance(arg, mparser.ArrayNode):
@@ -121,7 +123,7 @@ class OptionInterpreter:
         elif isinstance(arg, mparser.DictNode):
             d = {}
             for k, v in arg.args.kwargs.items():
-                if not isinstance(k, mparser.StringNode):
+                if not isinstance(k, mparser.BaseStringNode):
                     raise OptionException('Dictionary keys must be a string literal')
                 d[k.value] = self.reduce_single(v)
             return d
@@ -162,7 +164,7 @@ class OptionInterpreter:
     def evaluate_statement(self, node: mparser.BaseNode) -> None:
         if not isinstance(node, mparser.FunctionNode):
             raise OptionException('Option file may only contain option definitions')
-        func_name = node.func_name
+        func_name = node.func_name.value
         if func_name != 'option':
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
@@ -182,7 +184,7 @@ class OptionInterpreter:
             (bool, str, ContainerTypeInfo(dict, str), ContainerTypeInfo(list, str)),
             default=False,
             since='0.60.0',
-            feature_validator=lambda x: [FeatureNew('string value to "deprecated" keyword argument', '0.63.0')] if isinstance(x, str) else []
+            since_values={str: '0.63.0'},
         ),
         KwargInfo('yield', bool, default=coredata.DEFAULT_YIELDING, since='0.45.0'),
         allow_unknown=True,
@@ -223,7 +225,7 @@ class OptionInterpreter:
             (bool, str),
             default=True,
             validator=lambda x: None if isinstance(x, bool) or x in {'true', 'false'} else 'boolean options must have boolean values',
-            deprecated_values={'true': ('1.1.0', 'use a boolean, not a string'), 'false': ('1.1.0', 'use a boolean, not a string')},
+            deprecated_values={str: ('1.1.0', 'use a boolean, not a string')},
         ),
     )
     def boolean_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> coredata.UserOption:
@@ -247,7 +249,7 @@ class OptionInterpreter:
             'value',
             (int, str),
             default=True,
-            feature_validator=lambda x: [FeatureDeprecated('number values as strings', '1.1.0', 'use a raw number instead')] if isinstance(x, str) else [],
+            deprecated_values={str: ('1.1.0', 'use an integer, not a string')},
             convertor=int,
         ),
         KwargInfo('min', (int, NoneType)),
@@ -266,6 +268,11 @@ class OptionInterpreter:
     def string_array_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> coredata.UserOption:
         choices = kwargs['choices']
         value = kwargs['value'] if kwargs['value'] is not None else choices
+        if isinstance(value, str):
+            if value.startswith('['):
+                FeatureDeprecated('String value for array option', '1.3.0').use(self.subproject)
+            else:
+                raise mesonlib.MesonException('Value does not define an array: ' + value)
         return coredata.UserArrayOption(description, value,
                                         choices=choices,
                                         yielding=args[0],

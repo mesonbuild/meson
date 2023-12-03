@@ -2,6 +2,9 @@ project('qt4, qt5, and qt6 build test', 'cpp',
   # Qt6 requires C++ 17 support
   default_options : ['cpp_std=c++17'])
 
+# Visit the subdir before entering the loop
+subdir('mocdep')
+
 qt5_modules = ['Widgets']
 qt6_modules = ['Widgets']
 foreach qt : ['qt4', 'qt5', 'qt6']
@@ -47,6 +50,9 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     qtmodule = import(qt)
     assert(qtmodule.has_tools())
 
+    # Test that fetching a variable works and yields a non-empty value
+    assert(qtdep.get_variable('prefix', configtool: 'QT_INSTALL_PREFIX') != '')
+
     # The following has two resource files because having two in one target
     # requires you to do it properly or you get linker symbol clashes.
 
@@ -65,7 +71,7 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     extra_cpp_args = []
     if meson.is_unity()
       extra_cpp_args += '-DUNITY_BUILD'
-      prep_rcc = qtmodule.preprocess(qt + '_unity_ressource', qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
+      prep_rcc = qtmodule.preprocess(qt + '_unity_resource', qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
     else
       prep_rcc = qtmodule.preprocess(qresources : ['stuff.qrc', 'stuff2.qrc'], method : get_option('method'))
     endif
@@ -114,17 +120,21 @@ foreach qt : ['qt4', 'qt5', 'qt6']
       moc_extra_arguments : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
       moc_sources : 'manualinclude.cpp',
       moc_headers : 'manualinclude.h',
-      method : get_option('method'))
+      method : get_option('method'),
+      dependencies: mocdep,
+    )
 
     manpreprocessed = qtmodule.compile_moc(
       extra_args : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
       sources : 'manualinclude.cpp',
       headers : 'manualinclude.h',
-      method : get_option('method'))
+      method : get_option('method'),
+      dependencies: mocdep,
+    )
 
     qtmaninclude = executable(qt + 'maninclude',
       sources : ['manualinclude.cpp', manpreprocessed],
-      dependencies : qtcore)
+      dependencies : [qtcore, mocdep])
 
     test(qt + 'maninclude', qtmaninclude)
 
@@ -152,7 +162,8 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     endif
 
     # Check we can apply a version constraint
-    dependency(qt, modules: qt_modules, version: '>=@0@'.format(qtdep.version()), method : get_option('method'))
+    accept_versions = ['>=@0@'.format(qtdep.version()), '<@0@'.format(qtdep.version()[0].to_int() + 1)]
+    dependency(qt, modules: qt_modules, version: accept_versions, method : get_option('method'))
 
   endif
 endforeach

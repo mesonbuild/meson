@@ -19,7 +19,7 @@ import os
 import typing as T
 
 from ... import mesonlib
-from ...linkers import ArmClangDynamicLinker
+from ...linkers.linkers import ArmClangDynamicLinker
 from ...mesonlib import OptionKey
 from ..compilers import clike_debug_args
 from .clang import clang_color_args
@@ -34,16 +34,16 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-arm_buildtype_args = {
+arm_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
     'release': [],
     'minsize': [],
     'custom': [],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-arm_optimization_args = {
+arm_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': ['-O0'],
     'g': ['-g'],
@@ -51,18 +51,18 @@ arm_optimization_args = {
     '2': [], # Compiler defaults to -O2
     '3': ['-O3', '-Otime'],
     's': ['-O3'], # Compiler defaults to -Ospace
-}  # type: T.Dict[str, T.List[str]]
+}
 
-armclang_buildtype_args = {
+armclang_buildtype_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     'debug': [],
     'debugoptimized': [],
     'release': [],
     'minsize': [],
     'custom': [],
-}  # type: T.Dict[str, T.List[str]]
+}
 
-armclang_optimization_args = {
+armclang_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
     '0': [], # Compiler defaults to -O0
     'g': ['-g'],
@@ -70,7 +70,7 @@ armclang_optimization_args = {
     '2': ['-O2'],
     '3': ['-O3'],
     's': ['-Oz']
-}  # type: T.Dict[str, T.List[str]]
+}
 
 
 class ArmCompiler(Compiler):
@@ -82,14 +82,15 @@ class ArmCompiler(Compiler):
     def __init__(self) -> None:
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armcc supports only cross-compilation.')
-        default_warn_args = []  # type: T.List[str]
+        default_warn_args: T.List[str] = []
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + [],
                           '3': default_warn_args + [],
-                          'everything': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
+                          'everything': default_warn_args + []}
         # Assembly
         self.can_compile_suffixes.add('s')
+        self.can_compile_suffixes.add('sx')
 
     def get_pic_args(self) -> T.List[str]:
         # FIXME: Add /ropi, /rwpi, /fpic etc. qualifiers to --apcs
@@ -161,6 +162,7 @@ class ArmclangCompiler(Compiler):
              'b_ndebug', 'b_staticpic', 'b_colorout']}
         # Assembly
         self.can_compile_suffixes.add('s')
+        self.can_compile_suffixes.add('sx')
 
     def get_pic_args(self) -> T.List[str]:
         # PIC support is not enabled by default for ARM,

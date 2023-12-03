@@ -29,8 +29,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     from .. import mparser
-    from .baseobjects import InterpreterObject, TV_func, TYPE_var, TYPE_kwargs
-    from .interpreterbase import SubProject
+    from .baseobjects import InterpreterObject, SubProject, TV_func, TYPE_var, TYPE_kwargs
     from .operator import MesonOperator
 
     _TV_IntegerObject = T.TypeVar('_TV_IntegerObject', bound=InterpreterObject, contravariant=True)
@@ -139,22 +138,6 @@ def typed_operator(operator: MesonOperator,
         def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
             if not isinstance(other, types):
                 raise InvalidArguments(f'The `{operator.value}` of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
-            return f(self, other)
-        return T.cast('_TV_FN_Operator', wrapper)
-    return inner
-
-def unary_operator(operator: MesonOperator) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
-    """Decorator that does type checking for unary operator calls.
-
-    This decorator is for unary operators that do not take any other objects.
-    It should be impossible for a user to accidentally break this. Triggering
-    this check always indicates a bug in the Meson interpreter.
-    """
-    def inner(f: '_TV_FN_Operator') -> '_TV_FN_Operator':
-        @wraps(f)
-        def wrapper(self: 'InterpreterObject', other: TYPE_var) -> TYPE_var:
-            if other is not None:
-                raise mesonlib.MesonBugException(f'The unary operator `{operator.value}` of {self.display_name()} was passed the object {other} of type {type(other).__name__}')
             return f(self, other)
         return T.cast('_TV_FN_Operator', wrapper)
     return inner
@@ -271,7 +254,7 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
                     diff = num_types + len(optargs) - num_args
                     nargs[i] = tuple(list(args) + [None] * diff)
                 else:
-                    nargs[i] = args
+                    nargs[i] = tuple(args)
             else:
                 nargs[i] = tuple(args)
             return f(*nargs, **wrapped_kwargs)
@@ -313,14 +296,24 @@ class ContainerTypeInfo:
         if not isinstance(value, self.container):
             return False
         iter_ = iter(value.values()) if isinstance(value, dict) else iter(value)
-        for each in iter_:
-            if not isinstance(each, self.contains):
-                return False
+        if any(not isinstance(i, self.contains) for i in iter_):
+            return False
         if self.pairs and len(value) % 2 != 0:
             return False
         if not value and not self.allow_empty:
             return False
         return True
+
+    def check_any(self, value: T.Any) -> bool:
+        """Check a value should emit new/deprecated feature.
+
+        :param value: A value to check
+        :return: True if any of the items in value matches, False otherwise
+        """
+        if not isinstance(value, self.container):
+            return False
+        iter_ = iter(value.values()) if isinstance(value, dict) else iter(value)
+        return any(isinstance(i, self.contains) for i in iter_)
 
     def description(self) -> str:
         """Human readable description of this container type.
@@ -382,7 +375,6 @@ class KwargInfo(T.Generic[_T]):
         added in.
     :param not_set_warning: A warning message that is logged if the kwarg is not
         set by the user.
-    :param feature_validator: A callable returning an iterable of FeatureNew | FeatureDeprecated objects.
     """
     def __init__(self, name: str,
                  types: T.Union[T.Type[_T], T.Tuple[T.Union[T.Type[_T], ContainerTypeInfo], ...], ContainerTypeInfo],
@@ -390,11 +382,10 @@ class KwargInfo(T.Generic[_T]):
                  default: T.Optional[_T] = None,
                  since: T.Optional[str] = None,
                  since_message: T.Optional[str] = None,
-                 since_values: T.Optional[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]]] = None,
+                 since_values: T.Optional[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]]] = None,
                  deprecated: T.Optional[str] = None,
                  deprecated_message: T.Optional[str] = None,
-                 deprecated_values: T.Optional[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]]] = None,
-                 feature_validator: T.Optional[T.Callable[[_T], T.Iterable[FeatureCheckBase]]] = None,
+                 deprecated_values: T.Optional[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]]] = None,
                  validator: T.Optional[T.Callable[[T.Any], T.Optional[str]]] = None,
                  convertor: T.Optional[T.Callable[[_T], object]] = None,
                  not_set_warning: T.Optional[str] = None):
@@ -406,7 +397,6 @@ class KwargInfo(T.Generic[_T]):
         self.since = since
         self.since_message = since_message
         self.since_values = since_values
-        self.feature_validator = feature_validator
         self.deprecated = deprecated
         self.deprecated_message = deprecated_message
         self.deprecated_values = deprecated_values
@@ -421,11 +411,10 @@ class KwargInfo(T.Generic[_T]):
                default: T.Union[_T, None, _NULL_T] = _NULL,
                since: T.Union[str, None, _NULL_T] = _NULL,
                since_message: T.Union[str, None, _NULL_T] = _NULL,
-               since_values: T.Union[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
+               since_values: T.Union[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
                deprecated: T.Union[str, None, _NULL_T] = _NULL,
                deprecated_message: T.Union[str, None, _NULL_T] = _NULL,
-               deprecated_values: T.Union[T.Dict[T.Union[_T, T.Type[T.List], T.Type[T.Dict]], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
-               feature_validator: T.Union[T.Callable[[_T], T.Iterable[FeatureCheckBase]], None, _NULL_T] = _NULL,
+               deprecated_values: T.Union[T.Dict[T.Union[_T, ContainerTypeInfo, type], T.Union[str, T.Tuple[str, str]]], None, _NULL_T] = _NULL,
                validator: T.Union[T.Callable[[_T], T.Optional[str]], None, _NULL_T] = _NULL,
                convertor: T.Union[T.Callable[[_T], TYPE_var], None, _NULL_T] = _NULL) -> 'KwargInfo':
         """Create a shallow copy of this KwargInfo, with modifications.
@@ -451,7 +440,6 @@ class KwargInfo(T.Generic[_T]):
             deprecated=deprecated if not isinstance(deprecated, _NULL_T) else self.deprecated,
             deprecated_message=deprecated_message if not isinstance(deprecated_message, _NULL_T) else self.deprecated_message,
             deprecated_values=deprecated_values if not isinstance(deprecated_values, _NULL_T) else self.deprecated_values,
-            feature_validator=feature_validator if not isinstance(feature_validator, _NULL_T) else self.feature_validator,
             validator=validator if not isinstance(validator, _NULL_T) else self.validator,
             convertor=convertor if not isinstance(convertor, _NULL_T) else self.convertor,
         )
@@ -465,7 +453,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
     information. For non-required values it sets the value to a default, which
     means the value will always be provided.
 
-    If type tyhpe is a :class:ContainerTypeInfo, then the default value will be
+    If type is a :class:ContainerTypeInfo, then the default value will be
     passed as an argument to the container initializer, making a shallow copy
 
     :param name: the name of the function, including the object it's attached to
@@ -512,23 +500,28 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
 
             def emit_feature_change(values: T.Dict[_T, T.Union[str, T.Tuple[str, str]]], feature: T.Union[T.Type['FeatureDeprecated'], T.Type['FeatureNew']]) -> None:
                 for n, version in values.items():
-                    warn = False
                     if isinstance(version, tuple):
                         version, msg = version
                     else:
                         msg = None
 
-                    if n in {dict, list}:
-                        assert isinstance(n, type), 'for mypy'
+                    warning: T.Optional[str] = None
+                    if isinstance(n, ContainerTypeInfo):
+                        if n.check_any(value):
+                            warning = f'of type {n.description()}'
+                    elif isinstance(n, type):
                         if isinstance(value, n):
-                            feature.single_use(f'"{name}" keyword argument "{info.name}" of type {n.__name__}', version, subproject, msg, location=node)
-                    elif isinstance(value, (dict, list)):
-                        warn = n in value
-                    else:
-                        warn = n == value
-
-                    if warn:
-                        feature.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject, msg, location=node)
+                            warning = f'of type {n.__name__}'
+                    elif isinstance(value, list):
+                        if n in value:
+                            warning = f'value "{n}" in list'
+                    elif isinstance(value, dict):
+                        if n in value.keys():
+                            warning = f'value "{n}" in dict keys'
+                    elif n == value:
+                        warning = f'value "{n}"'
+                    if warning:
+                        feature.single_use(f'"{name}" keyword argument "{info.name}" {warning}', version, subproject, msg, location=node)
 
             node, _, _kwargs, subproject = get_callee_args(wrapped_args)
             # Cast here, as the convertor function may place something other than a TYPE_var in the kwargs
@@ -562,10 +555,6 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                         if msg is not None:
                             raise InvalidArguments(f'{name} keyword argument "{info.name}" {msg}')
 
-                    if info.feature_validator is not None:
-                        for each in info.feature_validator(value):
-                            each.use(subproject, node)
-
                     if info.deprecated_values is not None:
                         emit_feature_change(info.deprecated_values, FeatureDeprecated)
 
@@ -577,7 +566,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                 else:
                     # set the value to the default, this ensuring all kwargs are present
                     # This both simplifies the typing checking and the usage
-                    assert check_value_type(types_tuple, info.default), f'In funcion {name} default value of {info.name} is not a valid type, got {type(info.default)} expected {types_description(types_tuple)}'
+                    assert check_value_type(types_tuple, info.default), f'In function {name} default value of {info.name} is not a valid type, got {type(info.default)} expected {types_description(types_tuple)}'
                     # Create a shallow copy of the container. This allows mutable
                     # types to be used safely as default values
                     kwargs[info.name] = copy.copy(info.default)
@@ -598,11 +587,12 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
 
     feature_registry: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional['mparser.BaseNode']]]]]]
     emit_notice = False
+    unconditional = False
 
     def __init__(self, feature_name: str, feature_version: str, extra_message: str = ''):
-        self.feature_name = feature_name  # type: str
-        self.feature_version = feature_version    # type: str
-        self.extra_message = extra_message  # type: str
+        self.feature_name = feature_name
+        self.feature_version = feature_version
+        self.extra_message = extra_message
 
     @staticmethod
     def get_target_version(subproject: str) -> str:
@@ -619,7 +609,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def use(self, subproject: 'SubProject', location: T.Optional['mparser.BaseNode'] = None) -> None:
         tv = self.get_target_version(subproject)
         # No target version
-        if tv == '':
+        if tv == '' and not self.unconditional:
             return
         # Target version is new enough, don't warn
         if self.check_version(tv, self.feature_version) and not self.emit_notice:
@@ -652,7 +642,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         fv = cls.feature_registry[subproject]
         tv = cls.get_target_version(subproject)
         for version in sorted(fv.keys()):
-            message = ', '.join(sorted(f"'{i[0]}'" for i in fv[version]))
+            message = ', '.join(sorted({f"'{i[0]}'" for i in fv[version]}))
             if cls.check_version(tv, version):
                 notice_str += '\n * {}: {{{}}}'.format(version, message)
             else:
@@ -696,7 +686,7 @@ class FeatureNew(FeatureCheckBase):
     # Class variable, shared across all instances
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
-    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional[mparser.BaseNode]]]]]]
+    feature_registry = {}
 
     @staticmethod
     def check_version(target_version: str, feature_version: str) -> bool:
@@ -727,7 +717,7 @@ class FeatureDeprecated(FeatureCheckBase):
     # Class variable, shared across all instances
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
-    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[T.Tuple[str, T.Optional[mparser.BaseNode]]]]]]
+    feature_registry = {}
     emit_notice = True
 
     @staticmethod
@@ -753,6 +743,40 @@ class FeatureDeprecated(FeatureCheckBase):
         if self.extra_message:
             args.append(self.extra_message)
         mlog.warning(*args, location=location)
+
+
+class FeatureBroken(FeatureCheckBase):
+    """Checks for broken features"""
+
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}
+    unconditional = True
+
+    @staticmethod
+    def check_version(target_version: str, feature_version: str) -> bool:
+        # always warn for broken stuff
+        return False
+
+    @staticmethod
+    def get_warning_str_prefix(tv: str) -> str:
+        return 'Broken features used:'
+
+    @staticmethod
+    def get_notice_str_prefix(tv: str) -> str:
+        return ''
+
+    def log_usage_warning(self, tv: str, location: T.Optional['mparser.BaseNode']) -> None:
+        args = [
+            'Project uses feature that was always broken,',
+            'and is now deprecated since',
+            f"'{self.feature_version}':",
+            f'{self.feature_name}.',
+        ]
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.deprecation(*args, location=location)
 
 
 # This cannot be a dataclass due to https://github.com/python/mypy/issues/5374
