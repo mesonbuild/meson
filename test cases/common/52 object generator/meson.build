@@ -29,6 +29,14 @@ gen2 = generator(python,
  arguments : [comp, cc, '@INPUT@', '@OUTPUT0@'])
 generated2 = gen2.process(['source3.c'])
 
-e = executable('prog', 'prog.c', generated, generated2)
+# Generate an object file ending with .o even on Windows.
+# The VS backend needs to handle .o objects differently from .obj objects.
+gen3 = generator(python,
+ output : '@BASENAME@.o',
+ arguments : [comp, cc, '@INPUT@', '@OUTPUT@'])
+
+generated3 = gen3.process(['source4.c'])
+
+e = executable('prog', 'prog.c', generated, generated2, generated3)
 
 test('objgen', e)
