@@ -1562,7 +1562,6 @@ def print_tool_versions() -> None:
     print()
 
 tmpdir = list(Path('.').glob('**/*install functions and follow symlinks'))
-print(tmpdir)
 assert(len(tmpdir) == 1)
 symlink_test_dir = tmpdir[0]
 symlink_file1 = symlink_test_dir / 'foo/link1'
