@@ -253,10 +253,6 @@ class G95FortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-fmod=' + path]
 
-    def get_no_warn_args(self) -> T.List[str]:
-        # FIXME: Confirm that there's no compiler option to disable all warnings
-        return []
-
 
 class SunFortranCompiler(FortranCompiler):
 

@@ -61,9 +61,6 @@ class PGICompiler(Compiler):
     def get_module_incdir_args(self) -> T.Tuple[str]:
         return ('-module', )
 
-    def get_no_warn_args(self) -> T.List[str]:
-        return ['-silent']
-
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return []
 

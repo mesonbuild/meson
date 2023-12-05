@@ -1377,10 +1377,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Arguments required for a debug build."""
         return []
 
-    def get_no_warn_args(self) -> T.List[str]:
-        """Arguments to completely disable warnings."""
-        return []
-
     def needs_static_linker(self) -> bool:
         raise NotImplementedError(f'There is no static linker for {self.language}')
 

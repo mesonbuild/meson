@@ -66,9 +66,6 @@ class ValaCompiler(Compiler):
     def get_warn_args(self, level: str) -> T.List[str]:
         return []
 
-    def get_no_warn_args(self) -> T.List[str]:
-        return ['--disable-warnings']
-
     def get_werror_args(self) -> T.List[str]:
         return ['--fatal-warnings']
 

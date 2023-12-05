@@ -213,9 +213,6 @@ class RustCompiler(Compiler):
         # TODO: I'm not really sure what to put here, Rustc doesn't have warning
         return self._WARNING_LEVELS[level]
 
-    def get_no_warn_args(self) -> T.List[str]:
-        return self._WARNING_LEVELS["0"]
-
     def get_pic_args(self) -> T.List[str]:
         # relocation-model=pic is rustc's default already.
         return []

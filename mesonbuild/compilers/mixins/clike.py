@@ -177,10 +177,6 @@ class CLikeCompiler(Compiler):
         # TODO: this should be an enum
         return self.warn_args[level]
 
-    def get_no_warn_args(self) -> T.List[str]:
-        # Almost every compiler uses this for disabling warnings
-        return ['-w']
-
     def get_depfile_suffix(self) -> str:
         return 'd'
 

@@ -52,9 +52,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
 
-    def get_no_warn_args(self) -> T.List[str]:
-        return ['-nowarn']
-
     def get_output_args(self, outputname: str) -> T.List[str]:
         if outputname == '':
             outputname = './'
