@@ -986,7 +986,7 @@ class Backend:
             return compiler.get_no_stdinc_args()
         return []
 
-    def generate_basic_compiler_args(self, target: build.BuildTarget, compiler: 'Compiler', no_warn_args: bool = False) -> 'CompilerArgs':
+    def generate_basic_compiler_args(self, target: build.BuildTarget, compiler: 'Compiler') -> 'CompilerArgs':
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
@@ -999,17 +999,12 @@ class Backend:
         commands += self.get_no_stdlib_args(target, compiler)
         # Add things like /NOLOGO or -pipe; usually can't be overridden
         commands += compiler.get_always_args()
-        # Only add warning-flags by default if the buildtype enables it, and if
-        # we weren't explicitly asked to not emit warnings (for Vala, f.ex)
-        if no_warn_args:
-            commands += compiler.get_no_warn_args()
-        else:
-            # warning_level is a string, but mypy can't determine that
-            commands += compiler.get_warn_args(T.cast('str', target.get_option(OptionKey('warning_level'))))
+        # warning_level is a string, but mypy can't determine that
+        commands += compiler.get_warn_args(T.cast('str', target.get_option(OptionKey('warning_level'))))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
         # action to be done for warnings if/when they are emitted, so it's ok
-        # to set it after get_no_warn_args() or get_warn_args().
+        # to set it after or get_warn_args().
         if target.get_option(OptionKey('werror')):
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
