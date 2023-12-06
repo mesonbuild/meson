@@ -1012,19 +1012,30 @@ class InternalTests(unittest.TestCase):
     def test_validate_json(self) -> None:
         """Validate the json schema for the test cases."""
         try:
-            from jsonschema import validate, ValidationError
+            from fastjsonschema import compile, JsonSchemaValueException as JsonSchemaFailure
+            fast = True
         except ImportError:
-            if is_ci():
-                raise
-            raise unittest.SkipTest('Python jsonschema module not found.')
+            try:
+                from jsonschema import validate, ValidationError as JsonSchemaFailure
+                fast = False
+            except:
+                if is_ci():
+                    raise
+                raise unittest.SkipTest('neither Python fastjsonschema nor jsonschema module not found.')
 
-        schema = json.loads(Path('data/test.schema.json').read_text(encoding='utf-8'))
+        with open('data/test.schema.json', 'r', encoding='utf-8') as f:
+            data = json.loads(f.read())
+
+        if fast:
+            schema_validator = compile(data)
+        else:
+            schema_validator = lambda x: validate(x, schema=data)
 
         errors: T.List[T.Tuple[Path, Exception]] = []
         for p in Path('test cases').glob('**/test.json'):
             try:
-                validate(json.loads(p.read_text(encoding='utf-8')), schema=schema)
-            except ValidationError as e:
+                schema_validator(json.loads(p.read_text(encoding='utf-8')))
+            except JsonSchemaFailure as e:
                 errors.append((p.resolve(), e))
 
         for f, e in errors:

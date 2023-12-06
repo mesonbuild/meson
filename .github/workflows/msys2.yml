@@ -80,7 +80,7 @@ jobs:
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-lxml
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-setuptools
             mingw-w64-${{ matrix.MSYS2_ARCH }}-python-pip
-            mingw-w64-${{ matrix.MSYS2_ARCH }}-python-jsonschema
+            mingw-w64-${{ matrix.MSYS2_ARCH }}-python-fastjsonschema
             mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.TOOLCHAIN }}
 
       - name: Install dependencies
@@ -100,7 +100,7 @@ jobs:
       - name: Run Tests
         run: |
           if [[ "${{ matrix.MSYS2_ARCH }}" == "x86_64" ]]; then
-            # There apparently is no clean way to add to the PATH in the 
+            # There apparently is no clean way to add to the PATH in the
             # previous step?
             # See for instance https://github.com/msys2/setup-msys2/issues/171
             export PATH=$PATH:$PWD/pypy3local

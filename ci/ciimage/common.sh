@@ -15,7 +15,7 @@ base_python_pkgs=(
   pytest-xdist
   pytest-subtests
   coverage
-  jsonschema
+  fastjsonschema
 )
 
 python_pkgs=(
