@@ -136,8 +136,9 @@ class ExternalProject(NewExtensionModule):
         configure_cmd += self._format_options(self.configure_options, d)
 
         if self.env.is_cross_build():
-            host = '{}-{}-{}'.format(self.host_machine.cpu_family,
-                                     self.build_machine.system,
+            host = '{}-{}-{}'.format(self.host_machine.cpu,
+                                     'pc' if self.host_machine.cpu_family in {"x86", "x86_64"}
+                                     else 'unknown',
                                      self.host_machine.system)
             d = [('HOST', None, host)]
             configure_cmd += self._format_options(self.cross_configure_options, d)
