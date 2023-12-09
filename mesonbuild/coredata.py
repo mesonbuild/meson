@@ -108,6 +108,9 @@ class UserOption(T.Generic[_T], HoldableObject):
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
 
+    def to_bool_or_none(self) -> T.Optional[bool]:
+        raise RuntimeError('Expected boolean or feature option.')
+
     def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
         assert isinstance(self.value, (str, int, bool, list))
         return self.value
@@ -145,6 +148,9 @@ class UserBooleanOption(UserOption[bool]):
         self.set_value(value)
 
     def __bool__(self) -> bool:
+        return self.value
+
+    def to_bool_or_none(self) -> bool:
         return self.value
 
     def validate_value(self, value: T.Any) -> bool:
@@ -320,6 +326,9 @@ class UserFeatureOption(UserComboOption):
         super().__init__(description, self.static_choices, value, yielding,
                          deprecated, deprecated_version)
         self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
+
+    def to_bool_or_none(self) -> T.Optional[bool]:
+        return None if self.is_auto() else self.is_enabled()
 
     def is_enabled(self) -> bool:
         return self.value == 'enabled'
