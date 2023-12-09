@@ -396,7 +396,7 @@ class OptionsView(abc.Mapping):
     overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None
 
     def __getitem__(self, key: OptionKey) -> UserOption:
-        # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
+        # FIXME: This is fundamentally the same algorithm as CoreData.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
         if not key.is_project():
@@ -766,6 +766,40 @@ class CoreData:
             pass
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
+
+    def get_option_internal(self, key: OptionKey) -> UserOption:
+        from . import compilers
+
+        if not key.is_project():
+            for opts in [self.options, compilers.base_options]:
+                v = opts.get(key)
+                if v is None or v.yielding:
+                    v = opts.get(key.as_root())
+                if v is not None:
+                    assert isinstance(v, UserOption), 'for mypy'
+                    return v
+
+        try:
+            opt = self.options[key]
+            if opt.yielding and key.subproject and key.as_root() in self.options:
+                popt = self.options[key.as_root()]
+                if type(opt) is type(popt):
+                    opt = popt
+                else:
+                    # Get class name, then option type as a string
+                    opt_type = opt.__class__.__name__[4:][:-6].lower()
+                    popt_type = popt.__class__.__name__[4:][:-6].lower()
+                    # This is not a hard error to avoid dependency hell, the workaround
+                    # when this happens is to simply set the subproject's option directly.
+                    mlog.warning('Option {0!r} of type {1!r} in subproject {2!r} cannot yield '
+                                 'to parent option of type {3!r}, ignoring parent value. '
+                                 'Use -D{2}:{0}=value to set the value for this option manually'
+                                 '.'.format(key.name, opt_type, key.subproject, popt_type))
+            return opt
+        except KeyError:
+            pass
+
+        return None
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False,
                    meson_version: T.Optional[str] = None) -> bool:
