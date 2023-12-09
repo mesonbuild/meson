@@ -2926,7 +2926,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         # Include PCH header as first thing as it must be the first one or it will be
         # ignored by gcc https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100462
-        use_pch = self.target_uses_pch(target) and is_generated != 'pch'
+        use_pch = self.target_uses_pch(target)
         if use_pch and 'mw' not in compiler.id:
             commands += self.get_pch_include_args(compiler, target)
 
