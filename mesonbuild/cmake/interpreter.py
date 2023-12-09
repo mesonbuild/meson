@@ -784,6 +784,7 @@ class CMakeInterpreter:
 
         # Analysed data
         self.project_name = ''
+        self.project_version = ''
         self.languages: T.List[str] = []
         self.targets: T.List[ConverterTarget] = []
         self.custom_targets: T.List[ConverterCustomTarget] = []
@@ -875,6 +876,8 @@ class CMakeInterpreter:
         # Load the codemodel configurations
         self.codemodel_configs = self.fileapi.get_cmake_configurations()
 
+        self.project_version = self.fileapi.get_project_version()
+
     def analyse(self) -> None:
         if self.codemodel_configs is None:
             raise CMakeException('CMakeInterpreter was not initialized')
@@ -949,7 +952,7 @@ class CMakeInterpreter:
         for tgt in self.targets:
             tgt.cleanup_dependencies()
 
-        mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
+        mlog.log('CMake project', mlog.bold(self.project_name), mlog.bold(self.project_version), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
 
     def pretend_to_be_meson(self, options: TargetOptions) -> CodeBlockNode:
         if not self.project_name:
@@ -1023,7 +1026,7 @@ class CMakeInterpreter:
 
         # Generate the root code block and the project function call
         root_cb = CodeBlockNode(token())
-        root_cb.lines += [function('project', [self.project_name] + self.languages)]
+        root_cb.lines += [function('project', [self.project_name] + self.languages, {'version': self.project_version} if self.project_version else None)]
 
         # Add the run script for custom commands
 

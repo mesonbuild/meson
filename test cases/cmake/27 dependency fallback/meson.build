@@ -1,7 +1,7 @@
 project('cmakeSubTest', ['c', 'cpp'])
 
 # Fallback to a CMake subproject
-sub_dep = dependency('cmModLib++')
+sub_dep = dependency('cmModLib++', version: '>=1.2.3')
 exe1 = executable('main', ['main.cpp'], dependencies: [sub_dep])
 test('test1', exe1)
 
