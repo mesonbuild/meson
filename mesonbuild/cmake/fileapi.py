@@ -30,8 +30,10 @@ class CMakeFileAPI:
         self.reply_dir = self.api_base_dir / 'reply'
         self.cmake_sources: T.List[CMakeBuildFile] = []
         self.cmake_configurations: T.List[CMakeConfiguration] = []
+        self.project_version = ''
         self.kind_resolver_map = {
             'codemodel': self._parse_codemodel,
+            'cache': self._parse_cache,
             'cmakeFiles': self._parse_cmakeFiles,
         }
 
@@ -41,12 +43,16 @@ class CMakeFileAPI:
     def get_cmake_configurations(self) -> T.List[CMakeConfiguration]:
         return self.cmake_configurations
 
+    def get_project_version(self) -> str:
+        return self.project_version
+
     def setup_request(self) -> None:
         self.request_dir.mkdir(parents=True, exist_ok=True)
 
         query = {
             'requests': [
                 {'kind': 'codemodel', 'version': {'major': 2, 'minor': 0}},
+                {'kind': 'cache', 'version': {'major': 2, 'minor': 0}},
                 {'kind': 'cmakeFiles', 'version': {'major': 1, 'minor': 0}},
             ]
         }
@@ -278,6 +284,13 @@ class CMakeFileAPI:
             path = Path(i['path'])
             path = path if path.is_absolute() else src_dir / path
             self.cmake_sources += [CMakeBuildFile(path, i.get('isCMake', False), i.get('isGenerated', False))]
+
+    def _parse_cache(self, data: T.Dict[str, T.Any]) -> None:
+        assert 'entries' in data
+
+        for e in data['entries']:
+            if e['name'] == 'CMAKE_PROJECT_VERSION':
+                self.project_version = e['value']
 
     def _strip_data(self, data: T.Any) -> T.Any:
         if isinstance(data, list):
