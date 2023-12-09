@@ -117,6 +117,52 @@ class LinuxlikeTests(BasePlatformTests):
         soname = get_soname(lib1)
         self.assertEqual(soname, 'prefixsomelib.suffix')
 
+    def test_pie(self) -> None:
+        '''
+        Test that PIE can be both disabled and enabled.
+        '''
+        def check_pie() -> T.Tuple[bool, bool, bool]:
+            compile_pie, link_pie, compile_no_pie, link_no_pie = False, False, False, False
+            with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as bfile:
+                for line in bfile:
+                    compile_pie = compile_pie or '-fPIE' in line.split()
+                    link_pie = link_pie or '-pie' in line.split()
+                    compile_no_pie = compile_no_pie or '-fno-pie' in line.split()
+                    link_no_pie = link_no_pie or '-no-pie' in line.split()
+            return (compile_pie, link_pie, compile_no_pie, link_no_pie)
+
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+
+        # Test auto on all platforms
+        self.init(testdir)
+        self.build()
+        self.assertEqual(check_pie(), (False, False, False, False))
+
+        self.init(testdir, extra_args=['--wipe', '-Db_pie=false'])
+        self.assertEqual(check_pie(), (False, False, False, False))
+
+        # Test that enabled builds on all platforms, and check command line on Linux
+        self.init(testdir, extra_args=['--wipe', '-Db_pie=enabled'])
+        self.build()
+        if is_linux():
+            self.assertEqual(check_pie(), (True, True, False, False))
+
+            self.init(testdir, extra_args=['--wipe', '-Db_pie=true'])
+            self.assertEqual(check_pie(), (True, True, False, False))
+
+            self.init(testdir, extra_args=['--wipe', '-Db_pie=auto', '-Dauto_features=enabled'])
+            self.assertEqual(check_pie(), (True, True, False, False))
+
+        # Test that disabled builds on all platforms, and check command line on Linux
+        self.init(testdir, extra_args=['--wipe', '-Db_pie=disabled'])
+        self.build()
+        if is_linux():
+            self.assertEqual(check_pie(), (False, False, True, True))
+
+            self.init(testdir, extra_args=['--wipe', '-Db_pie=auto', '-Dauto_features=disabled'])
+            self.assertEqual(check_pie(), (False, False, True, True))
+
+
     def test_pic(self):
         '''
         Test that -fPIC is correctly added to static libraries when b_staticpic
