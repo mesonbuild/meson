@@ -1726,10 +1726,8 @@ class NinjaBackend(backends.Backend):
 
     def generate_cython_transpile(self, target: build.BuildTarget) -> \
             T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File], T.List[str]]:
-        """Generate rules for transpiling Cython files to C or C++
+        """Generate rules for transpiling Cython files to C or C++"""
 
-        XXX: Currently only C is handled.
-        """
         static_sources: T.MutableMapping[str, File] = OrderedDict()
         generated_sources: T.MutableMapping[str, File] = OrderedDict()
         cython_sources: T.List[str] = []
