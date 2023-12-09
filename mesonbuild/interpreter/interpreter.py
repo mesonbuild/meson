@@ -1042,9 +1042,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 # FIXME: Are there other files used by cargo interpreter?
                 [os.path.join(subdir, 'Cargo.toml')])
 
-    def get_option_internal(self, optname: str) -> coredata.UserOption:
+    def get_option_object(self, optname: str) -> coredata.UserOption:
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
-        opt = self.coredata.get_option_internal(key)
+        opt = self.coredata.get_option_object(key)
         if opt is None:
             raise InterpreterException(f'Tried to access unknown option {optname!r}.')
         return opt
@@ -1062,7 +1062,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        opt = self.get_option_internal(optname)
+        opt = self.get_option_object(optname)
         if isinstance(opt, coredata.UserFeatureOption):
             opt.name = optname
             return opt

@@ -24,7 +24,7 @@ from ..interpreterbase import (
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
-from ..mesonlib import HoldableObject, OptionKey, listify, Popen_safe
+from ..mesonlib import HoldableObject, listify, Popen_safe
 
 import typing as T
 
@@ -88,11 +88,6 @@ def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
 class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     def __init__(self, option: coredata.UserFeatureOption, interpreter: 'Interpreter'):
         super().__init__(option, interpreter)
-        if option and option.is_auto():
-            # TODO: we need to cast here because options is not a TypedDict
-            auto = T.cast('coredata.UserFeatureOption', self.env.coredata.options[OptionKey('auto_features')])
-            self.held_object = copy.copy(auto)
-            self.held_object.name = option.name
         self.methods.update({'enabled': self.enabled_method,
                              'disabled': self.disabled_method,
                              'allowed': self.allowed_method,

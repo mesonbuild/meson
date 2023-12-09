@@ -801,6 +801,17 @@ class CoreData:
 
         return None
 
+    def get_option_object(self, key: OptionKey) -> UserOption:
+        opt: T.Optional[UserOption] = self.get_option_internal(key)
+        if isinstance(opt, UserFeatureOption) and opt.is_auto():
+            auto_features = OptionKey('auto_features')
+            if auto_features in self.options:
+                auto = copy.copy(self.options[auto_features])
+                auto.name = opt.name
+                return auto
+
+        return opt
+
     def set_option(self, key: OptionKey, value, first_invocation: bool = False,
                    meson_version: T.Optional[str] = None) -> bool:
         try:
