@@ -477,6 +477,16 @@ class ArmLtdFlangFortranCompiler(FlangFortranCompiler):
 
     id = 'armltdflang'
 
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # We need to apply the search prefix here, as these link arguments may
+        # be passed to a different compiler with a different set of default
+        # search paths, such as when using Clang for C/C++ and gfortran for
+        # fortran,
+        search_dirs: T.List[str] = []
+        for d in self.get_compiler_dirs(env, 'libraries'):
+            search_dirs.append(f'-L{d}')
+        return search_dirs + ['-lflang']
+
 class Open64FortranCompiler(FortranCompiler):
 
     id = 'open64'

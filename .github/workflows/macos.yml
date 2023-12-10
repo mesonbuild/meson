@@ -34,7 +34,7 @@ jobs:
     - run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-xdist pytest-subtests jsonschema coverage
-    - run: brew install pkg-config ninja llvm qt@5
+    - run: brew install --overwrite pkg-config ninja llvm qt@5
     - env:
         CPPFLAGS: "-I/usr/local/include"
         LDFLAGS: "-L/usr/local/lib"
