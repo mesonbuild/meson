@@ -262,7 +262,7 @@ class XCodeBackend(backends.Backend):
             result.append(os.path.join(self.environment.get_build_dir(), self.get_target_dir(l)))
         return result
 
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> None:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the xcode backend to generate with \'capture = True\'')
