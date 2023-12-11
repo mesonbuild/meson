@@ -13,7 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
-import uuid, os, operator
+import functools, uuid, os, operator
 import typing as T
 
 from . import backends
@@ -226,6 +226,7 @@ class XCodeBackend(backends.Backend):
     def gen_id(self) -> str:
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
+    @functools.lru_cache(maxsize=None)
     def get_target_dir(self, target):
         dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.get_option(OptionKey('buildtype'))))
         #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
