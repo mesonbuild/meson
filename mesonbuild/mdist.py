@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2017 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -304,7 +305,7 @@ def check_dist(packagename: str, meson_command: ImmutableListProtocol[str], extr
 def create_cmdline_args(bld_root: str) -> T.List[str]:
     parser = argparse.ArgumentParser()
     msetup_argparse(parser)
-    args = parser.parse_args([])
+    args = T.cast('coredata.SharedCMDOptions', parser.parse_args([]))
     coredata.parse_cmd_line_options(args)
     coredata.read_cmd_line_file(bld_root, args)
     args.cmd_line_options.pop(OptionKey('backend'), '')

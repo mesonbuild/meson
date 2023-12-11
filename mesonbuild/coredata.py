@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2023 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -31,12 +32,29 @@ import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Protocol
+
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
     from .environment import Environment
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
+
+    class SharedCMDOptions(Protocol):
+
+        """Representation of command line options from Meson setup, configure,
+        and dist.
+
+        :param projectoptions: The raw list of command line options given
+        :param cmd_line_options: command line options parsed into an OptionKey:
+            str mapping
+        """
+
+        cmd_line_options: T.Dict[OptionKey, str]
+        projectoptions: T.List[str]
+        cross_file: T.List[str]
+        native_file: T.List[str]
 
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], 'OptionsView']
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
@@ -546,7 +564,7 @@ _V = T.TypeVar('_V')
 
 class CoreData:
 
-    def __init__(self, options: argparse.Namespace, scratch_dir: str, meson_command: T.List[str]):
+    def __init__(self, options: SharedCMDOptions, scratch_dir: str, meson_command: T.List[str]):
         self.lang_guids = {
             'default': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
             'c': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
@@ -587,7 +605,7 @@ class CoreData:
         self.init_builtins('')
 
     @staticmethod
-    def __load_config_files(options: argparse.Namespace, scratch_dir: str, ftype: str) -> T.List[str]:
+    def __load_config_files(options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
         # Need to try and make the passed filenames absolute because when the
         # files are parsed later we'll have chdir()d.
         if ftype == 'cross':
@@ -1123,7 +1141,7 @@ def parse_machine_files(filenames: T.List[str], sourcedir: str):
 def get_cmd_line_file(build_dir: str) -> str:
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
 
-def read_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
+def read_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
     if not os.path.isfile(filename):
         return
@@ -1145,7 +1163,7 @@ def read_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
         # literal_eval to get it into the list of strings.
         options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
 
-def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
+def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
@@ -1160,7 +1178,7 @@ def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
-def update_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
+def update_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
     config.read(filename)
@@ -1168,7 +1186,7 @@ def update_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
-def format_cmd_line_options(options: argparse.Namespace) -> str:
+def format_cmd_line_options(options: SharedCMDOptions) -> str:
     cmdline = ['-D{}={}'.format(str(k), v) for k, v in options.cmd_line_options.items()]
     if options.cross_file:
         cmdline += [f'--cross-file={f}' for f in options.cross_file]
@@ -1226,7 +1244,7 @@ def create_options_dict(options: T.List[str], subproject: str = '') -> T.Dict[Op
         result[k] = value
     return result
 
-def parse_cmd_line_options(args: argparse.Namespace) -> None:
+def parse_cmd_line_options(args: SharedCMDOptions) -> None:
     args.cmd_line_options = create_options_dict(args.projectoptions)
 
     # Merge builtin options set with --option into the dict.

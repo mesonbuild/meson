@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2020 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -35,7 +36,6 @@ from functools import lru_cache
 from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
-    import argparse
     from configparser import ConfigParser
 
     from .compilers import Compiler
@@ -485,7 +485,7 @@ class Environment:
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
 
-    def __init__(self, source_dir: str, build_dir: str, options: 'argparse.Namespace') -> None:
+    def __init__(self, source_dir: str, build_dir: str, options: coredata.SharedCMDOptions) -> None:
         self.source_dir = source_dir
         self.build_dir = build_dir
         # Do not try to create build directories when build_dir is none.
@@ -780,7 +780,7 @@ class Environment:
                         self.properties[for_machine].properties.setdefault(name, p_env)
                     break
 
-    def create_new_coredata(self, options: 'argparse.Namespace') -> None:
+    def create_new_coredata(self, options: coredata.SharedCMDOptions) -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
         # re-initialized with project options by the interpreter during
         # build file parsing.
