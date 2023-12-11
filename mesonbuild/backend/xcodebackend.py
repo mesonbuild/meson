@@ -236,12 +236,6 @@ class XCodeBackend(backends.Backend):
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
-    def target_to_build_root(self, target):
-        if self.get_target_dir(target) == '':
-            return ''
-        directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
-        return os.sep.join(['..'] * len(directories))
-
     def object_filename_from_source(self, target, source):
         # Xcode has the following naming scheme:
         # projectname.build/debug/prog@exe.build/Objects-normal/x86_64/func.o
