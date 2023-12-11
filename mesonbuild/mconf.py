@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -20,7 +21,14 @@ from .ast import AstIDGenerator, IntrospectionInterpreter
 from .mesonlib import MachineChoice, OptionKey
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Protocol
     import argparse
+
+    class CMDOptions(coredata.SharedCMDOptions, Protocol):
+
+        builddir: str
+        clearcache: bool
+        pager: bool
 
     # cannot be TV_Loggable, because non-ansidecorators do direct string concat
     LOGLINE = T.Union[str, mlog.AnsiDecorator]
@@ -293,7 +301,7 @@ class Conf:
         for m in mismatching:
             mlog.log(f'{m[0]:21}{m[1]:10}{m[2]:10}')
 
-def run_impl(options: argparse.Namespace, builddir: str) -> int:
+def run_impl(options: CMDOptions, builddir: str) -> int:
     print_only = not options.cmd_line_options and not options.clearcache
     c = None
     try:
@@ -325,7 +333,7 @@ def run_impl(options: argparse.Namespace, builddir: str) -> int:
         pass
     return 0
 
-def run(options: argparse.Namespace) -> int:
+def run(options: CMDOptions) -> int:
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
     return run_impl(options, builddir)
