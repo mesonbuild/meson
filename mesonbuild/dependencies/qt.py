@@ -120,6 +120,7 @@ class _QtBase:
     clib_compiler: T.Union['MissingCompiler', 'Compiler']
     env: 'Environment'
     libexecdir: T.Optional[str] = None
+    version: str
 
     def __init__(self, name: str, kwargs: T.Dict[str, T.Any]):
         self.name = name
@@ -245,6 +246,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
     """Find Qt using Qmake as a config-tool."""
 
+    version: str
     version_arg = '-v'
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
