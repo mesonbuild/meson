@@ -277,13 +277,14 @@ class PkgConfigDependency(ExternalDependency):
         super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
-        self.pkgconfig = PkgConfigInterface.instance(self.env, self.for_machine, self.silent)
-        if not self.pkgconfig:
+        pkgconfig = PkgConfigInterface.instance(self.env, self.for_machine, self.silent)
+        if not pkgconfig:
             msg = f'Pkg-config for machine {self.for_machine} not found. Giving up.'
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)
             return
+        self.pkgconfig = pkgconfig
 
         version = self.pkgconfig.version(name)
         if version is None:

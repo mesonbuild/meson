@@ -126,9 +126,10 @@ class CMakeDependency(ExternalDependency):
         cm_args = check_cmake_args(cm_args)
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
             CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info(cm_args)
-        self.cmakeinfo = CMakeDependency.class_cmakeinfo[self.for_machine]
-        if self.cmakeinfo is None:
+        cmakeinfo = CMakeDependency.class_cmakeinfo[self.for_machine]
+        if cmakeinfo is None:
             raise self._gen_exception('Unable to obtain CMake system information')
+        self.cmakeinfo = cmakeinfo
 
         package_version = kwargs.get('cmake_package_version', '')
         if not isinstance(package_version, str):

@@ -404,12 +404,13 @@ class Resolver:
     def resolve(self, packagename: str, force_method: T.Optional[Method] = None) -> T.Tuple[str, Method]:
         self.packagename = packagename
         self.directory = packagename
-        self.wrap = self.wraps.get(packagename)
-        if not self.wrap:
-            self.wrap = self.get_from_wrapdb(packagename)
-        if not self.wrap:
+        wrap = self.wraps.get(packagename)
+        if not wrap:
+            wrap = self.get_from_wrapdb(packagename)
+        if not wrap:
             m = f'Neither a subproject directory nor a {self.packagename}.wrap file was found.'
             raise WrapNotFoundException(m)
+        self.wrap = wrap
         self.directory = self.wrap.directory
 
         if self.wrap.has_wrap:
