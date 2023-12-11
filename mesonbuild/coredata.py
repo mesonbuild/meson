@@ -197,7 +197,7 @@ class OctalInt(int):
     # NinjaBackend.get_user_option_args uses str() to converts it to a command line option
     # UserUmaskOption.toint() uses int(str, 8) to convert it to an integer
     # So we need to use oct instead of dec here if we do not want values to be misinterpreted.
-    def __str__(self):
+    def __str__(self) -> str:
         return oct(int(self))
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
@@ -653,7 +653,7 @@ class CoreData:
             raise MesonException(f'Cannot find specified {ftype} file: {f}')
         return real
 
-    def builtin_options_libdir_cross_fixup(self):
+    def builtin_options_libdir_cross_fixup(self) -> None:
         # By default set libdir to "lib" when cross compiling since
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
@@ -882,10 +882,12 @@ class CoreData:
         return optname.lang is not None
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
-        return self.options[OptionKey('args', machine=for_machine, lang=lang)].value
+        # mypy cannot analyze type of OptionKey
+        return T.cast('T.List[str]', self.options[OptionKey('args', machine=for_machine, lang=lang)].value)
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
-        return self.options[OptionKey('link_args', machine=for_machine, lang=lang)].value
+        # mypy cannot analyze type of OptionKey
+        return T.cast('T.List[str]', self.options[OptionKey('link_args', machine=for_machine, lang=lang)].value)
 
     def update_project_options(self, options: 'MutableKeyedOptionDictType') -> None:
         for key, value in options.items():
@@ -1165,7 +1167,7 @@ def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
-def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
+def update_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
     config.read(filename)
@@ -1333,7 +1335,7 @@ class BuiltinOption(T.Generic[_T, _U]):
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
 # Please also update completion scripts in $MESONSRC/data/shell-completions/
-BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
+BUILTIN_DIR_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
     (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
     (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', default_datadir())),
@@ -1350,7 +1352,7 @@ BUILTIN_DIR_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
     (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
 ])
 
-BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
+BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
     (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist,
                                                  readonly=True)),
@@ -1401,7 +1403,7 @@ BUILTIN_CORE_OPTIONS: 'MutableKeyedOptionDictType' = OrderedDict([
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
-BUILTIN_OPTIONS_PER_MACHINE: 'MutableKeyedOptionDictType' = OrderedDict([
+BUILTIN_OPTIONS_PER_MACHINE: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('pkg_config_path'), BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
     (OptionKey('cmake_prefix_path'), BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
