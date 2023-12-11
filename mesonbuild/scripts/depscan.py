@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import collections
-import json
 import os
 import pathlib
 import pickle
@@ -32,11 +31,11 @@ FORTRAN_SUBMOD_RE = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
 FORTRAN_USE_RE = re.compile(FORTRAN_USE_PAT, re.IGNORECASE)
 
 class DependencyScanner:
-    def __init__(self, pickle_file: str, outfile: str, sources: T.List[str]):
+    def __init__(self, pickle_file: str, outfile: str):
         with open(pickle_file, 'rb') as pf:
             self.target_data: TargetDependencyScannerInfo = pickle.load(pf)
         self.outfile = outfile
-        self.sources = sources
+        self.sources = self.target_data.sources
         self.provided_by: T.Dict[str, str] = {}
         self.exports: T.Dict[str, str] = {}
         self.needs: collections.defaultdict[str, T.List[str]] = collections.defaultdict(list)
@@ -183,9 +182,7 @@ class DependencyScanner:
         return 0
 
 def run(args: T.List[str]) -> int:
-    assert len(args) == 3, 'got wrong number of arguments!'
-    pickle_file, outfile, jsonfile = args
-    with open(jsonfile, encoding='utf-8') as f:
-        sources = json.load(f)
-    scanner = DependencyScanner(pickle_file, outfile, sources)
+    assert len(args) == 2, 'got wrong number of arguments!'
+    outfile, pickle_file = args
+    scanner = DependencyScanner(pickle_file, outfile)
     return scanner.scan()

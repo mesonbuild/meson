@@ -144,10 +144,12 @@ class TargetDependencyScannerInfo:
     :param private_dir: The private scratch directory for the target.
     :param source2object: A mapping of source file names to the objects that
         will be created from them.
+    :param sources: A list of all the sources in this target
     """
 
     private_dir: str
     source2object: T.Dict[str, str]
+    sources: T.List[str]
 
 
 @unique
@@ -1095,25 +1097,20 @@ class NinjaBackend(backends.Backend):
         pickle_base = target.name + '.dat'
         pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
         pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
-        json_abs = os.path.join(self.get_target_private_dir_abs(target), f'{target.name}-deps.json').replace('\\', '/')
         rule_name = 'depscan'
         scan_sources = self.select_sources_to_scan(compiled_sources)
 
-        # Dump the sources as a json list. This avoids potential problems where
-        # the number of sources passed to depscan exceeds the limit imposed by
-        # the OS.
-        with open(json_abs, 'w', encoding='utf-8') as f:
-            json.dump(scan_sources, f)
-        elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, json_abs)
-        elem.add_item('picklefile', pickle_file)
+        scaninfo = TargetDependencyScannerInfo(
+            self.get_target_private_dir(target), source2object, scan_sources)
+        with open(pickle_abs, 'wb') as p:
+            pickle.dump(scaninfo, p)
+
+        elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, pickle_file)
         # Add any generated outputs to the order deps of the scan target, so
         # that those sources are present
         for g in generated_source_files:
             elem.orderdeps.add(g.relative_name())
         elem.orderdeps.update(object_deps)
-        scaninfo = TargetDependencyScannerInfo(self.get_target_private_dir(target), source2object)
-        with open(pickle_abs, 'wb') as p:
-            pickle.dump(scaninfo, p)
         self.add_build(elem)
 
     def select_sources_to_scan(self, compiled_sources: T.List[str]) -> T.List[str]:
