@@ -106,8 +106,6 @@ import importlib
 import copy
 
 if T.TYPE_CHECKING:
-    import argparse
-
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
@@ -269,7 +267,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 is_translated: bool = False,
                 relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
-                user_defined_options: T.Optional['argparse.Namespace'] = None,
+                user_defined_options: T.Optional[coredata.SharedCMDOptions] = None,
             ) -> None:
         super().__init__(_build.environment.get_source_dir(), subdir, subproject)
         self.active_projectname = ''

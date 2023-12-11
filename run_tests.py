@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
+# Copyright © 2023-2024 Intel Corporation
+
+from __future__ import annotations
 
 # Work around some pathlib bugs...
 from mesonbuild import _pathlib
@@ -32,6 +35,9 @@ from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja, detect_machine_info
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.mesonlib import OptionKey, setup_vsenv
+
+if T.TYPE_CHECKING:
+    from mesonbuild.coredata import SharedCMDOptions
 
 NINJA_1_9_OR_NEWER = False
 NINJA_CMD = None
@@ -133,9 +139,8 @@ class FakeCompilerOptions:
     def __init__(self):
         self.value = []
 
-# TODO: use a typing.Protocol here
-def get_fake_options(prefix: str = '') -> argparse.Namespace:
-    opts = argparse.Namespace()
+def get_fake_options(prefix: str = '') -> SharedCMDOptions:
+    opts = T.cast('SharedCMDOptions', argparse.Namespace())
     opts.native_file = []
     opts.cross_file = None
     opts.wrap_mode = None
