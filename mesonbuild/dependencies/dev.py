@@ -407,7 +407,7 @@ class LLVMDependencyCMake(CMakeDependency):
 
         super().__init__(name, env, kwargs, language='cpp', force_use_global_compilers=True)
 
-        if self.traceparser is None:
+        if not self.cmakebin.found():
             return
 
         if not self.is_found:
