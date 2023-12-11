@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-import typing as T
-
 from .backends import Backend
 from .. import mlog
 from ..mesonlib import MesonBugException
@@ -25,7 +23,7 @@ class NoneBackend(Backend):
 
     name = 'none'
 
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> None:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the none backend to generate with \'capture = True\'')
