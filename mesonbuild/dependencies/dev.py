@@ -218,6 +218,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
         cargs = mesonlib.OrderedSet(self.get_config_value(['--cppflags'], 'compile_args'))
         self.compile_args = list(cargs.difference(self.__cpp_blacklist))
+        self.compile_args = strip_system_includedirs(environment, self.for_machine, self.compile_args)
 
         if version_compare(self.version, '>= 3.9'):
             self._set_new_link_args(environment)
