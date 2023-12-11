@@ -750,7 +750,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def compile(self, code: 'mesonlib.FileOrString',
                 extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
                 *, mode: CompileCheckMode = CompileCheckMode.LINK, want_output: bool = False,
-                temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
+                temp_dir: T.Optional[str] = None) -> T.Iterator[CompileResult]:
         # TODO: there isn't really any reason for this to be a contextmanager
 
         if mode == CompileCheckMode.PREPROCESS:
@@ -812,7 +812,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
                        extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
                        mode: CompileCheckMode = CompileCheckMode.LINK,
-                       temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
+                       temp_dir: T.Optional[str] = None) -> T.Iterator[CompileResult]:
         # TODO: There's isn't really any reason for this to be a context manager
 
         # Calculate the key
@@ -1238,7 +1238,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                        extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
                        mode: CompileCheckMode = CompileCheckMode.COMPILE, want_output: bool = False,
-                       disable_cache: bool = False) -> T.Iterator[T.Optional[CompileResult]]:
+                       disable_cache: bool = False) -> T.Iterator[CompileResult]:
         """Helper for getting a cached value when possible.
 
         This method isn't meant to be called externally, it's mean to be
