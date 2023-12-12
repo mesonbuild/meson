@@ -55,6 +55,8 @@ class BasePlatformTests(TestCase):
         self.meson_args = ['--backend=' + self.backend_name]
         self.meson_native_files = []
         self.meson_cross_files = []
+        self.meson_native_programs = []
+        self.meson_cross_programs = []
         self.meson_command = python_command + [get_meson_script()]
         self.setup_command = self.meson_command + ['setup'] + self.meson_args
         self.mconf_command = self.meson_command + ['configure']
@@ -207,6 +209,10 @@ class BasePlatformTests(TestCase):
                 args += ['--native-file', f]
             for f in self.meson_cross_files:
                 args += ['--cross-file', f]
+            for o in self.meson_native_programs:
+                args += ['--native-program', o]
+            for o in self.meson_cross_programs:
+                args += ['--cross-program', o]
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:

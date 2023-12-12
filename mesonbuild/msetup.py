@@ -9,6 +9,8 @@ import cProfile as profile
 from pathlib import Path
 import typing as T
 
+from mesonbuild.utils.universal import MachineChoice
+
 from . import build, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .mesonlib import MesonException
 
@@ -65,6 +67,14 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                              'newer version of meson.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies). Since 1.3.0.')
+    parser.add_argument('--native-program',
+                        default=[],
+                        action='append',
+                        help='Provide a native program override of the form binary=/path/to/override. Since 1.4.0.')
+    parser.add_argument('--cross-program',
+                        default=[],
+                        action='append',
+                        help='Provide a cross program override of the form binary=/path/to/override. Since 1.4.0.')
     parser.add_argument('builddir', nargs='?', default=None)
     parser.add_argument('sourcedir', nargs='?', default=None)
 
@@ -256,6 +266,8 @@ class MesonApp:
                 # read from a pipe and wrote into a private file.
                 self.options.cross_file = env.coredata.cross_files
                 self.options.native_file = env.coredata.config_files
+                self.options.cross_program = [f'{k}={v}' for k, v in env.coredata.get_program_overrides(MachineChoice.HOST).items()]
+                self.options.native_program = [f'{k}={v}' for k, v in env.coredata.get_program_overrides(MachineChoice.BUILD).items()]
                 coredata.write_cmd_line_file(self.build_dir, self.options)
             else:
                 coredata.update_cmd_line_file(self.build_dir, self.options)

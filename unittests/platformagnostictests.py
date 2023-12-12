@@ -11,6 +11,8 @@ import shutil
 from unittest import skipIf, SkipTest
 from pathlib import Path
 
+from mesonbuild import mesonlib
+
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, is_linux, python_command
@@ -275,3 +277,23 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn('first statement must be a call to project()', out)
         # provide guidance diagnostics by finding a file whose first AST statement is project()
         self.assertIn(f'Did you mean to run meson from the directory: "{testdir}"?', out)
+
+    def test_native_program(self):
+        testdir = os.path.join(self.unit_test_dir, '122 program overrides')
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.init(testdir, extra_args=['--native-program', 'xxx'])
+
+        my_prog = os.path.join(testdir, "prog.sh")
+        sys_prog = 'cmd' if mesonlib.is_windows() else 'sh'
+        self.init(testdir, extra_args=['-Dmachine=build', '--native-program', f'{sys_prog}={my_prog}'])
+
+    def test_cross_program(self):
+        testdir = os.path.join(self.unit_test_dir, '122 program overrides')
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.init(testdir, extra_args=['--cross-program', 'xxx'])
+
+        my_prog = os.path.join(testdir, "prog.sh")
+        sys_prog = 'cmd' if mesonlib.is_windows() else 'sh'
+        self.init(testdir, extra_args=['-Dmachine=host', '--cross-program', f'{sys_prog}={my_prog}'])
