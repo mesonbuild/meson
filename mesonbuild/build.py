@@ -2476,8 +2476,8 @@ class SharedModule(SharedLibrary):
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
 
 class BothLibraries(SecondLevelHolder):
-    def __init__(self, shared: SharedLibrary, static: StaticLibrary) -> None:
-        self._preferred_library = 'shared'
+    def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: str) -> None:
+        self._preferred_library = preferred_library
         self.shared = shared
         self.static = static
         self.subproject = self.shared.subproject
