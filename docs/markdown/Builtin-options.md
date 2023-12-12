@@ -79,6 +79,7 @@ machine](#specifying-options-per-machine) section for details.
 | genvslite {vs2022}                     | vs2022        | Setup multi-builtype ninja build directories and Visual Studio solution | no | no |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | no                |
 | debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
+| default_both_libraries {shared, static, auto} | shared | Default library type for both_libraries                        | no             | no                |
 | default_library {shared, static, both} | shared        | Default library type                                           | no             | yes               |
 | errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
@@ -176,6 +177,16 @@ compilers are found. It also make Meson abort with an error message when activat
 fails.
 
 `vsenv` is `true` by default when using the `vs` backend.
+
+
+#### Details for `default_both_libraries`
+
+Since `1.6.0`, you can select the default type of library selected when using
+a `both_libraries` object. This can be either 'shared' (default value, compatible
+with previous meson versions), 'static', or 'auto'. With auto, the value from
+`default_library` option is used, unless it is 'both', in which case 'shared'
+is used instead.
+
 
 ## Base options
 
