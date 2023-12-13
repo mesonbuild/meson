@@ -2882,13 +2882,22 @@ class AliasTarget(RunTarget):
 
     typename = 'alias'
 
-    def __init__(self, name: str, dependencies: T.Sequence['Target'],
+    def __init__(self, name: str, dependencies: T.Sequence[T.Union[Target, BothLibraries]],
                  subdir: str, subproject: str, environment: environment.Environment):
-        super().__init__(name, [], dependencies, subdir, subproject, environment)
+        super().__init__(name, [], list(self._deps_generator(dependencies)), subdir, subproject, environment)
 
     def __repr__(self):
         repr_str = "<{0} {1}>"
         return repr_str.format(self.__class__.__name__, self.get_id())
+
+    @staticmethod
+    def _deps_generator(dependencies: T.Sequence[T.Union[Target, BothLibraries]]) -> T.Generator[Target, None, None]:
+        for dep in dependencies:
+            if isinstance(dep, BothLibraries):
+                yield dep.shared
+                yield dep.static
+            else:
+                yield dep
 
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
