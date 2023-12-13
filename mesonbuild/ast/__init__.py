@@ -4,6 +4,12 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
+from .interpreter import AstInterpreter
+from .introspection import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS
+from .visitor import AstVisitor
+from .postprocess import AstConditionLevel, AstIDGenerator, AstIndentationGenerator
+from .printer import AstPrinter, AstJSONPrinter
+
 __all__ = [
     'AstConditionLevel',
     'AstInterpreter',
@@ -15,9 +21,3 @@ __all__ = [
     'IntrospectionInterpreter',
     'BUILD_TARGET_FUNCTIONS',
 ]
-
-from .interpreter import AstInterpreter
-from .introspection import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS
-from .visitor import AstVisitor
-from .postprocess import AstConditionLevel, AstIDGenerator, AstIndentationGenerator
-from .printer import AstPrinter, AstJSONPrinter

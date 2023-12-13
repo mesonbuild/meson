@@ -4,6 +4,22 @@
 
 """Meson interpreter."""
 
+from .interpreter import Interpreter, permitted_dependency_kwargs
+from .compiler import CompilerHolder
+from .interpreterobjects import (ExecutableHolder, BuildTargetHolder, CustomTargetHolder,
+                                 CustomTargetIndexHolder, MachineHolder, Test,
+                                 ConfigurationDataHolder, SubprojectHolder, DependencyHolder,
+                                 GeneratedListHolder, ExternalProgramHolder,
+                                 extract_required_kwarg)
+
+from .primitives import (
+    ArrayHolder,
+    BooleanHolder,
+    DictHolder,
+    IntegerHolder,
+    StringHolder,
+)
+
 __all__ = [
     'Interpreter',
     'permitted_dependency_kwargs',
@@ -29,19 +45,3 @@ __all__ = [
     'IntegerHolder',
     'StringHolder',
 ]
-
-from .interpreter import Interpreter, permitted_dependency_kwargs
-from .compiler import CompilerHolder
-from .interpreterobjects import (ExecutableHolder, BuildTargetHolder, CustomTargetHolder,
-                                 CustomTargetIndexHolder, MachineHolder, Test,
-                                 ConfigurationDataHolder, SubprojectHolder, DependencyHolder,
-                                 GeneratedListHolder, ExternalProgramHolder,
-                                 extract_required_kwarg)
-
-from .primitives import (
-    ArrayHolder,
-    BooleanHolder,
-    DictHolder,
-    IntegerHolder,
-    StringHolder,
-)
