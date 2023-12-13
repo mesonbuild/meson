@@ -2125,10 +2125,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         return tg
 
     @FeatureNew('alias_target', '0.52.0')
-    @typed_pos_args('alias_target', str, varargs=build.Target, min_varargs=1)
+    @typed_pos_args('alias_target', str, varargs=(build.Target, build.BothLibraries), min_varargs=1)
     @noKwargs
-    def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[build.Target]],
-                          kwargs: 'TYPE_kwargs') -> build.AliasTarget:
+    @noSecondLevelHolderResolving
+    def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[T.Union[build.Target, build.BothLibraries]]],
+                          kwargs: TYPE_kwargs) -> build.AliasTarget:
         name, deps = args
         tg = build.AliasTarget(name, deps, self.subdir, self.subproject, self.environment)
         self.add_target(name, tg)
