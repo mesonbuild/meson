@@ -137,11 +137,6 @@ def get_target_macos_dylib_install_name(ld) -> str:
     return ''.join(name)
 
 
-def extract_targets_as_list(kwargs: T.Dict[str, T.Any], key: str, self_libs: T.List[LibTypes]) -> T.List[LibTypes]:
-    lib_list = listify(kwargs.get(key, [])) + self_libs
-    return [t.get_default_object() if isinstance(t, BothLibraries) else t for t in lib_list]
-
-
 class InvalidArguments(MesonException):
     pass
 
@@ -779,8 +774,8 @@ class BuildTarget(Target):
         # we have to call process_compilers() first and we need to process libraries
         # from link_with and link_whole first.
         # See https://github.com/mesonbuild/meson/pull/11957#issuecomment-1629243208.
-        link_targets = extract_targets_as_list(kwargs, 'link_with', self.link_targets)
-        link_whole_targets = extract_targets_as_list(kwargs, 'link_whole', self.link_whole_targets)
+        link_targets = self.extract_targets_as_list(kwargs, 'link_with')
+        link_whole_targets = self.extract_targets_as_list(kwargs, 'link_whole')
         self.link_targets.clear()
         self.link_whole_targets.clear()
         self.link(link_targets)
@@ -1725,6 +1720,20 @@ class BuildTarget(Target):
                 'vs_module_defs must be either a string, '
                 'a file object, a Custom Target, or a Custom Target Index')
         self.process_link_depends(path)
+
+    def extract_targets_as_list(self, kwargs: T.Dict[str, T.Any], key: str) -> T.List[LibTypes]:
+        bl_type = self.environment.coredata.get_option(OptionKey('default_both_libraries'))
+        if bl_type == 'auto':
+            bl_type = 'static' if isinstance(self, StaticLibrary) else 'shared'
+
+        def _resolve_both_libs(lib: LibTypes) -> LibTypes:
+            if isinstance(lib, BothLibraries):
+                return getattr(lib, bl_type)
+            return lib
+
+        self_libs: T.List[LibTypes] = self.link_targets if key == 'link_with' else self.link_whole_targets
+        lib_list = listify(kwargs.get(key, [])) + self_libs
+        return [_resolve_both_libs(t) for t in lib_list]
 
 class FileInTargetPrivateDir:
     """Represents a file with the path '/path/to/build/target_private_dir/fname'.
