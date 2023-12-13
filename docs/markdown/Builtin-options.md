@@ -181,7 +181,7 @@ fails.
 
 #### Details for `default_both_libraries`
 
-Since `1.4.0`, you can select the default type of library selected when using
+Since `1.5.0`, you can select the default type of library selected when using
 a `both_libraries` object. This can be either 'shared' (default value, compatible
 with previous meson versions), 'static', or 'auto'. With auto, the value from
 `default_library` option is used, unless it is 'both', in which case 'shared'

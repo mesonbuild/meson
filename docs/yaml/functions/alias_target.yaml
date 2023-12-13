@@ -9,7 +9,7 @@ description: |
   are built. Dependencies can be any build target. Since 0.60.0, this includes
   [[@run_tgt]].
 
-  *Since 1.4.0* passing a [[@both_libs]] object builds both shared and
+  *Since 1.5.0* passing a [[@both_libs]] object builds both shared and
   static libraries.
 
 posargs:
