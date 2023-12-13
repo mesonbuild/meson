@@ -77,11 +77,37 @@ test('test both libs', main)
 if get_option('default_library') == 'both' and get_option('default_both_libraries') == 'auto'
     # With those options, even if the both_libraries defaults to 'shared',
     # 'static' version is used when linking to the static part of another both_libraries.
+
+    if get_option('use_dep')
+        main_static_deps = [with_library_dep.as_static(recursive: true)]
+        main_static_links = []
+    else
+        main_static_deps = []
+        main_static_links = [with_library.get_static_lib()]
+    endif
     main_static = executable(
         'main_static',
         files('src/main.c'),
         c_args: [f'-DEXPECTED=0'],
-        link_with: with_library.get_static_lib(),
+        link_with: main_static_links,
+        dependencies: main_static_deps,
     )
     test('test static', main_static)
+
+
+    if get_option('use_dep')
+        main_shared_deps = [with_library_dep.as_shared(recursive: true)]
+        main_shared_links = []
+    else
+        main_shared_deps = []
+        main_shared_links = [with_library.get_shared_lib()]
+    endif
+    main_shared = executable(
+        'main_shared',
+        files('src/main.c'),
+        c_args: [f'-DEXPECTED=2'],
+        link_with: main_shared_links,
+        dependencies: main_shared_deps,
+    )
+    test('test shared', main_shared)
 endif
