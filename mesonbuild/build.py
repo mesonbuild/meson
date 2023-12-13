@@ -887,7 +887,7 @@ class BuildTarget(Target):
                 removed = True
         return removed
 
-    def process_compilers_late(self):
+    def process_compilers_late(self) -> None:
         """Processes additional compilers after kwargs have been evaluated.
 
         This can add extra compilers that might be required by keyword

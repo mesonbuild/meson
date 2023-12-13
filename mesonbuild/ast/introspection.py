@@ -21,7 +21,7 @@ from .interpreter import AstInterpreter
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..interpreterbase import TYPE_nvar
+    from ..interpreterbase import TYPE_var
     from .visitor import AstVisitor
 
 
@@ -85,7 +85,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'both_libraries': self.func_both_lib,
         })
 
-    def func_project(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
+    def func_project(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         if self.project_node:
             raise InvalidArguments('Second call to project()')
         self.project_node = node
@@ -146,9 +146,10 @@ class IntrospectionInterpreter(AstInterpreter):
         except (mesonlib.MesonException, RuntimeError):
             return
 
-    def func_add_languages(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
+    def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         kwargs = self.flatten_kwargs(kwargs)
         required = kwargs.get('required', True)
+        assert isinstance(required, (bool, cdata.UserFeatureOption)), 'for mypy'
         if isinstance(required, cdata.UserFeatureOption):
             required = required.is_enabled()
         if 'native' in kwargs:
@@ -158,7 +159,7 @@ class IntrospectionInterpreter(AstInterpreter):
             for for_machine in [MachineChoice.BUILD, MachineChoice.HOST]:
                 self._add_languages(args, required, for_machine)
 
-    def _add_languages(self, raw_langs: T.List[TYPE_nvar], required: bool, for_machine: MachineChoice) -> None:
+    def _add_languages(self, raw_langs: T.List[TYPE_var], required: bool, for_machine: MachineChoice) -> None:
         langs: T.List[str] = []
         for l in self.flatten_args(raw_langs):
             if isinstance(l, str):
@@ -185,7 +186,7 @@ class IntrospectionInterpreter(AstInterpreter):
                         options[k] = v
                     self.coredata.add_compiler_options(options, lang, for_machine, self.environment)
 
-    def func_dependency(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
+    def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         args = self.flatten_args(args)
         kwargs = self.flatten_kwargs(kwargs)
         if not args:
@@ -209,7 +210,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'node': node
         }]
 
-    def build_target(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs_raw: T.Dict[str, TYPE_nvar], targetclass: T.Type[BuildTarget]) -> T.Optional[T.Dict[str, T.Any]]:
+    def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> T.Optional[T.Dict[str, T.Any]]:
         args = self.flatten_args(args)
         if not args or not isinstance(args[0], str):
             return None
@@ -270,7 +271,7 @@ class IntrospectionInterpreter(AstInterpreter):
         empty_sources: T.List[T.Any] = []
         # Passing the unresolved sources list causes errors
         kwargs_reduced['_allow_no_sources'] = True
-        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, [], objects,
+        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, None, objects,
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
@@ -292,7 +293,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.targets += [new_target]
         return new_target
 
-    def build_library(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         default_library = self.coredata.get_option(OptionKey('default_library'))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
@@ -302,28 +303,28 @@ class IntrospectionInterpreter(AstInterpreter):
             return self.build_target(node, args, kwargs, SharedLibrary)
         return None
 
-    def func_executable(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_executable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         return self.build_target(node, args, kwargs, Executable)
 
-    def func_static_lib(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_static_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         return self.build_target(node, args, kwargs, StaticLibrary)
 
-    def func_shared_lib(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_shared_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         return self.build_target(node, args, kwargs, SharedLibrary)
 
-    def func_both_lib(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_both_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         return self.build_target(node, args, kwargs, SharedLibrary)
 
-    def func_shared_module(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_shared_module(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         return self.build_target(node, args, kwargs, SharedModule)
 
-    def func_library(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         return self.build_library(node, args, kwargs)
 
-    def func_jar(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_jar(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         return self.build_target(node, args, kwargs, Jar)
 
-    def func_build_target(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
         if 'target_type' not in kwargs:
             return None
         target_type = kwargs.pop('target_type')
@@ -358,11 +359,11 @@ class IntrospectionInterpreter(AstInterpreter):
            and also calls parse_project() on every subproject.
         '''
         if not self.ast.lines:
-            return
+            return None
         project = self.ast.lines[0]
         # first line is always project()
         if not isinstance(project, FunctionNode):
-            return
+            return None
         for kw, val in project.args.kwargs.items():
             assert isinstance(kw, IdNode), 'for mypy'
             if kw.value == 'subproject_dir':
