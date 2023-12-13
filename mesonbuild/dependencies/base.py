@@ -248,6 +248,14 @@ class Dependency(HoldableObject):
         new_dep.include_type = self._process_include_type_kw({'include_type': include_type})
         return new_dep
 
+    def get_as_static(self, recursive: bool) -> Dependency:
+        """Used as base case for internal_dependency"""
+        return self
+
+    def get_as_shared(self, recursive: bool) -> Dependency:
+        """Used as base case for internal_dependency"""
+        return self
+
 class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
                  link_args: T.List[str],
@@ -343,6 +351,20 @@ class InternalDependency(Dependency):
         new_dep.whole_libraries += T.cast('T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]',
                                           new_dep.libraries)
         new_dep.libraries = []
+        return new_dep
+
+    def get_as_static(self, recursive: bool) -> Dependency:
+        new_dep = copy.copy(self)
+        new_dep.libraries = [lib.get('static') for lib in self.libraries]
+        if recursive:
+            new_dep.ext_deps = [dep.get_as_static(True) for dep in self.ext_deps]
+        return new_dep
+
+    def get_as_shared(self, recursive: bool) -> Dependency:
+        new_dep = copy.copy(self)
+        new_dep.libraries = [lib.get('shared') for lib in self.libraries]
+        if recursive:
+            new_dep.ext_deps = [dep.get_as_shared(True) for dep in self.ext_deps]
         return new_dep
 
 class HasNativeKwarg:

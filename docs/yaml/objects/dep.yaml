@@ -221,3 +221,28 @@ methods:
       pkgconfig_define:
         type: list[str]
         description: See [[dep.get_pkgconfig_variable]]
+
+  - name: as_static
+    returns: dep
+    since: 1.6.0
+    description: |
+      Only for dependencies created with [[declare_dependency]],
+      returns a copy of the dependency object that prefer the `static` version
+      of [[both_libraries]].
+    kwargs:
+      recursive:
+        type: bool
+        description: If true, this is recursively applied to dependencies
+
+  - name: as_shared
+    returns: dep
+    since: 1.6.0
+    description: |
+      Only for dependencies created with [[declare_dependency]],
+      returns a copy of the dependency object that prefer the `shared` version
+      of [[both_libraries]].
+    kwargs:
+      recursive:
+        type: bool
+        description: If true, this is recursively applied to dependencies
+  

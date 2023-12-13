@@ -1746,6 +1746,10 @@ class BuildTarget(Target):
         lib_list = listify(kwargs.get(key, [])) + self_libs
         return [_resolve_both_libs(t) for t in lib_list]
 
+    def get(self, lib_type: T.Literal['static', 'shared', 'auto']) -> LibTypes:
+        """Base case used by BothLibraries"""
+        return self
+
 class FileInTargetPrivateDir:
     """Represents a file with the path '/path/to/build/target_private_dir/fname'.
        target_private_dir is the return value of get_target_private_dir which is e.g. 'subdir/target.p'.
@@ -2501,7 +2505,7 @@ class BothLibraries(SecondLevelHolder):
     def __repr__(self) -> str:
         return f'<BothLibraries: static={repr(self.static)}; shared={repr(self.shared)}>'
 
-    def get(self, lib_type: T.Literal['static', 'shared', 'auto']) -> T.Union[StaticLibrary, SharedLibrary]:
+    def get(self, lib_type: T.Literal['static', 'shared', 'auto']) -> LibTypes:
         if lib_type == 'static':
             return self.static
         if lib_type == 'shared':
@@ -2574,6 +2578,10 @@ class CustomTargetBase:
 
     def get_internal_static_libraries_recurse(self, result: OrderedSet[BuildTargetTypes]) -> None:
         pass
+
+    def get(self, lib_type: T.Literal['static', 'shared', 'auto']) -> LibTypes:
+        """Base case used by BothLibraries"""
+        return self
 
 class CustomTarget(Target, CustomTargetBase, CommandBase):
 
@@ -2896,13 +2904,22 @@ class AliasTarget(RunTarget):
 
     typename = 'alias'
 
-    def __init__(self, name: str, dependencies: T.Sequence['Target'],
+    def __init__(self, name: str, dependencies: T.Sequence[T.Union[Target, BothLibraries]],
                  subdir: str, subproject: str, environment: environment.Environment):
-        super().__init__(name, [], dependencies, subdir, subproject, environment)
+        super().__init__(name, [], list(self._deps_generator(dependencies)), subdir, subproject, environment)
 
     def __repr__(self):
         repr_str = "<{0} {1}>"
         return repr_str.format(self.__class__.__name__, self.get_id())
+
+    @staticmethod
+    def _deps_generator(dependencies: T.Sequence[T.Union[Target, BothLibraries]]) -> T.Iterator[Target]:
+        for dep in dependencies:
+            if isinstance(dep, BothLibraries):
+                yield dep.shared
+                yield dep.static
+            else:
+                yield dep
 
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
