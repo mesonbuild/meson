@@ -10,6 +10,10 @@
                 { "val": "shared" },
                 { "val": "static" },
                 { "val": "auto"   }
+            ],
+            "use_dep": [
+                { "val": false },
+                { "val": true  }
             ]
         }
     }
