@@ -25,6 +25,8 @@ modules = [
 
     # specific files
     'mesonbuild/ast/printer.py',
+    'mesonbuild/ast/postprocess.py',
+    'mesonbuild/ast/visitor.py',
     'mesonbuild/arglist.py',
     'mesonbuild/backend/backends.py',
     'mesonbuild/backend/nonebackend.py',
