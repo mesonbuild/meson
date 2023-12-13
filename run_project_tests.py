@@ -1574,8 +1574,11 @@ def clear_transitive_files() -> None:
         pass
 
 def setup_symlinks() -> None:
-    symlink_file1.symlink_to('file1')
-    symlink_file2.symlink_to('file1')
+    try:
+        symlink_file1.symlink_to('file1')
+        symlink_file2.symlink_to('file1')
+    except OSError:
+        print('symlinks are not supported on this system')
 
 if __name__ == '__main__':
     if under_ci and not raw_ci_jobname:
