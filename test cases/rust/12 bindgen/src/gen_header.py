@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# SPDX-license-identifer: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# SPDX-license-Identifier: Apache-2.0
+# Copyright © 2021-2023 Intel Corporation
 
 import argparse
 import shutil
