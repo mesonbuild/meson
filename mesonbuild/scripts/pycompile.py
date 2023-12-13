@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016 The Meson development team
-
+#
 # ignore all lints for this file, since it is run by python2 as well
-
+#
 # type: ignore
 # pylint: disable=deprecated-module
 

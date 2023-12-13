@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-
+# SPDX-License-Identifier: Apache-2.0
+#
 # ignore all lints for this file, since it is run by python2 as well
-
+#
 # type: ignore
 # pylint: disable=deprecated-module
 
