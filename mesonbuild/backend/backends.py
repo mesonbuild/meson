@@ -255,8 +255,6 @@ def get_genvslite_backend(genvsname: str, build: T.Optional[build.Build] = None,
         return vs2022backend.Vs2022Backend(build, interpreter, gen_lite = True)
     return None
 
-# This class contains the basic functionality that is needed by all backends.
-# Feel free to move stuff in and out of it as you see fit.
 class Backend:
 
     environment: T.Optional['Environment']

@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2017 The Meson development team
 
-# This class contains the basic functionality needed to run any interpreter
-# or an interpreter-based tool.
 from __future__ import annotations
 
 from .. import environment, mparser, mesonlib

@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# This class contains the basic functionality needed to run any interpreter
-# or an interpreter-based tool.
+"""Provides interface to maintain `from ast import ...`"""
 
 from .interpreter import AstInterpreter
 from .introspection import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS

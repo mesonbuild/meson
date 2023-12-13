@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2018 The Meson development team
 
-# This file contains the detection logic for external dependencies.
-# Custom logic for several other packages are in separate files.
+"""Base implementation for for external dependencies."""
 
 from __future__ import annotations
 import copy

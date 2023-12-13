@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2016 The Meson development team
 
-# This script extracts the symbols of a given shared library
-# into a file. If the symbols have not changed, the file is not
-# touched. This information is used to skip link steps if the
-# ABI has not changed.
+"""This script extracts the symbols of a given shared library into a file.
 
-# This file is basically a reimplementation of
-# http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
+If the symbols have not changed, the file is not touched. This information is
+used to skip link steps if the ABI has not changed.
+
+This file is basically a reimplementation of
+http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
+"""
+
 from __future__ import annotations
 
 import typing as T

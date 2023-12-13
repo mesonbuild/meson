@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2017 The Meson development team
 
-# Public symbols for compilers sub-package when using 'from . import compilers'
+"""Public symbols for compilers sub-package when using 'from . import compilers'"""
+
 
 from .compilers import (
     Compiler,

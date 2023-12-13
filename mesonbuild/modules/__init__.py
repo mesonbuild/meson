@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# This file contains the base representation for import('modname')
+"""Module implementation."""
 
 from __future__ import annotations
 import dataclasses
