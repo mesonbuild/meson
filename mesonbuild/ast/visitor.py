@@ -32,7 +32,7 @@ class AstVisitor:
     def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
         self.visit_default_func(node)
 
-    def visit_MultilineStringNode(self, node: mparser.StringNode) -> None:
+    def visit_MultilineStringNode(self, node: mparser.MultilineFormatStringNode) -> None:
         self.visit_default_func(node)
 
     def visit_FormatMultilineStringNode(self, node: mparser.FormatStringNode) -> None:
@@ -138,7 +138,7 @@ class AstVisitor:
         node.condition.accept(self)
         node.block.accept(self)
 
-    def visit_ElseNode(self, node: mparser.IfNode) -> None:
+    def visit_ElseNode(self, node: mparser.ElseNode) -> None:
         self.visit_default_func(node)
         node.block.accept(self)
 
