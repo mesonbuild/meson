@@ -49,7 +49,7 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_nkwargs, TYPE_var
+    from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -84,8 +84,9 @@ REMOVE_SOURCE = 1
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
 
+
 class AstInterpreter(InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, subproject: str, visitors: T.Optional[T.List[AstVisitor]] = None):
+    def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
         super().__init__(source_root, subdir, subproject)
         self.visitors = visitors if visitors is not None else []
         self.processed_buildfiles: T.Set[str] = set()

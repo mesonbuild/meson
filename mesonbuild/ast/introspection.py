@@ -14,7 +14,7 @@ from .. import compilers, environment, mesonlib, optinterpreter
 from .. import coredata as cdata
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
-from ..interpreterbase import InvalidArguments
+from ..interpreterbase import InvalidArguments, SubProject
 from ..mesonlib import MachineChoice, OptionKey
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, BaseStringNode
 from .interpreter import AstInterpreter
@@ -51,7 +51,7 @@ class IntrospectionInterpreter(AstInterpreter):
                  backend: str,
                  visitors: T.Optional[T.List[AstVisitor]] = None,
                  cross_file: T.Optional[str] = None,
-                 subproject: str = '',
+                 subproject: SubProject = SubProject(''),
                  subproject_dir: str = 'subprojects',
                  env: T.Optional[environment.Environment] = None):
         visitors = visitors if visitors is not None else []
@@ -126,7 +126,7 @@ class IntrospectionInterpreter(AstInterpreter):
             if os.path.isdir(subprojects_dir):
                 for i in os.listdir(subprojects_dir):
                     if os.path.isdir(os.path.join(subprojects_dir, i)):
-                        self.do_subproject(i)
+                        self.do_subproject(SubProject(i))
 
         self.coredata.init_backend_options(self.backend)
         options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
@@ -135,7 +135,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self._add_languages(proj_langs, True, MachineChoice.HOST)
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
-    def do_subproject(self, dirname: str) -> None:
+    def do_subproject(self, dirname: SubProject) -> None:
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
         subpr = os.path.join(subproject_dir_abs, dirname)
         try:
