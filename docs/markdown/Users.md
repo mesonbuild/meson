@@ -169,6 +169,7 @@ format files
  - [TSCL Xmemory](https://github.com/trilobite-stdlib/tscl-xmemory-c), a library for low-level, memory and bitwise operations in C
  - [TSCL Xscience](https://github.com/trilobite-stdlib/tscl-xscience-c), a library for scientific calculations in C
  - [TSCL Xstring](https://github.com/trilobite-stdlib/tscl-xstring-c), a library for working with strings and ciphers in C
+ - [TSCL Xdata](https://github.com/trilobite-stdlib/tscl-xdata-c), a library with data structures and algorithms in C
  - [TSCL Xutil](https://github.com/trilobite-stdlib/tscl-xutil-c), a library with utilities for the most tedious task in C
  - [TSCL Xmath](https://github.com/trilobite-stdlib/tscl-xmath-c), a library with mathematical components for projects in C
  - [TSCL Xcore](https://github.com/trilobite-stdlib/tscl-xcore-c), a core framework with essentials for any projects in C
