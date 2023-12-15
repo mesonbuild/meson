@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import functools
 import subprocess, os.path
 import textwrap
 import re
@@ -117,6 +118,12 @@ class RustCompiler(Compiler):
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
         p, stdo, stde = Popen_safe_logged(cmd)
         return stdo.split('\n', maxsplit=1)[0]
+
+    @functools.lru_cache(maxsize=None)
+    def get_crt_static(self) -> bool:
+        cmd = self.get_exelist(ccache=False) + ['--print', 'cfg']
+        p, stdo, stde = Popen_safe_logged(cmd)
+        return bool(re.search('^target_feature="crt-static"$', stdo, re.MULTILINE))
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
