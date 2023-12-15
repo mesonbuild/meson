@@ -215,9 +215,12 @@ class NativeFileTests(BasePlatformTests):
 
             # We not have python2, check for it
             for v in ['2', '2.7', '-2.7']:
-                rc = subprocess.call(['pkg-config', '--cflags', f'python{v}'],
-                                     stdout=subprocess.DEVNULL,
-                                     stderr=subprocess.DEVNULL)
+                try:
+                    rc = subprocess.call(['pkg-config', '--cflags', f'python{v}'],
+                                         stdout=subprocess.DEVNULL,
+                                         stderr=subprocess.DEVNULL)
+                except FileNotFoundError:
+                    raise SkipTest('Not running Python 2 tests because pkg-config not found.')
                 if rc == 0:
                     break
             else:
