@@ -928,6 +928,7 @@ class LinuxlikeTests(BasePlatformTests):
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
         self.assertEqual(install_rpath, 'baz:/foo/dummy')
 
+    @skipIfNoPkgconfig
     def test_global_rpath(self):
         if is_cygwin():
             raise SkipTest('Windows PE/COFF binaries do not use RPATH')
