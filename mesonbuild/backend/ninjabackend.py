@@ -2010,7 +2010,7 @@ class NinjaBackend(backends.Backend):
             # "-l" argument and does not rely on platform specific dynamic linker.
             lib = self.get_target_filename_for_linking(d)
             link_whole = d in target.link_whole_targets
-            if isinstance(target, build.StaticLibrary):
+            if isinstance(target, build.StaticLibrary) or (isinstance(target, build.Executable) and rustc.get_crt_static()):
                 static = isinstance(d, build.StaticLibrary)
                 libname = os.path.basename(lib) if verbatim else d.name
                 _link_library(libname, static, bundle=link_whole)
