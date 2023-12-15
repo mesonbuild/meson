@@ -753,8 +753,11 @@ class Backend:
             if len(fname) > len(temp) + 41:
                 hashed = hashlib.sha1(fname.encode('utf-8')).hexdigest() + '_'
                 fname = temp
-        for ch in ('/', '\\', ':'):
+        for ch in ('/', '\\', ':', '.', '..'):
             fname = fname.replace(ch, '_')
+
+        if len(hashed) > 0 and len(fname) > 41:
+            return hashed 
         return hashed + fname
 
     def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler, source: 'FileOrString', targetdir: T.Optional[str] = None) -> str:
