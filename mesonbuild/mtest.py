@@ -1403,8 +1403,14 @@ class SingleTestRunner:
         # it ourselves. We do this unconditionally for regular tests
         # because it is extremely useful to have.
         # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-        if ('MALLOC_PERTURB_' not in env or not env['MALLOC_PERTURB_']) and not options.benchmark:
-            env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
+        # XXX update comment above
+        if not options.benchmark:
+            if 'MALLOC_PERTURB_' not in env or not env['MALLOC_PERTURB_']:
+                env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
+            if 'MallocPreScribble' not in env:
+                env['MallocPreScribble'] = '1'
+            if 'MallocScribble' not in env:
+                env['MallocScribble'] = '1'
 
         # Sanitizers do not default to aborting on error. This is counter to
         # expectations when using -Db_sanitize and has led to confusion in the wild

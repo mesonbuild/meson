@@ -38,6 +38,8 @@ set to a random value between 1..255. This can help find memory leaks on
 configurations using glibc, including with non-GCC compilers. This feature
 can be disabled as discussed in [[test]].
 
+TODO: document MallocPreScribble MallocScribble here
+
 ### ASAN_OPTIONS and UBSAN_OPTIONS
 
 By default, the environment variables `ASAN_OPTIONS` and `UBSAN_OPTIONS` are

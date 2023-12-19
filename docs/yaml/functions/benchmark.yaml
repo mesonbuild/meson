@@ -6,7 +6,7 @@ description: |
   except for:
 
   * benchmark() has no `is_parallel` keyword because benchmarks are not run in parallel
-  * benchmark() does not automatically add the `MALLOC_PERTURB_` environment variable
+  * benchmark() does not automatically add the `MALLOC_PERTURB_` environment variable (or equivalent on other platforms)
 
   Defined tests can be run in a backend-agnostic way by calling
   `meson test` inside the build dir, or by using backend-specific
