@@ -44,6 +44,7 @@ jobs:
         LDFLAGS: "-L/usr/local/lib"
         MESON_CI_JOBNAME: unittests-appleclang
         MESON_UNIT_TEST_BACKEND: ninja
+        HOMEBREW_NO_AUTO_UPDATE: 1
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
@@ -77,6 +78,7 @@ jobs:
     name: ${{ matrix.NAME }}
     env:
       MESON_CI_JOBNAME: ${{ matrix.NAME }}
+        HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
     - uses: actions/checkout@v3
@@ -99,6 +101,7 @@ jobs:
         CPPFLAGS: "-I/usr/local/include"
         LDFLAGS: "-L/usr/local/lib"
         MESON_ARGS: --unity=${{ matrix.unity }}
+        HOMEBREW_NO_AUTO_UPDATE: 1
         CI: 1
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
@@ -126,6 +129,8 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
+    - env:
+        HOMEBREW_NO_AUTO_UPDATE: 1
     - run: python -m pip install -e .
     - run: brew install pkg-config ninja gcc
     - run: brew tap cartr/qt4
