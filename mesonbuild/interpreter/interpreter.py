@@ -1079,31 +1079,35 @@ class Interpreter(InterpreterBase, HoldableObject):
         raise InterpreterException(f'Tried to access unknown option {optname!r}.')
 
     @typed_pos_args('get_option', str)
-    @noKwargs
+    @typed_kwargs('get_option', KwargInfo('version', int, default=1, since='1.4', validator=lambda x: 'Must be an integer greater than 0' if x < 1 else None))
     def func_get_option(self, node: mparser.BaseNode, args: T.Tuple[str],
-                        kwargs: 'TYPE_kwargs') -> T.Union[coredata.UserOption, 'TYPE_var']:
+                        kwargs: kwtypes.FuncGetOption) -> T.Union[coredata.UserOption, 'TYPE_var']:
         optname = args[0]
+        opt_ver = kwargs['version']
+        if optname == 'b_sanitize':
+            if opt_ver > 2:
+                raise InvalidArguments('b_sanitize only has two option versions')
+            FeatureNew.single_use('b_sanitize version 2 (as an array)', '1.4', self.subproject, location=node)
+        elif opt_ver != 1:
+            raise InvalidArguments(f'{optname} does not have multiple versions')
+
         if ':' in optname:
             raise InterpreterException('Having a colon in option name is forbidden, '
                                        'projects are not allowed to directly access '
                                        'options of other subprojects.')
-
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        if optname == 'b_sanitizers':
-            FeatureNew.single_use('get_option(\'b_sanitizers\')', '1.4', self.subproject, 'use b_sanitize instead', node)
-            opt = self.get_option_internal('b_sanitize')
-        else:
-            opt = self.get_option_internal(optname)
+        opt = self.get_option_internal(optname)
 
         if isinstance(opt, coredata.UserFeatureOption):
             opt.name = optname
             return opt
         elif optname == 'b_sanitize':
             assert isinstance(opt, coredata.UserArrayOption), 'for mypy'
-            # to ensure backwards compat this always returns a string
-            return ','.join(sorted(opt.value))
+            if opt_ver == 1:
+                return ','.join(sorted(opt.value))
+            return opt.value
         elif isinstance(opt, coredata.UserOption):
             if isinstance(opt.value, str):
                 return P_OBJ.OptionString(opt.value, f'{{{optname}}}')

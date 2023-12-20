@@ -12,5 +12,6 @@ This solves a number of longstanding issues such as:
 
 In order to not break backwards compatibility, meson will continue to
 return `get_option('b_sanitize')` as a string, with a guarantee that
-`address,undefined` will remain ordered. A new `get_option('b_sanitizers')`
+`address,undefined` will remain ordered. Calling
+ `get_option('b_sanitize', version : 2)`
 option returns a free form list with no ordering guarantees.

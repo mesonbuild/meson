@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 The Meson Developers
-# Copyright © 2021 Intel Corporation
+# Copyright 2021 The Meson Developers
+# Copyright © 2021-2023 Intel Corporation
 from __future__ import annotations
 
 """Keyword Argument type annotations."""
@@ -475,3 +475,8 @@ class FuncDeclareDependency(TypedDict):
     sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
     variables: T.Dict[str, str]
     version: T.Optional[str]
+
+
+class FuncGetOption(TypedDict):
+
+    version: int

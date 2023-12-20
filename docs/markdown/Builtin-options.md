@@ -206,7 +206,6 @@ available on all platforms or with all compilers:
 | b_pch               | true                 | true, false                                                   | Use precompiled headers                                                        |
 | b_pgo               | off                  | off, generate, use                                            | Use profile guided optimization                                                |
 | b_sanitize          | none                 | see below                                                     | Code sanitizer to use                                                          |
-| b_sanitizers        | []                   | see below                                                     | Code sanitizer to use                                                          |
 | b_staticpic         | true                 | true, false                                                   | Build static libraries as position independent                                 |
 | b_pie               | false                | true, false                                                   | Build position-independent executables (since 0.49.0)                          |
 | b_vscrt             | from_buildtype       | none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0)  |
@@ -218,10 +217,9 @@ were string values, and restricted to a specific subset of values: `none`,
 compiler and linker check. For backwards compatibility reasons
 `get_option('b_sanitize')` continues to return a string value, which is
 guaranteed to match the old string value if the array value contains the same
-values (ie, `['undefined', 'address'] == 'address,undefined`). I a value not
-allowed before 1.4 is used `b_sanitize` will return a string in undefined order.
-A new value of `b_sanitizers` can be used for >= 1.4 to get a free form array,
-with no ordering guarantees.
+values (ie, `['undefined', 'address'] == 'address,undefined`). However,
+`get_option('b_sanitize', version : 2)`, Meson will return an array in
+unspecified order.
 
 \* < 0 means disable, == 0 means automatic selection, > 0 sets a specific number to use
 
