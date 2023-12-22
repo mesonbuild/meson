@@ -1097,6 +1097,8 @@ class MachineFileParser():
             return node.value
         elif isinstance(node, mparser.NumberNode):
             return node.value
+        elif isinstance(node, mparser.ParenthesizedNode):
+            return self._evaluate_statement(node.inner)
         elif isinstance(node, mparser.ArrayNode):
             # TODO: This is where recursive types would come in handy
             return [self._evaluate_statement(arg) for arg in node.args.arguments]
