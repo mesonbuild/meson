@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -10,7 +11,7 @@ import typing as T
 
 from .. import coredata
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
-from .compilers import Compiler, rust_buildtype_args, clike_debug_args
+from .compilers import Compiler, CompileCheckMode, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
@@ -215,6 +216,20 @@ class RustCompiler(Compiler):
     def get_assert_args(self, disable: bool) -> T.List[str]:
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
+
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
+                      mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+        return self.compiles(code, env, extra_args=args, mode=mode)
+
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        return self.has_arguments(args, env, 'fn main { std::process::exit(0) };\n', CompileCheckMode.COMPILE)
+
+    def _has_multi_link_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
+        args = self.linker.fatal_warnings() + args
+        return self.has_arguments(args, env, code, mode=CompileCheckMode.LINK)
+
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        return self._has_multi_link_arguments(args, env, 'fn main { std::process::exit(0) };\n')
 
 
 class ClippyRustCompiler(RustCompiler):

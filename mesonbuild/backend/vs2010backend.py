@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 import copy
@@ -271,7 +272,7 @@ class Vs2010Backend(backends.Backend):
         try:
             self.sanitize = self.environment.coredata.get_option(OptionKey('b_sanitize'))
         except MesonException:
-            self.sanitize = 'none'
+            self.sanitize = []
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects(vslite_ctx)
         self.gen_testproj()
@@ -982,7 +983,7 @@ class Vs2010Backend(backends.Backend):
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(
-                    target.get_options(), comp)
+                    target.get_options(), comp, self.environment)
                 file_args[l] += comp.get_option_compile_args(
                     target.get_options())
 
