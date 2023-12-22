@@ -225,27 +225,27 @@ class Vs2010Backend(backends.Backend):
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
-        target_machine = self.environment.machines.target.cpu_family
-        if target_machine in {'64', 'x86_64'}:
+        host_machine = self.environment.machines.host.cpu_family
+        if host_machine in {'64', 'x86_64'}:
             # amd64 or x86_64
-            target_system = self.environment.machines.target.system
+            target_system = self.environment.machines.host.system
             if detect_microsoft_gdk(target_system):
                 self.platform = target_system
             else:
                 self.platform = 'x64'
-        elif target_machine == 'x86':
+        elif host_machine == 'x86':
             # x86
             self.platform = 'Win32'
-        elif target_machine in {'aarch64', 'arm64'}:
-            target_cpu = self.environment.machines.target.cpu
+        elif host_machine in {'aarch64', 'arm64'}:
+            target_cpu = self.environment.machines.host.cpu
             if target_cpu == 'arm64ec':
                 self.platform = 'arm64ec'
             else:
                 self.platform = 'arm64'
-        elif 'arm' in target_machine.lower():
+        elif 'arm' in host_machine.lower():
             self.platform = 'ARM'
         else:
-            raise MesonException('Unsupported Visual Studio platform: ' + target_machine)
+            raise MesonException('Unsupported Visual Studio platform: ' + host_machine)
 
         build_machine = self.environment.machines.build.cpu_family
         if build_machine in {'64', 'x86_64'}:
