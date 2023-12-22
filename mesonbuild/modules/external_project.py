@@ -65,8 +65,6 @@ class ExternalProject(NewExtensionModule):
         self.project_version = state.project_version
         self.subproject = state.subproject
         self.env = state.environment
-        self.build_machine = state.build_machine
-        self.host_machine = state.host_machine
         self.configure_command = configure_command
         self.configure_options = configure_options
         self.cross_configure_options = cross_configure_options
@@ -126,10 +124,10 @@ class ExternalProject(NewExtensionModule):
         configure_cmd += self._format_options(self.configure_options, d)
 
         if self.env.is_cross_build():
-            host = '{}-{}-{}'.format(self.host_machine.cpu,
-                                     'pc' if self.host_machine.cpu_family in {"x86", "x86_64"}
+            host = '{}-{}-{}'.format(state.environment.machines.host.cpu,
+                                     'pc' if state.environment.machines.host.cpu_family in {"x86", "x86_64"}
                                      else 'unknown',
-                                     self.host_machine.system)
+                                     state.environment.machines.host.system)
             d = [('HOST', None, host)]
             configure_cmd += self._format_options(self.cross_configure_options, d)
 

@@ -82,7 +82,7 @@ class CudaModule(NewExtensionModule):
         driver_version = 'unknown'
         for d in driver_version_table:
             if version_compare(cuda_version, d['cuda_version']):
-                driver_version = d.get(state.host_machine.system, d['linux'])
+                driver_version = d.get(state.environment.machines.host.system, d['linux'])
                 break
 
         return driver_version
