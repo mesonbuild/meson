@@ -95,7 +95,10 @@ def run(argsv: T.List[str]) -> int:
         if do_copy:
             if expected.exists():
                 expected.unlink()
-            shutil.copyfile(str(generated), str(expected))
+            if generated.is_dir():
+                shutil.copytree(str(generated), str(expected))
+            else :
+                shutil.copyfile(str(generated), str(expected))
 
     return 0
 
