@@ -196,18 +196,12 @@ class MesonApp:
         # even to write `T.Callable[[*mlog.TV_Loggable], None]`
         logger_fun = T.cast('T.Callable[[mlog.TV_Loggable, mlog.TV_Loggable], None]',
                             (mlog.log if env.is_cross_build() else mlog.debug))
-        build_machine = intr.builtin['build_machine']
-        host_machine = intr.builtin['host_machine']
-        target_machine = intr.builtin['target_machine']
-        assert isinstance(build_machine, interpreter.MachineHolder)
-        assert isinstance(host_machine, interpreter.MachineHolder)
-        assert isinstance(target_machine, interpreter.MachineHolder)
-        logger_fun('Build machine cpu family:', mlog.bold(build_machine.cpu_family_method([], {})))
-        logger_fun('Build machine cpu:', mlog.bold(build_machine.cpu_method([], {})))
-        mlog.log('Host machine cpu family:', mlog.bold(host_machine.cpu_family_method([], {})))
-        mlog.log('Host machine cpu:', mlog.bold(host_machine.cpu_method([], {})))
-        logger_fun('Target machine cpu family:', mlog.bold(target_machine.cpu_family_method([], {})))
-        logger_fun('Target machine cpu:', mlog.bold(target_machine.cpu_method([], {})))
+        logger_fun('Build machine cpu family:', mlog.bold(env.machines.build.cpu_family))
+        logger_fun('Build machine cpu:', mlog.bold(env.machines.build.cpu))
+        mlog.log('Host machine cpu family:', mlog.bold(env.machines.host.cpu_family))
+        mlog.log('Host machine cpu:', mlog.bold(env.machines.host.cpu))
+        logger_fun('Target machine cpu family:', mlog.bold(env.machines.target.cpu_family))
+        logger_fun('Target machine cpu:', mlog.bold(env.machines.target.cpu))
         try:
             if self.options.profile:
                 fname = os.path.join(self.build_dir, 'meson-logs', 'profile-interpreter.log')
