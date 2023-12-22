@@ -225,10 +225,10 @@ class Vs2010Backend(backends.Backend):
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
-        target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
+        target_machine = self.environment.machines.target.cpu_family
         if target_machine in {'64', 'x86_64'}:
             # amd64 or x86_64
-            target_system = self.interpreter.builtin['target_machine'].system_method(None, None)
+            target_system = self.environment.machines.target.system
             if detect_microsoft_gdk(target_system):
                 self.platform = target_system
             else:
@@ -237,7 +237,7 @@ class Vs2010Backend(backends.Backend):
             # x86
             self.platform = 'Win32'
         elif target_machine in {'aarch64', 'arm64'}:
-            target_cpu = self.interpreter.builtin['target_machine'].cpu_method(None, None)
+            target_cpu = self.environment.machines.target.cpu
             if target_cpu == 'arm64ec':
                 self.platform = 'arm64ec'
             else:
@@ -247,7 +247,7 @@ class Vs2010Backend(backends.Backend):
         else:
             raise MesonException('Unsupported Visual Studio platform: ' + target_machine)
 
-        build_machine = self.interpreter.builtin['build_machine'].cpu_family_method(None, None)
+        build_machine = self.environment.machines.build.cpu_family
         if build_machine in {'64', 'x86_64'}:
             # amd64 or x86_64
             self.build_platform = 'x64'
@@ -255,7 +255,7 @@ class Vs2010Backend(backends.Backend):
             # x86
             self.build_platform = 'Win32'
         elif build_machine in {'aarch64', 'arm64'}:
-            target_cpu = self.interpreter.builtin['build_machine'].cpu_method(None, None)
+            target_cpu = self.environment.machines.build.cpu
             if target_cpu == 'arm64ec':
                 self.build_platform = 'arm64ec'
             else:
