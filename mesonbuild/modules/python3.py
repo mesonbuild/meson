@@ -41,7 +41,7 @@ class Python3Module(ExtensionModule):
     @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @typed_kwargs('python3.extension_module', *_MOD_KWARGS, allow_unknown=True)
     def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW):
-        host_system = state.host_machine.system
+        host_system = state.environment.machines.host.system
         if host_system == 'darwin':
             # Default suffix is 'dylib' but Python does not use it for extensions.
             suffix = 'so'

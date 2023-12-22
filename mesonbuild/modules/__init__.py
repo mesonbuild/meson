@@ -16,7 +16,6 @@ from ..programs import ExternalProgram
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import ProgramVersionFunc
-    from ..interpreter.interpreterobjects import MachineHolder
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import OverrideProgram
     from ..wrap import WrapMode
@@ -52,9 +51,6 @@ class ModuleState:
         self.man = interpreter.build.get_man()
         self.global_args = interpreter.build.global_args.host
         self.project_args = interpreter.build.projects_args.host.get(interpreter.subproject, {})
-        self.build_machine = T.cast('MachineHolder', interpreter.builtin['build_machine']).held_object
-        self.host_machine = T.cast('MachineHolder', interpreter.builtin['host_machine']).held_object
-        self.target_machine = T.cast('MachineHolder', interpreter.builtin['target_machine']).held_object
         self.current_node = interpreter.current_node
 
     def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], prefix: str = '-I') -> T.List[str]:
