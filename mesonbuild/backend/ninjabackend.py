@@ -1861,7 +1861,7 @@ class NinjaBackend(backends.Backend):
         self.generate_generator_list_rules(target)
 
         # dependencies need to cause a relink, they're not just for ordering
-        deps: T.List[str] = []
+        deps: T.List[str] = [rustc.get_exe_file()]
 
         # Dependencies for rust-project.json
         project_deps: T.List[RustDep] = []

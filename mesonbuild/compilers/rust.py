@@ -8,6 +8,8 @@ import textwrap
 import re
 import typing as T
 
+from functools import lru_cache
+
 from .. import coredata
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
@@ -69,6 +71,19 @@ class RustCompiler(Compiler):
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
+        # Resolve the real rustc executable. When using rustup, "rustc" in PATH
+        # is a wrapper that won't change when updating the toolchain, which
+        # means ninja would not rebuild rust targets after "rustup update". That
+        # can cause build issues because different rustc versions are generally
+        # uncompatible. This also means that once a Meson project has been
+        # configured, changing the default toolchain with e.g.
+        # "rustup default nightly" won't have any effect.
+        sysroot = self.get_sysroot()
+        real_rustc = os.path.join(sysroot, 'bin', 'rustc')
+        if os.path.exists(real_rustc):
+            exelist = [real_rustc] + exelist[1:]
+            self.exelist = exelist
+            self.exelist_no_ccache = exelist
 
     def needs_static_linker(self) -> bool:
         return False
@@ -116,6 +131,7 @@ class RustCompiler(Compiler):
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return rust_buildtype_args[buildtype]
 
+    @lru_cache(maxsize=None)
     def get_sysroot(self) -> str:
         cmd = self.get_exelist(ccache=False) + ['--print', 'sysroot']
         p, stdo, stde = Popen_safe_logged(cmd)

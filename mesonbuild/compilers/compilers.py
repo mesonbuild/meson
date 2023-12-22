@@ -622,6 +622,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_linker_exelist(self) -> T.List[str]:
         return self.linker.get_exelist() if self.linker else self.get_exelist()
 
+    def get_exe_file(self) -> str:
+        return os.path.realpath(self.exelist_no_ccache[0])
+
     @abc.abstractmethod
     def get_output_args(self, outputname: str) -> T.List[str]:
         pass
