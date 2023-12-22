@@ -20,6 +20,10 @@ description: |
   See [`feature` options](Build-options.md#features)
   documentation for more details.
 
+  For backwards compatibility, `get_option('b_pie')` returns a boolean
+  value if the `meson_version` specified by the current project is
+  less than 1.4.0.  Otherwise it returns a feature option object.
+
 posargs:
   option_name:
     type: str

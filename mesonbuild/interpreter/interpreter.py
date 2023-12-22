@@ -1043,40 +1043,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                 # FIXME: Are there other files used by cargo interpreter?
                 [os.path.join(subdir, 'Cargo.toml')])
 
-    def get_option_internal(self, optname: str) -> coredata.UserOption:
+    def get_option_object(self, optname: str) -> coredata.UserOption:
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
-
-        if not key.is_project():
-            for opts in [self.coredata.options, compilers.base_options]:
-                v = opts.get(key)
-                if v is None or v.yielding:
-                    v = opts.get(key.as_root())
-                if v is not None:
-                    assert isinstance(v, coredata.UserOption), 'for mypy'
-                    return v
-
-        try:
-            opt = self.coredata.options[key]
-            if opt.yielding and key.subproject and key.as_root() in self.coredata.options:
-                popt = self.coredata.options[key.as_root()]
-                if type(opt) is type(popt):
-                    opt = popt
-                else:
-                    # Get class name, then option type as a string
-                    opt_type = opt.__class__.__name__[4:][:-6].lower()
-                    popt_type = popt.__class__.__name__[4:][:-6].lower()
-                    # This is not a hard error to avoid dependency hell, the workaround
-                    # when this happens is to simply set the subproject's option directly.
-                    mlog.warning('Option {0!r} of type {1!r} in subproject {2!r} cannot yield '
-                                 'to parent option of type {3!r}, ignoring parent value. '
-                                 'Use -D{2}:{0}=value to set the value for this option manually'
-                                 '.'.format(optname, opt_type, self.subproject, popt_type),
-                                 location=self.current_node)
-            return opt
-        except KeyError:
-            pass
-
-        raise InterpreterException(f'Tried to access unknown option {optname!r}.')
+        opt = self.coredata.get_option_object(key)
+        if opt is None:
+            raise InterpreterException(f'Tried to access unknown option {optname!r}.')
+        return opt
 
     @typed_pos_args('get_option', str)
     @noKwargs
@@ -1091,7 +1063,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        opt = self.get_option_internal(optname)
+        opt = self.get_option_object(optname)
+        if optname == 'b_pie':
+            meson_version = mesonlib.project_meson_versions[self.subproject]
+            if mesonlib.version_compare(meson_version, '<1.4.0'):
+                return opt.is_enabled()
+
         if isinstance(opt, coredata.UserFeatureOption):
             opt.name = optname
             return opt
@@ -1215,7 +1192,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.coredata.initialized_subprojects.add(self.subproject)
         else:
             default_options = {}
-        self.coredata.set_default_options(default_options, self.subproject, self.environment)
+        self.coredata.set_default_options(default_options, self.subproject, self.environment,
+                                          mesonlib.project_meson_versions.get(self.subproject, None))
 
         if not self.is_subproject():
             self.build.project_name = proj_name

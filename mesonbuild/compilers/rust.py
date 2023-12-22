@@ -15,7 +15,7 @@ from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 if T.TYPE_CHECKING:
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
-    from ..environment import Environment  # noqa: F401
+    from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
@@ -207,7 +207,7 @@ class RustCompiler(Compiler):
         # relocation-model=pic is rustc's default already.
         return []
 
-    def get_pie_args(self) -> T.List[str]:
+    def get_pie_args(self, pie: bool, env: Environment) -> T.List[str]:
         # Rustc currently has no way to toggle this, it's controlled by whether
         # pic is on by rustc
         return []

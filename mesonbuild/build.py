@@ -756,7 +756,7 @@ class BuildTarget(Target):
             'unittest': kwargs.get('d_unittest', False),
         }
         self.pic = False
-        self.pie = False
+        self.pie: T.Optional[bool] = None
         # Track build_rpath entries so we can remove them at install time
         self.rpath_dirs_to_remove: T.Set[bytes] = set()
         self.process_sourcelist(sources)
@@ -1201,6 +1201,7 @@ class BuildTarget(Target):
                                            'for each platform pass `[]` (empty array)')
                 self.suffix = name_suffix
                 self.name_suffix_set = True
+
         if isinstance(self, StaticLibrary):
             # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
             # PIC is always on for Windows (all code is position-independent
@@ -1209,13 +1210,14 @@ class BuildTarget(Target):
             if m.is_darwin() or m.is_windows():
                 self.pic = True
             else:
-                self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
+                self.pic = self._extract_pic(kwargs, 'pic', 'b_staticpic')
         if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
             # Executables must be PIE on Android
             if self.environment.machines[self.for_machine].is_android():
                 self.pie = True
             else:
-                self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
+                self.pie = self._extract_opt_or_arg(kwargs, 'pie', 'b_pie')
+
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
@@ -1234,24 +1236,40 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
-    def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
+    def _extract_opt_or_arg(self, kwargs: T.Dict[str, T.Any], arg: str, option: str, allow_none: bool = True) -> T.Optional[bool]:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
             mlog.warning(f"Use the '{arg}' kwarg instead of passing '-f{arg}' manually to {self.name!r}")
             return True
 
-        k = OptionKey(option)
-        if kwargs.get(arg) is not None:
-            val = T.cast('bool', kwargs[arg])
-        elif k in self.environment.coredata.options:
-            val = self.environment.coredata.options[k].value
-        else:
-            val = False
+        val: T.Optional[bool]
+        kwarg = kwargs.get(arg)
+        if kwarg is not None:
+            if isinstance(kwarg, bool):
+                val = kwarg
+            elif not allow_none:
+                raise InvalidArguments(f'Argument {arg} to {self.name!r} must be boolean')
 
-        if not isinstance(val, bool):
-            raise InvalidArguments(f'Argument {arg} to {self.name!r} must be boolean')
+            elif isinstance(kwarg, coredata.UserFeatureOption):
+                val = kwarg.to_bool_or_none()
+            else:
+                raise InvalidArguments(f'Argument {arg} to {self.name!r} must be boolean or feature')
+
+        else:
+            k = OptionKey(option)
+            opt = self.environment.coredata.get_option_object(k)
+            if opt:
+                val = opt.to_bool_or_none()
+            else:
+                val = None if allow_none else False
+
+        assert allow_none or isinstance(val, bool)
         return val
+
+    def _extract_pic(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
+        val = self._extract_opt_or_arg(kwargs, arg, option, False)
+        return T.cast('bool', val)
 
     def get_filename(self) -> str:
         return self.filename
@@ -1932,9 +1950,6 @@ class Executable(BuildTarget):
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
-        key = OptionKey('b_pie')
-        if 'pie' not in kwargs and key in environment.coredata.options:
-            kwargs['pie'] = environment.coredata.options[key].value
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'

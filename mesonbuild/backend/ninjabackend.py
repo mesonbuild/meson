@@ -3167,8 +3167,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
-            if target.pie:
-                commands += linker.get_pie_link_args()
+            if target.pie is not None:
+                commands += linker.get_pie_link_args(target.pie, self.environment)
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
         elif isinstance(target, build.SharedLibrary):

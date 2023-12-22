@@ -315,7 +315,9 @@ base_options: 'KeyedOptionDictType' = {
                                                       'always'),
     OptionKey('b_ndebug'): coredata.UserComboOption('Disable asserts', ['true', 'false', 'if-release'], 'false'),
     OptionKey('b_staticpic'): coredata.UserBooleanOption('Build static libraries as position independent', True),
-    OptionKey('b_pie'): coredata.UserBooleanOption('Build executables as position independent', False),
+    OptionKey('b_pie'): coredata.UserFeatureOption('Build executables as position independent', 'auto',
+                                                   deprecated={'true': 'enabled', 'false': 'auto'},
+                                                   deprecated_version='1.4.0'),
     OptionKey('b_bitcode'): coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)', False),
     OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
                                                    MSCRT_VALS + ['from_buildtype', 'static_from_buildtype'],
@@ -1001,12 +1003,14 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         m = 'Language {} does not support position-independent code'
         raise EnvironmentException(m.format(self.get_display_language()))
 
-    def get_pie_args(self) -> T.List[str]:
-        m = 'Language {} does not support position-independent executable'
-        raise EnvironmentException(m.format(self.get_display_language()))
+    def get_pie_args(self, pie: bool, env: Environment) -> T.List[str]:
+        if pie:
+            m = 'Language {} does not support position-independent executable'
+            raise EnvironmentException(m.format(self.get_display_language()))
+        return []
 
-    def get_pie_link_args(self) -> T.List[str]:
-        return self.linker.get_pie_args()
+    def get_pie_link_args(self, pie: bool, env: Environment) -> T.List[str]:
+        return self.linker.get_pie_args(pie, self, env)
 
     def get_argument_syntax(self) -> str:
         """Returns the argument family type.

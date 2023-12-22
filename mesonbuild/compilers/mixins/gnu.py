@@ -378,6 +378,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             self.base_options.add(OptionKey('b_asneeded'))
         if not self.info.is_hurd():
             self.base_options.add(OptionKey('b_sanitize'))
+        self.no_pie: T.Optional[T.List[str]] = None
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
@@ -387,8 +388,19 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
-    def get_pie_args(self) -> T.List[str]:
-        return ['-fPIE']
+    def get_pie_args(self, pie: bool, env: Environment) -> T.List[str]:
+        if pie:
+            return ['-fPIE']
+
+        if self.no_pie is None:
+            self.no_pie = []
+            # -no-pie was supposed to be a link-time argument, but some distros that
+            # did not know what they are doing changed it to a compile-time argument
+            if self.has_multi_arguments(['-no-pie'], env)[0]:
+                self.no_pie = ['no-pie']
+            if self.has_multi_arguments(['-fno-pie'], env)[0]:
+                self.no_pie = ['-fno-pie']
+        return self.no_pie
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return gnulike_buildtype_args[buildtype]

@@ -20,7 +20,7 @@ from .mesonlib import (
     default_prefix, default_datadir, default_includedir, default_infodir,
     default_localedir, default_mandir, default_sbindir, default_sysconfdir,
     split_args, OptionKey, OptionType, stringlistify,
-    pickle_load
+    pickle_load, version_compare
 )
 from .wrap import WrapMode
 import ast
@@ -93,7 +93,8 @@ class MesonVersionMismatchException(MesonException):
 class UserOption(T.Generic[_T], HoldableObject):
     def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]],
                  yielding: bool,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 deprecated_version: T.Optional[str] = None):
         super().__init__()
         self.choices = choices
         self.description = description
@@ -101,10 +102,14 @@ class UserOption(T.Generic[_T], HoldableObject):
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
         self.deprecated = deprecated
+        self.deprecated_version = deprecated_version
         self.readonly = False
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
+
+    def to_bool_or_none(self) -> T.Optional[bool]:
+        raise RuntimeError('Expected boolean or feature option.')
 
     def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
         assert isinstance(self.value, (str, int, bool, list))
@@ -123,8 +128,10 @@ class UserOption(T.Generic[_T], HoldableObject):
 
 class UserStringOption(UserOption[str]):
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, None, yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 deprecated_version: T.Optional[str] = None):
+        super().__init__(description, None, yielding,
+                         deprecated, deprecated_version)
         self.set_value(value)
 
     def validate_value(self, value: T.Any) -> str:
@@ -134,11 +141,16 @@ class UserStringOption(UserOption[str]):
 
 class UserBooleanOption(UserOption[bool]):
     def __init__(self, description: str, value: bool, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, [True, False], yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 deprecated_version: T.Optional[str] = None):
+        super().__init__(description, [True, False], yielding,
+                         deprecated, deprecated_version)
         self.set_value(value)
 
     def __bool__(self) -> bool:
+        return self.value
+
+    def to_bool_or_none(self) -> bool:
         return self.value
 
     def validate_value(self, value: T.Any) -> bool:
@@ -154,7 +166,8 @@ class UserBooleanOption(UserOption[bool]):
 
 class UserIntegerOption(UserOption[int]):
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 deprecated_version: T.Optional[str] = None):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
@@ -164,7 +177,8 @@ class UserIntegerOption(UserOption[int]):
         if max_value is not None:
             c.append('<=' + str(max_value))
         choices = ', '.join(c)
-        super().__init__(description, choices, yielding, deprecated)
+        super().__init__(description, choices, yielding,
+                         deprecated, deprecated_version)
         self.set_value(default_value)
 
     def validate_value(self, value: T.Any) -> int:
@@ -193,8 +207,10 @@ class OctalInt(int):
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, (0, 0o777, value), yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 deprecated_version: T.Optional[str] = None):
+        super().__init__(description, (0, 0o777, value), yielding,
+                         deprecated, deprecated_version)
         self.choices = ['preserve', '0000-0777']
 
     def printable_value(self) -> str:
@@ -216,8 +232,10 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
 class UserComboOption(UserOption[str]):
     def __init__(self, description: str, choices: T.List[str], value: T.Any,
                  yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, choices, yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 deprecated_version: T.Optional[str] = None):
+        super().__init__(description, choices, yielding,
+                         deprecated, deprecated_version)
         if not isinstance(self.choices, list):
             raise MesonException('Combo choices must be an array.')
         for i in self.choices:
@@ -244,8 +262,10 @@ class UserArrayOption(UserOption[T.List[str]]):
                  split_args: bool = False,
                  allow_dups: bool = False, yielding: bool = DEFAULT_YIELDING,
                  choices: T.Optional[T.List[str]] = None,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, choices if choices is not None else [], yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 deprecated_version: T.Optional[str] = None):
+        super().__init__(description, choices if choices is not None else [], yielding,
+                         deprecated, deprecated_version)
         self.split_args = split_args
         self.allow_dups = allow_dups
         self.set_value(value)
@@ -301,9 +321,14 @@ class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, self.static_choices, value, yielding, deprecated)
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 deprecated_version: T.Optional[str] = None):
+        super().__init__(description, self.static_choices, value, yielding,
+                         deprecated, deprecated_version)
         self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
+
+    def to_bool_or_none(self) -> T.Optional[bool]:
+        return None if self.is_auto() else self.is_enabled()
 
     def is_enabled(self) -> bool:
         return self.value == 'enabled'
@@ -380,7 +405,7 @@ class OptionsView(abc.Mapping):
     overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None
 
     def __getitem__(self, key: OptionKey) -> UserOption:
-        # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
+        # FIXME: This is fundamentally the same algorithm as CoreData.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
         if not key.is_project():
@@ -751,7 +776,62 @@ class CoreData:
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
-    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
+    def get_option_internal(self, key: OptionKey) -> UserOption:
+        from . import compilers
+
+        if not key.is_project():
+            for opts in [self.options, compilers.base_options]:
+                v = opts.get(key)
+                if v is None or v.yielding:
+                    v = opts.get(key.as_root())
+                if v is not None:
+                    assert isinstance(v, UserOption), 'for mypy'
+                    return v
+
+        try:
+            opt = self.options[key]
+            if opt.yielding and key.subproject and key.as_root() in self.options:
+                popt = self.options[key.as_root()]
+                if type(opt) is type(popt):
+                    opt = popt
+                else:
+                    # Get class name, then option type as a string
+                    opt_type = opt.__class__.__name__[4:][:-6].lower()
+                    popt_type = popt.__class__.__name__[4:][:-6].lower()
+                    # This is not a hard error to avoid dependency hell, the workaround
+                    # when this happens is to simply set the subproject's option directly.
+                    mlog.warning('Option {0!r} of type {1!r} in subproject {2!r} cannot yield '
+                                 'to parent option of type {3!r}, ignoring parent value. '
+                                 'Use -D{2}:{0}=value to set the value for this option manually'
+                                 '.'.format(key.name, opt_type, key.subproject, popt_type))
+            return opt
+        except KeyError:
+            pass
+
+        return None
+
+    def get_option_object(self, key: OptionKey) -> UserOption:
+        opt: T.Optional[UserOption] = self.get_option_internal(key)
+        if isinstance(opt, UserFeatureOption) and opt.is_auto():
+            auto_features = OptionKey('auto_features')
+            if auto_features in self.options:
+                auto = copy.copy(self.options[auto_features])
+                auto.name = opt.name
+                return auto
+
+        return opt
+
+    def set_option(self, key: OptionKey, value, first_invocation: bool = False,
+                   meson_version: T.Optional[str] = None) -> bool:
+        try:
+            opt = self.options[key]
+        except KeyError:
+            raise MesonException(f'Tried to set unknown builtin option {str(key)}')
+
+        return self._set_option_value(key, opt, value, first_invocation, meson_version)
+
+    def _set_option_value(self, key: OptionKey, opt: UserOption, value, first_invocation: bool = False,
+                          meson_version: T.Optional[str] = None) -> bool:
         dirty = False
         if key.is_builtin():
             if key.name == 'prefix':
@@ -760,22 +840,19 @@ class CoreData:
                 prefix = self.options[OptionKey('prefix')].value
                 value = self.sanitize_dir_option_value(prefix, key, value)
 
-        try:
-            opt = self.options[key]
-        except KeyError:
-            raise MesonException(f'Tried to set unknown builtin option {str(key)}')
-
+        deprecation_msg: T.Optional[str] = None
         if opt.deprecated is True:
-            mlog.deprecation(f'Option {key.name!r} is deprecated')
+            deprecation_msg = f'Option {key.name!r} is deprecated'
         elif isinstance(opt.deprecated, list):
             for v in opt.listify(value):
                 if v in opt.deprecated:
-                    mlog.deprecation(f'Option {key.name!r} value {v!r} is deprecated')
+                    deprecation_msg = f'Option {key.name!r} value {v!r} is deprecated'
         elif isinstance(opt.deprecated, dict):
             def replace(v):
+                nonlocal deprecation_msg
                 newvalue = opt.deprecated.get(v)
                 if newvalue is not None:
-                    mlog.deprecation(f'Option {key.name!r} value {v!r} is replaced by {newvalue!r}')
+                    deprecation_msg = f'Option {key.name!r} value {v!r} is replaced by {newvalue!r}'
                     return newvalue
                 return v
             newvalue = [replace(v) for v in opt.listify(value)]
@@ -791,8 +868,14 @@ class CoreData:
             # by a feature option with a different name.
             newname = opt.deprecated
             newkey = OptionKey.from_string(newname).evolve(subproject=key.subproject)
-            mlog.deprecation(f'Option {key.name!r} is replaced by {newname!r}')
+            deprecation_msg = f'Option {key.name!r} is replaced by {newname!r}'
             dirty |= self.set_option(newkey, value, first_invocation)
+
+        if deprecation_msg is not None and \
+                (opt.deprecated_version is None or
+                 meson_version is None or
+                 version_compare(meson_version, f'>={opt.deprecated_version}')):
+            mlog.deprecation(deprecation_msg)
 
         changed = opt.set_value(value)
         if changed and opt.readonly and not first_invocation:
@@ -924,7 +1007,8 @@ class CoreData:
 
         return dirty
 
-    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
+    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False,
+                    meson_version: T.Optional[str] = None) -> bool:
         dirty = False
         if not self.is_cross_build():
             options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
@@ -942,7 +1026,7 @@ class CoreData:
             if k == pfk:
                 continue
             elif k in self.options:
-                dirty |= self.set_option(k, v, first_invocation)
+                dirty |= self.set_option(k, v, first_invocation, meson_version)
             elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
                 unknown_options.append(k)
         if unknown_options:
@@ -955,7 +1039,8 @@ class CoreData:
 
         return dirty
 
-    def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
+    def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment',
+                            project_meson_version: T.Optional[str] = None) -> None:
         # Main project can set default options on subprojects, but subprojects
         # can only set default options on themselves.
         # Preserve order: if env.options has 'buildtype' it must come after
@@ -991,7 +1076,8 @@ class CoreData:
                 continue
             options[k] = v
 
-        self.set_options(options, subproject=subproject, first_invocation=env.first_invocation)
+        self.set_options(options, subproject=subproject, first_invocation=env.first_invocation,
+                         meson_version=project_meson_version)
 
     def add_compiler_options(self, options: 'MutableKeyedOptionDictType', lang: str, for_machine: MachineChoice,
                              env: 'Environment') -> None:
@@ -1021,7 +1107,8 @@ class CoreData:
                 continue
             oobj = copy.deepcopy(compilers.base_options[key])
             if key in env.options:
-                oobj.set_value(env.options[key])
+                self._set_option_value(key, oobj, env.options[key],
+                                       meson_version=None) # use mesonlib.project_meson_versions?
                 enabled_opts.append(key)
             self.options[key] = oobj
         self.emit_base_options_warnings(enabled_opts)
