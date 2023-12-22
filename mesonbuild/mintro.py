@@ -88,6 +88,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         flag = '--' + key.replace('_', '-')
         parser.add_argument(flag, action='store_true', dest=key, default=False, help=val.desc)
 
+    parser.add_argument('--buildoption', action='append', dest='buildoption',
+                        help='Query an individual build option.')
     parser.add_argument('--backend', choices=sorted(cdata.backendlist), dest='backend', default='ninja',
                         help='The backend to use for the --buildoptions introspection.')
     parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
@@ -571,6 +573,20 @@ def run(options: argparse.Namespace) -> int:
                   .format(intro_vers, ' and '.join(vers_to_check)))
             return 1
 
+    # If the --builtoption argument is provided, print the relevant build option
+    if options.buildoption is not None:
+        buildoptions = load_info_file(infodir, 'buildoptions')
+        for name in options.buildoption:
+            found = False
+            for buildoption in buildoptions:
+                if buildoption['name'] == name:
+                    print(buildoption['value'])
+                    found = True
+                    break
+            if not found:
+                print('Build option {} does not exist.'.format(name))
+                return 1
+
     # Extract introspection information from JSON
     for i, v in intro_types.items():
         if not v.func:
@@ -582,6 +598,10 @@ def run(options: argparse.Namespace) -> int:
         except FileNotFoundError:
             print('Introspection file {} does not exist.'.format(get_info_file(infodir, i)))
             return 1
+
+    # Avoid printing an error when --buildoption is used without info files
+    if len(results) == 0 and options.buildoption is not None:
+        return 0
 
     return print_results(options, results, indent)
 
