@@ -744,6 +744,15 @@ class CudaCompiler(Compiler):
     def get_output_args(self, target: str) -> T.List[str]:
         return ['-o', target]
 
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        if version_compare(self.version, '>= 10.2'):
+            # According to nvcc Documentation, `-MD` option is added after 10.2
+            # Reference: [CUDA 10.1](https://docs.nvidia.com/cuda/archive/10.1/cuda-compiler-driver-nvcc/index.html#options-for-specifying-compilation-phase-generate-nonsystem-dependencies)
+            # Reference: [CUDA 10.2](https://docs.nvidia.com/cuda/archive/10.2/cuda-compiler-driver-nvcc/index.html#options-for-specifying-compilation-phase-generate-nonsystem-dependencies)
+            return ['-MD', '-MT', outtarget, '-MF', outfile]
+        else:
+            return []
+
     def get_std_exe_link_args(self) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), _Phase.LINKER)
 
