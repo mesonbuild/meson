@@ -5,6 +5,7 @@ from __future__ import annotations
 
 """Abstractions for the Elbrus family of compilers."""
 
+import functools
 import os
 import typing as T
 import subprocess
@@ -59,6 +60,7 @@ class ElbrusCompiler(GnuLikeCompiler):
                 return [os.path.realpath(p) for p in libstr.split(':')]
         return []
 
+    @functools.lru_cache(maxsize=None)
     def get_default_include_dirs(self) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
