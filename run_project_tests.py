@@ -1631,6 +1631,7 @@ if __name__ == '__main__':
 
     clear_transitive_files()
     setup_symlinks()
+    mesonlib.set_meson_command(get_meson_script())
 
     print('Meson build system', meson_version, 'Project Tests')
     print('Using python', sys.version.split('\n')[0], f'({sys.executable!r})')
