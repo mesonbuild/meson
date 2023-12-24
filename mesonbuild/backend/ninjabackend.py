@@ -2448,7 +2448,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # See also: https://github.com/ninja-build/ninja/pull/2275
             options['extra'] = 'restat = 1'
         rule = self.compiler_to_rule_name(compiler)
-        depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$out', '$DEPFILE'), Quoting.none)
+        if langname == 'cuda':
+            # for cuda, we manually escape target name ($out) as $CUDA_ESCAPED_TARGET because nvcc doesn't support `-MQ` flag
+            depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$CUDA_ESCAPED_TARGET', '$DEPFILE'), Quoting.none)
+        else:
+            depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$out', '$DEPFILE'), Quoting.none)
         command = compiler.get_exelist()
         args = ['$ARGS'] + depargs + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + compiler.get_compile_only_args() + ['$in']
         description = f'Compiling {compiler.get_display_language()} object $out'
@@ -3003,6 +3007,28 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             element.add_orderdep(i)
         if dep_file:
             element.add_item('DEPFILE', dep_file)
+        if compiler.get_language() == 'cuda':
+            # for cuda, we manually escape target name ($out) as $CUDA_ESCAPED_TARGET because nvcc doesn't support `-MQ` flag
+            def quote_make_target(targetName: str) -> str:
+                # this escape implementation is taken from llvm
+                result = ''
+                for (i, c) in enumerate(targetName):
+                    if c in {' ', '\t'}:
+                        # Escape the preceding backslashes
+                        for j in range(i - 1, -1, -1):
+                            if targetName[j] == '\\':
+                                result += '\\'
+                            else:
+                                break
+                        # Escape the space/tab
+                        result += '\\'
+                    elif c == '$':
+                        result += '$'
+                    elif c == '#':
+                        result += '\\'
+                    result += c
+                return result
+            element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
         element.add_item('ARGS', commands)
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element, src)
