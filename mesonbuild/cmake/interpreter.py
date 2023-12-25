@@ -293,7 +293,7 @@ class ConverterTarget:
             if i not in self.compile_opts:
                 continue
 
-            temp = []
+            temp: T.List[str] = []
             for j in self.compile_opts[i]:
                 m = ConverterTarget.std_regex.match(j)
                 ctgt = output_target_map.generated(Path(j))
