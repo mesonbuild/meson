@@ -165,7 +165,7 @@ class CMakeTraceParser:
     def parse(self, trace: T.Optional[str] = None) -> None:
         # First load the trace (if required)
         if not self.requires_stderr():
-            if not self.trace_file_path.exists and not self.trace_file_path.is_file():
+            if not self.trace_file_path.is_file():
                 raise CMakeException(f'CMake: Trace file "{self.trace_file_path!s}" not found')
             trace = self.trace_file_path.read_text(errors='ignore', encoding='utf-8')
         if not trace:

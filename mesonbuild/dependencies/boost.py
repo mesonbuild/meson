@@ -261,7 +261,7 @@ class BoostLibraryFile():
                 update_vers(i[2:])
             elif i.isdigit():
                 update_vers(i)
-            elif len(i) >= 3 and i[0].isdigit and i[2].isdigit() and i[1] == '.':
+            elif len(i) >= 3 and i[0].isdigit() and i[2].isdigit() and i[1] == '.':
                 update_vers(i)
             else:
                 other_tags += [i]
