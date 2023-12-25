@@ -8,7 +8,7 @@ from pathlib import Path
 import typing as T
 
 from .. import mesonlib, mlog
-from .base import process_method_kw, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
+from .base import process_method_kw, DependencyException, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
@@ -245,7 +245,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.link_args = largs
             self.is_found = True
 
-    def get_windows_python_arch(self) -> T.Optional[str]:
+    def get_windows_python_arch(self) -> str:
         if self.platform.startswith('mingw'):
             if 'x86_64' in self.platform:
                 return 'x86_64'
@@ -254,16 +254,14 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             elif 'aarch64' in self.platform:
                 return 'aarch64'
             else:
-                mlog.log(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
-                return None
+                raise DependencyException(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
         elif self.platform == 'win32':
             return 'x86'
         elif self.platform in {'win64', 'win-amd64'}:
             return 'x86_64'
         elif self.platform in {'win-arm64'}:
             return 'aarch64'
-        mlog.log(f'Unknown Windows Python platform {self.platform!r}')
-        return None
+        raise DependencyException('Unknown Windows Python platform {self.platform!r}')
 
     def get_windows_link_args(self, limited_api: bool) -> T.Optional[T.List[str]]:
         if self.platform.startswith('win'):
@@ -330,8 +328,10 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
         '''
-        pyarch = self.get_windows_python_arch()
-        if pyarch is None:
+        try:
+            pyarch = self.get_windows_python_arch()
+        except DependencyException as e:
+            mlog.log(str(e))
             self.is_found = False
             return
         arch = detect_cpu_family(env.coredata.compilers.host)
