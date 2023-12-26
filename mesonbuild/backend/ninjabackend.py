@@ -2172,6 +2172,7 @@ class NinjaBackend(backends.Backend):
                 srctreedir = os.path.normpath(os.path.join(self.environment.get_build_dir(), self.build_to_src, expdir))
                 sargs = swiftc.get_include_args(srctreedir, False)
                 compile_args += sargs
+        compile_args += target.get_extra_args('swift')
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
         link_args += self.build.get_project_link_args(swiftc, target.subproject, target.for_machine)
         link_args += self.build.get_global_link_args(swiftc, target.for_machine)
