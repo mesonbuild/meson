@@ -128,7 +128,7 @@ This method takes the following keyword arguments:
 
 ## Dependencies
 
-See [Qt dependencies](Dependencies.md#qt4-qt5)
+See [Qt dependencies](Dependencies.md#qt)
 
 The 'modules' argument is used to include Qt modules in the project.
 See the Qt documentation for the [list of
