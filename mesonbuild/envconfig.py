@@ -88,6 +88,7 @@ ENV_VAR_COMPILER_MAP: T.Mapping[str, str] = {
     'c': 'CC',
     'cpp': 'CXX',
     'cs': 'CSC',
+    'cython': 'CYTHON',
     'd': 'DC',
     'fortran': 'FC',
     'objc': 'OBJC',

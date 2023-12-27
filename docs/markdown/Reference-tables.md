@@ -374,6 +374,7 @@ machine](#Environment-variables-per-machine) section for details.
 | Rust          | RUSTC    | RUSTC_LD  | Before 0.54 RUST_LD*                        |
 | Vala          | VALAC    |           | Use CC_LD. Vala transpiles to C             |
 | C#            | CSC      | CSC       | The linker is the compiler                  |
+| Cython        | CYTHON   |           |                                             |
 | nasm          | NASM     |           | Uses the C linker                           |
 
 *The old environment variables are still supported, but are deprecated
