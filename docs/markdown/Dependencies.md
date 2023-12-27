@@ -679,7 +679,7 @@ but dependency tries `pkg-config` first.
 
 `method` may be `auto`, `extraframework`, `pkg-config` or `sysconfig`
 
-## Qt4 & Qt5
+## Qt
 
 Meson has native Qt support. Its usage is best demonstrated with an
 example.
