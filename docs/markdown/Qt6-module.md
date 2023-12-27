@@ -19,7 +19,7 @@ It takes no positional arguments, and the following keyword arguments:
     A list of sources to be transpiled. Required, must have at least one source<br/>
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-rcc`
-  - `method` string: The method to use to detect qt, see [[dependency]]
+  - `method` string: The method to use to detect Qt, see [[dependency]]
 
 ## compile_ui
 
@@ -32,7 +32,7 @@ It takes no positional arguments, and the following keyword arguments:
     A list of sources to be transpiled. Required, must have at least one source<br/>
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-uic`
-  - `method` string: The method to use to detect qt, see [[dependency]]
+  - `method` string: The method to use to detect Qt, see [[dependency]]
 
 ## compile_moc
 
@@ -49,7 +49,7 @@ It takes no positional arguments, and the following keyword arguments:
      A list of headers to be transpiled into .cpp files<br/>
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-moc`
-  - `method` string: The method to use to detect qt, see [[dependency]]
+  - `method` string: The method to use to detect Qt, see [[dependency]]
   - `dependencies`: dependency objects whose include directories are used by moc.
   - `include_directories` (string | IncludeDirectory)[]: A list of `include_directory()`
     objects used when transpiling the .moc files
@@ -134,7 +134,7 @@ This method takes the following keyword arguments:
 - `required` bool | FeatureOption: by default, `required` is set to `false`. If `required` is set to
   `true` or an enabled [`feature`](Build-options.md#features) and some tools are
   missing Meson will abort.
-- `method` string: The method to use to detect qt, see [[dependency]]
+- `method` string: The method to use to detect Qt, see [[dependency]]
 
 ## Dependencies
 
