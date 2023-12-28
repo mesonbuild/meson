@@ -1118,7 +1118,7 @@ class Vs2010Backend(backends.Backend):
     # and include paths, e.g. -
     #    '..\\some\\dir\\include;../../some/other/dir;'
     # and finally any remaining compiler options, e.g. -
-    #    '/MDd;/W2;/std:c++17;/Od/Zi'
+    #    '/MDd /W2 /std:c++17 /Od/Zi'
     @staticmethod
     def _extract_nmake_fields(captured_build_args: list[str]) -> T.Tuple[str, str, str]:
         include_dir_options = [
@@ -1131,7 +1131,7 @@ class Vs2010Backend(backends.Backend):
         ]
 
         defs = ''
-        paths = ''
+        paths = '$(VC_IncludePath);$(WindowsSDK_IncludePath);'
         additional_opts = ''
         for arg in captured_build_args:
             if arg.startswith(('-D', '/D')):
@@ -1141,7 +1141,7 @@ class Vs2010Backend(backends.Backend):
                 if opt_match:
                     paths += arg[len(opt_match):] + ';'
                 elif arg.startswith(('-', '/')):
-                    additional_opts += arg + ';'
+                    additional_opts += arg + ' '
         return (defs, paths, additional_opts)
 
     @staticmethod
