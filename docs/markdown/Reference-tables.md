@@ -377,7 +377,7 @@ machine](#Environment-variables-per-machine) section for details.
 | nasm          | NASM     |           | Uses the C linker                           |
 
 *The old environment variables are still supported, but are deprecated
-and will be removed in a future version of Meson.*
+and will be removed in a future version of Meson.
 
 *changed in 1.3.0* Paths with spaces were split unconditionally to extract
 components such as the [path to Ccache](Feature-autodetection.md#ccache),
