@@ -2,8 +2,14 @@
 
 *New in Meson 0.57.0*
 
-The Qt6 module provides tools to automatically deal with the various
+The Qt6 module provides methods to automatically deal with the various
 tools and steps required for Qt.
+
+<div class="alert alert-warning">
+<strong>Warning:</strong> before version 0.63.0 Meson would fail to find
+Qt 6.1 or later due to the Qt tools having moved to the libexec subdirectory,
+and tool names being suffixed with only the Qt major version number e.g. qmake6.
+</div>
 
 ## compile_resources
 
