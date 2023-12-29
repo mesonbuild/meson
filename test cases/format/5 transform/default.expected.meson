@@ -1,0 +1,69 @@
+project('a')  # should be on one line
+
+
+# List should be removed, and should be on one line
+options_ini = 'options.ini'
+f = files(options_ini, 'expected.meson', 'source.meson')
+
+# This array should fit on one line
+a1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+
+# This array is too long and should be splitted
+a2 = [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+]
+
+# space array
+a3 = [1, 2, 3]
+
+# no single comma function
+fct = files(
+    'meson.build',  # force multiline
+)
+
+# wide colon
+d = {'a': 1, 'b': 2, 'c': 3}
+
+# string conversion
+'This is not a multiline'
+'This is not a fstring'
+
+# group arg value
+arguments = [
+    'a',
+    '--opt_a',
+    'opt_a_value',
+    'b',
+    'c',
+    '--opt_d',
+    '--opt_e',
+    'opt_e_value',
+    '--opt_f',
+    '--opt_g',
+    'opt_g_value',
+    'other_value',
+    'again',
+    '--x',
+]
+
+# no final endline
