@@ -392,6 +392,7 @@ install prefix. For example: if the install prefix is `/usr` and the
 | platlibdir        |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
 | purelibdir        |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
 | allow_limited_api | true          | true, false                 | Disables project-wide use of the Python Limited API (Since 1.3.0) |
+| target_config     |               | File path                   | Config file for the target Python installation (Since XXX) |
 
 *Since 0.60.0* The `python.platlibdir` and `python.purelibdir` options are used
 by the python module methods `python.install_sources()` and
@@ -425,3 +426,6 @@ all.
 *Since 1.3.0* The `python.allow_limited_api` option affects whether the
 `limited_api` keyword argument of the `extension_module` method is respected.
 If set to `false`, the effect of the `limited_api` argument is disabled.
+
+*Since XXX* The `python.target_config` option allows users to provide the static
+description file for the target Python installation.
