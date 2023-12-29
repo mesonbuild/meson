@@ -81,7 +81,9 @@ This method takes the following keyword arguments:
 
 It returns an array of targets and sources to pass to a compilation target.
 
-## compile_translations (since v0.44.0)
+## compile_translations
+
+*since 0.44.0*
 
 This method generates the necessary targets to build translation files with
 lrelease, it takes no positional arguments, and the following keyword arguments:
