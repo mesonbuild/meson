@@ -13,7 +13,7 @@ from .. import mlog
 from ..dependencies import Dependency
 from ..dependencies.dub import DubDependency
 from ..interpreterbase import typed_pos_args
-from ..mesonlib import Popen_safe, MesonException
+from ..mesonlib import Popen_safe, MesonException, listify
 
 class DlangModule(ExtensionModule):
     class_dubbin = None
@@ -69,27 +69,18 @@ class DlangModule(ExtensionModule):
 
         for key, value in kwargs.items():
             if key == 'dependencies':
+                values = listify(value, flatten=False)
                 config[key] = {}
-                if isinstance(value, list):
-                    for dep in value:
-                        if isinstance(dep, Dependency):
-                            name = dep.get_name()
-                            ret, res = self._call_dubbin(['describe', name])
-                            if ret == 0:
-                                version = dep.get_version()
-                                if version is None:
-                                    config[key][name] = ''
-                                else:
-                                    config[key][name] = version
-                elif isinstance(value, Dependency):
-                    name = value.get_name()
-                    ret, res = self._call_dubbin(['describe', name])
-                    if ret == 0:
-                        version = value.get_version()
-                        if version is None:
-                            config[key][name] = ''
-                        else:
-                            config[key][name] = version
+                for dep in values:
+                    if isinstance(dep, Dependency):
+                        name = dep.get_name()
+                        ret, res = self._call_dubbin(['describe', name])
+                        if ret == 0:
+                            version = dep.get_version()
+                            if version is None:
+                                config[key][name] = ''
+                            else:
+                                config[key][name] = version
             else:
                 config[key] = value
 
