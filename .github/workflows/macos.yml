@@ -78,7 +78,7 @@ jobs:
     name: ${{ matrix.NAME }}
     env:
       MESON_CI_JOBNAME: ${{ matrix.NAME }}
-        HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
     - uses: actions/checkout@v3
