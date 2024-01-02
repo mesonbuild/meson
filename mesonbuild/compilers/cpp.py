@@ -293,6 +293,20 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
             return libs
         return []
 
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        args: T.List[str] = []
+        if disable:
+            return ['-DNDEBUG']
+
+        # Clang supports both libstdc++ and libc++
+        args.append('-D_GLIBCXX_ASSERTIONS=1')
+        if version_compare(self.version, '>=18'):
+            args.append('-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE')
+        elif version_compare(self.version, '>=15'):
+            args.append('-D_LIBCPP_ENABLE_ASSERTIONS=1')
+
+        return args
+
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 
@@ -461,6 +475,14 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
                 assert isinstance(l, str)
             return libs
         return []
+
+    def get_assert_args(self, disable: bool) -> T.List[str]:
+        if disable:
+            return ['-DNDEBUG']
+
+        # XXX: This needs updating if/when GCC starts to support libc++.
+        # It currently only does so via an experimental configure arg.
+        return ['-D_GLIBCXX_ASSERTIONS=1']
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
