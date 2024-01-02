@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 import subprocess
 import re
@@ -13,7 +13,7 @@ import platform
 import pickle
 import zipfile, tarfile
 import sys
-from unittest import mock, SkipTest, skipIf, skipUnless
+from unittest import mock, SkipTest, skipIf, skipUnless, expectedFailure
 from contextlib import contextmanager
 from glob import glob
 from pathlib import (PurePath, Path)
@@ -33,7 +33,7 @@ from mesonbuild.mesonlib import (
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
     MesonException, EnvironmentException,
-    windows_proof_rm
+    windows_proof_rm, first
 )
 from mesonbuild.options import OptionKey
 from mesonbuild.programs import ExternalProgram
@@ -5208,3 +5208,19 @@ class AllPlatformTests(BasePlatformTests):
         self.assertRegex(output, r'Ok:\s*0')
         self.assertRegex(output, r'Fail:\s*0')
         self.assertRegex(output, r'Ignored:\s*1')
+
+    @expectedFailure
+    @skip_if_not_language('fortran')
+    def test_fortran_cross_target_module_dep(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Test is only relavent on the ninja backend')
+        testdir = os.path.join(self.fortran_test_dir, '8 module names')
+        self.init(testdir, extra_args=['-Dunittest=true'])
+
+        # Find the correct output to compile, regardless of what compiler is being used
+        comp = self.get_compdb()
+        entry = first(comp, lambda e: e['file'].endswith('lib.f90'))
+        assert entry is not None, 'for mypy'
+        output = entry['output']
+
+        self.build(output, extra_args=['-j1'])
