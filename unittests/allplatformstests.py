@@ -12,7 +12,7 @@ import platform
 import pickle
 import zipfile, tarfile
 import sys
-from unittest import mock, SkipTest, skipIf, skipUnless
+from unittest import mock, SkipTest, skipIf, skipUnless, expectedFailure
 from contextlib import contextmanager
 from glob import glob
 from pathlib import (PurePath, Path)
@@ -5012,3 +5012,12 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    @expectedFailure
+    @skip_if_not_language('fortran')
+    def test_fortran_cross_target_module_dep(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Test is only relavent on the ninja backend')
+        testdir = os.path.join(self.fortran_test_dir, '8 module names')
+        self.init(testdir, extra_args=['-Dunittest=true'])
+        self.build('liblibrary.a.p/lib.f90.o', extra_args=['-j1'])
