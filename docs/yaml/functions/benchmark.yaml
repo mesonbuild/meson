@@ -8,9 +8,9 @@ description: |
   * benchmark() has no `is_parallel` keyword because benchmarks are not run in parallel
   * benchmark() does not automatically add the `MALLOC_PERTURB_` environment variable
 
-  Defined tests can be run in a backend-agnostic way by calling
-  `meson test` inside the build dir, or by using backend-specific
-  commands, such as `ninja test` or `msbuild RUN_TESTS.vcxproj`.
+  Defined benchmarks can be run in a backend-agnostic way by calling
+  `meson test --benchmark` inside the build dir, or by using backend-specific
+  commands, such as `ninja benchmark` or `msbuild RUN_TESTS.vcxproj`.
 
 notes:
   - Prior to 0.52.0 benchmark would warn that `depends` and
