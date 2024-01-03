@@ -411,9 +411,9 @@ def get_base_link_args(target: 'BuildTarget',
         assert isinstance(crt_val, str)
         buildtype = env.coredata.get_option_for_target(target, 'buildtype')
         assert isinstance(buildtype, str)
-            args += linker.get_crt_link_args(crt_val, buildtype)
-            assert isinstance(crtargs, list)
-            args += crtargs
+        crtargs = linker.get_crt_link_args(crt_val, buildtype)
+        assert isinstance(crtargs, list)
+        args += crtargs
     except (EnvironmentException, KeyError):
         pass
     return args
