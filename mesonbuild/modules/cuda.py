@@ -123,14 +123,6 @@ class CudaModule(NewExtensionModule):
             return [c.detected_cc]
         return []
 
-    @staticmethod
-    def _version_from_compiler(c):
-        if isinstance(c, CudaCompiler):
-            return c.version
-        if isinstance(c, str):
-            return c
-        return 'unknown'
-
     def _validate_nvcc_arch_args(self, args, kwargs: ArchFlagsKwargs):
         argerror = InvalidArguments('The first argument must be an NVCC compiler object, or its version string!')
 
@@ -138,8 +130,11 @@ class CudaModule(NewExtensionModule):
             raise argerror
         else:
             compiler = args[0]
-            cuda_version = self._version_from_compiler(compiler)
-            if cuda_version == 'unknown':
+            if isinstance(compiler, CudaCompiler):
+                cuda_version = compiler.version
+            elif isinstance(compiler, str):
+                cuda_version = compiler
+            else:
                 raise argerror
 
         arch_list = [] if len(args) <= 1 else flatten(args[1:])
