@@ -5018,3 +5018,6 @@ class AllPlatformTests(BasePlatformTests):
         r = r"Library z found: YES \(cached\)"
         out = self.init(testdir)
         self.assertEqual(1, len([s for s in out.splitlines() if re.search(r, s)]))
+        # 2 "cached" lines in second run
+        out = self.init(testdir, extra_args=['--reconfigure'])
+        self.assertEqual(2, len([s for s in out.splitlines() if re.search(r, s)]))

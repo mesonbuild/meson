@@ -391,6 +391,13 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
 class CrossNoRunException(MesonException):
     pass
 
+
+class FindLibraryResult(HoldableObject):
+    def __init__(self, linkargs: T.Optional[T.List[str]], cached: bool = False):
+        self.linkargs = linkargs.copy() if linkargs else None
+        self.cached = cached
+
+
 class RunResult(HoldableObject):
     def __init__(self, compiled: bool, returncode: int = 999,
                  stdout: str = 'UNDEFINED', stderr: str = 'UNDEFINED',

@@ -35,10 +35,10 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     from . import dependencies
-    from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
+    from .compilers.compilers import Compiler, CompileResult, FindLibraryResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
     from .environment import Environment
-    from .mesonlib import FileOrString
+    from .mesonlib import FileOrString, LibType
     from .cmake.traceparser import CMakeCacheEntry
 
     class SharedCMDOptions(Protocol):
@@ -60,6 +60,8 @@ if T.TYPE_CHECKING:
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
     KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, 'OptionsView']
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
+    # exelist, libname, extra_dirs, code, libtype
+    FindLibraryCacheKey = T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], str, LibType]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
 
@@ -594,6 +596,7 @@ class CoreData:
             DependencyCache(self.options, MachineChoice.HOST))
 
         self.compiler_check_cache: T.Dict['CompilerCheckCacheKey', 'CompileResult'] = OrderedDict()
+        self.find_library_cache: T.Dict['FindLibraryCacheKey', 'FindLibraryResult'] = OrderedDict()
         self.run_check_cache: T.Dict['RunCheckCacheKey', 'RunResult'] = OrderedDict()
 
         # CMake cache
@@ -826,6 +829,7 @@ class CoreData:
         self.deps.host.clear()
         self.deps.build.clear()
         self.compiler_check_cache.clear()
+        self.find_library_cache.clear()
         self.run_check_cache.clear()
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:

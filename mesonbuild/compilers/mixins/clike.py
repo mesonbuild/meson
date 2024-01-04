@@ -28,7 +28,7 @@ from ... import mlog
 from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType, OptionKey
 from .. import compilers
-from ..compilers import CompileCheckMode
+from ..compilers import CompileCheckMode, FindLibraryResult
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
@@ -128,7 +128,6 @@ class CLikeCompiler(Compiler):
         warn_args: T.Dict[str, T.List[str]] = {}
 
     # TODO: Replace this manual cache with functools.lru_cache
-    find_library_cache: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], str, LibType], T.Optional[T.List[str]]] = {}
     find_framework_cache: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], bool], T.Optional[T.List[str]]] = {}
     internal_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS
 
@@ -1171,28 +1170,27 @@ class CLikeCompiler(Compiler):
         return None
 
     def _find_library_impl(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                           code: str, libtype: LibType, lib_prefix_warning: bool) -> T.Tuple[T.Optional[T.List[str]], bool]:
+                           code: str, libtype: LibType, lib_prefix_warning: bool) -> FindLibraryResult:
         # These libraries are either built-in or invalid
         if libname in self.ignore_libs:
-            return [], False
+            return FindLibraryResult([], False)
         if isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         key = (tuple(self.exelist), libname, tuple(extra_dirs), code, libtype)
-        if key not in self.find_library_cache:
+        if key not in env.coredata.find_library_cache:
             value = self._find_library_real(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
-            self.find_library_cache[key] = value
-            cached = False
+            res = FindLibraryResult(value, False)
+            env.coredata.find_library_cache[key] = res
         else:
-            value = self.find_library_cache[key]
-            cached = True
-        if value is not None:
-            value = value.copy()
-        return value, cached
+            res = env.coredata.find_library_cache[key]
+            res.cached = True
+        return res
 
     def find_library_from_cache(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
                                 libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Tuple[T.Optional[T.List[str]], bool]:
         code = 'int main(void) { return 0; }\n'
-        return self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
+        p = self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
+        return p.linkargs, p.cached
 
     def find_framework_paths(self, env: 'Environment') -> T.List[str]:
         '''
