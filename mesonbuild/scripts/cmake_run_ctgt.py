@@ -97,7 +97,7 @@ def run(argsv: T.List[str]) -> int:
                 expected.unlink()
             if generated.is_dir():
                 shutil.copytree(str(generated), str(expected))
-            else :
+            else:
                 shutil.copyfile(str(generated), str(expected))
 
     return 0
