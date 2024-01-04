@@ -5012,3 +5012,9 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    def test_find_library_cache(self):
+        testdir = os.path.join(self.common_test_dir, '203 find_library and headers')
+        r = r"Library z found: YES \(cached\)"
+        out = self.init(testdir)
+        self.assertEqual(1, len([s for s in out.splitlines() if re.search(r, s)]))

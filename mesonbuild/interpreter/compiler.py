@@ -643,8 +643,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def notfound_library(self, libname: str) -> 'dependencies.ExternalLibrary':
         lib = dependencies.ExternalLibrary(libname, None,
                                            self.environment,
-                                           self.compiler.language,
-                                           silent=True)
+                                           self.compiler.language)
         return lib
 
     @disablerIfNotFound
@@ -692,7 +691,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             libtype = mesonlib.LibType.PREFER_STATIC
         else:
             libtype = mesonlib.LibType.PREFER_SHARED
-        linkargs = self.compiler.find_library(libname, self.environment, search_dirs, libtype)
+        linkargs, cached = self.compiler.find_library_from_cache(libname, self.environment, search_dirs, libtype)
         if required and not linkargs:
             if libtype == mesonlib.LibType.PREFER_SHARED:
                 libtype_s = 'shared or static'
@@ -701,6 +700,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
             raise InterpreterException('{} {} library {!r} not found'
                                        .format(self.compiler.get_display_language(),
                                                libtype_s, libname))
+        elif linkargs:
+            hadtxt = mlog.green('YES')
+        else:
+            hadtxt = mlog.red('NO')
+        cached_msg = mlog.blue('(cached)') if cached else ''
+        mlog.log('Library', mlog.bold(libname), 'found:', hadtxt, cached_msg)
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
                                            self.compiler.language)
         return lib
