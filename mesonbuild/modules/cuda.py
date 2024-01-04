@@ -157,11 +157,11 @@ class CudaModule(NewExtensionModule):
 
         return cuda_version, arch_list, detected
 
-    def _filter_cuda_arch_list(self, cuda_arch_list, lo=None, hi=None, saturate=None):
+    def _filter_cuda_arch_list(self, cuda_arch_list, lo: str, hi: T.Optional[str], saturate: str) -> T.List[str]:
         """
         Filter CUDA arch list (no codenames) for >= low and < hi architecture
         bounds, and deduplicate.
-        If saturate is provided, architectures >= hi are replaced with saturate.
+        Architectures >= hi are replaced with saturate.
         """
 
         filtered_cuda_arch_list = []
@@ -170,8 +170,6 @@ class CudaModule(NewExtensionModule):
                 if lo and version_compare(arch, '<' + lo):
                     continue
                 if hi and version_compare(arch, '>=' + hi):
-                    if not saturate:
-                        continue
                     arch = saturate
                 if arch not in filtered_cuda_arch_list:
                     filtered_cuda_arch_list.append(arch)
