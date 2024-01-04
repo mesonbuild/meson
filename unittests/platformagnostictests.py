@@ -275,3 +275,59 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn('first statement must be a call to project()', out)
         # provide guidance diagnostics by finding a file whose first AST statement is project()
         self.assertIn(f'Did you mean to run meson from the directory: "{testdir}"?', out)
+
+    def test_buildtype_from_debug_and_optimization(self):
+        """Issue #11645"""
+        testdir = os.path.join(self.unit_test_dir, '116 empty project')
+
+        configurations = [
+            ('plain', ['-Ddebug=false', '-Doptimization=plain']),
+            ('debug', ['-Ddebug=true', '-Doptimization=0']),
+            ('debugoptimized', ['-Ddebug=true', '-Doptimization=2']),
+            ('release', ['-Ddebug=false', '-Doptimization=3']),
+            ('minsize', ['-Ddebug=true', '-Doptimization=s']),
+            ('custom', ['-Ddebug=false', '-Doptimization=0']),
+
+            ('debug', []),
+            ('debugoptimized', ['-Doptimization=2']),
+            ('custom', ['-Doptimization=1']),
+            ('custom', ['-Ddebug=false']),
+
+            # ensure buildtype is kept when explicitly set
+            ('debug', ['-Ddebug=false', '-Doptimization=3', '-Dbuildtype=debug']),
+        ]
+
+        for buildtype, extra_args in configurations:
+            self.new_builddir()
+            self.init(testdir, extra_args=extra_args, allow_fail=False)
+            self.assertEqual(buildtype, self.getconf('buildtype'))
+
+    def test_debug_and_optimization_from_buildtype(self):
+        testdir = os.path.join(self.unit_test_dir, '116 empty project')
+
+        configurations = [
+            (['-Dbuildtype=plain'], False, 'plain'),
+            (['-Dbuildtype=debug'], True, '0'),
+            (['-Dbuildtype=debugoptimized'], True, '2'),
+            (['-Dbuildtype=release'], False, '3'),
+            (['-Dbuildtype=minsize'], True, 's'),
+            (['-Dbuildtype=custom'], True, '0'),  # keep default values for debug and optimization
+
+            # ensure values can still be overrided
+            (['-Dbuildtype=debug', '-Ddebug=False', '-Doptimization=3'], False, '3'),
+        ]
+
+        for extra_args, debug, optimization in configurations:
+            self.new_builddir()
+            self.init(testdir, extra_args=extra_args, allow_fail=False)
+            self.assertEqual(debug, self.getconf('debug'))
+            self.assertEqual(optimization, self.getconf('optimization'))
+
+    def test_buildtype_and_optimization_from_project_default_options(self):
+        """ Issue #5814 """
+        testdir = os.path.join(self.unit_test_dir, '122 default options')
+        self.init(testdir, allow_fail=False)
+
+        self.assertEqual(False, self.getconf('debug'))
+        self.assertEqual('2', self.getconf('optimization'))
+        self.assertEqual('release', self.getconf('buildtype'))
