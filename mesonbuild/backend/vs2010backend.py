@@ -1345,7 +1345,8 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
         warning_level = T.cast('str', target.get_option(OptionKey('warning_level')))
-        ET.SubElement(clconf, 'WarningLevel').text = 'Level' + str(1 + int(warning_level))
+        warning_level = 'EnableAllWarnings' if warning_level == 'everything' else 'Level' + str(1 + int(warning_level))
+        ET.SubElement(clconf, 'WarningLevel').text = warning_level
         if target.get_option(OptionKey('werror')):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Optimization flags
