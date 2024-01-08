@@ -14,7 +14,6 @@ import json
 import os
 import pickle
 import re
-import shlex
 import subprocess
 import typing as T
 
@@ -67,16 +66,6 @@ def cmd_quote(arg: str) -> str:
 
     return arg
 
-def gcc_rsp_quote(s: str) -> str:
-    # see: the function buildargv() in libiberty
-    #
-    # this differs from sh-quoting in that a backslash *always* escapes the
-    # following character, even inside single quotes.
-
-    s = s.replace('\\', '\\\\')
-
-    return shlex.quote(s)
-
 # How ninja executes command lines differs between Unix and Windows
 # (see https://ninja-build.org/manual.html#ref_rule_command)
 if mesonlib.is_windows():
@@ -88,6 +77,15 @@ else:
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
 
+def gcc_rsp_quote(s: str) -> str:
+    # see: the function buildargv() in libiberty
+    #
+    # this differs from sh-quoting in that a backslash *always* escapes the
+    # following character, even inside single quotes.
+
+    s = s.replace('\\', '\\\\')
+
+    return quote_func(s)
 
 def get_rsp_threshold() -> int:
     '''Return a conservative estimate of the commandline size in bytes
