@@ -2310,8 +2310,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         d = build.EmptyDir(args[0], kwargs['install_mode'], self.subproject, kwargs['install_tag'])
         self.build.emptydir.append(d)
 
-        return d
-
     @FeatureNew('install_symlink', '0.61.0')
     @typed_pos_args('symlink_name', str)
     @typed_kwargs(
