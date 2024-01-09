@@ -103,6 +103,7 @@ class OpenMPDependency(SystemDependency):
             self.is_found = True
             self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
             return
+
         try:
             openmp_date = self.clib_compiler.get_define(
                 '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(), [self], disable_cache=True)[0]
@@ -119,13 +120,22 @@ class OpenMPDependency(SystemDependency):
                 if openmp_date == '_OPENMP':
                     mlog.debug('This can be caused by flags such as gcc\'s `-fdirectives-only`, which affect preprocessor behavior.')
                 return
+
+            if self.clib_compiler.get_id() == 'clang-cl':
+                # this is necessary for clang-cl, see https://github.com/mesonbuild/meson/issues/5298
+                clangcl_openmp_link_args = self.clib_compiler.find_library("libomp", self.env, [])
+                if not clangcl_openmp_link_args:
+                    mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but libomp for clang-cl missing.')
+                    return
+                self.link_args.extend(clangcl_openmp_link_args)
+
             # Flang has omp_lib.h
             header_names = ('omp.h', 'omp_lib.h')
             for name in header_names:
                 if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
                     self.is_found = True
-                    self.compile_args = self.clib_compiler.openmp_flags()
-                    self.link_args = self.clib_compiler.openmp_link_flags()
+                    self.compile_args.extend(self.clib_compiler.openmp_flags())
+                    self.link_args.extend(self.clib_compiler.openmp_link_flags())
                     break
             if not self.is_found:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
