@@ -2778,7 +2778,7 @@ class CompileTarget(BuildTarget):
         compilers = {compiler.get_language(): compiler}
         kwargs = {
             'build_by_default': False,
-            f'{compiler.language}_args': compile_args,
+            'language_args': {compiler.language: compile_args},
             'include_directories': include_directories,
             'dependencies': dependencies,
         }
