@@ -20,7 +20,9 @@ dep = declare_dependency(compile_args: '-DPLOP=0')
 pp_files = cc.preprocess('foo.c', bar_x, 'math.c',
   output: '@PLAINNAME@.c',
   dependencies: dep,
-  depends: foo_h)
+  depends: foo_h,
+  compile_args: ['-DBAZ=0'],
+)
 
 foreach f : pp_files
   message(f.full_path())
