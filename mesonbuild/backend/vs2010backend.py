@@ -1368,7 +1368,7 @@ class Vs2010Backend(backends.Backend):
         elif '/Ob2' in o_flags:
             ET.SubElement(clconf, 'InlineFunctionExpansion').text = 'AnySuitable'
         # Size-preserving flags
-        if '/Os' in o_flags:
+        if '/Os' in o_flags or '/O1' in o_flags:
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Size'
         # Note: setting FavorSizeOrSpeed with clang-cl conflicts with /Od and can make debugging difficult, so don't.
         elif '/Od' not in o_flags:
