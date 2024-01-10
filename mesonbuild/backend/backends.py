@@ -2029,6 +2029,9 @@ class Backend:
         commands += compiler.get_compile_only_args() + ['@INPUT@']
         commands += self.get_source_dir_include_args(target, compiler)
         commands += self.get_build_dir_include_args(target, compiler)
+        # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
+        # near the end since these are supposed to override everything else.
+        commands += self.escape_extra_args(target.get_extra_args(compiler.get_language()))
         generator = build.Generator(exe, args + commands.to_native(),
                                     [output_templ], depfile='@PLAINNAME@.d',
                                     depends=depends)
