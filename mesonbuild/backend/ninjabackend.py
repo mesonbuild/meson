@@ -1691,11 +1691,21 @@ class NinjaBackend(backends.Backend):
                 # Install GIR to default location if requested by user
                 if len(target.install_dir) > 3 and target.install_dir[3] is True:
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
-        # Detect gresources and add --gresources arguments for each
+        # Detect gresources and add --gresources/--gresourcesdir arguments for each
+        gres_dirs = []
         for gensrc in other_src[1].values():
             if isinstance(gensrc, modules.GResourceTarget):
                 gres_xml, = self.get_custom_target_sources(gensrc)
                 args += ['--gresources=' + gres_xml]
+                for source_dir in gensrc.source_dirs:
+                    gres_dirs += [os.path.join(self.get_target_dir(gensrc), source_dir)]
+                # Ensure that resources are built before vala sources
+                # This is required since vala code using [GtkTemplate] effectively depends on .ui files
+                # GResourceHeaderTarget is not suitable due to lacking depfile
+                gres_c, = gensrc.get_outputs()
+                extra_dep_files += [os.path.join(self.get_target_dir(gensrc), gres_c)]
+        for gres_dir in OrderedSet(gres_dirs):
+            args += [f'--gresourcesdir={gres_dir}']
         dependency_vapis = self.determine_dep_vapis(target)
         extra_dep_files += dependency_vapis
         extra_dep_files.extend(self.get_target_depend_files(target))

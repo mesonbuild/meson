@@ -448,7 +448,10 @@ class GnomeModule(ExtensionModule):
         # Always include current directory, but after paths set by user
         source_dirs.append(os.path.join(state.build_to_src, state.subdir))
 
-        for source_dir in OrderedSet(source_dirs):
+        # Clean up duplicate directories
+        source_dirs = list(OrderedSet(os.path.normpath(dir) for dir in source_dirs))
+
+        for source_dir in source_dirs:
             cmd += ['--sourcedir', source_dir]
 
         if kwargs['c_name']:
@@ -507,6 +510,7 @@ class GnomeModule(ExtensionModule):
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             install_tag=['runtime'],
         )
+        target_c.source_dirs = source_dirs
 
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])

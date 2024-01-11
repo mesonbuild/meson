@@ -254,7 +254,7 @@ class ModuleReturnValue:
         self.new_objects: T.List[T.Union['TYPE_var', 'mesonlib.ExecutableSerialisation']] = new_objects
 
 class GResourceTarget(build.CustomTarget):
-    pass
+    source_dirs: T.List[str] = []
 
 class GResourceHeaderTarget(build.CustomTarget):
     pass
