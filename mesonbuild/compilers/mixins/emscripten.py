@@ -55,17 +55,16 @@ class EmscriptenMixin(Compiler):
             args.append(f'-sPTHREAD_POOL_SIZE={count}')
         return args
 
-    def get_options(self) -> 'coredata.MutableKeyedOptionDictType':
-        opts = super().get_options()
-        key = OptionKey('thread_count', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key: coredata.UserIntegerOption(
+    def get_options(self) -> coredata.MutableKeyedOptionDictType:
+        return self.update_options(
+            super().get_options(),
+            self.create_option(
+                coredata.UserIntegerOption,
+                OptionKey('thread_count', machine=self.for_machine, lang=self.language),
                 'Number of threads to use in web assembly, set to 0 to disable',
                 (0, None, 4),  # Default was picked at random
             ),
-        })
-
-        return opts
+        )
 
     @classmethod
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:

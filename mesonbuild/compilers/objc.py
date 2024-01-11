@@ -82,15 +82,14 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
                           'everything': ['-Weverything']}
 
     def get_options(self) -> 'coredata.MutableKeyedOptionDictType':
-        opts = super().get_options()
-        opts.update({
-            OptionKey('std', machine=self.for_machine, lang='c'): coredata.UserComboOption(
-                'C language standard to use',
-                ['none', 'c89', 'c99', 'c11', 'c17', 'gnu89', 'gnu99', 'gnu11', 'gnu17'],
-                'none',
-            )
-        })
-        return opts
+        return self.update_options(
+            super().get_options(),
+            self.create_option(coredata.UserComboOption,
+                               OptionKey('std', machine=self.for_machine, lang='c'),
+                               'C language standard to use',
+                               ['none', 'c89', 'c99', 'c11', 'c17', 'gnu89', 'gnu99', 'gnu11', 'gnu17'],
+                               'none'),
+        )
 
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
         args = []

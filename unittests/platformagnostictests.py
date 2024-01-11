@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
-from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, is_linux, python_command
+from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from run_tests import Backend
 
@@ -62,6 +62,27 @@ class PlatformAgnosticTests(BasePlatformTests):
         # platlib is allowed, only python.platlib is reserved.
         fname = write_file("option('platlib', type: 'string')")
         interp.process(fname)
+
+    def test_option_validation(self):
+        """Test cases that are not catch by the optinterpreter itself."""
+        interp = OptionInterpreter('')
+
+        def write_file(code: str):
+            with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
+                f.write(code)
+                return f.name
+        
+        fname = write_file("option('intminmax', type: 'integer', value: 10, min: 0, max: 5)")
+        self.assertRaisesRegex(MesonException, 'Value 10 for option "intminmax" is more than maximum value 5.',
+                               interp.process, fname)
+
+        fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['one', 'four'])")
+        self.assertRaisesRegex(MesonException, 'Value "four" for option "array" is not in allowed choices: "one, two, three"',
+                               interp.process, fname)
+        
+        fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['four', 'five', 'six'])")
+        self.assertRaisesRegex(MesonException, 'Values "four, five, six" for option "array" are not in allowed choices: "one, two, three"',
+                               interp.process, fname)
 
     def test_python_dependency_without_pkgconfig(self):
         testdir = os.path.join(self.unit_test_dir, '103 python without pkgconfig')

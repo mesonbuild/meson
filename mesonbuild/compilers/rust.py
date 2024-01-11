@@ -154,15 +154,12 @@ class RustCompiler(Compiler):
     # C compiler for dynamic linking, as such we invoke the C compiler's
     # use_linker_args method instead.
 
-    def get_options(self) -> 'MutableKeyedOptionDictType':
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        return {
-            key: coredata.UserComboOption(
-                'Rust edition to use',
-                ['none', '2015', '2018', '2021'],
-                'none',
-            ),
-        }
+    def get_options(self) -> MutableKeyedOptionDictType:
+        return dict((self.create_option(coredata.UserComboOption,
+                                        OptionKey('std', machine=self.for_machine, lang=self.language),
+                                        'Rust edition to use',
+                                        ['none', '2015', '2018', '2021'],
+                                        'none'),))
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         # Rust doesn't have dependency compile arguments so simply return
