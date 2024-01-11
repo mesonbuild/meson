@@ -67,20 +67,19 @@ class CythonCompiler(Compiler):
         return new
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = super().get_options()
-        opts.update({
-            OptionKey('version', machine=self.for_machine, lang=self.language): coredata.UserComboOption(
-                'Python version to target',
-                ['2', '3'],
-                '3',
-            ),
-            OptionKey('language', machine=self.for_machine, lang=self.language): coredata.UserComboOption(
-                'Output C or C++ files',
-                ['c', 'cpp'],
-                'c',
-            )
-        })
-        return opts
+        return self.update_options(
+            super().get_options(),
+            self.create_option(coredata.UserComboOption,
+                               OptionKey('version', machine=self.for_machine, lang=self.language),
+                               'Python version to target',
+                               ['2', '3'],
+                               '3'),
+            self.create_option(coredata.UserComboOption,
+                               OptionKey('language', machine=self.for_machine, lang=self.language),
+                               'Output C or C++ files',
+                               ['c', 'cpp'],
+                               'c'),
+        )
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []

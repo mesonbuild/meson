@@ -112,16 +112,14 @@ class FortranCompiler(CLikeCompiler, Compiler):
         return self._has_multi_link_arguments(args, env, 'stop; end program')
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = super().get_options()
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts.update({
-            key: coredata.UserComboOption(
-                'Fortran language standard to use',
-                ['none'],
-                'none',
-            ),
-        })
-        return opts
+        return self.update_options(
+            super().get_options(),
+            self.create_option(coredata.UserComboOption,
+                               OptionKey('std', machine=self.for_machine, lang=self.language),
+                               'Fortran language standard to use',
+                               ['none'],
+                               'none'),
+        )
 
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):

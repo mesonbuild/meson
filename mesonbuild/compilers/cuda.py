@@ -630,10 +630,6 @@ class CudaCompiler(Compiler):
     _CPP20_VERSION = '>=12.0'
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = super().get_options()
-        std_key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        ccbindir_key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
-
         cpp_stds = ['none', 'c++03', 'c++11']
         if version_compare(self.version, self._CPP14_VERSION):
             cpp_stds += ['c++14']
@@ -642,13 +638,18 @@ class CudaCompiler(Compiler):
         if version_compare(self.version, self._CPP20_VERSION):
             cpp_stds += ['c++20']
 
-        opts.update({
-            std_key:      coredata.UserComboOption('C++ language standard to use with CUDA',
-                                                   cpp_stds, 'none'),
-            ccbindir_key: coredata.UserStringOption('CUDA non-default toolchain directory to use (-ccbin)',
-                                                    ''),
-        })
-        return opts
+        return self.update_options(
+            super().get_options(),
+            self.create_option(coredata.UserComboOption,
+                               OptionKey('std', machine=self.for_machine, lang=self.language),
+                               'C++ language standard to use with CUDA',
+                               cpp_stds,
+                               'none'),
+            self.create_option(coredata.UserStringOption,
+                               OptionKey('ccbindir', machine=self.for_machine, lang=self.language),
+                               'CUDA non-default toolchain directory to use (-ccbin)',
+                               ''),
+        )
 
     def _to_host_compiler_options(self, options: 'KeyedOptionDictType') -> 'KeyedOptionDictType':
         """

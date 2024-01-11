@@ -716,7 +716,7 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
     for feature in cargo.features:
         key = OptionKey(_option_name(feature), subproject=subp_name)
         enabled = feature == 'default'
-        options[key] = coredata.UserBooleanOption(f'Cargo {feature} feature', enabled)
+        options[key] = coredata.UserBooleanOption(key.name, f'Cargo {feature} feature', enabled)
 
     ast = _create_project(cargo, build)
     ast += [build.assign(build.function('import', [build.string('rust')]), 'rust')]
