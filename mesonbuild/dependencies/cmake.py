@@ -16,6 +16,8 @@ import shutil
 import textwrap
 import typing as T
 
+from ..utils.universal import windows_proof_rmtree
+
 if T.TYPE_CHECKING:
     from ..cmake import CMakeTarget
     from ..environment import Environment
@@ -574,7 +576,7 @@ class CMakeDependency(ExternalDependency):
         cmake_files = build_dir / 'CMakeFiles'
         if cmake_cache.exists():
             cmake_cache.unlink()
-        shutil.rmtree(cmake_files.as_posix(), ignore_errors=True)
+        windows_proof_rmtree(cmake_files.absolute().as_posix())
 
         # Insert language parameters into the CMakeLists.txt and write new CMakeLists.txt
         cmake_txt = importlib.resources.read_text('mesonbuild.dependencies.data', cmake_file, encoding = 'utf-8')
