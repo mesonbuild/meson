@@ -16,16 +16,15 @@ from pathlib import Path
 
 from . import mlog
 from . import mesonlib
-from .mesonlib import MesonException, RealPathAction, join_args, setup_vsenv
+from .mesonlib import MesonException, RealPathAction, join_args, listify_array_value, setup_vsenv
 from mesonbuild.environment import detect_ninja
-from mesonbuild.coredata import UserArrayOption
 from mesonbuild import build
 
 if T.TYPE_CHECKING:
     import argparse
 
 def array_arg(value: str) -> T.List[str]:
-    return UserArrayOption.listify_value(value)
+    return listify_array_value(value)
 
 def validate_builddir(builddir: Path) -> None:
     if not (builddir / 'meson-private' / 'coredata.dat').is_file():

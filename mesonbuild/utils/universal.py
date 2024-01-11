@@ -7,6 +7,7 @@
 from __future__ import annotations
 from pathlib import Path
 import argparse
+import ast
 import enum
 import sys
 import stat
@@ -129,6 +130,7 @@ __all__ = [
     'iter_regexin_iter',
     'join_args',
     'listify',
+    'listify_array_value',
     'partition',
     'path_is_in_root',
     'pickle_load',
@@ -1435,6 +1437,26 @@ def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
             result.append(i)
     return result
 
+def listify_array_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
+    if isinstance(value, str):
+        if value.startswith('['):
+            try:
+                newvalue = ast.literal_eval(value)
+            except ValueError:
+                raise MesonException(f'malformed value {value}')
+        elif value == '':
+            newvalue = []
+        else:
+            if shlex_split_args:
+                newvalue = split_args(value)
+            else:
+                newvalue = [v.strip() for v in value.split(',')]
+    elif isinstance(value, list):
+        newvalue = value
+    else:
+        raise MesonException(f'"{value}" should be a string array, but it is not')
+    assert isinstance(newvalue, list)
+    return newvalue
 
 def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> T.List[_U]:
     '''
