@@ -20,7 +20,7 @@ from .mesonlib import (
     PerMachineDefaultable, default_libdir, default_libexecdir,
     default_prefix, default_datadir, default_includedir, default_infodir,
     default_localedir, default_mandir, default_sbindir, default_sysconfdir,
-    split_args, OptionKey, OptionType, stringlistify,
+    listify_array_value, OptionKey, OptionType, stringlistify,
     pickle_load
 )
 from .wrap import WrapMode
@@ -268,29 +268,8 @@ class UserArrayOption(UserOption[T.List[str]]):
         self.allow_dups = allow_dups
         self.set_value(value)
 
-    @staticmethod
-    def listify_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
-        if isinstance(value, str):
-            if value.startswith('['):
-                try:
-                    newvalue = ast.literal_eval(value)
-                except ValueError:
-                    raise MesonException(f'malformed option {value}')
-            elif value == '':
-                newvalue = []
-            else:
-                if shlex_split_args:
-                    newvalue = split_args(value)
-                else:
-                    newvalue = [v.strip() for v in value.split(',')]
-        elif isinstance(value, list):
-            newvalue = value
-        else:
-            raise MesonException(f'"{value}" should be a string array, but it is not')
-        return newvalue
-
     def listify(self, value: T.Any) -> T.List[T.Any]:
-        return self.listify_value(value, self.split_args)
+        return listify_array_value(value, self.split_args)
 
     def validate_value(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
         newvalue = self.listify(value)
@@ -364,7 +343,7 @@ class UserStdOption(UserComboOption):
                 self.choices += gnu_stds_map.keys()
 
     def validate_value(self, value: T.Union[str, T.List[str]]) -> str:
-        candidates = UserArrayOption.listify_value(value)
+        candidates = listify_array_value(value)
         unknown = [std for std in candidates if std not in self.all_stds]
         if unknown:
             raise MesonException(f'Unknown {self.lang.upper()} std {unknown}. Possible values are {self.all_stds}.')
