@@ -12,7 +12,6 @@ from pathlib import Path
 import functools
 import re
 import os
-import shutil
 import textwrap
 import typing as T
 
