@@ -267,7 +267,7 @@ class Vs2010Backend(backends.Backend):
 
         self.buildtype = self.environment.coredata.get_option(OptionKey('buildtype'))
         self.optimization = self.environment.coredata.get_option(OptionKey('optimization'))
-        self.debug = self.environment.coredata.get_option(OptionKey('debug'))
+        self.debug = self.environment.coredata.get_option(OptionKey('debuginfo'))
         try:
             self.sanitize = self.environment.coredata.get_option(OptionKey('b_sanitize'))
         except MesonException:
@@ -1522,7 +1522,7 @@ class Vs2010Backend(backends.Backend):
         # /nologo
         ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
         # /release
-        if not target.get_option(OptionKey('debug')):
+        if not target.get_option(OptionKey('debuginfo')):
             ET.SubElement(link, 'SetChecksum').text = 'true'
 
     # Visual studio doesn't simply allow the src files of a project to be added with the 'Condition=...' attribute,

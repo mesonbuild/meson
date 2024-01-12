@@ -58,7 +58,7 @@ def cmake_is_debug(env: 'Environment') -> bool:
         return is_debug
     else:
         # Don't directly assign to is_debug to make mypy happy
-        debug_opt = env.coredata.get_option(OptionKey('debug'))
+        debug_opt = env.coredata.get_option(OptionKey('debuginfo'))
         assert isinstance(debug_opt, bool)
         return debug_opt
 

@@ -1452,7 +1452,7 @@ class NinjaBackend(backends.Backend):
         deps = []
         commands = compiler.compiler_args(target.extra_args['cs'])
         commands += compiler.get_optimization_args(target.get_option(OptionKey('optimization')))
-        commands += compiler.get_debug_args(target.get_option(OptionKey('debug')))
+        commands += compiler.get_debug_args(target.get_option(OptionKey('debuginfo')))
         if isinstance(target, build.Executable):
             commands.append('-target:exe')
         elif isinstance(target, build.SharedLibrary):
@@ -1733,7 +1733,7 @@ class NinjaBackend(backends.Backend):
 
         args: T.List[str] = []
         args += cython.get_always_args()
-        args += cython.get_debug_args(target.get_option(OptionKey('debug')))
+        args += cython.get_debug_args(target.get_option(OptionKey('debuginfo')))
         args += cython.get_optimization_args(target.get_option(OptionKey('optimization')))
         args += cython.get_option_compile_args(target.get_options())
         args += self.build.get_global_args(cython, target.for_machine)
@@ -2168,7 +2168,7 @@ class NinjaBackend(backends.Backend):
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = swiftc.get_compile_only_args()
         compile_args += swiftc.get_optimization_args(target.get_option(OptionKey('optimization')))
-        compile_args += swiftc.get_debug_args(target.get_option(OptionKey('debug')))
+        compile_args += swiftc.get_debug_args(target.get_option(OptionKey('debuginfo')))
         compile_args += swiftc.get_module_args(module_name)
         compile_args += self.build.get_project_args(swiftc, target.subproject, target.for_machine)
         compile_args += self.build.get_global_args(swiftc, target.for_machine)
@@ -3393,7 +3393,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add buildtype linker args: optimization level, etc.
         commands += linker.get_optimization_link_args(target.get_option(OptionKey('optimization')))
         # Add /DEBUG and the pdb filename when using MSVC
-        if target.get_option(OptionKey('debug')):
+        if target.get_option(OptionKey('debuginfo')):
             commands += self.get_link_debugfile_args(linker, target)
             debugfile = self.get_link_debugfile_name(linker, target)
             if debugfile is not None:

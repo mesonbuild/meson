@@ -164,7 +164,7 @@ class DataTests(unittest.TestCase):
             env.coredata.set_option(OptionKey('buildtype'), buildtype)
             self.assertEqual(env.coredata.options[OptionKey('buildtype')].value, buildtype)
             self.assertEqual(env.coredata.options[OptionKey('optimization')].value, opt)
-            self.assertEqual(env.coredata.options[OptionKey('debug')].value, debug)
+            self.assertEqual(env.coredata.options[OptionKey('debuginfo')].value, debug)
 
     def test_cpu_families_documented(self):
         with open("docs/markdown/Reference-tables.md", encoding='utf-8') as f:

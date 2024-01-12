@@ -2157,6 +2157,7 @@ _BUILTIN_NAMES = {
     'backend',
     'buildtype',
     'debug',
+    'debuginfo',
     'default_library',
     'errorlogs',
     'genvslite',

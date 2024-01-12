@@ -832,11 +832,11 @@ class CoreData:
             assert value == 'custom'
             return []
         actual_opt = self.options[OptionKey('optimization')].value
-        actual_debug = self.options[OptionKey('debug')].value
+        actual_debug = self.options[OptionKey('debuginfo')].value
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
-            result.append(('debug', actual_debug, debug))
+            result.append(('debuginfo', actual_debug, debug))
         return result
 
     def _set_others_from_buildtype(self, value: str) -> bool:
@@ -862,7 +862,7 @@ class CoreData:
             return False
 
         dirty |= self.options[OptionKey('optimization')].set_value(opt)
-        dirty |= self.options[OptionKey('debug')].set_value(debug)
+        dirty |= self.options[OptionKey('debuginfo')].set_value(debug)
 
         return dirty
 
@@ -1256,13 +1256,15 @@ class BuiltinOption(T.Generic[_T, _U]):
     """
 
     def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: bool = True, *,
-                 choices: T.Any = None, readonly: bool = False):
+                 choices: T.Any = None, readonly: bool = False,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
         self.opt_type = opt_type
         self.description = description
         self.default = default
         self.choices = choices
         self.yielding = yielding
         self.readonly = readonly
+        self.deprecated = deprecated
 
     def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> _U:
         """Create an instance of opt_type and return it."""
@@ -1271,6 +1273,8 @@ class BuiltinOption(T.Generic[_T, _U]):
         keywords = {'yielding': self.yielding, 'value': value}
         if self.choices:
             keywords['choices'] = self.choices
+        if self.deprecated:
+            keywords['deprecated'] = self.deprecated
         o = self.opt_type(self.description, **keywords)
         o.readonly = self.readonly
         return o
@@ -1359,7 +1363,8 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
      ),
     (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
                                                  choices=buildtypelist)),
-    (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
+    (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information (deprecated, use debuginfo instead)', True, deprecated='debuginfo')),
+    (OptionKey('debuginfo'),       BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
     (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
                                                  yielding=False)),
     (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
