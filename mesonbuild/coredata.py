@@ -98,6 +98,9 @@ class MesonVersionMismatchException(MesonException):
 
 
 class UserOption(T.Generic[_T], HoldableObject):
+
+    is_default: bool = False
+
     def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]],
                  yielding: bool,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
