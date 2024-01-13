@@ -972,7 +972,7 @@ class BuildTarget(Target):
                 # Don't add Vala or Orc sources since that will pull in the
                 # corresponding compiler even though we will never use it since
                 # we are dealing with compiled C code.
-                if comp.language in ['vala', 'orc']:
+                if comp.language in {'vala', 'orc'}:
                     continue
                 if comp.language not in self.compilers:
                     self.compilers[comp.language] = comp
