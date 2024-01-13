@@ -32,6 +32,7 @@ def check_format() -> None:
                       '.rs',
                       '.f90',
                       '.vala',
+                      '.orc',
                       '.d',
                       '.s',
                       '.m',

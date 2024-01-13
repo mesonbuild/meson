@@ -58,6 +58,7 @@ lang_suffixes = {
     'objcpp': ('mm',),
     'rust': ('rs',),
     'vala': ('vala', 'vapi', 'gs'),
+    'orc': ('orc',),
     'cs': ('cs',),
     'swift': ('swift',),
     'java': ('java',),

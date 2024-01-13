@@ -969,10 +969,10 @@ class BuildTarget(Target):
                 continue
             compsrcs = o.classify_all_sources(o.srclist, [])
             for comp in compsrcs:
-                # Don't add Vala sources since that will pull in the Vala
-                # compiler even though we will never use it since we are
-                # dealing with compiled C code.
-                if comp.language == 'vala':
+                # Don't add Vala or Orc sources since that will pull in the
+                # corresponding compiler even though we will never use it since
+                # we are dealing with compiled C code.
+                if comp.language in ['vala', 'orc']:
                     continue
                 if comp.language not in self.compilers:
                     self.compilers[comp.language] = comp
@@ -997,9 +997,9 @@ class BuildTarget(Target):
                         m = f'No {self.for_machine.get_lower_case_name()} machine compiler for {path!r}'
                         raise MesonException(m)
 
-        # If all our sources are Vala, our target also needs the C compiler but
-        # it won't get added above.
-        if 'vala' in self.compilers and 'c' not in self.compilers:
+        # If all our sources are Vala or Orc, our target also needs the C
+        # compiler but it won't get added above.
+        if ('vala' in self.compilers or 'orc' in self.compilers) and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
             key = OptionKey('language', machine=self.for_machine, lang='cython')
