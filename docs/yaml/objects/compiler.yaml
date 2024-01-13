@@ -681,3 +681,10 @@ methods:
       type: dep | list[dep]
       description: Additionally dependencies required.
       since: 1.1.0
+    depends:
+      type: list[build_tgt | custom_tgt]
+      description: |
+        Specifies that this target depends on the specified
+        target(s). These targets should be built before starting
+        to preprocess an input.
+      since: 1.4.0

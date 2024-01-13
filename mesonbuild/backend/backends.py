@@ -2008,7 +2008,9 @@ class Backend:
     def compiler_to_generator(self, target: build.BuildTarget,
                               compiler: 'Compiler',
                               sources: _ALL_SOURCES_TYPE,
-                              output_templ: str) -> build.GeneratedList:
+                              output_templ: str,
+                              depends: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = None,
+                              ) -> build.GeneratedList:
         '''
         Some backends don't support custom compilers. This is a convenience
         method to convert a Compiler to a Generator.
@@ -2023,9 +2025,12 @@ class Backend:
         commands += compiler.get_compile_only_args() + ['@INPUT@']
         commands += self.get_source_dir_include_args(target, compiler)
         commands += self.get_build_dir_include_args(target, compiler)
-        generator = build.Generator(exe, args + commands.to_native(), [output_templ], depfile='@PLAINNAME@.d')
+        generator = build.Generator(exe, args + commands.to_native(),
+                                    [output_templ], depfile='@PLAINNAME@.d',
+                                    depends=depends)
         return generator.process_files(sources, self.interpreter)
 
     def compile_target_to_generator(self, target: build.CompileTarget) -> build.GeneratedList:
         all_sources = T.cast('_ALL_SOURCES_TYPE', target.sources) + T.cast('_ALL_SOURCES_TYPE', target.generated)
-        return self.compiler_to_generator(target, target.compiler, all_sources, target.output_templ)
+        return self.compiler_to_generator(target, target.compiler, all_sources,
+                                          target.output_templ, target.depends)

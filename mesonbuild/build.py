@@ -1763,12 +1763,12 @@ class Generator(HoldableObject):
                  *,
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
-                 depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget']]] = None,
+                 depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget', 'CustomTargetIndex']]] = None,
                  name: str = 'Generator'):
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
-        self.depends: T.List[T.Union[BuildTarget, 'CustomTarget']] = depends or []
+        self.depends: T.List[T.Union[BuildTarget, 'CustomTarget', 'CustomTargetIndex']] = depends or []
         self.arglist = arguments
         self.outputs = output
         self.name = name
@@ -2763,7 +2763,8 @@ class CompileTarget(BuildTarget):
                  backend: Backend,
                  compile_args: T.List[str],
                  include_directories: T.List[IncludeDirs],
-                 dependencies: T.List[dependencies.Dependency]):
+                 dependencies: T.List[dependencies.Dependency],
+                 depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]):
         compilers = {compiler.get_language(): compiler}
         kwargs = {
             'build_by_default': False,
@@ -2778,6 +2779,7 @@ class CompileTarget(BuildTarget):
         self.output_templ = output_templ
         self.outputs = []
         self.sources_map: T.Dict[File, str] = {}
+        self.depends = list(depends or [])
         for f in self.sources:
             self._add_output(f)
         for gensrc in self.generated:
@@ -2799,6 +2801,11 @@ class CompileTarget(BuildTarget):
         self.outputs.append(o)
         self.sources_map[f] = o
 
+    def get_generated_headers(self) -> T.List[File]:
+        gen_headers: T.List[File] = []
+        for dep in self.depends:
+            gen_headers += [File(True, dep.subdir, o) for o in dep.get_outputs()]
+        return gen_headers
 
 class RunTarget(Target, CommandBase):
 

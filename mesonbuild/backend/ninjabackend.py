@@ -718,6 +718,8 @@ class NinjaBackend(backends.Backend):
         for dep in itertools.chain(target.link_targets, target.link_whole_targets):
             if isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 header_deps += self.get_generated_headers(dep)
+        if isinstance(target, build.CompileTarget):
+            header_deps.extend(target.get_generated_headers())
         target.cached_generated_headers = header_deps
         return header_deps
 
