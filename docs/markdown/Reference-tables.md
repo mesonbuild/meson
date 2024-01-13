@@ -222,6 +222,7 @@ to your build target.
 | Cython        | cython_args   | cython_link_args  |
 | NASM          | nasm_args     | N/A               |
 | MASM          | masm_args     | N/A               |
+| Orc           | orc_args      | N/A               |
 
 All these `<lang>_*` options are specified per machine. See in
 [specifying options per

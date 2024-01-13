@@ -1734,6 +1734,9 @@ class NinjaBackend(backends.Backend):
                     self.all_outputs, [output],
                     self.compiler_to_rule_name(orcc),
                     [src.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())])
+                args: T.List[str] = []
+                args += target.get_extra_args('orc')
+                element.add_item('ARGS', args)
                 self.add_build(element)
                 # Add the .h file
                 output = os.path.join(self.get_target_private_dir(target), f'{src}.h')
@@ -1742,8 +1745,11 @@ class NinjaBackend(backends.Backend):
                     self.all_outputs, [output],
                     self.compiler_to_rule_name(orcc),
                     [src.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())])
+                args = []
+                args += target.get_extra_args('orc')
+                args += ['--header']
+                element.add_item('ARGS', args)
                 self.add_build(element)
-                element.add_item('ARGS', ['--header'])
             else:
                 static_sources[src.rel_to_builddir(self.build_to_src)] = src
 

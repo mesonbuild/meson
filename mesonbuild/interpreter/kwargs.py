@@ -363,6 +363,7 @@ class _BuildTarget(_BaseBuildTarget):
     objcpp_args: T.List[str]
     rust_args: T.List[str]
     vala_args: T.List[T.Union[str, File]]  # Yes, Vala is really special
+    orc_args: T.List[str]
     cs_args: T.List[str]
     swift_args: T.List[str]
     cython_args: T.List[str]
