@@ -423,7 +423,6 @@ schema is defined by the class structure given in
 - [Gnome Builder](https://wiki.gnome.org/Apps/Builder)
 - [KDevelop](https://www.kdevelop.org)
 - [Meson Syntax Highlighter](https://plugins.jetbrains.com/plugin/13269-meson-syntax-highlighter) 3rd party plugin for JetBrains IDEs.
-- [Meson-UI](https://github.com/dreamer-coding-555/meson-ui) (build GUI for Meson)
 - [mmeson](https://github.com/stephanlachnit/mmeson) (ccmake clone for Meson)
 - [Qt Creator](https://doc.qt.io/qtcreator/creator-project-meson.html) 
 - [vscode-meson](https://github.com/mesonbuild/vscode-meson) extension for VS Code/Codium
