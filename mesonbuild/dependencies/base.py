@@ -426,7 +426,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                 self.is_found = False
                 found_msg: mlog.TV_LoggableList = []
                 found_msg += ['Dependency', mlog.bold(self.name), 'found:']
-                found_msg += [mlog.red('NO'), 'unknown version, but need:', self.version_reqs]
+                found_msg += [str(mlog.red('NO')) + '.', 'Unknown version, but need:', self.version_reqs]
                 mlog.log(*found_msg)
 
                 if self.required:
@@ -438,8 +438,8 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                     version_compare_many(self.version, self.version_reqs)
                 if not self.is_found:
                     found_msg = ['Dependency', mlog.bold(self.name), 'found:']
-                    found_msg += [mlog.red('NO'),
-                                  'found', mlog.normal_cyan(self.version), 'but need:',
+                    found_msg += [str(mlog.red('NO')) + '.',
+                                  'Found', mlog.normal_cyan(self.version), 'but need:',
                                   mlog.bold(', '.join([f"'{e}'" for e in not_found]))]
                     if found:
                         found_msg += ['; matched:',
