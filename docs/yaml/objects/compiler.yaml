@@ -663,7 +663,17 @@ methods:
     will receive the same arguments (include directories, defines, etc) as with
     normal compilation. That includes for example args added with
     `add_project_arguments()`, or on the command line with `-Dc_args=-DFOO`.
-  varargs_inherit: _build_target_base
+  varargs:
+    name: source
+    type: str | file | custom_tgt | custom_idx | generated_list
+    description: |
+      Input source to preprocess. The following types are supported:
+
+      - Strings relative to the current source directory
+      - [[@file]] objects defined in any preceding build file
+      - The return value of configure-time generators such as [[configure_file]]
+      - The return value of build-time generators such as
+        [[custom_target]] or [[generator.process]]
   kwargs_inherit:
     - compiler._include_directories
   kwargs:
