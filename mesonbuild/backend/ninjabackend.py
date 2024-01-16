@@ -2064,7 +2064,7 @@ class NinjaBackend(backends.Backend):
             for rpath_arg in rpath_args:
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
 
-        compiler_name = self.compiler_to_rule_name(rustc)
+        compiler_name: str = self.compiler_to_rule_name(rustc)
         if rustc.needs_env_wrapper:
             compiler_name = self.get_compiler_rule_name(rustc.get_language(), rustc.for_machine, 'ENV')
 
@@ -2099,6 +2099,9 @@ class NinjaBackend(backends.Backend):
                 env.extend(['--env', a])
             element.add_item('ENV', env)
             args = nargs
+        else:
+            # XXX: this needs a heiristc
+            args.extend(['-Z', 'unstable-options'])
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
         element.add_item('cratetype', cratetype)
