@@ -2063,6 +2063,9 @@ class NinjaBackend(backends.Backend):
             for rpath_arg in rpath_args:
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
 
+        if target.env:
+            args.extend(rustc.get_env_args(target.env))
+
         proc_macro_dylib_path = None
         if getattr(target, 'rust_crate_type', '') == 'proc-macro':
             proc_macro_dylib_path = os.path.abspath(os.path.join(target.subdir, target.get_filename()))
