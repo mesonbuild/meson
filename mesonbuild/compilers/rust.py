@@ -60,7 +60,8 @@ class RustCompiler(Compiler):
                  is_cross: bool, info: 'MachineInfo',
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
                  full_version: T.Optional[str] = None,
-                 linker: T.Optional['DynamicLinker'] = None):
+                 linker: T.Optional['DynamicLinker'] = None,
+                 is_nightly: bool = False):
         super().__init__([], exelist, version, for_machine, info,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
@@ -69,6 +70,7 @@ class RustCompiler(Compiler):
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
+        self.is_nightly = is_nightly
 
     def needs_static_linker(self) -> bool:
         return False
