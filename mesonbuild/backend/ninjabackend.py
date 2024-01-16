@@ -44,6 +44,7 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
+    from ..compilers.rust import RustCompiler
 
     CommandArgOrStr = T.List[T.Union['NinjaCommandArg', str]]
     RUST_EDITIONS = Literal['2015', '2018', '2021']
@@ -1846,7 +1847,7 @@ class NinjaBackend(backends.Backend):
         return target.rust_dependency_map.get(dependency.name, dependency.name).replace('-', '_')
 
     def generate_rust_target(self, target: build.BuildTarget) -> None:
-        rustc = target.compilers['rust']
+        rustc = T.cast('RustCompiler', target.compilers['rust'])
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
         # statements and magic.
@@ -2063,8 +2064,9 @@ class NinjaBackend(backends.Backend):
             for rpath_arg in rpath_args:
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
 
-        if target.env:
-            args.extend(rustc.get_env_args(target.env))
+        compiler_name = self.compiler_to_rule_name(rustc)
+        if rustc.needs_env_wrapper:
+            compiler_name = self.get_compiler_rule_name(rustc.get_language(), rustc.for_machine, 'ENV')
 
         proc_macro_dylib_path = None
         if getattr(target, 'rust_crate_type', '') == 'proc-macro':
@@ -2077,12 +2079,26 @@ class NinjaBackend(backends.Backend):
                                      proc_macro_dylib_path,
                                      project_deps)
 
-        compiler_name = self.compiler_to_rule_name(rustc)
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
         if orderdeps:
             element.add_orderdep(orderdeps)
         if deps:
             element.add_dep(deps)
+        if rustc.needs_env_wrapper:
+            env: T.List[str] = []
+            nargs: T.List[str] = []
+            itr = iter(args)
+            for a in itr:
+                if a == '--env-set':
+                    a = next(itr)
+                elif a.startswith('--env-set='):
+                    a = a.split('=', 1)[1]
+                else:
+                    nargs.append(a)
+                    continue
+                env.extend(['--env', a])
+            element.add_item('ENV', env)
+            args = nargs
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
         element.add_item('cratetype', cratetype)
@@ -2369,7 +2385,7 @@ class NinjaBackend(backends.Backend):
                                 depfile=depfile,
                                 extra='restat = 1'))
 
-    def generate_rust_compile_rules(self, compiler):
+    def generate_rust_compile_rules(self, compiler: RustCompiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
         command = compiler.get_exelist() + ['$ARGS', '$in']
         description = 'Compiling Rust source $in'
@@ -2377,6 +2393,12 @@ class NinjaBackend(backends.Backend):
         depstyle = 'gcc'
         self.add_rule(NinjaRule(rule, command, [], description, deps=depstyle,
                                 depfile=depfile))
+        if compiler.needs_env_wrapper:
+            rule = self.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, 'ENV')
+            command = self.environment.get_build_command() + ['--internal', 'exe', '$ENV', '--'] + command
+            description = f'{description} (wrapped to set environment variables)'
+            self.add_rule(NinjaRule(rule, command, [], description, deps=depstyle,
+                                    depfile=depfile))
 
     def generate_swift_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)

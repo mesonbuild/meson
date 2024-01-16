@@ -8,7 +8,7 @@ ct = custom_target(
   command : [gen, '@OUTDIR@'],
 )
 
-exe = executable('main', 'main.rs', ct, env: {'OUT_DIR': meson.current_build_dir()})
+exe = executable('main', 'main.rs', ct, rust_args: ['--env-set', 'OUT_DIR=' + meson.current_build_dir()])
 
 test('main test', exe)
 
