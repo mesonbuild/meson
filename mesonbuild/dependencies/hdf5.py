@@ -122,13 +122,20 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         # and then without -c to get the link arguments.
         args = self.get_config_value(['-show', '-c'], 'args')[1:]
         args += self.get_config_value(['-show', '-noshlib' if self.static else '-shlib'], 'args')[1:]
+        found = False
         for arg in args:
             if arg.startswith(('-I', '-f', '-D')) or arg == '-pthread':
                 self.compile_args.append(arg)
             elif arg.startswith(('-L', '-l', '-Wl')):
                 self.link_args.append(arg)
+                found = True
             elif Path(arg).is_file():
                 self.link_args.append(arg)
+                found = True
+
+        # cmake h5cc is broken
+        if not found:
+            raise DependencyException('HDF5 was built with cmake instead of autotools, and h5cc is broken.')
 
     def _sanitize_version(self, ver: str) -> str:
         v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)
