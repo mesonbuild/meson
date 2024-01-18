@@ -2582,7 +2582,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
             outputs, get_filenames_templates_dict(
                 get_sources_string_names(sources, backend),
                 []))
-        self.build_by_default = build_by_default if build_by_default is not None else install
+        self.build_by_default = build_by_default or False
         self.capture = capture
         self.console = console
         self.depend_files = list(depend_files or [])
