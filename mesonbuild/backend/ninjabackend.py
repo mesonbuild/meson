@@ -1261,7 +1261,7 @@ class NinjaBackend(backends.Backend):
     def generate_install(self):
         self.create_install_data_files()
         elem = self.create_phony_target('install', 'CUSTOM_COMMAND', 'PHONY')
-        elem.add_dep('all')
+        elem.add_dep('all_install')
         elem.add_item('DESC', 'Installing files.')
         elem.add_item('COMMAND', self.environment.get_build_command() + ['install', '--no-rebuild'])
         elem.add_item('pool', 'console')
@@ -3642,6 +3642,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_ending(self) -> None:
         for targ, deps in [
                 ('all', self.get_build_by_default_targets()),
+                ('all_install', self.get_install_targets()),
                 ('meson-test-prereq', self.get_testlike_targets()),
                 ('meson-benchmark-prereq', self.get_testlike_targets(True))]:
             targetlist = []

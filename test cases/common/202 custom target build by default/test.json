@@ -1,5 +1,7 @@
 {
   "installed": [
-
+    { "type": "file", "file": "usr/share/doc/testpkgname/html/a.txt" },
+    { "type": "file", "file": "usr/share/doc/testpkgname/html/b.txt" },
+    { "type": "file", "file": "usr/share/doc/testpkgname/html/c.txt" }
   ]
 }

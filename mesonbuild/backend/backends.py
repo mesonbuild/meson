@@ -1400,6 +1400,15 @@ class Backend:
                 result[name] = b
         return result
 
+    def get_install_targets(self) -> 'T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]':
+        result: 'T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]' = OrderedDict()
+        # Get all install targets, this is distinct from build_by_default targets
+        # as there may be targets that are installed but not built by default
+        for name, b in self.build.get_targets().items():
+            if b.install:
+                result[name] = b
+        return result
+
     def get_testlike_targets(self, benchmark: bool = False) -> T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]:
         result: T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]] = OrderedDict()
         targets = self.build.get_benchmarks() if benchmark else self.build.get_tests()
