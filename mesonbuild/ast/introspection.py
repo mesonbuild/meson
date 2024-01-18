@@ -12,7 +12,7 @@ import typing as T
 
 from .. import compilers, environment, mesonlib, optinterpreter
 from .. import coredata as cdata
-from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
+from ..build import CustomTarget, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject
 from ..mesonlib import MachineChoice, OptionKey
@@ -275,13 +275,18 @@ class IntrospectionInterpreter(AstInterpreter):
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
+        # make sure we dont take a custom target and get subtley wrong results
+        if isinstance(target, CustomTarget):
+            raise InvalidArguments('CustomTarget not supported')
+
         new_target = {
             'name': target.get_basename(),
             'id': target.get_id(),
             'type': target.get_typename(),
             'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
             'subdir': self.subdir,
-            'build_by_default': target.build_by_default,
+            # assume build_by_default is True as this codepath doesnt handle custom_target
+            'build_by_default': kwargs.get('build_by_default', True),
             'installed': target.should_install(),
             'outputs': target.get_outputs(),
             'sources': source_nodes,
