@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2020-2023 Intel Corporation
+# Copyright © 2020-2024 Intel Corporation
 
 from __future__ import annotations
 import itertools
@@ -283,6 +283,7 @@ class RustModule(ExtensionModule):
     def proc_macro(self, state: ModuleState, args: T.Tuple[str, SourcesVarargsType], kwargs: _kwargs.SharedLibrary) -> SharedLibrary:
         kwargs['native'] = True  # type: ignore
         kwargs['rust_crate_type'] = 'proc-macro'  # type: ignore
+        kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
         return target
 

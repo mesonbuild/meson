@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2022-2023 Intel Corporation
+# Copyright © 2022-2024 Intel Corporation
 
 """Interpreter for converting Cargo Toml definitions to Meson AST
 
@@ -418,7 +418,6 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
 
     lib: mparser.BaseNode
     if cargo.lib.proc_macro or crate_type == 'proc-macro':
-        kwargs['rust_args'] = build.array([build.string('--extern'), build.string('proc_macro')])
         lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
     else:
         if crate_type in {'lib', 'rlib', 'staticlib'}:
