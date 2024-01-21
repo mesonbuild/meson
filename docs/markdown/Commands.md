@@ -114,7 +114,7 @@ meson compile foo:shared_library foo:static_library bar
 Produce a coverage html report (if available):
 
 ```
-meson compile coverage-html
+ninja coverage-html
 ```
 
 ### dist

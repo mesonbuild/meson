@@ -174,7 +174,7 @@ Then issue the following commands.
 ```console
 $ meson compile
 $ meson test
-$ meson compile coverage-html (or coverage-xml)
+$ ninja coverage-html (or coverage-xml)
 ```
 
 The coverage report can be found in the meson-logs subdirectory.
