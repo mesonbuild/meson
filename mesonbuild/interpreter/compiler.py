@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
 import collections
@@ -874,14 +874,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
             FeatureNew.single_use('compiler.preprocess with generated sources', '1.1.0', self.subproject,
                                   location=self.current_node)
 
-        tg_counter = next(self.preprocess_uid[self.interpreter.subdir])
+        tg_counter = next(self.preprocess_uid[self.interpreter.state.local.subdir])
         if tg_counter > 0:
             FeatureNew.single_use('compiler.preprocess used multiple times', '1.1.0', self.subproject,
                                   location=self.current_node)
         tg_name = f'preprocessor_{tg_counter}'
         tg = build.CompileTarget(
             tg_name,
-            self.interpreter.subdir,
+            self.interpreter.state.local.subdir,
             self.subproject,
             self.environment,
             sources,
@@ -895,5 +895,5 @@ class CompilerHolder(ObjectHolder['Compiler']):
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to
         # other targets, list outputs, etc.
-        private_dir = os.path.relpath(self.interpreter.backend.get_target_private_dir(tg), self.interpreter.subdir)
+        private_dir = os.path.relpath(self.interpreter.backend.get_target_private_dir(tg), self.interpreter.state.local.subdir)
         return [build.CustomTargetIndex(tg, os.path.join(private_dir, o)) for o in tg.outputs]

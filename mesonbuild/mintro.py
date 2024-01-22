@@ -170,7 +170,7 @@ def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
 
 def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
     tlist: T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]] = []
-    root_dir = Path(intr.source_root)
+    root_dir = Path(intr.state.world.source_root)
 
     def nodes_to_paths(node_list: T.List[BaseNode]) -> T.List[Path]:
         res: T.List[Path] = []
@@ -485,7 +485,7 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.D
     return result
 
 def list_projinfo_from_source(intr: IntrospectionInterpreter) -> T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]:
-    sourcedir = intr.source_root
+    sourcedir = intr.state.world.source_root
     files = find_buildsystem_files_list(sourcedir)
     files = [os.path.normpath(x) for x in files]
 

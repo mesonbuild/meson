@@ -18,6 +18,9 @@ class GlobalState:
 
     """State that is global, it applies to all subprojects."""
 
+    source_root: str
+    """The root of the source directory of the main project."""
+
 
 @dataclasses.dataclass
 class State:

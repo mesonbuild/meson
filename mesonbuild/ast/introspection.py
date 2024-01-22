@@ -101,9 +101,9 @@ class IntrospectionInterpreter(AstInterpreter):
             proj_vers = 'undefined'
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
 
-        optfile = os.path.join(self.source_root, self.subdir, 'meson.options')
+        optfile = os.path.join(self.state.world.source_root, self.subdir, 'meson.options')
         if not os.path.exists(optfile):
-            optfile = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+            optfile = os.path.join(self.state.world.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(optfile):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(optfile)
@@ -123,7 +123,7 @@ class IntrospectionInterpreter(AstInterpreter):
                 self.subproject_dir = spdirname.value
         if not self.is_subproject():
             self.project_data['subprojects'] = []
-            subprojects_dir = os.path.join(self.source_root, self.subproject_dir)
+            subprojects_dir = os.path.join(self.state.world.source_root, self.subproject_dir)
             if os.path.isdir(subprojects_dir):
                 for i in os.listdir(subprojects_dir):
                     if os.path.isdir(os.path.join(subprojects_dir, i)):
@@ -280,7 +280,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'name': target.get_basename(),
             'id': target.get_id(),
             'type': target.get_typename(),
-            'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
+            'defined_in': os.path.normpath(os.path.join(self.state.world.source_root, self.subdir, environment.build_filename)),
             'subdir': self.subdir,
             'build_by_default': target.build_by_default,
             'installed': target.should_install(),

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015 The Meson development team
-# Copyright © 2021-2023 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -456,7 +456,8 @@ class QtBaseModule(ExtensionModule):
             compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
             if isinstance(dep, InternalDependency):
                 for incl in dep.include_directories:
-                    compile_args.extend(f'-I{i}' for i in incl.to_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
+                    compile_args.extend(f'-I{i}' for i in incl.to_string_list(
+                        self.interpreter.state.world.source_root, self.interpreter.environment.build_dir))
 
         output: T.List[build.GeneratedList] = []
 
