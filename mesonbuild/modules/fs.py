@@ -69,7 +69,7 @@ class FSModule(ExtensionModule):
         make an absolute path from a relative path, WITHOUT resolving symlinks
         """
         if isinstance(arg, File):
-            return Path(arg.absolute_path(state.source_root, self.interpreter.environment.get_build_dir()))
+            return Path(arg.absolute_path(state.source_root, state.environment.get_build_dir()))
         return Path(state.source_root) / Path(state.subdir) / Path(arg).expanduser()
 
     def _resolve_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
@@ -228,9 +228,9 @@ class FSModule(ExtensionModule):
         """
         path = args[0]
         encoding = kwargs['encoding']
-        src_dir = self.interpreter.environment.source_dir
-        sub_dir = self.interpreter.subdir
-        build_dir = self.interpreter.environment.get_build_dir()
+        src_dir = state.environment.source_dir
+        sub_dir = state.subdir
+        build_dir = state.environment.get_build_dir()
 
         if isinstance(path, File):
             if path.is_built:
