@@ -415,7 +415,7 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
         if d.found():
             result[d.name] = _create_result(d)
 
-    for varname, holder in backend.interpreter.variables.items():
+    for varname, holder in backend.interpreter.state.local.variables.items():
         if isinstance(holder, ObjectHolder):
             d = holder.held_object
             if isinstance(d, Dependency) and d.found():
