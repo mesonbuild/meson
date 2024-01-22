@@ -284,7 +284,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.environment = self.build.environment
         self.coredata = self.environment.get_coredata()
         self.backend = backend
-        self.summary: T.Dict[str, 'Summary'] = {}
         self.modules: T.Dict[str, NewExtensionModule] = {}
         # Subproject directory is usually the name of the subproject, but can
         # be different for dependencies provided by wrap files.
@@ -986,7 +985,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi.modules = self.modules
             subi.holder_map = self.holder_map
             subi.bound_holder_map = self.bound_holder_map
-            subi.summary = self.summary
 
             subi.subproject_stack = self.subproject_stack + [subp_name]
             current_active = self.state.local.project_name
@@ -1385,9 +1383,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.summary_impl(kwargs['section'], values, kwargs)
 
     def summary_impl(self, section: str, values, kwargs: 'kwtypes.Summary') -> None:
-        if self.subproject not in self.summary:
-            self.summary[self.subproject] = Summary(self.state.local.project_name, self.project_version)
-        self.summary[self.subproject].add_section(
+        if self.subproject not in self.state.world.summary:
+            self.state.world.summary[self.subproject] = Summary(self.state.local.project_name, self.project_version)
+        self.state.world.summary[self.subproject].add_section(
             section, values, kwargs['bool_yn'], kwargs['list_sep'], self.subproject)
 
     def _print_summary(self) -> None:
@@ -1423,8 +1421,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self.summary_impl('User defined options', values, {'bool_yn': False, 'list_sep': None})
         # Print all summaries, main project last.
         mlog.log('')  # newline
-        main_summary = self.summary.pop('', None)
-        for subp_name, summary in sorted(self.summary.items()):
+        main_summary = self.state.world.summary.pop('', None)
+        for subp_name, summary in sorted(self.state.world.summary.items()):
             if self.subprojects[subp_name].found():
                 summary.dump()
         if main_summary:
