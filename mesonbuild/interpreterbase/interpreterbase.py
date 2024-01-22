@@ -40,6 +40,7 @@ import textwrap
 if T.TYPE_CHECKING:
     from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
     from ..interpreter import Interpreter
+    from .state import State
 
     HolderMapType = T.Dict[
         T.Union[
@@ -67,6 +68,9 @@ class InvalidCodeOnVoid(InvalidCode):
 
 
 class InterpreterBase:
+
+    state: State
+
     def __init__(self, source_root: str, subdir: str, subproject: 'SubProject'):
         self.source_root = source_root
         self.funcs: FunctionType = {}
