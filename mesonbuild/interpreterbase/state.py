@@ -28,6 +28,12 @@ class LocalState:
     call.
     """
 
+    argument_depth: int = dataclasses.field(default=0, init=False)
+    """How many nested contexts we've entered.
+
+    Mainly used to track whether assignment is allowed.
+    """
+
 
 @dataclasses.dataclass
 class GlobalState:
