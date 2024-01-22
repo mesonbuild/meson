@@ -80,7 +80,6 @@ class InterpreterBase:
         self.subdir = subdir
         self.root_subdir = subdir
         self.variables: T.Dict[str, InterpreterObject] = {}
-        self.argument_depth = 0
         # This is set to `version_string` when this statement is evaluated:
         # meson.version().compare_version(version_string)
         # If it was part of a if-clause, it is used to temporally override the
@@ -603,7 +602,7 @@ class InterpreterBase:
         assert isinstance(args, mparser.ArgumentNode)
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
-        self.argument_depth += 1
+        self.state.local.argument_depth += 1
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
         if any(x is None for x in reduced_pos):
             raise InvalidArguments('At least one value in the arguments is void.')
@@ -618,7 +617,7 @@ class InterpreterBase:
             if duplicate_key_error and reduced_key in reduced_kw:
                 raise InvalidArguments(duplicate_key_error.format(reduced_key))
             reduced_kw[reduced_key] = reduced_val
-        self.argument_depth -= 1
+        self.state.local.argument_depth -= 1
         final_kw = self.expand_default_kwargs(reduced_kw)
         return reduced_pos, final_kw
 
@@ -638,7 +637,7 @@ class InterpreterBase:
 
     def assignment(self, node: mparser.AssignmentNode) -> None:
         assert isinstance(node, mparser.AssignmentNode)
-        if self.argument_depth != 0:
+        if self.state.local.argument_depth != 0:
             raise InvalidArguments(textwrap.dedent('''\
                 Tried to assign values inside an argument list.
                 To specify a keyword argument, use : instead of =.

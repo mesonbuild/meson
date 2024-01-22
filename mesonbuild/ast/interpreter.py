@@ -236,11 +236,11 @@ class AstInterpreter(InterpreterBase):
             return '__AST_UNKNOWN__'
         arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)
         assert not arguments
-        self.argument_depth += 1
+        self.state.local.argument_depth += 1
         for key, value in kwargs.items():
             if isinstance(key, BaseNode):
                 self.evaluate_statement(key)
-        self.argument_depth -= 1
+        self.state.local.argument_depth -= 1
         return {}
 
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
