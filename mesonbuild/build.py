@@ -1810,9 +1810,15 @@ class Generator(HoldableObject):
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None) -> 'GeneratedList':
+        # TODO: this will be able to go away later
+        if hasattr(state, 'subdir'):
+            subdir = T.cast('ModuleState', state).subdir
+        else:
+            subdir = T.cast('Interpreter', state).state.local.subdir
+
         output = GeneratedList(
             self,
-            state.subdir,
+            subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables())
@@ -1820,14 +1826,14 @@ class Generator(HoldableObject):
         for e in files:
             if isinstance(e, (CustomTarget, CustomTargetIndex)):
                 output.depends.add(e)
-                fs = [File.from_built_file(e.get_subdir(), f) for f in e.get_outputs()]
+                fs = [File.from_built_file(subdir, f) for f in e.get_outputs()]
             elif isinstance(e, GeneratedList):
                 if preserve_path_from:
                     raise InvalidArguments("generator.process: 'preserve_path_from' is not allowed if one input is a 'generated_list'.")
                 output.depends.add(e)
                 fs = [FileInTargetPrivateDir(f) for f in e.get_outputs()]
             elif isinstance(e, str):
-                fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
+                fs = [File.from_source_file(state.environment.source_dir, subdir, e)]
             else:
                 fs = [e]
 

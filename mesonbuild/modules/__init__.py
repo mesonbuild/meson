@@ -36,8 +36,8 @@ class ModuleState:
         self.build_to_src = relpath(interpreter.environment.get_source_dir(),
                                     interpreter.environment.get_build_dir())
         self.subproject = interpreter.subproject
-        self.subdir = interpreter.subdir
-        self.root_subdir = interpreter.root_subdir
+        self.subdir = interpreter.state.local.subdir
+        self.root_subdir = interpreter.state.local.root_subdir
         self.current_lineno = interpreter.state.local.current_node.lineno
         self.environment = interpreter.environment
         self.project_name = interpreter.build.project_name

@@ -71,14 +71,12 @@ class InterpreterBase:
 
     state: State
 
-    def __init__(self, subdir: str):
+    def __init__(self) -> None:
         self.funcs: FunctionType = {}
         self.builtin: T.Dict[str, InterpreterObject] = {}
         # Holder maps store a mapping from an HoldableObject to a class ObjectHolder
         self.holder_map: HolderMapType = {}
         self.bound_holder_map: HolderMapType = {}
-        self.subdir = subdir
-        self.root_subdir = subdir
         self.variables: T.Dict[str, InterpreterObject] = {}
 
     @property
@@ -104,7 +102,7 @@ class InterpreterBase:
             raise InvalidCode.from_node(f'Build file failed to parse as unicode: {e}', node=node)
 
     def load_root_meson_file(self) -> None:
-        mesonfile = os.path.join(self.state.world.source_root, self.subdir, environment.build_filename)
+        mesonfile = os.path.join(self.state.world.source_root, self.state.local.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments(f'Missing Meson file in {mesonfile}')
         code = self.read_buildfile(mesonfile, mesonfile)
@@ -192,7 +190,7 @@ class InterpreterBase:
                     # NOTE: self.state.local.current_node is continually updated during processing
                     e.lineno = self.state.local.current_node.lineno                                               # type: ignore
                     e.colno = self.state.local.current_node.colno                                                 # type: ignore
-                    e.file = os.path.join(self.state.world.source_root, self.subdir, environment.build_filename)  # type: ignore
+                    e.file = os.path.join(self.state.world.source_root, self.state.local.subdir, environment.build_filename)  # type: ignore
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
