@@ -88,8 +88,8 @@ _V = T.TypeVar('_V')
 
 class AstInterpreter(InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
-        self.state = State(LocalState(), GlobalState())
-        super().__init__(source_root, subdir, subproject)
+        self.state = State(LocalState(), GlobalState(source_root))
+        super().__init__(subdir, subproject)
         self.visitors = visitors if visitors is not None else []
         self.processed_buildfiles: T.Set[str] = set()
         self.assignments: T.Dict[str, BaseNode] = {}
@@ -178,9 +178,9 @@ class AstInterpreter(InterpreterBase):
 
         prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
-        absdir = os.path.join(self.source_root, subdir)
+        absdir = os.path.join(self.state.world.source_root, subdir)
         buildfilename = os.path.join(subdir, environment.build_filename)
-        absname = os.path.join(self.source_root, buildfilename)
+        absname = os.path.join(self.state.world.source_root, buildfilename)
         symlinkless_dir = os.path.realpath(absdir)
         build_file = os.path.join(symlinkless_dir, 'meson.build')
         if build_file in self.processed_buildfiles:
