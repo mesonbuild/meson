@@ -280,7 +280,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             world or GlobalInterpreterState(_build.environment.get_source_dir())
         )
         super().__init__()
-        self.active_projectname = ''
         self.build = _build
         self.environment = self.build.environment
         self.coredata = self.environment.get_coredata()
@@ -990,7 +989,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi.summary = self.summary
 
             subi.subproject_stack = self.subproject_stack + [subp_name]
-            current_active = self.active_projectname
+            current_active = self.state.local.project_name
             with mlog.nested_warnings():
                 subi.run()
                 subi_warnings = mlog.get_warning_count()
@@ -1003,7 +1002,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             wanted = kwargs['version']
             if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                 raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
-        self.active_projectname = current_active
+        self.state.local.project_name = current_active
         self.subprojects.update(subi.subprojects)
         self.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
                                                        callstack=self.subproject_stack)
@@ -1238,7 +1237,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if not self.is_subproject():
             self.build.project_name = proj_name
-        self.active_projectname = proj_name
+        self.state.local.project_name = proj_name
 
         version = kwargs['version']
         if isinstance(version, mesonlib.File):
@@ -1387,7 +1386,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def summary_impl(self, section: str, values, kwargs: 'kwtypes.Summary') -> None:
         if self.subproject not in self.summary:
-            self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
+            self.summary[self.subproject] = Summary(self.state.local.project_name, self.project_version)
         self.summary[self.subproject].add_section(
             section, values, kwargs['bool_yn'], kwargs['list_sep'], self.subproject)
 
@@ -2484,7 +2483,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         install_dir = kwargs['install_dir']
         if not install_dir:
-            subdir = self.active_projectname
+            subdir = self.state.local.project_name
             install_dir = P_OBJ.OptionString(os.path.join(self.environment.get_datadir(), subdir), os.path.join('{datadir}', subdir))
             if self.is_subproject():
                 FeatureNew.single_use('install_data() without install_dir inside of a subproject', '1.3.0', self.subproject,
