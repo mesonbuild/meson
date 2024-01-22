@@ -1662,13 +1662,16 @@ class InternalTests(unittest.TestCase):
                     actual = mesonbuild.environment.detect_cpu({})
                     self.assertEqual(actual, expected)
 
+    @mock.patch('mesonbuild.interpreter.Interpreter.load_root_meson_file', mock.Mock(return_value=None))
+    @mock.patch('mesonbuild.interpreter.Interpreter.sanity_check_ast', mock.Mock(return_value=None))
+    @mock.patch('mesonbuild.interpreter.Interpreter.parse_project', mock.Mock(return_value=None))
     def test_interpreter_unpicklable(self) -> None:
         build = mock.Mock()
         build.environment = mock.Mock()
         build.environment.get_source_dir = mock.Mock(return_value='')
         with mock.patch('mesonbuild.interpreter.Interpreter._redetect_machines', mock.Mock()), \
                 self.assertRaises(mesonbuild.mesonlib.MesonBugException):
-            i = mesonbuild.interpreter.Interpreter(build, mock=True)
+            i = mesonbuild.interpreter.Interpreter(build)
             pickle.dumps(i)
 
     def test_major_versions_differ(self) -> None:
