@@ -12,7 +12,11 @@ from ..interpreterbase.state import State, LocalState, GlobalState
 @dataclasses.dataclass
 class LocalInterpreterState(LocalState):
 
-    pass
+    project_name: str = dataclasses.field(default='', init=False)
+    """A machine readable name of the project currently running.
+
+    :attr:`self.subproject` represents a human readable name.
+    """
 
 
 @dataclasses.dataclass
