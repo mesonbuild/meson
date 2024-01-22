@@ -275,8 +275,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                 user_defined_options: T.Optional[coredata.SharedCMDOptions] = None,
                 world: T.Optional[GlobalInterpreterState] = None,
             ) -> None:
-        self.state = InterpreterState(LocalInterpreterState(), world or GlobalInterpreterState())
-        super().__init__(_build.environment.get_source_dir(), subdir, subproject)
+        self.state = InterpreterState(
+            LocalInterpreterState(),
+            world or GlobalInterpreterState(_build.environment.get_source_dir())
+        )
+        super().__init__(subdir, subproject)
         self.active_projectname = ''
         self.build = _build
         self.environment = self.build.environment
@@ -1185,8 +1188,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Load "meson.options" before "meson_options.txt", and produce a warning if
         # it is being used with an old version. I have added check that if both
         # exist the warning isn't raised
-        option_file = os.path.join(self.source_root, self.subdir, 'meson.options')
-        old_option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+        option_file = os.path.join(self.state.world.source_root, self.subdir, 'meson.options')
+        old_option_file = os.path.join(self.state.world.source_root, self.subdir, 'meson_options.txt')
 
         if os.path.exists(option_file):
             if os.path.exists(old_option_file):
@@ -3172,7 +3175,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Target name must not consist only of whitespace.')
         if has_path_sep(name):
             pathseg = os.path.join(self.subdir, os.path.split(name)[0])
-            if os.path.exists(os.path.join(self.source_root, pathseg)):
+            if os.path.exists(os.path.join(self.state.world.source_root, pathseg)):
                 raise InvalidArguments(textwrap.dedent(f'''\
                     Target "{name}" has a path segment pointing to directory "{pathseg}". This is an error.
                     To define a target that builds in that directory you must define it
@@ -3348,7 +3351,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         objs = kwargs['objects']
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
         kwargs['extra_files'] = self.source_strings_to_files(kwargs['extra_files'])
-        self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
+        self.check_sources_exist(os.path.join(self.state.world.source_root, self.subdir), sources)
         if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
