@@ -5,8 +5,12 @@
 
 from __future__ import annotations
 import dataclasses
+import typing as T
 
 from ..interpreterbase.state import State, LocalState, GlobalState
+
+if T.TYPE_CHECKING:
+    from .interpreter import Summary
 
 
 @dataclasses.dataclass
@@ -22,7 +26,7 @@ class LocalInterpreterState(LocalState):
 @dataclasses.dataclass
 class GlobalInterpreterState(GlobalState):
 
-    pass
+    summary: T.Dict[str, Summary] = dataclasses.field(default_factory=dict, init=False)
 
 
 @dataclasses.dataclass
