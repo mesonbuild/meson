@@ -43,6 +43,14 @@ class GlobalState:
     source_root: str
     """The root of the source directory of the main project."""
 
+    tmp_meson_version: T.Optional[str] = dataclasses.field(default=None, init=False)
+    """This is set to `version_string` when this statement is evaluated:
+    meson.version().compare_version(version_string)
+
+    If it was part of an if-clause, it is used to temporally override the current
+    meson version target within that if-block.
+    """
+
 
 @dataclasses.dataclass
 class State:

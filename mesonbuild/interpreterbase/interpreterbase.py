@@ -80,11 +80,6 @@ class InterpreterBase:
         self.subdir = subdir
         self.root_subdir = subdir
         self.variables: T.Dict[str, InterpreterObject] = {}
-        # This is set to `version_string` when this statement is evaluated:
-        # meson.version().compare_version(version_string)
-        # If it was part of a if-clause, it is used to temporally override the
-        # current meson version target within that if-block.
-        self.tmp_meson_version: T.Optional[str] = None
 
     @property
     def subproject(self) -> SubProject:
@@ -294,9 +289,9 @@ class InterpreterBase:
     def evaluate_if(self, node: mparser.IfClauseNode) -> T.Optional[Disabler]:
         assert isinstance(node, mparser.IfClauseNode)
         for i in node.ifs:
-            # Reset self.tmp_meson_version to know if it gets set during this
+            # Reset self.state.world.tmp_meson_version to know if it gets set during this
             # statement evaluation.
-            self.tmp_meson_version = None
+            self.state.world.tmp_meson_version = None
             result = self.evaluate_statement(i.condition)
             if result is None:
                 raise InvalidCodeOnVoid('if')
@@ -309,8 +304,8 @@ class InterpreterBase:
                 raise InvalidCode(f'If clause {result!r} does not evaluate to true or false.')
             if res:
                 prev_meson_version = mesonlib.project_meson_versions[self.subproject]
-                if self.tmp_meson_version:
-                    mesonlib.project_meson_versions[self.subproject] = self.tmp_meson_version
+                if self.state.world.tmp_meson_version:
+                    mesonlib.project_meson_versions[self.subproject] = self.state.world.tmp_meson_version
                 try:
                     self.evaluate_codeblock(i.block)
                 finally:

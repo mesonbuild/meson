@@ -207,7 +207,7 @@ class MesonVersionStringHolder(StringHolder):
     @noKwargs
     @typed_pos_args('str.version_compare', str)
     def version_compare_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> bool:
-        self.interpreter.tmp_meson_version = args[0]
+        self.interpreter.state.world.tmp_meson_version = args[0]
         return version_compare(self.held_object, args[0])
 
 # These special subclasses of string exist to cover the case where a dependency
