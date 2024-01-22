@@ -21,6 +21,7 @@ from ..interpreterbase import (
     Disabler,
     default_resolve_key,
 )
+from ..interpreterbase.state import State, LocalState, GlobalState
 
 from ..interpreter import (
     StringHolder,
@@ -87,6 +88,7 @@ _V = T.TypeVar('_V')
 
 class AstInterpreter(InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
+        self.state = State(LocalState(), GlobalState())
         super().__init__(source_root, subdir, subproject)
         self.visitors = visitors if visitors is not None else []
         self.processed_buildfiles: T.Set[str] = set()

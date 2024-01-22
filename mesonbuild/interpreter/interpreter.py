@@ -35,6 +35,7 @@ from ..optinterpreter import optname_regex
 
 from . import interpreterobjects as OBJ
 from . import compiler as compilerOBJ
+from .state import InterpreterState, LocalInterpreterState, GlobalInterpreterState
 from .mesonmain import MesonMain
 from .dependencyfallbacks import DependencyFallbacksHolder
 from .interpreterobjects import (
@@ -258,6 +259,8 @@ implicit_check_false_warning = """You should add the boolean check kwarg to the 
          See also: https://github.com/mesonbuild/meson/issues/9300"""
 class Interpreter(InterpreterBase, HoldableObject):
 
+    state: InterpreterState
+
     def __init__(
                 self,
                 _build: build.Build,
@@ -270,7 +273,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 is_translated: bool = False,
                 relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
                 user_defined_options: T.Optional[coredata.SharedCMDOptions] = None,
+                world: T.Optional[GlobalInterpreterState] = None,
             ) -> None:
+        self.state = InterpreterState(LocalInterpreterState(), world or GlobalInterpreterState())
         super().__init__(_build.environment.get_source_dir(), subdir, subproject)
         self.active_projectname = ''
         self.build = _build
@@ -970,7 +975,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
                                default_options, ast=ast, is_translated=(ast is not None),
                                relaxations=relaxations,
-                               user_defined_options=self.user_defined_options)
+                               user_defined_options=self.user_defined_options,
+                               world=self.state.world)
             # Those lists are shared by all interpreters. That means that
             # even if the subproject fails, any modification that the subproject
             # made to those lists will affect the parent project.
