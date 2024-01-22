@@ -361,7 +361,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                     identifier = dependencies.get_dep_identifier(name, kwargs)
                     if identifier not in self.build.dependency_overrides[for_machine]:
                         self.build.dependency_overrides[for_machine][identifier] = \
-                            build.DependencyOverride(dep, self.interpreter.current_node, explicit=False)
+                            build.DependencyOverride(dep, self.interpreter.state.local.current_node, explicit=False)
                 return dep
             elif required and (dep or i == last):
                 # This was the last candidate or the dependency has been cached

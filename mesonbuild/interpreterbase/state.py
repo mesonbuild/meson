@@ -7,6 +7,8 @@ from __future__ import annotations
 import dataclasses
 import typing as T
 
+from .. mparser import BaseNode
+
 if T.TYPE_CHECKING:
     from . import SubProject
 
@@ -16,6 +18,15 @@ class LocalState:
     """State that is local to a single subproject."""
 
     subproject: SubProject
+
+    current_node: BaseNode = dataclasses.field(
+        default_factory=lambda: BaseNode(-1, -1, 'Sentinel Node'),
+        init=False)
+    """Current node set during a function call.
+
+    This can be used as location when printing a warning message during a method
+    call.
+    """
 
 
 @dataclasses.dataclass
