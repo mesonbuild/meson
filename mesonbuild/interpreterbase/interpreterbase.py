@@ -71,7 +71,7 @@ class InterpreterBase:
 
     state: State
 
-    def __init__(self, subdir: str, subproject: 'SubProject'):
+    def __init__(self, subdir: str):
         self.funcs: FunctionType = {}
         self.builtin: T.Dict[str, InterpreterObject] = {}
         # Holder maps store a mapping from an HoldableObject to a class ObjectHolder
@@ -79,7 +79,6 @@ class InterpreterBase:
         self.bound_holder_map: HolderMapType = {}
         self.subdir = subdir
         self.root_subdir = subdir
-        self.subproject = subproject
         self.variables: T.Dict[str, InterpreterObject] = {}
         self.argument_depth = 0
         self.current_lineno = -1
@@ -91,6 +90,11 @@ class InterpreterBase:
         # If it was part of a if-clause, it is used to temporally override the
         # current meson version target within that if-block.
         self.tmp_meson_version: T.Optional[str] = None
+
+    @property
+    def subproject(self) -> SubProject:
+        # Needed to implement interface
+        return self.state.local.subproject
 
     def handle_meson_version_from_ast(self, strict: bool = True) -> None:
         # do nothing in an AST interpreter
