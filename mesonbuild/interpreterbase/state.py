@@ -10,7 +10,7 @@ import typing as T
 from .. mparser import BaseNode
 
 if T.TYPE_CHECKING:
-    from . import SubProject
+    from . import InterpreterObject, SubProject
 
 @dataclasses.dataclass
 class LocalState:
@@ -35,6 +35,10 @@ class LocalState:
 
     Mainly used to track whether assignment is allowed.
     """
+
+    variables: T.Dict[str, InterpreterObject] = dataclasses.field(
+        default_factory=dict, init=False)
+    """All variables assigned during a subproject."""
 
     def __post_init__(self) -> None:
         self.root_subdir = self.subdir
