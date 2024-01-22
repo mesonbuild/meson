@@ -5,6 +5,7 @@ import re
 import unittest
 from itertools import chain
 from pathlib import Path
+from unittest import mock
 
 import mesonbuild.mlog
 import mesonbuild.depfile
@@ -208,7 +209,10 @@ class DataTests(unittest.TestCase):
             name = name.replace('_', '-')
             self.assertIn(name, html)
 
-    @unittest.mock.patch.dict(os.environ)
+    @mock.patch.dict(os.environ)
+    @mock.patch.object(Interpreter, 'load_root_meson_file', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'sanity_check_ast', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'parse_project', mock.Mock(return_value=None))
     def test_vim_syntax_highlighting(self):
         '''
         Ensure that vim syntax highlighting files were updated for new
@@ -217,13 +221,16 @@ class DataTests(unittest.TestCase):
         # Disable unit test specific syntax
         del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
-        interp = Interpreter(FakeBuild(env), mock=True)
+        interp = Interpreter(FakeBuild(env))
         with open('data/syntax-highlighting/vim/syntax/meson.vim', encoding='utf-8') as f:
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
 
-    @unittest.mock.patch.dict(os.environ)
+    @mock.patch.dict(os.environ)
+    @mock.patch.object(Interpreter, 'load_root_meson_file', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'sanity_check_ast', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'parse_project', mock.Mock(return_value=None))
     def test_all_functions_defined_in_ast_interpreter(self):
         '''
         Ensure that the all functions defined in the Interpreter are also defined
@@ -232,6 +239,6 @@ class DataTests(unittest.TestCase):
         # Disable unit test specific syntax
         del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
-        interp = Interpreter(FakeBuild(env), mock=True)
+        interp = Interpreter(FakeBuild(env))
         astint = AstInterpreter('.', '', '')
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))

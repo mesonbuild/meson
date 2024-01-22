@@ -266,7 +266,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
                 default_project_options: T.Optional[T.Dict[OptionKey, str]] = None,
-                mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 is_translated: bool = False,
                 relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
@@ -285,12 +284,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
         self.relaxations = relaxations or set()
-        if not mock and ast is None:
+        if ast is None:
             self.load_root_meson_file()
-            self.sanity_check_ast()
-        elif ast is not None:
+        else:
             self.ast = ast
-            self.sanity_check_ast()
+        self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self.build, self)})
         self.generators: T.List[build.Generator] = []
         self.processed_buildfiles: T.Set[str] = set()
@@ -319,8 +317,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         build_filename = os.path.join(self.subdir, environment.build_filename)
         if not is_translated:
             self.build_def_files.add(build_filename)
-        if not mock:
-            self.parse_project()
+        self.parse_project()
         self._redetect_machines()
 
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
