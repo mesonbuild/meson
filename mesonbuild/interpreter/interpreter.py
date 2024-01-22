@@ -26,7 +26,7 @@ from ..depfile import DepFile
 from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, noArgsFlattening, noSecondLevelHolderResolving, unholder_return
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
-from ..interpreterbase import Disabler, disablerIfNotFound
+from ..interpreterbase import Disabler, disablerIfNotFound, SubProject
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..interpreterbase import stringifyUserArguments
@@ -265,7 +265,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self,
                 _build: build.Build,
                 backend: T.Optional[Backend] = None,
-                subproject: str = '',
+                subproject: SubProject = SubProject(''),
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
                 default_project_options: T.Optional[T.Dict[OptionKey, str]] = None,
@@ -276,10 +276,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 world: T.Optional[GlobalInterpreterState] = None,
             ) -> None:
         self.state = InterpreterState(
-            LocalInterpreterState(),
+            LocalInterpreterState(subproject),
             world or GlobalInterpreterState(_build.environment.get_source_dir())
         )
-        super().__init__(subdir, subproject)
+        super().__init__(subdir)
         self.active_projectname = ''
         self.build = _build
         self.environment = self.build.environment

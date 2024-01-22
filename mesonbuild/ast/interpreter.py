@@ -88,8 +88,8 @@ _V = T.TypeVar('_V')
 
 class AstInterpreter(InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
-        self.state = State(LocalState(), GlobalState(source_root))
-        super().__init__(subdir, subproject)
+        self.state = State(LocalState(subproject), GlobalState(source_root))
+        super().__init__(subdir)
         self.visitors = visitors if visitors is not None else []
         self.processed_buildfiles: T.Set[str] = set()
         self.assignments: T.Dict[str, BaseNode] = {}
