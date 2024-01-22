@@ -88,8 +88,8 @@ _V = T.TypeVar('_V')
 
 class AstInterpreter(InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
-        self.state = State(LocalState(subproject), GlobalState(source_root))
-        super().__init__(subdir)
+        self.state = State(LocalState(subproject, subdir), GlobalState(source_root))
+        super().__init__()
         self.visitors = visitors if visitors is not None else []
         self.processed_buildfiles: T.Set[str] = set()
         self.assignments: T.Dict[str, BaseNode] = {}
@@ -176,7 +176,7 @@ class AstInterpreter(InterpreterBase):
             sys.stderr.write(f'Unable to evaluate subdir({args}) in AstInterpreter --> Skipping\n')
             return
 
-        prev_subdir = self.subdir
+        prev_subdir = self.state.local.subdir
         subdir = os.path.join(prev_subdir, args[0])
         absdir = os.path.join(self.state.world.source_root, subdir)
         buildfilename = os.path.join(subdir, environment.build_filename)
@@ -198,11 +198,11 @@ class AstInterpreter(InterpreterBase):
             me.file = absname
             raise me
 
-        self.subdir = subdir
+        self.state.local.subdir = subdir
         for i in self.visitors:
             codeblock.accept(i)
         self.evaluate_codeblock(codeblock)
-        self.subdir = prev_subdir
+        self.state.local.subdir = prev_subdir
 
     def method_call(self, node: BaseNode) -> bool:
         return True

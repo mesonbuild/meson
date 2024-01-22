@@ -101,9 +101,9 @@ class IntrospectionInterpreter(AstInterpreter):
             proj_vers = 'undefined'
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
 
-        optfile = os.path.join(self.state.world.source_root, self.subdir, 'meson.options')
+        optfile = os.path.join(self.state.world.source_root, self.state.local.subdir, 'meson.options')
         if not os.path.exists(optfile):
-            optfile = os.path.join(self.state.world.source_root, self.subdir, 'meson_options.txt')
+            optfile = os.path.join(self.state.world.source_root, self.state.local.subdir, 'meson_options.txt')
         if os.path.exists(optfile):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(optfile)
@@ -272,7 +272,7 @@ class IntrospectionInterpreter(AstInterpreter):
         empty_sources: T.List[T.Any] = []
         # Passing the unresolved sources list causes errors
         kwargs_reduced['_allow_no_sources'] = True
-        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, None, objects,
+        target = targetclass(name, self.state.local.subdir, self.subproject, for_machine, empty_sources, None, objects,
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
@@ -280,8 +280,8 @@ class IntrospectionInterpreter(AstInterpreter):
             'name': target.get_basename(),
             'id': target.get_id(),
             'type': target.get_typename(),
-            'defined_in': os.path.normpath(os.path.join(self.state.world.source_root, self.subdir, environment.build_filename)),
-            'subdir': self.subdir,
+            'defined_in': os.path.normpath(os.path.join(self.state.world.source_root, self.state.local.subdir, environment.build_filename)),
+            'subdir': self.state.local.subdir,
             'build_by_default': target.build_by_default,
             'installed': target.should_install(),
             'outputs': target.get_outputs(),
