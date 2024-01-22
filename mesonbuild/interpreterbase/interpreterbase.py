@@ -77,7 +77,6 @@ class InterpreterBase:
         # Holder maps store a mapping from an HoldableObject to a class ObjectHolder
         self.holder_map: HolderMapType = {}
         self.bound_holder_map: HolderMapType = {}
-        self.variables: T.Dict[str, InterpreterObject] = {}
 
     @property
     def subproject(self) -> SubProject:
@@ -439,7 +438,7 @@ class InterpreterBase:
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:
-                val = _unholder(self.variables[var])
+                val = _unholder(self.state.local.variables[var])
                 if isinstance(val, (list, dict)):
                     FeatureNew.single_use('List or dictionary in f-string', '1.3.0', self.subproject, location=self.state.local.current_node)
                 try:
@@ -659,13 +658,13 @@ class InterpreterBase:
             raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
             raise InvalidCode(f'Tried to overwrite internal variable "{varname}"')
-        self.variables[varname] = variable
+        self.state.local.variables[varname] = variable
 
     def get_variable(self, varname: str) -> InterpreterObject:
         if varname in self.builtin:
             return self.builtin[varname]
-        if varname in self.variables:
-            return self.variables[varname]
+        if varname in self.state.local.variables:
+            return self.state.local.variables[varname]
         raise InvalidCode(f'Unknown variable "{varname}".')
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:

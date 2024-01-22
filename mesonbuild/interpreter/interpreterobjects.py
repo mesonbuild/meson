@@ -836,7 +836,7 @@ class SubprojectHolder(MesonInterpreterObject):
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable first argument must be a string.')
         try:
-            return self.held_object.variables[varname]
+            return self.held_object.state.local.variables[varname]
         except KeyError:
             pass
 
