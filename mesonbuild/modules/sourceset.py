@@ -84,9 +84,6 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
     def __init__(self, interpreter: Interpreter):
         super().__init__()
         self.rules: T.List[SourceSetRule] = []
-        self.subproject = interpreter.subproject
-        self.environment = interpreter.environment
-        self.subdir = interpreter.subdir
         self.frozen = False
         self.methods.update({
             'add': self.add_method,
