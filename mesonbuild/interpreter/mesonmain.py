@@ -404,7 +404,7 @@ class MesonMain(MesonInterpreterObject):
             location = mlog.get_error_location_string(override.node.filename, override.node.lineno)
             raise InterpreterException(m.format(name, location))
         self.build.dependency_overrides[for_machine][identifier] = \
-            build.DependencyOverride(dep, self.interpreter.current_node)
+            build.DependencyOverride(dep, self.interpreter.state.local.current_node)
 
     @noPosargs
     @noKwargs

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2012-2024 The Meson Developers
+# Copyright © 2017-2024 Intel Corporation
+
 from __future__ import annotations
 import os
 import shlex
@@ -386,11 +390,11 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
         if not isinstance(args[1], bool):
             mlog.deprecation('configuration_data.set10 with number. The `set10` '
                              'method should only be used with booleans',
-                             location=self.interpreter.current_node)
+                             location=self.interpreter.state.local.current_node)
             if args[1] < 0:
                 mlog.warning('Passing a number that is less than 0 may not have the intended result, '
                              'as meson will treat all non-zero values as true.',
-                             location=self.interpreter.current_node)
+                             location=self.interpreter.state.local.current_node)
         self.held_object.values[args[0]] = (int(args[1]), kwargs['description'])
 
     @typed_pos_args('configuration_data.has', (str, int, bool))
@@ -556,6 +560,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
             FeatureNew.single_use('dependency.get_variable keyword argument "pkgconfig_define" with more than one pair',
                                   '1.3.0', self.subproject, 'In previous versions, this silently returned a malformed value.',
                                   self.current_node)
+
         return self.held_object.get_variable(
             cmake=kwargs['cmake'] or default_varname,
             pkgconfig=kwargs['pkgconfig'] or default_varname,

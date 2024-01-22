@@ -593,7 +593,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 except KeyError:
                     continue
                 if len(di) == 1:
-                    FeatureNew.single_use('stdlib without variable name', '0.56.0', self.subproject, location=self.current_node)
+                    FeatureNew.single_use('stdlib without variable name', '0.56.0', self.subproject, location=self.state.local.current_node)
                 kwargs = {'native': for_machine is MachineChoice.BUILD,
                           }
                 name = l + '_stdlib'
@@ -833,7 +833,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif isinstance(a, ExternalProgram):
                 expanded_args.append(a.get_path())
             elif isinstance(a, compilers.Compiler):
-                FeatureNew.single_use('Compiler object as a variadic argument to `run_command`', '0.61.0', self.subproject, location=self.current_node)
+                FeatureNew.single_use('Compiler object as a variadic argument to `run_command`', '0.61.0', self.subproject, location=self.state.local.current_node)
                 prog = ExternalProgram(a.exelist[0], silent=True)
                 if not prog.found():
                     raise InterpreterException(f'Program {cmd!r} not found or not executable')
@@ -898,7 +898,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Subproject name must not be an absolute path.')
         if has_path_sep(subp_name):
             mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.',
-                         location=self.current_node)
+                         location=self.state.local.current_node)
         if subp_name in self.subproject_stack:
             fullstack = self.subproject_stack + [subp_name]
             incpath = ' => '.join(fullstack)
@@ -1047,7 +1047,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              default_options: T.Dict[OptionKey, str],
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
-        FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
+        FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.state.local.current_node)
         with mlog.nested(subp_name):
             ast, options = cargo.interpret(subp_name, subdir, self.environment)
             self.coredata.update_project_options(options, subp_name)
@@ -1084,7 +1084,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                  'to parent option of type {3!r}, ignoring parent value. '
                                  'Use -D{2}:{0}=value to set the value for this option manually'
                                  '.'.format(optname, opt_type, self.subproject, popt_type),
-                                 location=self.current_node)
+                                 location=self.state.local.current_node)
             return opt
         except KeyError:
             pass
@@ -1511,10 +1511,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         # compilers we don't add anything for cython here, and instead do it
         # When the first cython target using a particular language is used.
         if 'vala' in langs and 'c' not in langs:
-            FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject, location=self.current_node)
+            FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject, location=self.state.local.current_node)
             args.append('c')
         if 'nasm' in langs:
-            FeatureNew.single_use('Adding NASM language', '0.64.0', self.subproject, location=self.current_node)
+            FeatureNew.single_use('Adding NASM language', '0.64.0', self.subproject, location=self.state.local.current_node)
 
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
@@ -2454,7 +2454,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _warn_kwarg_install_mode_sticky(self, mode: FileMode) -> FileMode:
         if mode.perms > 0 and mode.perms & stat.S_ISVTX:
             mlog.deprecation('install_mode with the sticky bit on a file does not do anything and will '
-                             'be ignored since Meson 0.64.0', location=self.current_node)
+                             'be ignored since Meson 0.64.0', location=self.state.local.current_node)
             perms = stat.filemode(mode.perms - stat.S_ISVTX)[1:]
             return FileMode(perms, mode.owner, mode.group)
         else:
@@ -2767,7 +2767,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             for i in prospectives:
                 if isinstance(i, str):
                     FeatureNew.single_use('include_directories kwarg of type string', '0.50.0', self.subproject,
-                                          f'Use include_directories({i!r}) instead', location=self.current_node)
+                                          f'Use include_directories({i!r}) instead', location=self.state.local.current_node)
                     break
 
         result: T.List[build.IncludeDirs] = []
@@ -2823,7 +2823,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 try:
                     self.validate_within_subproject(self.subdir, a)
                 except InterpreterException:
-                    mlog.warning('include_directories sandbox violation!', location=self.current_node)
+                    mlog.warning('include_directories sandbox violation!', location=self.state.local.current_node)
                     print(textwrap.dedent(f'''\
                         The project is trying to access the directory {a!r} which belongs to a different
                         subproject. This is a problem as it hardcodes the relative paths of these two projects.
@@ -2942,23 +2942,23 @@ class Interpreter(InterpreterBase, HoldableObject):
         for arg in args:
             if arg in warnargs:
                 mlog.warning(f'Consider using the built-in warning_level option instead of using "{arg}".',
-                             location=self.current_node)
+                             location=self.state.local.current_node)
             elif arg in optargs:
                 mlog.warning(f'Consider using the built-in optimization level instead of using "{arg}".',
-                             location=self.current_node)
+                             location=self.state.local.current_node)
             elif arg == '-Werror':
                 mlog.warning(f'Consider using the built-in werror option instead of using "{arg}".',
-                             location=self.current_node)
+                             location=self.state.local.current_node)
             elif arg == '-g':
                 mlog.warning(f'Consider using the built-in debug option instead of using "{arg}".',
-                             location=self.current_node)
+                             location=self.state.local.current_node)
             # Don't catch things like `-fsanitize-recover`
             elif arg in {'-fsanitize', '/fsanitize'} or arg.startswith(('-fsanitize=', '/fsanitize=')):
                 mlog.warning(f'Consider using the built-in option for sanitizers instead of using "{arg}".',
-                             location=self.current_node)
+                             location=self.state.local.current_node)
             elif arg.startswith('-std=') or arg.startswith('/std:'):
                 mlog.warning(f'Consider using the built-in option for language standard version instead of using "{arg}".',
-                             location=self.current_node)
+                             location=self.state.local.current_node)
 
     def _add_global_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
                               args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
@@ -3051,7 +3051,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     Trying to use {value} sanitizer on Clang with b_lundef.
                     This will probably not work.
                     Try setting b_lundef to false instead.'''),
-                location=self.current_node)  # noqa: E128
+                location=self.state.local.current_node)  # noqa: E128
 
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing
@@ -3139,7 +3139,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if not strict and s.startswith(self.environment.get_build_dir()):
                     results.append(s)
                     mlog.warning(f'Source item {s!r} cannot be converted to File object, because it is a generated file. '
-                                 'This will become a hard error in the future.', location=self.current_node)
+                                 'This will become a hard error in the future.', location=self.state.local.current_node)
                 else:
                     self.validate_within_subproject(self.subdir, s)
                     results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
@@ -3193,7 +3193,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         if isinstance(tobj, build.Executable) and namedir in self.build.targetnames:
             FeatureNew.single_use(f'multiple executables with the same name, "{tobj.name}", but different suffixes in the same directory',
-                                  '1.3.0', self.subproject, location=self.current_node)
+                                  '1.3.0', self.subproject, location=self.state.local.current_node)
 
         if isinstance(tobj, build.BuildTarget):
             self.add_languages(tobj.missing_languages, True, tobj.for_machine)
@@ -3451,7 +3451,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     # path declarations.
                     if os.path.normpath(i).startswith(self.environment.get_source_dir()):
                         mlog.warning('''Building a path to the source dir is not supported. Use a relative path instead.
-This will become a hard error in the future.''', location=self.current_node)
+This will become a hard error in the future.''', location=self.state.local.current_node)
                         i = os.path.relpath(i, os.path.join(self.environment.get_source_dir(), self.subdir))
                         i = self.build_incdir_object([i])
                 cleaned_items.append(i)
