@@ -82,9 +82,6 @@ class InterpreterBase:
         self.variables: T.Dict[str, InterpreterObject] = {}
         self.argument_depth = 0
         self.current_lineno = -1
-        # Current node set during a function call. This can be used as location
-        # when printing a warning message during a method call.
-        self.current_node: mparser.BaseNode = None
         # This is set to `version_string` when this statement is evaluated:
         # meson.version().compare_version(version_string)
         # If it was part of a if-clause, it is used to temporally override the
@@ -95,6 +92,11 @@ class InterpreterBase:
     def subproject(self) -> SubProject:
         # Needed to implement interface
         return self.state.local.subproject
+
+    @property
+    def current_node(self) -> mparser.BaseNode:
+        # Needed to implement interface
+        return self.state.local.current_node
 
     def handle_meson_version_from_ast(self, strict: bool = True) -> None:
         # do nothing in an AST interpreter
@@ -195,15 +197,15 @@ class InterpreterBase:
             except Exception as e:
                 if getattr(e, 'lineno', None) is None:
                     # We are doing the equivalent to setattr here and mypy does not like it
-                    # NOTE: self.current_node is continually updated during processing
-                    e.lineno = self.current_node.lineno                                               # type: ignore
-                    e.colno = self.current_node.colno                                                 # type: ignore
+                    # NOTE: self.state.local.current_node is continually updated during processing
+                    e.lineno = self.state.local.current_node.lineno                                               # type: ignore
+                    e.colno = self.state.local.current_node.colno                                                 # type: ignore
                     e.file = os.path.join(self.state.world.source_root, self.subdir, environment.build_filename)  # type: ignore
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
     def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
-        self.current_node = cur
+        self.state.local.current_node = cur
         if isinstance(cur, mparser.FunctionNode):
             return self.function_call(cur)
         elif isinstance(cur, mparser.PlusAssignmentNode):
@@ -449,7 +451,7 @@ class InterpreterBase:
             try:
                 val = _unholder(self.variables[var])
                 if isinstance(val, (list, dict)):
-                    FeatureNew.single_use('List or dictionary in f-string', '1.3.0', self.subproject, location=self.current_node)
+                    FeatureNew.single_use('List or dictionary in f-string', '1.3.0', self.subproject, location=self.state.local.current_node)
                 try:
                     return stringifyUserArguments(val, self.subproject)
                 except InvalidArguments as e:
@@ -531,7 +533,7 @@ class InterpreterBase:
                 func_args = flatten(posargs)
             if not getattr(func, 'no-second-level-holder-flattening', False):
                 func_args, kwargs = resolve_second_level_holders(func_args, kwargs)
-            self.current_node = node
+            self.state.local.current_node = node
             res = func(node, func_args, kwargs)
             return self._holderify(res) if res is not None else None
         else:
@@ -560,7 +562,7 @@ class InterpreterBase:
                 self.validate_extraction(obj.held_object)
             elif not isinstance(obj, Disabler):
                 raise InvalidArguments(f'Invalid operation "extract_objects" on {object_display_name} of type {type(obj).__name__}')
-        obj.current_node = self.current_node = node
+        obj.current_node = self.state.local.current_node = node
         res = obj.method_call(method_name, args, kwargs)
         return self._holderify(res) if res is not None else None
 
@@ -614,7 +616,7 @@ class InterpreterBase:
             reduced_val = self.evaluate_statement(val)
             if reduced_val is None:
                 raise InvalidArguments(f'Value of key {reduced_key} is void.')
-            self.current_node = key
+            self.state.local.current_node = key
             if duplicate_key_error and reduced_key in reduced_kw:
                 raise InvalidArguments(duplicate_key_error.format(reduced_key))
             reduced_kw[reduced_key] = reduced_val
