@@ -409,19 +409,19 @@ class MesonMain(MesonInterpreterObject):
     @noPosargs
     @noKwargs
     def project_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return self.build.dep_manifest[self.interpreter.active_projectname].version
+        return self.build.dep_manifest[self.interpreter.state.local.project_name].version
 
     @FeatureNew('meson.project_license()', '0.45.0')
     @noPosargs
     @noKwargs
     def project_license_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
-        return self.build.dep_manifest[self.interpreter.active_projectname].license
+        return self.build.dep_manifest[self.interpreter.state.local.project_name].license
 
     @FeatureNew('meson.project_license_files()', '1.1.0')
     @noPosargs
     @noKwargs
     def project_license_files_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[mesonlib.File]:
-        return [l[1] for l in self.build.dep_manifest[self.interpreter.active_projectname].license_files]
+        return [l[1] for l in self.build.dep_manifest[self.interpreter.state.local.project_name].license_files]
 
     @noPosargs
     @noKwargs
@@ -431,7 +431,7 @@ class MesonMain(MesonInterpreterObject):
     @noPosargs
     @noKwargs
     def project_name_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return self.interpreter.active_projectname
+        return self.interpreter.state.local.project_name
 
     def __get_external_property_impl(self, propname: str, fallback: T.Optional[object], machine: MachineChoice) -> object:
         """Shared implementation for get_cross_property and get_external_property."""
