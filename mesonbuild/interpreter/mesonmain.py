@@ -209,7 +209,7 @@ class MesonMain(MesonInterpreterObject):
     @noKwargs
     def current_source_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.source_dir
-        sub = self.interpreter.subdir
+        sub = self.interpreter.state.local.subdir
         if sub == '':
             return src
         return os.path.join(src, sub)
@@ -218,7 +218,7 @@ class MesonMain(MesonInterpreterObject):
     @noKwargs
     def current_build_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.build_dir
-        sub = self.interpreter.subdir
+        sub = self.interpreter.state.local.subdir
         if sub == '':
             return src
         return os.path.join(src, sub)
@@ -245,7 +245,7 @@ class MesonMain(MesonInterpreterObject):
     @FeatureNew('meson.project_source_root', '0.56.0')
     def project_source_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.source_dir
-        sub = self.interpreter.root_subdir
+        sub = self.interpreter.state.local.root_subdir
         if sub == '':
             return src
         return os.path.join(src, sub)
@@ -255,7 +255,7 @@ class MesonMain(MesonInterpreterObject):
     @FeatureNew('meson.project_build_root', '0.56.0')
     def project_build_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.build_dir
-        sub = self.interpreter.root_subdir
+        sub = self.interpreter.state.local.root_subdir
         if sub == '':
             return src
         return os.path.join(src, sub)

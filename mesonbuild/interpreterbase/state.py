@@ -19,6 +19,8 @@ class LocalState:
 
     subproject: SubProject
 
+    subdir: str
+
     current_node: BaseNode = dataclasses.field(
         default_factory=lambda: BaseNode(-1, -1, 'Sentinel Node'),
         init=False)
@@ -33,6 +35,9 @@ class LocalState:
 
     Mainly used to track whether assignment is allowed.
     """
+
+    def __post_init__(self) -> None:
+        self.root_subdir = self.subdir
 
 
 @dataclasses.dataclass
