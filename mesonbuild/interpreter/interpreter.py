@@ -522,7 +522,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mesonlib.project_meson_versions[self.subproject] = pv
 
     def handle_meson_version_from_ast(self) -> None:
-        if not self.ast.lines:
+        if not self.ast or not self.ast.lines:
             return
         project = self.ast.lines[0]
         # first line is always project()
