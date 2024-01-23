@@ -10,7 +10,7 @@ import typing as T
 from ..interpreterbase.state import State, LocalState, GlobalState
 
 if T.TYPE_CHECKING:
-    from .interpreter import Summary
+    from .interpreter import Summary, InterpreterRuleRelaxation
 
 
 @dataclasses.dataclass
@@ -20,6 +20,14 @@ class LocalInterpreterState(LocalState):
     """A machine readable name of the project currently running.
 
     :attr:`self.subproject` represents a human readable name.
+    """
+
+    rule_relaxations: T.Set[InterpreterRuleRelaxation] = dataclasses.field(
+        default_factory=set)
+    """Relaxations of normal Meson rules.
+
+    These are used by convertors from other build systems into Meson, where
+    certain Meson rules may not be enforceable.
     """
 
 
