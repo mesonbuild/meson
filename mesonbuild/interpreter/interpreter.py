@@ -276,7 +276,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 world: T.Optional[GlobalInterpreterState] = None,
             ) -> None:
         self.state = InterpreterState(
-            LocalInterpreterState(subproject, subdir),
+            LocalInterpreterState(
+                subproject, subdir,
+                rule_relaxations=relaxations or set(),
+            ),
             world or GlobalInterpreterState(_build.environment.get_source_dir())
         )
         super().__init__()
@@ -289,7 +292,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # be different for dependencies provided by wrap files.
         self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
-        self.relaxations = relaxations or set()
         if ast is None:
             self.load_root_meson_file()
         else:
@@ -3087,7 +3089,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             inputtype = 'directory'
         else:
             inputtype = 'file'
-        if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES in self.relaxations and builddir in norm.parents:
+        if InterpreterRuleRelaxation.ALLOW_BUILD_DIR_FILE_REFERENCES in self.state.local.rule_relaxations and builddir in norm.parents:
             return
         if srcdir not in norm.parents:
             # Grabbing files outside the source tree is ok.
