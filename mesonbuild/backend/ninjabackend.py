@@ -718,6 +718,8 @@ class NinjaBackend(backends.Backend):
         for dep in itertools.chain(target.link_targets, target.link_whole_targets):
             if isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 header_deps += self.get_generated_headers(dep)
+        if isinstance(target, build.CompileTarget):
+            header_deps.extend(target.get_generated_headers())
         target.cached_generated_headers = header_deps
         return header_deps
 
@@ -2000,7 +2002,7 @@ class NinjaBackend(backends.Backend):
             # "-l" argument and does not rely on platform specific dynamic linker.
             lib = self.get_target_filename_for_linking(d)
             link_whole = d in target.link_whole_targets
-            if isinstance(target, build.StaticLibrary):
+            if isinstance(target, build.StaticLibrary) or (isinstance(target, build.Executable) and rustc.get_crt_static()):
                 static = isinstance(d, build.StaticLibrary)
                 libname = os.path.basename(lib) if verbatim else d.name
                 _link_library(libname, static, bundle=link_whole)

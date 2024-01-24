@@ -480,7 +480,7 @@ class Vs2010Backend(backends.Backend):
                                 (self.environment.coredata.regen_guid, buildtype,
                                     self.platform, buildtype, self.platform))
             # Create the solution configuration
-            for p in projlist:
+            for project_index, p in enumerate(projlist):
                 if p[3] is MachineChoice.BUILD:
                     config_platform = self.build_platform
                 else:
@@ -493,11 +493,11 @@ class Vs2010Backend(backends.Backend):
                     # If we're building the solution with Visual Studio's build system, enable building of buildable
                     # projects.  However, if we're building with meson (via --genvslite), then, since each project's
                     # 'build' action just ends up doing the same 'meson compile ...' we don't want the 'solution build'
-                    # repeatedly going off and doing the same 'meson compile ...' multiple times over, so we just
-                    # leave it up to the user to select or build just one project.
-                    # FIXME:  Would be slightly nicer if we could enable building of just one top level target/project,
-                    # but not sure how to identify that.
-                    if not self.gen_lite and \
+                    # repeatedly going off and doing the same 'meson compile ...' multiple times over, so we default
+                    # to building the startup project, which is the first listed project in the solution file by
+                    # default for Visual Studio. The user is free to change this afterwards, but this provides a
+                    # sensible default.
+                    if (not self.gen_lite or project_index == 0) and \
                        p[0] in default_projlist and \
                        not isinstance(self.build.targets[p[0]], build.RunTarget):
                         ofile.write('\t\t{%s}.%s|%s.Build.0 = %s|%s\n' %
@@ -650,6 +650,10 @@ class Vs2010Backend(backends.Backend):
         # This is extremely unhelpful and misleading since the v14x build tools ARE installed.
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
 
+        # This attribute makes sure project names are displayed as expected in solution files even when their project file names differ
+        pname = ET.SubElement(globalgroup, 'ProjectName')
+        pname.text = target_name
+
         if not self.gen_lite: # Plenty of elements aren't necessary for 'makefile'-style project that just redirects to meson builds
             # XXX Wasn't here before for anything but gen_vcxproj , but seems fine?
             ns = ET.SubElement(globalgroup, 'RootNamespace')
@@ -657,8 +661,6 @@ class Vs2010Backend(backends.Backend):
 
             p = ET.SubElement(globalgroup, 'Platform')
             p.text = target_platform
-            pname = ET.SubElement(globalgroup, 'ProjectName')
-            pname.text = target_name
             if self.windows_target_platform_version:
                 ET.SubElement(globalgroup, 'WindowsTargetPlatformVersion').text = self.windows_target_platform_version
             ET.SubElement(globalgroup, 'UseMultiToolTask').text = 'true'

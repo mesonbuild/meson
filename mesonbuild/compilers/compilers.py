@@ -324,6 +324,9 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     args: T.List[str] = []
     try:
         if options[OptionKey('b_lto')].value:
+            if options[OptionKey('werror')].value:
+                args.extend(linker.get_werror_args())
+
             thinlto_cache_dir = None
             if get_option_value(options, OptionKey('b_thinlto_cache'), False):
                 thinlto_cache_dir = get_option_value(options, OptionKey('b_thinlto_cache_dir'), '')

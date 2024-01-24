@@ -764,7 +764,7 @@ class Backend:
         srcdir = self.environment.get_source_dir()
 
         for dep in target.external_deps:
-            if dep.type_name not in {'library', 'pkgconfig'}:
+            if dep.type_name not in {'library', 'pkgconfig', 'cmake'}:
                 continue
             for libpath in dep.link_args:
                 # For all link args that are absolute paths to a library file, add RPATH args
@@ -780,7 +780,11 @@ class Backend:
                 # Windows doesn't support rpaths, but we use this function to
                 # emulate rpaths by setting PATH
                 # .dll is there for mingw gcc
-                if os.path.splitext(libpath)[1] not in {'.dll', '.lib', '.so', '.dylib'}:
+                # .so's may be extended with version information, e.g. libxyz.so.1.2.3
+                if not (
+                    os.path.splitext(libpath)[1] in {'.dll', '.lib', '.so', '.dylib'}
+                    or re.match(r'.+\.so(\.|$)', os.path.basename(libpath))
+                ):
                     continue
 
                 try:
@@ -2008,7 +2012,9 @@ class Backend:
     def compiler_to_generator(self, target: build.BuildTarget,
                               compiler: 'Compiler',
                               sources: _ALL_SOURCES_TYPE,
-                              output_templ: str) -> build.GeneratedList:
+                              output_templ: str,
+                              depends: T.Optional[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = None,
+                              ) -> build.GeneratedList:
         '''
         Some backends don't support custom compilers. This is a convenience
         method to convert a Compiler to a Generator.
@@ -2023,9 +2029,12 @@ class Backend:
         commands += compiler.get_compile_only_args() + ['@INPUT@']
         commands += self.get_source_dir_include_args(target, compiler)
         commands += self.get_build_dir_include_args(target, compiler)
-        generator = build.Generator(exe, args + commands.to_native(), [output_templ], depfile='@PLAINNAME@.d')
+        generator = build.Generator(exe, args + commands.to_native(),
+                                    [output_templ], depfile='@PLAINNAME@.d',
+                                    depends=depends)
         return generator.process_files(sources, self.interpreter)
 
     def compile_target_to_generator(self, target: build.CompileTarget) -> build.GeneratedList:
         all_sources = T.cast('_ALL_SOURCES_TYPE', target.sources) + T.cast('_ALL_SOURCES_TYPE', target.generated)
-        return self.compiler_to_generator(target, target.compiler, all_sources, target.output_templ)
+        return self.compiler_to_generator(target, target.compiler, all_sources,
+                                          target.output_templ, target.depends)

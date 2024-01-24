@@ -1664,6 +1664,14 @@ class AllPlatformTests(BasePlatformTests):
             shared_suffix = 'so'
         return (cc, stlinker, object_suffix, shared_suffix)
 
+    def detect_prebuild_env_versioned(self):
+        (cc, stlinker, object_suffix, shared_suffix) = self.detect_prebuild_env()
+        shared_suffixes = [shared_suffix]
+        if shared_suffix == 'so':
+            # .so may have version information integrated into the filename
+            shared_suffixes += ['so.1', 'so.1.2.3', '1.so', '1.so.2.3']
+        return (cc, stlinker, object_suffix, shared_suffixes)
+
     def pbcompile(self, compiler, source, objectfile, extra_args=None):
         cmd = compiler.get_exelist()
         extra_args = extra_args or []
@@ -1786,6 +1794,90 @@ class AllPlatformTests(BasePlatformTests):
             self.init(tdir, extra_args=[f'-Dsearch_dir={d}'])
             self.build()
             self.run_tests()
+
+    @skipIfNoPkgconfig
+    def test_prebuilt_shared_lib_pkg_config(self) -> None:
+        (cc, _, object_suffix, shared_suffixes) = self.detect_prebuild_env_versioned()
+        tdir = os.path.join(self.unit_test_dir, '17 prebuilt shared')
+        for shared_suffix in shared_suffixes:
+            with tempfile.TemporaryDirectory() as d:
+                source = os.path.join(tdir, 'alexandria.c')
+                objectfile = os.path.join(d, 'alexandria.' + object_suffix)
+                impfile = os.path.join(d, 'alexandria.lib')
+                if cc.get_argument_syntax() == 'msvc':
+                    shlibfile = os.path.join(d, 'alexandria.' + shared_suffix)
+                    linkfile = impfile  # MSVC links against the *.lib instead of the *.dll
+                elif is_cygwin():
+                    shlibfile = os.path.join(d, 'cygalexandria.' + shared_suffix)
+                    linkfile = shlibfile
+                else:
+                    shlibfile = os.path.join(d, 'libalexandria.' + shared_suffix)
+                    linkfile = shlibfile
+                # Ensure MSVC extra files end up in the directory that gets deleted
+                # at the end
+                with chdir(d):
+                    self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
+
+                with open(os.path.join(d, 'alexandria.pc'), 'w',
+                          encoding='utf-8') as f:
+                    f.write(textwrap.dedent('''
+                        Name: alexandria
+                        Description: alexandria
+                        Version: 1.0.0
+                        Libs: {}
+                        ''').format(
+                            Path(linkfile).as_posix().replace(' ', r'\ '),
+                        ))
+
+                # Run the test
+                self.init(tdir, override_envvars={'PKG_CONFIG_PATH': d},
+                        extra_args=['-Dmethod=pkg-config'])
+                self.build()
+                self.run_tests()
+
+                self.wipe()
+
+    @skip_if_no_cmake
+    def test_prebuilt_shared_lib_cmake(self) -> None:
+        (cc, _, object_suffix, shared_suffixes) = self.detect_prebuild_env_versioned()
+        tdir = os.path.join(self.unit_test_dir, '17 prebuilt shared')
+        for shared_suffix in shared_suffixes:
+            with tempfile.TemporaryDirectory() as d:
+                source = os.path.join(tdir, 'alexandria.c')
+                objectfile = os.path.join(d, 'alexandria.' + object_suffix)
+                impfile = os.path.join(d, 'alexandria.lib')
+                if cc.get_argument_syntax() == 'msvc':
+                    shlibfile = os.path.join(d, 'alexandria.' + shared_suffix)
+                    linkfile = impfile  # MSVC links against the *.lib instead of the *.dll
+                elif is_cygwin():
+                    shlibfile = os.path.join(d, 'cygalexandria.' + shared_suffix)
+                    linkfile = shlibfile
+                else:
+                    shlibfile = os.path.join(d, 'libalexandria.' + shared_suffix)
+                    linkfile = shlibfile
+                # Ensure MSVC extra files end up in the directory that gets deleted
+                # at the end
+                with chdir(d):
+                    self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
+
+                with open(os.path.join(d, 'alexandriaConfig.cmake'), 'w',
+                        encoding='utf-8') as f:
+                    f.write(textwrap.dedent('''
+                        set(alexandria_FOUND ON)
+                        set(alexandria_LIBRARIES "{}")
+                        set(alexandria_INCLUDE_DIRS "{}")
+                        ''').format(
+                            re.sub(r'([\\"])', r'\\\1', linkfile),
+                            re.sub(r'([\\"])', r'\\\1', tdir),
+                        ))
+
+                # Run the test
+                self.init(tdir, override_envvars={'CMAKE_PREFIX_PATH': d},
+                        extra_args=['-Dmethod=cmake'])
+                self.build()
+                self.run_tests()
+
+                self.wipe()
 
     def test_prebuilt_shared_lib_rpath_same_prefix(self) -> None:
         (cc, _, object_suffix, shared_suffix) = self.detect_prebuild_env()

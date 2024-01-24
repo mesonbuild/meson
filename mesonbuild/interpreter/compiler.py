@@ -96,6 +96,7 @@ if T.TYPE_CHECKING:
         compile_args: T.List[str]
         include_directories: T.List[build.IncludeDirs]
         dependencies: T.List[dependencies.Dependency]
+        depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
 
 
 class _TestMode(enum.Enum):
@@ -145,6 +146,12 @@ _ARGS_KW: KwargInfo[T.List[str]] = KwargInfo(
 _DEPENDENCIES_KW: KwargInfo[T.List['dependencies.Dependency']] = KwargInfo(
     'dependencies',
     ContainerTypeInfo(list, dependencies.Dependency),
+    listify=True,
+    default=[],
+)
+_DEPENDS_KW: KwargInfo[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
+    'depends',
+    ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)),
     listify=True,
     default=[],
 )
@@ -853,6 +860,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         _INCLUDE_DIRS_KW,
         _DEPENDENCIES_KW.evolve(since='1.1.0'),
+        _DEPENDS_KW.evolve(since='1.4.0'),
     )
     def preprocess_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:
         compiler = self.compiler.get_preprocessor()
@@ -878,7 +886,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
             self.interpreter.backend,
             kwargs['compile_args'],
             kwargs['include_directories'],
-            kwargs['dependencies'])
+            kwargs['dependencies'],
+            kwargs['depends'])
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to
         # other targets, list outputs, etc.
