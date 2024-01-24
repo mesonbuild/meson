@@ -1141,6 +1141,42 @@ class LinuxlikeTests(BasePlatformTests):
         pkg_config_path = env.coredata.optstore.get_value('pkg_config_path')
         self.assertEqual(pkg_config_path, [pkg_dir])
 
+    def test_pkgconfig_uninstalled_env_added(self):
+        '''
+        Checks that the meson-uninstalled dir is added to PKG_CONFIG_PATH
+        '''
+        testdir = os.path.join(self.unit_test_dir, '111 pkgconfig duplicate path entries')
+        meson_uninstalled_dir = os.path.join(self.builddir, 'meson-uninstalled')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+
+        newEnv = PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
+
+        pkg_config_path_dirs = newEnv['PKG_CONFIG_PATH'].split(os.pathsep)
+
+        self.assertEqual(len(pkg_config_path_dirs), 1)
+        self.assertEqual(pkg_config_path_dirs[0], meson_uninstalled_dir)
+
+    def test_pkgconfig_uninstalled_env_prepended(self):
+        '''
+        Checks that the meson-uninstalled dir is prepended to PKG_CONFIG_PATH
+        '''
+        testdir = os.path.join(self.unit_test_dir, '111 pkgconfig duplicate path entries')
+        meson_uninstalled_dir = os.path.join(self.builddir, 'meson-uninstalled')
+        external_pkg_config_path_dir = os.path.join('usr', 'local', 'lib', 'pkgconfig')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+
+        env.coredata.set_options({OptionKey('pkg_config_path'): external_pkg_config_path_dir},
+                                 subproject='')
+
+        newEnv = PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
+
+        pkg_config_path_dirs = newEnv['PKG_CONFIG_PATH'].split(os.pathsep)
+
+        self.assertEqual(pkg_config_path_dirs[0], meson_uninstalled_dir)
+        self.assertEqual(pkg_config_path_dirs[1], external_pkg_config_path_dir)
+
     @skipIfNoPkgconfig
     def test_pkgconfig_internal_libraries(self):
         '''
