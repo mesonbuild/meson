@@ -1505,6 +1505,8 @@ class AllPlatformTests(BasePlatformTests):
                     '''))
             xz_distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
             xz_checksumfile = xz_distfile + '.sha256sum'
+            bz_distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.bz2')
+            bz_checksumfile = bz_distfile + '.sha256sum'
             gz_distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.gz')
             gz_checksumfile = gz_distfile + '.sha256sum'
             zip_distfile = os.path.join(self.distdir, 'disttest-1.4.3.zip')
@@ -1520,10 +1522,16 @@ class AllPlatformTests(BasePlatformTests):
             self.build('dist')
             self.assertPathExists(xz_distfile)
             self.assertPathExists(xz_checksumfile)
+            self.assertPathDoesNotExist(bz_distfile)
+            self.assertPathDoesNotExist(bz_checksumfile)
             self.assertPathDoesNotExist(gz_distfile)
             self.assertPathDoesNotExist(gz_checksumfile)
             self.assertPathDoesNotExist(zip_distfile)
             self.assertPathDoesNotExist(zip_checksumfile)
+            self._run(self.meson_command + ['dist', '--formats', 'bztar'],
+                      workdir=self.builddir)
+            self.assertPathExists(bz_distfile)
+            self.assertPathExists(bz_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'gztar'],
                       workdir=self.builddir)
             self.assertPathExists(gz_distfile)
@@ -1534,14 +1542,18 @@ class AllPlatformTests(BasePlatformTests):
             self.assertPathExists(zip_checksumfile)
             os.remove(xz_distfile)
             os.remove(xz_checksumfile)
+            os.remove(bz_distfile)
+            os.remove(bz_checksumfile)
             os.remove(gz_distfile)
             os.remove(gz_checksumfile)
             os.remove(zip_distfile)
             os.remove(zip_checksumfile)
-            self._run(self.meson_command + ['dist', '--formats', 'xztar,gztar,zip'],
+            self._run(self.meson_command + ['dist', '--formats', 'xztar,bztar,gztar,zip'],
                       workdir=self.builddir)
             self.assertPathExists(xz_distfile)
             self.assertPathExists(xz_checksumfile)
+            self.assertPathExists(bz_distfile)
+            self.assertPathExists(bz_checksumfile)
             self.assertPathExists(gz_distfile)
             self.assertPathExists(gz_checksumfile)
             self.assertPathExists(zip_distfile)
