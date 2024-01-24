@@ -32,7 +32,7 @@ local -i ret
 local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2015,2017}}})"
 local __meson_build_types="(plain debug debugoptimized minsize release)"
 local __meson_wrap_modes="(WrapMode.{default,nofallback,nodownload,forcefallback})"
-local __meson_dist_formats=("xztar" "gztar" "zip")
+local __meson_dist_formats=("xztar" "bztar" "gztar" "zip")
 local __meson_cd='-C[change into this directory before running]:target dir:_directories'
 local -a __meson_common=(
   '--prefix=[installation prefix]: :_directories'
