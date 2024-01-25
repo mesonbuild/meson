@@ -306,7 +306,6 @@ failing_testcases: T.List[str] = []
 failing_logs: T.List[str] = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
-ci_is_github = 'GITHUB_ACTIONS' in os.environ
 raw_ci_jobname = os.environ.get('MESON_CI_JOBNAME', None)
 ci_jobname = raw_ci_jobname if raw_ci_jobname != 'thirdparty' else None
 do_debug = under_ci or print_debug
@@ -438,16 +437,12 @@ def log_text_file(logfile: T.TextIO, testdir: Path, result: TestResult) -> None:
 
 
 def _run_ci_include(args: T.List[str]) -> str:
-    header = f'Included file {args[0]}:'
-    footer = ''
-    if ci_is_github:
-        header = f'::group::==== {header} ===='
-        footer = '::endgroup::'
     if not args:
         return 'At least one parameter required'
+
+    header = f'Included file {args[0]}:'
     try:
-        data = Path(args[0]).read_text(errors='ignore', encoding='utf-8')
-        return f'{header}\n{data}\n{footer}\n'
+        return mlog.ci_fold_file(args[0], header, force=True)
     except Exception:
         return 'Failed to open {}\n'.format(args[0])
 
