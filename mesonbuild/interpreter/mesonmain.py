@@ -188,6 +188,7 @@ class MesonMain(MesonInterpreterObject):
         varargs=(str, mesonlib.File, ExternalProgram)
     )
     @noKwargs
+    @FeatureNew('meson.add_dist_script', '0.48.0')
     def add_dist_script_method(
             self,
             args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
