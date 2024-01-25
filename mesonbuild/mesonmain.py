@@ -27,6 +27,9 @@ def errorhandler(e: Exception, command: str) -> int:
         logfile = mlog.shutdown()
         if logfile is not None:
             mlog.log("\nA full log can be found at", mlog.bold(logfile))
+            contents = mlog.ci_fold_file(logfile, f'CI platform detected, click here for {os.path.basename(logfile)} contents.')
+            if contents:
+                print(contents)
         if os.environ.get('MESON_FORCE_BACKTRACE'):
             raise e
         return 1
