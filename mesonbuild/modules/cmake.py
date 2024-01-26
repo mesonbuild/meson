@@ -397,7 +397,7 @@ class CmakeModule(ExtensionModule):
         conf.used = True
 
         conffile = os.path.normpath(inputfile.relative_name())
-        self.interpreter.build_def_files.add(conffile)
+        self.interpreter.state.world.build_def_files.add(conffile)
 
         res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, None, state.subproject)
         self.interpreter.build.data.append(res)
