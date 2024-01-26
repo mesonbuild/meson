@@ -197,7 +197,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         else:
             arg = '--version'
         try:
-            p, out, err = Popen_safe_logged(linker + [arg], msg='Detecting linker via')
+            p, out, err = Popen_safe_logged(linker + [arg], msg='Detecting archiver via')
         except OSError as e:
             popen_exceptions[join_args(linker + [arg])] = e
             continue
