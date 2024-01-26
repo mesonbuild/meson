@@ -8,7 +8,7 @@ import dataclasses
 import typing as T
 
 from ..interpreterbase.state import State, LocalState, GlobalState
-from ..utils.universal import PerMachine
+from ..utils.universal import OrderedSet, PerMachine
 
 if T.TYPE_CHECKING:
     from .interpreter import Summary, InterpreterRuleRelaxation
@@ -59,6 +59,9 @@ class GlobalInterpreterState(GlobalState):
     Once the first target has been defined in *any* project such calls are not
     allowed.
     """
+
+    build_def_files: OrderedSet[str] = dataclasses.field(default_factory=OrderedSet, init=False)
+    """Files which, when changed, should trigger a reconfigure."""
 
 
 @dataclasses.dataclass
