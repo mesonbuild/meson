@@ -297,7 +297,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.builtin.update({'meson': MesonMain(self.build, self)})
         self.generators: T.List[build.Generator] = []
         self.processed_buildfiles: T.Set[str] = set()
-        self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
         self.subproject_stack: T.List[str] = []
@@ -2966,7 +2965,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                   'arguments and add it to the appropriate *_args kwarg ' \
                   'in each target.'
             raise InvalidCode(msg)
-        frozen = self.project_args_frozen or self.global_args_frozen
+        frozen = self.state.local.args_frozen or self.global_args_frozen
         self._add_arguments(node, argsdict, frozen, args, kwargs)
 
     def _add_project_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.Dict[str, T.List[str]]],
@@ -2974,7 +2973,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.subproject not in argsdict:
             argsdict[self.subproject] = {}
         self._add_arguments(node, argsdict[self.subproject],
-                            self.project_args_frozen, args, kwargs)
+                            self.state.local.args_frozen, args, kwargs)
 
     def _add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
                        args_frozen: bool, args: T.List[str], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
@@ -3433,7 +3432,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              self.environment, self.compilers[for_machine], kwargs)
 
         self.add_target(name, target)
-        self.project_args_frozen = True
+        self.state.local.args_frozen = True
         return target
 
     def kwarg_strings_to_includedirs(self, kwargs: kwtypes._BuildTarget) -> None:

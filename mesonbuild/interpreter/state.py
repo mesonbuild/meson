@@ -30,6 +30,13 @@ class LocalInterpreterState(LocalState):
     certain Meson rules may not be enforceable.
     """
 
+    args_frozen: bool = dataclasses.field(default=False, init=False)
+    """Whether calls to `add_project*_args is an error.
+
+    Once the first target has been defined in a project such calls are not
+    allowed.
+    """
+
 
 @dataclasses.dataclass
 class GlobalInterpreterState(GlobalState):
