@@ -8,9 +8,11 @@ import dataclasses
 import typing as T
 
 from ..interpreterbase.state import State, LocalState, GlobalState
+from ..utils.universal import PerMachine
 
 if T.TYPE_CHECKING:
     from .interpreter import Summary, InterpreterRuleRelaxation
+    from ..compilers.compilers import Compiler
 
 
 @dataclasses.dataclass
@@ -35,6 +37,14 @@ class LocalInterpreterState(LocalState):
 
     Once the first target has been defined in a project such calls are not
     allowed.
+    """
+
+    compilers: PerMachine[T.Dict[str, Compiler]] = dataclasses.field(
+        default_factory=lambda: PerMachine({}, {}), init=False)
+    """Compilers that have been enabled in this subproject.
+
+    This is a subset of all compilers enabled in the entire build, and prevents
+    language leaks from one project to another.
     """
 
 

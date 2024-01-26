@@ -19,7 +19,7 @@ from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
                         FileMode, MachineChoice, OptionKey, listify,
-                        extract_as_list, has_path_sep, path_is_in_root, PerMachine)
+                        extract_as_list, has_path_sep, path_is_in_root)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -309,7 +309,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
-        self.compilers: PerMachine[T.Dict[str, 'compilers.Compiler']] = PerMachine({}, {})
 
         # build_def_files needs to be defined before parse_project is called
         #
@@ -1496,7 +1495,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def add_languages_for(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         args = [a.lower() for a in args]
-        langs = set(self.compilers[for_machine].keys())
+        langs = set(self.state.local.compilers[for_machine])
         langs.update(args)
         # We'd really like to add cython's default language here, but it can't
         # actually be done because the cython compiler hasn't been initialized,
@@ -1512,7 +1511,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
-            if lang in self.compilers[for_machine]:
+            if lang in self.state.local.compilers[for_machine]:
                 continue
             machine_name = for_machine.get_lower_case_name()
             comp = self.coredata.compilers[for_machine].get(lang)
@@ -1556,7 +1555,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
-            self.compilers[for_machine][lang] = comp
+            self.state.local.compilers[for_machine][lang] = comp
 
         return success
 
@@ -2911,7 +2910,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
         for_machine = kwargs['native']
         for lang in kwargs['language']:
-            if lang not in self.compilers[for_machine]:
+            if lang not in self.state.local.compilers[for_machine]:
                 raise InvalidCode(f'add_project_dependencies() called before add_language() for language "{lang}"')
 
         for d in dependencies.get_leaf_external_dependencies(args[0]):
@@ -3428,7 +3427,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 kwargs['implib'] = False
 
         target = targetclass(name, self.state.local.subdir, self.subproject, for_machine, srcs, struct, objs,
-                             self.environment, self.compilers[for_machine], kwargs)
+                             self.environment, self.state.local.compilers[for_machine], kwargs)
 
         self.add_target(name, target)
         self.state.local.args_frozen = True
