@@ -98,31 +98,29 @@ def _symbol(val: str) -> SymbolNode:
 class MTypeBase:
     def __init__(self, node: T.Optional[BaseNode] = None):
         if node is None:
-            self.node = self._new_node()  # lgtm [py/init-calls-subclass] (node creation does not depend on base class state)
+            self.node = self.new_node()
         else:
             self.node = node
         self.node_type = None
-        for i in self.supported_nodes():  # lgtm [py/init-calls-subclass] (listing nodes does not depend on base class state)
+        for i in self.supported_nodes():
             if isinstance(self.node, i):
                 self.node_type = i
 
-    def _new_node(self):
+    @classmethod
+    def new_node(cls, value=None):
         # Overwrite in derived class
-        raise RewriterException('Internal error: _new_node of MTypeBase was called')
+        raise RewriterException('Internal error: new_node of MTypeBase was called')
+
+    @classmethod
+    def supported_nodes(cls):
+        # Overwrite in derived class
+        return []
 
     def can_modify(self):
         return self.node_type is not None
 
     def get_node(self):
         return self.node
-
-    def supported_nodes(self):
-        # Overwrite in derived class
-        return []
-
-    def set_value(self, value):
-        # Overwrite in derived class
-        mlog.warning('Cannot set the value of type', mlog.bold(type(self).__name__), '--> skipping')
 
     def add_value(self, value):
         # Overwrite in derived class
@@ -140,63 +138,74 @@ class MTypeStr(MTypeBase):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_node(self):
-        return StringNode(Token('', '', 0, 0, 0, None, ''))
+    @classmethod
+    def new_node(cls, value=None):
+        if value is None:
+            value = ''
+        return StringNode(Token('', '', 0, 0, 0, None, str(value)))
 
-    def supported_nodes(self):
+    @classmethod
+    def supported_nodes(cls):
         return [StringNode]
-
-    def set_value(self, value):
-        self.node.value = str(value)
 
 class MTypeBool(MTypeBase):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_node(self):
-        return BooleanNode(Token('', '', 0, 0, 0, None, False))
+    @classmethod
+    def new_node(cls, value=None):
+        return BooleanNode(Token('', '', 0, 0, 0, None, bool(value)))
 
-    def supported_nodes(self):
+    @classmethod
+    def supported_nodes(cls):
         return [BooleanNode]
-
-    def set_value(self, value):
-        self.node.value = bool(value)
 
 class MTypeID(MTypeBase):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_node(self):
-        return IdNode(Token('', '', 0, 0, 0, None, ''))
+    @classmethod
+    def new_node(cls, value=None):
+        if value is None:
+            value = ''
+        return IdNode(Token('', '', 0, 0, 0, None, str(value)))
 
-    def supported_nodes(self):
+    @classmethod
+    def supported_nodes(cls):
         return [IdNode]
-
-    def set_value(self, value):
-        self.node.value = str(value)
 
 class MTypeList(MTypeBase):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_node(self):
-        return ArrayNode(_symbol('['), ArgumentNode(Token('', '', 0, 0, 0, None, '')), _symbol(']'))
+    @classmethod
+    def new_node(cls, value=None):
+        if value is None:
+            value = []
+        elif not isinstance(value, list):
+            return cls._new_element_node(value)
+        args = ArgumentNode(Token('', '', 0, 0, 0, None, ''))
+        args.arguments = [cls._new_element_node(i) for i in value]
+        return ArrayNode(_symbol('['), args, _symbol(']'))
 
-    def _new_element_node(self, value):
+    @classmethod
+    def _new_element_node(cls, value):
         # Overwrite in derived class
         raise RewriterException('Internal error: _new_element_node of MTypeList was called')
 
     def _ensure_array_node(self):
         if not isinstance(self.node, ArrayNode):
             tmp = self.node
-            self.node = self._new_node()
-            self.node.args.arguments += [tmp]
+            self.node = self.new_node()
+            self.node.args.arguments = [tmp]
 
-    def _check_is_equal(self, node, value) -> bool:
+    @staticmethod
+    def _check_is_equal(node, value) -> bool:
         # Overwrite in derived class
         return False
 
-    def _check_regex_matches(self, node, regex: str) -> bool:
+    @staticmethod
+    def _check_regex_matches(node, regex: str) -> bool:
         # Overwrite in derived class
         return False
 
@@ -206,20 +215,14 @@ class MTypeList(MTypeBase):
                 return self.node.args.arguments[0]
         return self.node
 
-    def supported_element_nodes(self):
+    @classmethod
+    def supported_element_nodes(cls):
         # Overwrite in derived class
         return []
 
-    def supported_nodes(self):
-        return [ArrayNode] + self.supported_element_nodes()
-
-    def set_value(self, value):
-        if not isinstance(value, list):
-            value = [value]
-        self._ensure_array_node()
-        self.node.args.arguments = [] # Remove all current nodes
-        for i in value:
-            self.node.args.arguments += [self._new_element_node(i)]
+    @classmethod
+    def supported_nodes(cls):
+        return [ArrayNode] + cls.supported_element_nodes()
 
     def add_value(self, value):
         if not isinstance(value, list):
@@ -254,40 +257,48 @@ class MTypeStrList(MTypeList):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_element_node(self, value):
+    @classmethod
+    def _new_element_node(cls, value):
         return StringNode(Token('', '', 0, 0, 0, None, str(value)))
 
-    def _check_is_equal(self, node, value) -> bool:
+    @staticmethod
+    def _check_is_equal(node, value) -> bool:
         if isinstance(node, BaseStringNode):
             return node.value == value
         return False
 
-    def _check_regex_matches(self, node, regex: str) -> bool:
+    @staticmethod
+    def _check_regex_matches(node, regex: str) -> bool:
         if isinstance(node, BaseStringNode):
             return re.match(regex, node.value) is not None
         return False
 
-    def supported_element_nodes(self):
+    @classmethod
+    def supported_element_nodes(cls):
         return [StringNode]
 
 class MTypeIDList(MTypeList):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_element_node(self, value):
+    @classmethod
+    def _new_element_node(cls, value):
         return IdNode(Token('', '', 0, 0, 0, None, str(value)))
 
-    def _check_is_equal(self, node, value) -> bool:
+    @staticmethod
+    def _check_is_equal(node, value) -> bool:
         if isinstance(node, IdNode):
             return node.value == value
         return False
 
-    def _check_regex_matches(self, node, regex: str) -> bool:
+    @staticmethod
+    def _check_regex_matches(node, regex: str) -> bool:
         if isinstance(node, BaseStringNode):
             return re.match(regex, node.value) is not None
         return False
 
-    def supported_element_nodes(self):
+    @classmethod
+    def supported_element_nodes(cls):
         return [IdNode]
 
 rewriter_keys = {
@@ -548,39 +559,42 @@ class Rewriter:
                 self.handle_error()
                 continue
 
-            # Remove the key from the kwargs
             if cmd['operation'] == 'delete':
-                if key in arg_node.kwargs:
-                    mlog.log('  -- Deleting', mlog.bold(key), 'from the kwargs')
-                    del arg_node.kwargs[key]
-                    num_changed += 1
-                else:
+                # Remove the key from the kwargs
+                if key not in arg_node.kwargs:
                     mlog.log('  -- Key', mlog.bold(key), 'is already deleted')
-                continue
+                    continue
+                mlog.log('  -- Deleting', mlog.bold(key), 'from the kwargs')
+                del arg_node.kwargs[key]
+            elif cmd['operation'] == 'set':
+                # Replace the key from the kwargs
+                mlog.log('  -- Setting', mlog.bold(key), 'to', mlog.yellow(str(val)))
+                arg_node.kwargs[key] = kwargs_def[key].new_node(val)
+            else:
+                # Modify the value from the kwargs
 
-            if key not in arg_node.kwargs:
-                arg_node.kwargs[key] = None
-            modifier = kwargs_def[key](arg_node.kwargs[key])
-            if not modifier.can_modify():
-                mlog.log('  -- Skipping', mlog.bold(key), 'because it is to complex to modify')
+                if key not in arg_node.kwargs:
+                    arg_node.kwargs[key] = None
+                modifier = kwargs_def[key](arg_node.kwargs[key])
+                if not modifier.can_modify():
+                    mlog.log('  -- Skipping', mlog.bold(key), 'because it is too complex to modify')
+                    continue
 
-            # Apply the operation
-            val_str = str(val)
-            if cmd['operation'] == 'set':
-                mlog.log('  -- Setting', mlog.bold(key), 'to', mlog.yellow(val_str))
-                modifier.set_value(val)
-            elif cmd['operation'] == 'add':
-                mlog.log('  -- Adding', mlog.yellow(val_str), 'to', mlog.bold(key))
-                modifier.add_value(val)
-            elif cmd['operation'] == 'remove':
-                mlog.log('  -- Removing', mlog.yellow(val_str), 'from', mlog.bold(key))
-                modifier.remove_value(val)
-            elif cmd['operation'] == 'remove_regex':
-                mlog.log('  -- Removing all values matching', mlog.yellow(val_str), 'from', mlog.bold(key))
-                modifier.remove_regex(val)
+                # Apply the operation
+                val_str = str(val)
+                if cmd['operation'] == 'add':
+                    mlog.log('  -- Adding', mlog.yellow(val_str), 'to', mlog.bold(key))
+                    modifier.add_value(val)
+                elif cmd['operation'] == 'remove':
+                    mlog.log('  -- Removing', mlog.yellow(val_str), 'from', mlog.bold(key))
+                    modifier.remove_value(val)
+                elif cmd['operation'] == 'remove_regex':
+                    mlog.log('  -- Removing all values matching', mlog.yellow(val_str), 'from', mlog.bold(key))
+                    modifier.remove_regex(val)
 
-            # Write back the result
-            arg_node.kwargs[key] = modifier.get_node()
+                # Write back the result
+                arg_node.kwargs[key] = modifier.get_node()
+
             num_changed += 1
 
         # Convert the keys back to IdNode's
