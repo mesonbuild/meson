@@ -288,9 +288,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.modules: T.Dict[str, NewExtensionModule] = {}
-        # Subproject directory is usually the name of the subproject, but can
-        # be different for dependencies provided by wrap files.
-        self.subproject_directory_name = subdir.split(os.path.sep)[-1]
         self.subproject_dir = subproject_dir
         if ast is None:
             self.load_root_meson_file()
