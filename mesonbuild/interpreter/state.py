@@ -43,6 +43,13 @@ class GlobalInterpreterState(GlobalState):
 
     summary: T.Dict[str, Summary] = dataclasses.field(default_factory=dict, init=False)
 
+    args_frozen: bool = dataclasses.field(default=False, init=False)
+    """Whether calls to `add_global*_args is an error.
+
+    Once the first target has been defined in *any* project such calls are not
+    allowed.
+    """
+
 
 @dataclasses.dataclass
 class InterpreterState(State):
