@@ -297,7 +297,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.builtin.update({'meson': MesonMain(self.build, self)})
         self.generators: T.List[build.Generator] = []
         self.processed_buildfiles: T.Set[str] = set()
-        self.global_args_frozen = False  # implies self.project_args_frozen
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
         self.subproject_stack: T.List[str] = []
         self.configure_file_outputs: T.Dict[str, int] = {}
@@ -921,7 +920,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise e
 
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
-        self.global_args_frozen = True
+        self.state.world.args_frozen = True
 
         stack = ':'.join(self.subproject_stack + [subp_name])
         m = ['\nExecuting subproject', mlog.bold(stack)]
@@ -2965,7 +2964,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                   'arguments and add it to the appropriate *_args kwarg ' \
                   'in each target.'
             raise InvalidCode(msg)
-        frozen = self.state.local.args_frozen or self.global_args_frozen
+        frozen = self.state.local.args_frozen or self.state.world.args_frozen
         self._add_arguments(node, argsdict, frozen, args, kwargs)
 
     def _add_project_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.Dict[str, T.List[str]]],
