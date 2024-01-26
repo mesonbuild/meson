@@ -6,8 +6,8 @@ description: |
   targets, this integrates with the selected backend. For instance, with
   you can run it as `meson compile target_name`. This is a dummy target
   that does not execute any command, but ensures that all dependencies
-  are built. Dependencies can be any build target (e.g. return value of
-  [[executable]], [[custom_target]], etc)
+  are built. Dependencies can be any build target. Since 0.60.0, this includes
+  [[@run_tgt]].
 
 posargs:
   target_name:
