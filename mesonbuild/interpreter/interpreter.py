@@ -2121,6 +2121,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[build.Target]],
                           kwargs: 'TYPE_kwargs') -> build.AliasTarget:
         name, deps = args
+        if any(isinstance(d, build.RunTarget) for d in deps):
+            FeatureNew.single_use('alias_target that depends on run_targets', '0.60.0', self.subproject)
         tg = build.AliasTarget(name, deps, self.subdir, self.subproject, self.environment)
         self.add_target(name, tg)
         return tg
