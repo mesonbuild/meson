@@ -26,10 +26,11 @@ def compileall(files):
             ddir = os.path.dirname(f)
 
         if os.path.isdir(fullpath):
-            for root, _, files in os.walk(fullpath):
+            for root, dirs, files in os.walk(fullpath):
+                dirs.sort() # for deterministic iteration order of os.walk
                 if ddir is not None:
                     ddir = root.replace(fullpath, f, 1)
-                for dirf in files:
+                for dirf in sorted(files):
                     if dirf.endswith('.py'):
                         fullpath = os.path.join(root, dirf)
                         compile_file(fullpath, ddir, force=True, quiet=quiet)
