@@ -19,16 +19,16 @@ def compileall(files):
         f = f[12:]
 
         ddir = None
-        fullpath = os.environ['MESON_INSTALL_DESTDIR_'+key] + f
+        fullpath = absf = os.environ['MESON_INSTALL_DESTDIR_'+key] + f
         f = os.environ['MESON_INSTALL_'+key] + f
 
-        if fullpath != f:
+        if absf != f:
             ddir = os.path.dirname(f)
 
-        if os.path.isdir(fullpath):
-            for root, _, files in os.walk(fullpath):
+        if os.path.isdir(absf):
+            for root, _, files in os.walk(absf):
                 if ddir is not None:
-                    ddir = root.replace(fullpath, f, 1)
+                    ddir = root.replace(absf, f, 1)
                 for dirf in files:
                     if dirf.endswith('.py'):
                         fullpath = os.path.join(root, dirf)
