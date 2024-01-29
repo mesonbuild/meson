@@ -40,6 +40,9 @@ class LocalState:
         default_factory=dict, init=False)
     """All variables assigned during a subproject."""
 
+    processed_buildfiles: T.Set[str] = dataclasses.field(default_factory=set, init=False)
+    """All build files of the current project that have been read already."""
+
     def __post_init__(self) -> None:
         self.root_subdir = self.subdir
 
