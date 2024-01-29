@@ -11,6 +11,7 @@ from .. mparser import BaseNode
 
 if T.TYPE_CHECKING:
     from . import InterpreterObject, SubProject
+    from ..utils.universal import OptionKey
 
 @dataclasses.dataclass
 class LocalState:
@@ -42,6 +43,9 @@ class LocalState:
 
     processed_buildfiles: T.Set[str] = dataclasses.field(default_factory=set, init=False)
     """All build files of the current project that have been read already."""
+
+    project_default_options: T.Dict[OptionKey, str] = dataclasses.field(
+        default_factory=dict, init=False)
 
     def __post_init__(self) -> None:
         self.root_subdir = self.subdir
