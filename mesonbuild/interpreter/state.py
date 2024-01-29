@@ -25,6 +25,13 @@ class LocalInterpreterState(LocalState):
     :attr:`self.subproject` represents a human readable name.
     """
 
+    project_version: T.Optional[str] = dataclasses.field(default=None, init=False)
+    """The version of the project currently being evaluated.
+
+    see :attr:`Interpreter.state.global.build.project_version` to get the root
+    project version.
+    """
+
     rule_relaxations: T.Set[InterpreterRuleRelaxation] = dataclasses.field(
         default_factory=set)
     """Relaxations of normal Meson rules.
