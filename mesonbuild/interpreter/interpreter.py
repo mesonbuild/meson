@@ -1116,7 +1116,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         from ..backend import backends
 
-        if OptionKey('genvslite') in self.state.world.user_defined_options.cmd_line_options.keys():
+        if OptionKey('genvslite') in self.state.world.user_defined_options.cmd_line_options:
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
             backend_name = self.coredata.get_option(OptionKey('genvslite'))
