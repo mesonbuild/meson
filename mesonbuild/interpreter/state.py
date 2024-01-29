@@ -32,6 +32,13 @@ class LocalInterpreterState(LocalState):
     certain Meson rules may not be enforceable.
     """
 
+    subproject_stack: T.List[str] = dataclasses.field(default_factory=list)
+    """All subprojects being currently evaluated, in order.
+
+    This is for tracking nested subprojects (A -> B -> C), but does not contain
+    any subprojects that have already fully finished evaluation.
+    """
+
     args_frozen: bool = dataclasses.field(default=False, init=False)
     """Whether calls to `add_project*_args is an error.
 
