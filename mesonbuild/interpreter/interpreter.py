@@ -289,7 +289,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.ast = ast
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self.build, self)})
-        self.generators: T.List[build.Generator] = []
         self.processed_buildfiles: T.Set[str] = set()
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
@@ -2200,9 +2199,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if '@OUTPUT@' in o:
                     raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
 
-        gen = build.Generator(args[0], **kwargs)
-        self.generators.append(gen)
-        return gen
+        return build.Generator(args[0], **kwargs)
 
     @typed_pos_args('benchmark', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('benchmark', *TEST_KWS)
