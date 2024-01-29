@@ -291,7 +291,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             self.ast = ast
         self.sanity_check_ast()
-        self.builtin.update({'meson': MesonMain(_build, self)})
+        self.builtin.update({'meson': MesonMain(self)})
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
