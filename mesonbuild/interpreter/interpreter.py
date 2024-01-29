@@ -295,9 +295,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
-            self.default_project_options = default_project_options.copy()
-        else:
-            self.default_project_options = {}
+            self.state.local.default_subproject_options.update(default_project_options)
         self.project_default_options: T.Dict[OptionKey, str] = {}
         self.build_func_dict()
         self.build_holder_map()
@@ -1229,7 +1227,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # need to initialize builtins for that
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
             default_options = self.project_default_options.copy()
-            default_options.update(self.default_project_options)
+            default_options.update(self.state.local.default_subproject_options)
             self.coredata.init_builtins(self.subproject)
             self.coredata.initialized_subprojects.add(self.subproject)
         else:
