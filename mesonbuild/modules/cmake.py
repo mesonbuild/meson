@@ -400,7 +400,7 @@ class CmakeModule(ExtensionModule):
         self.interpreter.state.world.build_def_files.add(conffile)
 
         res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, None, state.subproject)
-        self.interpreter.build.data.append(res)
+        self.interpreter.state.world.build.data.append(res)
 
         return res
 
