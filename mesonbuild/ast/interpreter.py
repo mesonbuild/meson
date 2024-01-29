@@ -91,7 +91,6 @@ class AstInterpreter(InterpreterBase):
         self.state = State(LocalState(subproject, subdir), GlobalState(source_root))
         super().__init__()
         self.visitors = visitors if visitors is not None else []
-        self.processed_buildfiles: T.Set[str] = set()
         self.assignments: T.Dict[str, BaseNode] = {}
         self.assign_vals: T.Dict[str, T.Any] = {}
         self.reverse_assignment: T.Dict[str, BaseNode] = {}
@@ -183,10 +182,10 @@ class AstInterpreter(InterpreterBase):
         absname = os.path.join(self.state.world.source_root, buildfilename)
         symlinkless_dir = os.path.realpath(absdir)
         build_file = os.path.join(symlinkless_dir, 'meson.build')
-        if build_file in self.processed_buildfiles:
+        if build_file in self.state.local.processed_buildfiles:
             sys.stderr.write('Trying to enter {} which has already been visited --> Skipping\n'.format(args[0]))
             return
-        self.processed_buildfiles.add(build_file)
+        self.state.local.processed_buildfiles.add(build_file)
 
         if not os.path.isfile(absname):
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
