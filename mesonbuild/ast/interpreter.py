@@ -5,6 +5,7 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
+import dataclasses
 import os
 import sys
 import typing as T
@@ -21,7 +22,7 @@ from ..interpreterbase import (
     Disabler,
     default_resolve_key,
 )
-from ..interpreterbase.state import State, LocalState, GlobalState
+from ..interpreterbase.state import State as _State, LocalState, GlobalState as _GlobalState
 
 from ..interpreter import (
     StringHolder,
@@ -86,9 +87,25 @@ _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
 
 
+@dataclasses.dataclass
+class GlobalState(_GlobalState):
+
+    subproject_dir: str
+
+
+class State(_State):
+
+    local: LocalState
+    world: GlobalState
+
+
 class AstInterpreter(InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
-        self.state = State(LocalState(subproject, subdir), GlobalState(source_root))
+
+    state: State
+
+    def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None,
+                 subproject_dir: str = 'subprojects'):
+        self.state = State(LocalState(subproject, subdir), GlobalState(source_root, subproject_dir))
         super().__init__()
         self.visitors = visitors if visitors is not None else []
         self.assignments: T.Dict[str, BaseNode] = {}
