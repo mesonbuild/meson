@@ -284,8 +284,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 user_defined_options)
         )
         super().__init__()
-        self.environment = _build.environment
-        self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.modules: T.Dict[str, NewExtensionModule] = {}
         if ast is None:
@@ -310,6 +308,14 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.state.world.build_def_files.add(build_filename)
         self.parse_project()
         self._redetect_machines()
+
+    @property
+    def environment(self) -> environment.Environment:
+        return self.state.world.build.environment
+
+    @property
+    def coredata(self) -> coredata.CoreData:
+        return self.state.world.build.environment.coredata
 
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
