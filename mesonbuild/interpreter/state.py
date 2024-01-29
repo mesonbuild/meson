@@ -54,6 +54,14 @@ class LocalInterpreterState(LocalState):
     language leaks from one project to another.
     """
 
+    configure_file_outputs: T.Dict[str, int] = dataclasses.field(default_factory=dict, init=False)
+    """The outputs of calls to `configure_file()`.
+
+    Maps the path relative to the source root of the meson.build file to the
+    line number of the first definition. Used to warn when a configure_file
+    output will be overwritten.
+    """
+
 
 @dataclasses.dataclass
 class GlobalInterpreterState(GlobalState):
