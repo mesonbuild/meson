@@ -917,23 +917,23 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noPosargs
     @noKwargs
     def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
-        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
+        return build.IncludeDirs('', [], False, [self.interpreter.state.world.backend.get_target_private_dir(self._target_object)])
 
     @noPosargs
     @noKwargs
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return self.interpreter.backend.get_target_filename_abs(self._target_object)
+        return self.interpreter.state.world.backend.get_target_filename_abs(self._target_object)
 
     @noPosargs
     @noKwargs
     @FeatureDeprecated('BuildTarget.path', '0.55.0', 'Use BuildTarget.full_path instead')
     def path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return self.interpreter.backend.get_target_filename_abs(self._target_object)
+        return self.interpreter.state.world.backend.get_target_filename_abs(self._target_object)
 
     @noPosargs
     @noKwargs
     def outdir_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return self.interpreter.backend.get_target_dir(self._target_object)
+        return self.interpreter.state.world.backend.get_target_dir(self._target_object)
 
     @noKwargs
     @typed_pos_args('extract_objects', varargs=(mesonlib.File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
@@ -1020,8 +1020,8 @@ class CustomTargetIndexHolder(ObjectHolder[build.CustomTargetIndex]):
     @noPosargs
     @noKwargs
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        assert self.interpreter.backend is not None
-        return self.interpreter.backend.get_target_filename_abs(self.held_object)
+        assert self.interpreter.state.world.backend is not None
+        return self.interpreter.state.world.backend.get_target_filename_abs(self.held_object)
 
 _CT = T.TypeVar('_CT', bound=build.CustomTarget)
 
@@ -1044,7 +1044,7 @@ class _CustomTargetHolder(ObjectHolder[_CT]):
     @noPosargs
     @noKwargs
     def full_path_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
-        return self.interpreter.backend.get_target_filename_abs(self.held_object)
+        return self.interpreter.state.world.backend.get_target_filename_abs(self.held_object)
 
     @FeatureNew('custom_target.to_list', '0.54.0')
     @noPosargs

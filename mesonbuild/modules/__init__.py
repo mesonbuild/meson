@@ -44,7 +44,7 @@ class ModuleState:
         self.project_version = interpreter.state.world.build.dep_manifest[interpreter.state.local.project_name].version
         # The backend object is under-used right now, but we will need it:
         # https://github.com/mesonbuild/meson/issues/1419
-        self.backend = interpreter.backend
+        self.backend = interpreter.state.world.backend
         self.targets = interpreter.state.world.build.targets
         self.data = interpreter.state.world.build.data
         self.headers = interpreter.state.world.build.get_headers()

@@ -281,10 +281,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             ),
             world or GlobalInterpreterState(
                 _build.environment.get_source_dir(), _build,
-                user_defined_options)
+                user_defined_options, backend)
         )
         super().__init__()
-        self.backend = backend
         self.modules: T.Dict[str, NewExtensionModule] = {}
         if ast is None:
             self.load_root_meson_file()
@@ -965,7 +964,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             old_build = self.state.world.build
             self.state.world.build = old_build.copy()
-            subi = Interpreter(self.state.world.build, self.backend, subp_name, subdir,
+            subi = Interpreter(self.state.world.build, self.state.world.backend, subp_name, subdir,
                                default_options, ast=ast, is_translated=(ast is not None),
                                relaxations=relaxations,
                                user_defined_options=self.state.world.user_defined_options,
@@ -1014,7 +1013,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             from ..modules.cmake import CMakeSubprojectOptions
             options = kwargs.get('options') or CMakeSubprojectOptions()
             cmake_options = kwargs.get('cmake_options', []) + options.cmake_options
-            cm_int = CMakeInterpreter(Path(subdir), Path(prefix), self.state.world.build.environment, self.backend)
+            cm_int = CMakeInterpreter(Path(subdir), Path(prefix), self.state.world.build.environment, self.state.world.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
 
@@ -1117,7 +1116,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def set_backend(self) -> None:
         # The backend is already set when parsing subprojects
-        if self.backend is not None:
+        if self.state.world.backend is not None:
             return
         from ..backend import backends
 
@@ -1125,19 +1124,19 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
             backend_name = self.coredata.get_option(OptionKey('genvslite'))
-            self.backend = backends.get_genvslite_backend(backend_name, self.state.world.build, self)
+            self.state.world.backend = backends.get_genvslite_backend(backend_name, self.state.world.build, self)
         else:
             backend_name = self.coredata.get_option(OptionKey('backend'))
-            self.backend = backends.get_backend_from_name(backend_name, self.state.world.build, self)
+            self.state.world.backend = backends.get_backend_from_name(backend_name, self.state.world.build, self)
 
-        if self.backend is None:
+        if self.state.world.backend is None:
             raise InterpreterException(f'Unknown backend "{backend_name}".')
-        if backend_name != self.backend.name:
-            if self.backend.name.startswith('vs'):
-                mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
+        if backend_name != self.state.world.backend.name:
+            if self.state.world.backend.name.startswith('vs'):
+                mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.state.world.backend.name))
             if not self.environment.first_invocation:
-                raise MesonBugException(f'Backend changed from {backend_name} to {self.backend.name}')
-            self.coredata.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
+                raise MesonBugException(f'Backend changed from {backend_name} to {self.state.world.backend.name}')
+            self.coredata.set_option(OptionKey('backend'), self.state.world.backend.name, first_invocation=True)
 
         # Only init backend options on first invocation otherwise it would
         # override values previously set from command line.
@@ -2104,7 +2103,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=kwargs['install_dir'],
             install_mode=install_mode,
             install_tag=kwargs['install_tag'],
-            backend=self.backend)
+            backend=self.state.world.backend)
         self.add_target(tg.name, tg)
         return tg
 
@@ -3160,7 +3159,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                    "internal use. Please rename.")
 
     def add_target(self, name: str, tobj: build.Target) -> None:
-        if self.backend.name == 'none':
+        if self.state.world.backend.name == 'none':
             raise InterpreterException('Install-only backend cannot generate target rules, try using `--backend=ninja`.')
         if name == '':
             raise InterpreterException('Target name must not be empty.')
@@ -3205,7 +3204,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
 
-        if self.backend.name == 'xcode':
+        if self.state.world.backend.name == 'xcode':
             # Xcode is a bit special in that you can't (at least for the moment)
             # form a library only from object file inputs. The simple but inefficient
             # solution is to use the sources directly. This will lead to them being
