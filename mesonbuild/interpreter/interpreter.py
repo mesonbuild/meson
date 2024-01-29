@@ -296,7 +296,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self.build, self)})
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
-        self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
             self.default_project_options = default_project_options.copy()
@@ -2639,13 +2638,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             if depfile:
                 depfile = mesonlib.substitute_values([depfile], values)[0]
         ofile_rpath = os.path.join(self.state.local.subdir, output)
-        if ofile_rpath in self.configure_file_outputs:
+        if ofile_rpath in self.state.local.configure_file_outputs:
             mesonbuildfile = os.path.join(self.state.local.subdir, 'meson.build')
             current_call = f"{mesonbuildfile}:{self.state.local.current_node.lineno}"
-            first_call = "{}:{}".format(mesonbuildfile, self.configure_file_outputs[ofile_rpath])
+            first_call = "{}:{}".format(mesonbuildfile, self.state.local.configure_file_outputs[ofile_rpath])
             mlog.warning('Output file', mlog.bold(ofile_rpath, True), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
         else:
-            self.configure_file_outputs[ofile_rpath] = self.state.local.current_node.lineno
+            self.state.local.configure_file_outputs[ofile_rpath] = self.state.local.current_node.lineno
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.state.local.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
 
