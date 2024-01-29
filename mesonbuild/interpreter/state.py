@@ -4,6 +4,7 @@
 """Implementation of Interpreter state for the primary Interpreter."""
 
 from __future__ import annotations
+import contextlib
 import dataclasses
 import typing as T
 
@@ -75,7 +76,7 @@ class LocalInterpreterState(LocalState):
     """
 
     default_subproject_options: T.Dict[OptionKey, str] = dataclasses.field(
-        default_factory=dict, init=False)
+        default_factory=dict)
     """Options passed to subprojects via the `dependency(default_options)` keyword argument.
 
     See also :attr:`project_default_options`.
@@ -115,9 +116,36 @@ class GlobalInterpreterState(GlobalState):
         # Provides consistant API with ASTInterpreter, which doesn't have a Build
         return self.build.subproject_dir
 
+    def copy(self) -> GlobalInterpreterState:
+        c = GlobalInterpreterState(
+            self.source_root, self.build.copy(),
+            self.user_defined_options, self.backend)
+        c.summary = self.summary.copy()
+        c.subprojects = self.subprojects.copy()
+        c.args_frozen = self.args_frozen
+        c.build_def_files = OrderedSet(self.build_def_files)
+        return c
+
 
 @dataclasses.dataclass
 class InterpreterState(State):
 
     local: LocalInterpreterState
     world: GlobalInterpreterState
+
+    def copy(self) -> InterpreterState:
+        return InterpreterState(self.local, self.world.copy())
+
+    @contextlib.contextmanager
+    def subproject(self, new: LocalInterpreterState) -> T.Iterator[LocalInterpreterState]:
+        """Replace the local state with a new one, and ensure it's set back
+
+        :param new: the new state to use
+        :yield: the old state
+        """
+        old = self.local
+        self.local = new
+        try:
+            yield old
+        finally:
+            self.local = old
