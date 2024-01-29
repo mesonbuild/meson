@@ -142,7 +142,7 @@ class ModuleState:
                                lang: T.Optional[str] = None,
                                module: T.Optional[str] = None) -> bool:
         key = mesonlib.OptionKey(name, subproject, machine, lang, module)
-        return key in self._interpreter.user_defined_options.cmd_line_options
+        return key in self._interpreter.state.world.user_defined_options.cmd_line_options
 
     def process_include_dirs(self, dirs: T.Iterable[T.Union[str, IncludeDirs]]) -> T.Iterable[IncludeDirs]:
         """Convert raw include directory arguments to only IncludeDirs

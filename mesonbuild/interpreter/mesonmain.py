@@ -481,7 +481,7 @@ class MesonMain(MesonInterpreterObject):
     @noKwargs
     @FeatureNew('meson.build_options', '1.1.0')
     def build_options_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        options = self.interpreter.user_defined_options
+        options = self.interpreter.state.world.user_defined_options
         if options is None:
             return ''
         return coredata.format_cmd_line_options(options)

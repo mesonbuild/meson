@@ -13,6 +13,7 @@ from ..utils.universal import OrderedSet, PerMachine
 if T.TYPE_CHECKING:
     from .interpreter import Summary, InterpreterRuleRelaxation
     from ..build import Build
+    from ..coredata import SharedCMDOptions
     from ..compilers.compilers import Compiler
     from ..utils.universal import OptionKey
 
@@ -84,6 +85,9 @@ class GlobalInterpreterState(GlobalState):
 
     build: Build
     """Presistant build information."""
+
+    user_defined_options: T.Optional[SharedCMDOptions]
+    """Options passed by the user."""
 
     summary: T.Dict[str, Summary] = dataclasses.field(default_factory=dict, init=False)
 
