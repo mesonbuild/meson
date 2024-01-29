@@ -28,9 +28,10 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
         self.coredata = interpreter.coredata
-        self.build = interpreter.build
+        self.build = interpreter.state.world.build
         self.environment = interpreter.environment
         self.wrap_resolver = interpreter.environment.wrap_resolver
+
         self.allow_fallback = allow_fallback
         self.subproject_name: T.Optional[str] = None
         self.subproject_varname: T.Optional[str] = None

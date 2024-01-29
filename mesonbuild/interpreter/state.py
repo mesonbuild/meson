@@ -12,6 +12,7 @@ from ..utils.universal import OrderedSet, PerMachine
 
 if T.TYPE_CHECKING:
     from .interpreter import Summary, InterpreterRuleRelaxation
+    from ..build import Build
     from ..compilers.compilers import Compiler
 
 
@@ -65,6 +66,9 @@ class LocalInterpreterState(LocalState):
 
 @dataclasses.dataclass
 class GlobalInterpreterState(GlobalState):
+
+    build: Build
+    """Presistant build information."""
 
     summary: T.Dict[str, Summary] = dataclasses.field(default_factory=dict, init=False)
 
