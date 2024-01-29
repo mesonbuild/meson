@@ -14,6 +14,7 @@ if T.TYPE_CHECKING:
     from .interpreter import Summary, InterpreterRuleRelaxation
     from ..build import Build
     from ..compilers.compilers import Compiler
+    from ..utils.universal import OptionKey
 
 
 @dataclasses.dataclass
@@ -69,6 +70,10 @@ class LocalInterpreterState(LocalState):
     line number of the first definition. Used to warn when a configure_file
     output will be overwritten.
     """
+
+    default_subproject_options: T.Dict[OptionKey, str] = dataclasses.field(
+        default_factory=dict, init=False)
+    """Options passed to subprojects via the `dependency(default_options)` keyword argument."""
 
 
 @dataclasses.dataclass
