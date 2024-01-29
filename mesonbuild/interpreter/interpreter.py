@@ -296,7 +296,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self.build, self)})
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
-        self.subproject_stack: T.List[str] = []
         self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
@@ -890,8 +889,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if has_path_sep(subp_name):
             mlog.warning('Subproject name has a path separator. This may cause unexpected behaviour.',
                          location=self.state.local.current_node)
-        if subp_name in self.subproject_stack:
-            fullstack = self.subproject_stack + [subp_name]
+        if subp_name in self.state.local.subproject_stack:
+            fullstack = self.state.local.subproject_stack + [subp_name]
             incpath = ' => '.join(fullstack)
             raise InvalidCode(f'Recursive include of subprojects: {incpath}.')
         if subp_name in self.subprojects:
@@ -918,7 +917,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.state.world.args_frozen = True
 
-        stack = ':'.join(self.subproject_stack + [subp_name])
+        stack = ':'.join(self.state.local.subproject_stack + [subp_name])
         m = ['\nExecuting subproject', mlog.bold(stack)]
         if method != 'meson':
             m += ['method', mlog.bold(method)]
@@ -979,7 +978,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi.holder_map = self.holder_map
             subi.bound_holder_map = self.bound_holder_map
 
-            subi.subproject_stack = self.subproject_stack + [subp_name]
+            subi.state.local.subproject_stack = self.state.local.subproject_stack + [subp_name]
             current_active = self.state.local.project_name
             with mlog.nested_warnings():
                 subi.run()
@@ -996,7 +995,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.state.local.project_name = current_active
         self.subprojects.update(subi.subprojects)
         self.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
-                                                       callstack=self.subproject_stack)
+                                                       callstack=self.state.local.subproject_stack)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.state.world.build_def_files.update(build_def_files)
