@@ -11,11 +11,12 @@ from ..interpreterbase.state import State, LocalState, GlobalState
 from ..utils.universal import OrderedSet, PerMachine
 
 if T.TYPE_CHECKING:
-    from .interpreter import Summary, InterpreterRuleRelaxation
     from ..build import Build
-    from ..coredata import SharedCMDOptions
     from ..compilers.compilers import Compiler
+    from ..coredata import SharedCMDOptions
     from ..utils.universal import OptionKey
+    from .interpreter import Summary, InterpreterRuleRelaxation
+    from .interpreterobjects import SubprojectHolder
 
 
 @dataclasses.dataclass
@@ -100,6 +101,10 @@ class GlobalInterpreterState(GlobalState):
 
     build_def_files: OrderedSet[str] = dataclasses.field(default_factory=OrderedSet, init=False)
     """Files which, when changed, should trigger a reconfigure."""
+
+    subprojects: T.Dict[str, SubprojectHolder] = dataclasses.field(
+        default_factory=dict, init=False)
+    """All subprojects fully evaluated, mapped to their result."""
 
     @property
     def subproject_dir(self) -> str:
