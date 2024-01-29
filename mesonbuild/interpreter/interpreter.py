@@ -294,7 +294,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.ast = ast
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self)})
-        self.subprojects: T.Dict[str, SubprojectHolder] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
             self.state.local.default_subproject_options.update(default_project_options)
@@ -861,7 +860,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                             exception: T.Optional[Exception] = None) -> SubprojectHolder:
         sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.state.world.build.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
-        self.subprojects[subp_name] = sub
+        self.state.world.subprojects[subp_name] = sub
         return sub
 
     def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
@@ -887,8 +886,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             fullstack = self.state.local.subproject_stack + [subp_name]
             incpath = ' => '.join(fullstack)
             raise InvalidCode(f'Recursive include of subprojects: {incpath}.')
-        if subp_name in self.subprojects:
-            subproject = self.subprojects[subp_name]
+        if subp_name in self.state.world.subprojects:
+            subproject = self.state.world.subprojects[subp_name]
             if required and not subproject.found():
                 raise InterpreterException(f'Subproject "{subproject.subdir}" required but not found.')
             if kwargs['version']:
@@ -968,7 +967,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Those lists are shared by all interpreters. That means that
             # even if the subproject fails, any modification that the subproject
             # made to those lists will affect the parent project.
-            subi.subprojects = self.subprojects
+            subi.state.world.subprojects = self.state.world.subprojects
             subi.modules = self.modules
             subi.holder_map = self.holder_map
             subi.bound_holder_map = self.bound_holder_map
@@ -988,16 +987,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                 raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
         self.state.local.project_name = current_active
-        self.subprojects.update(subi.subprojects)
-        self.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
-                                                       callstack=self.state.local.subproject_stack)
+        self.state.world.subprojects.update(subi.state.world.subprojects)
+        self.state.world.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
+                                                                   callstack=self.state.local.subproject_stack)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.state.world.build_def_files.update(build_def_files)
         old_build.merge(subi.state.world.build)
         self.state.world.build = old_build
         self.state.world.build.subprojects[subp_name] = subi.state.local.project_version
-        return self.subprojects[subp_name]
+        return self.state.world.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name: str, subdir: str,
                              default_options: T.Dict[OptionKey, str],
@@ -1379,7 +1378,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def _print_summary(self) -> None:
         # Add automatic 'Subprojects' section in main project.
         all_subprojects = collections.OrderedDict()
-        for name, subp in sorted(self.subprojects.items()):
+        for name, subp in sorted(self.state.world.subprojects.items()):
             value = [subp.found()]
             if subp.disabled_feature:
                 value += [f'Feature {subp.disabled_feature!r} disabled']
@@ -1411,7 +1410,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('')  # newline
         main_summary = self.state.world.summary.pop('', None)
         for subp_name, summary in sorted(self.state.world.summary.items()):
-            if self.subprojects[subp_name].found():
+            if self.state.world.subprojects[subp_name].found():
                 summary.dump()
         if main_summary:
             main_summary.dump()
@@ -1706,7 +1705,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 version = version_func(progobj)
             elif isinstance(progobj, build.Executable):
                 if progobj.subproject:
-                    interp = self.subprojects[progobj.subproject].held_object
+                    interp = self.state.world.subprojects[progobj.subproject].held_object
                 else:
                     interp = self
                 assert isinstance(interp, Interpreter)
