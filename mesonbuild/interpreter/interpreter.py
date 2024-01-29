@@ -279,7 +279,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject, subdir,
                 rule_relaxations=relaxations or set(),
             ),
-            world or GlobalInterpreterState(_build.environment.get_source_dir(), _build)
+            world or GlobalInterpreterState(
+                _build.environment.get_source_dir(), _build,
+                user_defined_options)
         )
         super().__init__()
         self.environment = _build.environment
@@ -298,7 +300,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.state.local.default_subproject_options.update(default_project_options)
         self.build_func_dict()
         self.build_holder_map()
-        self.user_defined_options = user_defined_options
 
         # build_def_files needs to be defined before parse_project is called
         #
@@ -962,7 +963,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             subi = Interpreter(self.state.world.build, self.backend, subp_name, subdir,
                                default_options, ast=ast, is_translated=(ast is not None),
                                relaxations=relaxations,
-                               user_defined_options=self.user_defined_options,
+                               user_defined_options=self.state.world.user_defined_options,
                                world=self.state.world)
             # Those lists are shared by all interpreters. That means that
             # even if the subproject fails, any modification that the subproject
@@ -1115,7 +1116,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         from ..backend import backends
 
-        if OptionKey('genvslite') in self.user_defined_options.cmd_line_options.keys():
+        if OptionKey('genvslite') in self.state.world.user_defined_options.cmd_line_options.keys():
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
             backend_name = self.coredata.get_option(OptionKey('genvslite'))
@@ -1396,13 +1397,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                                'list_sep': ' ',
                                })
         # Add automatic section with all user defined options
-        if self.user_defined_options:
+        if self.state.world.user_defined_options:
             values = collections.OrderedDict()
-            if self.user_defined_options.cross_file:
-                values['Cross files'] = self.user_defined_options.cross_file
-            if self.user_defined_options.native_file:
-                values['Native files'] = self.user_defined_options.native_file
-            sorted_options = sorted(self.user_defined_options.cmd_line_options.items())
+            if self.state.world.user_defined_options.cross_file:
+                values['Cross files'] = self.state.world.user_defined_options.cross_file
+            if self.state.world.user_defined_options.native_file:
+                values['Native files'] = self.state.world.user_defined_options.native_file
+            sorted_options = sorted(self.state.world.user_defined_options.cmd_line_options.items())
             values.update({str(k): v for k, v in sorted_options})
             if values:
                 self.summary_impl('User defined options', values, {'bool_yn': False, 'list_sep': None})
