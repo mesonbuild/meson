@@ -295,7 +295,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.ast = ast
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self.build, self)})
-        self.processed_buildfiles: T.Set[str] = set()
         self.subprojects: T.Dict[str, SubprojectHolder] = {}
         self.subproject_stack: T.List[str] = []
         self.configure_file_outputs: T.Dict[str, int] = {}
@@ -2410,9 +2409,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         absdir = os.path.join(self.environment.get_source_dir(), subdir)
         symlinkless_dir = os.path.realpath(absdir)
         build_file = os.path.join(symlinkless_dir, 'meson.build')
-        if build_file in self.processed_buildfiles:
+        if build_file in self.state.local.processed_buildfiles:
             raise InvalidArguments(f'Tried to enter directory "{subdir}", which has already been visited.')
-        self.processed_buildfiles.add(build_file)
+        self.state.local.processed_buildfiles.add(build_file)
         self.state.local.subdir = subdir
         os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
         buildfilename = os.path.join(self.state.local.subdir, environment.build_filename)
