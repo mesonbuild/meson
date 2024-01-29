@@ -918,7 +918,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             sources,
             kwargs['output'],
             compiler,
-            self.interpreter.backend,
+            self.interpreter.state.world.backend,
             kwargs['compile_args'],
             kwargs['include_directories'],
             kwargs['dependencies'],
@@ -926,5 +926,5 @@ class CompilerHolder(ObjectHolder['Compiler']):
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to
         # other targets, list outputs, etc.
-        private_dir = os.path.relpath(self.interpreter.backend.get_target_private_dir(tg), self.interpreter.state.local.subdir)
+        private_dir = os.path.relpath(self.interpreter.state.world.backend.get_target_private_dir(tg), self.interpreter.state.local.subdir)
         return [build.CustomTargetIndex(tg, os.path.join(private_dir, o)) for o in tg.outputs]

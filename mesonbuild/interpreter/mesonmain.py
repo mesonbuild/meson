@@ -103,7 +103,7 @@ class MesonMain(MesonInterpreterObject):
             largs.append(found)
 
         largs.extend(args)
-        es = self.interpreter.backend.get_executable_serialisation(largs, verbose=True)
+        es = self.interpreter.state.world.backend.get_executable_serialisation(largs, verbose=True)
         es.subproject = self.interpreter.subproject
         return es
 
@@ -225,7 +225,7 @@ class MesonMain(MesonInterpreterObject):
     @noPosargs
     @noKwargs
     def backend_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return self.interpreter.backend.name
+        return self.interpreter.state.world.backend.name
 
     @noPosargs
     @noKwargs

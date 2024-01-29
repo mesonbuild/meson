@@ -11,6 +11,7 @@ from ..interpreterbase.state import State, LocalState, GlobalState
 from ..utils.universal import OrderedSet, PerMachine
 
 if T.TYPE_CHECKING:
+    from ..backend.backends import Backend
     from ..build import Build
     from ..compilers.compilers import Compiler
     from ..coredata import SharedCMDOptions
@@ -89,6 +90,9 @@ class GlobalInterpreterState(GlobalState):
 
     user_defined_options: T.Optional[SharedCMDOptions]
     """Options passed by the user."""
+
+    backend: T.Optional[Backend]
+    """The current backend."""
 
     summary: T.Dict[str, Summary] = dataclasses.field(default_factory=dict, init=False)
 
