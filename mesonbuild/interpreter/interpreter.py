@@ -632,8 +632,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             ext_module = NotFoundExtensionModule(real_modname)
         else:
             ext_module = module.initialize(self)
-            assert isinstance(ext_module, (ExtensionModule, NewExtensionModule)), 'for mypy'
-            self.build.modules.append(real_modname)
+            assert isinstance(ext_module, (ExtensionModule, NewExtensionModule))
+            self.build.modules.add(real_modname)
         if ext_module.INFO.added:
             FeatureNew.single_use(f'module {ext_module.INFO.name}', ext_module.INFO.added, self.subproject, location=node)
         if ext_module.INFO.deprecated:
