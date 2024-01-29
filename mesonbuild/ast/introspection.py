@@ -53,9 +53,9 @@ class IntrospectionInterpreter(AstInterpreter):
                  cross_file: T.Optional[str] = None,
                  subproject: SubProject = SubProject(''),
                  subproject_dir: str = 'subprojects',
-                 env: T.Optional[environment.Environment] = None):
+                 env: T.Optional[environment.Environment] = None) -> None:
         visitors = visitors if visitors is not None else []
-        super().__init__(source_root, subdir, subproject, visitors=visitors)
+        super().__init__(source_root, subdir, subproject, visitors=visitors, subproject_dir=subproject_dir)
 
         options = IntrospectionHelper(cross_file)
         self.cross_file = cross_file
@@ -63,7 +63,6 @@ class IntrospectionInterpreter(AstInterpreter):
             self.environment = environment.Environment(source_root, None, options)
         else:
             self.environment = env
-        self.subproject_dir = subproject_dir
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
@@ -120,10 +119,10 @@ class IntrospectionInterpreter(AstInterpreter):
             spdirname = kwargs['subproject_dir']
             if isinstance(spdirname, StringNode):
                 assert isinstance(spdirname.value, str)
-                self.subproject_dir = spdirname.value
+                self.state.world.subproject_dir = spdirname.value
         if not self.is_subproject():
             self.project_data['subprojects'] = []
-            subprojects_dir = os.path.join(self.state.world.source_root, self.subproject_dir)
+            subprojects_dir = os.path.join(self.state.world.source_root, self.state.world.subproject_dir)
             if os.path.isdir(subprojects_dir):
                 for i in os.listdir(subprojects_dir):
                     if os.path.isdir(os.path.join(subprojects_dir, i)):
@@ -137,10 +136,10 @@ class IntrospectionInterpreter(AstInterpreter):
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
     def do_subproject(self, dirname: SubProject) -> None:
-        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.state.world.subproject_dir)
         subpr = os.path.join(subproject_dir_abs, dirname)
         try:
-            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment, visitors=self.visitors)
+            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.environment, visitors=self.visitors)
             subi.analyze()
             subi.project_data['name'] = dirname
             self.project_data['subprojects'] += [subi.project_data]
