@@ -73,7 +73,10 @@ class LocalInterpreterState(LocalState):
 
     default_subproject_options: T.Dict[OptionKey, str] = dataclasses.field(
         default_factory=dict, init=False)
-    """Options passed to subprojects via the `dependency(default_options)` keyword argument."""
+    """Options passed to subprojects via the `dependency(default_options)` keyword argument.
+
+    See also :attr:`project_default_options`.
+    """
 
 
 @dataclasses.dataclass
