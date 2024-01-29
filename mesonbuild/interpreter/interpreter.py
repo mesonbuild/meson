@@ -696,7 +696,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         variables = kwargs['variables']
         version = kwargs['version']
         if version is None:
-            version = self.project_version
+            version = self.state.local.project_version
         d_module_versions = kwargs['d_module_versions']
         d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
         srcdir = Path(self.environment.source_dir)
@@ -985,7 +985,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log()
 
         if kwargs['version']:
-            pv = subi.project_version
+            pv = subi.state.local.project_version
             wanted = kwargs['version']
             if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                 raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
@@ -998,7 +998,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.state.world.build_def_files.update(build_def_files)
         old_build.merge(subi.state.world.build)
         self.state.world.build = old_build
-        self.state.world.build.subprojects[subp_name] = subi.project_version
+        self.state.world.build.subprojects[subp_name] = subi.state.local.project_version
         return self.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name: str, subdir: str,
@@ -1256,12 +1256,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                 ver_data = ver_data[0:1]
             if len(ver_data) != 1:
                 raise InterpreterException('Version file must contain exactly one line of text.')
-            self.project_version = ver_data[0]
+            self.state.local.project_version = ver_data[0]
         else:
-            self.project_version = version
+            self.state.local.project_version = version
 
         if self.state.world.build.project_version is None:
-            self.state.world.build.project_version = self.project_version
+            self.state.world.build.project_version = self.state.local.project_version
 
         if kwargs['license'] is None:
             proj_license = ['unknown']
@@ -1274,7 +1274,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             ifname = i.absolute_path(self.environment.source_dir,
                                      self.environment.build_dir)
             proj_license_files.append((ifname, i))
-        self.state.world.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license,
+        self.state.world.build.dep_manifest[proj_name] = build.DepManifest(self.state.local.project_version, proj_license,
                                                                            proj_license_files, self.subproject)
         if self.subproject in self.state.world.build.projects:
             raise InvalidCode('Second call to project().')
@@ -1291,7 +1291,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         self.state.world.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
-        mlog.log('Project version:', mlog.bold(self.project_version))
+        mlog.log('Project version:', mlog.bold(self.state.local.project_version))
 
         if not self.is_subproject():
             # We have to activate VS before adding languages and before calling
@@ -1374,7 +1374,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def summary_impl(self, section: str, values, kwargs: 'kwtypes.Summary') -> None:
         if self.subproject not in self.state.world.summary:
-            self.state.world.summary[self.subproject] = Summary(self.state.local.project_name, self.project_version)
+            self.state.world.summary[self.subproject] = Summary(self.state.local.project_name, self.state.local.project_version)
         self.state.world.summary[self.subproject].add_section(
             section, values, kwargs['bool_yn'], kwargs['list_sep'], self.subproject)
 
@@ -1712,7 +1712,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 else:
                     interp = self
                 assert isinstance(interp, Interpreter)
-                version = interp.project_version
+                version = interp.state.local.project_version
             else:
                 version = progobj.get_version(self)
             is_found, not_found, _ = mesonlib.version_compare_many(version, wanted)
@@ -1923,7 +1923,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwtypes.VcsTag') -> build.CustomTarget:
         if kwargs['fallback'] is None:
             FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject, location=node)
-        fallback = kwargs['fallback'] or self.project_version
+        fallback = kwargs['fallback'] or self.state.local.project_version
         replace_string = kwargs['replace_string']
         regex_selector = '(.*)' # default regex selector for custom command: use complete output
         vcs_cmd = kwargs['command']
