@@ -82,6 +82,11 @@ class GlobalInterpreterState(GlobalState):
     build_def_files: OrderedSet[str] = dataclasses.field(default_factory=OrderedSet, init=False)
     """Files which, when changed, should trigger a reconfigure."""
 
+    @property
+    def subproject_dir(self) -> str:
+        # Provides consistant API with ASTInterpreter, which doesn't have a Build
+        return self.build.subproject_dir
+
 
 @dataclasses.dataclass
 class InterpreterState(State):

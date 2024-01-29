@@ -490,12 +490,12 @@ def list_projinfo_from_source(intr: IntrospectionInterpreter) -> T.Dict[str, T.U
     files = [os.path.normpath(x) for x in files]
 
     for i in intr.project_data['subprojects']:
-        basedir = os.path.join(intr.subproject_dir, i['name'])
+        basedir = os.path.join(intr.state.world.subproject_dir, i['name'])
         i['buildsystem_files'] = [x for x in files if x.startswith(basedir)]
         files = [x for x in files if not x.startswith(basedir)]
 
     intr.project_data['buildsystem_files'] = files
-    intr.project_data['subproject_dir'] = intr.subproject_dir
+    intr.project_data['subproject_dir'] = intr.state.world.subproject_dir
     return intr.project_data
 
 def print_results(options: argparse.Namespace, results: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.Any]]]], indent: T.Optional[int]) -> int:

@@ -267,7 +267,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                 backend: T.Optional[Backend] = None,
                 subproject: SubProject = SubProject(''),
                 subdir: str = '',
-                subproject_dir: str = 'subprojects',
                 default_project_options: T.Optional[T.Dict[OptionKey, str]] = None,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 is_translated: bool = False,
@@ -287,7 +286,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.modules: T.Dict[str, NewExtensionModule] = {}
-        self.subproject_dir = subproject_dir
         if ast is None:
             self.load_root_meson_file()
         else:
@@ -711,7 +709,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             except ValueError:
                 continue
             else:
-                if not self.is_subproject() and srcdir / self.subproject_dir in p.parents:
+                if not self.is_subproject() and srcdir / self.state.world.build.subproject_dir in p.parents:
                     continue
                 if p.is_absolute() and p.is_dir() and srcdir / self.state.local.root_subdir in [p] + list(Path(os.path.abspath(p)).parents):
                     variables[k] = P_OBJ.DependencyVariableString(v)
@@ -863,7 +861,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
                             exception: T.Optional[Exception] = None) -> SubprojectHolder:
-        sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.subproject_dir, subp_name),
+        sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.state.world.build.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub
         return sub
@@ -964,7 +962,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             old_build = self.state.world.build
             self.state.world.build = old_build.copy()
-            subi = Interpreter(self.state.world.build, self.backend, subp_name, subdir, self.subproject_dir,
+            subi = Interpreter(self.state.world.build, self.backend, subp_name, subdir,
                                default_options, ast=ast, is_translated=(ast is not None),
                                relaxations=relaxations,
                                user_defined_options=self.user_defined_options,
@@ -1172,6 +1170,21 @@ class Interpreter(InterpreterBase, HoldableObject):
         if kwargs['meson_version']:
             self.handle_meson_version(kwargs['meson_version'], node)
 
+        # Needs to be evaluated early for sandbox escape checking
+        # spdirname is the subproject_dir for this project, relative to self.state.local.subdir.
+        # self.subproject_dir is the subproject_dir for the main project, relative to top source dir.
+        spdirname = kwargs['subproject_dir']
+        if not isinstance(spdirname, str):
+            raise InterpreterException('Subproject_dir must be a string')
+        if os.path.isabs(spdirname):
+            raise InterpreterException('Subproject_dir must not be an absolute path.')
+        if spdirname.startswith('.'):
+            raise InterpreterException('Subproject_dir must not begin with a period.')
+        if '..' in spdirname:
+            raise InterpreterException('Subproject_dir must not contain a ".." segment.')
+        if not self.is_subproject():
+            self.state.world.build.subproject_dir = spdirname
+
         # Load "meson.options" before "meson_options.txt", and produce a warning if
         # it is being used with an old version. I have added check that if both
         # exist the warning isn't raised
@@ -1230,6 +1243,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         version = kwargs['version']
         if isinstance(version, mesonlib.File):
             FeatureNew.single_use('version from file', '0.57.0', self.subproject, location=node)
+            # This could not be validated until the subproject_dir was set
+            self.validate_within_subproject(version.subdir, version.fname)
             self.add_build_def_file(version)
             ifname = version.absolute_path(self.environment.source_dir,
                                            self.environment.build_dir)
@@ -1263,21 +1278,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                                                                            proj_license_files, self.subproject)
         if self.subproject in self.state.world.build.projects:
             raise InvalidCode('Second call to project().')
-
-        # spdirname is the subproject_dir for this project, relative to self.state.local.subdir.
-        # self.subproject_dir is the subproject_dir for the main project, relative to top source dir.
-        spdirname = kwargs['subproject_dir']
-        if not isinstance(spdirname, str):
-            raise InterpreterException('Subproject_dir must be a string')
-        if os.path.isabs(spdirname):
-            raise InterpreterException('Subproject_dir must not be an absolute path.')
-        if spdirname.startswith('.'):
-            raise InterpreterException('Subproject_dir must not begin with a period.')
-        if '..' in spdirname:
-            raise InterpreterException('Subproject_dir must not contain a ".." segment.')
-        if not self.is_subproject():
-            self.subproject_dir = spdirname
-        self.state.world.build.subproject_dir = self.subproject_dir
 
         # Load wrap files from this (sub)project.
         wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
@@ -2391,7 +2391,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         mesonlib.check_direntry_issues(args)
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
-        if self.state.local.subdir == '' and args[0] == self.subproject_dir:
+        if self.state.local.subdir == '' and args[0] == self.state.world.build.subproject_dir:
             raise InvalidArguments('Must not go into subprojects dir with subdir(), use subproject() instead.')
         if self.state.local.subdir == '' and args[0].startswith('meson-'):
             raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
@@ -3083,8 +3083,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             #
             # /opt/vendorsdk/src/file_with_license_restrictions.c
             return
+        if not self.state.world.build.subproject_dir:
+            # This happens when a function is called inside project(), before
+            # the root subdir and subproject directory are set. In that case we need to
+            # ignore them, and recheck inside the project() function.
+            return
         project_root = Path(srcdir, self.state.local.root_subdir)
-        subproject_dir = project_root / self.subproject_dir
+        subproject_dir = project_root / self.state.world.build.subproject_dir
         if norm == project_root:
             return
         if project_root not in norm.parents:
