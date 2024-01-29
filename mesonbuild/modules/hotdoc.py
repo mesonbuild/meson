@@ -250,10 +250,10 @@ class HotdocTargetBuilder:
                 continue
             elif isinstance(arg, (build.BuildTarget, CustomTarget)):
                 self.extra_depends.append(arg)
-                arg = self.interpreter.backend.get_target_filename_abs(arg)
+                arg = self.interpreter.state.world.backend.get_target_filename_abs(arg)
             elif isinstance(arg, CustomTargetIndex):
                 self.extra_depends.append(arg.target)
-                arg = self.interpreter.backend.get_target_filename_abs(arg)
+                arg = self.interpreter.state.world.backend.get_target_filename_abs(arg)
 
             cmd.append(arg)
 
