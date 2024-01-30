@@ -61,6 +61,17 @@ class Pybind11ConfigToolDependency(ConfigToolDependency):
         self.compile_args = self.get_config_value(['--includes'], 'compile_args')
 
 
+class NumPyConfigToolDependency(ConfigToolDependency):
+
+    tools = ['numpy-config']
+
+    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+
+
 class BasicPythonExternalProgram(ExternalProgram):
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  ext_prog: T.Optional[ExternalProgram] = None):
@@ -411,4 +422,10 @@ packages['pybind11'] = pybind11_factory = DependencyFactory(
     'pybind11',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.CMAKE],
     configtool_class=Pybind11ConfigToolDependency,
+)
+
+packages['numpy'] = numpy_factory = DependencyFactory(
+    'numpy',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
+    configtool_class=NumPyConfigToolDependency,
 )

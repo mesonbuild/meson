@@ -653,6 +653,14 @@ The `language` keyword may used.
 
 `method` may be `auto`, `pkg-config`, `system` or `cmake`.
 
+## NumPy
+
+*(added 1.4.0)*
+
+`method` may be `auto`, `pkg-config`, or `config-tool`.
+`dependency('numpy')` supports regular use of the NumPy C API.
+Use of `numpy.f2py` for binding Fortran code isn't yet supported.
+
 ## pcap
 
 *(added 0.42.0)*

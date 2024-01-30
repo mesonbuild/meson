@@ -228,6 +228,7 @@ packages.defaults.update({
     'appleframeworks': 'platform',
 
     # from python:
+    'numpy': 'python',
     'python3': 'python',
     'pybind11': 'python',
 
