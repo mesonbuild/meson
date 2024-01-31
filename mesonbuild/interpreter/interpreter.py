@@ -39,12 +39,12 @@ from .state import InterpreterState, LocalInterpreterState, GlobalInterpreterSta
 from .mesonmain import MesonMain
 from .dependencyfallbacks import DependencyFallbacksHolder
 from .interpreterobjects import (
+    SubprojectState,
     SubprojectHolder,
     Test,
     RunProcess,
     extract_required_kwarg,
     extract_search_dirs,
-    NullSubprojectInterpreter,
 )
 from .type_checking import (
     BUILD_TARGET_KWS,
@@ -449,6 +449,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
             envconfig.MachineInfo: OBJ.MachineHolder,
             build.ConfigurationData: OBJ.ConfigurationDataHolder,
+            SubprojectState: SubprojectHolder,
         })
 
         '''
@@ -851,7 +852,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         DEFAULT_OPTIONS.evolve(since='0.38.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True),
     )
-    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.Subproject) -> SubprojectHolder:
+    def func_subproject(self, nodes: mparser.BaseNode, args: T.Tuple[str], kwargs: kwtypes.Subproject) -> SubprojectState:
         kw: kwtypes.DoSubproject = {
             'required': kwargs['required'],
             'default_options': kwargs['default_options'],
@@ -862,13 +863,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.do_subproject(args[0], kw)
 
     def disabled_subproject(self, subp_name: str, disabled_feature: T.Optional[str] = None,
-                            exception: T.Optional[Exception] = None) -> SubprojectHolder:
-        sub = SubprojectHolder(NullSubprojectInterpreter(), os.path.join(self.state.world.build.subproject_dir, subp_name),
-                               disabled_feature=disabled_feature, exception=exception)
+                            exception: T.Optional[Exception] = None) -> SubprojectState:
+        sub = SubprojectState(
+            None, os.path.join(self.state.world.build.subproject_dir, subp_name),
+            disabled_feature=disabled_feature, exception=exception)
         self.state.world.subprojects[subp_name] = sub
         return sub
 
-    def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
+    def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectState:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -921,7 +923,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             m += ['method', mlog.bold(method)]
         mlog.log(*m, '\n', nested=False)
 
-        methods_map: T.Dict[wrap.Method, T.Callable[[str, str, T.Dict[OptionKey, str, kwtypes.DoSubproject]], SubprojectHolder]] = {
+        methods_map: T.Dict[wrap.Method, T.Callable[[str, str, T.Dict[OptionKey, str, kwtypes.DoSubproject]], SubprojectState]] = {
             'meson': self._do_subproject_meson,
             'cmake': self._do_subproject_cmake,
             'cargo': self._do_subproject_cargo,
@@ -947,7 +949,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
                              build_def_files: T.Optional[T.List[str]] = None,
-                             relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None) -> SubprojectHolder:
+                             relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None) -> SubprojectState:
         with mlog.nested(subp_name):
             if ast:
                 # Debug print the generated meson file
@@ -993,8 +995,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
         self.state.local.project_name = current_active
         self.state.world.subprojects.update(subi.state.world.subprojects)
-        self.state.world.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
-                                                                   callstack=self.state.local.subproject_stack)
+        self.state.world.subprojects[subp_name] = SubprojectState(
+            subi.state.local, subdir, warnings=subi_warnings, callstack=self.state.local.subproject_stack)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.state.world.build_def_files.update(build_def_files)
@@ -1005,7 +1007,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def _do_subproject_cmake(self, subp_name: str, subdir: str,
                              default_options: T.Dict[OptionKey, str],
-                             kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
+                             kwargs: kwtypes.DoSubproject) -> SubprojectState:
         from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
             prefix = self.coredata.options[OptionKey('prefix')].value
@@ -1032,7 +1034,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def _do_subproject_cargo(self, subp_name: str, subdir: str,
                              default_options: T.Dict[OptionKey, str],
-                             kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
+                             kwargs: kwtypes.DoSubproject) -> SubprojectState:
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.state.local.current_node)
         with mlog.nested(subp_name):
@@ -1389,7 +1391,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 value += [f'Feature {subp.disabled_feature!r} disabled']
             elif subp.exception:
                 value += [str(subp.exception)]
-            elif subp.warnings > 0:
+            elif subp.warnings:
                 value += [f'{subp.warnings} warnings']
             if subp.callstack:
                 stack = ' => '.join(subp.callstack)
@@ -1710,11 +1712,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 version = version_func(progobj)
             elif isinstance(progobj, build.Executable):
                 if progobj.subproject:
-                    interp = self.state.world.subprojects[progobj.subproject].held_object
+                    state = self.state.world.subprojects[progobj.subproject].state
                 else:
-                    interp = self
-                assert isinstance(interp, Interpreter)
-                version = interp.state.local.project_version
+                    state = self.state.local
+                version = state.project_version
             else:
                 version = progobj.get_version(self)
             is_found, not_found, _ = mesonlib.version_compare_many(version, wanted)

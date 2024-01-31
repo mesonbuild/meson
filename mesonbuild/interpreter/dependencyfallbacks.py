@@ -17,8 +17,8 @@ from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
 import typing as T
 if T.TYPE_CHECKING:
     from .interpreter import Interpreter
-    from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
-    from .interpreterobjects import SubprojectHolder
+    from ..interpreterbase import TYPE_nkwargs, TYPE_nvar, TYPE_var
+    from .interpreterobjects import SubprojectState
 
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
@@ -135,7 +135,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.interpreter.do_subproject(subp_name, func_kwargs)
         return self._get_subproject_dep(subp_name, varname, kwargs)
 
-    def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectHolder]:
+    def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectState]:
         sub = self.interpreter.state.world.subprojects.get(subp_name)
         if sub and sub.found():
             return sub
@@ -250,11 +250,10 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             return cached_dep
         return None
 
-    def _get_subproject_variable(self, subproject: SubprojectHolder, varname: str) -> T.Optional[Dependency]:
-        try:
-            var_dep = subproject.get_variable_method([varname], {})
-        except InvalidArguments:
-            var_dep = None
+    def _get_subproject_variable(self, subproject: SubprojectState, varname: str) -> T.Optional[Dependency]:
+        var_dep: T.Optional[TYPE_var] = None
+        if subproject.found():
+            var_dep = subproject.get_variable(varname)
         if not isinstance(var_dep, Dependency):
             mlog.warning(f'Variable {varname!r} in the subproject {subproject.subdir!r} is',
                          'not found' if var_dep is None else 'not a dependency object')

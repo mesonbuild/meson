@@ -17,7 +17,7 @@ if T.TYPE_CHECKING:
     from ..coredata import SharedCMDOptions
     from ..utils.universal import OptionKey
     from .interpreter import Summary, InterpreterRuleRelaxation
-    from .interpreterobjects import SubprojectHolder
+    from .interpreterobjects import SubprojectState
 
 
 @dataclasses.dataclass
@@ -106,7 +106,7 @@ class GlobalInterpreterState(GlobalState):
     build_def_files: OrderedSet[str] = dataclasses.field(default_factory=OrderedSet, init=False)
     """Files which, when changed, should trigger a reconfigure."""
 
-    subprojects: T.Dict[str, SubprojectHolder] = dataclasses.field(
+    subprojects: T.Dict[str, SubprojectState] = dataclasses.field(
         default_factory=dict, init=False)
     """All subprojects fully evaluated, mapped to their result."""
 

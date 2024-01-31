@@ -3,6 +3,7 @@
 # Copyright © 2017-2024 Intel Corporation
 
 from __future__ import annotations
+from dataclasses import dataclass, InitVar
 import os
 import shlex
 import subprocess
@@ -25,6 +26,7 @@ from ..interpreterbase import (
                                typed_pos_args, typed_kwargs, typed_operator,
                                noArgsFlattening, noPosargs, noKwargs, unholder_return,
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
+from ..interpreterbase._unholder import _unholder
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
@@ -38,6 +40,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..interpreterbase import FeatureCheckBase, InterpreterObject, SubProject, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs
     from .interpreter import Interpreter
+    from .state import LocalInterpreterState
 
     from typing_extensions import TypedDict
 
@@ -790,28 +793,40 @@ class Test(MesonInterpreterObject):
     def get_name(self) -> str:
         return self.name
 
-class NullSubprojectInterpreter(HoldableObject):
-    pass
 
-# TODO: This should really be an `ObjectHolder`, but the additional stuff in this
-#       class prevents this. Thus, this class should be split into a pure
-#       `ObjectHolder` and a class specifically for storing in `Interpreter`.
-class SubprojectHolder(MesonInterpreterObject):
+@dataclass
+class SubprojectState(HoldableObject):
 
-    def __init__(self, subinterpreter: T.Union['Interpreter', NullSubprojectInterpreter],
-                 subdir: str,
-                 warnings: int = 0,
-                 disabled_feature: T.Optional[str] = None,
-                 exception: T.Optional[Exception] = None,
-                 callstack: T.Optional[T.List[str]] = None) -> None:
-        super().__init__()
-        self.held_object = subinterpreter
-        self.warnings = warnings
-        self.disabled_feature = disabled_feature
-        self.exception = exception
+    """Holds the state of a subproject, plus some metadata."""
+
+    state: T.Optional[LocalInterpreterState]
+    _subdir: InitVar[str]
+    warnings: int = 0
+    disabled_feature: T.Optional[str] = None
+    exception: T.Optional[Exception] = None
+    callstack: T.Optional[T.List[str]] = None
+    cm_interpreter: T.Optional[CMakeInterpreter] = None
+
+    def __post_init__(self, subdir: str) -> None:
         self.subdir = PurePath(subdir).as_posix()
-        self.cm_interpreter: T.Optional[CMakeInterpreter] = None
-        self.callstack = callstack
+
+    def found(self) -> bool:
+        return self.state is not None
+
+    def get_variable(self, varname: str, fallback: T.Optional[TYPE_var] = None) -> T.Optional[TYPE_var]:
+        if self.state is None:
+            raise InterpreterException('Tried to get a variable from disabled subproject:', self.subdir)
+
+        try:
+            return _unholder(self.state.variables[varname])
+        except KeyError:
+            return fallback
+
+
+class SubprojectHolder(ObjectHolder[SubprojectState]):
+
+    def __init__(self, obj: SubprojectState, interp: Interpreter):
+        super().__init__(obj, interp)
         self.methods.update({'get_variable': self.get_variable_method,
                              'found': self.found_method,
                              })
@@ -822,7 +837,7 @@ class SubprojectHolder(MesonInterpreterObject):
         return self.found()
 
     def found(self) -> bool:
-        return not isinstance(self.held_object, NullSubprojectInterpreter)
+        return self.held_object.state is not None
 
     @noKwargs
     @noArgsFlattening
@@ -830,18 +845,18 @@ class SubprojectHolder(MesonInterpreterObject):
     def get_variable_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Get_variable takes one or two arguments.')
-        if isinstance(self.held_object, NullSubprojectInterpreter):  # == not self.found()
-            raise InterpreterException(f'Subproject "{self.subdir}" disabled can\'t get_variable on it.')
+        if self.held_object.state is None:
+            raise InterpreterException(f'Subproject "{self.held_object.subdir}" disabled can\'t get_variable on it.')
         varname = args[0]
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable first argument must be a string.')
         try:
-            return self.held_object.state.local.variables[varname]
+            return self.held_object.state.variables[varname]
         except KeyError:
             pass
 
         if len(args) == 2:
-            return self.held_object._holderify(args[1])
+            return self.interpreter._holderify(args[1])
 
         raise InvalidArguments(f'Requested variable "{varname}" not found.')
 
