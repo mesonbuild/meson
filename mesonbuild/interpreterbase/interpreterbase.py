@@ -109,14 +109,14 @@ class InterpreterBase:
             raise InvalidCode('Builder file is empty.')
         assert isinstance(code, str)
         try:
-            self.ast = mparser.Parser(code, mesonfile).parse()
+            self.state.local.ast = mparser.Parser(code, mesonfile).parse()
             self.handle_meson_version_from_ast()
         except mparser.ParseException as me:
             me.file = mesonfile
             if me.ast:
                 # try to detect parser errors from new syntax added by future
                 # meson versions, and just tell the user to update meson
-                self.ast = me.ast
+                self.state.local.ast = me.ast
                 self.handle_meson_version_from_ast()
             raise me
 
@@ -125,7 +125,7 @@ class InterpreterBase:
         Parses project() and initializes languages, compilers etc. Do this
         early because we need this before we parse the rest of the AST.
         """
-        self.evaluate_codeblock(self.ast, end=1)
+        self.evaluate_codeblock(self.state.local.ast, end=1)
 
     def sanity_check_ast(self) -> None:
         def _is_project(ast: mparser.CodeBlockNode) -> object:
@@ -136,7 +136,7 @@ class InterpreterBase:
             first = ast.lines[0]
             return isinstance(first, mparser.FunctionNode) and first.func_name.value == 'project'
 
-        if not _is_project(self.ast):
+        if not _is_project(self.state.local.ast):
             p = pathlib.Path(self.state.world.source_root).resolve()
             found = p
             for parent in p.parents:
@@ -165,7 +165,7 @@ class InterpreterBase:
         # Evaluate everything after the first line, which is project() because
         # we already parsed that in self.parse_project()
         try:
-            self.evaluate_codeblock(self.ast, start=1)
+            self.evaluate_codeblock(self.state.local.ast, start=1)
         except SubdirDoneRequest:
             pass
 
