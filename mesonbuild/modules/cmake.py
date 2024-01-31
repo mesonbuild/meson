@@ -11,7 +11,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
 
 from .. import build, mesonlib, mlog, dependencies
 from ..cmake import TargetOptions, cmake_defines_to_args
-from ..interpreter import SubprojectHolder
+from ..interpreter.interpreterobjects import SubprojectState
 from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, NoneType, in_set_validator
 from ..interpreterbase import (
     FeatureNew,
@@ -94,8 +94,8 @@ endmacro()
 '''
 
 class CMakeSubproject(ModuleObject):
-    def __init__(self, subp: SubprojectHolder):
-        assert isinstance(subp, SubprojectHolder)
+    def __init__(self, subp: SubprojectState):
+        assert isinstance(subp, SubprojectState)
         assert subp.cm_interpreter is not None
         super().__init__()
         self.subp = subp
@@ -419,7 +419,7 @@ class CmakeModule(ExtensionModule):
             deprecated_message='Use options instead',
         ),
     )
-    def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs_: Subproject) -> T.Union[SubprojectHolder, CMakeSubproject]:
+    def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs_: Subproject) -> T.Union[SubprojectState, CMakeSubproject]:
         if kwargs_['cmake_options'] and kwargs_['options'] is not None:
             raise InterpreterException('"options" cannot be used together with "cmake_options"')
         dirname = args[0]
