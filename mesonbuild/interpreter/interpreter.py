@@ -288,7 +288,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if ast is None:
             self.load_root_meson_file()
         else:
-            self.ast = ast
+            self.state.local.ast = ast
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self)})
         # Passed from the outside, only used in subprojects.
@@ -515,9 +515,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         mesonlib.project_meson_versions[self.subproject] = pv
 
     def handle_meson_version_from_ast(self) -> None:
-        if not self.ast.lines:
+        if not self.state.local.ast.lines:
             return
-        project = self.ast.lines[0]
+        project = self.state.local.ast.lines[0]
         # first line is always project()
         if not isinstance(project, mparser.FunctionNode):
             return

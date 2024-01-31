@@ -100,7 +100,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
 def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     printer = AstJSONPrinter()
-    intr.ast.accept(printer)
+    intr.state.local.ast.accept(printer)
     return printer.result
 
 def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:

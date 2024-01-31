@@ -184,7 +184,7 @@ class AstInterpreter(InterpreterBase):
     def load_root_meson_file(self) -> None:
         super().load_root_meson_file()
         for i in self.visitors:
-            self.ast.accept(i)
+            self.state.local.ast.accept(i)
 
     def func_subdir(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         args = self.flatten_args(args)
