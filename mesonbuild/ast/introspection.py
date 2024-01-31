@@ -358,9 +358,9 @@ class IntrospectionInterpreter(AstInterpreter):
            This is faster than self.parse_project() which also initialize options
            and also calls parse_project() on every subproject.
         '''
-        if not self.ast.lines:
+        if not self.state.local.ast.lines:
             return None
-        project = self.ast.lines[0]
+        project = self.state.local.ast.lines[0]
         # first line is always project()
         if not isinstance(project, FunctionNode):
             return None

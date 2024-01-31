@@ -7,7 +7,7 @@ from __future__ import annotations
 import dataclasses
 import typing as T
 
-from .. mparser import BaseNode
+from .. mparser import BaseNode, CodeBlockNode, Token
 
 if T.TYPE_CHECKING:
     from . import InterpreterObject, SubProject
@@ -46,6 +46,9 @@ class LocalState:
 
     project_default_options: T.Dict[OptionKey, str] = dataclasses.field(
         default_factory=dict, init=False)
+
+    ast: CodeBlockNode = CodeBlockNode(Token('', 'sentinal', -1, -1, -1, (-1, -1), 'fake block'))
+    """The AST currently being evaluated."""
 
     def __post_init__(self) -> None:
         self.root_subdir = self.subdir
