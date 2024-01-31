@@ -1333,6 +1333,12 @@ class BuildTarget(Target):
     def add_deps(self, deps):
         deps = listify(deps)
         for dep in deps:
+            # InterpreterState is unhashable, so it will fail in the below check
+            if hasattr(dep, 'cm_interpreter'):
+                raise InvalidArguments('Tried to use subproject object as a dependency.\n'
+                                       'You probably wanted to use a dependency declared in it instead.\n'
+                                       'Access it by calling get_variable() on the subproject object.')
+
             if dep in self.added_deps:
                 continue
 
@@ -1369,10 +1375,6 @@ class BuildTarget(Target):
                 if hasattr(dep, 'held_object'):
                     # FIXME: subproject is not a real ObjectHolder so we have to do this by hand
                     dep = dep.held_object
-                if hasattr(dep, 'project_args_frozen') or hasattr(dep, 'global_args_frozen'):
-                    raise InvalidArguments('Tried to use subproject object as a dependency.\n'
-                                           'You probably wanted to use a dependency declared in it instead.\n'
-                                           'Access it by calling get_variable() on the subproject object.')
                 raise InvalidArguments(f'Argument is of an unacceptable type {type(dep).__name__!r}.\nMust be '
                                        'either an external dependency (returned by find_library() or '
                                        'dependency()) or an internal dependency (returned by '
