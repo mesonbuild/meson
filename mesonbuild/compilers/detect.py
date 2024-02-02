@@ -769,6 +769,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
 
             if 'flang' in out or 'clang' in out:
                 cls = fortran.FlangFortranCompiler
+                linker = None
                 if 'windows' in out or env.machines[for_machine].is_windows():
                     # If we're in a MINGW context this actually will use a gnu
                     # style ld, but for flang on "real" windows we'll use
