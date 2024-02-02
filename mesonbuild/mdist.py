@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from glob import glob
 from pathlib import Path
 from mesonbuild.environment import detect_ninja
-from mesonbuild.mesonlib import (MesonException, RealPathAction, quiet_git,
+from mesonbuild.mesonlib import (MesonException, RealPathAction, get_meson_command, quiet_git,
                                  windows_proof_rmtree, setup_vsenv, OptionKey)
 from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
@@ -327,9 +327,6 @@ def run(options: argparse.Namespace) -> int:
     b = build.load(options.wd)
     need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
     setup_vsenv(need_vsenv)
-    # This import must be load delayed, otherwise it will get the default
-    # value of None.
-    from mesonbuild.mesonlib import get_meson_command
     src_root = b.environment.source_dir
     bld_root = b.environment.build_dir
     priv_dir = os.path.join(bld_root, 'meson-private')
