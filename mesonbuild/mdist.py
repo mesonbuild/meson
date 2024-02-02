@@ -20,7 +20,7 @@ import typing as T
 from dataclasses import dataclass
 from glob import glob
 from pathlib import Path
-from mesonbuild.environment import detect_ninja
+from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.mesonlib import (MesonException, RealPathAction, get_meson_command, quiet_git,
                                  windows_proof_rmtree, setup_vsenv, OptionKey)
 from mesonbuild.msetup import add_arguments as msetup_argparse
@@ -102,10 +102,12 @@ class Dist(metaclass=abc.ABCMeta):
 
     def run_dist_scripts(self) -> None:
         assert os.path.isabs(self.distdir)
-        env = {}
-        env['MESON_DIST_ROOT'] = self.distdir
-        env['MESON_SOURCE_ROOT'] = self.src_root
-        env['MESON_BUILD_ROOT'] = self.bld_root
+        mesonrewrite = Environment.get_build_command() + ['rewrite']
+        env = {'MESON_DIST_ROOT': self.distdir,
+               'MESON_SOURCE_ROOT': self.src_root,
+               'MESON_BUILD_ROOT': self.bld_root,
+               'MESONREWRITE': ' '.join(shlex.quote(x) for x in mesonrewrite),
+               }
         for d in self.dist_scripts:
             if d.subproject and d.subproject not in self.subprojects:
                 continue

@@ -86,3 +86,30 @@ meson setup builddir
 meson dist -C builddir
 ```
 This produces `builddir/meson-dist/mysubproject-1.0.tar.xz` tarball.
+
+## Cement a version obtained from VCS
+
+*Since 1.4.0* the `meson dist` command enables rewriting the build
+configuration of the distribution tarball. This is needed when the
+configuration depends on metadata from revision control such as in the
+following example.
+
+`meson.build`:
+```meson
+project('tig', 'c',
+  version : run_command('version.sh', 'get-vcs').stdout.strip())
+
+meson.add_dist_script('version.sh', 'set-dist', meson.project_version())
+```
+`version.sh`:
+```sh
+#!/bin/sh
+
+if [ "$1" = "get-vcs" ]; then
+  git -C "$MESON_SOURCE_ROOT" describe --always --dirty
+elif [ "$1" = "set-dist" ]; then
+  $MESONREWRITE --sourcedir="$MESON_PROJECT_DIST_ROOT" kwargs set project / version "$2"
+else
+  exit 1
+fi
+```

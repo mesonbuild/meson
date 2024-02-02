@@ -32,6 +32,17 @@ methods:
       scripts, but for subproject scripts they have the path to the root of the
       subproject appended, usually `subprojects/<subproject-name>`.
 
+      *(since 1.4.0)* The `MESONREWRITE` environment variable contains the path
+      to the rewrite command that corresponds to the `meson` executable that
+      was used to configure the build. (This might be a different path than the
+      first executable found in `PATH`.) It can be used to remove or replace
+      any [[run_command]] that depends on the revision control system from the
+      build configuration. Note that the value will contain many parts. For
+      example, it may be `python3 /path/to/meson.py introspect`. The user is
+      responsible for splitting the string to an array if needed by splitting
+      lexically like a UNIX shell would. If your script uses Python,
+      `shlex.split()` is the easiest correct way to do this.
+
     posargs:
       script_name:
         type: str | file | external_program
