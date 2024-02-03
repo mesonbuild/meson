@@ -14,6 +14,7 @@ import json
 import os
 import pickle
 import re
+import shlex
 import shutil
 import typing as T
 import hashlib
@@ -26,8 +27,7 @@ from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet,
-    classify_unity_sources, OptionKey, join_args,
-    ExecutableSerialisation
+    ExecutableSerialisation, classify_unity_sources, OptionKey
 )
 
 if T.TYPE_CHECKING:
@@ -1598,22 +1598,23 @@ class Backend:
         cmd = [i.replace('\\', '/') for i in cmd]
         return inputs, outputs, cmd
 
+    def get_introspect_command(self) -> str:
+        return ' '.join(shlex.quote(x) for x in self.environment.get_build_command() + ['introspect'])
+
     def get_run_target_env(self, target: build.RunTarget) -> mesonlib.EnvironmentVariables:
         env = target.env if target.env else mesonlib.EnvironmentVariables()
         if target.default_env:
-            introspect_cmd = join_args(self.environment.get_build_command() + ['introspect'])
             env.set('MESON_SOURCE_ROOT', [self.environment.get_source_dir()])
             env.set('MESON_BUILD_ROOT', [self.environment.get_build_dir()])
             env.set('MESON_SUBDIR', [target.subdir])
-            env.set('MESONINTROSPECT', [introspect_cmd])
+            env.set('MESONINTROSPECT', [self.get_introspect_command()])
         return env
 
     def run_postconf_scripts(self) -> None:
         from ..scripts.meson_exe import run_exe
-        introspect_cmd = join_args(self.environment.get_build_command() + ['introspect'])
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
                'MESON_BUILD_ROOT': self.environment.get_build_dir(),
-               'MESONINTROSPECT': introspect_cmd,
+               'MESONINTROSPECT': self.get_introspect_command(),
                }
 
         for s in self.build.postconf_scripts:
