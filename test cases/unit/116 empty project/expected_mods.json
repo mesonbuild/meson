@@ -188,6 +188,7 @@
       "mesonbuild.dependencies",
       "mesonbuild.dependencies.base",
       "mesonbuild.dependencies.detect",
+      "mesonbuild.dependencies.framework",
       "mesonbuild.depfile",
       "mesonbuild.envconfig",
       "mesonbuild.environment",
@@ -237,6 +238,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 68
+    "count": 69
   }
 }
