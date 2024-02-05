@@ -470,9 +470,12 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             # which is wrong and breaks things. Store everything, just to be sure.
             pobj = pathlib.Path(p)
             if pobj.exists():
-                resolved = pobj.resolve().as_posix()
-                if resolved not in result:
-                    result.append(resolved)
+                try:
+                    resolved = pobj.resolve(True).as_posix()
+                    if resolved not in result:
+                        result.append(resolved)
+                except FileNotFoundError:
+                    pass
                 unresolved = pobj.as_posix()
                 if unresolved not in result:
                     result.append(unresolved)
