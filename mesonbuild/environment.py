@@ -650,6 +650,33 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
 
+    def copy_for_build(self) -> Environment:
+        other = Environment.__new__(Environment)
+        for k, v in self.__dict__.items():
+            other.__dict__[k] = v
+
+        other.coredata = self.coredata.copy_for_build()
+
+        machines: PerThreeMachineDefaultable[MachineInfo] = PerThreeMachineDefaultable()
+        machines.build = self.machines.build
+        other.machines = machines.default_missing()
+
+        binaries: PerMachineDefaultable[BinaryTable] = PerMachineDefaultable()
+        binaries.build = self.binaries.build
+        other.binaries = binaries.default_missing()
+
+        properties: PerMachineDefaultable[Properties] = PerMachineDefaultable()
+        properties.build = self.properties.build
+        other.properties = properties.default_missing()
+
+        cmakevars: PerMachineDefaultable[CMakeVariables] = PerMachineDefaultable()
+        cmakevars.build = self.cmakevars.build
+        other.cmakevars = cmakevars.default_missing()
+
+        other.exe_wrapper = None
+
+        return other
+
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
 
@@ -870,6 +897,14 @@ class Environment:
 
     def get_build_dir(self) -> str:
         return self.build_dir
+
+    def build_output_rpath(self, subdir: str, *parts: T.Sequence[str]) -> str:
+        if self.coredata.is_build_only:
+            assert subdir.startswith('subprojects')
+            result = 'build.' + subdir
+        else:
+            result = subdir
+        return os.path.join(result, *parts)
 
     def get_import_lib_dir(self) -> str:
         "Install dir for the import library (library used for linking)"

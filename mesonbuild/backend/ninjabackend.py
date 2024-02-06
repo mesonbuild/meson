@@ -2785,7 +2785,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return (rel_obj, rel_src)
 
     @lru_cache(maxsize=None)
-    def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: str, is_system: bool) -> \
+    def generate_inc_dir(self, compiler: 'Compiler', d: str, basedir: str, is_system: bool, build_only_subproject: bool) -> \
             T.Tuple['ImmutableListProtocol[str]', 'ImmutableListProtocol[str]']:
         # Avoid superfluous '/.' at the end of paths when d is '.'
         if d not in ('', '.'):
@@ -2800,8 +2800,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # inc = include_directories('foo/bar/baz')
         #
         # But never subdir()s into the actual dir.
-        if os.path.isdir(os.path.join(self.environment.get_build_dir(), expdir)):
-            bargs = compiler.get_include_args(expdir, is_system)
+        subdir = self.compute_build_subdir(expdir, build_only_subproject)
+        if os.path.isdir(os.path.join(self.environment.get_build_dir(), subdir)):
+            bargs = compiler.get_include_args(subdir, is_system)
         else:
             bargs = []
         return (sargs, bargs)
@@ -2850,7 +2851,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # flags will be added in reversed order.
             for d in reversed(i.get_incdirs()):
                 # Add source subdir first so that the build subdir overrides it
-                (compile_obj, includeargs) = self.generate_inc_dir(compiler, d, basedir, i.is_system)
+                (compile_obj, includeargs) = self.generate_inc_dir(compiler, d, basedir, i.is_system, i.build_only_subproject)
                 commands += compile_obj
                 commands += includeargs
             for d in i.get_extra_build_dirs():

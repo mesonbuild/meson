@@ -291,15 +291,43 @@ class Build:
 
     def copy(self) -> Build:
         other = Build(self.environment)
+        self._copy_to(other)
+        return other
+
+    def copy_for_build(self) -> Build:
+        other = Build(self.environment.copy_for_build())
+        self._copy_to(other)
+
+        other.tests = []
+        other.benchmarks = []
+        other.test_setups = {}
+        other.test_setup_default_name = None
+        other.find_overrides = {}
+        other.searched_programs = set()
+
+        other.dependency_overrides = PerMachineDefaultable.default(False, self.dependency_overrides.build, {})
+        other.devenv = []
+        other.modules = []
+
+        return other
+
+    def _copy_to(self, other: Build) -> None:
         for k, v in self.__dict__.items():
+            if k == 'environment':
+                continue
             if isinstance(v, (list, dict, set, OrderedDict)):
                 other.__dict__[k] = v.copy()
             else:
                 other.__dict__[k] = v
-        return other
 
     def merge(self, other: Build) -> None:
+        is_build_only = other.environment.coredata.is_build_only
+
         for k, v in other.__dict__.items():
+            if k == 'environment':
+                continue
+            if is_build_only and k == 'dependency_overrides':
+                continue
             self.__dict__[k] = v
 
     def ensure_static_linker(self, compiler: Compiler) -> None:
@@ -307,7 +335,15 @@ class Build:
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 
     def get_project(self):
-        return self.projects['']
+        return self.projects[('', MachineChoice.HOST)]
+
+    def find_subproject_descriptive_name(self, name: str) -> T.Optional[str]:
+        for for_machine in iter(MachineChoice):
+            subp_id = (name, for_machine)
+            p = self.projects.get(subp_id, None)
+            if p is not None:
+                return p
+        return None
 
     def get_subproject_dir(self):
         return self.subproject_dir
@@ -371,6 +407,7 @@ class IncludeDirs(HoldableObject):
     curdir: str
     incdirs: T.List[str]
     is_system: bool
+    build_only_subproject: bool
     # Interpreter has validated that all given directories
     # actually exist.
     extra_build_dirs: T.List[str] = field(default_factory=list)
@@ -608,7 +645,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return self.subdir
 
     def get_output_subdir(self) -> str:
-        return self.get_source_subdir()
+        return compute_build_subdir(self.get_source_subdir(), self.build_only_subproject)
 
     def get_typename(self) -> str:
         return self.typename
@@ -624,7 +661,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return h.hexdigest()[:7]
 
     @staticmethod
-    def construct_id_from_path(subdir: str, name: str, type_suffix: str) -> str:
+    def construct_id_from_path(subdir: str, name: str, type_suffix: str, extra_prefix: str = '') -> str:
         """Construct target ID from subdir, name and type suffix.
 
         This helper function is made public mostly for tests."""
@@ -635,7 +672,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         # FIXME replace with assert when slash in names is prohibited
         name_part = name.replace('/', '@').replace('\\', '@')
         assert not has_path_sep(type_suffix)
-        my_id = name_part + type_suffix
+        my_id = extra_prefix + name_part + type_suffix
         if subdir:
             subdir_part = Target._get_id_hash(subdir)
             # preserve myid for better debuggability
@@ -647,7 +684,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if getattr(self, 'name_suffix_set', False):
             name += '.' + self.suffix
         return self.construct_id_from_path(
-            self.subdir, name, self.type_suffix())
+            self.subdir, name, self.type_suffix(), 'build.' if self.build_only_subproject else '')
 
     def process_kwargs_base(self, kwargs: T.Dict[str, T.Any]) -> None:
         if 'build_by_default' in kwargs:
@@ -1537,7 +1574,8 @@ class BuildTarget(Target):
             set_is_system = 'preserve'
         if set_is_system != 'preserve':
             is_system = set_is_system == 'system'
-            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
+            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system,
+                               self.build_only_subproject, x.get_extra_build_dirs()) for x in ids]
         self.include_dirs += ids
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
@@ -2968,6 +3006,7 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
 
     def __post_init__(self) -> None:
         self.for_machine = self.target.for_machine
+        self.build_only_subproject = self.target.build_only_subproject
 
     @property
     def name(self) -> str:
@@ -3111,6 +3150,12 @@ def get_sources_string_names(sources, backend):
         else:
             raise AssertionError(f'Unknown source type: {s!r}')
     return names
+
+def compute_build_subdir(subdir: str, build_only_subproject: bool) -> str:
+    if build_only_subproject:
+        assert subdir.startswith('subprojects')
+        return 'build.' + subdir
+    return subdir
 
 def load(build_dir: str) -> Build:
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')

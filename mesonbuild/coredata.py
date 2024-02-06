@@ -605,6 +605,24 @@ class CoreData:
         self.builtin_options_libdir_cross_fixup()
         self.init_builtins('')
 
+    def copy_for_build(self) -> CoreData:
+        other = CoreData.__new__(CoreData)
+        for k, v in self.__dict__.items():
+            other.__dict__[k] = v
+
+        other.cross_files = []
+
+        other.compilers = PerMachine(self.compilers.build, self.compilers.build)
+
+        other.deps = PerMachineDefaultable.default(
+            is_cross=False,
+            build=self.deps.build,
+            host=self.deps.host)
+
+        other.is_build_only = True
+
+        return other
+
     @staticmethod
     def __load_config_files(options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
         # Need to try and make the passed filenames absolute because when the
@@ -946,7 +964,9 @@ class CoreData:
     def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
         dirty = False
         if not self.is_cross_build():
-            options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
+            other_machine = MachineChoice.HOST if self.is_build_only else MachineChoice.BUILD
+            options = {k: v for k, v in options.items() if k.machine is not other_machine}
+
         # Set prefix first because it's needed to sanitize other options
         pfk = OptionKey('prefix')
         if pfk in options:
@@ -969,7 +989,7 @@ class CoreData:
             sub = f'In subproject {subproject}: ' if subproject else ''
             raise MesonException(f'{sub}Unknown options: "{unknown_options_str}"')
 
-        if not self.is_cross_build():
+        if not self.is_cross_build() and not self.is_build_only:
             dirty |= self.copy_build_options_from_regular_ones()
 
         return dirty

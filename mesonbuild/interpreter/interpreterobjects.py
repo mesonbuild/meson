@@ -209,13 +209,16 @@ class RunProcess(MesonInterpreterObject):
                  subdir: str,
                  mesonintrospect: T.List[str],
                  in_builddir: bool = False,
+                 build_only_subproject: bool = False,
                  check: bool = False,
                  capture: bool = True) -> None:
         super().__init__()
         if not isinstance(cmd, ExternalProgram):
             raise AssertionError('BUG: RunProcess must be passed an ExternalProgram')
         self.capture = capture
-        self.returncode, self.stdout, self.stderr = self.run_command(cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check)
+        self.returncode, self.stdout, self.stderr = self.run_command(cmd, args, env, source_dir, build_dir,
+                                                                     subdir, mesonintrospect, in_builddir,
+                                                                     build_only_subproject, check)
         self.methods.update({'returncode': self.returncode_method,
                              'stdout': self.stdout_method,
                              'stderr': self.stderr_method,
@@ -230,6 +233,7 @@ class RunProcess(MesonInterpreterObject):
                     subdir: str,
                     mesonintrospect: T.List[str],
                     in_builddir: bool,
+                    build_only_subproject: bool,
                     check: bool = False) -> T.Tuple[int, str, str]:
         command_array = cmd.get_command() + args
         menv = {'MESON_SOURCE_ROOT': source_dir,
@@ -238,7 +242,7 @@ class RunProcess(MesonInterpreterObject):
                 'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in mesonintrospect]),
                 }
         if in_builddir:
-            cwd = os.path.join(build_dir, subdir)
+            cwd = os.path.join(build_dir, build.compute_build_subdir(subdir, build_only_subproject))
         else:
             cwd = os.path.join(source_dir, subdir)
         child_env = os.environ.copy()
@@ -898,7 +902,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noPosargs
     @noKwargs
     def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
-        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
+        return build.IncludeDirs('', [], False, self.interpreter.coredata.is_build_only,
+                                 [self.interpreter.backend.get_target_private_dir(self._target_object)])
 
     @noPosargs
     @noKwargs

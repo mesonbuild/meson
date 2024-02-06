@@ -220,7 +220,7 @@ class MesonMain(MesonInterpreterObject):
         sub = self.interpreter.subdir
         if sub == '':
             return src
-        return os.path.join(src, sub)
+        return os.path.join(src, self.interpreter.environment.build_output_rpath(sub))
 
     @noPosargs
     @noKwargs

@@ -1,0 +1,12 @@
+{
+  "installed": [
+    {"type": "exe", "file": "usr/bin/demo"},
+    {"type": "pdb", "file": "usr/bin/demo"},
+    {"type": "file", "file": "usr/lib/libgadget.a"}
+  ],
+  "matrix": {
+    "options": {
+      "default_library": [ { "val": "static" } ]
+    }
+  }
+}

@@ -2198,7 +2198,7 @@ class GnomeModule(ExtensionModule):
         # - link with the correct library
         # - include the vapi and dependent vapi files in sources
         # - add relevant directories to include dirs
-        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
+        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False, state.is_build_only_subproject)]
         sources = [vapi_target] + vapi_depends
         rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], [], {}, [], [], [])
         created_values.append(rv)

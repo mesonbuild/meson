@@ -18,6 +18,11 @@ from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
+class FuncWithNativeArg(TypedDict):
+
+    native: MachineChoice
+
+
 class FuncAddProjectArgs(TypedDict):
 
     """Keyword Arguments for the add_*_arguments family of arguments.

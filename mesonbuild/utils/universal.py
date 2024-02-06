@@ -2191,7 +2191,7 @@ def _classify_argument(key: 'OptionKey') -> OptionType:
         assert key.machine is MachineChoice.HOST, str(key)
         return OptionType.BACKEND
     else:
-        assert key.machine is MachineChoice.HOST, str(key)
+        assert key.machine is MachineChoice.HOST or key.subproject, str(key)
         return OptionType.PROJECT
 
 
@@ -2354,6 +2354,12 @@ class OptionKey:
     def as_host(self) -> 'OptionKey':
         """Convenience method for key.evolve(machine=MachineChoice.HOST)."""
         return self.evolve(machine=MachineChoice.HOST)
+
+    def as_build_only(self) -> 'OptionKey':
+        """Transform to the appropriate key for a build only subproject scenario."""
+        if self.is_backend():
+            return self.as_host()
+        return self.as_build()
 
     def is_backend(self) -> bool:
         """Convenience method to check if this is a backend option."""

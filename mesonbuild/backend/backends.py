@@ -371,6 +371,8 @@ class Backend:
             dirname = target.get_output_subdir()
         else:
             dirname = 'meson-out'
+            if target.build_only_subproject:
+                dirname = 'build.' + dirname
         return dirname
 
     def get_target_dir_relative_to(self, t: build.Target, o: build.Target) -> str:
@@ -408,6 +410,10 @@ class Backend:
         # GeneratedList generators output to the private build directory of the
         # target that the GeneratedList is used in
         return os.path.join(self.get_target_private_dir(target), src)
+
+    @classmethod
+    def compute_build_subdir(cls, subdir: str, build_only_subproject: bool) -> str:
+        return build.compute_build_subdir(subdir, build_only_subproject)
 
     def get_unity_source_file(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex],
                               suffix: str, number: int) -> mesonlib.File:
