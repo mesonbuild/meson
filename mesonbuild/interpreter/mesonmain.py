@@ -25,7 +25,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from ..compilers import Compiler
-    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..interpreterbase import TYPE_kwargs, TYPE_var, SubProject
     from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
 
@@ -85,6 +85,17 @@ class MesonMain(MesonInterpreterObject):
                              'source_root': self.source_root_method,
                              'version': self.version_method,
                              })
+
+    @property
+    def subproject(self) -> SubProject:
+        # Normally MesonInterpreterObjects are per-subproject, but this object
+        # is a little special
+        return self.interpreter.state.local.subproject
+
+    @subproject.setter
+    def subproject(self, _: SubProject) -> None:
+        # Needed for the InterpreterObject initializer to function
+        pass
 
     def _find_source_script(
             self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
