@@ -379,7 +379,7 @@ class CMakeDependency(ExternalDependency):
             cmake_opts += ['-DARCHS={}'.format(';'.join(self.cmakeinfo.archs))]
             cmake_opts += [f'-DVERSION={package_version}']
             cmake_opts += ['-DCOMPS={}'.format(';'.join([x[0] for x in comp_mapped]))]
-            cmake_opts += [f'-DSTATIC={self.static}']
+            cmake_opts += ['-DSTATIC={}'.format('ON' if self.static else 'OFF')]
             cmake_opts += args
             cmake_opts += self.traceparser.trace_args()
             cmake_opts += toolchain.get_cmake_args()
