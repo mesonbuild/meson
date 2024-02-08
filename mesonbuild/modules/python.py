@@ -74,6 +74,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
         if ret:
             self.platlib = self._get_path(state, 'platlib')
             self.purelib = self._get_path(state, 'purelib')
+            self.run_bytecompile.setdefault(self.info['version'], False)
         return ret
 
     def _get_path(self, state: T.Optional['ModuleState'], key: str) -> str:
@@ -544,7 +545,6 @@ class PythonModule(ExtensionModule):
             assert isinstance(python, PythonExternalProgram), 'for mypy'
             python = copy.copy(python)
             python.pure = kwargs['pure']
-            python.run_bytecompile.setdefault(python.info['version'], False)
             return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')
