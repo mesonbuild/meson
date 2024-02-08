@@ -100,7 +100,7 @@ class ModuleState:
                 progobj = ExternalProgram(value)
                 if not progobj.found():
                     msg = (f'Dependency {depname!r} tool variable {varname!r} contains erroneous value: {value!r}\n\n'
-                           'This is a distributor issue -- please report it to your {depname} provider.')
+                           f'This is a distributor issue -- please report it to your {depname} provider.')
                     raise mesonlib.MesonException(msg)
                 return progobj
 
