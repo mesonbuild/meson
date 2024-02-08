@@ -329,7 +329,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
         Old versions of LLVM bring an extra level of insanity with them.
         llvm-config will provide the correct arguments for static linking, but
-        not for shared-linnking, we have to figure those out ourselves, because
+        not for shared-linking, we have to figure those out ourselves, because
         of course we do.
         """
         if self.static:
@@ -413,7 +413,7 @@ class LLVMDependencyCMake(CMakeDependency):
         if not self.is_found:
             return
 
-        #CMake will return not found due to not defined LLVM_DYLIB_COMPONENTS
+        # CMake will return not found due to not defined LLVM_DYLIB_COMPONENTS
         if not self.static and version_compare(self.version, '< 7.0') and self.llvm_modules:
             mlog.warning('Before version 7.0 cmake does not export modules for dynamic linking, cannot check required modules')
             return
