@@ -238,7 +238,7 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
             write_args_line(ofile, exename, exe)
         ofile.write('\n')
 
-        ofile.write('[properties]\n')
+        ofile.write('[built-in options]\n')
         all_langs = list(set(infos.compile_args.keys()).union(set(infos.link_args.keys())))
         all_langs.sort()
         for lang in all_langs:
@@ -246,6 +246,9 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
                 write_args_line(ofile, lang + '_args', infos.compile_args[lang])
             if lang in infos.link_args:
                 write_args_line(ofile, lang + '_link_args', infos.link_args[lang])
+        ofile.write('\n')
+
+        ofile.write('[properties]\n')
         for k, v in infos.properties.items():
             write_args_line(ofile, k, v)
         ofile.write('\n')
