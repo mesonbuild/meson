@@ -78,11 +78,12 @@ class Builder(BuilderBase):
             if [ -f "$HOME/.cargo/env" ]; then
                 source "$HOME/.cargo/env"
             fi
-
-            if [ -f /etc/profile.env ]; then
-                source /etc/profile.env
-            fi
         '''
+
+        if self.data_dir.name == 'gentoo':
+            out_data += '''
+                source /etc/profile
+            '''
 
         out_file.write_text(out_data, encoding='utf-8')
 
