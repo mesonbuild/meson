@@ -1408,7 +1408,7 @@ class SingleTestRunner:
 
         # Sanitizers do not default to aborting on error. This is counter to
         # expectations when using -Db_sanitize and has led to confusion in the wild
-        # in CI. Set our own values of {ASAN,UBSAN}_OPTOINS to rectify this, but
+        # in CI. Set our own values of {ASAN,UBSAN}_OPTIONS to rectify this, but
         # only if the user has not defined them.
         if ('ASAN_OPTIONS' not in env or not env['ASAN_OPTIONS']):
             env['ASAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1'
