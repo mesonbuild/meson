@@ -6,7 +6,7 @@ source /ci/common.sh
 
 pkgs=(
   python python-pip python3-devel
-  ninja-build make git autoconf automake patch
+  ninja-build make git autoconf automake patch file
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-objc++ vala rust bison flex ldc libasan libasan-static
   mono-core boost-devel gtkmm30 gtest-devel gmock-devel protobuf-devel wxGTK-devel gobject-introspection
   boost-python3-devel
