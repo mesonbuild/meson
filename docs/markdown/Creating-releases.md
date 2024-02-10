@@ -51,6 +51,21 @@ for example when done in CI that already does its own testing.
 So with `--no-tests` you can tell Meson "Do not build and test generated
 packages.".
 
+## Modifying release archive contents
+
+By default `meson dist` includes all source code under version control. In
+order to exclude tracked files, include uncommitted files, or modify existing
+files, dist scripts can be used with [[meson.add_dist_script]]. For example:
+
+```meson
+meson.add_dist_script('gen_somefile.py')
+```
+
+Dist scripts work for any supported VCS. In addition, if Git is used as the
+VCS, a `.gitattributes` file can be used to ignore or modify files during
+archive creation via using the `export-ignore` and `export-subst` attributes
+for files or directories.
+
 ## Use `--allow-dirty` to override error when git repository contains uncommitted changes
 
 *Since 0.62.0* Instead of emitting a warning when a repository contains
