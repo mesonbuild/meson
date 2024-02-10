@@ -726,10 +726,6 @@ class CoreData:
                 'Maximum number of linker processes to run or 0 for no '
                 'limit',
                 (0, None, 0))
-        elif backend_name.startswith('vs'):
-            self.options[OptionKey('backend_startup_project')] = UserStringOption(
-                'Default project to execute in Visual Studio',
-                '')
 
     def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool, WrapMode]:
         try:
@@ -1375,6 +1371,7 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
     (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
+    (OptionKey('backend_startup_project'), BuiltinOption(UserStringOption, 'The default active Visual Studio project', '')),
     (OptionKey('vsenv'),           BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
 
     # Pkgconfig module
