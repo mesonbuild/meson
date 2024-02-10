@@ -33,9 +33,10 @@ description: |
   test(..., env: nomalloc, ...)
   ```
 
-  By default, the environment variables `ASAN_OPTIONS` and `UBSAN_OPTIONS` are
-  set to enable aborting on detected violations and to give a backtrace. To suppress
-  this, `ASAN_OPTIONS` and `UBSAN_OPTIONS` can be set in the environment.
+  By default, the environment variables `ASAN_OPTIONS`, `UBSAN_OPTIONS`,
+  and `MSAN_OPTIONS` are set to enable aborting on detected violations and to
+  give a backtrace. To suppress this, `ASAN_OPTIONS`, `UBSAN_OPTIONS`, or
+  `MSAN_OPTIONS` can be set in the environment.
 
   In addition to running individual executables as test cases, `test()`
   can also be used to invoke an external test harness.  In this case,

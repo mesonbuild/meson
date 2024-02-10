@@ -38,11 +38,11 @@ set to a random value between 1..255. This can help find memory leaks on
 configurations using glibc, including with non-GCC compilers. This feature
 can be disabled as discussed in [[test]].
 
-### ASAN_OPTIONS and UBSAN_OPTIONS
+### ASAN_OPTIONS, UBSAN_OPTIONS, and MSAN_OPTIONS
 
-By default, the environment variables `ASAN_OPTIONS` and `UBSAN_OPTIONS` are
-set to enable aborting on detected violations and to give a backtrace. This
-feature can be disabled as discussed in [[test]].
+By default, the environment variables `ASAN_OPTIONS`, `UBSAN_OPTIONS`, and
+`MSAN_OPTIONS` are set to enable aborting on detected violations and to give a
+backtrace. This feature can be disabled as discussed in [[test]].
 
 ## Coverage
 

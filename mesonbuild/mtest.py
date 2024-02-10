@@ -1414,6 +1414,8 @@ class SingleTestRunner:
             env['ASAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1'
         if ('UBSAN_OPTIONS' not in env or not env['UBSAN_OPTIONS']):
             env['UBSAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1'
+        if ('MSAN_OPTIONS' not in env or not env['MSAN_OPTIONS']):
+            env['UBSAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1'
 
         if self.options.gdb or self.test.timeout is None or self.test.timeout <= 0:
             timeout = None
