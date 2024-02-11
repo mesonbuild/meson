@@ -603,7 +603,6 @@ class IfClauseNode(BaseNode):
         super().__init__(linenode.lineno, linenode.colno, linenode.filename)
         self.ifs = []
         self.elseblock = EmptyNode(linenode.lineno, linenode.colno, linenode.filename)
-        self.endif = None
 
 @dataclass(unsafe_hash=True)
 class TestCaseClauseNode(BaseNode):
