@@ -85,6 +85,7 @@ blacklist_compiler_flags = [
     '/RTC1', '/RTCc', '/RTCs', '/RTCu',
     '/Z7', '/Zi', '/ZI',
 ]
+blacklist_fortran_opts_startswith = ['-J']
 
 blacklist_link_flags = [
     '/machine:x64', '/machine:x86', '/machine:arm', '/machine:ebc',
@@ -443,8 +444,13 @@ class ConverterTarget:
                 return False
             return True
 
+        def check_fortran_opt(flag: str) -> bool:
+            return not any(flag.startswith(black) for black in blacklist_fortran_opts_startswith)
+
         self.link_libraries = [x for x in self.link_libraries if x.lower() not in blacklist_link_libs]
         self.link_flags = [x for x in self.link_flags if check_flag(x)]
+        if 'fortran' in self.compile_opts:
+            self.compile_opts['fortran'] = [opt for opt in self.compile_opts['fortran'] if check_fortran_opt(opt)]
 
         # Handle OSX frameworks
         def handle_frameworks(flags: T.List[str]) -> T.List[str]:
