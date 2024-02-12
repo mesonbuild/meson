@@ -420,13 +420,13 @@ class CompileResult(HoldableObject):
 
     """The result of Compiler.compiles (and friends)."""
 
-    stdout: T.Optional[str] = None
-    stderr: T.Optional[str] = None
-    command: T.List[str] = field(default_factory=list)
-    returncode: int = 999
-    input_name: T.Optional[str] = None
-    output_name: T.Optional[str] = None
-    cached: bool = False
+    stdout: str
+    stderr: str
+    command: T.List[str]
+    returncode: int
+    input_name: str
+    output_name: T.Optional[str] = field(default=None, init=False)
+    cached: bool = field(default=False, init=False)
 
 
 class Compiler(HoldableObject, metaclass=abc.ABCMeta):
