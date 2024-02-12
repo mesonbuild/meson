@@ -9,7 +9,7 @@ import contextlib, os.path, re
 import enum
 import itertools
 import typing as T
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 
 from .. import mlog
@@ -406,34 +406,27 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
 class CrossNoRunException(MesonException):
     pass
 
+@dataclass
 class RunResult(HoldableObject):
-    def __init__(self, compiled: bool, returncode: int = 999,
-                 stdout: str = 'UNDEFINED', stderr: str = 'UNDEFINED',
-                 cached: bool = False):
-        self.compiled = compiled
-        self.returncode = returncode
-        self.stdout = stdout
-        self.stderr = stderr
-        self.cached = cached
+    compiled: bool
+    returncode: int = 999
+    stdout: str = 'UNDEFINED'
+    stderr: str = 'UNDEFINED'
+    cached: bool = False
 
 
+@dataclass
 class CompileResult(HoldableObject):
 
     """The result of Compiler.compiles (and friends)."""
 
-    def __init__(self, stdo: T.Optional[str] = None, stde: T.Optional[str] = None,
-                 command: T.Optional[T.List[str]] = None,
-                 returncode: int = 999,
-                 input_name: T.Optional[str] = None,
-                 output_name: T.Optional[str] = None,
-                 cached: bool = False):
-        self.stdout = stdo
-        self.stderr = stde
-        self.input_name = input_name
-        self.output_name = output_name
-        self.command = command or []
-        self.cached = cached
-        self.returncode = returncode
+    stdout: T.Optional[str] = None
+    stderr: T.Optional[str] = None
+    command: T.List[str] = field(default_factory=list)
+    returncode: int = 999
+    input_name: T.Optional[str] = None
+    output_name: T.Optional[str] = None
+    cached: bool = False
 
 
 class Compiler(HoldableObject, metaclass=abc.ABCMeta):
