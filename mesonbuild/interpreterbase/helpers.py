@@ -3,16 +3,15 @@
 
 from __future__ import annotations
 
-from .. import mesonlib, mparser
-from .exceptions import InterpreterException, InvalidArguments
-from ..coredata import UserOption
-
-
 import collections.abc
 import typing as T
 
+from .. import mesonlib, mparser
+from ..coredata import UserOption
+from .exceptions import InterpreterException, InvalidArguments
+
 if T.TYPE_CHECKING:
-    from .baseobjects import TYPE_var, TYPE_kwargs, SubProject
+    from .baseobjects import SubProject, TYPE_kwargs, TYPE_var
 
 def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']:
     if isinstance(args, mparser.BaseStringNode):

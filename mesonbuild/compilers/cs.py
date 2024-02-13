@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
-import os.path, subprocess
+import os.path
+import subprocess
 import textwrap
 import typing as T
 
-from ..mesonlib import EnvironmentException
 from ..linkers import RSPFileSyntax
-
+from ..mesonlib import EnvironmentException
 from .compilers import Compiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 

@@ -3,13 +3,9 @@
 
 from __future__ import annotations
 
-from collections import OrderedDict
-from dataclasses import dataclass, InitVar
-from functools import lru_cache
-from itertools import chain
-from pathlib import Path
 import copy
 import enum
+import hashlib
 import json
 import os
 import pickle
@@ -17,20 +13,22 @@ import re
 import shlex
 import shutil
 import typing as T
-import hashlib
+from collections import OrderedDict
+from dataclasses import InitVar, dataclass
+from functools import lru_cache
+from itertools import chain
+from pathlib import Path
 
-from .. import build
-from .. import dependencies
-from .. import programs
-from .. import mesonlib
-from .. import mlog
+from .. import build, dependencies, mesonlib, mlog, programs
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
-    File, MachineChoice, MesonException, OrderedSet,
-    ExecutableSerialisation, classify_unity_sources, OptionKey
+    ExecutableSerialisation, File, MachineChoice, MesonException, OptionKey, OrderedSet,
+    classify_unity_sources
 )
 
 if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
     from .._typing import ImmutableListProtocol
     from ..arglist import CompilerArgs
     from ..compilers import Compiler
@@ -38,8 +36,6 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter, Test
     from ..linkers.linkers import StaticLinker
     from ..mesonlib import FileMode, FileOrString
-
-    from typing_extensions import TypedDict
 
     _ALL_SOURCES_TYPE = T.List[T.Union[File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
 

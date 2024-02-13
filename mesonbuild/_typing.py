@@ -7,6 +7,8 @@
 Holds typing helper classes, such as the ImmutableProtocol classes
 """
 
+from __future__ import annotations
+
 import typing
 
 # We can change this to typing when we require python 3.8

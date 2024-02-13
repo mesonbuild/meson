@@ -3,8 +3,9 @@
 
 from __future__ import annotations
 
-from .visitor import AstVisitor
 import typing as T
+
+from .visitor import AstVisitor
 
 if T.TYPE_CHECKING:
     from .. import mparser

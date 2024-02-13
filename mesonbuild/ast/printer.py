@@ -3,12 +3,12 @@
 
 from __future__ import annotations
 
-from .. import mparser
-from .visitor import AstVisitor
-
-from itertools import zip_longest
 import re
 import typing as T
+from itertools import zip_longest
+
+from .. import mparser
+from .visitor import AstVisitor
 
 arithmic_map = {
     'add': '+',

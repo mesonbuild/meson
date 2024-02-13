@@ -8,24 +8,22 @@ import os.path
 import string
 import typing as T
 
-from .. import coredata
-from .. import mlog
+from .. import coredata, mlog
 from ..mesonlib import (
-    EnvironmentException, Popen_safe,
-    is_windows, LibType, OptionKey, version_compare,
+    EnvironmentException, LibType, OptionKey, Popen_safe, is_windows, version_compare
 )
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
-    from .compilers import CompileCheckMode
     from ..build import BuildTarget
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
     from ..dependencies import Dependency
-    from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
+    from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
+    from .compilers import CompileCheckMode
 
 
 cuda_optimization_args: T.Dict[str, T.List[str]] = {

@@ -1,21 +1,27 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
 
+from __future__ import annotations
+
 import json
 import os
 import pickle
-import tempfile
-import subprocess
-import textwrap
 import shutil
-from unittest import skipIf, SkipTest
+import subprocess
+import tempfile
+import textwrap
 from pathlib import Path
+from unittest import SkipTest, skipIf
+
+from mesonbuild.mesonlib import (
+    EnvironmentVariables, ExecutableSerialisation, is_linux, python_command
+)
+from mesonbuild.optinterpreter import OptionException, OptionInterpreter
+from run_tests import Backend
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
-from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, is_linux, python_command
-from mesonbuild.optinterpreter import OptionInterpreter, OptionException
-from run_tests import Backend
+
 
 @skipIf(is_ci() and not is_linux(), "Run only on fast platforms")
 class PlatformAgnosticTests(BasePlatformTests):

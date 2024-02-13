@@ -153,11 +153,16 @@ dependencies and hold the one it found. There are a number of drawbacks to
 this approach, and no new dependencies should do this.
 """
 
-from .base import Dependency, InternalDependency, ExternalDependency, NotFoundDependency, MissingCompiler
+from __future__ import annotations
+
 from .base import (
-        ExternalLibrary, DependencyException, DependencyMethods,
-        BuiltinDependency, SystemDependency, get_leaf_external_dependencies)
-from .detect import find_external_dependency, get_dep_identifier, packages, _packages_accept_language
+    BuiltinDependency, Dependency, DependencyException, DependencyMethods, ExternalDependency,
+    ExternalLibrary, InternalDependency, MissingCompiler, NotFoundDependency, SystemDependency,
+    get_leaf_external_dependencies
+)
+from .detect import (
+    _packages_accept_language, find_external_dependency, get_dep_identifier, packages
+)
 
 __all__ = [
     'Dependency',

@@ -3,41 +3,33 @@
 
 from __future__ import annotations
 
-from .. import environment, mparser, mesonlib
+import copy
+import os
+import pathlib
+import re
+import textwrap
+import typing as T
 
+from .. import environment, mesonlib, mparser
+from ._unholder import _unholder
 from .baseobjects import (
-    InterpreterObject,
-    MesonInterpreterObject,
-    MutableInterpreterObject,
-    ObjectHolder,
-    IterableObject,
-    ContextManagerObject,
-
-    HoldableTypes,
+    ContextManagerObject, HoldableTypes, InterpreterObject, IterableObject, MesonInterpreterObject,
+    MutableInterpreterObject, ObjectHolder
 )
-
-from .exceptions import (
-    BreakRequest,
-    ContinueRequest,
-    InterpreterException,
-    InvalidArguments,
-    InvalidCode,
-    SubdirDoneRequest,
-)
-
 from .decorators import FeatureNew
 from .disabler import Disabler, is_disabled
-from .helpers import default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
+from .exceptions import (
+    BreakRequest, ContinueRequest, InterpreterException, InvalidArguments, InvalidCode,
+    SubdirDoneRequest
+)
+from .helpers import (
+    default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
+)
 from .operator import MesonOperator
-from ._unholder import _unholder
-
-import os, copy, re, pathlib
-import typing as T
-import textwrap
 
 if T.TYPE_CHECKING:
-    from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
     from ..interpreter import Interpreter
+    from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
 
     HolderMapType = T.Dict[
         T.Union[

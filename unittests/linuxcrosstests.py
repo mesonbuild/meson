@@ -1,20 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
+from __future__ import annotations
+
 import os
+import platform
 import shutil
 import unittest
-import platform
 
-from mesonbuild.mesonlib import (
-    is_windows, is_cygwin
-)
-from mesonbuild.mesonlib import MesonException
-
-
+from mesonbuild.mesonlib import MesonException, is_cygwin, is_windows
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 class BaseLinuxCrossTests(BasePlatformTests):
     # Don't pass --libdir when cross-compiling. We have tests that

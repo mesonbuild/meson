@@ -2,26 +2,27 @@
 # Copyright 2019 The Meson development team
 
 from __future__ import annotations
-from pathlib import Path, PurePath, PureWindowsPath
+
 import hashlib
 import os
 import typing as T
+from pathlib import Path, PurePath, PureWindowsPath
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
 from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
-from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
+from ..interpreterbase import FeatureNew, KwargInfo, noKwargs, typed_kwargs, typed_pos_args
 from ..mesonlib import File, MesonException, has_path_sep, path_is_in_root, relpath
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
+    from typing_extensions import TypedDict
+
     from ..build import BuildTargetTypes
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_kwargs
-    from ..mesonlib import FileOrString, FileMode
-
-    from typing_extensions import TypedDict
+    from ..mesonlib import FileMode, FileOrString
+    from . import ModuleState
 
     class ReadKwArgs(TypedDict):
         """Keyword Arguments for fs.read."""

@@ -2,18 +2,18 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-from .common import cmake_is_debug
-from .. import mlog
-
-from pathlib import Path
 import re
 import typing as T
+from pathlib import Path
+
+from .. import mlog
+from .common import cmake_is_debug
 
 if T.TYPE_CHECKING:
-    from .traceparser import CMakeTraceParser
-    from ..environment import Environment
     from ..compilers import Compiler
     from ..dependencies import MissingCompiler
+    from ..environment import Environment
+    from .traceparser import CMakeTraceParser
 
 class ResolvedTarget:
     def __init__(self) -> None:

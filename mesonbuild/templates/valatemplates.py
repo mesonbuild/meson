@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from mesonbuild.templates.sampleimpl import FileImpl
 
-
 hello_vala_template = '''void main (string[] args) {{
     stdout.printf ("Hello {project_name}!\\n");
 }}

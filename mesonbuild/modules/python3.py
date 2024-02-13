@@ -7,14 +7,14 @@ import sysconfig
 import typing as T
 
 from .. import mesonlib
-from . import ExtensionModule, ModuleInfo, ModuleState
 from ..build import (
-    BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects,
-    GeneratedList, SharedModule, StructuredSources, known_shmod_kwargs
+    BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList, SharedModule,
+    StructuredSources, known_shmod_kwargs
 )
 from ..interpreter.type_checking import SHARED_MOD_KWS
-from ..interpreterbase import typed_kwargs, typed_pos_args, noPosargs, noKwargs, permittedKwargs
+from ..interpreterbase import noKwargs, noPosargs, permittedKwargs, typed_kwargs, typed_pos_args
 from ..programs import ExternalProgram
+from . import ExtensionModule, ModuleInfo, ModuleState
 
 if T.TYPE_CHECKING:
     from ..interpreter.interpreter import BuildTargetSource

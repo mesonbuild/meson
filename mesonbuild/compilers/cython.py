@@ -11,7 +11,7 @@ from ..mesonlib import EnvironmentException, OptionKey, version_compare
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
     from ..environment import Environment
 
 

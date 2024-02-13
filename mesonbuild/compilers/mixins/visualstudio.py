@@ -11,14 +11,13 @@ import abc
 import os
 import typing as T
 
-from ... import arglist
-from ... import mesonlib
-from ... import mlog
 from mesonbuild.compilers.compilers import CompileCheckMode
 
+from ... import arglist, mesonlib, mlog
+
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...dependencies import Dependency
+    from ...environment import Environment
     from .clike import CLikeCompiler as Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from

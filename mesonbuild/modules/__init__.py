@@ -4,22 +4,23 @@
 """Module implementation."""
 
 from __future__ import annotations
+
 import dataclasses
 import typing as T
 
 from .. import build, mesonlib
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
-from ..mesonlib import relpath, HoldableObject, MachineChoice
+from ..mesonlib import HoldableObject, MachineChoice, relpath
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
+    from ..dependencies import Dependency
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import ProgramVersionFunc
-    from ..interpreterbase import TYPE_var, TYPE_kwargs
+    from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..programs import OverrideProgram
     from ..wrap import WrapMode
-    from ..dependencies import Dependency
 
 class ModuleState:
     """Object passed to all module methods.

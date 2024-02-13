@@ -1,18 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import glob, os, pathlib, shutil, subprocess, unittest
+from __future__ import annotations
 
-from run_tests import (
-    Backend
-)
+import glob
+import os
+import pathlib
+import shutil
+import subprocess
+import unittest
+
+from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof
+from mesonbuild.modules.python import PythonModule
+from run_tests import Backend
 
 from .allplatformstests import git_init
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
-from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof
-from mesonbuild.modules.python import PythonModule
 
 class PythonTests(BasePlatformTests):
     '''

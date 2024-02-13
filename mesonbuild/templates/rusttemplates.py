@@ -7,7 +7,6 @@ import typing as T
 
 from mesonbuild.templates.sampleimpl import FileImpl
 
-
 lib_rust_template = '''#![crate_name = "{crate_file}"]
 
 /* This function will not be exported and is not

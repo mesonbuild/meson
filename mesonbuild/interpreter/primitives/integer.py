@@ -2,17 +2,17 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-from ...interpreterbase import (
-    FeatureBroken, InvalidArguments, MesonOperator, ObjectHolder, KwargInfo,
-    noKwargs, noPosargs, typed_operator, typed_kwargs
-)
-
 import typing as T
+
+from ...interpreterbase import (
+    FeatureBroken, InvalidArguments, KwargInfo, MesonOperator, ObjectHolder, noKwargs, noPosargs,
+    typed_kwargs, typed_operator
+)
 
 if T.TYPE_CHECKING:
     # Object holders need the actual interpreter
     from ...interpreter import Interpreter
-    from ...interpreterbase import TYPE_var, TYPE_kwargs
+    from ...interpreterbase import TYPE_kwargs, TYPE_var
 
 class IntegerHolder(ObjectHolder[int]):
     def __init__(self, obj: int, interpreter: 'Interpreter') -> None:

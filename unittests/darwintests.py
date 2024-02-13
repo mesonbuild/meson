@@ -1,25 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import subprocess
-import re
+from __future__ import annotations
+
 import os
+import re
+import subprocess
 import unittest
 
-from mesonbuild.mesonlib import (
-    MachineChoice, is_osx
-)
-from mesonbuild.compilers import (
-    detect_c_compiler
-)
-
-
-from run_tests import (
-    get_fake_env
-)
+from mesonbuild.compilers import detect_c_compiler
+from mesonbuild.mesonlib import MachineChoice, is_osx
+from run_tests import get_fake_env
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):

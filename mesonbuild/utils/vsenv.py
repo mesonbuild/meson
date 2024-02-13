@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import os
-import subprocess
 import json
+import locale
+import os
 import pathlib
 import shutil
+import subprocess
 import tempfile
-import locale
 
 from .. import mlog
 from .core import MesonException
 from .universal import is_windows, windows_detect_native_arch
-
 
 __all__ = [
     'setup_vsenv',

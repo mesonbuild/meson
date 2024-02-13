@@ -1,65 +1,61 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import subprocess
-import re
+from __future__ import annotations
+
 import json
+import os
+import pickle
+import platform
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
 import tempfile
 import textwrap
-import os
-import shutil
-import platform
-import pickle
-import zipfile, tarfile
-import sys
-from unittest import mock, SkipTest, skipIf, skipUnless
+import typing as T
+import zipfile
 from contextlib import contextmanager
 from glob import glob
-from pathlib import (PurePath, Path)
-import typing as T
+from pathlib import Path, PurePath
+from unittest import SkipTest, mock, skipIf, skipUnless
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
-    is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
-    relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
-    MesonException, EnvironmentException, OptionKey,
-    windows_proof_rm
+import mesonbuild.modules.pkgconfig
+from mesonbuild import mtest
+from mesonbuild.build import ConfigurationData, Executable, SharedLibrary, StaticLibrary, Target
+from mesonbuild.compilers import (
+    compiler_from_language, detect_c_compiler, detect_compiler_for, detect_static_linker
 )
-from mesonbuild.programs import ExternalProgram
-
+from mesonbuild.compilers.c import ClangClCCompiler, VisualStudioCCompiler
+from mesonbuild.compilers.cpp import ClangClCPPCompiler, VisualStudioCPPCompiler
 from mesonbuild.compilers.mixins.clang import ClangCompiler
 from mesonbuild.compilers.mixins.gnu import GnuCompiler
 from mesonbuild.compilers.mixins.intel import IntelGnuLikeCompiler
-from mesonbuild.compilers.c import VisualStudioCCompiler, ClangClCCompiler
-from mesonbuild.compilers.cpp import VisualStudioCPPCompiler, ClangClCPPCompiler
-from mesonbuild.compilers import (
-    detect_static_linker, detect_c_compiler, compiler_from_language,
-    detect_compiler_for
-)
-from mesonbuild.linkers import linkers
-
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
-from mesonbuild.build import Target, ConfigurationData, Executable, SharedLibrary, StaticLibrary
-from mesonbuild import mtest
-import mesonbuild.modules.pkgconfig
-from mesonbuild.scripts import destdir_join
-
-from mesonbuild.wrap.wrap import PackageDefinition, WrapException
-
-from run_tests import (
-    Backend, exe_suffix, get_fake_env, get_convincing_fake_env_and_cc
+from mesonbuild.linkers import linkers
+from mesonbuild.mesonlib import (
+    BuildDirLock, EnvironmentException, MachineChoice, MesonException, OptionKey, default_prefix,
+    do_conf_file, do_conf_str, git, is_cygwin, is_dragonflybsd, is_linux, is_osx, is_sunos,
+    is_windows, python_command, quote_arg, relpath, search_version, split_args, version_compare,
+    windows_proof_rm, windows_proof_rmtree
 )
+from mesonbuild.programs import ExternalProgram
+from mesonbuild.scripts import destdir_join
+from mesonbuild.wrap.wrap import PackageDefinition, WrapException
+from run_tests import Backend, exe_suffix, get_convincing_fake_env_and_cc, get_fake_env
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
 
 @contextmanager
 def temp_filename():

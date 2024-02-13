@@ -3,14 +3,15 @@
 
 from __future__ import annotations
 
-import functools, uuid, os, operator
+import functools
+import operator
+import os
 import typing as T
+import uuid
 
-from . import backends
-from .. import build
-from .. import mesonlib
-from .. import mlog
+from .. import build, mesonlib, mlog
 from ..mesonlib import MesonBugException, MesonException, OptionKey
+from . import backends
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter

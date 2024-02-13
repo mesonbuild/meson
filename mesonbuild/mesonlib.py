@@ -6,12 +6,13 @@
 
 """Helper functions and classes."""
 
+from __future__ import annotations
+
 import os
 
 from .utils.core import *
-from .utils.vsenv import *
-
 from .utils.universal import *
+from .utils.vsenv import *
 
 # Here we import either the posix implementations, the windows implementations,
 # or a generic no-op implementation

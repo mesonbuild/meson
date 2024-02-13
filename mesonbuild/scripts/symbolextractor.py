@@ -12,12 +12,13 @@ http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aa
 
 from __future__ import annotations
 
-import typing as T
-import os, sys
-from .. import mesonlib
-from .. import mlog
-from ..mesonlib import Popen_safe
 import argparse
+import os
+import sys
+import typing as T
+
+from .. import mesonlib, mlog
+from ..mesonlib import Popen_safe
 
 parser = argparse.ArgumentParser()
 

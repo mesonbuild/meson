@@ -10,23 +10,27 @@ tests and so on. All output is in JSON for simple parsing.
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
-from contextlib import redirect_stdout
 import collections
 import dataclasses
 import json
 import os
-from pathlib import Path, PurePath
 import sys
 import typing as T
+from contextlib import redirect_stdout
+from pathlib import Path, PurePath
 
-from . import build, mesonlib, coredata as cdata
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
+from . import build
+from . import coredata as cdata
+from . import environment, mesonlib
+from .ast import (
+    BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator,
+    AstJSONPrinter, IntrospectionInterpreter
+)
 from .backend import backends
 from .dependencies import Dependency
-from . import environment
 from .interpreterbase import ObjectHolder
 from .mesonlib import OptionKey
-from .mparser import FunctionNode, ArrayNode, ArgumentNode, BaseStringNode
+from .mparser import ArgumentNode, ArrayNode, BaseStringNode, FunctionNode
 
 if T.TYPE_CHECKING:
     import argparse

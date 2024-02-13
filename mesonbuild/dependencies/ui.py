@@ -10,14 +10,10 @@ import re
 import subprocess
 import typing as T
 
-from .. import mlog
-from .. import mesonlib
+from .. import mesonlib, mlog
 from ..compilers.compilers import CrossNoRunException
-from ..mesonlib import (
-    Popen_safe, extract_as_list, version_compare_many
-)
 from ..environment import detect_cpu_family
-
+from ..mesonlib import Popen_safe, extract_as_list, version_compare_many
 from .base import DependencyException, DependencyMethods, DependencyTypeName, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages

@@ -8,12 +8,13 @@ from __future__ import annotations
 import json
 import os
 
-from . import ExtensionModule, ModuleInfo
 from .. import mlog
 from ..dependencies import Dependency
 from ..dependencies.dub import DubDependency
 from ..interpreterbase import typed_pos_args
-from ..mesonlib import Popen_safe, MesonException, listify
+from ..mesonlib import MesonException, Popen_safe, listify
+from . import ExtensionModule, ModuleInfo
+
 
 class DlangModule(ExtensionModule):
     class_dubbin = None

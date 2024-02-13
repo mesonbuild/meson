@@ -7,56 +7,24 @@ import os
 import sys
 import typing as T
 
-from .. import mparser, mesonlib
-from .. import environment
-
+from .. import environment, mesonlib, mparser
+from ..interpreter import ArrayHolder, BooleanHolder, DictHolder, IntegerHolder, StringHolder
 from ..interpreterbase import (
-    MesonInterpreterObject,
-    InterpreterBase,
-    InvalidArguments,
-    BreakRequest,
-    ContinueRequest,
-    Disabler,
-    default_resolve_key,
+    BreakRequest, ContinueRequest, Disabler, InterpreterBase, InvalidArguments,
+    MesonInterpreterObject, default_resolve_key
 )
-
-from ..interpreter import (
-    StringHolder,
-    BooleanHolder,
-    IntegerHolder,
-    ArrayHolder,
-    DictHolder,
-)
-
 from ..mparser import (
-    ArgumentNode,
-    ArithmeticNode,
-    ArrayNode,
-    AssignmentNode,
-    BaseNode,
-    ElementaryNode,
-    EmptyNode,
-    IdNode,
-    MethodNode,
-    NotNode,
-    PlusAssignmentNode,
-    TernaryNode,
-    TestCaseClauseNode,
+    ArgumentNode, ArithmeticNode, ArrayNode, AssignmentNode, BaseNode, ElementaryNode, EmptyNode,
+    IdNode, MethodNode, NotNode, PlusAssignmentNode, TernaryNode, TestCaseClauseNode
 )
 
 if T.TYPE_CHECKING:
-    from .visitor import AstVisitor
     from ..interpreter import Interpreter
     from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var
     from ..mparser import (
-        AndNode,
-        ComparisonNode,
-        ForeachClauseNode,
-        IfClauseNode,
-        IndexNode,
-        OrNode,
-        UMinusNode,
+        AndNode, ComparisonNode, ForeachClauseNode, IfClauseNode, IndexNode, OrNode, UMinusNode
     )
+    from .visitor import AstVisitor
 
 class DontCareObject(MesonInterpreterObject):
     pass

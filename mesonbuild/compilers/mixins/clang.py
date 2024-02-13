@@ -10,15 +10,17 @@ import shutil
 import typing as T
 
 from ... import mesonlib
-from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
+from ...linkers.linkers import (
+    AppleDynamicLinker, ClangClDynamicLinker, GnuGoldDynamicLinker, LLVMDynamicLinker,
     MoldDynamicLinker
+)
 from ...mesonlib import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
-    from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
+    from ...environment import Environment
 
 clang_color_args: T.Dict[str, T.List[str]] = {
     'auto': ['-fdiagnostics-color=auto'],

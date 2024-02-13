@@ -3,11 +3,11 @@
 
 from __future__ import annotations
 
-import subprocess, os.path
+import os.path
+import subprocess
 import typing as T
 
 from ..mesonlib import EnvironmentException
-
 from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:

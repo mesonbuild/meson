@@ -4,6 +4,7 @@
 """Convert Cargo versions into Meson compatible ones."""
 
 from __future__ import annotations
+
 import typing as T
 
 

@@ -2,14 +2,15 @@
 # Copyright 2014-2017 The Meson development team
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-import re
+
 import codecs
 import os
+import re
 import typing as T
+from dataclasses import dataclass, field
 
-from .mesonlib import MesonException
 from . import mlog
+from .mesonlib import MesonException
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal

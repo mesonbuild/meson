@@ -4,21 +4,19 @@
 from __future__ import annotations
 
 import glob
-import re
 import os
+import re
 import typing as T
 from pathlib import Path
 
-from .. import mesonlib
-from .. import mlog
+from .. import mesonlib, mlog
 from ..environment import detect_cpu_family
 from .base import DependencyException, SystemDependency
 from .detect import packages
 
-
 if T.TYPE_CHECKING:
-    from ..environment import Environment
     from ..compilers import Compiler
+    from ..environment import Environment
 
     TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
 

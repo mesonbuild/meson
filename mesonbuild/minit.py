@@ -5,15 +5,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from enum import Enum
-import subprocess
-import shutil
-import sys
 import os
 import re
-from glob import glob
+import shutil
+import subprocess
+import sys
 import typing as T
+from enum import Enum
+from glob import glob
+from pathlib import Path
 
 from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
@@ -24,7 +24,7 @@ from mesonbuild.templates.samplefactory import sample_generator
 if T.TYPE_CHECKING:
     import argparse
 
-    from typing_extensions import Protocol, Literal
+    from typing_extensions import Literal, Protocol
 
     class Arguments(Protocol):
 

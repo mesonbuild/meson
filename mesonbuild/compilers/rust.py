@@ -4,23 +4,24 @@
 from __future__ import annotations
 
 import functools
-import subprocess, os.path
-import textwrap
+import os.path
 import re
+import subprocess
+import textwrap
 import typing as T
 
 from .. import coredata
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
+from ..mesonlib import EnvironmentException, MesonException, OptionKey, Popen_safe_logged
 from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
+    from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..programs import ExternalProgram
-    from ..dependencies import Dependency
 
 
 rust_optimization_args: T.Dict[str, T.List[str]] = {

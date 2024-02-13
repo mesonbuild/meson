@@ -3,11 +3,14 @@
 
 from __future__ import annotations
 
-import sys, os
-import pickle, subprocess
+import os
+import pickle
+import subprocess
+import sys
 import typing as T
-from ..coredata import CoreData
+
 from ..backend.backends import RegenInfo
+from ..coredata import CoreData
 from ..mesonlib import OptionKey
 
 # This could also be used for XCode.
