@@ -412,7 +412,7 @@ manual dependency to the vala target:
 ```meson
 g_ir_compiler = find_program('g-ir-compiler')
 custom_target('foo typelib', command: [g_ir_compiler, '--output', '@OUTPUT@', '@INPUT@'],
-              input: meson.current_build_dir() / 'Foo-1.0.gir',
+              input: foo_lib.vala_gir(),  # For Meson < 1.10 support: meson.current_build_dir() / 'Foo-1.0.gir',
               output: 'Foo-1.0.typelib',
               depends: foo_lib,
               install: true,
