@@ -2,10 +2,11 @@
 # Copyright 2020 The Meson development team
 
 from __future__ import annotations
+
 import typing as T
 
-from .qt import QtBaseModule
 from . import ModuleInfo
+from .qt import QtBaseModule
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter

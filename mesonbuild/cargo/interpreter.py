@@ -10,6 +10,7 @@ port will be required.
 """
 
 from __future__ import annotations
+
 import dataclasses
 import glob
 import importlib
@@ -19,16 +20,15 @@ import os
 import shutil
 import typing as T
 
-from . import builder
-from . import version
 from ..mesonlib import MesonException, Popen_safe
+from . import builder, version
 
 if T.TYPE_CHECKING:
     from types import ModuleType
 
-    from . import manifest
     from .. import mparser
     from ..environment import Environment
+    from . import manifest
 
 # tomllib is present in python 3.11, before that it is a pypi module called tomli,
 # we try to import tomllib, then tomli,

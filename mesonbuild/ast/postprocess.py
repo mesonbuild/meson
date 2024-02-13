@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# This class contains the basic functionality needed to run any interpreter
-# or an interpreter-based tool
 from __future__ import annotations
 
-from .visitor import AstVisitor
 import typing as T
+
+from .visitor import AstVisitor
 
 if T.TYPE_CHECKING:
     from .. import mparser

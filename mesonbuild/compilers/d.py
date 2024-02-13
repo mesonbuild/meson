@@ -8,31 +8,22 @@ import re
 import subprocess
 import typing as T
 
-from .. import mesonlib
-from .. import mlog
+from .. import mesonlib, mlog
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
-from ..mesonlib import (
-    EnvironmentException, version_compare, OptionKey, is_windows
-)
-
+from ..mesonlib import EnvironmentException, OptionKey, is_windows, version_compare
 from . import compilers
-from .compilers import (
-    clike_debug_args,
-    Compiler,
-    CompileCheckMode,
-)
-from .mixins.gnu import GnuCompiler
-from .mixins.gnu import gnu_common_warning_args
+from .compilers import CompileCheckMode, Compiler, clike_debug_args
+from .mixins.gnu import GnuCompiler, gnu_common_warning_args
 
 if T.TYPE_CHECKING:
     from ..build import DFeatures
     from ..dependencies import Dependency
-    from ..programs import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from ..programs import ExternalProgram
 
     CompilerMixinBase = Compiler
 else:

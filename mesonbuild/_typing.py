@@ -7,15 +7,17 @@
 Holds typing helper classes, such as the ImmutableProtocol classes
 """
 
-__all__ = [
-    'Protocol',
-    'ImmutableListProtocol'
-]
+from __future__ import annotations
 
 import typing
 
 # We can change this to typing when we require python 3.8
 from typing_extensions import Protocol
+
+__all__ = [
+    'Protocol',
+    'ImmutableListProtocol'
+]
 
 
 T = typing.TypeVar('T')

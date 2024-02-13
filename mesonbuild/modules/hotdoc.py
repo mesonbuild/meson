@@ -5,29 +5,30 @@ from __future__ import annotations
 
 '''This module provides helper functions for generating documentation using hotdoc'''
 
-import os, subprocess
+import os
+import subprocess
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build, mesonlib, mlog
 from ..build import CustomTarget, CustomTargetIndex
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import (
-    InvalidArguments, noPosargs, noKwargs, typed_kwargs, FeatureDeprecated,
-    ContainerTypeInfo, KwargInfo, typed_pos_args
-)
 from ..interpreter.interpreterobjects import _CustomTargetHolder
 from ..interpreter.type_checking import NoneType
+from ..interpreterbase import (
+    ContainerTypeInfo, FeatureDeprecated, InvalidArguments, KwargInfo, noKwargs, noPosargs,
+    typed_kwargs, typed_pos_args
+)
 from ..mesonlib import File, MesonException
 from ..programs import ExternalProgram
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from ..environment import Environment
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
     _T = T.TypeVar('_T')
 

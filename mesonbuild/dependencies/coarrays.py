@@ -6,16 +6,16 @@ from __future__ import annotations
 import functools
 import typing as T
 
-from .base import DependencyMethods, detect_compiler, SystemDependency
+from .base import DependencyMethods, SystemDependency, detect_compiler
 from .cmake import CMakeDependency
 from .detect import packages
-from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
+from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
-    from . factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .factory import DependencyGenerator
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM})

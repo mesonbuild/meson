@@ -1,38 +1,36 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-from pathlib import PurePath
-from unittest import mock, TestCase, SkipTest
-import json
+from __future__ import annotations
+
 import io
+import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
 import typing as T
+from pathlib import PurePath
+from unittest import SkipTest, TestCase, mock
 
-import mesonbuild.mlog
-import mesonbuild.depfile
+import mesonbuild.compilers
+import mesonbuild.coredata
 import mesonbuild.dependencies.base
 import mesonbuild.dependencies.factory
-import mesonbuild.compilers
+import mesonbuild.depfile
 import mesonbuild.envconfig
 import mesonbuild.environment
-import mesonbuild.coredata
+import mesonbuild.mlog
 import mesonbuild.modules.gnome
-from mesonbuild.mesonlib import (
-    is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
-)
 import mesonbuild.modules.pkgconfig
-
-
-from run_tests import (
-    Backend, ensure_backend_detects_changes, get_backend_commands,
-    get_builddir_target_args, get_meson_script, run_configure_inprocess,
-    run_mtest_inprocess, handle_meson_skip_test,
+from mesonbuild.mesonlib import (
+    is_cygwin, join_args, python_command, split_args, windows_proof_rmtree
 )
-
+from run_tests import (
+    Backend, ensure_backend_detects_changes, get_backend_commands, get_builddir_target_args,
+    get_meson_script, handle_meson_skip_test, run_configure_inprocess, run_mtest_inprocess
+)
 
 # magic attribute used by unittest.result.TestResult._is_relevant_tb_level
 # This causes tracebacks to hide these internal implementation details,

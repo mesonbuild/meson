@@ -3,24 +3,27 @@
 
 from __future__ import annotations
 
-from glob import glob
 import argparse
 import errno
 import os
+import re
 import selectors
 import shlex
 import shutil
 import subprocess
 import sys
 import typing as T
-import re
+from glob import glob
 
 from . import build, environment
 from .backend.backends import InstallData
-from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       is_aix, setup_vsenv, pickle_load, is_osx, OptionKey)
+from .mesonlib import (
+    MesonException, OptionKey, Popen_safe, RealPathAction, is_aix, is_osx, is_windows, pickle_load,
+    setup_vsenv
+)
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
+
 try:
     from __main__ import __file__ as main_file
 except ImportError:
@@ -30,10 +33,9 @@ except ImportError:
 
 if T.TYPE_CHECKING:
     from .backend.backends import (
-            InstallDataBase, InstallEmptyDir,
-            InstallSymlinkData, TargetInstallData
+        InstallDataBase, InstallEmptyDir, InstallSymlinkData, TargetInstallData
     )
-    from .mesonlib import FileMode, EnvironOrDict, ExecutableSerialisation
+    from .mesonlib import EnvironOrDict, ExecutableSerialisation, FileMode
 
     try:
         from typing import Protocol

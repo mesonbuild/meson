@@ -5,13 +5,15 @@ import typing as T
 
 from ..mesonlib import EnvironmentException, OptionKey, get_meson_command
 from .compilers import Compiler
-from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
+from .mixins.metrowerks import (
+    MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
+)
 
 if T.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..envconfig import MachineInfo
 
 nasm_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],

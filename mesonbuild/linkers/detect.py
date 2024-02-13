@@ -3,21 +3,20 @@
 
 from __future__ import annotations
 
-from .. import mlog
-from ..mesonlib import (
-    EnvironmentException,
-    Popen_safe, Popen_safe_logged, join_args, search_version
-)
-
 import re
 import shlex
 import typing as T
 
+from .. import mlog
+from ..mesonlib import (
+    EnvironmentException, Popen_safe, Popen_safe_logged, join_args, search_version
+)
+
 if T.TYPE_CHECKING:
-    from .linkers import DynamicLinker, GnuDynamicLinker
-    from ..environment import Environment
     from ..compilers import Compiler
+    from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .linkers import DynamicLinker, GnuDynamicLinker
 
 defaults: T.Dict[str, T.List[str]] = {}
 defaults['static_linker'] = ['ar', 'gar']

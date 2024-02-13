@@ -1,18 +1,22 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import subprocess
-from itertools import zip_longest
+from __future__ import annotations
+
 import json
 import os
-from pathlib import Path
 import shutil
+import subprocess
 import unittest
+from itertools import zip_longest
+from pathlib import Path
 
-from mesonbuild.ast import IntrospectionInterpreter, AstIDGenerator
+from mesonbuild.ast import AstIDGenerator, IntrospectionInterpreter
 from mesonbuild.ast.printer import RawPrinter
 from mesonbuild.mesonlib import windows_proof_rmtree
+
 from .baseplatformtests import BasePlatformTests
+
 
 class RewriterTests(BasePlatformTests):
     def setUp(self):

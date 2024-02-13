@@ -3,38 +3,45 @@
 
 from __future__ import annotations
 
-import copy, json, os, shutil, re
+import copy
+import json
+import os
+import re
+import shutil
 import typing as T
 
-from . import ExtensionModule, ModuleInfo
-from .. import mesonlib
-from .. import mlog
+from .. import mesonlib, mlog
+from ..build import (
+    BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects, GeneratedList, SharedModule,
+    StructuredSources, known_shmod_kwargs
+)
 from ..coredata import UserFeatureOption
-from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
 from ..dependencies import NotFoundDependency
-from ..dependencies.detect import get_dep_identifier, find_external_dependency
-from ..dependencies.python import BasicPythonExternalProgram, python_factory, _PythonDependencyBase
-from ..interpreter import extract_required_kwarg, permitted_dependency_kwargs, primitives as P_OBJ
+from ..dependencies.detect import find_external_dependency, get_dep_identifier
+from ..dependencies.python import BasicPythonExternalProgram, _PythonDependencyBase, python_factory
+from ..interpreter import extract_required_kwarg, permitted_dependency_kwargs
+from ..interpreter import primitives as P_OBJ
 from ..interpreter.interpreterobjects import _ExternalProgramHolder
-from ..interpreter.type_checking import NoneType, PRESERVE_PATH_KW, SHARED_MOD_KWS
+from ..interpreter.type_checking import PRESERVE_PATH_KW, SHARED_MOD_KWS, NoneType
 from ..interpreterbase import (
-    noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
-    InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
-    FeatureNew, FeatureNewKwargs, disablerIfNotFound
+    ContainerTypeInfo, FeatureNew, FeatureNewKwargs, InvalidArguments, KwargInfo,
+    disablerIfNotFound, noKwargs, noPosargs, permittedKwargs, typed_kwargs, typed_pos_args
 )
 from ..mesonlib import MachineChoice, OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
+from . import ExtensionModule, ModuleInfo
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypedDict, NotRequired
+    from typing_extensions import NotRequired, TypedDict
 
-    from . import ModuleState
     from ..build import Build, Data
     from ..dependencies import Dependency
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import BuildTargetSource
-    from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw
-    from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
+    from ..interpreter.kwargs import ExtractRequired
+    from ..interpreter.kwargs import SharedModule as SharedModuleKw
+    from ..interpreterbase.baseobjects import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
     class PyInstallKw(TypedDict):
 

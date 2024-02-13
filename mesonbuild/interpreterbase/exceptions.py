@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2021 The Meson development team
 
+from __future__ import annotations
+
 from ..mesonlib import MesonException
+
 
 class InterpreterException(MesonException):
     pass

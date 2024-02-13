@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from mesonbuild.templates.sampleimpl import FileHeaderImpl
 
-
 lib_h_template = '''#pragma once
 #if defined _WIN32 || defined __CYGWIN__
   #ifdef BUILDING_{utoken}

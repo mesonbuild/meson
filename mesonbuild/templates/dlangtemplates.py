@@ -3,10 +3,9 @@
 
 from __future__ import annotations
 
-from mesonbuild.templates.sampleimpl import FileImpl
-
 import typing as T
 
+from mesonbuild.templates.sampleimpl import FileImpl
 
 hello_d_template = '''module main;
 import std.stdio;

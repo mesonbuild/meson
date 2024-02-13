@@ -20,15 +20,15 @@ so you could have examples like:
 """
 
 from __future__ import annotations
+
 import dataclasses
 import enum
 import functools
 import typing as T
 
-
-from . import builder
 from .. import mparser
 from ..mesonlib import MesonBugException
+from . import builder
 
 if T.TYPE_CHECKING:
     _T = T.TypeVar('_T')

@@ -2,43 +2,32 @@
 # Copyright 2018 The Meson development team
 
 from __future__ import annotations
+
+import os
+import os.path
+import pathlib
 import re
-import os, os.path, pathlib
 import shutil
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
-
-from .. import build, mesonlib, mlog, dependencies
+from .. import build, dependencies, mesonlib, mlog
 from ..cmake import TargetOptions, cmake_defines_to_args
 from ..interpreter import SubprojectHolder
-from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, NoneType, in_set_validator
+from ..interpreter.type_checking import INSTALL_DIR_KW, REQUIRED_KW, NoneType, in_set_validator
 from ..interpreterbase import (
-    FeatureNew,
-    FeatureNewKwargs,
-
-    stringArgs,
-    permittedKwargs,
-    noPosargs,
-    noKwargs,
-
-    InvalidArguments,
-    InterpreterException,
-
-    typed_pos_args,
-    typed_kwargs,
-    KwargInfo,
-    ContainerTypeInfo,
+    ContainerTypeInfo, FeatureNew, FeatureNewKwargs, InterpreterException, InvalidArguments,
+    KwargInfo, noKwargs, noPosargs, permittedKwargs, stringArgs, typed_kwargs, typed_pos_args
 )
+from . import ExtensionModule, ModuleInfo, ModuleObject, ModuleReturnValue
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
-    from . import ModuleState
     from ..cmake import SingleTargetOptions
     from ..environment import Environment
     from ..interpreter import Interpreter, kwargs
     from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from . import ModuleState
 
     class WriteBasicPackageVersionFile(TypedDict):
 

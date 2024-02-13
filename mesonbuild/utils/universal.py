@@ -5,35 +5,43 @@
 """A library of random helper functionality."""
 
 from __future__ import annotations
-from pathlib import Path
-import argparse
-import enum
-import sys
-import stat
-import time
+
 import abc
-import platform, subprocess, operator, os, shlex, shutil, re
+import argparse
 import collections
-from functools import lru_cache, wraps, total_ordering
-from itertools import tee
-from tempfile import TemporaryDirectory, NamedTemporaryFile
-import typing as T
-import textwrap
-import pickle
+import enum
 import errno
 import json
+import operator
+import os
+import pickle
+import platform
+import re
+import shlex
+import shutil
+import stat
+import subprocess
+import sys
+import textwrap
+import time
+import typing as T
+from functools import lru_cache, total_ordering, wraps
+from itertools import tee
+from pathlib import Path
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from mesonbuild import mlog
-from .core import MesonException, HoldableObject
+
+from .core import HoldableObject, MesonException
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
+    from ..compilers.compilers import Compiler
     from ..coredata import StrOrBytesPath
     from ..environment import Environment
-    from ..compilers.compilers import Compiler
     from ..interpreterbase.baseobjects import SubProject
 
     class _EnvPickleLoadable(Protocol):
@@ -245,6 +253,7 @@ def is_ascii_string(astring: T.Union[str, bytes]) -> bool:
 
 def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]], str, bytes]) -> None:
     import locale
+
     # Warn if the locale is not UTF-8. This can cause various unfixable issues
     # such as os.stat not being able to decode filenames with unicode in them.
     # There is no way to reset both the preferred encoding and the filesystem
@@ -2402,8 +2411,8 @@ def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL], sugge
     else:
         version = T.cast('_EnvPickleLoadable', obj).environment.coredata.version
 
+    from ..coredata import MesonVersionMismatchException, major_versions_differ
     from ..coredata import version as coredata_version
-    from ..coredata import major_versions_differ, MesonVersionMismatchException
     if major_versions_differ(version, coredata_version):
         raise MesonVersionMismatchException(version, coredata_version, extra_msg)
     return obj

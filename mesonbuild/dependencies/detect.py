@@ -3,17 +3,18 @@
 
 from __future__ import annotations
 
-import collections, functools, importlib
+import collections
+import functools
+import importlib
 import typing as T
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
-
-from ..mesonlib import listify, MachineChoice, PerMachine
 from .. import mlog
+from ..mesonlib import MachineChoice, PerMachine, listify
+from .base import DependencyException, DependencyMethods, ExternalDependency, NotFoundDependency
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
+    from .factory import DependencyFactory, DependencyGenerator, WrappedFactoryFunc
 
     TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]

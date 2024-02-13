@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from mesonbuild.templates.sampleimpl import FileHeaderImpl
 
-
 hello_cpp_template = '''#include <iostream>
 
 #define PROJECT_NAME "{project_name}"

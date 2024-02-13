@@ -1,22 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
 
-# This class contains the basic functionality needed to run any interpreter
-# or an interpreter-based tool
-
 from __future__ import annotations
+
 import argparse
 import copy
 import os
 import typing as T
 
-from .. import compilers, environment, mesonlib, optinterpreter
+from .. import compilers
 from .. import coredata as cdata
+from .. import environment, mesonlib, optinterpreter
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject
 from ..mesonlib import MachineChoice, OptionKey
-from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, BaseStringNode
+from ..mparser import (
+    ArithmeticNode, ArrayNode, BaseNode, BaseStringNode, ElementaryNode, FunctionNode, IdNode
+)
 from .interpreter import AstInterpreter
 
 if T.TYPE_CHECKING:

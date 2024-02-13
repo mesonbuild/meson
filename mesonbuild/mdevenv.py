@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-import os, subprocess
 import argparse
-import tempfile
-import shutil
 import itertools
+import os
+import shutil
+import subprocess
+import tempfile
 import typing as T
-
 from pathlib import Path
-from . import build, minstall
-from .mesonlib import (EnvironmentVariables, MesonException, is_windows, setup_vsenv, OptionKey,
-                       get_wine_shortpath, MachineChoice)
-from . import mlog
 
+from . import build, minstall, mlog
+from .mesonlib import (
+    EnvironmentVariables, MachineChoice, MesonException, OptionKey, get_wine_shortpath, is_windows,
+    setup_vsenv
+)
 
 if T.TYPE_CHECKING:
     from .backend.backends import InstallData

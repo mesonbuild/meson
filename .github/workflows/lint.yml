@@ -52,3 +52,13 @@ jobs:
         PYTHONUNBUFFERED: 1
         TERM: xterm-color
         MYPY_FORCE_COLOR: 1
+
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - run: python -m pip install isort
+      - run: isort --color --check-only mesonbuild unittests

@@ -1,16 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# This class contains the basic functionality needed to run any interpreter
-# or an interpreter-based tool
 from __future__ import annotations
+
+import re
+import typing as T
+from itertools import zip_longest
 
 from .. import mparser
 from .visitor import AstVisitor
-
-from itertools import zip_longest
-import re
-import typing as T
 
 arithmic_map = {
     'add': '+',

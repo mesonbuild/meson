@@ -1,30 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2017 The Meson development team
 
-
-from .base import Dependency, InternalDependency, ExternalDependency, NotFoundDependency, MissingCompiler
-from .base import (
-        ExternalLibrary, DependencyException, DependencyMethods,
-        BuiltinDependency, SystemDependency, get_leaf_external_dependencies)
-from .detect import find_external_dependency, get_dep_identifier, packages, _packages_accept_language
-
-__all__ = [
-    'Dependency',
-    'InternalDependency',
-    'ExternalDependency',
-    'SystemDependency',
-    'BuiltinDependency',
-    'NotFoundDependency',
-    'ExternalLibrary',
-    'DependencyException',
-    'DependencyMethods',
-    'MissingCompiler',
-
-    'find_external_dependency',
-    'get_dep_identifier',
-    'get_leaf_external_dependencies',
-]
-
 """Dependency representations and discovery logic.
 
 Meson attempts to largely abstract away dependency discovery information, and
@@ -176,6 +152,34 @@ _Note_ before we moved to factory functions it was common to use an
 dependencies and hold the one it found. There are a number of drawbacks to
 this approach, and no new dependencies should do this.
 """
+
+from __future__ import annotations
+
+from .base import (
+    BuiltinDependency, Dependency, DependencyException, DependencyMethods, ExternalDependency,
+    ExternalLibrary, InternalDependency, MissingCompiler, NotFoundDependency, SystemDependency,
+    get_leaf_external_dependencies
+)
+from .detect import (
+    _packages_accept_language, find_external_dependency, get_dep_identifier, packages
+)
+
+__all__ = [
+    'Dependency',
+    'InternalDependency',
+    'ExternalDependency',
+    'SystemDependency',
+    'BuiltinDependency',
+    'NotFoundDependency',
+    'ExternalLibrary',
+    'DependencyException',
+    'DependencyMethods',
+    'MissingCompiler',
+
+    'find_external_dependency',
+    'get_dep_identifier',
+    'get_leaf_external_dependencies',
+]
 
 # This is a dict where the keys should be strings, and the values must be one
 # of:

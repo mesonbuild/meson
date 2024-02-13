@@ -5,9 +5,9 @@ from __future__ import annotations
 
 import typing as T
 
-from .baseobjects import InterpreterObject, MesonInterpreterObject, ObjectHolder, HoldableTypes
-from .exceptions import InvalidArguments
 from ..mesonlib import HoldableObject, MesonBugException
+from .baseobjects import HoldableTypes, InterpreterObject, MesonInterpreterObject, ObjectHolder
+from .exceptions import InvalidArguments
 
 if T.TYPE_CHECKING:
     from .baseobjects import TYPE_var

@@ -5,32 +5,30 @@
 from __future__ import annotations
 
 import abc
-import contextlib, os.path, re
+import contextlib
 import enum
 import itertools
+import os.path
+import re
 import typing as T
 from functools import lru_cache
 
-from .. import coredata
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import (
-    HoldableObject,
-    EnvironmentException, MesonException,
-    Popen_safe_logged, LibType, TemporaryDirectoryWinProof, OptionKey,
-)
-
+from .. import coredata, mesonlib, mlog
 from ..arglist import CompilerArgs
+from ..mesonlib import (
+    EnvironmentException, HoldableObject, LibType, MesonException, OptionKey, Popen_safe_logged,
+    TemporaryDirectoryWinProof
+)
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget, DFeatures
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType, MutableKeyedOptionDictType
+    from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import RSPFileSyntax
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..dependencies import Dependency
 
     CompilerType = T.TypeVar('CompilerType', bound='Compiler')
     _T = T.TypeVar('_T')

@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import abc
 import os
-import typing as T
 import re
+import typing as T
 
-from .base import ArLikeLinker, RSPFileSyntax
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
+from ..mesonlib import EnvironmentException, MesonException
+from .base import ArLikeLinker, RSPFileSyntax
 
 if T.TYPE_CHECKING:
     from ..coredata import KeyedOptionDictType

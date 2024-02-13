@@ -3,29 +3,30 @@
 
 from __future__ import annotations
 
-
 import abc
 import argparse
 import gzip
+import hashlib
 import os
-import sys
 import shlex
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
-import hashlib
 import typing as T
-
 from dataclasses import dataclass
 from glob import glob
 from pathlib import Path
+
+from mesonbuild import build, coredata, mlog
 from mesonbuild.environment import detect_ninja
-from mesonbuild.mesonlib import (MesonException, RealPathAction, quiet_git,
-                                 windows_proof_rmtree, setup_vsenv, OptionKey)
+from mesonbuild.mesonlib import (
+    MesonException, OptionKey, RealPathAction, quiet_git, setup_vsenv, windows_proof_rmtree
+)
 from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
-from mesonbuild import mlog, build, coredata
+
 from .scripts.meson_exe import run_exe
 
 if T.TYPE_CHECKING:

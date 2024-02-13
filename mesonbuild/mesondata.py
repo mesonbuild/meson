@@ -3,10 +3,9 @@
 
 from __future__ import annotations
 
-
 import importlib.resources
-from pathlib import PurePosixPath, Path
 import typing as T
+from pathlib import Path, PurePosixPath
 
 if T.TYPE_CHECKING:
     from .environment import Environment

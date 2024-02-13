@@ -2,32 +2,41 @@
 # Copyright © 2020-2024 Intel Corporation
 
 from __future__ import annotations
+
 import itertools
 import os
 import typing as T
 
 from mesonbuild.interpreterbase.decorators import FeatureNew
 
-from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
-from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
-                     CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
+from ..build import (
+    BothLibraries, BuildTarget, CustomTarget, CustomTargetIndex, Executable, ExtractedObjects,
+    GeneratedList, InvalidArguments, Jar, SharedLibrary, StructuredSources
+)
 from ..compilers.compilers import are_asserts_disabled
-from ..interpreter.type_checking import DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
+from ..interpreter.type_checking import (
+    DEPENDENCIES_KW, INCLUDE_DIRECTORIES, LINK_WITH_KW, OUTPUT_KW, SHARED_LIB_KWS, SOURCES_VARARGS,
+    TEST_KWS
+)
+from ..interpreterbase import (
+    ContainerTypeInfo, InterpreterException, KwargInfo, noPosargs, permittedKwargs, typed_kwargs,
+    typed_pos_args
+)
 from ..mesonlib import File
+from . import ExtensionModule, ModuleInfo, ModuleReturnValue
 
 if T.TYPE_CHECKING:
-    from . import ModuleState
+    from typing_extensions import TypedDict
+
     from ..build import IncludeDirs, LibTypes
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
-    from ..programs import ExternalProgram, OverrideProgram
     from ..interpreter.type_checking import SourcesVarargsType
-
-    from typing_extensions import TypedDict
+    from ..programs import ExternalProgram, OverrideProgram
+    from . import ModuleState
 
     class FuncTest(_kwargs.BaseTest):
 

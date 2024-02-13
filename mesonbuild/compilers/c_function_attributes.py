@@ -10,6 +10,8 @@
 #   warranty.
 #
 
+from __future__ import annotations
+
 C_FUNC_ATTRIBUTES = {
     'alias': '''
         int foo(void) { return 0; }

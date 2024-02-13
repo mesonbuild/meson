@@ -5,10 +5,7 @@ from __future__ import annotations
 import typing as T
 
 from ...interpreterbase import (
-    MesonInterpreterObject,
-    IterableObject,
-    MesonOperator,
-    InvalidArguments,
+    InvalidArguments, IterableObject, MesonInterpreterObject, MesonOperator
 )
 
 if T.TYPE_CHECKING:

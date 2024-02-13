@@ -1,7 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016 The Meson development team
 
+from __future__ import annotations
+
 from pathlib import PurePath
+
 
 def destdir_join(d1: str, d2: str) -> str:
     if not d1:

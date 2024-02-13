@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from .backends import Backend
 from .. import mlog
 from ..mesonlib import MesonBugException
+from .backends import Backend
 
 
 class NoneBackend(Backend):

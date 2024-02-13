@@ -3,12 +3,6 @@
 
 from __future__ import annotations
 
-from collections import OrderedDict
-from dataclasses import dataclass
-from enum import Enum, unique
-from functools import lru_cache
-from pathlib import PurePath, Path
-from textwrap import dedent
 import itertools
 import json
 import os
@@ -16,33 +10,34 @@ import pickle
 import re
 import subprocess
 import typing as T
+from collections import OrderedDict
+from dataclasses import dataclass
+from enum import Enum, unique
+from functools import lru_cache
+from pathlib import Path, PurePath
+from textwrap import dedent
 
-from . import backends
-from .. import modules
-from .. import environment, mesonlib
-from .. import build
-from .. import mlog
-from .. import compilers
+from .. import build, compilers, environment, mesonlib, mlog, modules
 from ..arglist import CompilerArgs
+from ..build import GeneratedList, InvalidArguments
 from ..compilers import Compiler
 from ..linkers import ArLikeLinker, RSPFileSyntax
 from ..mesonlib import (
-    File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
-    ProgressBar, quote_arg
+    File, LibType, MachineChoice, MesonBugException, MesonException, OptionKey, OrderedSet,
+    PerMachine, ProgressBar, get_compiler_for_source, has_path_sep, quote_arg
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
+from . import backends
 from .backends import CleanTrees
-from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from .._typing import ImmutableListProtocol
     from ..build import ExtractedObjects, LibTypes
-    from ..interpreter import Interpreter
-    from ..linkers.linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
+    from ..interpreter import Interpreter
+    from ..linkers.linkers import DynamicLinker, StaticLinker
 
     CommandArgOrStr = T.List[T.Union['NinjaCommandArg', str]]
     RUST_EDITIONS = Literal['2015', '2018', '2021']

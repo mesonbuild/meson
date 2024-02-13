@@ -1,21 +1,19 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# This class contains the basic functionality needed to run any interpreter
-# or an interpreter-based tool.
 from __future__ import annotations
 
-from .common import CMakeException
-from .generator import parse_generator_expressions
+import json
+import re
+import textwrap
+import typing as T
+from functools import lru_cache
+from pathlib import Path
+
 from .. import mlog
 from ..mesonlib import version_compare
-
-import typing as T
-from pathlib import Path
-from functools import lru_cache
-import re
-import json
-import textwrap
+from .common import CMakeException
+from .generator import parse_generator_expressions
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

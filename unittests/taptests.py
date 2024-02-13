@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import unittest
+from __future__ import annotations
+
 import io
+import unittest
 
 from mesonbuild.mtest import TAPParser, TestResult
 

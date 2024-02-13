@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
+import os.path
+import pprint
+import textwrap
 
 from . import coredata as cdata
 from .mesonlib import MachineChoice, OptionKey
 
-import os.path
-import pprint
-import textwrap
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/

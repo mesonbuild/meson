@@ -3,26 +3,28 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice, join_args
-from ..programs import find_external_program, ExternalProgram
-from .. import mlog
-from pathlib import PurePath
-from functools import lru_cache
-import re
 import os
+import re
 import shlex
 import typing as T
+from functools import lru_cache
+from pathlib import Path, PurePath
+
+from .. import mlog
+from ..mesonlib import (
+    EnvironmentVariables, MachineChoice, OptionKey, OrderedSet, PerMachine, Popen_safe,
+    Popen_safe_logged, join_args
+)
+from ..programs import ExternalProgram, find_external_program
+from .base import DependencyException, DependencyTypeName, ExternalDependency, sort_libpaths
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal
-    from .._typing import ImmutableListProtocol
 
+    from .._typing import ImmutableListProtocol
     from ..environment import Environment
-    from ..utils.core import EnvironOrDict
     from ..interpreter.type_checking import PkgConfigDefineType
+    from ..utils.core import EnvironOrDict
 
 class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''

@@ -2,8 +2,9 @@
 # Copyright © 2022-2023 Intel Corporation
 
 from __future__ import annotations
-import unittest
+
 import typing as T
+import unittest
 
 from mesonbuild.cargo import builder, cfg
 from mesonbuild.cargo.cfg import TokenType

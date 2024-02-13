@@ -3,13 +3,15 @@
 
 from __future__ import annotations
 
-import sys, os
-import subprocess
-import shutil
 import argparse
-from ..mesonlib import MesonException, Popen_safe, is_windows, is_cygwin, split_args
-from . import destdir_join
+import os
+import shutil
+import subprocess
+import sys
 import typing as T
+
+from ..mesonlib import MesonException, Popen_safe, is_cygwin, is_windows, split_args
+from . import destdir_join
 
 parser = argparse.ArgumentParser()
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 # Used for the --wrap-mode command-line argument
