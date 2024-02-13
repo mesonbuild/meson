@@ -12,6 +12,6 @@ foo = shared_library('foo', 'foo.vala',
 
 custom_target('foo-typelib',
               command: [g_ir_compiler, '--output', '@OUTPUT@', '@INPUT@'],
-              input: meson.current_build_dir() + '/Foo-1.0.gir',
+              input: foo.get_gir(),
               output: 'Foo-1.0.typelib',
               depends: foo)
