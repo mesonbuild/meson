@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import abc
 import argparse
-import gzip
 import os
 import sys
 import shlex
@@ -80,7 +79,19 @@ def is_git(src_root: str) -> bool:
     return quiet_git(['ls-files', '--error-unmatch', 'meson.build'], src_root)[0]
 
 def is_hg(src_root: str) -> bool:
-    return os.path.isdir(os.path.join(src_root, '.hg'))
+    '''
+    Checks if meson.build file at the root source directory is tracked by hg.
+    '''
+    try:
+        out = subprocess.check_output(
+            ['hg', 'status', 'meson.build', '--all'],
+            cwd=src_root, text=True, encoding='utf-8',
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return False
+    if out == '':
+        return False
+    return out[0] in 'CMA'
 
 
 @dataclass
@@ -95,10 +106,6 @@ class Dist(metaclass=abc.ABCMeta):
     def __post_init__(self) -> None:
         self.dist_sub = os.path.join(self.bld_root, 'meson-dist')
         self.distdir = os.path.join(self.dist_sub, self.dist_name)
-
-    @abc.abstractmethod
-    def create_dist(self, archives: T.List[str]) -> T.List[str]:
-        pass
 
     def run_dist_scripts(self) -> None:
         assert os.path.isabs(self.distdir)
@@ -123,9 +130,73 @@ class Dist(metaclass=abc.ABCMeta):
                 print(f'Failed to run dist script {name!r}')
                 sys.exit(1)
 
+    @abc.abstractmethod
+    def get_repo_root(self, dir_: str) -> Path:
+        '''Get root dir of the repository'''
+
+    @abc.abstractmethod
+    def have_dirty_index(self) -> bool:
+        '''Check if working dir is dirty'''
+
+    @abc.abstractmethod
+    def copy_repo(self, src: T.Union[str, os.PathLike], distdir: str,
+                  revision: str = 'HEAD', prefix: T.Optional[str] = None,
+                  subdir: T.Optional[str] = None) -> None:
+        '''Create a new directory from the repository'''
+
+    @abc.abstractmethod
+    def process_submodules(self, src: str, distdir: str) -> None:
+        '''Process submodules and subrepositories'''
+
+    @abc.abstractmethod
+    def is_repo(self, src_root: str) -> bool:
+        '''Check if meson.build is versioned'''
+
+    def process_project(self, src_root: str, distdir: str) -> None:
+        if self.have_dirty_index():
+            handle_dirty_opt(msg_uncommitted_changes, self.options.allow_dirty)
+        if os.path.exists(distdir):
+            windows_proof_rmtree(distdir)
+        repo_root = self.get_repo_root(src_root)
+        if repo_root.samefile(src_root):
+            os.makedirs(distdir)
+            self.copy_repo(src_root, distdir)
+        else:
+            subdir = Path(src_root).relative_to(repo_root)
+            tmp_distdir = distdir + '-tmp'
+            if os.path.exists(tmp_distdir):
+                windows_proof_rmtree(tmp_distdir)
+            os.makedirs(tmp_distdir)
+            self.copy_repo(repo_root, tmp_distdir, subdir=str(subdir))
+            Path(tmp_distdir, subdir).rename(distdir)
+            windows_proof_rmtree(tmp_distdir)
+        self.process_submodules(src_root, distdir)
+
+    def create_dist(self, archives: T.List[str]) -> T.List[str]:
+        self.process_project(self.src_root, self.distdir)
+        for path in self.subprojects.values():
+            sub_src_root = os.path.join(self.src_root, path)
+            sub_distdir = os.path.join(self.distdir, path)
+            if os.path.exists(sub_distdir):
+                continue
+            if self.is_repo(sub_src_root):
+                self.process_project(sub_src_root, sub_distdir)
+            else:
+                shutil.copytree(sub_src_root, sub_distdir)
+        self.run_dist_scripts()
+        output_names = []
+        for a in archives:
+            compressed_name = self.distdir + archive_extension[a]
+            shutil.make_archive(
+                self.distdir, a, root_dir=self.dist_sub, base_dir=self.dist_name
+            )
+            output_names.append(compressed_name)
+        windows_proof_rmtree(self.distdir)
+        return output_names
+
 
 class GitDist(Dist):
-    def git_root(self, dir_: str) -> Path:
+    def get_repo_root(self, dir_: str) -> Path:
         # Cannot use --show-toplevel here because git in our CI prints cygwin paths
         # that python cannot resolve. Workaround this by taking parent of src_root.
         prefix = quiet_git(['rev-parse', '--show-prefix'], dir_, check=True)[1].strip()
@@ -139,8 +210,9 @@ class GitDist(Dist):
         ret = subprocess.call(['git', '-C', self.src_root, 'diff-index', '--quiet', 'HEAD'])
         return ret == 1
 
-    def copy_git(self, src: T.Union[str, os.PathLike], distdir: str, revision: str = 'HEAD',
-                 prefix: T.Optional[str] = None, subdir: T.Optional[str] = None) -> None:
+    def copy_repo(self, src: T.Union[str, os.PathLike], distdir: str,
+                  revision: str = 'HEAD', prefix: T.Optional[str] = None,
+                  subdir: T.Optional[str] = None) -> None:
         cmd = ['git', 'archive', '--format', 'tar', revision]
         if prefix is not None:
             cmd.insert(2, f'--prefix={prefix}/')
@@ -149,28 +221,8 @@ class GitDist(Dist):
         with tempfile.TemporaryFile() as f:
             subprocess.check_call(cmd, cwd=src, stdout=f)
             f.seek(0)
-            t = tarfile.open(fileobj=f) # [ignore encoding]
+            t = tarfile.open(fileobj=f)  # [ignore encoding]
             t.extractall(path=distdir)
-
-    def process_git_project(self, src_root: str, distdir: str) -> None:
-        if self.have_dirty_index():
-            handle_dirty_opt(msg_uncommitted_changes, self.options.allow_dirty)
-        if os.path.exists(distdir):
-            windows_proof_rmtree(distdir)
-        repo_root = self.git_root(src_root)
-        if repo_root.samefile(src_root):
-            os.makedirs(distdir)
-            self.copy_git(src_root, distdir)
-        else:
-            subdir = Path(src_root).relative_to(repo_root)
-            tmp_distdir = distdir + '-tmp'
-            if os.path.exists(tmp_distdir):
-                windows_proof_rmtree(tmp_distdir)
-            os.makedirs(tmp_distdir)
-            self.copy_git(repo_root, tmp_distdir, subdir=str(subdir))
-            Path(tmp_distdir, subdir).rename(distdir)
-            windows_proof_rmtree(tmp_distdir)
-        self.process_submodules(src_root, distdir)
 
     def process_submodules(self, src: str, distdir: str) -> None:
         module_file = os.path.join(src, '.gitmodules')
@@ -189,72 +241,60 @@ class GitDist(Dist):
             elif status in {'+', 'U'}:
                 handle_dirty_opt(f'Submodule {subpath!r} has uncommitted changes that will not be included in the dist tarball', self.options.allow_dirty)
 
-            self.copy_git(os.path.join(src, subpath), distdir, revision=sha1, prefix=subpath)
+            self.copy_repo(os.path.join(src, subpath), distdir, revision=sha1, prefix=subpath)
 
-    def create_dist(self, archives: T.List[str]) -> T.List[str]:
-        self.process_git_project(self.src_root, self.distdir)
-        for path in self.subprojects.values():
-            sub_src_root = os.path.join(self.src_root, path)
-            sub_distdir = os.path.join(self.distdir, path)
-            if os.path.exists(sub_distdir):
-                continue
-            if is_git(sub_src_root):
-                self.process_git_project(sub_src_root, sub_distdir)
-            else:
-                shutil.copytree(sub_src_root, sub_distdir)
-        self.run_dist_scripts()
-        output_names = []
-        for a in archives:
-            compressed_name = self.distdir + archive_extension[a]
-            shutil.make_archive(self.distdir, a, root_dir=self.dist_sub, base_dir=self.dist_name)
-            output_names.append(compressed_name)
-        windows_proof_rmtree(self.distdir)
-        return output_names
+    def is_repo(self, src_root: str) -> bool:
+        return is_git(src_root)
 
 
 class HgDist(Dist):
+
+    def _check_output(self, cmd: T.Union[list, str]) -> str:
+        if isinstance(cmd, str):
+            cmd = cmd.split()
+        if cmd[0] != 'hg':
+            cmd.insert(0, 'hg')
+        return subprocess.check_output(cmd, cwd=self.src_root, text=True, encoding='utf-8')
+
+    def get_repo_root(self, dir_: str) -> Path:
+        # workaround using meson.build path, see Git above
+        path_rel_meson_build = self._check_output(
+            'status meson.build --all --template {path}'
+        ).strip()
+        assert path_rel_meson_build.endswith('meson.build'), path_rel_meson_build
+        prefix = path_rel_meson_build[: -len('/meson.build')]
+        path = Path(dir_)
+        if not prefix:
+            return path
+        prefix_level = len(Path(prefix).parents)
+        return path.parents[prefix_level - 1]
+
     def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in hg'''
-        out = subprocess.check_output(['hg', '-R', self.src_root, 'summary'])
-        return b'commit: (clean)' not in out
+        out = self._check_output('summary')
+        return 'commit: (clean)' not in out
 
-    def create_dist(self, archives: T.List[str]) -> T.List[str]:
-        if self.have_dirty_index():
-            handle_dirty_opt(msg_uncommitted_changes, self.options.allow_dirty)
-        if self.dist_scripts:
-            mlog.warning('dist scripts are not supported in Mercurial projects')
+    def process_submodules(self, src: str, distdir: str) -> None:
+        module_file = Path(src) / '.hgsub'
+        if not module_file.exists():
+            return
+        mlog.warning('Mercurial subrepositories are not supported')
 
-        os.makedirs(self.dist_sub, exist_ok=True)
-        tarname = os.path.join(self.dist_sub, self.dist_name + '.tar')
-        xzname = tarname + '.xz'
-        gzname = tarname + '.gz'
-        zipname = os.path.join(self.dist_sub, self.dist_name + '.zip')
-        # Note that -X interprets relative paths using the current working
-        # directory, not the repository root, so this must be an absolute path:
-        # https://bz.mercurial-scm.org/show_bug.cgi?id=6267
-        #
-        # .hg[a-z]* is used instead of .hg* to keep .hg_archival.txt, which may
-        # be useful to link the tarball to the Mercurial revision for either
-        # manual inspection or in case any code interprets it for a --version or
-        # similar.
-        subprocess.check_call(['hg', 'archive', '-R', self.src_root, '-S', '-t', 'tar',
-                               '-X', self.src_root + '/.hg[a-z]*', tarname])
-        output_names = []
-        if 'xztar' in archives:
-            import lzma
-            with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
-                shutil.copyfileobj(tf, xf)
-            output_names.append(xzname)
-        if 'gztar' in archives:
-            with gzip.open(gzname, 'wb') as zf, open(tarname, 'rb') as tf:
-                shutil.copyfileobj(tf, zf)
-            output_names.append(gzname)
-        os.unlink(tarname)
-        if 'zip' in archives:
-            subprocess.check_call(['hg', 'archive', '-R', self.src_root, '-S', '-t', 'zip', zipname])
-            output_names.append(zipname)
-        return output_names
+    def is_repo(self, src_root: str) -> bool:
+        return is_hg(src_root)
 
+    def copy_repo(self, src: T.Union[str, os.PathLike], distdir: str,
+                  revision: T.Optional[str] = None, prefix: T.Optional[str] = None,
+                  subdir: T.Optional[str] = None) -> None:
+        cmd = ['hg', 'archive', '--type', 'files']
+        if revision is not None:
+            cmd.extend(['--rev', revision])
+        if prefix is not None:
+            cmd.extend(['--prefix', prefix])
+        if subdir is not None:
+            cmd.extend(['--include', subdir])
+        cmd.append(distdir)
+        subprocess.run(cmd, cwd=src, check=True)
 
 def run_dist_steps(meson_command: T.List[str], unpacked_src_dir: str, builddir: str, installdir: str, ninja_args: T.List[str]) -> int:
     if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
