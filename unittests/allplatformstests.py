@@ -1586,6 +1586,14 @@ class AllPlatformTests(BasePlatformTests):
                     'disttest-1.4.3/subprojects/vcssub/meson.build'])
                 self.assertEqual(expected, obtained)
 
+            # skip the end for too old Mercurial (Ubuntu Bionic 18.04)
+            if vcs_init.__name__ == 'hg_init':
+                out = subprocess.check_output(
+                    ['hg', '--version'], text=True, encoding='utf-8'
+                )
+                if version_compare(search_version(out), '<= 4.5.3'):
+                    return
+
             # Verify we can distribute separately subprojects in the same vcs
             # repository as the main project.
             subproject_dir = os.path.join(project_dir, 'subprojects', 'samerepo')
