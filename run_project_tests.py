@@ -37,7 +37,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
-from mesonbuild.compilers import compiler_from_language, detect_objc_compiler, detect_objcpp_compiler
+from mesonbuild.compilers import compiler_from_language
 from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof, setup_vsenv
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
@@ -964,33 +964,26 @@ def have_d_compiler() -> bool:
     return False
 
 def have_objc_compiler(use_tmp: bool) -> bool:
-    with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
-        env = environment.Environment('', build_dir, get_fake_options('/'))
-        try:
-            objc_comp = detect_objc_compiler(env, MachineChoice.HOST)
-        except mesonlib.MesonException:
-            return False
-        if not objc_comp:
-            return False
-        env.coredata.process_new_compiler('objc', objc_comp, env)
-        try:
-            objc_comp.sanity_check(env.get_scratch_dir(), env)
-        except mesonlib.MesonException:
-            return False
-    return True
+    return have_working_compiler('objc', use_tmp)
 
 def have_objcpp_compiler(use_tmp: bool) -> bool:
+    return have_working_compiler('objcpp', use_tmp)
+
+def have_cython_compiler(use_tmp: bool) -> bool:
+    return have_working_compiler('cython', use_tmp)
+
+def have_working_compiler(lang: str, use_tmp: bool) -> bool:
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
         env = environment.Environment('', build_dir, get_fake_options('/'))
         try:
-            objcpp_comp = detect_objcpp_compiler(env, MachineChoice.HOST)
+            compiler = compiler_from_language(env, lang, MachineChoice.HOST)
         except mesonlib.MesonException:
             return False
-        if not objcpp_comp:
+        if not compiler:
             return False
-        env.coredata.process_new_compiler('objcpp', objcpp_comp, env)
+        env.coredata.process_new_compiler(lang, compiler, env)
         try:
-            objcpp_comp.sanity_check(env.get_scratch_dir(), env)
+            compiler.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
             return False
     return True
@@ -1116,7 +1109,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('java', 'java', backend is not Backend.ninja or not have_java()),
         TestCategory('C#', 'csharp', skip_csharp(backend)),
         TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
-        TestCategory('cython', 'cython', backend is not Backend.ninja or not shutil.which(os.environ.get('CYTHON', 'cython'))),
+        TestCategory('cython', 'cython', backend is not Backend.ninja or not have_cython_compiler(options.use_tmpdir)),
         TestCategory('rust', 'rust', should_skip_rust(backend)),
         TestCategory('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
         TestCategory('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler(options.use_tmpdir)),
