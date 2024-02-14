@@ -1800,8 +1800,11 @@ class Generator(HoldableObject):
 
     @staticmethod
     def is_parent_path(parent: str, trial: str) -> bool:
-        relpath = pathlib.PurePath(trial).relative_to(parent)
-        return relpath.parts[0] != '..' # For subdirs we can only go "down".
+        try:
+            common = os.path.commonpath((parent, trial))
+        except ValueError: # Windows on different drives
+            return False
+        return pathlib.PurePath(common) == pathlib.PurePath(parent)
 
     def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
                       state: T.Union['Interpreter', 'ModuleState'],
