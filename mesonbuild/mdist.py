@@ -271,8 +271,8 @@ class HgDist(Dist):
 
     def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in hg'''
-        out = self._check_output('summary')
-        return 'commit: (clean)' not in out
+        out = self._check_output('status --modified --removed --include .')
+        return out != ''
 
     def process_submodules(self, src: str, distdir: str) -> None:
         module_file = Path(src) / '.hgsub'
@@ -391,9 +391,6 @@ def run(options: argparse.Namespace) -> int:
     if is_git(src_root):
         cls = GitDist
     elif is_hg(src_root):
-        if subprojects:
-            print('--include-subprojects option currently not supported with Mercurial')
-            return 1
         cls = HgDist
     else:
         print('Dist currently only works with Git or Mercurial repos')
