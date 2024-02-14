@@ -476,9 +476,8 @@ language-specific, you must specify the requested language using the
  * `dependency('hdf5', language: 'cpp')` for the C++ HDF5 headers and libraries
  * `dependency('hdf5', language: 'fortran')` for the Fortran HDF5 headers and libraries
 
-Meson uses pkg-config to find HDF5. The standard low-level HDF5
-function and the `HL` high-level HDF5 functions are linked for each
-language.
+The standard low-level HDF5 function and the `HL` high-level HDF5
+functions are linked for each language.
 
 `method` may be `auto`, `config-tool` or `pkg-config`.
 
