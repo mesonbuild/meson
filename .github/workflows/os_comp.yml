@@ -16,7 +16,7 @@ on:
       - "unittests/**"
       - ".github/workflows/images.yml"
       - ".github/workflows/os_comp.yml"
-      - "run_unittests.py"
+      - "run*tests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
@@ -24,7 +24,7 @@ on:
       - "unittests/**"
       - ".github/workflows/images.yml"
       - ".github/workflows/os_comp.yml"
-      - "run_unittests.py"
+      - "run*tests.py"
 
 permissions:
   contents: read
