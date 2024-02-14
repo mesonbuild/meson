@@ -96,6 +96,10 @@ class Token(T.Generic[TV_TokenTypes]):
 
 class Lexer:
     def __init__(self, code: str):
+        if code.startswith(codecs.BOM_UTF8.decode('utf-8')):
+            line, *_ = code.split('\n', maxsplit=1)
+            raise ParseException('Builder file must be encoded in UTF-8 (with no BOM)', line, lineno=0, colno=0)
+
         self.code = code
         self.keywords = {'true', 'false', 'if', 'else', 'elif',
                          'endif', 'and', 'or', 'not', 'foreach', 'endforeach',
