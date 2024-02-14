@@ -107,10 +107,11 @@ class InterpreterBase:
             self.handle_meson_version_from_ast()
         except mparser.ParseException as me:
             me.file = mesonfile
-            # try to detect parser errors from new syntax added by future
-            # meson versions, and just tell the user to update meson
-            self.ast = me.ast
-            self.handle_meson_version_from_ast()
+            if me.ast:
+                # try to detect parser errors from new syntax added by future
+                # meson versions, and just tell the user to update meson
+                self.ast = me.ast
+                self.handle_meson_version_from_ast()
             raise me
 
     def parse_project(self) -> None:
