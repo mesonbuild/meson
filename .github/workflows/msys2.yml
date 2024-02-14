@@ -15,14 +15,14 @@ on:
       - "test cases/**"
       - "unittests/**"
       - ".github/workflows/msys2.yml"
-      - "run_unittests.py"
+      - "run*tests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
       - "unittests/**"
       - ".github/workflows/msys2.yml"
-      - "run_unittests.py"
+      - "run*tests.py"
 
 permissions:
   contents: read
