@@ -70,6 +70,7 @@ defaults['cuda'] = ['nvcc']
 defaults['rust'] = ['rustc']
 defaults['swift'] = ['swiftc']
 defaults['vala'] = ['valac']
+defaults['orc'] = ['orcc']
 defaults['cython'] = ['cython', 'cython3'] # Official name is cython, but Debian renamed it to cython3.
 defaults['static_linker'] = ['ar', 'gar']
 defaults['strip'] = ['strip']
@@ -91,6 +92,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
         'java': detect_java_compiler,
         'cs': detect_cs_compiler,
         'vala': detect_vala_compiler,
+        'orc': detect_orc_compiler,
         'd': detect_d_compiler,
         'rust': detect_rust_compiler,
         'fortran': detect_fortran_compiler,
@@ -965,6 +967,24 @@ def detect_vala_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         comp_class = ValaCompiler
         env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
         return comp_class(exelist, version, for_machine, is_cross, info)
+    raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
+
+def detect_orc_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
+    from .orc import OrcCompiler
+    exelist = env.lookup_binary_entry(MachineChoice.BUILD, 'orc')
+    is_cross = env.is_cross_build(for_machine)
+    info = env.machines[for_machine]
+    if exelist is None:
+        exelist = [defaults['orc'][0]]
+
+    try:
+        p, _, err = Popen_safe_logged(exelist + ['--help'], msg='Detecting compiler via')
+    except OSError:
+        raise EnvironmentException('Could not execute orc compiler: {}'.format(join_args(exelist)))
+    if 'orcc' in err:
+        comp_class = OrcCompiler
+        env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
+        return comp_class(exelist, '0.4', for_machine, is_cross, info)
     raise EnvironmentException('Unknown compiler: ' + join_args(exelist))
 
 def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> RustCompiler:

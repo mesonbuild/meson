@@ -535,12 +535,13 @@ _BASE_LANG_KW: KwargInfo[T.List[str]] = KwargInfo(
 
 _LANGUAGE_KWS: T.List[KwargInfo[T.List[str]]] = [
     _BASE_LANG_KW.evolve(name=f'{lang}_args')
-    for lang in compilers.all_languages - {'rust', 'vala', 'java'}
+    for lang in compilers.all_languages - {'rust', 'vala', 'java', 'orc'}
 ]
 # Cannot use _BASE_LANG_KW here because Vala is special for types
 _LANGUAGE_KWS.append(KwargInfo(
     'vala_args', ContainerTypeInfo(list, (str, File)), listify=True, default=[]))
 _LANGUAGE_KWS.append(_BASE_LANG_KW.evolve(name='rust_args', since='0.41.0'))
+_LANGUAGE_KWS.append(_BASE_LANG_KW.evolve(name='orc_args', since='1.30.0'))
 
 # We need this deprecated values more than the non-deprecated values. So we'll evolve them out elsewhere.
 _JAVA_LANG_KW: KwargInfo[T.List[str]] = _BASE_LANG_KW.evolve(
