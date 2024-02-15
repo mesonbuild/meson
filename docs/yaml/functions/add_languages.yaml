@@ -43,9 +43,12 @@ kwargs:
       specified are not found. *(since 0.47.0)* The value of a
       [`feature`](Build-options.md#features) option can also be passed.
   native:
-    type: bool
+    type: bool | str
     since: 0.54.0
+    default: 'both'
     description: |
       If set to `true`, the language will be used to compile for the build
-      machine, if `false`, for the host machine.
+      machine, if `false`, for the host machine. *(since 1.4.0)* can be set to
+      `'both'` (the only valid string value), which is the default. When
+      performing a host == build compilation all of these options are equivalent.
 

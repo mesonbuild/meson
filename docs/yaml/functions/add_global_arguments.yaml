@@ -26,13 +26,13 @@ kwargs:
       it in per-target flags.
 
   native:
-    type: bool
+    type: bool | str
     default: false
     since: 0.48.0
     description: |
-      A boolean specifying whether the arguments should be
-      applied to the native or cross compilation. If `true` the arguments
-      will only be used for native compilations. If `false` the arguments
-      will only be used in cross compilations. If omitted, the flags are
-      added to native compilations if compiling natively and cross
-      compilations (only) when cross compiling.
+      A boolean or `'both'` specifying whether the arguments should be
+      applied to targets for the host machine, the build machine, or both. If
+      `true` the arguments will only be used for build targets. If `false`
+      the arguments will only be used for host targets. *(since 1.4.0)* If
+      `'both'` then arguments will be used for both host and build targets.
+      When host == build, all options are equivalent.

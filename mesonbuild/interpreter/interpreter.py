@@ -15,9 +15,11 @@ from .. import compilers
 from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
-                        FileMode, MachineChoice, OptionKey, listify,
-                        extract_as_list, has_path_sep, path_is_in_root, PerMachine)
+from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation,
+                        MesonBugException, MesonException, HoldableObject,
+                        InterpreterMachineChoice, FileMode, MachineChoice,
+                        OptionKey, listify, extract_as_list, has_path_sep,
+                        path_is_in_root, PerMachine)
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -77,6 +79,7 @@ from .type_checking import (
     INSTALL_TAG_KW,
     LANGUAGE_KW,
     NATIVE_KW,
+    NATIVE_BOTH_KW,
     PRESERVE_PATH_KW,
     REQUIRED_KW,
     SHARED_LIB_KWS,
@@ -1301,7 +1304,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not self.is_subproject():
             self.check_stdlibs()
 
-    @typed_kwargs('add_languages', KwargInfo('native', (bool, NoneType), since='0.54.0'), REQUIRED_KW)
+    @typed_kwargs('add_languages', NATIVE_BOTH_KW.evolve(default='both', since='0.54.0'), REQUIRED_KW)
     @typed_pos_args('add_languages', varargs=str)
     def func_add_languages(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddLanguages') -> bool:
         langs = args[0]
@@ -1312,18 +1315,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             for lang in sorted(langs, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        if native is not None:
-            return self.add_languages(langs, required, self.machine_from_native_kwarg(kwargs))
-        else:
-            # absent 'native' means 'both' for backwards compatibility
-            tv = FeatureNew.get_target_version(self.subproject)
-            if FeatureNew.check_version(tv, '0.54.0'):
-                mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
-                             location=node)
-
-            success = self.add_languages(langs, False, MachineChoice.BUILD)
-            success &= self.add_languages(langs, required, MachineChoice.HOST)
-            return success
+        if native is not InterpreterMachineChoice.BOTH:
+            return self.add_languages(langs, required, native.as_machinechoice())
+        success = self.add_languages(langs, False, MachineChoice.BUILD)
+        success &= self.add_languages(langs, required, MachineChoice.HOST)
+        return success
 
     def _stringify_user_arguments(self, args: T.List[TYPE_var], func_name: str) -> T.List[str]:
         try:
@@ -2862,29 +2858,49 @@ class Interpreter(InterpreterBase, HoldableObject):
                                                              kwargs['exclude_suites'])
 
     @typed_pos_args('add_global_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_BOTH_KW, LANGUAGE_KW)
     def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
+        native = kwargs['native']
+        if native is InterpreterMachineChoice.BOTH:
+            self._add_global_arguments(node, self.build.global_args[MachineChoice.HOST], args[0], kwargs)
+            self._add_global_arguments(node, self.build.global_args[MachineChoice.BUILD], args[0], kwargs)
+        else:
+            self._add_global_arguments(node, self.build.global_args[native.as_machinechoice()], args[0], kwargs)
 
     @typed_pos_args('add_global_link_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_BOTH_KW, LANGUAGE_KW)
     def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
+        native = kwargs['native']
+        if native is InterpreterMachineChoice.BOTH:
+            self._add_global_arguments(node, self.build.global_link_args[MachineChoice.HOST], args[0], kwargs)
+            self._add_global_arguments(node, self.build.global_link_args[MachineChoice.BUILD], args[0], kwargs)
+        else:
+            self._add_global_arguments(node, self.build.global_link_args[native.as_machinechoice()], args[0], kwargs)
 
     @typed_pos_args('add_project_arguments', varargs=str)
-    @typed_kwargs('add_project_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_project_arguments', NATIVE_BOTH_KW, LANGUAGE_KW)
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
+        native = kwargs['native']
+        if native is InterpreterMachineChoice.BOTH:
+            self._add_project_arguments(node, self.build.projects_args[MachineChoice.BUILD], args[0], kwargs)
+            self._add_project_arguments(node, self.build.projects_args[MachineChoice.HOST], args[0], kwargs)
+        else:
+            self._add_project_arguments(node, self.build.projects_args[native.as_machinechoice()], args[0], kwargs)
 
     @typed_pos_args('add_project_link_arguments', varargs=str)
-    @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)
+    @typed_kwargs('add_global_arguments', NATIVE_BOTH_KW, LANGUAGE_KW)
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
-        self._add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
+        native = kwargs['native']
+        if native is InterpreterMachineChoice.BOTH:
+            self._add_project_arguments(node, self.build.projects_link_args[MachineChoice.BUILD], args[0], kwargs)
+            self._add_project_arguments(node, self.build.projects_link_args[MachineChoice.HOST], args[0], kwargs)
+        else:
+            self._add_project_arguments(node, self.build.projects_link_args[native.as_machinechoice()], args[0], kwargs)
 
     @FeatureNew('add_project_dependencies', '0.63.0')
     @typed_pos_args('add_project_dependencies', varargs=dependencies.Dependency)
     @typed_kwargs('add_project_dependencies', NATIVE_KW, LANGUAGE_KW)
-    def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: 'kwtypes.FuncAddProjectArgs') -> None:
+    def func_add_project_dependencies(self, node: mparser.FunctionNode, args: T.Tuple[T.List[dependencies.Dependency]], kwargs: kwtypes.FuncAddProjectDeps) -> None:
         for_machine = kwargs['native']
         for lang in kwargs['language']:
             if lang not in self.compilers[for_machine]:

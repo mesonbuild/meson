@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
+# Copyright © 2023 Intel Corporation
 
 import subprocess
 import re
@@ -5012,3 +5013,11 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    def test_add_arguments_both_no_dups(self) -> None:
+        testdir = os.path.join(self.common_test_dir, '115 subproject project arguments')
+        self.init(testdir, extra_args=['-Dmachine=both'])
+        compdb = self.get_compdb()
+        # It really doesn't matter what target we look at
+        self.assertEqual(compdb[0]['command'].count('-DGLOBAL_ARGUMENT'), 1,
+                         msg="`native : both` inserted arguments twice in the same target")
