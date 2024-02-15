@@ -145,7 +145,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    '--legend',
                                    '--show-details',
                                    '--branch-coverage',
-                                   covinfo])
+                                   covinfo] + lcov_config)
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
         elif gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
             htmloutdir = os.path.join(log_dir, 'coveragereport')
