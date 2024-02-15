@@ -586,7 +586,7 @@ class BoostDependency(SystemDependency):
             buildtype = self.env.coredata.optstore.get_value('buildtype')
             assert isinstance(buildtype, str)
             vscrt = self.clib_compiler.get_crt_compile_args(crt_val, buildtype)[0]
-        except (KeyError, IndexError, AttributeError):
+        except (mesonlib.EnvironmentException, KeyError, IndexError):
             pass
 
         # mlog.debug('    - static: {}'.format(self.static))
