@@ -1412,7 +1412,6 @@ class NinjaBackend(backends.Backend):
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
         resources = target.get_java_resources()
-        class_list = []
         compiler = target.compilers['java']
         c = 'c'
         m = 'm'
@@ -1430,10 +1429,8 @@ class NinjaBackend(backends.Backend):
             if rel_src.endswith('.java'):
                 gen_src_list.append(raw_src)
 
-        compile_args = self.determine_single_java_compile_args(target, compiler)
-        for src in src_list + gen_src_list:
-            plain_class_path = self.generate_single_java_compile(src, target, compiler, compile_args)
-            class_list.append(plain_class_path)
+        compile_args = self.determine_java_compile_args(target, compiler)
+        class_list = self.generate_java_compile(src_list + gen_src_list, target, compiler, compile_args)
         class_dep_list = [os.path.join(self.get_target_private_dir(target), i) for i in class_list]
         manifest_path = os.path.join(self.get_target_private_dir(target), 'META-INF', 'MANIFEST.MF')
         manifest_fullpath = os.path.join(self.environment.get_build_dir(), manifest_path)
@@ -1530,7 +1527,8 @@ class NinjaBackend(backends.Backend):
         self.generate_generator_list_rules(target)
         self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
 
-    def determine_single_java_compile_args(self, target, compiler):
+    def determine_java_compile_args(self, target, compiler):
+        args = []
         args = self.generate_basic_compiler_args(target, compiler)
         args += target.get_java_args()
         args += compiler.get_output_args(self.get_target_private_dir(target))
@@ -1544,20 +1542,30 @@ class NinjaBackend(backends.Backend):
         args += ['-sourcepath', sourcepath]
         return args
 
-    def generate_single_java_compile(self, src, target, compiler, args):
+    def generate_java_compile(self, srcs, target, compiler, args):
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         generated_sources = self.get_target_generated_sources(target)
         for rel_src in generated_sources.keys():
             if rel_src.endswith('.java'):
                 deps.append(rel_src)
-        rel_src = src.rel_to_builddir(self.build_to_src)
-        plain_class_path = src.fname[:-4] + 'class'
-        rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
-        element = NinjaBuildElement(self.all_outputs, rel_obj, self.compiler_to_rule_name(compiler), rel_src)
+
+        rel_srcs = []
+        plain_class_paths = []
+        rel_objs = []
+        for src in srcs:
+            rel_src = src.rel_to_builddir(self.build_to_src)
+            rel_srcs.append(rel_src)
+
+            plain_class_path = src.fname[:-4] + 'class'
+            plain_class_paths.append(plain_class_path)
+            rel_obj = os.path.join(self.get_target_private_dir(target), plain_class_path)
+            rel_objs.append(rel_obj)
+        element = NinjaBuildElement(self.all_outputs, rel_objs, self.compiler_to_rule_name(compiler), rel_srcs)
         element.add_dep(deps)
         element.add_item('ARGS', args)
+        element.add_item('FOR_JAR', self.get_target_filename(target))
         self.add_build(element)
-        return plain_class_path
+        return plain_class_paths
 
     def generate_java_link(self):
         rule = 'java_LINKER'
@@ -2376,7 +2384,7 @@ class NinjaBackend(backends.Backend):
     def generate_java_compile_rule(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
         command = compiler.get_exelist() + ['$ARGS', '$in']
-        description = 'Compiling Java object $in'
+        description = 'Compiling Java sources for $FOR_JAR'
         self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_cs_compile_rule(self, compiler: 'CsCompiler') -> None:
