@@ -12,7 +12,7 @@ from .. import build
 from .. import mesonlib
 from .. import mlog
 from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
-from ..interpreterbase import FeatureNew
+from ..interpreterbase import FeatureNew, InvalidArguments
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, noPosargs, typed_kwargs, typed_pos_args
 from ..programs import ExternalProgram
 from ..scripts.gettext import read_linguas
@@ -155,6 +155,9 @@ class I18nModule(ExtensionModule):
         KwargInfo('type', str, default='xml', validator=in_set_validator({'xml', 'desktop'})),
     )
     def merge_file(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'MergeFile') -> ModuleReturnValue:
+        if kwargs['install'] and not kwargs['install_dir']:
+            raise InvalidArguments('i18n.merge_file: "install_dir" keyword argument must be set when "install" is true.')
+
         if self.tools['msgfmt'] is None or not self.tools['msgfmt'].found():
             self.tools['msgfmt'] = state.find_program('msgfmt', for_machine=mesonlib.MachineChoice.BUILD)
         if isinstance(self.tools['msgfmt'], ExternalProgram):
@@ -339,6 +342,9 @@ class I18nModule(ExtensionModule):
         KwargInfo('mo_targets', ContainerTypeInfo(list, build.CustomTarget), required=True),
     )
     def itstool_join(self, state: 'ModuleState', args: T.List['TYPE_var'], kwargs: 'ItsJoinFile') -> ModuleReturnValue:
+        if kwargs['install'] and not kwargs['install_dir']:
+            raise InvalidArguments('i18n.itstool_join: "install_dir" keyword argument must be set when "install" is true.')
+
         if self.tools['itstool'] is None:
             self.tools['itstool'] = state.find_program('itstool', for_machine=mesonlib.MachineChoice.BUILD)
         mo_targets = kwargs['mo_targets']
