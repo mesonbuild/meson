@@ -250,7 +250,7 @@ class Runner:
             # avoid any data lost by mistake.
             self.git_stash()
             self.git_output(['reset', '--hard', 'FETCH_HEAD'])
-            self.wrap_resolver.apply_patch()
+            self.wrap_resolver.apply_patch(self.wrap.name)
             self.wrap_resolver.apply_diff_files()
         except GitException as e:
             self.log('  -> Could not reset', mlog.bold(self.repo_dir), 'to', mlog.bold(revision))
@@ -603,7 +603,7 @@ class Runner:
             if not os.path.isdir(self.repo_dir):
                 self.log('  -> Not downloaded yet')
                 return True
-            self.wrap_resolver.apply_patch()
+            self.wrap_resolver.apply_patch(self.wrap.name)
             return True
         if options.save:
             if 'patch_directory' not in self.wrap.values:

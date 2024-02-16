@@ -402,12 +402,11 @@ class Resolver:
         return None
 
     def resolve(self, packagename: str, force_method: T.Optional[Method] = None) -> T.Tuple[str, Method]:
-        self.packagename = packagename
         wrap = self.wraps.get(packagename)
         if wrap is None:
             wrap = self.get_from_wrapdb(packagename)
             if wrap is None:
-                raise WrapNotFoundException(f'Neither a subproject directory nor a {self.packagename}.wrap file was found.')
+                raise WrapNotFoundException(f'Neither a subproject directory nor a {packagename}.wrap file was found.')
         self.wrap = wrap
         self.directory = self.wrap.directory
 
@@ -479,11 +478,11 @@ class Resolver:
             if os.path.isdir(cached_directory):
                 self.copy_tree(cached_directory, self.dirname)
             elif self.wrap.type == 'file':
-                self._get_file()
+                self._get_file(packagename)
             else:
                 self.check_can_download()
                 if self.wrap.type == 'git':
-                    self._get_git()
+                    self._get_git(packagename)
                 elif self.wrap.type == "hg":
                     self._get_hg()
                 elif self.wrap.type == "svn":
@@ -491,7 +490,7 @@ class Resolver:
                 else:
                     raise WrapException(f'Unknown wrap type {self.wrap.type!r}')
             try:
-                self.apply_patch()
+                self.apply_patch(packagename)
                 self.apply_diff_files()
             except Exception:
                 windows_proof_rmtree(self.dirname)
@@ -553,8 +552,8 @@ class Resolver:
             return False
         raise WrapException(f'Unknown git submodule output: {out!r}')
 
-    def _get_file(self) -> None:
-        path = self.get_file_internal('source')
+    def _get_file(self, packagename: str) -> None:
+        path = self._get_file_internal('source', packagename)
         extract_dir = self.subdir_root
         # Some upstreams ship packages that do not have a leading directory.
         # Create one for them.
@@ -566,9 +565,9 @@ class Resolver:
         except OSError as e:
             raise WrapException(f'failed to unpack archive with error: {str(e)}') from e
 
-    def _get_git(self) -> None:
+    def _get_git(self, packagename: str) -> None:
         if not GIT:
-            raise WrapException(f'Git program not found, cannot download {self.packagename}.wrap via git.')
+            raise WrapException(f'Git program not found, cannot download {packagename}.wrap via git.')
         revno = self.wrap.get('revision')
         checkout_cmd = ['-c', 'advice.detachedHead=false', 'checkout', revno, '--']
         is_shallow = False
@@ -741,10 +740,10 @@ class Resolver:
                 time.sleep(d)
         return self.get_data(urlstring)
 
-    def _download(self, what: str, ofname: str, fallback: bool = False) -> None:
+    def _download(self, what: str, ofname: str, packagename: str, fallback: bool = False) -> None:
         self.check_can_download()
         srcurl = self.wrap.get(what + ('_fallback_url' if fallback else '_url'))
-        mlog.log('Downloading', mlog.bold(self.packagename), what, 'from', mlog.bold(srcurl))
+        mlog.log('Downloading', mlog.bold(packagename), what, 'from', mlog.bold(srcurl))
         try:
             dhash, tmpfile = self.get_data_with_backoff(srcurl)
             expected = self.wrap.get(what + '_hash').lower()
@@ -754,24 +753,24 @@ class Resolver:
         except WrapException:
             if not fallback:
                 if what + '_fallback_url' in self.wrap.values:
-                    return self._download(what, ofname, fallback=True)
+                    return self._download(what, ofname, packagename, fallback=True)
                 mlog.log('A fallback URL could be specified using',
                          mlog.bold(what + '_fallback_url'), 'key in the wrap file')
             raise
         os.rename(tmpfile, ofname)
 
-    def get_file_internal(self, what: str) -> str:
+    def _get_file_internal(self, what: str, packagename: str) -> str:
         filename = self.wrap.get(what + '_filename')
         if what + '_url' in self.wrap.values:
             cache_path = os.path.join(self.cachedir, filename)
 
             if os.path.exists(cache_path):
                 self.check_hash(what, cache_path)
-                mlog.log('Using', mlog.bold(self.packagename), what, 'from cache.')
+                mlog.log('Using', mlog.bold(packagename), what, 'from cache.')
                 return cache_path
 
             os.makedirs(self.cachedir, exist_ok=True)
-            self._download(what, cache_path)
+            self._download(what, cache_path, packagename)
             return cache_path
         else:
             path = Path(self.wrap.filesdir) / filename
@@ -782,12 +781,12 @@ class Resolver:
 
             return path.as_posix()
 
-    def apply_patch(self) -> None:
+    def apply_patch(self, packagename: str) -> None:
         if 'patch_filename' in self.wrap.values and 'patch_directory' in self.wrap.values:
             m = f'Wrap file {self.wrap.basename!r} must not have both "patch_filename" and "patch_directory"'
             raise WrapException(m)
         if 'patch_filename' in self.wrap.values:
-            path = self.get_file_internal('patch')
+            path = self._get_file_internal('patch', packagename)
             try:
                 shutil.unpack_archive(path, self.subdir_root)
             except Exception:
