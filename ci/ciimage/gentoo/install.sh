@@ -158,3 +158,11 @@ install_python_packages
 python3 -m pip install "${base_python_pkgs[@]}"
 
 echo "source /etc/profile" >> /ci/env_vars.sh
+
+# Cleanup to avoid including large contents in the docker image.
+# We don't need cache files that are side artifacts of installing packages.
+# We also don't need the gentoo tree -- the official docker image doesn't
+# either, and expects you to use emerge-webrsync once you need it.
+rm -rf /var/cache/binpkgs
+rm -rf /var/cache/distfiles
+rm -rf /var/db/repos/gentoo
