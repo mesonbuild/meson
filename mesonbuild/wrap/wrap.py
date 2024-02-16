@@ -784,18 +784,21 @@ class Resolver:
 
             return path.as_posix()
 
+    def unpack_archive(self, path):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            shutil.unpack_archive(path, tmpdir)
+            src = os.listdir(tmpdir)
+            if len(src) != 1:
+                raise WrapException("Error patch archive format. Archive must contain only one top directory.")
+            self.copy_tree(os.path.join(tmpdir, src[0]), self.dirname)
+
     def apply_patch(self) -> None:
         if 'patch_filename' in self.wrap.values and 'patch_directory' in self.wrap.values:
             m = f'Wrap file {self.wrap.basename!r} must not have both "patch_filename" and "patch_directory"'
             raise WrapException(m)
         if 'patch_filename' in self.wrap.values:
             path = self.get_file_internal('patch')
-            try:
-                shutil.unpack_archive(path, self.subdir_root)
-            except Exception:
-                with tempfile.TemporaryDirectory() as workdir:
-                    shutil.unpack_archive(path, workdir)
-                    self.copy_tree(workdir, self.subdir_root)
+            self.unpack_archive(path)
         elif 'patch_directory' in self.wrap.values:
             patch_dir = self.wrap.values['patch_directory']
             src_dir = os.path.join(self.wrap.filesdir, patch_dir)
