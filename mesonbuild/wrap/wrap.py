@@ -481,15 +481,15 @@ class Resolver:
             if os.path.isdir(cached_directory):
                 self.copy_tree(cached_directory, self.dirname)
             elif self.wrap.type == 'file':
-                self.get_file()
+                self._get_file()
             else:
                 self.check_can_download()
                 if self.wrap.type == 'git':
-                    self.get_git()
+                    self._get_git()
                 elif self.wrap.type == "hg":
-                    self.get_hg()
+                    self._get_hg()
                 elif self.wrap.type == "svn":
-                    self.get_svn()
+                    self._get_svn()
                 else:
                     raise WrapException(f'Unknown wrap type {self.wrap.type!r}')
             try:
@@ -555,7 +555,7 @@ class Resolver:
             return False
         raise WrapException(f'Unknown git submodule output: {out!r}')
 
-    def get_file(self) -> None:
+    def _get_file(self) -> None:
         path = self.get_file_internal('source')
         extract_dir = self.subdir_root
         # Some upstreams ship packages that do not have a leading directory.
@@ -568,7 +568,7 @@ class Resolver:
         except OSError as e:
             raise WrapException(f'failed to unpack archive with error: {str(e)}') from e
 
-    def get_git(self) -> None:
+    def _get_git(self) -> None:
         if not GIT:
             raise WrapException(f'Git program not found, cannot download {self.packagename}.wrap via git.')
         revno = self.wrap.get('revision')
@@ -633,7 +633,7 @@ class Resolver:
             result = all(ch in '0123456789AaBbCcDdEeFf' for ch in revno)
         return result
 
-    def get_hg(self) -> None:
+    def _get_hg(self) -> None:
         revno = self.wrap.get('revision')
         hg = shutil.which('hg')
         if not hg:
@@ -644,7 +644,7 @@ class Resolver:
             subprocess.check_call([hg, 'checkout', revno],
                                   cwd=self.dirname)
 
-    def get_svn(self) -> None:
+    def _get_svn(self) -> None:
         revno = self.wrap.get('revision')
         svn = shutil.which('svn')
         if not svn:
@@ -743,7 +743,7 @@ class Resolver:
                 time.sleep(d)
         return self.get_data(urlstring)
 
-    def download(self, what: str, ofname: str, fallback: bool = False) -> None:
+    def _download(self, what: str, ofname: str, fallback: bool = False) -> None:
         self.check_can_download()
         srcurl = self.wrap.get(what + ('_fallback_url' if fallback else '_url'))
         mlog.log('Downloading', mlog.bold(self.packagename), what, 'from', mlog.bold(srcurl))
@@ -756,7 +756,7 @@ class Resolver:
         except WrapException:
             if not fallback:
                 if what + '_fallback_url' in self.wrap.values:
-                    return self.download(what, ofname, fallback=True)
+                    return self._download(what, ofname, fallback=True)
                 mlog.log('A fallback URL could be specified using',
                          mlog.bold(what + '_fallback_url'), 'key in the wrap file')
             raise
@@ -773,7 +773,7 @@ class Resolver:
                 return cache_path
 
             os.makedirs(self.cachedir, exist_ok=True)
-            self.download(what, cache_path)
+            self._download(what, cache_path)
             return cache_path
         else:
             path = Path(self.wrap.filesdir) / filename
