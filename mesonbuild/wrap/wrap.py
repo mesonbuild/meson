@@ -403,7 +403,6 @@ class Resolver:
 
     def resolve(self, packagename: str, force_method: T.Optional[Method] = None) -> T.Tuple[str, Method]:
         self.packagename = packagename
-        self.directory = packagename
         wrap = self.wraps.get(packagename)
         if wrap is None:
             wrap = self.get_from_wrapdb(packagename)
