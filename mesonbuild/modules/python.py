@@ -175,14 +175,17 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
             target_suffix = self.limited_api_suffix
 
             limited_api_version_hex = self._convert_api_version_to_py_version_hex(limited_api_version, pydep.version)
-            limited_api_definition = f'-DPy_LIMITED_API={limited_api_version_hex}'
+            limited_api_definitions = [
+              f'-DPy_LIMITED_API={limited_api_version_hex}',
+              '-DCYTHON_LIMITED_API=1'
+            ]
 
             new_c_args = mesonlib.extract_as_list(kwargs, 'c_args')
-            new_c_args.append(limited_api_definition)
+            new_c_args.extend(limited_api_definitions)
             kwargs['c_args'] = new_c_args
 
             new_cpp_args = mesonlib.extract_as_list(kwargs, 'cpp_args')
-            new_cpp_args.append(limited_api_definition)
+            new_cpp_args.extend(limited_api_definitions)
             kwargs['cpp_args'] = new_cpp_args
 
             # On Windows, the limited API DLL is python3.dll, not python3X.dll.
@@ -215,6 +218,31 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
                     new_link_args.append(python_windows_release_link_exception)
 
                 kwargs['link_args'] = new_link_args
+
+            cython_compiler = next((c for c in compilers.values() if c.get_id() == 'cython'), None)
+            if cython_compiler is not None:
+                # Determine if any of the supplied source files are Cython source.
+                cython_suffixes = cython_compiler.file_suffixes
+
+                def has_cython_files(args: T.List[BuildTargetSource]):
+                    for arg in args:
+                        if isinstance(arg, StructuredSources):
+                            if has_cython_files(arg.as_list()):
+                                return True
+                            continue
+                        if isinstance(arg, GeneratedList):
+                            if has_cython_files(arg.get_outputs()):
+                                return True
+                            continue
+                        if isinstance(arg, mesonlib.File):
+                            arg = arg.fname
+                        suffix = os.path.splitext(arg)[1][1:].lower()
+                        if suffix in cython_suffixes:
+                            return True
+                    return False
+
+                if mesonlib.version_compare(cython_compiler.version, '< 3.0.0') and has_cython_files(args[1]):
+                    raise mesonlib.MesonException(f'Python Limited API not supported by Cython versions < 3.0.0 (detected {cython_compiler.version})')
 
         kwargs['dependencies'] = new_deps
 
