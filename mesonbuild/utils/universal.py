@@ -1040,6 +1040,32 @@ def default_libdir() -> str:
                 return 'lib/' + archpath
         except Exception:
             pass
+
+    # This is the the LFSH scheme, where libdir is defined as
+    # /usr/lib/arch-tuple
+    #
+    # https://uapi-group.org/specifications/specs/linux_file_system_hierarchy/#usrlibarch-id
+    #
+    # GCC 4.9 and after will print the arch tuple if the system is configured
+    # as such. The arch-tuples are documented and can be found here:
+    #
+    # https://wiki.debian.org/Multiarch/Tuples
+    #
+    # This is the same scheme that debian uses, however the is_debianlike
+    # checks are debian specific and use dpkg tools to query the arch-tuple
+    # where this is only using gcc.
+    try:
+        pc = subprocess.Popen(['gcc', '--print-multiarch'],
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL)
+        (stdo, _) = pc.communicate()
+        if pc.returncode == 0:
+            archpath = stdo.decode().strip()
+            if archpath is not None and archpath != "":
+                return 'lib/' + archpath
+    except Exception:
+        pass
+
     if is_freebsd() or is_irix():
         return 'lib'
     if os.path.isdir('/usr/lib64') and not os.path.islink('/usr/lib64'):
