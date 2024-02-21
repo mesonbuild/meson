@@ -22,6 +22,7 @@
         --sharedstatedir=%{_sharedstatedir} \
         --wrap-mode=%{__meson_wrap_mode} \
         --auto-features=%{__meson_auto_features} \
+        %{?__meson_extra_configure_options} \
         %{_vpath_srcdir} %{_vpath_builddir} \
         %{nil}}
 
