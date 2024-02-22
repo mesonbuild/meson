@@ -301,9 +301,10 @@ class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
     def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False,
+                 name: T.Optional[str] = None):
         super().__init__(description, self.static_choices, value, yielding, deprecated)
-        self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
+        self.name: T.Optional[str] = name  # TODO: Refactor options to all store their name
 
     def is_enabled(self) -> bool:
         return self.value == 'enabled'

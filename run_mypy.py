@@ -53,6 +53,7 @@ modules = [
     'mesonbuild/modules/__init__.py',
     'mesonbuild/modules/cuda.py',
     'mesonbuild/modules/external_project.py',
+    'mesonbuild/modules/features.py',
     'mesonbuild/modules/fs.py',
     'mesonbuild/modules/gnome.py',
     'mesonbuild/modules/i18n.py',
