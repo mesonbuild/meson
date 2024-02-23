@@ -742,7 +742,7 @@ class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
 
 class Test(MesonInterpreterObject):
     def __init__(self, name: str, project: str, suite: T.List[str],
-                 exe: T.Union[ExternalProgram, build.Executable, build.CustomTarget],
+                 exe: T.Union[ExternalProgram, build.Executable, build.CustomTarget, build.CustomTargetIndex],
                  depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
                  is_parallel: bool,
                  cmd_args: T.List[T.Union[str, mesonlib.File, build.Target]],
@@ -765,7 +765,7 @@ class Test(MesonInterpreterObject):
         self.priority = priority
         self.verbose = verbose
 
-    def get_exe(self) -> T.Union[ExternalProgram, build.Executable, build.CustomTarget]:
+    def get_exe(self) -> T.Union[ExternalProgram, build.Executable, build.CustomTarget, build.CustomTargetIndex]:
         return self.exe
 
     def get_name(self) -> str:
