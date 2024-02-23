@@ -534,6 +534,13 @@ def _create_cfg(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseN
     # cfg = rust.cargo_cfg(features, skip_build_rs: has_meson_build, info: cargo_info)
     version_arr = cargo.package.version.split('.')
     version_arr += ['' * (4 - len(version_arr))]
+    has_build_deps_message = None
+    if cargo.build_dependencies:
+        has_build_deps_message = build.block([
+            build.function('warning', [
+                build.string('Cannot use build.rs with build-dependencies. It should be ported manually in meson/meson.build'),
+            ]),
+        ])
     return [
         build.assign(build.dict({
             # https://doc.rust-lang.org/cargo/reference/environment-variables.html
@@ -559,7 +566,8 @@ def _create_cfg(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseN
         build.assign(build.function('import', [build.string('fs')]), 'fs'),
         build.assign(build.method('is_dir', build.identifier('fs'), [build.string('meson')]), 'has_meson_build'),
         build.if_(build.identifier('has_meson_build'),
-                  build.block([build.function('subdir', [build.string('meson')])])),
+                  build.block([build.function('subdir', [build.string('meson')])]),
+                  has_build_deps_message),
         build.assign(
             build.method(
                 'cargo_cfg',
