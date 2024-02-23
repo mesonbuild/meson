@@ -22,8 +22,9 @@ posargs:
     description: The *unique* test id
 
   executable:
-    type: exe | jar | external_program | file
-    description: The program to execute
+    type: exe | jar | external_program | file | custom_tgt | custom_idx
+    description: |
+      The program to execute. *(Since 1.4.0)* A CustomTarget is also accepted.
 
 kwargs:
   args:

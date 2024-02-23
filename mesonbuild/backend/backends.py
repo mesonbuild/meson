@@ -1160,7 +1160,7 @@ class Backend:
         return results
 
     def determine_windows_extra_paths(
-            self, target: T.Union[build.BuildTarget, build.CustomTarget, programs.ExternalProgram, mesonlib.File, str],
+            self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, programs.ExternalProgram, mesonlib.File, str],
             extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget]]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
@@ -1269,7 +1269,7 @@ class Backend:
                                    t.is_parallel, cmd_args, t_env,
                                    t.should_fail, t.timeout, t.workdir,
                                    extra_paths, t.protocol, t.priority,
-                                   isinstance(exe, build.Target),
+                                   isinstance(exe, (build.Target, build.CustomTargetIndex)),
                                    isinstance(exe, build.Executable),
                                    [x.get_id() for x in depends],
                                    self.environment.coredata.version,
