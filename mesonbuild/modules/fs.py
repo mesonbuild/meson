@@ -235,7 +235,7 @@ class FSModule(ExtensionModule):
         if isinstance(path, File):
             if path.is_built:
                 raise MesonException(
-                    'fs.read_file does not accept built files() objects')
+                    'fs.read does not accept built files() objects')
             path = os.path.join(src_dir, path.relative_name())
         else:
             if sub_dir:
