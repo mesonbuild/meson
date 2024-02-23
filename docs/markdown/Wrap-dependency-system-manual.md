@@ -316,6 +316,8 @@ foo-bar-1.0 = foo_bar_dep
 ```
 ### Cargo wraps
 
+*This is experimental and has no backwards or forwards compatibility.*
+
 Cargo subprojects automatically override the `<package_name>-rs` dependency name.
 `package_name` is defined in `[package] name = ...` section of the `Cargo.toml`
 and `-rs` suffix is added. That means the `.wrap` file should have
