@@ -187,9 +187,7 @@ class Dist(metaclass=abc.ABCMeta):
         output_names = []
         for a in archives:
             compressed_name = self.distdir + archive_extension[a]
-            shutil.make_archive(
-                self.distdir, a, root_dir=self.dist_sub, base_dir=self.dist_name
-            )
+            shutil.make_archive(self.distdir, a, root_dir=self.dist_sub, base_dir=self.dist_name)
             output_names.append(compressed_name)
         windows_proof_rmtree(self.distdir)
         return output_names
@@ -258,11 +256,9 @@ class HgDist(Dist):
 
     def get_repo_root(self, dir_: str) -> Path:
         # workaround using meson.build path, see Git above
-        path_rel_meson_build = self._check_output(
-            'status meson.build --all --template {path}'
-        ).strip()
-        assert path_rel_meson_build.endswith('meson.build'), path_rel_meson_build
-        prefix = path_rel_meson_build[: -len('/meson.build')]
+        buildfile_path = self._check_output('status meson.build --all --template {path}').strip()
+        assert buildfile_path.endswith('meson.build'), buildfile_path
+        prefix = buildfile_path[: -len('/meson.build')]
         path = Path(dir_)
         if not prefix:
             return path
