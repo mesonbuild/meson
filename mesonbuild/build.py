@@ -224,7 +224,7 @@ class DepManifest:
         return {
             'version': self.version,
             'license': self.license,
-            'license_files': [l[1].relative_name() for l in self.license_files],
+            'license_files': [l[1].relative_name for l in self.license_files],
         }
 
 

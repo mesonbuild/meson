@@ -1094,7 +1094,7 @@ class NinjaBackend(backends.Backend):
         # Add any generated outputs to the order deps of the scan target, so
         # that those sources are present
         for g in generated_source_files:
-            elem.orderdeps.add(g.relative_name())
+            elem.orderdeps.add(g.relative_name)
         elem.orderdeps.update(object_deps)
         scaninfo = TargetDependencyScannerInfo(self.get_target_private_dir(target), source2object)
         with open(pickle_abs, 'wb') as p:
@@ -3504,7 +3504,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return self.get_target_shsym_filename(t)
         elif isinstance(t, mesonlib.File):
             if t.is_built:
-                return t.relative_name()
+                return t.relative_name
             else:
                 return t.absolute_path(self.environment.get_source_dir(),
                                        self.environment.get_build_dir())

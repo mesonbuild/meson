@@ -889,7 +889,7 @@ class Backend:
             if self.environment.is_source(s):
                 sources.append(s)
             elif self.environment.is_object(s):
-                result.append(s.relative_name())
+                result.append(s.relative_name)
 
         # MSVC generate an object file for PCH
         if extobj.pch and self.target_uses_pch(extobj.target):
@@ -1322,8 +1322,8 @@ class Backend:
                                       tag='devel', data_type='depmf'))
         for m in self.build.dep_manifest.values():
             for ifilename, name in m.license_files:
-                ofilename = os.path.join(odirname, name.relative_name())
-                out_name = os.path.join(out_dir, name.relative_name())
+                ofilename = os.path.join(odirname, name.relative_name)
+                out_name = os.path.join(out_dir, name.relative_name)
                 d.data.append(InstallDataBase(ifilename, ofilename, out_name, None,
                                               m.subproject, tag='devel', data_type='depmf'))
 

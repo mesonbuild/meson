@@ -1853,7 +1853,7 @@ class GnomeModule(ExtensionModule):
             fhead += '%s\n' % body_prefix
         fhead += '#include "%s"\n' % hdr_filename
         for hdr in self.interpreter.source_strings_to_files(kwargs['sources']):
-            hdr_path = os.path.relpath(hdr.relative_name(), state.subdir)
+            hdr_path = os.path.relpath(hdr.relative_name, state.subdir)
             fhead += f'#include "{hdr_path}"\n'
         fhead += textwrap.dedent(
             '''

@@ -262,7 +262,7 @@ def list_targets(builddata: build.Build, installdata: backends.InstallData, back
 
         vs_module_defs = getattr(target, 'vs_module_defs', None)
         if vs_module_defs is not None:
-            t['vs_module_defs'] = vs_module_defs.relative_name()
+            t['vs_module_defs'] = vs_module_defs.relative_name
         win_subsystem = getattr(target, 'win_subsystem', None)
         if win_subsystem is not None:
             t['win_subsystem'] = win_subsystem

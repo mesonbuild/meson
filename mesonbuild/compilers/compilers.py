@@ -770,9 +770,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                 no_ccache = True
                 contents = code
             else:
-                srcname = code.fname
+                assert code.is_absolute, 'A File must be absolute in this context'
+                srcname = code.relative_name
                 if not is_object(code.fname):
-                    with open(code.fname, encoding='utf-8') as f:
+                    with open(srcname, encoding='utf-8') as f:
                         contents = f.read()
                 else:
                     contents = '<binary>'
