@@ -872,7 +872,7 @@ class Rewriter:
     def apply_changes(self):
         assert all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.modified_nodes)
         assert all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.to_remove_nodes)
-        assert all(isinstance(x, (ArrayNode, FunctionNode, MethodNode, AssignmentNode )) for x in self.modified_nodes)
+        assert all(isinstance(x, (ArrayNode, FunctionNode, MethodNode, AssignmentNode)) for x in self.modified_nodes)
         assert all(isinstance(x, (ArrayNode, AssignmentNode, FunctionNode)) for x in self.to_remove_nodes)
         # Sort based on line and column in reversed order
         work_nodes = [{'node': x, 'action': 'modify'} for x in self.modified_nodes]
@@ -936,7 +936,7 @@ class Rewriter:
                 # The new data contains the source object as well
                 col = node.source_object.colno
             elif isinstance(node, AssignmentNode):
-                col = node.var_name.colno   
+                col = node.var_name.colno
             start = offsets[line] + col
             end = start
             if isinstance(node, (ArrayNode, FunctionNode, MethodNode)):
