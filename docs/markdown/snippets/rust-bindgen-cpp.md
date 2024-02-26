@@ -1,4 +1,4 @@
-## Bindgen will now use Meson's hueristic for what is a C++ header
+## Bindgen will now use Meson's heuristic for what is a C++ header
 
 Bindgen natively assumes that a file with the extension `.hpp` is a C++ header,
 but that everything else is a C header. Meson has a whole list of extensions it
