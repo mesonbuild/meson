@@ -202,7 +202,7 @@ class RustModule(ExtensionModule):
             'output_inline_wrapper',
             str,
             default='',
-            since='1.3.0',
+            since='1.4.0',
         ),
         DEPENDENCIES_KW.evolve(since='1.0.0'),
     )
