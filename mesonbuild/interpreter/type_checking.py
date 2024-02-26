@@ -144,8 +144,6 @@ def variables_validator(contents: T.Union[str, T.List[str], T.Dict[str, str]]) -
     for k, v in variables.items():
         if not k:
             return 'empty variable name'
-        if not v:
-            return 'empty variable value'
         if any(c.isspace() for c in k):
             return f'invalid whitespace in variable name {k!r}'
     return None

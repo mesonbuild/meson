@@ -680,6 +680,8 @@ class PkgConfigModule(NewExtensionModule):
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
             for name, value in vardict.items():
+                if not value:
+                    FeatureNew.single_use('empty variable value in pkg.generate', '1.4.0', state.subproject, location=state.current_node)
                 if not dataonly and name in reserved:
                     raise mesonlib.MesonException(f'Variable "{name}" is reserved')
                 variables.append((name, value))

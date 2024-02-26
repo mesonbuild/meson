@@ -335,6 +335,35 @@ method = cargo
 dependency_names = foo-bar-rs
 ```
 
+Cargo features are exposed as Meson boolean options, with the `feature-` prefix.
+For example the `default` feature is named `feature-default` and can be set from
+the command line with `-Dfoo-rs:feature-default=false`. When a cargo subproject
+depends on another cargo subproject, it will automatically enable features it
+needs using the `dependency('foo-rs', default_options: ...)` mechanism. However,
+unlike Cargo, the set of enabled features is not managed globally. Let's assume
+the main project depends on `foo-rs` and `bar-rs`, and they both depend on
+`common-rs`. The main project will first look up `foo-rs` which itself will
+configure `common-rs` with a set of features. Later, when `bar-rs` does a lookup
+for `common-rs` it has already been configured and the set of features cannot be
+changed. If `bar-rs` wants extra features from `common-rs`, Meson will error out.
+It is currently the responsability of the main project to resolve those
+issues by enabling extra features on each subproject:
+```meson
+project(...,
+  default_options: {
+    'common-rs:feature-something': true,
+  },
+)
+```
+
+In addition, if the file `meson/meson.build` exists, Meson will call `subdir('meson')`
+where the project can add manual logic that would usually be part of `build.rs`.
+Some naming conventions need to be respected:
+- The `extra_args` variable is pre-defined and can be used to add any Rust arguments.
+  This is typically used as `extra_args += ['--cfg', 'foo']`.
+- The `extra_deps` variable is pre-defined and can be used to add extra dependencies.
+  This is typically used as `extra_deps += dependency('foo')`.
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your

@@ -91,7 +91,7 @@ class Builder:
         """
         return mparser.IdNode(self._token('id', value))
 
-    def method(self, name: str, id_: mparser.IdNode,
+    def method(self, name: str, id_: mparser.BaseNode,
                pos: T.Optional[T.List[mparser.BaseNode]] = None,
                kw: T.Optional[T.Mapping[str, mparser.BaseNode]] = None,
                ) -> mparser.MethodNode:
@@ -137,6 +137,33 @@ class Builder:
         """
         return mparser.ComparisonNode('==', lhs, self._symbol('=='), rhs)
 
+    def not_equal(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:
+        """Create an inequality operation
+
+        :param lhs: The left hand side of the "!="
+        :param rhs: the right hand side of the "!="
+        :return: A compraison node
+        """
+        return mparser.ComparisonNode('!=', lhs, self._symbol('!='), rhs)
+
+    def in_(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:
+        """Create an "in" operation
+
+        :param lhs: The left hand side of the "in"
+        :param rhs: the right hand side of the "in"
+        :return: A compraison node
+        """
+        return mparser.ComparisonNode('in', lhs, self._symbol('in'), rhs)
+
+    def not_in(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ComparisonNode:
+        """Create an "not in" operation
+
+        :param lhs: The left hand side of the "not in"
+        :param rhs: the right hand side of the "not in"
+        :return: A compraison node
+        """
+        return mparser.ComparisonNode('notin', lhs, self._symbol('not in'), rhs)
+
     def or_(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.OrNode:
         """Create and OrNode
 
@@ -167,3 +194,45 @@ class Builder:
         block = mparser.CodeBlockNode(self._token('node', ''))
         block.lines = lines
         return block
+
+    def plus(self, lhs: mparser.BaseNode, rhs: mparser.BaseNode) -> mparser.ArithmeticNode:
+        """Create an addition node
+
+        :param lhs: The left of the addition
+        :param rhs: The right of the addition
+        :return: The ArithmeticNode
+        """
+        return mparser.ArithmeticNode('add', lhs, self._symbol('+'), rhs)
+
+    def plusassign(self, value: mparser.BaseNode, varname: str) -> mparser.PlusAssignmentNode:
+        """Create a "+=" node
+
+        :param value: The value to add
+        :param varname: The variable to assign
+        :return: The PlusAssignmentNode
+        """
+        return mparser.PlusAssignmentNode(self.identifier(varname), self._symbol('+='), value)
+
+    def if_(self, condition: mparser.BaseNode, block: mparser.CodeBlockNode) -> mparser.IfClauseNode:
+        """Create a "if" block
+
+        :param condition: The condition
+        :param block: Lines inside the condition
+        :return: The IfClauseNode
+        """
+        clause = mparser.IfClauseNode(condition)
+        clause.ifs.append(mparser.IfNode(clause, self._symbol('if'), condition, block))
+        clause.elseblock = mparser.EmptyNode(-1, -1, self.filename)
+        return clause
+
+    def foreach(self, varnames: T.List[str], items: mparser.BaseNode, block: mparser.CodeBlockNode) -> mparser.ForeachClauseNode:
+        """Create a "foreach" loop
+
+        :param varnames: Iterator variable names (one for list, two for dict).
+        :param items: The list of dict to iterate
+        :param block: Lines inside the loop
+        :return: The ForeachClauseNode
+        """
+        varids = [self.identifier(i) for i in varnames]
+        commas = [self._symbol(',') for i in range(len(varnames) - 1)]
+        return mparser.ForeachClauseNode(self._symbol('foreach'), varids, commas, self._symbol(':'), items, block, self._symbol('endforeach'))
