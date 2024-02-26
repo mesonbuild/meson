@@ -488,11 +488,9 @@ class DCompiler(Compiler):
         # Parse all debug identifiers and the largest debug level identifier
         for d in kwargs['debug']:
             if isinstance(d, int):
-                if d > debug_level:
-                    debug_level = d
+                debug_level = max(debug_level, d)
             elif isinstance(d, str) and d.isdigit():
-                if int(d) > debug_level:
-                    debug_level = int(d)
+                debug_level = max(debug_level, int(d))
             else:
                 res.append(f'{debug_arg}={d}')
 
@@ -507,11 +505,9 @@ class DCompiler(Compiler):
         # Parse all version identifiers and the largest version level identifier
         for v in kwargs['versions']:
             if isinstance(v, int):
-                if v > version_level:
-                    version_level = v
+                version_level = max(version_level, v)
             elif isinstance(v, str) and v.isdigit():
-                if int(v) > version_level:
-                    version_level = int(v)
+                version_level = max(version_level, int(v))
             else:
                 res.append(f'{version_arg}={v}')
 
