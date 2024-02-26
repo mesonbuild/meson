@@ -44,7 +44,7 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-GROUP_FLAGS = re.compile(r'''\.so (?:\.[0-9]+)? (?:\.[0-9]+)? (?:\.[0-9]+)?$ |
+GROUP_FLAGS = re.compile(r'''^(?!-Wl,) .*\.so (?:\.[0-9]+)? (?:\.[0-9]+)? (?:\.[0-9]+)?$ |
                              ^(?:-Wl,)?-l |
                              \.a$''', re.X)
 
