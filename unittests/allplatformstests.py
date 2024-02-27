@@ -954,7 +954,7 @@ class AllPlatformTests(BasePlatformTests):
         self.utime(os.path.join(testdir, 'meson.build'))
         o = self._run(self.mtest_command + ['--list'])
         self.assertIn('Regenerating build files', o)
-        self.assertIn('test_features / xfail', o)
+        self.assertIn('test_features:xfail', o)
         o = self._run(self.mtest_command + ['--list'])
         self.assertNotIn('Regenerating build files', o)
         # no real targets should have been built
@@ -5437,7 +5437,7 @@ class AllPlatformTests(BasePlatformTests):
                                  '10/10': [10],
                                  }.items():
             output = self._run(self.mtest_command + ['--slice=' + arg])
-            tests = sorted([ int(x) for x in re.findall(r'\n[ 0-9]+/[0-9]+ test-([0-9]*)', output) ])
+            tests = sorted([ int(x) for x in re.findall(r'\n[ 0-9]+/[0-9]+ test_slice:test-([0-9]*)', output) ])
             self.assertEqual(tests, expectation)
 
         for arg, expectation in {'': 'error: argument --slice: value does not conform to format \'SLICE/NUM_SLICES\'',
