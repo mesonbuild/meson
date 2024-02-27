@@ -206,6 +206,7 @@ class Library(BuildTarget):
 
     doctest: bool = True
     doc: bool = True
+    path: str = os.path.join('src', 'lib.rs')
     proc_macro: bool = False
     crate_type: T.List[manifest.CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
     doc_scrape_examples: bool = True
@@ -606,7 +607,7 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
 
     posargs: T.List[mparser.BaseNode] = [
         build.string(fixup_meson_varname(cargo.package.name)),
-        build.string(os.path.join('src', 'lib.rs')),
+        build.string(cargo.lib.path),
     ]
 
     kwargs: T.Dict[str, mparser.BaseNode] = {
@@ -696,7 +697,7 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
 
     # Libs are always auto-discovered and there's no other way to handle them,
     # which is unfortunate for reproducability
-    if os.path.exists(os.path.join(env.source_dir, cargo.subdir, cargo.path, 'src', 'lib.rs')):
+    if os.path.exists(os.path.join(env.source_dir, cargo.subdir, cargo.path, cargo.lib.path)):
         for crate_type in cargo.lib.crate_type:
             ast.extend(_create_lib(cargo, build, crate_type))
 
