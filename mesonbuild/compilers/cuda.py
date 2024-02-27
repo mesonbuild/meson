@@ -192,7 +192,13 @@ class CudaCompiler(Compiler):
         self.exe_wrapper = exe_wrapper
         self.host_compiler = host_compiler
         self.base_options = host_compiler.base_options
-        self.warn_args = {level: self._to_host_flags(flags) for level, flags in host_compiler.warn_args.items()}
+        # -Wpedantic generates useless churn due to nvcc's dual compilation model producing
+        # a temporary host C++ file that includes gcc-style line directives:
+        # https://stackoverflow.com/a/31001220
+        self.warn_args = {
+            level: self._to_host_flags(list(f for f in flags if f != '-Wpedantic'))
+            for level, flags in host_compiler.warn_args.items()
+        }
 
     @classmethod
     def _shield_nvcc_list_arg(cls, arg: str, listmode: bool = True) -> str:
