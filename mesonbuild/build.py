@@ -1295,8 +1295,6 @@ class BuildTarget(Target):
         for t in self.link_targets:
             if t in result:
                 continue
-            if t.rust_crate_type == 'proc-macro':
-                continue
             if include_internals or not t.is_internal():
                 result.add(t)
             if isinstance(t, StaticLibrary):
