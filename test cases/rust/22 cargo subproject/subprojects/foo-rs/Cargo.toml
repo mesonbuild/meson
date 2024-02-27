@@ -5,6 +5,7 @@ edition = "2021"
 
 [lib]
 crate-type = ["cdylib"]
+path = "lib.rs"
 
 # This dependency does not exist, verify optional works.
 [dependencies.notfound]
