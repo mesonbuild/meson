@@ -978,7 +978,7 @@ class Xc16DynamicLinker(DynamicLinker):
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
-        if not args:
+        if len(args) < 2:
             return args
         return self._apply_prefix('--start-group') + args + self._apply_prefix('--end-group')
 
@@ -1064,7 +1064,7 @@ class TIDynamicLinker(DynamicLinker):
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
-        if not args:
+        if len(args) < 2:
             return args
         return self._apply_prefix('--start-group') + args + self._apply_prefix('--end-group')
 

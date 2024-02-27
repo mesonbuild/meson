@@ -84,7 +84,8 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
                 if group_start < 0:
                     # First occurrence of a library
                     group_start = i
-            if group_start >= 0:
+            # Only add groups if there are multiple libraries.
+            if group_end > group_start >= 0:
                 # Last occurrence of a library
                 new.insert(group_end + 1, '-Wl,--end-group')
                 new.insert(group_start, '-Wl,--start-group')
