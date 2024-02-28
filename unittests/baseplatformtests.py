@@ -85,6 +85,7 @@ class BasePlatformTests(TestCase):
             # XCode backend is untested with unit tests, help welcome!
             self.no_rebuild_stdout = [f'UNKNOWN BACKEND {self.backend.name!r}']
         os.environ['COLUMNS'] = '80'
+        os.environ['PYTHONIOENCODING'] = 'utf8'
 
         self.builddirs = []
         self.new_builddir()

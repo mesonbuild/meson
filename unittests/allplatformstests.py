@@ -471,7 +471,7 @@ class AllPlatformTests(BasePlatformTests):
         # Ensure command output and JSON / text logs are not mangled.
         raw_output_sample = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b'
         assert raw_output_sample in tests_command_output
-        text_log = Path(self.logdir, 'testlog.txt').read_text()
+        text_log = Path(self.logdir, 'testlog.txt').read_text(encoding='utf-8')
         assert raw_output_sample in text_log
         json_log = json.loads(Path(self.logdir, 'testlog.json').read_bytes())
         assert raw_output_sample in json_log['stdout']
