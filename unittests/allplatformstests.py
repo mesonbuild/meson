@@ -2694,7 +2694,7 @@ class AllPlatformTests(BasePlatformTests):
 
         # It is not an error to set wrong option for unknown subprojects or
         # language because we don't have control on which one will be selected.
-        self.init(testdir, extra_args=['-Dc_wrong=1', '-Dwrong:bad=1', '-Db_wrong=1'])
+        self.init(testdir, extra_args=['-Dc_wrong=1', '-Dwrong:bad=1'])
         self.wipe()
 
         # Test we can set subproject option

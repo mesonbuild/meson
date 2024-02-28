@@ -285,3 +285,10 @@ class PlatformAgnosticTests(BasePlatformTests):
         out = self.init(testdir, extra_args=['--reconfigure', '-Db_ndebug=if-release', '-Dc_std=c99'])
         self.assertIn('\nMessage: b_ndebug: if-release\n', out)
         self.assertIn('\nMessage: c_std: c99\n', out)
+
+    def test_setup_with_unknown_option(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+
+        for option in ('not_an_option', 'b_not_an_option'):
+            out = self.init(testdir, extra_args=['--wipe', f'-D{option}=1'], allow_fail=True)
+            self.assertIn(f'ERROR: Unknown options: "{option}"', out)
