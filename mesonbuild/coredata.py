@@ -974,6 +974,8 @@ class CoreData:
         return dirty
 
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
+        from .compilers import base_options
+
         # Main project can set default options on subprojects, but subprojects
         # can only set default options on themselves.
         # Preserve order: if env.options has 'buildtype' it must come after
@@ -1005,7 +1007,10 @@ class CoreData:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
-            if k.type in {OptionType.COMPILER, OptionType.BACKEND, OptionType.BASE}:
+            if k.type in {OptionType.COMPILER, OptionType.BACKEND}:
+                continue
+            if k.type == OptionType.BASE and k in base_options:
+                # set_options will report unknown base options
                 continue
             options[k] = v
 
