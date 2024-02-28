@@ -1518,6 +1518,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                         continue
                     else:
                         raise
+            else:
+                # update new values from commandline, if it applies
+                self.coredata.process_compiler_options(lang, comp, self.environment)
 
             # Add per-subproject compiler options. They inherit value from main project.
             if self.subproject:
