@@ -1017,6 +1017,7 @@ class CoreData:
             value = env.options.get(k)
             if value is not None:
                 o.set_value(value)
+                self.options[k] = o  # override compiler option on reconfigure
             self.options.setdefault(k, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
@@ -1028,20 +1029,20 @@ class CoreData:
         # `self.options.update()`` is perfectly safe.
         self.options.update(compilers.get_global_options(lang, comp, for_machine, env))
 
-    def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
+    def process_compiler_options(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
         from . import compilers
 
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env)
 
         enabled_opts: T.List[OptionKey] = []
         for key in comp.base_options:
-            if key in self.options:
-                continue
-            oobj = copy.deepcopy(compilers.base_options[key])
-            if key in env.options:
-                oobj.set_value(env.options[key])
-                enabled_opts.append(key)
-            self.options[key] = oobj
+            if key not in self.options:
+                self.options[key] = copy.deepcopy(compilers.base_options[key])
+                if key in env.options:
+                    self.options[key].set_value(env.options[key])
+                    enabled_opts.append(key)
+            elif key in env.options:
+                self.options[key].set_value(env.options[key])
         self.emit_base_options_warnings(enabled_opts)
 
     def emit_base_options_warnings(self, enabled_opts: T.List[OptionKey]) -> None:

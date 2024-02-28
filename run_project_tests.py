@@ -981,7 +981,7 @@ def have_working_compiler(lang: str, use_tmp: bool) -> bool:
             return False
         if not compiler:
             return False
-        env.coredata.process_new_compiler(lang, compiler, env)
+        env.coredata.process_compiler_options(lang, compiler, env)
         try:
             compiler.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
