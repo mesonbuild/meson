@@ -1003,11 +1003,9 @@ class CoreData:
             # not differ between them even when they are valid for both.
             if subproject and k.is_builtin() and self.options[k.evolve(subproject='', machine=MachineChoice.HOST)].yielding:
                 continue
-            # Skip compiler and backend options, they are handled when
+            # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
-            if k.type in {OptionType.COMPILER, OptionType.BACKEND}:
-                continue
-            if k.type == OptionType.BASE and env.first_invocation:
+            if k.type in {OptionType.COMPILER, OptionType.BACKEND, OptionType.BASE}:
                 continue
             options[k] = v
 
