@@ -629,17 +629,6 @@ class Environment:
         self._set_default_binaries_from_env()
         self._set_default_properties_from_env()
 
-        # Warn if the user is using two different ways of setting build-type
-        # options that override each other
-        bt = OptionKey('buildtype')
-        db = OptionKey('debug')
-        op = OptionKey('optimization')
-        if bt in self.options and (db in self.options or op in self.options):
-            mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
-                         'Using both is redundant since they override each other. '
-                         'See: https://mesonbuild.com/Builtin-options.html#build-type-options',
-                         fatal=False)
-
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:
             self.exe_wrapper = ExternalProgram.from_bin_list(self, MachineChoice.HOST, 'exe_wrapper')

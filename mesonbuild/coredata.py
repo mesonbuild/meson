@@ -84,7 +84,14 @@ if stable_version.endswith('.99'):
 
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
 genvslitelist = ['vs2022']
-buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
+buildtypemap = {
+    'plain': {'debug': False, 'optimization': 'plain'},
+    'debug': {'debug': True, 'optimization': '0'},
+    'debugoptimized': {'debug': True, 'optimization': '2'},
+    'release': {'debug': False, 'optimization': '3'},
+    'minsize': {'debug': True, 'optimization': 's'},
+    'custom': {},
+}
 
 DEFAULT_YIELDING = False
 
@@ -95,7 +102,7 @@ _T = T.TypeVar('_T')
 def get_genvs_default_buildtype_list() -> list[str]:
     # just debug, debugoptimized, and release for now
     # but this should probably be configurable through some extra option, alongside --genvslite.
-    return buildtypelist[1:-2]
+    return list(buildtypemap)[1:-2]
 
 
 class MesonVersionMismatchException(MesonException):
@@ -109,6 +116,9 @@ class MesonVersionMismatchException(MesonException):
 
 
 class UserOption(T.Generic[_T], HoldableObject):
+
+    is_default: bool = False
+
     def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]],
                  yielding: bool,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
@@ -120,6 +130,7 @@ class UserOption(T.Generic[_T], HoldableObject):
         self.yielding = yielding
         self.deprecated = deprecated
         self.readonly = False
+        self.is_default = False
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
@@ -134,9 +145,10 @@ class UserOption(T.Generic[_T], HoldableObject):
     def validate_value(self, value: T.Any) -> _T:
         raise RuntimeError('Derived option class did not override validate_value.')
 
-    def set_value(self, newvalue: T.Any) -> bool:
+    def set_value(self, newvalue: T.Any, is_default: bool = False) -> bool:
         oldvalue = getattr(self, 'value', None)
         self.value = self.validate_value(newvalue)
+        self.is_default = is_default
         return self.value != oldvalue
 
 class UserStringOption(UserOption[str]):
@@ -831,56 +843,32 @@ class CoreData:
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
         value = self.options[OptionKey('buildtype')].value
-        if value == 'plain':
-            opt = 'plain'
-            debug = False
-        elif value == 'debug':
-            opt = '0'
-            debug = True
-        elif value == 'debugoptimized':
-            opt = '2'
-            debug = True
-        elif value == 'release':
-            opt = '3'
-            debug = False
-        elif value == 'minsize':
-            opt = 's'
-            debug = True
-        else:
-            assert value == 'custom'
+        options = buildtypemap[value]
+        if not options:
             return []
+
         actual_opt = self.options[OptionKey('optimization')].value
         actual_debug = self.options[OptionKey('debug')].value
-        if actual_opt != opt:
-            result.append(('optimization', actual_opt, opt))
-        if actual_debug != debug:
-            result.append(('debug', actual_debug, debug))
+        if actual_opt != options['optimization']:
+            result.append(('optimization', actual_opt, options['optimization']))
+        if actual_debug != options['debug']:
+            result.append(('debug', actual_debug, options['debug']))
         return result
 
     def _set_others_from_buildtype(self, value: str) -> bool:
         dirty = False
 
-        if value == 'plain':
-            opt = 'plain'
-            debug = False
-        elif value == 'debug':
-            opt = '0'
-            debug = True
-        elif value == 'debugoptimized':
-            opt = '2'
-            debug = True
-        elif value == 'release':
-            opt = '3'
-            debug = False
-        elif value == 'minsize':
-            opt = 's'
-            debug = True
-        else:
-            assert value == 'custom'
+        options = buildtypemap[value]
+        if not options:
             return False
 
-        dirty |= self.options[OptionKey('optimization')].set_value(opt)
-        dirty |= self.options[OptionKey('debug')].set_value(debug)
+        optimization_opt = self.options[OptionKey('optimization')]
+        if optimization_opt.is_default:
+            dirty |= optimization_opt.set_value(options['optimization'], is_default=True)
+
+        debug_opt = self.options[OptionKey('debug')]
+        if debug_opt.is_default:
+            dirty |= debug_opt.set_value(options['debug'], is_default=True)
 
         return dirty
 
@@ -971,6 +959,8 @@ class CoreData:
         if not self.is_cross_build():
             dirty |= self.copy_build_options_from_regular_ones()
 
+        dirty |= self.update_alias_options()
+
         return dirty
 
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
@@ -1012,6 +1002,27 @@ class CoreData:
             options[k] = v
 
         self.set_options(options, subproject=subproject, first_invocation=env.first_invocation)
+
+    def update_buildtype_alias(self) -> bool:
+        dirty = False
+
+        buildtype_opt = self.options[OptionKey('buildtype')]
+        if buildtype_opt.is_default:
+            lookup = {
+                'debug': self.get_option(OptionKey('debug')),
+                'optimization': self.get_option(OptionKey('optimization')),
+            }
+            try:
+                buildtype_value = next(k for k, v in buildtypemap.items() if v == lookup)
+            except StopIteration:
+                buildtype_value = 'custom'
+
+            dirty = buildtype_opt.set_value(buildtype_value, is_default=True)
+
+        return dirty
+
+    def update_alias_options(self) -> bool:
+        return self.update_buildtype_alias()
 
     def add_compiler_options(self, options: 'MutableKeyedOptionDictType', lang: str, for_machine: MachineChoice,
                              env: 'Environment') -> None:
@@ -1286,13 +1297,16 @@ class BuiltinOption(T.Generic[_T, _U]):
 
     def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> _U:
         """Create an instance of opt_type and return it."""
+        is_default = False
         if value is None:
+            is_default = True
             value = self.prefixed_default(name, prefix)
         keywords = {'yielding': self.yielding, 'value': value}
         if self.choices:
             keywords['choices'] = self.choices
         o = self.opt_type(self.description, **keywords)
         o.readonly = self.readonly
+        o.is_default = is_default
         return o
 
     def _argparse_action(self) -> T.Optional[str]:
@@ -1378,7 +1392,7 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
          choices=genvslitelist)
      ),
     (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                                 choices=buildtypelist)),
+                                                 choices=list(buildtypemap))),
     (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
     (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
                                                  yielding=False)),

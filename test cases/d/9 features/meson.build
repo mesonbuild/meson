@@ -1,4 +1,4 @@
-project('D Features', 'd', default_options : ['debug=false'])
+project('D Features', 'd', default_options : ['debug=false', 'b_vscrt=md'])
 
 dc = meson.get_compiler('d')
 
