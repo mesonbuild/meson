@@ -55,6 +55,8 @@ if T.TYPE_CHECKING:
         projectoptions: T.List[str]
         cross_file: T.List[str]
         native_file: T.List[str]
+        cross_program: T.List[str]
+        native_program: T.List[str]
 
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], 'OptionsView']
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
@@ -581,6 +583,9 @@ class CoreData:
         self.options: 'MutableKeyedOptionDictType' = {}
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
+        self.program_overrides: PerMachine[T.Dict[str, str]] = PerMachine(
+            self.__parse_program_overrides(options, MachineChoice.BUILD),
+            self.__parse_program_overrides(options, MachineChoice.HOST))
 
         # Set of subprojects that have already been initialized once, this is
         # required to be stored and reloaded with the coredata, as we don't
@@ -603,6 +608,25 @@ class CoreData:
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')
         self.builtin_options_libdir_cross_fixup()
         self.init_builtins('')
+
+    @staticmethod
+    def __parse_program_overrides(options: SharedCMDOptions, for_machine: MachineChoice) -> OrderedDict[str, str]:
+        overrides_map: OrderedDict[str, str] = OrderedDict()
+        overrides: T.List[str]
+        if for_machine == MachineChoice.BUILD:
+            overrides = options.native_program
+        elif for_machine == MachineChoice.HOST:
+            overrides = options.cross_program
+
+        for o in overrides:
+            parts = o.split('=', 1)
+            if len(parts) == 1:
+                word = 'native' if for_machine == MachineChoice.HOST else 'cross'
+                raise MesonException(f'Invalid value for --{word}-program: {o}. The override name and value must be separated by an "=" in the form of xxx=path/to/yyy.')
+
+            overrides_map[parts[0]] = parts[1]
+
+        return overrides_map
 
     @staticmethod
     def __load_config_files(options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
@@ -1051,6 +1075,9 @@ class CoreData:
             mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
             mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
 
+    def get_program_overrides(self, for_machine: MachineChoice) -> T.Dict[str, str]:
+        return self.program_overrides[for_machine]
+
 class CmdLineFileParser(configparser.ConfigParser):
     def __init__(self) -> None:
         # We don't want ':' as key delimiter, otherwise it would break when
@@ -1164,6 +1191,10 @@ def read_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
         # This will be a string in the form: "['first', 'second', ...]", use
         # literal_eval to get it into the list of strings.
         options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
+    if not options.cross_program:
+        options.cross_program = ast.literal_eval(properties.get('cross_program', '[]'))
+    if not options.native_program:
+        options.native_program = ast.literal_eval(properties.get('native_program', '[]'))
 
 def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
@@ -1174,6 +1205,10 @@ def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
         properties['cross_file'] = options.cross_file
     if options.native_file:
         properties['native_file'] = options.native_file
+    if options.cross_program:
+        properties['cross_program'] = options.cross_program
+    if options.native_program:
+        properties['native_program'] = options.native_program
 
     config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
     config['properties'] = properties
@@ -1194,6 +1229,10 @@ def format_cmd_line_options(options: SharedCMDOptions) -> str:
         cmdline += [f'--cross-file={f}' for f in options.cross_file]
     if options.native_file:
         cmdline += [f'--native-file={f}' for f in options.native_file]
+    if options.cross_program:
+        cmdline += [f'--cross-program={o}' for o in options.cross_program]
+    if options.native_program:
+        cmdline += [f'--native-program={o}' for o in options.native_program]
     return ' '.join([shlex.quote(x) for x in cmdline])
 
 def major_versions_differ(v1: str, v2: str) -> bool:

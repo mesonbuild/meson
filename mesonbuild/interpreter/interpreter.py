@@ -1542,6 +1542,28 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         return success
 
+    def program_from_override(self, for_machine: MachineChoice, prognames: T.List[mesonlib.FileOrString],
+                              extra_info: T.List[mlog.TV_Loggable]) -> T.Optional[ExternalProgram]:
+        program_overrides = self.coredata.get_program_overrides(for_machine)
+        if not program_overrides:
+            return None
+
+        for p in prognames:
+            if isinstance(p, mesonlib.File):
+                continue  # Always points to a local (i.e. self generated) file.
+            if not isinstance(p, str):
+                raise InterpreterException('Executable name must be a string')
+
+            override = program_overrides.get(p, None)
+            if not override:
+                return None
+
+            prog = ExternalProgram(p, command=override, silent=True)
+            if not isinstance(prog, NonExistingExternalProgram):
+                extra_info.append(mlog.blue('(overridden)'))
+                return prog
+        return None
+
     def program_from_file_for(self, for_machine: MachineChoice, prognames: T.List[mesonlib.FileOrString]
                               ) -> T.Optional[ExternalProgram]:
         for p in prognames:
@@ -1656,6 +1678,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                        extra_info: T.List[mlog.TV_Loggable]
                        ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         progobj = self.program_from_overrides(args, extra_info)
+        if progobj:
+            return progobj
+
+        progobj = self.program_from_override(for_machine, args, extra_info)
         if progobj:
             return progobj
 

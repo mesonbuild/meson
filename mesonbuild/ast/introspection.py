@@ -35,6 +35,8 @@ class IntrospectionHelper:
     def __init__(self, cross_file: T.Optional[str]):
         self.cross_file = [cross_file] if cross_file is not None else []
         self.native_file: T.List[str] = []
+        self.cross_program: T.List[str] = []
+        self.native_program: T.List[str] = []
         self.cmd_line_options: T.Dict[OptionKey, str] = {}
         self.projectoptions: T.List[str] = []
 

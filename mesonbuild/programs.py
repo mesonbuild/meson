@@ -30,7 +30,7 @@ class ExternalProgram(mesonlib.HoldableObject):
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
     for_machine = MachineChoice.BUILD
 
-    def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
+    def __init__(self, name: str, command: T.Optional[T.Union[str, T.List[str]]] = None,
                  silent: bool = False, search_dir: T.Optional[str] = None,
                  extra_search_dirs: T.Optional[T.List[str]] = None):
         self.name = name

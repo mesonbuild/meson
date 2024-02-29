@@ -270,6 +270,8 @@ _meson_common_setup_configure_longopts=(
   cmake-prefix-path
   build.cmake-prefix-path
   clearcache
+  native-program
+  cross-program
 )
 
 _meson-setup() {
