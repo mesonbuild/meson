@@ -85,6 +85,7 @@ For languages that don't have separate dynamic linkers such as C# and Java, the
 | Value               | Comment                         |
 | -----               | -------                         |
 | MESONINTROSPECT     | Command to run to run the introspection command, may be of the form `python /path/to/meson introspect`, user is responsible for splitting the path if necessary. |
+| MESONREWRITE        | Command to run to run the rewriting command, only set when running `dist` scripts |
 | MESON_BUILD_ROOT    | Absolute path to the build dir  |
 | MESON_DIST_ROOT     | Points to the root of the staging directory, only set when running `dist` scripts |
 | MESON_SOURCE_ROOT   | Absolute path to the source dir |
