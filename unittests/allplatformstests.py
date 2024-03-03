@@ -2317,9 +2317,9 @@ class AllPlatformTests(BasePlatformTests):
         for (t, f) in [
             ('10 out of bounds', 'meson.build'),
             ('18 wrong plusassign', 'meson.build'),
-            ('57 bad option argument', 'meson_options.txt'),
-            ('95 subdir parse error', os.path.join('subdir', 'meson.build')),
-            ('96 invalid option file', 'meson_options.txt'),
+            ('56 bad option argument', 'meson_options.txt'),
+            ('94 subdir parse error', os.path.join('subdir', 'meson.build')),
+            ('95 invalid option file', 'meson_options.txt'),
         ]:
             tdir = os.path.join(self.src_root, 'test cases', 'failing', t)
 

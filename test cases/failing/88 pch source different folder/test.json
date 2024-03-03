@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/88 pch source different folder/meson.build:4:6: ERROR: PCH files must be stored in the same folder."
-    }
-  ]
-}

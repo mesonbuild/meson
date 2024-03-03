@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/92 add dict duplicate keys/meson.build:9:27: ERROR: Duplicate dictionary key: myKey"
-    }
-  ]
-}
