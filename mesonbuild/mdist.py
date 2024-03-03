@@ -192,6 +192,11 @@ class Dist(metaclass=abc.ABCMeta):
         windows_proof_rmtree(self.distdir)
         return output_names
 
+    def _check_output(self, cmd: T.Union[list, str]) -> str:
+        if isinstance(cmd, str):
+            cmd = shlex.split(cmd)
+        return subprocess.check_output(cmd, cwd=self.src_root, text=True, encoding='utf-8')
+
 
 class GitDist(Dist):
     def get_repo_root(self, dir_: str) -> Path:
@@ -247,16 +252,9 @@ class GitDist(Dist):
 
 class HgDist(Dist):
 
-    def _check_output(self, cmd: T.Union[list, str]) -> str:
-        if isinstance(cmd, str):
-            cmd = cmd.split()
-        if cmd[0] != 'hg':
-            cmd.insert(0, 'hg')
-        return subprocess.check_output(cmd, cwd=self.src_root, text=True, encoding='utf-8')
-
     def get_repo_root(self, dir_: str) -> Path:
         # workaround using meson.build path, see Git above
-        buildfile_path = self._check_output('status meson.build --all --template {path}').strip()
+        buildfile_path = self._check_output('hg status meson.build --all --template {path}').strip()
         assert buildfile_path.endswith('meson.build'), buildfile_path
         prefix = buildfile_path[: -len('/meson.build')]
         path = Path(dir_)
@@ -267,7 +265,7 @@ class HgDist(Dist):
 
     def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in hg'''
-        out = self._check_output('status --modified --removed --include .')
+        out = self._check_output('hg status --modified --removed --include .')
         return out != ''
 
     def process_submodules(self, src: str, distdir: str) -> None:
