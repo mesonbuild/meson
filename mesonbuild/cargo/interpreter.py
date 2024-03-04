@@ -641,9 +641,10 @@ def _create_dependency(name: str, dep: Dependency, build: builder.Builder) -> T.
         'default_options': build.identifier(_options_varname(name)),
     }
     if dep.optional:
-        kw['required'] = build.method('get', build.identifier('required_deps'), [
-            build.string(name), build.bool(False)
-        ])
+        kw['required'] = build.or_(
+            build.method('get', build.identifier('required_deps'), [build.string(name), build.bool(False)]),
+            build.method('get', build.identifier('features'), [build.string(name), build.bool(False)]),
+        )
 
     # Lookup for this dependency with the features we want in default_options kwarg.
     #
