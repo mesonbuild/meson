@@ -195,7 +195,7 @@ class Dist(metaclass=abc.ABCMeta):
     def _check_output(self, cmd: T.Union[list, str]) -> str:
         if isinstance(cmd, str):
             cmd = shlex.split(cmd)
-        return subprocess.check_output(cmd, cwd=self.src_root, text=True, encoding='utf-8')
+        return subprocess.check_output(cmd, cwd=self.src_root, text=True)
 
 
 class GitDist(Dist):
