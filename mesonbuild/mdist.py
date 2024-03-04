@@ -249,7 +249,10 @@ class HgDist(Dist):
 
     def get_repo_root(self, dir_: str) -> Path:
         # workaround using meson.build path, see Git above
-        buildfile_path = subprocess.check_output(['hg', 'status', 'meson.build', '--all', '--template', '{path}'], cwd=self.src_root, text=True).strip()
+        buildfile_path = subprocess.check_output(
+            ['hg', 'status', 'meson.build', '--all', '--template', '{path}'],
+            cwd=self.src_root, text=True, encoding='utf-8',
+        ).strip()
         assert buildfile_path.endswith('meson.build'), buildfile_path
         prefix = buildfile_path[: -len('/meson.build')]
         path = Path(dir_)
@@ -260,7 +263,10 @@ class HgDist(Dist):
 
     def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in hg'''
-        out = subprocess.check_output(['hg', 'status', '--modified', '--removed', '--include', '.'], cwd=self.src_root, text=True)
+        out = subprocess.check_output(
+            ['hg', 'status', '--modified', '--removed', '--include', '.'],
+            cwd=self.src_root, text=True, encoding='utf-8',
+        )
         return out != ''
 
     def process_submodules(self, src: str, distdir: str) -> None:
