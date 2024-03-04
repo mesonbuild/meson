@@ -37,7 +37,7 @@ from .. import mesonlib
 if T.TYPE_CHECKING:
     import http.client
     from typing_extensions import Literal
-    from ..cargo.interpreter import Dependency as CargoDependency
+    from ..cargo.interpreter import CargoPackageDefinition
 
     Method = Literal['meson', 'cmake', 'cargo']
 
@@ -137,6 +137,7 @@ class WrapException(MesonException):
 class WrapNotFoundException(WrapException):
     pass
 
+@dataclass(eq=False)
 class PackageDefinition:
     def __init__(self, fname: str, subproject: str = ''):
         self.filename = fname
@@ -293,7 +294,7 @@ class Resolver:
         self.wrapdb: T.Dict[str, T.Any] = {}
         self.wrapdb_provided_deps: T.Dict[str, str] = {}
         self.wrapdb_provided_programs: T.Dict[str, str] = {}
-        self.cargo_provided_deps: T.Dict[str, CargoDependency] = {}
+        self.cargo_provided_deps: T.Dict[str, CargoPackageDefinition] = {}
         self.load_wraps()
         self.load_netrc()
         self.load_wrapdb()
@@ -377,7 +378,8 @@ class Resolver:
             from .. import cargo
             self.cargo_provided_deps = cargo.dependencies(source_dir)
 
-    def wrap_from_crates_io(self, subp_name: str, dep: CargoDependency) -> T.Optional[str]:
+    def wrap_from_crates_io(self, subp_name: str, dep: CargoPackageDefinition) -> T.Optional[str]:
+        self.check_can_download()
         url = urllib.request.urlopen(f'https://crates.io/api/v1/crates/{dep.package}')
         crate = json.loads(url.read().decode())
         # Lookup the most recent version that matches our version requirement
@@ -405,17 +407,45 @@ class Resolver:
                 return wrap_fname
         return None
 
+    def wrap_from_cargo_git(self, subp_name: str, dep: CargoPackageDefinition) -> T.Optional[str]:
+        directory = f'{dep.package}'
+        wrap_fname = os.path.join(self.subdir_root, f'{subp_name}.wrap')
+        patch_directory = os.path.join(self.subdir_root, 'packagefiles', subp_name)
+        os.makedirs(self.subdir_root, exist_ok=True)
+        with open(wrap_fname, 'w', encoding='utf-8') as f:
+            f.write(textwrap.dedent(f'''\
+                [wrap-git]
+                directory = {directory}
+                url = {dep.git}
+                revision = {dep.revision}
+                method = cargo
+                '''))
+            if os.path.exists(patch_directory):
+                f.write(f'patch_directory = {patch_directory}\n')
+        return wrap_fname
+
     def get_from_cargo(self, subp_name: str) -> T.Optional[PackageDefinition]:
         dep = self.cargo_provided_deps.get(subp_name)
         if not dep:
             return None
-        self.check_can_download()
-        fname = self.wrap_from_crates_io(subp_name, dep)
-        if not fname:
-            return None
-        wrap = PackageDefinition(fname)
-        self.wraps[wrap.name] = wrap
-        self.add_wrap(wrap)
+        wrap: T.Optional[PackageDefinition] = None
+        if dep.path is not None:
+            # This is a local Cargo.toml
+            fname = os.path.join(self.subdir_root, dep.path)
+            wrap = PackageDefinition(fname, self.subproject)
+            wrap.values['method'] = 'cargo'
+        elif dep.git is not None:
+            # Generate a wrap-git
+            fname = self.wrap_from_cargo_git(subp_name, dep)
+            wrap = PackageDefinition(fname)
+        else:
+            # Lookup in crates.io
+            fname = self.wrap_from_crates_io(subp_name, dep)
+            if fname:
+                wrap = PackageDefinition(fname)
+        if wrap:
+            self.wraps[wrap.name] = wrap
+            self.add_wrap(wrap)
         return wrap
 
     def merge_wraps(self, other_resolver: 'Resolver') -> None:

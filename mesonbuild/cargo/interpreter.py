@@ -21,6 +21,7 @@ import collections
 import typing as T
 
 from functools import lru_cache
+from pathlib import Path
 
 from . import builder
 from . import version
@@ -94,7 +95,7 @@ def _fixup_raw_mappings(d: manifest.LibTarget) -> manifest.FixedLibTarget: ...  
 @T.overload
 def _fixup_raw_mappings(d: manifest.Dependency) -> manifest.FixedDependency: ...
 
-def _fixup_raw_mappings(d: T.Union[manifest.BuildTarget, manifest.LibTarget, manifest.Dependency]
+def _fixup_raw_mappings(d: T.Union[manifest.BuildTarget, manifest.LibTarget, manifest.Dependency, str]
                         ) -> T.Union[manifest.FixedBuildTarget, manifest.FixedLibTarget,
                                      manifest.FixedDependency]:
     """Fixup raw cargo mappings to ones more suitable for python to consume.
@@ -108,10 +109,13 @@ def _fixup_raw_mappings(d: T.Union[manifest.BuildTarget, manifest.LibTarget, man
     :param d: The mapping to fix
     :return: the fixed string
     """
-    raw = {fixup_meson_varname(k): v for k, v in d.items()}
-    if 'version' in raw:
-        assert isinstance(raw['version'], str), 'for mypy'
-        raw['version'] = version.convert(raw['version'])
+    if isinstance(d, str):
+        raw = {'version': version.convert(d)}
+    else:
+        raw = {fixup_meson_varname(k): v for k, v in d.items()}
+        if 'version' in raw:
+            assert isinstance(raw['version'], str), 'for mypy'
+            raw['version'] = version.convert(raw['version'])
     return T.cast('T.Union[manifest.FixedBuildTarget, manifest.FixedLibTarget, manifest.FixedDependency]', raw)
 
 
@@ -148,6 +152,15 @@ class Package:
     autotests: bool = True
     autobenches: bool = True
 
+    @classmethod
+    def from_raw(cls, raw: manifest.Package, workspace: T.Optional[manifest.Workspace]) -> Package:
+        """Create a dependency from a raw cargo dictionary"""
+        fixed = T.cast('manifest.FixedPackage', {fixup_meson_varname(k): v for k, v in raw.items()})
+        for k, v in fixed.items():
+            if isinstance(v, dict) and v.get('workspace', False):
+                fixed[k] = workspace['package'].get(k, None)
+        return cls(**fixed)
+
 
 @dataclasses.dataclass
 class SystemDependency:
@@ -173,7 +186,7 @@ class Dependency:
     """Representation of a Cargo Dependency Entry."""
 
     name: dataclasses.InitVar[str]
-    version: T.List[str]
+    version: T.List[str] = dataclasses.field(default_factory=list)
     registry: T.Optional[str] = None
     git: T.Optional[str] = None
     branch: T.Optional[str] = None
@@ -202,11 +215,15 @@ class Dependency:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
     @classmethod
-    def from_raw(cls, raw: manifest.DependencyV, name: str) -> Dependency:
+    def from_raw(cls, raw: manifest.DependencyV, name: str, workspace: T.Optional[manifest.Workspace]) -> Dependency:
         """Create a dependency from a raw cargo dictionary"""
-        if isinstance(raw, str):
-            return cls(name, version.convert(raw))
-        return cls(name, **_fixup_raw_mappings(raw))
+        fixed = _fixup_raw_mappings(raw)
+        if fixed.get('workspace', False):
+            wp_fixed = _fixup_raw_mappings(workspace['dependencies'][name])
+            for k, v in wp_fixed.items():
+                fixed.setdefault(k, v)
+            del fixed['workspace']
+        return cls(name, **fixed)
 
 
 @dataclasses.dataclass
@@ -317,7 +334,7 @@ class Manifest:
         self.features.setdefault('default', [])
 
 
-def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = '') -> Manifest:
+def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = '', workspace: T.Optional[manifest.Workspace] = None) -> Manifest:
     # This cast is a bit of a hack to deal with proc-macro
     lib = _fixup_raw_mappings(raw_manifest.get('lib', {}))
 
@@ -325,14 +342,11 @@ def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = 
     # including if other fields are set in the lib section
     lib.setdefault('name', raw_manifest['package']['name'])
 
-    pkg = T.cast('manifest.FixedPackage',
-                 {fixup_meson_varname(k): v for k, v in raw_manifest['package'].items()})
-
-    return Manifest(
-        Package(**pkg),
-        {k: Dependency.from_raw(v, k) for k, v in raw_manifest.get('dependencies', {}).items()},
-        {k: Dependency.from_raw(v, k) for k, v in raw_manifest.get('dev-dependencies', {}).items()},
-        {k: Dependency.from_raw(v, k) for k, v in raw_manifest.get('build-dependencies', {}).items()},
+    manifest = Manifest(
+        Package.from_raw(raw_manifest['package'], workspace),
+        {k: Dependency.from_raw(v, k, workspace) for k, v in raw_manifest.get('dependencies', {}).items()},
+        {k: Dependency.from_raw(v, k, workspace) for k, v in raw_manifest.get('dev-dependencies', {}).items()},
+        {k: Dependency.from_raw(v, k, workspace) for k, v in raw_manifest.get('build-dependencies', {}).items()},
         {k: SystemDependency.from_raw(k, d) for k, d in raw_manifest['package'].get('metadata', {}).get('system-deps', {}).items()},
         Library(**lib),
         [Binary(**_fixup_raw_mappings(b)) for b in raw_manifest.get('bin', {})],
@@ -340,51 +354,59 @@ def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = 
         [Benchmark(**_fixup_raw_mappings(b)) for b in raw_manifest.get('bench', {})],
         [Example(**_fixup_raw_mappings(b)) for b in raw_manifest.get('example', {})],
         raw_manifest.get('features', {}),
-        {k: {k2: Dependency.from_raw(v2, k2) for k2, v2 in v.get('dependencies', {}).items()}
+        {k: {k2: Dependency.from_raw(v2, k2, workspace) for k2, v2 in v.get('dependencies', {}).items()}
          for k, v in raw_manifest.get('target', {}).items()},
         subdir,
         path,
     )
 
+    # Optional dependencies are implicitly a feature as well
+    for _, dep in _all_dependencies(manifest):
+        if dep.optional:
+            manifest.features.setdefault(dep.package, [])
 
-@lru_cache(maxsize=None)
-def _load_manifests(subdir: str) -> T.Dict[str, Manifest]:
+    return manifest
+
+
+_MANIFESTS_CACHE: T.Dict[str, Manifest] = {}
+
+def _load_manifests(subdir: str) -> T.List[Manifest]:
+    cached = _MANIFESTS_CACHE.get(subdir)
+    if cached:
+        return [cached]
+
     filename = os.path.join(subdir, 'Cargo.toml')
     raw = load_toml(filename)
 
-    manifests: T.Dict[str, Manifest] = {}
+    manifests: T.List[Manifest] = []
 
-    raw_manifest: T.Union[manifest.Manifest, manifest.VirtualManifest]
     if 'package' in raw:
         raw_manifest = T.cast('manifest.Manifest', raw)
-        manifest_ = _convert_manifest(raw_manifest, subdir)
-        manifests[manifest_.package.name] = manifest_
-    else:
-        raw_manifest = T.cast('manifest.VirtualManifest', raw)
+        manifest = _convert_manifest(raw_manifest, subdir)
+        manifests.append(manifest)
+        _MANIFESTS_CACHE[subdir] = manifest
 
-    if 'workspace' in raw_manifest:
+    if 'workspace' in raw:
+        workspace = T.cast('manifest.Workspace', raw['workspace'])
+
         # XXX: need to verify that python glob and cargo globbing are the
         # same and probably write  a glob implementation. Blarg
-
-        # We need to chdir here to make the glob work correctly
-        pwd = os.getcwd()
-        os.chdir(subdir)
-        members: T.Iterable[str]
-        try:
-            members = itertools.chain.from_iterable(
-                glob.glob(m) for m in raw_manifest['workspace']['members'])
-        finally:
-            os.chdir(pwd)
-        if 'exclude' in raw_manifest['workspace']:
-            members = (x for x in members if x not in raw_manifest['workspace']['exclude'])
+        workspace_path = Path(subdir)
+        members = itertools.chain.from_iterable(
+            workspace_path.glob(m) for m in workspace['members'])
+        if 'exclude' in workspace:
+            exclude = [Path(workspace_path, x) for x in workspace['exclude']]
+            members = [x for x in members if x not in exclude]
 
         for m in members:
-            filename = os.path.join(subdir, m, 'Cargo.toml')
+            filename = os.path.join(m, 'Cargo.toml')
             raw = load_toml(filename)
 
             raw_manifest = T.cast('manifest.Manifest', raw)
-            man = _convert_manifest(raw_manifest, subdir, m)
-            manifests[man.package.name] = man
+            rel_path = m.relative_to(workspace_path)
+            manifest = _convert_manifest(raw_manifest, subdir, str(rel_path), workspace)
+            manifests.append(manifest)
+            _MANIFESTS_CACHE[os.path.join(subdir, rel_path)] = manifest
 
     return manifests
 
@@ -408,6 +430,10 @@ def _dependency_name(package_name: str, api: str) -> str:
 
 def _dependency_varname(package_name: str) -> str:
     return f'{fixup_meson_varname(package_name)}_dep'
+
+
+def _package_name(cargo: Manifest) -> str:
+    return _dependency_name(cargo.package.name, _version_to_api(cargo.package.version))
 
 
 _OPTION_NAME_PREFIX = 'feature-'
@@ -713,7 +739,7 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
                     [build.string(dep.name)],
                     kw,
                 ),
-                f'{name}_system_dep',
+                f'{fixup_meson_varname(name)}_system_dep',
             ),
         ])
     return ast
@@ -729,7 +755,7 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
         if name != dep.package:
             dependency_map[build.string(fixup_meson_varname(dep.package))] = build.string(name)
     for name, dep in cargo.system_dependencies.items():
-        dependencies.append(build.identifier(f'{name}_system_dep'))
+        dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
 
     rust_args: T.List[mparser.BaseNode] = [
         build.identifier('features_args'),
@@ -798,21 +824,14 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
             'override_dependency',
             build.identifier('meson'),
             [
-                build.string(_dependency_name(cargo.package.name, _version_to_api(cargo.package.version))),
+                build.string(_package_name(cargo)),
                 build.identifier('dep'),
             ],
         ),
     ]
 
 
-def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode, KeyedOptionDictType]:
-    # subp_name should be in the form "foo-0.1-rs"
-    package_name = subp_name.rsplit('-', 2)[0]
-    manifests = _load_manifests(os.path.join(env.source_dir, subdir))
-    cargo = manifests.get(package_name)
-    if not cargo:
-        raise MesonException(f'Cargo package {package_name!r} not found in {subdir}')
-
+def _create_package(cargo: Manifest, subp_name: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode, KeyedOptionDictType]:
     filename = os.path.join(cargo.subdir, cargo.path, 'Cargo.toml')
     build = builder.Builder(filename)
 
@@ -846,11 +865,58 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
     return build.block(ast), options
 
 
-def dependencies(source_dir: str) -> T.Dict[str, Dependency]:
+def _create_workspace(manifests: T.List[Manifest], subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode, KeyedOptionDictType]:
+    filename = os.path.join(subdir, 'Cargo.toml')
+    build = builder.Builder(filename)
+
+    options: T.Dict[OptionKey, coredata.UserOption] = {}
+
+    # project('foo')
+    # dependency('member', required: get_option('member'))
+    # ...
+    ast = [build.function('project', [build.string(subp_name)], {})]
+    for cargo in manifests:
+        depname = _package_name(cargo)
+        ast.append(build.function('dependency', [build.string(depname)], {
+            'required': build.function('get_option', [build.string(cargo.package.name)]),
+            'allow_fallback': build.bool(True),
+        }))
+        key = OptionKey(cargo.package.name, subproject=subp_name)
+        options[key] = coredata.UserFeatureOption(f'Build {depname}', 'auto')
+
+    return build.block(ast), options
+
+
+def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode, KeyedOptionDictType]:
+    manifests = _load_manifests(os.path.join(env.source_dir, subdir))
+    if len(manifests) == 1:
+        return _create_package(manifests[0], subp_name, env)
+    return _create_workspace(manifests, subp_name, subdir, env)
+
+
+@dataclasses.dataclass
+class CargoPackageDefinition:
+    """ A cargo package definition used by the wrap system."""
+
+    package: str
+    version: T.List[str] = dataclasses.field(default_factory=list)
+    git: T.Optional[str] = None
+    revision: T.Optional[str] = None
+    path: T.Optional[str] = None
+
+
+def dependencies(source_dir: str) -> T.Dict[str, CargoPackageDefinition]:
     deps: T.Dict[str, Dependency] = {}
     manifests = _load_manifests(source_dir)
-    for cargo in manifests.values():
+    for cargo in manifests:
         for _, dep in _all_dependencies(cargo):
             depname = _dependency_name(dep.package, dep.api)
-            deps[depname] = dep
+            deps[depname] = CargoPackageDefinition(
+                dep.package,
+                dep.version,
+                #dep.git, dep.rev or dep.branch,
+            )
+        deps[_package_name(cargo)] = CargoPackageDefinition(
+            cargo.package.name,
+            path=os.path.join(cargo.subdir, cargo.path))
     return deps
