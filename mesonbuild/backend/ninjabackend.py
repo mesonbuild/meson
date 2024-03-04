@@ -1979,6 +1979,8 @@ class NinjaBackend(backends.Backend):
         for d in target_deps:
             linkdirs.add(d.subdir)
             deps.append(self.get_dependency_filename(d))
+            if isinstance(d, build.StaticLibrary):
+                external_deps.extend(d.external_deps)
             if d.uses_rust_abi():
                 if d not in itertools.chain(target.link_targets, target.link_whole_targets):
                     # Indirect Rust ABI dependency, we only need its path in linkdirs.
@@ -1992,9 +1994,6 @@ class NinjaBackend(backends.Backend):
                 continue
 
             # Link a C ABI library
-
-            if isinstance(d, build.StaticLibrary):
-                external_deps.extend(d.external_deps)
 
             # Pass native libraries directly to the linker with "-C link-arg"
             # because rustc's "-l:+verbatim=" is not portable and we cannot rely
