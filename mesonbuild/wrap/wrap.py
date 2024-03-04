@@ -456,7 +456,7 @@ class Resolver:
         for k, v in other_resolver.provided_programs.items():
             self.provided_programs.setdefault(k, v)
         for k, d in other_resolver.cargo_provided_deps.items():
-            self.cargo_provided_deps.setdefault(k, d)
+            self.cargo_provided_deps[k] = d
 
     def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
         # Python's ini parser converts all key values to lowercase.
