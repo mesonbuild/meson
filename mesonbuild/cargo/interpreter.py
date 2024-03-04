@@ -646,6 +646,20 @@ def _create_dependency(name: str, dep: Dependency, build: builder.Builder) -> T.
             build.method('get', build.identifier('features'), [build.string(name), build.bool(False)]),
         )
 
+    # If dependency name does not match the package name, we have to rename the
+    # crate name to the dependency name. Yes, that makes 3 different names for
+    # the same dependency, good job cargo! For example:
+    # - package name: cairo-sys-rs
+    # - crate name: cairo-sys
+    # - dependency name: ffi
+    # rust_dependency_map += {xxx_dep.get_variable('crate-name'): 'name'}
+    rust_dependency_map_ast = []
+    if name != dep.package:
+        rust_dependency_map_ast.append(
+            build.plusassign(build.dict({
+                build.method('get_variable', build.identifier(_dependency_varname(dep.package)), [build.string('crate-name')]): build.string(name),
+            }), 'rust_dependency_map'))
+
     # Lookup for this dependency with the features we want in default_options kwarg.
     #
     # However, this subproject could have been previously configured with a
@@ -712,13 +726,17 @@ def _create_dependency(name: str, dep: Dependency, build: builder.Builder) -> T.
                     ])
                 ]))
             ])),
+            *rust_dependency_map_ast,
         ])),
     ])
+
     return ast
 
 
 def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
-    ast: T.List[mparser.BaseNode] = []
+    ast: T.List[mparser.BaseNode] = [
+        build.assign(build.dict({}), 'rust_dependency_map'),
+    ]
     for condition, dependencies in cargo.target.items():
         ifblock: T.List[mparser.BaseNode] = []
         elseblock: T.List[mparser.BaseNode] = []
@@ -748,13 +766,10 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
 
 def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CRATE_TYPE) -> T.List[mparser.BaseNode]:
     dependencies: T.List[mparser.BaseNode] = []
-    dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
     deps_i = [cargo.dependencies.items()]
     deps_i += [deps.items() for deps in cargo.target.values()]
     for name, dep in itertools.chain.from_iterable(deps_i):
         dependencies.append(build.identifier(_dependency_varname(dep.package)))
-        if name != dep.package:
-            dependency_map[build.string(fixup_meson_varname(dep.package))] = build.string(name)
     for name, dep in cargo.system_dependencies.items():
         dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
 
@@ -765,14 +780,15 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
 
     dependencies.append(build.identifier(_extra_deps_varname()))
 
+    crate_name = cargo.lib.name or cargo.package.name
     posargs: T.List[mparser.BaseNode] = [
-        build.string(fixup_meson_varname(cargo.package.name)),
+        build.string(fixup_meson_varname(crate_name)),
         build.string(cargo.lib.path),
     ]
 
     kwargs: T.Dict[str, mparser.BaseNode] = {
         'dependencies': build.array(dependencies),
-        'rust_dependency_map': build.dict(dependency_map),
+        'rust_dependency_map': build.identifier('rust_dependency_map'),
         'rust_args': build.array(rust_args),
     }
 
@@ -816,6 +832,7 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
                     'link_with': build.identifier('lib'),
                     'variables': build.dict({
                         build.string('features'): build.method('join', build.string(','), [build.method('keys', build.identifier('features'))]),
+                        build.string('crate-name'): build.string(crate_name),
                     })
                 },
             ),
