@@ -4220,7 +4220,7 @@ class AllPlatformTests(BasePlatformTests):
                 filename = foo/subprojects/real.wrapper
                 '''))
         with self.assertRaisesRegex(WrapException, 'wrap-redirect filename must be a .wrap file'):
-            PackageDefinition(redirect_wrap)
+            PackageDefinition.from_wrap_file(redirect_wrap)
 
         # Invalid redirect, filename cannot be in parent directory
         with open(redirect_wrap, 'w', encoding='utf-8') as f:
@@ -4229,7 +4229,7 @@ class AllPlatformTests(BasePlatformTests):
                 filename = ../real.wrap
                 '''))
         with self.assertRaisesRegex(WrapException, 'wrap-redirect filename cannot contain ".."'):
-            PackageDefinition(redirect_wrap)
+            PackageDefinition.from_wrap_file(redirect_wrap)
 
         # Invalid redirect, filename must be in foo/subprojects/real.wrap
         with open(redirect_wrap, 'w', encoding='utf-8') as f:
@@ -4238,7 +4238,7 @@ class AllPlatformTests(BasePlatformTests):
                 filename = foo/real.wrap
                 '''))
         with self.assertRaisesRegex(WrapException, 'wrap-redirect filename must be in the form foo/subprojects/bar.wrap'):
-            PackageDefinition(redirect_wrap)
+            PackageDefinition.from_wrap_file(redirect_wrap)
 
         # Correct redirect
         with open(redirect_wrap, 'w', encoding='utf-8') as f:
@@ -4251,7 +4251,7 @@ class AllPlatformTests(BasePlatformTests):
                 [wrap-git]
                 url = http://invalid
                 '''))
-        wrap = PackageDefinition(redirect_wrap)
+        wrap = PackageDefinition.from_wrap_file(redirect_wrap)
         self.assertEqual(wrap.get('url'), 'http://invalid')
 
     @skip_if_no_cmake
