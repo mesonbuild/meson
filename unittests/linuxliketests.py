@@ -1411,7 +1411,7 @@ class LinuxlikeTests(BasePlatformTests):
         Test that installation of broken symlinks works fine.
         https://github.com/mesonbuild/meson/issues/3914
         '''
-        testdir = os.path.join(self.common_test_dir, testdir)
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, testdir))
         subdir = os.path.join(testdir, subdir_path)
         with chdir(subdir):
             # Can't distribute broken symlinks in the source tree because it breaks
@@ -1419,17 +1419,14 @@ class LinuxlikeTests(BasePlatformTests):
             # hand.
             src = '../../nonexistent.txt'
             os.symlink(src, 'invalid-symlink.txt')
-            try:
-                self.init(testdir)
-                self.build()
-                self.install()
-                install_path = subdir_path.split(os.path.sep)[-1]
-                link = os.path.join(self.installdir, 'usr', 'share', install_path, 'invalid-symlink.txt')
-                self.assertTrue(os.path.islink(link), msg=link)
-                self.assertEqual(src, os.readlink(link))
-                self.assertFalse(os.path.isfile(link), msg=link)
-            finally:
-                os.remove(os.path.join(subdir, 'invalid-symlink.txt'))
+            self.init(testdir)
+            self.build()
+            self.install()
+            install_path = subdir_path.split(os.path.sep)[-1]
+            link = os.path.join(self.installdir, 'usr', 'share', install_path, 'invalid-symlink.txt')
+            self.assertTrue(os.path.islink(link), msg=link)
+            self.assertEqual(src, os.readlink(link))
+            self.assertFalse(os.path.isfile(link), msg=link)
 
     def test_install_subdir_symlinks(self):
         self.install_subdir_invalid_symlinks('59 install subdir', os.path.join('sub', 'sub1'))
