@@ -1009,7 +1009,7 @@ class CoreData:
             # adding languages and setting backend.
             if k.type in {OptionType.COMPILER, OptionType.BACKEND}:
                 continue
-            if k.type == OptionType.BASE and k in base_options:
+            if k.type == OptionType.BASE and k.as_root() in base_options:
                 # set_options will report unknown base options
                 continue
             options[k] = v
