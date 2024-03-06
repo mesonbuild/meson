@@ -1506,7 +1506,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     skip_sanity_check = self.should_skip_sanity_check(for_machine)
                     if skip_sanity_check:
                         mlog.log('Cross compiler sanity tests disabled via the cross file.', once=True)
-                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine, skip_sanity_check)
+                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine, skip_sanity_check, self.subproject)
                     if comp is None:
                         raise InvalidArguments(f'Tried to use unknown language "{lang}".')
                 except mesonlib.MesonException:
@@ -1520,7 +1520,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                         raise
             else:
                 # update new values from commandline, if it applies
-                self.coredata.process_compiler_options(lang, comp, self.environment)
+                self.coredata.process_compiler_options(lang, comp, self.environment, self.subproject)
 
             # Add per-subproject compiler options. They inherit value from main project.
             if self.subproject:
@@ -1529,7 +1529,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     v = copy.copy(self.coredata.options[k])
                     k = k.evolve(subproject=self.subproject)
                     options[k] = v
-                self.coredata.add_compiler_options(options, lang, for_machine, self.environment)
+                self.coredata.add_compiler_options(options, lang, for_machine, self.environment, self.subproject)
 
             if for_machine == MachineChoice.HOST or self.environment.is_cross_build():
                 logger_fun = mlog.log

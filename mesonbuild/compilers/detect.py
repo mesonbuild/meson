@@ -101,12 +101,12 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
-def detect_compiler_for(env: 'Environment', lang: str, for_machine: MachineChoice, skip_sanity_check: bool) -> T.Optional[Compiler]:
+def detect_compiler_for(env: 'Environment', lang: str, for_machine: MachineChoice, skip_sanity_check: bool, subproject: str) -> T.Optional[Compiler]:
     comp = compiler_from_language(env, lang, for_machine)
     if comp is None:
         return comp
     assert comp.for_machine == for_machine
-    env.coredata.process_compiler_options(lang, comp, env)
+    env.coredata.process_compiler_options(lang, comp, env, subproject)
     if not skip_sanity_check:
         comp.sanity_check(env.get_scratch_dir(), env)
     env.coredata.compilers[comp.for_machine][lang] = comp

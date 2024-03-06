@@ -32,7 +32,7 @@ class JavaModule(NewExtensionModule):
 
     def __get_java_compiler(self, state: ModuleState) -> Compiler:
         if 'java' not in state.environment.coredata.compilers[MachineChoice.BUILD]:
-            detect_compiler_for(state.environment, 'java', MachineChoice.BUILD, False)
+            detect_compiler_for(state.environment, 'java', MachineChoice.BUILD, False, state.subproject)
         return state.environment.coredata.compilers[MachineChoice.BUILD]['java']
 
     @FeatureNew('java.generate_native_headers', '0.62.0')

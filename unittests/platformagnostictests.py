@@ -282,9 +282,11 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn('\nMessage: b_ndebug: true\n', out)
         self.assertIn('\nMessage: c_std: c89\n', out)
 
-        out = self.init(testdir, extra_args=['--reconfigure', '-Db_ndebug=if-release', '-Dsub:b_ndebug=false', '-Dc_std=c99'])
+        out = self.init(testdir, extra_args=['--reconfigure', '-Db_ndebug=if-release', '-Dsub:b_ndebug=false', '-Dc_std=c99', '-Dsub:c_std=c11'])
         self.assertIn('\nMessage: b_ndebug: if-release\n', out)
         self.assertIn('\nMessage: c_std: c99\n', out)
+        self.assertIn('\nsub| Message: b_ndebug: false\n', out)
+        self.assertIn('\nsub| Message: c_std: c11\n', out)
 
     def test_setup_with_unknown_option(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
