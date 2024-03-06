@@ -282,7 +282,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn('\nMessage: b_ndebug: true\n', out)
         self.assertIn('\nMessage: c_std: c89\n', out)
 
-        out = self.init(testdir, extra_args=['--reconfigure', '-Db_ndebug=if-release', '-Dc_std=c99'])
+        out = self.init(testdir, extra_args=['--reconfigure', '-Db_ndebug=if-release', '-Dsub:b_ndebug=false', '-Dc_std=c99'])
         self.assertIn('\nMessage: b_ndebug: if-release\n', out)
         self.assertIn('\nMessage: c_std: c99\n', out)
 
