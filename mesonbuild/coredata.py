@@ -1016,14 +1016,23 @@ class CoreData:
 
         self.set_options(options, subproject=subproject, first_invocation=env.first_invocation)
 
-    def add_compiler_options(self, options: 'MutableKeyedOptionDictType', lang: str, for_machine: MachineChoice,
-                             env: 'Environment') -> None:
+    def add_compiler_options(self, options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
+                             env: Environment, subproject: str) -> None:
         for k, o in options.items():
             value = env.options.get(k)
             if value is not None:
                 o.set_value(value)
-                self.options[k] = o  # override compiler option on reconfigure
+                if not subproject:
+                    self.options[k] = o  # override compiler option on reconfigure
             self.options.setdefault(k, o)
+
+            if subproject:
+                sk = k.evolve(subproject=subproject)
+                value = env.options.get(sk) or value
+                if value is not None:
+                    o.set_value(value)
+                    self.options[sk] = o  # override compiler option on reconfigure
+                self.options.setdefault(sk, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
@@ -1034,20 +1043,31 @@ class CoreData:
         # `self.options.update()`` is perfectly safe.
         self.options.update(compilers.get_global_options(lang, comp, for_machine, env))
 
-    def process_compiler_options(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
+    def process_compiler_options(self, lang: str, comp: Compiler, env: Environment, subproject: str) -> None:
         from . import compilers
 
-        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env)
+        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env, subproject)
 
         enabled_opts: T.List[OptionKey] = []
         for key in comp.base_options:
-            if key not in self.options:
-                self.options[key] = copy.deepcopy(compilers.base_options[key])
-                if key in env.options:
-                    self.options[key].set_value(env.options[key])
-                    enabled_opts.append(key)
-            elif key in env.options:
-                self.options[key].set_value(env.options[key])
+            if subproject:
+                skey = key.evolve(subproject=subproject)
+            else:
+                skey = key
+            if skey not in self.options:
+                self.options[skey] = copy.deepcopy(compilers.base_options[key])
+                if skey in env.options:
+                    self.options[skey].set_value(env.options[skey])
+                    enabled_opts.append(skey)
+                elif subproject and key in env.options:
+                    self.options[skey].set_value(env.options[key])
+                    enabled_opts.append(skey)
+                if subproject and key not in self.options:
+                    self.options[key] = copy.deepcopy(self.options[skey])
+            elif skey in env.options:
+                self.options[skey].set_value(env.options[skey])
+            elif subproject and key in env.options:
+                self.options[skey].set_value(env.options[key])
         self.emit_base_options_warnings(enabled_opts)
 
     def emit_base_options_warnings(self, enabled_opts: T.List[OptionKey]) -> None:
