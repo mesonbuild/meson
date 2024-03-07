@@ -5021,3 +5021,37 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.fortran_test_dir, '8 module names')
         self.init(testdir, extra_args=['-Dunittest=true'])
         self.build('liblibrary.a.p/lib.f90.o', extra_args=['-j1'])
+
+    @expectedFailure
+    @skip_if_not_language('fortran')
+    def test_fortran_new_module_in_dep(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise SkipTest('Test is only relavent on the ninja backend')
+        testdir = self.copy_srcdir(os.path.join(self.fortran_test_dir, '8 module names'))
+        self.init(testdir, extra_args=['-Dunittest=true'])
+        self.build()
+
+        with open(os.path.join(testdir, 'mod1.f90'), 'a', encoding='utf-8') as f:
+            f.write(textwrap.dedent("""\
+                module MyMod3
+                implicit none
+
+                integer, parameter :: myModVal3 =1
+
+                end module MyMod3
+                """))
+
+        with open(os.path.join(testdir, 'test.f90'), 'w', encoding='utf-8') as f:
+            f.write(textwrap.dedent("""\
+                program main
+                use MyMod2
+                use MyMod3
+                implicit none
+
+                call showvalues()
+                print*, "MyModValu3 = ", myModVal3
+
+                end program
+                """))
+
+        self.build('liblibrary.a.p/lib.f90.o', extra_args=['-j1'])
