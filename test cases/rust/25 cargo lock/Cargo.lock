@@ -1,0 +1,7 @@
+version = 3
+
+[[package]]
+name = "bar"
+version = "0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc2f34e570dcd5f9fe32e6863ee16ee73a356d3b77bce0d8c78501b8bc81a860"

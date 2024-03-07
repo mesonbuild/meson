@@ -25,7 +25,7 @@ from mesonbuild.mesonlib import python_command, setup_vsenv
 import mesonbuild.modules.pkgconfig
 
 from unittests.allplatformstests import AllPlatformTests
-from unittests.cargotests import CargoVersionTest, CargoCfgTest
+from unittests.cargotests import CargoVersionTest, CargoCfgTest, CargoLockTest
 from unittests.darwintests import DarwinTests
 from unittests.failuretests import FailureTests
 from unittests.linuxcrosstests import LinuxCrossArmTests, LinuxCrossMingwTests
