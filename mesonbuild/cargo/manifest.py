@@ -225,3 +225,20 @@ class VirtualManifest(TypedDict):
     """
 
     workspace: Workspace
+
+class CargoLockPackage(TypedDict, total=False):
+
+    """A description of a package in the Cargo.lock file format."""
+
+    name: str
+    version: str
+    source: str
+    checksum: str
+
+
+class CargoLock(TypedDict, total=False):
+
+    """A description of the Cargo.lock file format."""
+
+    version: str
+    package: T.List[CargoLockPackage]

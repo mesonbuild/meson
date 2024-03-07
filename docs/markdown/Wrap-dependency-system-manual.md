@@ -377,6 +377,10 @@ Some naming conventions need to be respected:
 - The `extra_deps` variable is pre-defined and can be used to add extra dependencies.
   This is typically used as `extra_deps += dependency('foo')`.
 
+Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the root
+of (sub)project source tree. Meson will automatically load that file and convert
+it into a serie of wraps definitions.
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your
