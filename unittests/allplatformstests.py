@@ -5191,7 +5191,6 @@ class AllPlatformTests(BasePlatformTests):
         self.assertRegex(output, r'Fail:\s*0')
         self.assertRegex(output, r'Ignored:\s*1')
 
-    @expectedFailure
     @skip_if_not_language('fortran')
     def test_fortran_cross_target_module_dep(self) -> None:
         if self.backend is not Backend.ninja:
@@ -5207,7 +5206,6 @@ class AllPlatformTests(BasePlatformTests):
 
         self.build(output, extra_args=['-j1'])
 
-    @expectedFailure
     @skip_if_not_language('fortran')
     def test_fortran_new_module_in_dep(self) -> None:
         if self.backend is not Backend.ninja:
