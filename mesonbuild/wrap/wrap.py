@@ -324,25 +324,32 @@ class Resolver:
             mlog.warning(f'failed to process netrc file: {e}.', fatal=False)
 
     def load_wraps(self) -> None:
-        if not os.path.isdir(self.subdir_root):
-            return
-        root, dirs, files = next(os.walk(self.subdir_root))
-        ignore_dirs = {'packagecache', 'packagefiles'}
-        for i in files:
-            if not i.endswith('.wrap'):
-                continue
-            fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition.from_wrap_file(fname, self.subproject)
-            self.wraps[wrap.name] = wrap
-            ignore_dirs |= {wrap.directory, wrap.name}
-        # Add dummy package definition for directories not associated with a wrap file.
-        for i in dirs:
-            if i in ignore_dirs:
-                continue
-            fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition.from_directory(fname)
-            self.wraps[wrap.name] = wrap
-
+        # Load Cargo.lock at the root of source tree
+        source_dir = os.path.dirname(self.subdir_root)
+        if os.path.exists(os.path.join(source_dir, 'Cargo.lock')):
+            from .. import cargo
+            for wrap in cargo.load_wraps(source_dir, self.subdir_root):
+                self.wraps[wrap.name] = wrap
+        # Load subprojects/*.wrap
+        if os.path.isdir(self.subdir_root):
+            root, dirs, files = next(os.walk(self.subdir_root))
+            for i in files:
+                if not i.endswith('.wrap'):
+                    continue
+                fname = os.path.join(self.subdir_root, i)
+                wrap = PackageDefinition.from_wrap_file(fname, self.subproject)
+                self.wraps[wrap.name] = wrap
+            # Add dummy package definition for directories not associated with a wrap file.
+            ignore_dirs = {'packagecache', 'packagefiles'}
+            for wrap in self.wraps.values():
+                ignore_dirs |= {wrap.directory, wrap.name}
+            for i in dirs:
+                if i in ignore_dirs:
+                    continue
+                fname = os.path.join(self.subdir_root, i)
+                wrap = PackageDefinition.from_directory(fname)
+                self.wraps[wrap.name] = wrap
+        # Add provided deps and programs into our lookup tables
         for wrap in self.wraps.values():
             self.add_wrap(wrap)
 

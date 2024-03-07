@@ -18,12 +18,14 @@ import json
 import os
 import shutil
 import collections
+import urllib.parse
 import typing as T
 
 from . import builder
 from . import version
 from ..mesonlib import MesonException, Popen_safe, OptionKey
-from .. import coredata, options
+from .. import coredata, options, mlog
+from ..wrap.wrap import PackageDefinition
 
 if T.TYPE_CHECKING:
     from types import ModuleType
@@ -731,3 +733,45 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
             ast.extend(_create_lib(cargo, build, crate_type))
 
     return build.block(ast), project_options
+
+
+def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition]:
+    """ Convert Cargo.lock into a list of wraps """
+
+    wraps: T.List[PackageDefinition] = []
+    filename = os.path.join(source_dir, 'Cargo.lock')
+    if os.path.exists(filename):
+        cargolock = T.cast('manifest.CargoLock', load_toml(filename))
+        for package in cargolock['package']:
+            name = package['name']
+            version = package['version']
+            subp_name = _dependency_name(name, _version_to_api(version))
+            source = package.get('source')
+            if source is None:
+                # This is project's package, or one of its workspace members.
+                pass
+            elif source == 'registry+https://github.com/rust-lang/crates.io-index':
+                url = f'https://crates.io/api/v1/crates/{name}/{version}/download'
+                directory = f'{name}-{version}'
+                wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'file', {
+                    'directory': directory,
+                    'source_url': url,
+                    'source_filename': f'{directory}.tar.gz',
+                    'source_hash': package['checksum'],
+                    'method': 'cargo',
+                }))
+            elif source.startswith('git+'):
+                parts = urllib.parse.urlparse(source[4:])
+                query = urllib.parse.parse_qs(parts.query)
+                branch = query['branch'][0] if 'branch' in query else ''
+                revision = parts.fragment or branch
+                url = urllib.parse.urlunparse(parts._replace(params='', query='', fragment=''))
+                wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'git', {
+                    'directory': name,
+                    'url': url,
+                    'revision': revision,
+                    'method': 'cargo',
+                }))
+            else:
+                mlog.warning(f'Unsupported source URL in {filename}: {source}')
+    return wraps
