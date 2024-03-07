@@ -77,16 +77,38 @@ class RustCompiler(Compiler):
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest')
+        is_bare = False
+        optional_args = []
+        # initial test: nominal build with std library
         with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write(textwrap.dedent(
                 '''fn main() {
                 }
                 '''))
-
         cmdlist = self.exelist + ['-o', output_name, source_name]
         pc, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
+        if pc.returncode != 0 and self.is_cross:
+            # falling back to bare metal check in cross-mode only
+            is_bare = True
+            optional_args += ['-C', 'panic=abort'] + ['-C', 'link-arg=-nostartfiles']
+            with open(source_name, 'w', encoding='utf-8') as ofile:
+                ofile.write(textwrap.dedent(
+                    '''#![no_std]
+                    #![no_main]
+                    #[no_mangle]
+                    pub fn _start() {
+                    }
+                    #[panic_handler]
+                    fn panic(_info: &core::panic::PanicInfo) -> ! {
+                        loop {}
+                    }
+                    '''))
+            cmdlist = self.exelist + optional_args + ['-o', output_name, source_name]
+            pc, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
+        if is_bare:
+            return
         if self.is_cross:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
