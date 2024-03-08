@@ -575,6 +575,11 @@ class CoreData:
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
 
+        # Stores the (name, hash) of the options file, The name will be either
+        # "meson_options.txt" or "meson.options".
+        # This is used by mconf to reload the option file if it's changed.
+        self.options_files: T.Dict[SubProject, T.Optional[T.Tuple[str, str]]] = {}
+
         # Set of subprojects that have already been initialized once, this is
         # required to be stored and reloaded with the coredata, as we don't
         # want to overwrite options for such subprojects.
