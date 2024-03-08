@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from .. import mparser
 from .. import environment
 from .. import coredata
@@ -1187,10 +1189,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             option_file = old_option_file
         if os.path.exists(option_file):
+            with open(option_file, 'rb') as f:
+                # We want fast, not cryptographically secure, this is just to see of
+                # the option file has changed
+                self.coredata.options_files[self.subproject] = (option_file, hashlib.sha1(f.read()).hexdigest())
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(option_file)
             self.coredata.update_project_options(oi.options, self.subproject)
             self.add_build_def_file(option_file)
+        else:
+            self.coredata.options_files[self.subproject] = None
 
         if self.subproject:
             self.project_default_options = {k.evolve(subproject=self.subproject): v
