@@ -1190,8 +1190,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             option_file = old_option_file
         if os.path.exists(option_file):
             with open(option_file, 'rb') as f:
-                # We want fast, not cryptographically secure, this is just to see of
-                # the option file has changed
+                # We want fast  not cryptographically secure, this is just to
+                # see if the option file has changed
                 self.coredata.options_files[self.subproject] = (option_file, hashlib.sha1(f.read()).hexdigest())
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(option_file)
