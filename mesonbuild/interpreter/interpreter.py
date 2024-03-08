@@ -1035,7 +1035,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
         with mlog.nested(subp_name):
             ast, options = cargo.interpret(subp_name, subdir, self.environment)
-            self.coredata.update_project_options(options)
+            self.coredata.update_project_options(options, subp_name)
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
                 # FIXME: Are there other files used by cargo interpreter?
@@ -1189,7 +1189,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if os.path.exists(option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(option_file)
-            self.coredata.update_project_options(oi.options)
+            self.coredata.update_project_options(oi.options, self.subproject)
             self.add_build_def_file(option_file)
 
         if self.subproject:

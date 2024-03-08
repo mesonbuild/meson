@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
+# Copyright © 2024 Intel Corporation
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool
@@ -106,7 +107,8 @@ class IntrospectionInterpreter(AstInterpreter):
         if os.path.exists(optfile):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(optfile)
-            self.coredata.update_project_options(oi.options)
+            assert isinstance(proj_name, str), 'for mypy'
+            self.coredata.update_project_options(oi.options, T.cast('SubProject', proj_name))
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
