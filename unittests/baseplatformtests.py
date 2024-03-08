@@ -289,9 +289,11 @@ class BasePlatformTests(TestCase):
         '''
         return self.build(target=target, override_envvars=override_envvars)
 
-    def setconf(self, arg, will_build=True):
-        if not isinstance(arg, list):
+    def setconf(self, arg: T.Sequence[str], will_build: bool = True) -> None:
+        if isinstance(arg, str):
             arg = [arg]
+        else:
+            arg = list(arg)
         if will_build:
             ensure_backend_detects_changes(self.backend)
         self._run(self.mconf_command + arg + [self.builddir])
