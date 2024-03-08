@@ -10,7 +10,7 @@ import tempfile
 import subprocess
 import textwrap
 import shutil
-from unittest import expectedFailure, skipIf, SkipTest
+from unittest import skipIf, SkipTest
 from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
@@ -318,7 +318,6 @@ class PlatformAgnosticTests(BasePlatformTests):
             out = self.init(testdir, extra_args=['--wipe', f'-D{option}=1'], allow_fail=True)
             self.assertIn(f'ERROR: Unknown options: "{option}"', out)
 
-    @expectedFailure
     def test_configure_new_option(self) -> None:
         """Adding a new option without reconfiguring should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
@@ -328,7 +327,6 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf('-Dnew_option=true')
         self.assertEqual(self.getconf('new_option'), True)
 
-    @expectedFailure
     def test_configure_removed_option(self) -> None:
         """Removing an options without reconfiguring should still give an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
@@ -344,7 +342,6 @@ class PlatformAgnosticTests(BasePlatformTests):
             self.setconf('-Dneg_int_opt=0')
         self.assertIn('Unknown options: "neg_int_opt"', e.exception.stdout)
 
-    @expectedFailure
     def test_configure_option_changed_constraints(self) -> None:
         """Changing the constraints of an option without reconfiguring should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
@@ -360,7 +357,6 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf('-Dneg_int_opt=-10')
         self.assertEqual(self.getconf('neg_int_opt'), -10)
 
-    @expectedFailure
     def test_configure_meson_options_txt_to_meson_options(self) -> None:
         """Changing from a meson_options.txt to meson.options should still be detected."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
@@ -377,7 +373,6 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf('-Dneg_int_opt=-10')
         self.assertEqual(self.getconf('neg_int_opt'), -10)
 
-    @expectedFailure
     def test_configure_options_file_deleted(self) -> None:
         """Deleting all option files should make seting a project option an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
@@ -387,7 +382,6 @@ class PlatformAgnosticTests(BasePlatformTests):
             self.setconf('-Dneg_int_opt=0')
         self.assertIn('Unknown options: "neg_int_opt"', e.exception.stdout)
 
-    @expectedFailure
     def test_configure_options_file_added(self) -> None:
         """A new project option file should be detected."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
@@ -397,7 +391,6 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf('-Dnew_option=bar')
         self.assertEqual(self.getconf('new_option'), 'bar')
 
-    @expectedFailure
     def test_configure_options_file_added_old(self) -> None:
         """A new project option file should be detected."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
@@ -407,7 +400,6 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.setconf('-Dnew_option=bar')
         self.assertEqual(self.getconf('new_option'), 'bar')
 
-    @expectedFailure
     def test_configure_new_option_subproject(self) -> None:
         """Adding a new option to a subproject without reconfiguring should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '43 subproject options'))
