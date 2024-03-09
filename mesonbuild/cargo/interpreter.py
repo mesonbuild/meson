@@ -24,13 +24,11 @@ import typing as T
 from . import builder
 from . import version
 from ..mesonlib import MesonException, Popen_safe
-from ..options import OptionKey
-from .. import coredata, options, mlog
+from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
 if T.TYPE_CHECKING:
     from types import ModuleType
-    from typing import Any
 
     from . import manifest
     from .. import mparser
@@ -151,7 +149,10 @@ class Package:
     autoexamples: bool = True
     autotests: bool = True
     autobenches: bool = True
+    api: str = dataclasses.field(init=False)
 
+    def __post_init__(self) -> None:
+        self.api = _version_to_api(self.version)
 
 @dataclasses.dataclass
 class Dependency:
@@ -280,7 +281,6 @@ class Manifest:
     Cargo subprojects can contain what Meson wants to treat as multiple,
     interdependent, subprojects.
 
-    :param subdir: the subdirectory that this cargo project is in
     :param path: the path within the cargo subproject.
     """
 
@@ -295,7 +295,6 @@ class Manifest:
     example: T.List[Example]
     features: T.Dict[str, T.List[str]]
     target: T.Dict[str, T.Dict[str, Dependency]]
-    subdir: str
     path: str = ''
 
     def __post_init__(self) -> None:
@@ -326,7 +325,6 @@ def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = 
         raw_manifest.get('features', {}),
         {k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
          for k, v in raw_manifest.get('target', {}).items()},
-        subdir,
         path,
     )
 
@@ -393,18 +391,6 @@ def _dependency_varname(package_name: str) -> str:
     return f'{fixup_meson_varname(package_name)}_dep'
 
 
-_OPTION_NAME_PREFIX = 'feature-'
-
-
-def _option_name(feature: str) -> str:
-    # Add a prefix to avoid collision with Meson reserved options (e.g. "debug")
-    return _OPTION_NAME_PREFIX + feature
-
-
-def _options_varname(depname: str) -> str:
-    return f'{fixup_meson_varname(depname)}_options'
-
-
 def _extra_args_varname() -> str:
     return 'extra_args'
 
@@ -413,128 +399,174 @@ def _extra_deps_varname() -> str:
     return 'extra_deps'
 
 
-def _create_project(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
-    """Create a function call
-
-    :param cargo: The Manifest to generate from
-    :param build: The AST builder
-    :return: a list nodes
-    """
-    args: T.List[mparser.BaseNode] = []
-    args.extend([
-        build.string(cargo.package.name),
-        build.string('rust'),
-    ])
-    kwargs: T.Dict[str, mparser.BaseNode] = {
-        'version': build.string(cargo.package.version),
-        # Always assume that the generated meson is using the latest features
-        # This will warn when when we generate deprecated code, which is helpful
-        # for the upkeep of the module
-        'meson_version': build.string(f'>= {coredata.stable_version}'),
-        'default_options': build.array([build.string(f'rust_std={cargo.package.edition}')]),
-    }
-    if cargo.package.license:
-        kwargs['license'] = build.string(cargo.package.license)
-    elif cargo.package.license_file:
-        kwargs['license_files'] = build.string(cargo.package.license_file)
-
-    return [build.function('project', args, kwargs)]
+class PackageState:
+    def __init__(self, manifest: Manifest) -> None:
+        self.manifest = manifest
+        self.features: T.Set[str] = set()
+        self.required_deps: T.Set[str] = set()
+        self.optional_deps_features: T.Dict[str, T.Set[str]] = collections.defaultdict(set)
 
 
-def _process_feature(cargo: Manifest, feature: str) -> T.Tuple[T.Set[str], T.Dict[str, T.Set[str]], T.Set[str]]:
-    # Set of features that must also be enabled if this feature is enabled.
-    features: T.Set[str] = set()
-    # Map dependency name to a set of features that must also be enabled on that
-    # dependency if this feature is enabled.
-    dep_features: T.Dict[str, T.Set[str]] = collections.defaultdict(set)
-    # Set of dependencies that are required if this feature is enabled.
-    required_deps: T.Set[str] = set()
-    # Set of features that must be processed recursively.
-    to_process: T.Set[str] = {feature}
-    while to_process:
-        f = to_process.pop()
-        if '/' in f:
-            dep, dep_f = f.split('/', 1)
-            if dep[-1] == '?':
-                dep = dep[:-1]
-            else:
-                required_deps.add(dep)
-            dep_features[dep].add(dep_f)
-        elif f.startswith('dep:'):
-            required_deps.add(f[4:])
-        elif f not in features:
-            features.add(f)
-            to_process.update(cargo.features.get(f, []))
-            # A feature can also be a dependency
-            if f in cargo.dependencies:
-                required_deps.add(f)
-    return features, dep_features, required_deps
+@dataclasses.dataclass(frozen=True)
+class PackageKey:
+    package_name: str
+    api: str
 
 
-def _create_features(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
-    # https://doc.rust-lang.org/cargo/reference/features.html#the-features-section
+class Interpreter:
+    def __init__(self, env: Environment) -> None:
+        self.environment = env
+        # Map Cargo.toml's subdir to loaded manifest.
+        self.manifests: T.Dict[str, Manifest] = {}
+        # Map of cargo package (name + api) to its state
+        self.packages: T.Dict[PackageKey, PackageState] = {}
 
-    # Declare a dict that map enabled features to true. One for current project
-    # and one per dependency.
-    ast: T.List[mparser.BaseNode] = []
-    ast.append(build.assign(build.dict({}), 'features'))
-    for depname in cargo.dependencies:
-        ast.append(build.assign(build.dict({}), _options_varname(depname)))
+    def interpret(self, subdir: str) -> mparser.CodeBlockNode:
+        manifest = self._load_manifest(subdir)
+        pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
+        if not cached:
+            # This is an entry point, always enable the 'default' feature.
+            # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
+            self._enable_feature(pkg, 'default')
 
-    # Declare a dict that map required dependencies to true
-    ast.append(build.assign(build.dict({}), 'required_deps'))
-
-    for feature in cargo.features:
-        # if get_option(feature)
-        #   required_deps += {'dep': true, ...}
-        #   features += {'foo': true, ...}
-        #   xxx_options += {'feature-foo': true, ...}
-        #   ...
-        # endif
-        features, dep_features, required_deps = _process_feature(cargo, feature)
-        lines: T.List[mparser.BaseNode] = [
-            build.plusassign(
-                build.dict({build.string(d): build.bool(True) for d in required_deps}),
-                'required_deps'),
-            build.plusassign(
-                build.dict({build.string(f): build.bool(True) for f in features}),
-                'features'),
+        # Build an AST for this package
+        filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
+        build = builder.Builder(filename)
+        ast = self._create_project(pkg, build)
+        ast += [
+            build.assign(build.function('import', [build.string('rust')]), 'rust'),
+            build.function('message', [
+                build.string('Enabled features:'),
+                build.array([build.string(f) for f in pkg.features]),
+            ]),
         ]
-        for depname, enabled_features in dep_features.items():
-            lines.append(build.plusassign(
-                build.dict({build.string(_option_name(f)): build.bool(True) for f in enabled_features}),
-                _options_varname(depname)))
+        ast += self._create_dependencies(pkg, build)
+        ast += self._create_meson_subdir(build)
 
-        ast.append(build.if_(build.function('get_option', [build.string(_option_name(feature))]), build.block(lines)))
+        # Libs are always auto-discovered and there's no other way to handle them,
+        # which is unfortunate for reproducability
+        if os.path.exists(os.path.join(self.environment.source_dir, subdir, pkg.manifest.path, pkg.manifest.lib.path)):
+            for crate_type in pkg.manifest.lib.crate_type:
+                ast.extend(self._create_lib(pkg, build, crate_type))
 
-    ast.append(build.function('message', [
-        build.string('Enabled features:'),
-        build.method('keys', build.identifier('features'))],
-    ))
+        return build.block(ast)
 
-    return ast
+    def _fetch_package(self, package_name: str, api: str) -> T.Tuple[PackageState, bool]:
+        key = PackageKey(package_name, api)
+        pkg = self.packages.get(key)
+        if pkg:
+            return pkg, True
+        meson_depname = _dependency_name(package_name, api)
+        subdir, _ = self.environment.wrap_resolver.resolve(meson_depname)
+        manifest = self._load_manifest(subdir)
+        pkg = PackageState(manifest)
+        self.packages[key] = pkg
+        # Fetch required dependencies recursively.
+        for depname, dep in manifest.dependencies.items():
+            if not dep.optional:
+                self._add_dependency(pkg, depname)
+        return pkg, False
 
+    def _dep_package(self, dep: Dependency) -> PackageState:
+        return self.packages[PackageKey(dep.package, dep.api)]
 
-def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
-    ast: T.List[mparser.BaseNode] = []
-    for name, dep in cargo.dependencies.items():
-        # xxx_options += {'feature-default': true, ...}
-        extra_options: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
-            build.string(_option_name('default')): build.bool(dep.default_features),
-        }
+    def _load_manifest(self, subdir: str) -> Manifest:
+        manifest_ = self.manifests.get(subdir)
+        if not manifest_:
+            filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
+            raw = load_toml(filename)
+            if 'package' in raw:
+                raw_manifest = T.cast('manifest.Manifest', raw)
+                manifest_ = _convert_manifest(raw_manifest, subdir)
+                self.manifests[subdir] = manifest_
+            else:
+                raise MesonException(f'{subdir}/Cargo.toml does not have [package] section')
+        return manifest_
+
+    def _add_dependency(self, pkg: PackageState, depname: str) -> None:
+        if depname in pkg.required_deps:
+            return
+        pkg.required_deps.add(depname)
+        dep = pkg.manifest.dependencies[depname]
+        dep_pkg, _ = self._fetch_package(dep.package, dep.api)
+        if dep.default_features:
+            self._enable_feature(dep_pkg, 'default')
         for f in dep.features:
-            extra_options[build.string(_option_name(f))] = build.bool(True)
-        ast.append(build.plusassign(build.dict(extra_options), _options_varname(name)))
+            self._enable_feature(dep_pkg, f)
+        for f in pkg.optional_deps_features[depname]:
+            self._enable_feature(dep_pkg, f)
 
+    def _enable_feature(self, pkg: PackageState, feature: str) -> None:
+        if feature in pkg.features:
+            return
+        pkg.features.add(feature)
+        # A feature can also be a dependency.
+        if feature in pkg.manifest.dependencies:
+            self._add_dependency(pkg, feature)
+        # Recurse on extra features and dependencies this feature pulls.
+        # https://doc.rust-lang.org/cargo/reference/features.html#the-features-section
+        for f in pkg.manifest.features.get(feature, []):
+            if '/' in f:
+                depname, dep_f = f.split('/', 1)
+                if depname[-1] == '?':
+                    depname = depname[:-1]
+                    if depname in pkg.required_deps:
+                        dep = pkg.manifest.dependencies[depname]
+                        dep_pkg = self._dep_package(dep)
+                        self._enable_feature(dep_pkg, dep_f)
+                    else:
+                        # This feature will be enabled only if that dependency
+                        # is later added.
+                        pkg.optional_deps_features[depname].add(dep_f)
+                else:
+                    self._add_dependency(pkg, depname)
+                    dep = pkg.manifest.dependencies[depname]
+                    dep_pkg = self._dep_package(dep)
+                    self._enable_feature(dep_pkg, dep_f)
+            elif f.startswith('dep:'):
+                self._add_dependency(pkg, f[4:])
+            else:
+                self._enable_feature(pkg, f)
+
+    def _create_project(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        """Create the project() function call
+
+        :param pkg: The package to generate from
+        :param build: The AST builder
+        :return: a list nodes
+        """
+        args: T.List[mparser.BaseNode] = []
+        args.extend([
+            build.string(pkg.manifest.package.name),
+            build.string('rust'),
+        ])
+        kwargs: T.Dict[str, mparser.BaseNode] = {
+            'version': build.string(pkg.manifest.package.version),
+            # Always assume that the generated meson is using the latest features
+            # This will warn when when we generate deprecated code, which is helpful
+            # for the upkeep of the module
+            'meson_version': build.string(f'>= {coredata.stable_version}'),
+            'default_options': build.array([build.string(f'rust_std={pkg.manifest.package.edition}')]),
+        }
+        if pkg.manifest.package.license:
+            kwargs['license'] = build.string(pkg.manifest.package.license)
+        elif pkg.manifest.package.license_file:
+            kwargs['license_files'] = build.string(pkg.manifest.package.license_file)
+
+        return [build.function('project', args, kwargs)]
+
+    def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        ast: T.List[mparser.BaseNode] = []
+        for depname in pkg.required_deps:
+            dep = pkg.manifest.dependencies[depname]
+            ast += self._create_dependency(dep, build)
+        return ast
+
+    def _create_dependency(self, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        pkg = self._dep_package(dep)
         kw = {
             'version': build.array([build.string(s) for s in dep.version]),
-            'default_options': build.identifier(_options_varname(name)),
         }
-        if dep.optional:
-            kw['required'] = build.method('get', build.identifier('required_deps'), [
-                build.string(name), build.bool(False)
-            ])
-
         # Lookup for this dependency with the features we want in default_options kwarg.
         #
         # However, this subproject could have been previously configured with a
@@ -546,8 +578,8 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
         # otherwise abort with an error message. The user has to set the corresponding
         # option manually with -Dxxx-rs:feature-yyy=true, or the main project can do
         # that in its project(..., default_options: ['xxx-rs:feature-yyy=true']).
-        ast.extend([
-            # xxx_dep = dependency('xxx', version : ..., default_options : xxx_options)
+        return [
+            # xxx_dep = dependency('xxx', version : ...)
             build.assign(
                 build.function(
                     'dependency',
@@ -556,188 +588,132 @@ def _create_dependencies(cargo: Manifest, build: builder.Builder) -> T.List[mpar
                 ),
                 _dependency_varname(dep.package),
             ),
-            # if xxx_dep.found()
-            build.if_(build.method('found', build.identifier(_dependency_varname(dep.package))), build.block([
-                # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
-                build.assign(
+            # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
+            build.assign(
+                build.method(
+                    'split',
                     build.method(
-                        'split',
-                        build.method(
-                            'get_variable',
-                            build.identifier(_dependency_varname(dep.package)),
-                            [build.string('features')],
-                            {'default_value': build.string('')}
-                        ),
-                        [build.string(',')],
+                        'get_variable',
+                        build.identifier(_dependency_varname(dep.package)),
+                        [build.string('features')],
+                        {'default_value': build.string('')}
                     ),
-                    'actual_features'
+                    [build.string(',')],
                 ),
-                # needed_features = []
-                # foreach f, _ : xxx_options
-                #   needed_features += f.substring(8)
-                # endforeach
-                build.assign(build.array([]), 'needed_features'),
-                build.foreach(['f', 'enabled'], build.identifier(_options_varname(name)), build.block([
-                    build.if_(build.identifier('enabled'), build.block([
-                        build.plusassign(
-                            build.method('substring', build.identifier('f'), [build.number(len(_OPTION_NAME_PREFIX))]),
-                            'needed_features'),
-                    ])),
-                ])),
-                # foreach f : needed_features
-                #   if f not in actual_features
-                #     error()
-                #   endif
-                # endforeach
-                build.foreach(['f'], build.identifier('needed_features'), build.block([
-                    build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
-                        build.function('error', [
-                            build.string('Dependency'),
-                            build.string(_dependency_name(dep.package, dep.api)),
-                            build.string('previously configured with features'),
-                            build.identifier('actual_features'),
-                            build.string('but need'),
-                            build.identifier('needed_features'),
-                        ])
-                    ]))
-                ])),
-            ])),
-        ])
-    return ast
-
-
-def _create_meson_subdir(cargo: Manifest, build: builder.Builder) -> T.List[mparser.BaseNode]:
-    # Allow Cargo subprojects to add extra Rust args in meson/meson.build file.
-    # This is used to replace build.rs logic.
-
-    # extra_args = []
-    # extra_deps = []
-    # fs = import('fs')
-    # if fs.is_dir('meson')
-    #  subdir('meson')
-    # endif
-    return [
-        build.assign(build.array([]), _extra_args_varname()),
-        build.assign(build.array([]), _extra_deps_varname()),
-        build.assign(build.function('import', [build.string('fs')]), 'fs'),
-        build.if_(build.method('is_dir', build.identifier('fs'), [build.string('meson')]),
-                  build.block([build.function('subdir', [build.string('meson')])]))
-    ]
-
-
-def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CRATE_TYPE) -> T.List[mparser.BaseNode]:
-    dependencies: T.List[mparser.BaseNode] = []
-    dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
-    for name, dep in cargo.dependencies.items():
-        dependencies.append(build.identifier(_dependency_varname(dep.package)))
-        if name != dep.package:
-            dependency_map[build.string(fixup_meson_varname(dep.package))] = build.string(name)
-
-    rust_args: T.List[mparser.BaseNode] = [
-        build.identifier('features_args'),
-        build.identifier(_extra_args_varname())
-    ]
-
-    dependencies.append(build.identifier(_extra_deps_varname()))
-
-    posargs: T.List[mparser.BaseNode] = [
-        build.string(fixup_meson_varname(cargo.package.name)),
-        build.string(cargo.lib.path),
-    ]
-
-    kwargs: T.Dict[str, mparser.BaseNode] = {
-        'dependencies': build.array(dependencies),
-        'rust_dependency_map': build.dict(dependency_map),
-        'rust_args': build.array(rust_args),
-    }
-
-    lib: mparser.BaseNode
-    if cargo.lib.proc_macro or crate_type == 'proc-macro':
-        lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
-    else:
-        if crate_type in {'lib', 'rlib', 'staticlib'}:
-            target_type = 'static_library'
-        elif crate_type in {'dylib', 'cdylib'}:
-            target_type = 'shared_library'
-        else:
-            raise MesonException(f'Unsupported crate type {crate_type}')
-        if crate_type in {'staticlib', 'cdylib'}:
-            kwargs['rust_abi'] = build.string('c')
-        lib = build.function(target_type, posargs, kwargs)
-
-    # features_args = []
-    # foreach f, _ : features
-    #   features_args += ['--cfg', 'feature="' + f + '"']
-    # endforeach
-    # lib = xxx_library()
-    # dep = declare_dependency()
-    # meson.override_dependency()
-    return [
-        build.assign(build.array([]), 'features_args'),
-        build.foreach(['f', '_'], build.identifier('features'), build.block([
-            build.plusassign(
-                build.array([
-                    build.string('--cfg'),
-                    build.plus(build.string('feature="'), build.plus(build.identifier('f'), build.string('"'))),
-                ]),
-                'features_args')
-            ])
-        ),
-        build.assign(lib, 'lib'),
-        build.assign(
-            build.function(
-                'declare_dependency',
-                kw={
-                    'link_with': build.identifier('lib'),
-                    'variables': build.dict({
-                        build.string('features'): build.method('join', build.string(','), [build.method('keys', build.identifier('features'))]),
-                    })
-                },
+                'actual_features'
             ),
-            'dep'
-        ),
-        build.method(
-            'override_dependency',
-            build.identifier('meson'),
-            [
-                build.string(_dependency_name(cargo.package.name, _version_to_api(cargo.package.version))),
-                build.identifier('dep'),
-            ],
-        ),
-    ]
+            # needed_features = [f1, f2, ...]
+            # foreach f : needed_features
+            #   if f not in actual_features
+            #     error()
+            #   endif
+            # endforeach
+            build.assign(build.array([build.string(f) for f in pkg.features]), 'needed_features'),
+            build.foreach(['f'], build.identifier('needed_features'), build.block([
+                build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
+                    build.function('error', [
+                        build.string('Dependency'),
+                        build.string(_dependency_name(dep.package, dep.api)),
+                        build.string('previously configured with features'),
+                        build.identifier('actual_features'),
+                        build.string('but need'),
+                        build.identifier('needed_features'),
+                    ])
+                ]))
+            ])),
+        ]
 
+    def _create_meson_subdir(self, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        # Allow Cargo subprojects to add extra Rust args in meson/meson.build file.
+        # This is used to replace build.rs logic.
 
-def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode,  dict[OptionKey, options.UserOption[Any]]]:
-    # subp_name should be in the form "foo-0.1-rs"
-    package_name = subp_name.rsplit('-', 2)[0]
-    manifests = _load_manifests(os.path.join(env.source_dir, subdir))
-    cargo = manifests.get(package_name)
-    if not cargo:
-        raise MesonException(f'Cargo package {package_name!r} not found in {subdir}')
+        # extra_args = []
+        # extra_deps = []
+        # fs = import('fs')
+        # if fs.is_dir('meson')
+        #  subdir('meson')
+        # endif
+        return [
+            build.assign(build.array([]), _extra_args_varname()),
+            build.assign(build.array([]), _extra_deps_varname()),
+            build.assign(build.function('import', [build.string('fs')]), 'fs'),
+            build.if_(build.method('is_dir', build.identifier('fs'), [build.string('meson')]),
+                      build.block([build.function('subdir', [build.string('meson')])]))
+        ]
 
-    filename = os.path.join(cargo.subdir, cargo.path, 'Cargo.toml')
-    build = builder.Builder(filename)
+    def _create_lib(self, pkg: PackageState, build: builder.Builder, crate_type: manifest.CRATE_TYPE) -> T.List[mparser.BaseNode]:
+        dependencies: T.List[mparser.BaseNode] = []
+        dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
+        for name in pkg.required_deps:
+            dep = pkg.manifest.dependencies[name]
+            dependencies.append(build.identifier(_dependency_varname(dep.package)))
+            if name != dep.package:
+                dependency_map[build.string(fixup_meson_varname(dep.package))] = build.string(name)
 
-    # Generate project options
-    project_options: T.Dict[OptionKey, options.UserOption] = {}
-    for feature in cargo.features:
-        key = OptionKey(_option_name(feature), subproject=subp_name)
-        enabled = feature == 'default'
-        project_options[key] = options.UserBooleanOption(key.name, f'Cargo {feature} feature', enabled)
+        rust_args: T.List[mparser.BaseNode] = [
+            build.identifier('features_args'),
+            build.identifier(_extra_args_varname())
+        ]
 
-    ast = _create_project(cargo, build)
-    ast += [build.assign(build.function('import', [build.string('rust')]), 'rust')]
-    ast += _create_features(cargo, build)
-    ast += _create_dependencies(cargo, build)
-    ast += _create_meson_subdir(cargo, build)
+        dependencies.append(build.identifier(_extra_deps_varname()))
 
-    # Libs are always auto-discovered and there's no other way to handle them,
-    # which is unfortunate for reproducibility
-    if os.path.exists(os.path.join(env.source_dir, cargo.subdir, cargo.path, cargo.lib.path)):
-        for crate_type in cargo.lib.crate_type:
-            ast.extend(_create_lib(cargo, build, crate_type))
+        posargs: T.List[mparser.BaseNode] = [
+            build.string(fixup_meson_varname(pkg.manifest.package.name)),
+            build.string(pkg.manifest.lib.path),
+        ]
 
-    return build.block(ast), project_options
+        kwargs: T.Dict[str, mparser.BaseNode] = {
+            'dependencies': build.array(dependencies),
+            'rust_dependency_map': build.dict(dependency_map),
+            'rust_args': build.array(rust_args),
+        }
+
+        lib: mparser.BaseNode
+        if pkg.manifest.lib.proc_macro or crate_type == 'proc-macro':
+            lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
+        else:
+            if crate_type in {'lib', 'rlib', 'staticlib'}:
+                target_type = 'static_library'
+            elif crate_type in {'dylib', 'cdylib'}:
+                target_type = 'shared_library'
+            else:
+                raise MesonException(f'Unsupported crate type {crate_type}')
+            if crate_type in {'staticlib', 'cdylib'}:
+                kwargs['rust_abi'] = build.string('c')
+            lib = build.function(target_type, posargs, kwargs)
+
+        features_args: T.List[mparser.BaseNode] = []
+        for f in pkg.features:
+            features_args += [build.string('--cfg'), build.string(f'feature="{f}"')]
+
+        # features_args = ['--cfg', 'feature="f1"', ...]
+        # lib = xxx_library()
+        # dep = declare_dependency()
+        # meson.override_dependency()
+        return [
+            build.assign(build.array(features_args), 'features_args'),
+            build.assign(lib, 'lib'),
+            build.assign(
+                build.function(
+                    'declare_dependency',
+                    kw={
+                        'link_with': build.identifier('lib'),
+                        'variables': build.dict({
+                            build.string('features'): build.string(','.join(pkg.features)),
+                        })
+                    },
+                ),
+                'dep'
+            ),
+            build.method(
+                'override_dependency',
+                build.identifier('meson'),
+                [
+                    build.string(_dependency_name(pkg.manifest.package.name, pkg.manifest.package.api)),
+                    build.identifier('dep'),
+                ],
+            ),
+        ]
 
 
 def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition]:
