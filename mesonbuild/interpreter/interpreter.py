@@ -1033,9 +1033,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
+        if self.environment.cargo is None:
+            self.environment.cargo = cargo.Interpreter(self.environment)
         with mlog.nested(subp_name):
-            ast, options = cargo.interpret(subp_name, subdir, self.environment)
-            self.coredata.update_project_options(options)
+            ast = self.environment.cargo.interpret(subdir)
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
                 # FIXME: Are there other files used by cargo interpreter?
