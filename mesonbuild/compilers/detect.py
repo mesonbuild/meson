@@ -10,6 +10,7 @@ from ..mesonlib import (
 from ..envconfig import BinaryTable
 from .. import mlog
 
+from ..compilers.mixins.visualstudio import VisualStudioLikeCompiler
 from ..linkers import guess_win_linker, guess_nix_linker
 
 import subprocess
@@ -208,6 +209,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if "xilib: executing 'lib'" in err:
             return linkers.IntelVisualStudioLinker(linker, getattr(compiler, 'machine', None))
         if '/OUT:' in out.upper() or '/OUT:' in err.upper():
+            T.cast(VisualStudioLikeCompiler, compiler).extract_compile_args(out)
             return linkers.VisualStudioLinker(linker, getattr(compiler, 'machine', None))
         if 'ar-Error-Unknown switch: --version' in err:
             return linkers.PGIStaticLinker(linker)
@@ -496,9 +498,11 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             # As of this writing, CCache does not support MSVC but sccache does.
             if 'sccache' not in ccache:
                 ccache = []
-            return cls(
+            result = cls(
                 ccache, compiler, version, for_machine, is_cross, info, target,
                 exe_wrap, full_version=cl_signature, linker=linker)
+            T.cast(VisualStudioLikeCompiler, result).extract_compile_args(out)
+            return result
         if 'PGI Compilers' in out:
             cls = c.PGICCompiler if lang == 'c' else cpp.PGICPPCompiler
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
