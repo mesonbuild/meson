@@ -90,7 +90,7 @@ arch = 'aarch64-linux-gnu'
 c = arch + '-gcc'
 cpp = arch + '-g++'
 strip = arch + '-strip'
-pkg-config = arch + '-pkg-config'
+pkgconfig = arch + '-pkg-config'
 ...
 ```
 
@@ -177,7 +177,7 @@ c_ld = 'gold'
 cpp_ld = 'gold'
 ar = '/usr/i586-mingw32msvc/bin/ar'
 strip = '/usr/i586-mingw32msvc/bin/strip'
-pkg-config = '/usr/bin/i586-mingw32msvc-pkg-config'
+pkgconfig = '/usr/bin/i586-mingw32msvc-pkg-config'
 ```
 
 An incomplete list of internally used programs that can be overridden
