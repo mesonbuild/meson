@@ -648,7 +648,9 @@ class Interpreter:
             dep = pkg.manifest.dependencies[name]
             dependencies.append(build.identifier(_dependency_varname(dep.package)))
             if name != dep.package:
-                dependency_map[build.string(fixup_meson_varname(dep.package))] = build.string(name)
+                dep_pkg = self._dep_package(dep)
+                dep_lib_name = dep_pkg.manifest.lib.name
+                dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(name)
 
         rust_args: T.List[mparser.BaseNode] = [
             build.identifier('features_args'),
@@ -658,7 +660,7 @@ class Interpreter:
         dependencies.append(build.identifier(_extra_deps_varname()))
 
         posargs: T.List[mparser.BaseNode] = [
-            build.string(fixup_meson_varname(pkg.manifest.package.name)),
+            build.string(fixup_meson_varname(pkg.manifest.lib.name)),
             build.string(pkg.manifest.lib.path),
         ]
 
