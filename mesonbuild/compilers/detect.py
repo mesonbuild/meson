@@ -992,6 +992,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             continue
 
         version = search_version(out)
+        is_nightly = 'nightly' in out
         cls: T.Type[RustCompiler] = rust.RustCompiler
 
         # Clippy is a wrapper around rustc, but it doesn't have rustc in it's
@@ -1083,7 +1084,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
             return cls(
                 compiler, version, for_machine, is_cross, info, exe_wrap,
-                linker=linker)
+                linker=linker, is_nightly=is_nightly)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')

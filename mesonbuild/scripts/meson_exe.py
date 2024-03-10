@@ -11,13 +11,25 @@ import subprocess
 import typing as T
 import locale
 
-from ..utils.core import ExecutableSerialisation
+from ..utils.core import ExecutableSerialisation, EnvironmentVariables
+
+if T.TYPE_CHECKING:
+    from typing_extensions import Protocol
+
+    class Args(Protocol):
+
+        unpickle: bool
+        capture: bool
+        feed: bool
+        env: T.List[str]
+
 
 def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
     parser.add_argument('--unpickle')
     parser.add_argument('--capture')
     parser.add_argument('--feed')
+    parser.add_argument('--env', action='append', default=[])
     return parser
 
 def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]] = None) -> int:
@@ -93,6 +105,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[T.Dict[str, str]
 
 def run(args: T.List[str]) -> int:
     parser = buildparser()
+    options: Args
     options, cmd_args = parser.parse_known_args(args)
     # argparse supports double dash to separate options and positional arguments,
     # but the user has to remove it manually.
@@ -107,7 +120,12 @@ def run(args: T.List[str]) -> int:
             exe = pickle.load(f)
             exe.pickled = True
     else:
-        exe = ExecutableSerialisation(cmd_args, capture=options.capture, feed=options.feed)
+        env = EnvironmentVariables()
+        for e in options.env:
+            name, value = e.split('=')
+            # This is internal, we can pick whatever separator we want!
+            env.append(name, value.split(':'))
+        exe = ExecutableSerialisation(cmd_args, capture=options.capture, feed=options.feed, env=env)
 
     return run_exe(exe)
 
