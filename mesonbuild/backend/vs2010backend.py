@@ -324,9 +324,12 @@ class Vs2010Backend(backends.Backend):
                 result[o.target.get_id()] = o.target
         return result.items()
 
-    def get_target_deps(self, t: T.Dict[T.Any, build.Target], recursive=False):
+    def get_target_deps(self, t: T.Dict[T.Any, T.Union[build.Target, build.CustomTargetIndex]], recursive=False):
         all_deps: T.Dict[str, build.Target] = {}
         for target in t.values():
+            if isinstance(target, build.CustomTargetIndex):
+                # just transfer it to the CustomTarget code
+                target = target.target
             if isinstance(target, build.CustomTarget):
                 for d in target.get_target_dependencies():
                     # FIXME: this isn't strictly correct, as the target doesn't

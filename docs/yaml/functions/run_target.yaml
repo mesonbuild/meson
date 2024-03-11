@@ -40,11 +40,12 @@ kwargs:
       the first item will find that command in `PATH` and run it.
 
   depends:
-    type: list[build_tgt | custom_tgt]
+    type: list[build_tgt | custom_tgt | custom_idx]
     description: |
       A list of targets that this target depends on but which
       are not listed in the command array (because, for example, the
-      script does file globbing internally)
+      script does file globbing internally, custom_idx was not possible
+      as a type between 0.60 and 1.4.0).
 
   env:
     since: 0.57.0

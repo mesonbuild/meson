@@ -138,14 +138,15 @@ kwargs:
       argument. Useful for adding regen dependencies.
 
   depends:
-    type: list[build_tgt | custom_tgt]
+    type: list[build_tgt | custom_tgt | custom_idx]
     description: |
       Specifies that this target depends on the specified
       target(s), even though it does not take any of them as a command
       line argument. This is meant for cases where you have a tool that
       e.g. does globbing internally. Usually you should just put the
       generated sources as inputs and Meson will set up all dependencies
-      automatically.
+      automatically (custom_idx was unavailable as a type between 0.60
+      and 1.4.0).
 
   depfile:
     type: str
