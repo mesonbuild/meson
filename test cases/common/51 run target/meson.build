@@ -33,6 +33,11 @@ run_target('upload2',
   depends : hex,
 )
 
+run_target('upload3',
+  command : [fakeburner, 'x:@0@:y'.format(hex.full_path())],
+  depends : hex[0],
+)
+
 python3 = find_program('python3', required : false)
 if not python3.found()
   python3 = find_program('python')

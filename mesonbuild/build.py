@@ -2815,11 +2815,11 @@ class RunTarget(Target, CommandBase):
 
     def __init__(self, name: str,
                  command: T.Sequence[T.Union[str, File, BuildTargetTypes, programs.ExternalProgram]],
-                 dependencies: T.Sequence[Target],
+                 dependencies: T.Sequence[T.Union[Target, CustomTargetIndex]],
                  subdir: str,
                  subproject: str,
                  environment: environment.Environment,
-                 env: T.Optional['EnvironmentVariables'] = None,
+                 env: T.Optional[EnvironmentVariables] = None,
                  default_env: bool = True):
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD, environment)
@@ -2834,10 +2834,10 @@ class RunTarget(Target, CommandBase):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command[0])
 
-    def get_dependencies(self) -> T.List[T.Union[BuildTarget, 'CustomTarget']]:
+    def get_dependencies(self) -> T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]:
         return self.dependencies
 
-    def get_generated_sources(self) -> T.List['GeneratedTypes']:
+    def get_generated_sources(self) -> T.List[GeneratedTypes]:
         return []
 
     def get_sources(self) -> T.List[File]:
