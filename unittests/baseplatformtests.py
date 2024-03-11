@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
+# Copyright © 2024 Intel Corporation
 
+from __future__ import annotations
 from pathlib import PurePath
 from unittest import mock, TestCase, SkipTest
 import json
@@ -9,6 +11,7 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 import tempfile
 import typing as T
 
@@ -492,3 +495,23 @@ class BasePlatformTests(TestCase):
 
     def assertLength(self, val, length):
         assert len(val) == length, f'{val} is not length {length}'
+
+    def copy_srcdir(self, srcdir: str) -> str:
+        """Copies a source tree and returns that copy.
+
+        ensures that the copied tree is deleted after running.
+
+        :param srcdir: The locaiton of the source tree to copy
+        :return: The location of the copy
+        """
+        dest = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dest)
+
+        # shutil.copytree expects the destinatin directory to not exist, Once
+        # python 3.8 is required the `dirs_exist_ok` parameter negates the need
+        # for this
+        dest = os.path.join(dest, 'subdir')
+
+        shutil.copytree(srcdir, dest)
+
+        return dest
