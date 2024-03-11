@@ -269,9 +269,9 @@ DEPFILE_KW: KwargInfo[T.Optional[str]] = KwargInfo(
 )
 
 # TODO: CustomTargetIndex should be supported here as well
-DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget]]] = KwargInfo(
+DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]] = KwargInfo(
     'depends',
-    ContainerTypeInfo(list, (BuildTarget, CustomTarget)),
+    ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex)),
     listify=True,
     default=[],
 )
