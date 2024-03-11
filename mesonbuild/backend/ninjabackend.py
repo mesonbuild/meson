@@ -3121,7 +3121,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += self._generate_single_compile(target, compiler)
         commands += self.get_compile_debugfile_args(compiler, target, objname)
         dep = dst + '.' + compiler.get_depfile_suffix()
-        return commands, dep, dst, [objname], source
+
+        link_objects = [objname] if compiler.should_link_pch_object() else []
+
+        return commands, dep, dst, link_objects, source
 
     def generate_gcc_pch_command(self, target, compiler, pch):
         commands = self._generate_single_compile(target, compiler)

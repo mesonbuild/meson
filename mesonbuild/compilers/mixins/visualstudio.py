@@ -425,6 +425,10 @@ class MSVCCompiler(VisualStudioLikeCompiler):
     def get_pch_base_name(self, header: str) -> str:
         return os.path.basename(header)
 
+    # MSVC requires linking to the generated object file when linking a build target
+    # that uses a precompiled header
+    def should_link_pch_object(self) -> bool:
+        return True
 
 class ClangClCompiler(VisualStudioLikeCompiler):
 
