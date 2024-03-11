@@ -266,6 +266,9 @@ class CLikeCompiler(Compiler):
     def get_pch_name(self, name: str) -> str:
         return os.path.basename(name) + '.' + self.get_pch_suffix()
 
+    def should_link_pch_object(self) -> bool:
+        return False
+
     def get_default_include_dirs(self) -> T.List[str]:
         return []
 
