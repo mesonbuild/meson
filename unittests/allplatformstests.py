@@ -5013,7 +5013,6 @@ class AllPlatformTests(BasePlatformTests):
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
 
-    @expectedFailure
     @skip_if_not_language('fortran')
     def test_fortran_cross_target_module_dep(self) -> None:
         if self.backend is not Backend.ninja:
@@ -5022,7 +5021,6 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Dunittest=true'])
         self.build('liblibrary.a.p/lib.f90.o', extra_args=['-j1'])
 
-    @expectedFailure
     @skip_if_not_language('fortran')
     def test_fortran_new_module_in_dep(self) -> None:
         if self.backend is not Backend.ninja:
