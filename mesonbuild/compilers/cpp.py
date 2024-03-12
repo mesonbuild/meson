@@ -315,7 +315,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
         # Clang supports both libstdc++ and libc++
         args.append('-D_GLIBCXX_ASSERTIONS=1')
         if version_compare(self.version, '>=18'):
-            args.append('-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE')
+            args.append('-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST')
         elif version_compare(self.version, '>=15'):
             args.append('-D_LIBCPP_ENABLE_ASSERTIONS=1')
 
