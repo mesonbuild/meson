@@ -308,7 +308,13 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
         if disable:
             return ['-DNDEBUG']
 
+        # Don't inject the macro if the compiler already has it pre-defined.
+        for macro in ['_GLIBCXX_ASSERTIONS', '_LIBCPP_HARDENING_MODE', '_LIBCPP_ENABLE_ASSERTIONS']:
+            if self.defines.get(macro) is not None:
+                return []
+
         # Clang supports both libstdc++ and libc++
+        # TODO: Pipe through the C++ stdlib impl information to here so we can avoid pollution
         args.append('-D_GLIBCXX_ASSERTIONS=1')
         if version_compare(self.version, '>=18'):
             args.append('-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST')
@@ -490,8 +496,13 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
         if disable:
             return ['-DNDEBUG']
 
+        # Don't inject the macro if the compiler already has it pre-defined.
+        if self.defines.get('_GLIBCXX_ASSERTIONS') is not None:
+            return []
+
         # XXX: This needs updating if/when GCC starts to support libc++.
         # It currently only does so via an experimental configure arg.
+        # TODO: Pipe through the C++ stdlib impl information to here so we can avoid pollution
         return ['-D_GLIBCXX_ASSERTIONS=1']
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
