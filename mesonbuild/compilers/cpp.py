@@ -203,17 +203,14 @@ class _StdCPPLibMixin(CompilerMixinBase):
         machine = env.machines[self.for_machine]
         assert machine is not None, 'for mypy'
 
-        # We need to determine whether to use libc++ or libstdc++. We can't
-        # really know the answer in most cases, only the most likely answer,
-        # because a user can install things themselves or build custom images.
-        search_order: T.List[str] = []
-        if machine.system in {'android', 'darwin', 'dragonfly', 'freebsd', 'netbsd', 'openbsd'}:
-            search_order = ['c++', 'stdc++']
-        else:
-            search_order = ['stdc++', 'c++']
-        for lib in search_order:
-            if self.find_library(lib, env, []) is not None:
-                return search_dirs + [f'-l{lib}']
+        # https://stackoverflow.com/a/31658120
+        header = 'version' if self.has_header('<version>', '', env) else 'ciso646'
+        is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '', env)[0]
+        lib = 'c++' if is_libcxx else 'stdc++'
+
+        if self.find_library(lib, env, []) is not None:
+            return search_dirs + [f'-l{lib}']
+
         # TODO: maybe a bug exception?
         raise MesonException('Could not detect either libc++ or libstdc++ as your C++ stdlib implementation.')
 
