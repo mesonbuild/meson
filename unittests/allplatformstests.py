@@ -5019,7 +5019,8 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest('Test is only relavent on the ninja backend')
         testdir = os.path.join(self.fortran_test_dir, '8 module names')
         self.init(testdir, extra_args=['-Dunittest=true'])
-        self.build('liblibrary.a.p/lib.f90.o', extra_args=['-j1'])
+        suffix = 'obj' if mesonbuild.mesonlib.is_windows() else 'o'
+        self.build(f'liblibrary.a.p/lib.f90.{suffix}', extra_args=['-j1'])
 
     @skip_if_not_language('fortran')
     def test_fortran_new_module_in_dep(self) -> None:
@@ -5052,4 +5053,5 @@ class AllPlatformTests(BasePlatformTests):
                 end program
                 """))
 
-        self.build('liblibrary.a.p/lib.f90.o', extra_args=['-j1'])
+        suffix = 'obj' if mesonbuild.mesonlib.is_windows() else 'o'
+        self.build(f'liblibrary.a.p/lib.f90.{suffix}', extra_args=['-j1'])
