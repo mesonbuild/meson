@@ -8,7 +8,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from ..build import CustomTarget
 from ..interpreter.type_checking import NoneType, in_set_validator
-from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo
+from ..interpreterbase import typed_pos_args, typed_kwargs, KwargInfo, FeatureNew
 from ..mesonlib import File, MesonException
 
 if T.TYPE_CHECKING:
@@ -122,7 +122,7 @@ class WaylandModule(ExtensionModule):
             raise MesonException(f'{xml_state} protocols require a version number.')
 
         if xml_state == 'stable' and version is not None:
-            raise MesonException('stable protocols do not require a version number.')
+            FeatureNew.single_use('Version number in stable wayland protocol', '1.5.0', state.subproject, location=state.current_node)
 
         if self.protocols_dep is None:
             self.protocols_dep = state.dependency('wayland-protocols')
@@ -130,12 +130,12 @@ class WaylandModule(ExtensionModule):
         if self.pkgdatadir is None:
             self.pkgdatadir = self.protocols_dep.get_variable(pkgconfig='pkgdatadir', internal='pkgdatadir')
 
-        if xml_state == 'stable':
-            xml_name = f'{base_name}.xml'
-        elif xml_state == 'staging':
-            xml_name = f'{base_name}-v{version}.xml'
-        else:
-            xml_name = f'{base_name}-unstable-v{version}.xml'
+        xml_name = base_name
+        if xml_state == 'unstable':
+            xml_name += '-unstable'
+        if version is not None:
+            xml_name += f'-v{version}'
+        xml_name += '.xml'
 
         path = os.path.join(self.pkgdatadir, xml_state, base_name, xml_name)
 
