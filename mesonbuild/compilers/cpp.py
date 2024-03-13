@@ -307,7 +307,6 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
         return []
 
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
-        args: T.List[str] = []
         if disable:
             return ['-DNDEBUG']
 
@@ -316,15 +315,15 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
             if self.defines.get(macro) is not None:
                 return []
 
-        # Clang supports both libstdc++ and libc++
-        # TODO: Pipe through the C++ stdlib impl information to here so we can avoid pollution
-        args.append('-D_GLIBCXX_ASSERTIONS=1')
-        if version_compare(self.version, '>=18'):
-            args.append('-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST')
-        elif version_compare(self.version, '>=15'):
-            args.append('-D_LIBCPP_ENABLE_ASSERTIONS=1')
+        if self.language_stdlib_provider(env) == 'stdc++':
+            return ['-D_GLIBCXX_ASSERTIONS=1']
+        else:
+            if version_compare(self.version, '>=18'):
+                return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
+            elif version_compare(self.version, '>=15'):
+                return ['-D_LIBCPP_ENABLE_ASSERTIONS=1']
 
-        return args
+        return []
 
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
@@ -500,13 +499,19 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
             return ['-DNDEBUG']
 
         # Don't inject the macro if the compiler already has it pre-defined.
-        if self.defines.get('_GLIBCXX_ASSERTIONS') is not None:
-            return []
+        for macro in ['_GLIBCXX_ASSERTIONS', '_LIBCPP_HARDENING_MODE', '_LIBCPP_ENABLE_ASSERTIONS']:
+            if self.defines.get(macro) is not None:
+                return []
 
-        # XXX: This needs updating if/when GCC starts to support libc++.
-        # It currently only does so via an experimental configure arg.
-        # TODO: Pipe through the C++ stdlib impl information to here so we can avoid pollution
-        return ['-D_GLIBCXX_ASSERTIONS=1']
+        if self.language_stdlib_provider(env) == 'stdc++':
+            return ['-D_GLIBCXX_ASSERTIONS=1']
+        else:
+            if version_compare(self.version, '>=18'):
+                return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
+            elif version_compare(self.version, '>=15'):
+                return ['-D_LIBCPP_ENABLE_ASSERTIONS=1']
+
+        return []
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-fpch-preprocess', '-include', os.path.basename(header)]
