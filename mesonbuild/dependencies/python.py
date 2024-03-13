@@ -292,7 +292,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                     # the cause of the expected link error.
                     buildtype = self.env.coredata.get_option(mesonlib.OptionKey('buildtype'))
                     assert isinstance(buildtype, str)
-                    debug = self.env.coredata.get_option(mesonlib.OptionKey('debug'))
+                    debug = self.env.coredata.get_option(mesonlib.OptionKey('debuginfo'))
                     # `debugoptimized` buildtype may not set debug=True currently, see gh-11645
                     is_debug_build = debug or buildtype == 'debug'
                     vscrt_debug = False

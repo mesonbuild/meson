@@ -1011,7 +1011,7 @@ class Backend:
         assert isinstance(optimization, str), 'for mypy'
         commands += compiler.get_optimization_args(optimization)
 
-        debug = target.get_option(OptionKey('debug'))
+        debug = target.get_option(OptionKey('debuginfo'))
         assert isinstance(debug, bool), 'for mypy'
         commands += compiler.get_debug_args(debug)
 

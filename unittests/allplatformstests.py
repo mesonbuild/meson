@@ -2840,15 +2840,15 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         opts = self.get_opts_as_dict()
         self.assertEqual(opts['buildtype'], 'debug')
-        self.assertEqual(opts['debug'], True)
-        self.setconf('-Ddebug=false')
+        self.assertEqual(opts['debuginfo'], True)
+        self.setconf('-Ddebuginfo=false')
         opts = self.get_opts_as_dict()
-        self.assertEqual(opts['debug'], False)
+        self.assertEqual(opts['debuginfo'], False)
         self.assertEqual(opts['buildtype'], 'debug')
         self.assertEqual(opts['optimization'], '0')
         self.setconf('-Doptimization=g')
         opts = self.get_opts_as_dict()
-        self.assertEqual(opts['debug'], False)
+        self.assertEqual(opts['debuginfo'], False)
         self.assertEqual(opts['buildtype'], 'debug')
         self.assertEqual(opts['optimization'], 'g')
 
@@ -3492,7 +3492,7 @@ class AllPlatformTests(BasePlatformTests):
                 i['value'] = 'release'
             if i['name'] == 'optimization':
                 i['value'] = '3'
-            if i['name'] == 'debug':
+            if i['name'] == 'debuginfo':
                 i['value'] = False
 
         self.setconf('-Dcpp_std=c++14')

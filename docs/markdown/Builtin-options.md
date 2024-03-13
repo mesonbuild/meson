@@ -78,7 +78,8 @@ machine](#specifying-options-per-machine) section for details.
 | backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode, none} | ninja | Backend to use    | no             | no                |
 | genvslite {vs2022}                     | vs2022        | Setup multi-builtype ninja build directories and Visual Studio solution | no | no |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | no                |
-| debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
+| debug                                  | true          | Deprecated since 1.4.0. Use debuginfo instead.                 | no             | no                |
+| debuginfo                              | true          | Enable debug symbols and other information                     | no             | no                |
 | default_library {shared, static, both} | shared        | Default library type                                           | no             | yes               |
 | errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
@@ -130,22 +131,22 @@ solution's selected buildtype configuration.
 #### Details for `buildtype`
 
 <a name="build-type-options"></a> For setting optimization levels and
-toggling debug, you can either set the `buildtype` option, or you can
-set the `optimization` and `debug` options which give finer control
+toggling debug info, you can either set the `buildtype` option, or you can
+set the `optimization` and `debuginfo` options which give finer control
 over the same. Whichever you decide to use, the other will be deduced
 from it. For example, `-Dbuildtype=debugoptimized` is the same as
-`-Ddebug=true -Doptimization=2` and vice-versa. This table documents
+`-Ddebuginfo=true -Doptimization=2` and vice-versa. This table documents
 the two-way mapping:
 
-| buildtype      | debug | optimization |
-| ---------      | ----- | ------------ |
-| plain          | false | plain        |
-| debug          | true  | 0            |
-| debugoptimized | true  | 2            |
-| release        | false | 3            |
-| minsize        | true  | s            |
+| buildtype      | debuginfo | optimization |
+| ---------      | --------- | ------------ |
+| plain          | false     | plain        |
+| debug          | true      | 0            |
+| debugoptimized | true      | 2            |
+| release        | false     | 3            |
+| minsize        | true      | s            |
 
-All other combinations of `debug` and `optimization` set `buildtype` to `'custom'`.
+All other combinations of `debuginfo` and `optimization` set `buildtype` to `'custom'`.
 
 #### Details for `warning_level`
 
