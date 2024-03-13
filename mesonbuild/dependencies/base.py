@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2018 The Meson development team
+# Copyright © 2024 Intel Corporation
 
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
@@ -106,6 +107,9 @@ class Dependency(HoldableObject):
         return kwargs['include_type']
 
     def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
+        # This allows two Dependencies to be compared even after being copied.
+        # The purpose is to allow the name to be changed, but still have a proper comparison
+        self.__id = id(self)
         self.name = f'dep{id(self)}'
         self.version:  T.Optional[str] = None
         self.language: T.Optional[str] = None # None means C-like
@@ -123,6 +127,14 @@ class Dependency(HoldableObject):
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
         self.feature_since: T.Optional[T.Tuple[str, str]] = None
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Dependency):
+            return NotImplemented
+        return self.__id == other.__id
+
+    def __hash__(self) -> int:
+        return self.__id
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self.name}: {self.is_found}>'
