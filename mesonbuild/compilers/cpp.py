@@ -184,6 +184,13 @@ class _StdCPPLibMixin(CompilerMixinBase):
 
     """Detect whether to use libc++ or libstdc++."""
 
+    def language_stdlib_provider(self, env: Environment) -> str:
+        # https://stackoverflow.com/a/31658120
+        header = 'version' if self.has_header('<version>', '', env) else 'ciso646'
+        is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '', env)[0]
+        lib = 'c++' if is_libcxx else 'stdc++'
+        return lib
+
     @functools.lru_cache(None)
     def language_stdlib_only_link_flags(self, env: Environment) -> T.List[str]:
         """Detect the C++ stdlib and default search dirs
@@ -203,11 +210,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
         machine = env.machines[self.for_machine]
         assert machine is not None, 'for mypy'
 
-        # https://stackoverflow.com/a/31658120
-        header = 'version' if self.has_header('<version>', '', env) else 'ciso646'
-        is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '', env)[0]
-        lib = 'c++' if is_libcxx else 'stdc++'
-
+        lib = self.language_stdlib_provider(env)
         if self.find_library(lib, env, []) is not None:
             return search_dirs + [f'-l{lib}']
 
