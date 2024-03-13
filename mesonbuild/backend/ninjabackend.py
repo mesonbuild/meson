@@ -1871,7 +1871,7 @@ class NinjaBackend(backends.Backend):
         base_proxy = target.get_options()
         args = rustc.compiler_args()
         # Compiler args for compiling this target
-        args += compilers.get_base_compile_args(base_proxy, rustc)
+        args += compilers.get_base_compile_args(base_proxy, rustc, self.environment)
         self.generate_generator_list_rules(target)
 
         # dependencies need to cause a relink, they're not just for ordering
@@ -2757,7 +2757,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = compiler.compiler_args()
         # Compiler args for compiling this target
-        commands += compilers.get_base_compile_args(base_proxy, compiler)
+        commands += compilers.get_base_compile_args(base_proxy, compiler, self.environment)
         if isinstance(src, File):
             if src.is_built:
                 src_filename = os.path.join(src.subdir, src.fname)
@@ -2822,7 +2822,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # options passed on the command-line, in default_options, etc.
         # These have the lowest priority.
         commands += compilers.get_base_compile_args(base_proxy,
-                                                    compiler)
+                                                    compiler, self.environment)
         return commands
 
     @lru_cache(maxsize=None)

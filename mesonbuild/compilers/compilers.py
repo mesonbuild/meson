@@ -283,7 +283,7 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
              options[OptionKey('buildtype')].value in {'release', 'plain'}))
 
 
-def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
+def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     try:
         if options[OptionKey('b_lto')].value:
@@ -314,7 +314,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     except KeyError:
         pass
     try:
-        args += compiler.get_assert_args(are_asserts_disabled(options))
+        args += compiler.get_assert_args(are_asserts_disabled(options), env)
     except KeyError:
         pass
     # This does not need a try...except
@@ -1060,7 +1060,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_coverage_link_args(self) -> T.List[str]:
         return self.linker.get_coverage_args()
 
-    def get_assert_args(self, disable: bool) -> T.List[str]:
+    def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         """Get arguments to enable or disable assertion.
 
         :param disable: Whether to disable assertions
