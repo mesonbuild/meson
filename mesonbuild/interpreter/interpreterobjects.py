@@ -379,7 +379,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
         # We already have typed_pos_args checking that this is either a bool or
         # an int.
         if not isinstance(args[1], bool):
-            mlog.deprecation('configuration_data.set10 with number. the `set10` '
+            mlog.deprecation('configuration_data.set10 with number. The `set10` '
                              'method should only be used with booleans',
                              location=self.interpreter.current_node)
             if args[1] < 0:
