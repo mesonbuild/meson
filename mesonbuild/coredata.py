@@ -579,6 +579,7 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.options: 'MutableKeyedOptionDictType' = {}
+        self.is_build_only = False
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
 
