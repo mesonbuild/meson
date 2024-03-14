@@ -84,6 +84,7 @@ class WaylandModule(ExtensionModule):
                 [self.scanner_bin, f'{scope}-code', '@INPUT@', '@OUTPUT@'],
                 [xml_file],
                 [f'{name}-protocol.c'],
+                state.is_build_only_subproject,
                 backend=state.backend,
             )
             targets.append(code)
@@ -101,6 +102,7 @@ class WaylandModule(ExtensionModule):
                     command,
                     [xml_file],
                     [f'{name}-{side}-protocol.h'],
+                    state.is_build_only_subproject,
                     backend=state.backend,
                 )
                 targets.append(header)

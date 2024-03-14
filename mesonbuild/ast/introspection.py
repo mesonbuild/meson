@@ -271,7 +271,8 @@ class IntrospectionInterpreter(AstInterpreter):
         # Passing the unresolved sources list causes errors
         kwargs_reduced['_allow_no_sources'] = True
         target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, None, objects,
-                             self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
+                             self.environment, self.coredata.compilers[for_machine], self.coredata.is_build_only,
+                             kwargs_reduced)
         target.process_compilers_late()
 
         new_target = {

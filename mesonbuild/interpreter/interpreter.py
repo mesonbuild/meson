@@ -1959,6 +1959,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             cmd,
             self.source_strings_to_files(kwargs['input']),
             kwargs['output'],
+            self.coredata.is_build_only,
             build_by_default=True,
             build_always_stale=True,
         )
@@ -2080,6 +2081,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             command,
             inputs,
             kwargs['output'],
+            self.coredata.is_build_only,
             build_always_stale=build_always_stale,
             build_by_default=build_by_default,
             capture=kwargs['capture'],
@@ -3415,7 +3417,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 kwargs['implib'] = False
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                             self.environment, self.compilers[for_machine], kwargs)
+                             self.environment, self.compilers[for_machine], self.coredata.is_build_only, kwargs)
 
         self.add_target(name, target)
         self.project_args_frozen = True
