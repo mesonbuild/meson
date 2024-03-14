@@ -51,7 +51,7 @@ except ImportError:
 REQ_TIMEOUT = 30.0
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
-ALL_TYPES = ['file', 'git', 'hg', 'svn']
+ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
 
 PATCH = shutil.which('patch')
 
@@ -137,46 +137,60 @@ class WrapNotFoundException(WrapException):
     pass
 
 class PackageDefinition:
-    def __init__(self, fname: str, subproject: str = ''):
-        self.filename = fname
-        self.subproject = SubProject(subproject)
-        self.type: T.Optional[str] = None
-        self.values: T.Dict[str, str] = {}
+    def __init__(self, name: str, subprojects_dir: str, type_: T.Optional[str] = None, values: T.Optional[T.Dict[str, str]] = None):
+        self.name = name
+        self.subprojects_dir = subprojects_dir
+        self.type = type_
+        self.values = values or {}
         self.provided_deps: T.Dict[str, T.Optional[str]] = {}
         self.provided_programs: T.List[str] = []
         self.diff_files: T.List[Path] = []
-        self.basename = os.path.basename(fname)
-        self.has_wrap = self.basename.endswith('.wrap')
-        self.name = self.basename[:-5] if self.has_wrap else self.basename
-        # must be lowercase for consistency with dep=variable assignment
-        self.provided_deps[self.name.lower()] = None
-        # What the original file name was before redirection
-        self.original_filename = fname
-        self.redirected = False
-        if self.has_wrap:
-            self.parse_wrap()
-            with open(fname, 'r', encoding='utf-8') as file:
-                self.wrapfile_hash = hashlib.sha256(file.read().encode('utf-8')).hexdigest()
+        self.wrapfile_hash: T.Optional[str] = None
+        self.original_filename: T.Optional[str] = None
+        self.redirected: bool = False
+        self.filesdir = os.path.join(self.subprojects_dir, 'packagefiles')
         self.directory = self.values.get('directory', self.name)
         if os.path.dirname(self.directory):
             raise WrapException('Directory key must be a name and not a path')
-        if self.type and self.type not in ALL_TYPES:
-            raise WrapException(f'Unknown wrap type {self.type!r}')
-        self.filesdir = os.path.join(os.path.dirname(self.filename), 'packagefiles')
+        if 'diff_files' in self.values:
+            for s in self.values['diff_files'].split(','):
+                path = Path(s.strip())
+                if path.is_absolute():
+                    raise WrapException('diff_files paths cannot be absolute')
+                if '..' in path.parts:
+                    raise WrapException('diff_files paths cannot contain ".."')
+                self.diff_files.append(path)
+        # must be lowercase for consistency with dep=variable assignment
+        self.provided_deps[self.name.lower()] = None
 
-    def parse_wrap(self) -> None:
-        try:
-            config = configparser.ConfigParser(interpolation=None)
-            config.read(self.filename, encoding='utf-8')
-        except configparser.Error as e:
-            raise WrapException(f'Failed to parse {self.basename}: {e!s}')
-        self.parse_wrap_section(config)
-        if self.type == 'redirect':
+    @staticmethod
+    def from_values(name: str, subprojects_dir: str, type_: str, values: T.Dict[str, str]) -> PackageDefinition:
+        return PackageDefinition(name, subprojects_dir, type_, values)
+
+    @staticmethod
+    def from_directory(filename: str) -> PackageDefinition:
+        name = os.path.basename(filename)
+        subprojects_dir = os.path.dirname(filename)
+        return PackageDefinition(name, subprojects_dir)
+
+    @staticmethod
+    def from_wrap_file(filename: str, subproject: SubProject = SubProject('')) -> PackageDefinition:
+        config, type_, values = PackageDefinition._parse_wrap(filename)
+        if 'diff_files' in values:
+            FeatureNew('Wrap files with diff_files', '0.63.0').use(subproject)
+        if 'patch_directory' in values:
+            FeatureNew('Wrap files with patch_directory', '0.55.0').use(subproject)
+        for what in ['patch', 'source']:
+            if f'{what}_filename' in values and f'{what}_url' not in values:
+                FeatureNew(f'Local wrap patch files without {what}_url', '0.55.0').use(subproject)
+
+        subprojects_dir = os.path.dirname(filename)
+
+        if type_ == 'redirect':
             # [wrap-redirect] have a `filename` value pointing to the real wrap
             # file we should parse instead. It must be relative to the current
             # wrap file location and must be in the form foo/subprojects/bar.wrap.
-            dirname = Path(self.filename).parent
-            fname = Path(self.values['filename'])
+            fname = Path(values['filename'])
             for i, p in enumerate(fname.parts):
                 if i % 2 == 0:
                     if p == '..':
@@ -186,37 +200,41 @@ class PackageDefinition:
                         raise WrapException('wrap-redirect filename must be in the form foo/subprojects/bar.wrap')
             if fname.suffix != '.wrap':
                 raise WrapException('wrap-redirect filename must be a .wrap file')
-            fname = dirname / fname
+            fname = Path(subprojects_dir, fname)
             if not fname.is_file():
                 raise WrapException(f'wrap-redirect {fname} filename does not exist')
-            self.filename = str(fname)
-            self.parse_wrap()
-            self.redirected = True
-        else:
-            self.parse_provide_section(config)
-        if 'patch_directory' in self.values:
-            FeatureNew('Wrap files with patch_directory', '0.55.0').use(self.subproject)
-        for what in ['patch', 'source']:
-            if f'{what}_filename' in self.values and f'{what}_url' not in self.values:
-                FeatureNew(f'Local wrap patch files without {what}_url', '0.55.0').use(self.subproject)
+            wrap = PackageDefinition.from_wrap_file(str(fname), subproject)
+            wrap.original_filename = filename
+            wrap.redirected = True
+            return wrap
 
-    def parse_wrap_section(self, config: configparser.ConfigParser) -> None:
+        name = os.path.basename(filename)[:-5]
+        wrap = PackageDefinition.from_values(name, subprojects_dir, type_, values)
+        wrap.original_filename = filename
+        wrap.parse_provide_section(config)
+
+        with open(filename, 'r', encoding='utf-8') as file:
+            wrap.wrapfile_hash = hashlib.sha256(file.read().encode('utf-8')).hexdigest()
+
+        return wrap
+
+    @staticmethod
+    def _parse_wrap(filename: str) -> T.Tuple[configparser.ConfigParser, str, T.Dict[str, str]]:
+        try:
+            config = configparser.ConfigParser(interpolation=None)
+            config.read(filename, encoding='utf-8')
+        except configparser.Error as e:
+            raise WrapException(f'Failed to parse {filename}: {e!s}')
         if len(config.sections()) < 1:
-            raise WrapException(f'Missing sections in {self.basename}')
-        self.wrap_section = config.sections()[0]
-        if not self.wrap_section.startswith('wrap-'):
-            raise WrapException(f'{self.wrap_section!r} is not a valid first section in {self.basename}')
-        self.type = self.wrap_section[5:]
-        self.values = dict(config[self.wrap_section])
-        if 'diff_files' in self.values:
-            FeatureNew('Wrap files with diff_files', '0.63.0').use(self.subproject)
-            for s in self.values['diff_files'].split(','):
-                path = Path(s.strip())
-                if path.is_absolute():
-                    raise WrapException('diff_files paths cannot be absolute')
-                if '..' in path.parts:
-                    raise WrapException('diff_files paths cannot contain ".."')
-                self.diff_files.append(path)
+            raise WrapException(f'Missing sections in {filename}')
+        wrap_section = config.sections()[0]
+        if not wrap_section.startswith('wrap-'):
+            raise WrapException(f'{wrap_section!r} is not a valid first section in {filename}')
+        type_ = wrap_section[5:]
+        if type_ not in ALL_TYPES:
+            raise WrapException(f'Unknown wrap type {type_!r}')
+        values = dict(config[wrap_section])
+        return config, type_, values
 
     def parse_provide_section(self, config: configparser.ConfigParser) -> None:
         if config.has_section('provides'):
@@ -236,7 +254,7 @@ class PackageDefinition:
                     self.provided_programs += names_list
                     continue
                 if not v:
-                    m = (f'Empty dependency variable name for {k!r} in {self.basename}. '
+                    m = (f'Empty dependency variable name for {k!r} in {self.name}.wrap. '
                          'If the subproject uses meson.override_dependency() '
                          'it can be added in the "dependency_names" special key.')
                     raise WrapException(m)
@@ -246,20 +264,21 @@ class PackageDefinition:
         try:
             return self.values[key]
         except KeyError:
-            raise WrapException(f'Missing key {key!r} in {self.basename}')
+            raise WrapException(f'Missing key {key!r} in {self.name}.wrap')
 
-    def get_hashfile(self, subproject_directory: str) -> str:
+    @staticmethod
+    def get_hashfile(subproject_directory: str) -> str:
         return os.path.join(subproject_directory, '.meson-subproject-wrap-hash.txt')
 
     def update_hash_cache(self, subproject_directory: str) -> None:
-        if self.has_wrap:
+        if self.wrapfile_hash:
             with open(self.get_hashfile(subproject_directory), 'w', encoding='utf-8') as file:
                 file.write(self.wrapfile_hash + '\n')
 
 def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
     if os.path.isfile(fname):
-        wrap = PackageDefinition(fname)
+        wrap = PackageDefinition.from_wrap_file(fname)
         return wrap.directory
     return packagename
 
@@ -276,7 +295,7 @@ def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
 class Resolver:
     source_dir: str
     subdir: str
-    subproject: str = ''
+    subproject: SubProject = SubProject('')
     wrap_mode: WrapMode = WrapMode.default
     wrap_frontend: bool = False
     allow_insecure: bool = False
@@ -305,25 +324,32 @@ class Resolver:
             mlog.warning(f'failed to process netrc file: {e}.', fatal=False)
 
     def load_wraps(self) -> None:
-        if not os.path.isdir(self.subdir_root):
-            return
-        root, dirs, files = next(os.walk(self.subdir_root))
-        ignore_dirs = {'packagecache', 'packagefiles'}
-        for i in files:
-            if not i.endswith('.wrap'):
-                continue
-            fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition(fname, self.subproject)
-            self.wraps[wrap.name] = wrap
-            ignore_dirs |= {wrap.directory, wrap.name}
-        # Add dummy package definition for directories not associated with a wrap file.
-        for i in dirs:
-            if i in ignore_dirs:
-                continue
-            fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition(fname, self.subproject)
-            self.wraps[wrap.name] = wrap
-
+        # Load Cargo.lock at the root of source tree
+        source_dir = os.path.dirname(self.subdir_root)
+        if os.path.exists(os.path.join(source_dir, 'Cargo.lock')):
+            from .. import cargo
+            for wrap in cargo.load_wraps(source_dir, self.subdir_root):
+                self.wraps[wrap.name] = wrap
+        # Load subprojects/*.wrap
+        if os.path.isdir(self.subdir_root):
+            root, dirs, files = next(os.walk(self.subdir_root))
+            for i in files:
+                if not i.endswith('.wrap'):
+                    continue
+                fname = os.path.join(self.subdir_root, i)
+                wrap = PackageDefinition.from_wrap_file(fname, self.subproject)
+                self.wraps[wrap.name] = wrap
+            # Add dummy package definition for directories not associated with a wrap file.
+            ignore_dirs = {'packagecache', 'packagefiles'}
+            for wrap in self.wraps.values():
+                ignore_dirs |= {wrap.directory, wrap.name}
+            for i in dirs:
+                if i in ignore_dirs:
+                    continue
+                fname = os.path.join(self.subdir_root, i)
+                wrap = PackageDefinition.from_directory(fname)
+                self.wraps[wrap.name] = wrap
+        # Add provided deps and programs into our lookup tables
         for wrap in self.wraps.values():
             self.add_wrap(wrap)
 
@@ -331,13 +357,13 @@ class Resolver:
         for k in wrap.provided_deps.keys():
             if k in self.provided_deps:
                 prev_wrap = self.provided_deps[k]
-                m = f'Multiple wrap files provide {k!r} dependency: {wrap.basename} and {prev_wrap.basename}'
+                m = f'Multiple wrap files provide {k!r} dependency: {wrap.name} and {prev_wrap.name}'
                 raise WrapException(m)
             self.provided_deps[k] = wrap
         for k in wrap.provided_programs:
             if k in self.provided_programs:
                 prev_wrap = self.provided_programs[k]
-                m = f'Multiple wrap files provide {k!r} program: {wrap.basename} and {prev_wrap.basename}'
+                m = f'Multiple wrap files provide {k!r} program: {wrap.name} and {prev_wrap.name}'
                 raise WrapException(m)
             self.provided_programs[k] = wrap
 
@@ -363,7 +389,7 @@ class Resolver:
         with fname.open('wb') as f:
             f.write(url.read())
         mlog.log(f'Installed {subp_name} version {version} revision {revision}')
-        wrap = PackageDefinition(str(fname))
+        wrap = PackageDefinition.from_wrap_file(str(fname))
         self.wraps[wrap.name] = wrap
         self.add_wrap(wrap)
         return wrap
@@ -409,32 +435,26 @@ class Resolver:
                 raise WrapNotFoundException(f'Neither a subproject directory nor a {packagename}.wrap file was found.')
         self.wrap = wrap
         self.directory = self.wrap.directory
+        self.dirname = os.path.join(self.wrap.subprojects_dir, self.wrap.directory)
+        if not os.path.exists(self.dirname):
+            self.dirname = os.path.join(self.subdir_root, self.directory)
+        rel_path = os.path.relpath(self.dirname, self.source_dir)
 
-        if self.wrap.has_wrap:
-            # We have a .wrap file, use directory relative to the location of
-            # the wrap file if it exists, otherwise source code will be placed
-            # into main project's subproject_dir even if the wrap file comes
-            # from another subproject.
-            self.dirname = os.path.join(os.path.dirname(self.wrap.filename), self.wrap.directory)
-            if not os.path.exists(self.dirname):
-                self.dirname = os.path.join(self.subdir_root, self.directory)
-            # Check if the wrap comes from the main project.
-            main_fname = os.path.join(self.subdir_root, self.wrap.basename)
-            if self.wrap.filename != main_fname:
-                rel = os.path.relpath(self.wrap.filename, self.source_dir)
+        if self.wrap.original_filename:
+            # If the original wrap file is not in main project's subproject_dir,
+            # write a wrap-redirect.
+            basename = os.path.basename(self.wrap.original_filename)
+            main_fname = os.path.join(self.subdir_root, basename)
+            if self.wrap.original_filename != main_fname:
+                rel = os.path.relpath(self.wrap.original_filename, self.source_dir)
                 mlog.log('Using', mlog.bold(rel))
                 # Write a dummy wrap file in main project that redirect to the
                 # wrap we picked.
                 with open(main_fname, 'w', encoding='utf-8') as f:
                     f.write(textwrap.dedent(f'''\
                         [wrap-redirect]
-                        filename = {PurePath(os.path.relpath(self.wrap.filename, self.subdir_root)).as_posix()}
+                        filename = {PurePath(os.path.relpath(self.wrap.original_filename, self.subdir_root)).as_posix()}
                         '''))
-        else:
-            # No wrap file, it's a dummy package definition for an existing
-            # directory. Use the source code in place.
-            self.dirname = self.wrap.filename
-        rel_path = os.path.relpath(self.dirname, self.source_dir)
 
         # Map each supported method to a file that must exist at the root of source tree.
         methods_map: T.Dict[Method, str] = {
@@ -606,7 +626,7 @@ class Resolver:
 
     def validate(self) -> None:
         # This check is only for subprojects with wraps.
-        if not self.wrap.has_wrap:
+        if not self.wrap.wrapfile_hash:
             return
 
         # Retrieve original hash, if it exists.
@@ -618,10 +638,8 @@ class Resolver:
             # If stored hash doesn't exist then don't warn.
             return
 
-        actual_hash = self.wrap.wrapfile_hash
-
         # Compare hashes and warn the user if they don't match.
-        if expected_hash != actual_hash:
+        if expected_hash != self.wrap.wrapfile_hash:
             mlog.warning(f'Subproject {self.wrap.name}\'s revision may be out of date; its wrap file has changed since it was first configured')
 
     def is_git_full_commit_id(self, revno: str) -> bool:
@@ -783,7 +801,7 @@ class Resolver:
 
     def apply_patch(self, packagename: str) -> None:
         if 'patch_filename' in self.wrap.values and 'patch_directory' in self.wrap.values:
-            m = f'Wrap file {self.wrap.basename!r} must not have both "patch_filename" and "patch_directory"'
+            m = f'Wrap file {self.wrap.name!r} must not have both "patch_filename" and "patch_directory"'
             raise WrapException(m)
         if 'patch_filename' in self.wrap.values:
             path = self._get_file_internal('patch', packagename)
