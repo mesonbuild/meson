@@ -1,0 +1,9 @@
+# A cross file that is missing compilers must lead to
+# an error.
+[binaries]
+
+[target_machine]
+system = 'linux'
+cpu_family = 'mips'
+cpu = 'mips'
+endian = 'little'
