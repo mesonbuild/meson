@@ -45,3 +45,23 @@ endif
 
 assert(cc.has_multi_link_arguments(is_arg), 'Arg that should have worked does not work.')
 assert(cc.has_multi_link_arguments([useless, is_arg]), 'Arg that should have worked does not work.')
+
+# These are Visual Studio only flags
+# Testing has_argument_syntax is incorrect as it skips Microsoft Clang
+if cc.get_define('_MSC_FULL_VER') != ''
+  if cc.get_linker_id() == 'link'
+    is_only = '/OPT:REF'
+    is_shared = '/GUARD:CF'
+  else # ld-link
+    is_only = '--color-diagnostics'
+    is_shared = '-guard:cf'
+  endif
+
+  # requires -Wl,xxx as it goes through the compiler
+  if cc.get_argument_syntax() != 'msvc'
+    is_only = '-Wl,@0@'.format(is_only)
+    is_shared = '-Wl,@0@'.format(is_shared)
+  endif
+
+  assert(cc.has_multi_link_arguments([is_only, is_shared]), 'Arg that should have worked does not work.')
+endif
