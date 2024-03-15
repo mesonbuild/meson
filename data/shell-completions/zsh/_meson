@@ -26,14 +26,12 @@
 # basis, and the Meson development team have no obligation to provide
 # maintenance, support, updates, enhancements, or modifications.
 
-local curcontext="$curcontext" state line
-local -i ret
-
-local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2015,2017}}})"
-local __meson_build_types="(plain debug debugoptimized minsize release)"
-local __meson_wrap_modes="(WrapMode.{default,nofallback,nodownload,forcefallback})"
+local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2012,2013,2015,2017,2019,2022}}})"
+local __meson_build_types="(plain debug debugoptimized minsize release custom)"
+local __meson_wrap_modes="(default nofallback nodownload forcefallback nopromote)"
 local __meson_dist_formats=("xztar" "gztar" "zip")
-local __meson_cd='-C[change into this directory before running]:target dir:_directories'
+# This goes in sync with coredata.BUILTIN_*.
+local __meson_cd='-C+[change into this directory before running]:target dir:_directories'
 local -a __meson_common=(
   '--prefix=[installation prefix]: :_directories'
   '--bindir=[executable directory]: :_directories'
@@ -41,6 +39,7 @@ local -a __meson_common=(
   '--includedir=[header file directory]: :_directories'
   '--infodir=[info page directory]: :_directories'
   '--libdir=[library directory]: :_directories'
+  '--licensedir=[licenses directory]: :_directories'
   '--libexecdir=[library executable directory]: :_directories'
   '--localedir=[locale data directory]: :_directories'
   '--localstatedir=[local state data directory]: :_directories'
@@ -55,12 +54,12 @@ local -a __meson_common=(
   '--default-library=[default library type]:default library type:(shared static both)'
   '--errorlogs[prints the logs from failing tests]'
   '--install-umask=[default umask for permissions of all installed files]'
-  '--layout=[build directory layout]:build directory layout:(flat mirror)'
-  '--optimization=[optimization level for compiled targets]:optimization:(0 g 1 2 3 s)'
+  '--layout=[build directory layout]:build directory layout:(mirror)'
+  '--optimization=[optimization level for compiled targets]:optimization:(plain 0 g 1 2 3 s)'
   '--stdsplit=[split stdout and stderr in test logs]'
   '--strip[strip targets on install]'
   '--unity=[unity builds on/off]:whether to do unity builds:(on off subprojects)'
-  '--warnlevel=[compiler warning level]:compiler warning level:warning level:(1 2 3)'
+  '--warnlevel=[compiler warning level]:compiler warning level:warning level:(0 1 2 3 everything)'
   '--werror[treat warnings as errors]'
   '--wrap-mode=[special wrap mode]:wrap mode:'"$__meson_wrap_modes"
   '--force-fallback-for=[force fallback for listed subprojects]'
@@ -81,6 +80,9 @@ local -a meson_commands=(
 'wrap:manage source dependencies'
 'subprojects:manage subprojects'
 'compile:Build the project'
+'rewrite:modify the project definition'
+'devenv:run commands in a developer environment'
+'env2mfile:generate a toolchain file from environment'
 )
 
 (( $+functions[__meson_is_build_dir] )) || __meson_is_build_dir() {
@@ -89,15 +91,43 @@ local -a meson_commands=(
   return $?
 }
 
-# TODO: implement build option completion
-(( $+functions[__meson_build_options] )) || __meson_build_options() {}
+# TODO: implement build option completion from subprojects
+(( $+functions[__meson_option-D-1] )) || __meson_option-D-1() {
+  # NB: uses $line from caller.
+  local builddir do_from_source=
+  case "${curcontext%:*}" in
+  (:*:meson-configure)
+    builddir="${line[1]}"
+    if [[ -z "$builddir" ]]; then
+      _message 'build directory not specified; introspecting from source'
+      do_from_source=1
+    fi
+    ;;
+  (:*:meson-setup)
+    do_from_source=1
+    ;;
+  (*)
+    _message 'no completions available'
+    return
+    ;;
+  esac
+
+  # It is hard to parse JSON in zsh. Since Meson is written in Python, we use
+  # an internal script to parse the output of `meson introspect` and emit
+  # relevant, working completion code.
+  if [[ -n "$do_from_source" ]]; then
+    # FIXME: this might be a bit slow, and if we use a cache, it must be per-project.
+    eval "$(_call_program meson meson introspect meson.build --buildoptions \
+      | _call_program meson meson --internal zshcomplete --buildoptions -)"
+  else
+    # Optimization: fetch pre-recorded introspection data from `$builddir/meson-info/`.
+    eval "$(_call_program meson meson --internal zshcomplete --buildoptions "$builddir")"
+  fi
+}
 
 # `meson introspect` currently can provide that information in JSON.
-# We can:
-# 1) pipe its output to python3 -m json.tool | grep "$alovelyregex" | cut <...>
-# 2) teach mintro.py to use a different output format
-#    (or perhaps just to select the fields printed)
-
+# We can get more accurate information from there using a technique similar
+# to how we complete build options.
 (( $+functions[__meson_test_names] )) || __meson_test_names() {
   local rtests
   if rtests="$(_call_program meson meson test ${opt_args[-C]:+-C "$opt_args[-C]"} --list)";
@@ -105,8 +135,8 @@ local -a meson_commands=(
     local -a tests=(${(@f)rtests})
     _describe -t "tests" "Meson tests" tests
   else
-    _message -r "current working directory is not a build directory"
-    _message -r 'use -C $build_dir or cd $build_dir'
+    _message "current working directory is not a build directory"
+    _message 'use -C $build_dir or cd $build_dir'
   fi
 }
 
@@ -125,10 +155,6 @@ local -a meson_commands=(
   fi
 }
 
-(( $+functions[_meson_commands] )) || _meson_commands() {
-    _describe -t commands "Meson subcommands" meson_commands
-}
-
 (( $+functions[_meson-setup] )) || _meson-setup() {
   local firstd secondd
   if [[ -f "meson.build" ]]; then
@@ -144,25 +170,35 @@ local -a meson_commands=(
     secondd="build"
   fi
 
-  _arguments \
-  '*-D-[set the value of a build option]:build option:__meson_build_options' \
+  local curcontext="$curcontext" state state_descr
+  local -a line
+  typeset -A opt_args
+  _arguments -C \
+  '*-D+[set the value of a build option]: :->option-D-1' \
   '--cross-file=[cross-compilation environment description]:cross file:_files' \
   '--native-file=[build machine compilation environment description]:native file:_files' \
   '--clearcache[clear cached state]' \
-  '--fatal-meson-warnings=[exit when any meson warnings are encountered]' \
+  '--fatal-meson-warnings[exit when any meson warnings are encountered]' \
   '(-v --version)'{'-v','--version'}'[print the meson version and exit]' \
-  '--reconfigure=[re-run build configuration]' \
-  '--wipe=[delete saved state and restart using saved command line options]' \
+  '--reconfigure[re-run build configuration]' \
+  '--wipe[delete saved state and restart using saved command line options]' \
   ":$firstd directory:_directories" \
   "::$secondd directory:_directories" \
   "${(@)__meson_common}"
+
+  case "$state" in
+    option-D-1)
+      __meson_option-D-1
+      ;;
+  esac
 }
 
 (( $+functions[_meson-configure] )) || _meson-configure() {
-  local curcontext="$curcontext"
-  # TODO: implement 'mesonconf @file'
+  local curcontext="$curcontext" state state_descr line
+  typeset -A opt_args
+
   local -a specs=(
-  '*-D-[set the value of a build option]:build option:__meson_build_options'
+  '*-D+[set the value of a build option]: :->option-D-1'
   '::build directory:_directories'
   )
 
@@ -170,6 +206,12 @@ local -a meson_commands=(
     '(: -)'{'--help','-h'}'[show a help message and quit]' \
     "${(@)specs}" \
     "${(@)__meson_common}"
+
+  case "$state" in
+    option-D-1)
+      __meson_option-D-1
+      ;;
+  esac
 }
 
 (( $+functions[_meson-test] )) || _meson-test() {
@@ -244,12 +286,13 @@ _arguments \
     '(-n --name)'{'-n','--name'}'=[the name of the project (defaults to directory name)]'
     '(-e --executable)'{'-e','--executable'}'=[the name of the executable target to create (defaults to project name)]'
     '(-d --deps)'{'-d','--deps'}'=[comma separated list of dependencies]'
-    '(-l --language)'{'-l','--language'}'=[comma separated list of languages (autodetected based on sources if unset)]:languages:_values , (c cpp cs cuda d fortran java objc objcpp rust)'
+    '(-l --language)'{'-l','--language'}'=[comma separated list of languages (autodetected based on sources if unset)]:languages:_values , (c cpp cs cuda d fortran java objc objcpp rust vala)'
     '(-b --build)'{'-b','--build'}'[build the project immediately after generation]'
     '--builddir=[directory for building]:directory:_directories'
     '(-f --force)'{'-f','--force'}'[overwrite any existing files and directories]'
     '(-t --type)'{'-t','--type'}'=[project type, defaults to executable]:type:(executable library)'
     '(-v --version)'{'-v','--version'}'[print the meson version and exit]'
+    '*:source files:_files'
   )
 _arguments \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
@@ -312,14 +355,22 @@ _arguments \
   "${(@)specs}"
 }
 
+local -a __meson_subprojects_common_specs=(
+    '--sourcedir=[path to source directory]: :_directories'
+    '--types[comma-separated list of subproject types]: :_sequence compadd - all file git hg svn'
+    '--num-processes[how many parallel processes to use]:number of processes: '
+    '--allow-insecure[allow insecure server connections]'
+)
+
 (( $+functions[_meson-subprojects-update] )) || _meson-subprojects-update() {
   local curcontext="$curcontext"
   local -a specs=(
     "--rebase[rebase your branch on top of wrap's revision (git only)]"
-    '--sourcedir=[path to source directory]:_directories'
+    '--reset[hard reset to wrap revision (git only)]'
+    "${(@)__meson_subprojects_common_specs}"
     '*:subprojects:__meson_installed_wraps'
   )
-_arguments \
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
@@ -328,12 +379,12 @@ _arguments \
   local curcontext="$curcontext"
   local -a specs=(
     '-b[create a new branch]'
-    '--sourcedir=[path to source directory]:_directories'
+    "${(@)__meson_subprojects_common_specs}"
     # FIXME: this doesn't work exactly right, but I can't figure it out
-    ':branch name'
+    '::branch name: '
     '*:subprojects:__meson_installed_wraps'
   )
-_arguments \
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
@@ -341,9 +392,10 @@ _arguments \
 (( $+functions[_meson-subprojects-download] )) || _meson-subprojects-download() {
   local curcontext="$curcontext"
   local -a specs=(
-    '--sourcedir=[path to source directory]:_directories'
+    "${(@)__meson_subprojects_common_specs}"
+    '*:subprojects:__meson_installed_wraps'
   )
-_arguments \
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
@@ -351,38 +403,70 @@ _arguments \
 (( $+functions[_meson-subprojects-foreach] )) || _meson-subprojects-foreach() {
   local curcontext="$curcontext"
   local -a specs=(
-    '--sourcedir=[path to source directory]:_directories'
+    "${(@)__meson_subprojects_common_specs}"
     '*:command:_command_names -e'
   )
-_arguments \
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects-purge] )) || _meson-subprojects-purge() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "${(@)__meson_subprojects_common_specs}"
+    '--include-cache[remove the package cache as well]'
+    '--confirm[confirm the removal of subproject artifacts]'
+    '*:subprojects:__meson_installed_wraps'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects-packagefiles] )) || _meson-subprojects-packagefiles() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "${(@)__meson_subprojects_common_specs}"
+    '--apply[apply packagefiles to the subproject]'
+    '--save[save packagefiles to the subproject]'
+    '*:subprojects:__meson_installed_wraps'
+  )
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
 }
 
 (( $+functions[_meson-subprojects] )) || _meson-subprojects() {
+  local curcontext="$curcontext" state state_descr line
+  local -i ret
   local -a commands=(
     'update:update all subprojects from wrap files'
     'checkout:checkout a branch (git only)'
-    'download:ensure subprojects are fetched, even if not in use. Already downloaded subprojects are not modified.'
+    'download:download unfetched subprojects, even if not in use'
     'foreach:execute a command in each subproject directory'
+    'purge:remove all wrap-based subproject artifacts'
+    'packagefiles:manage the packagefiles overlay'
   )
 
-  if (( CURRENT == 2 )); then
-    _describe -t commands "Meson subproject subcommands" commands
-  else
-    local curcontext="$curcontext"
-    cmd="${${commands[(r)$words[2]:*]%%:*}}"
-    if (( $#cmd )); then
-      if [[ $cmd == status ]]; then
-        _message "no options"
-      else
-        _meson-subprojects-$cmd
-      fi
-    else
-      _message "unknown meson subproject command: $words[2]"
-    fi
-  fi
+  local -a specs=(
+    ':Meson subproject subcommands:(( "${(@)commands}" ))'
+    '*:: :->post-command'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
 
+  case "$state" in
+    post-command)
+      service="$service-$line[1]"
+      curcontext=${curcontext%:*:*}:$service:
+      if ! _call_function ret _$service; then
+        _message "unknown meson subproject command: $line[1]"
+        return ret
+      fi
+      ;;
+  esac
 }
 
 (( $+functions[_meson-compile] )) || _meson-compile() {
@@ -390,7 +474,7 @@ _arguments \
   local -a specs=(
     "$__meson_cd"
     '--clean[Clean the build directory]'
-    '(-j --jobs)'{'-j','--jobs'}'=[the number fo work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
+    '(-j --jobs)'{'-j','--jobs'}'=[the number of work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
     '(-l --load-average)'{'-l','--load-average'}'=[the system load average to try to maintain (if supported)]:_guard "[0-9]#" "load average"'
     '(-v --verbose)'{'-v','--verbose'}'[Show more output]'
     '--ninja-args=[Arguments to pass to ninja (only when using ninja)]'
@@ -401,24 +485,146 @@ _arguments \
   "${(@)specs}"
 }
 
+(( $+functions[_meson-rewrite-target] )) || _meson-rewrite-target() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    {'-s','--subdir'}'[(for add_target) subdirectory of the new target]: :_directories'
+    '--type[(for add_target) type of the target to add]'
+    ':target: '
+    ':action:(add rm add_target rm_target add_extra_files rm_extra_files info)'
+    '*::sources: '
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite-kwargs] )) || _meson-rewrite-kwargs() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    ':action:(set delete add remove remove_regex info)'
+    ':function type to be modified:(dependency target project)'
+    ':function ID: '
+    '*::pairs of keys and values: '
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite-default-options] )) || _meson-rewrite-default-options() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    ':action:(set delete)'
+    '*::pairs of keys and values: '
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite-command] )) || _meson-rewrite-command() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '::JSON string: '
+    '::JSON file:_files'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-rewrite] )) || _meson-rewrite() {
+  local curcontext="$curcontext" state state_descr line
+  typeset -A opt_args
+  local -i ret
+  local -a commands=(
+    'target:modify a target'
+    'kwargs:modify keyword arguments'
+    'default-options:modify the project default options'
+    'command:execute a JSON array of commands'
+  )
+
+  local -a specs=(
+    '(-s --sourcedir)'{'-s','--sourcedir'}'[path to source directory]: :_directories'
+    '(-S --skip-errors)'{'-S','--skip-errors'}'[skip errors instead of aborting]'
+    '(-V --verbose)'{'-v','--verbose'}'[show verbose output]'
+    '(-):rewrite subcommands:(( "${(@)commands}" ))'
+    '*:: :->post-command'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+ret=$?
+
+  case "$state" in
+    post-command)
+      service="$service-$line[1]"
+      curcontext=${curcontext%:*:*}:$service:
+      if ! _call_function ret _$service; then
+        _message "unknown subcommand: $line[1]"
+      fi
+      return ret
+      ;;
+  esac
+}
+
+(( $+functions[_meson-devenv] )) || _meson-devenv() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '-C+[path to build directory]:build directory:_directories'
+    '(-w --workdir)'{'-w','--workdir'}'+[change into this directory before running]:target dir:_directories'
+    '--dump[only print the required environment]::output file:_files'
+    '--dump-format[specify format used with --dump]:dump formats:(sh export vscode)'
+    '*:::command:_command_names -e'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-env2mfile] )) || _meson-env2mfile() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '--debarch[the dpkg architecture to generate]:debarch: '
+    '--gccsuffix[a particular gcc version suffix if necessary]:gccsuffix: '
+    '-o[the output file]: :_files'
+    '--cross[generate a cross compilation file]'
+    '--native[generate a native compilation file]'
+    '--system[define system for cross compilation]:system: '
+    '--cpu[define cpu for cross compilation]:cpu: '
+    '--cpu-family[define cpu family for cross compilation]:cpu family: '
+    '--endian[define endianness for cross compilation]:endianness:(big little)'
+  )
+_arguments -C \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+local curcontext="$curcontext" state line
+typeset -A opt_args
+local -i ret
+
 if [[ $service != meson ]]; then
   _call_function ret _$service
   return ret
 fi
 
-_arguments -C -R \
+_arguments -C \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   '(: -)'{'--version','-v'}'[show version information and quit]' \
-  '(-): :_meson_commands' \
+  '(-):Meson subcommands:(( "${(@)meson_commands}" ))' \
   '*:: :->post-command' \
 #
 ret=$?
 
-[[ $ret = 300 ]] && case "$state" in
+case "$state" in
   post-command)
-    service="meson-$words[1]"
+    service="meson-$line[1]"
     curcontext=${curcontext%:*:*}:$service:
-    _call_function ret _$service
+    if ! _call_function ret _$service; then
+      _message "unknown subcommand: $line[1]"
+    fi
     ;;
 esac
 
