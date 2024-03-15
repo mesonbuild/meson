@@ -837,7 +837,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.add_build_def_file(cmd.get_path())
         for a in expanded_args:
             if not os.path.isabs(a):
-                a = os.path.join(builddir if in_builddir else srcdir, self.subdir, a)
+                if in_builddir:
+                    a = self.absolute_builddir_path_for(os.path.join(self.subdir, a))
+                else:
+                    a = os.path.join(srcdir, self.subdir, a)
             self.add_build_def_file(a)
 
         return RunProcess(cmd, expanded_args, env, srcdir, builddir, self.subdir,
@@ -920,7 +923,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return self.disabled_subproject(subp_name, exception=e)
             raise e
 
-        os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
+        is_build_only = for_machine is MachineChoice.BUILD and self.environment.is_cross_build()
+        os.makedirs(os.path.join(self.build.environment.get_build_dir(),
+                                 build.compute_build_subdir(subdir, is_build_only)),
+                    exist_ok=True)
         self.global_args_frozen = True
 
         stack = ':'.join(self.subproject_stack[for_machine] + [subp_name])
@@ -2452,7 +2458,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments(f'Tried to enter directory "{subdir}", which has already been visited.')
         self.processed_buildfiles.add(build_file)
         self.subdir = subdir
-        os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
+        os.makedirs(self.absolute_builddir_path_for(subdir), exist_ok=True)
         buildfilename = os.path.join(self.subdir, environment.build_filename)
         self.build_def_files.add(buildfilename)
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
@@ -2680,7 +2686,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             output = outputs[0]
             if depfile:
                 depfile = mesonlib.substitute_values([depfile], values)[0]
-        ofile_rpath = os.path.join(self.subdir, output)
+        ofile_rpath = self.relative_builddir_path_for(os.path.join(self.subdir, output))
         if ofile_rpath in self.configure_file_outputs:
             mesonbuildfile = os.path.join(self.subdir, 'meson.build')
             current_call = f"{mesonbuildfile}:{self.current_lineno}"
@@ -2688,7 +2694,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             mlog.warning('Output file', mlog.bold(ofile_rpath, True), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
         else:
             self.configure_file_outputs[ofile_rpath] = self.current_lineno
-        (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
+        (ofile_path, ofile_fname) = os.path.split(ofile_rpath)
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
 
         # Perform the appropriate action
@@ -2705,7 +2711,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if len(inputs) > 1:
                 raise InterpreterException('At most one input file can given in configuration mode')
             if inputs:
-                os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+                os.makedirs(self.absolute_builddir_path_for(self.subdir), exist_ok=True)
                 file_encoding = kwargs['encoding']
                 missing_variables, confdata_useless = \
                     mesonlib.do_conf_file(inputs_abs[0], ofile_abs, conf,
@@ -2763,7 +2769,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         elif kwargs['copy']:
             if len(inputs_abs) != 1:
                 raise InterpreterException('Exactly one input file must be given in copy mode')
-            os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+            os.makedirs(self.absolute_builddir_path_for(self.subdir), exist_ok=True)
             shutil.copy2(inputs_abs[0], ofile_abs)
 
         # Install file if requested, we check for the empty string
@@ -2817,9 +2823,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not isinstance(is_system, bool):
             raise InvalidArguments('Is_system must be boolean.')
         src_root = self.environment.get_source_dir()
-        build_root = self.environment.get_build_dir()
         absbase_src = os.path.join(src_root, self.subdir)
-        absbase_build = os.path.join(build_root, self.subdir)
+        absbase_build = self.absolute_builddir_path_for(self.subdir)
 
         for a in incdir_strings:
             if path_is_in_root(Path(a), Path(src_root)):
@@ -3498,6 +3503,13 @@ This will become a hard error in the future.''', location=self.current_node)
             fname = os.path.join(subdir, s)
             if not os.path.isfile(fname):
                 raise InterpreterException(f'Tried to add non-existing source file {s}.')
+
+    def absolute_builddir_path_for(self, subdir: str) -> str:
+        return os.path.join(self.environment.build_dir,
+                            self.relative_builddir_path_for(subdir))
+
+    def relative_builddir_path_for(self, subdir: str) -> str:
+        return build.compute_build_subdir(subdir, self.coredata.is_build_only)
 
     # Only permit object extraction from the same subproject
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:

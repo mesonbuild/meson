@@ -217,11 +217,10 @@ class MesonMain(MesonInterpreterObject):
     @noPosargs
     @noKwargs
     def current_build_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        src = self.interpreter.environment.build_dir
         sub = self.interpreter.subdir
         if sub == '':
-            return src
-        return os.path.join(src, sub)
+            return self.interpreter.environment.build_dir
+        return self.interpreter.absolute_builddir_path_for(sub)
 
     @noPosargs
     @noKwargs
