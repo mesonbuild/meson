@@ -36,5 +36,5 @@
     {"type": "file", "file": "usr/include/simple-resources.h"},
     {"type": "file", "file": "usr/include/generated-gdbus.h"}
   ],
-  "skip_on_jobname": ["azure", "cygwin", "macos", "msys2", "pypy"]
+  "expect_skip_on_jobname": ["azure", "cygwin", "macos", "msys2", "pypy"]
 }

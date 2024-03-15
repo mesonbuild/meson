@@ -13,5 +13,5 @@
     {"type": "file", "file": "usr/share/gtk-doc/html/foo/up.png"},
     {"type": "file", "file": "usr/share/gtk-doc/html/foo/right.png"}
   ],
-  "skip_on_jobname": ["azure", "msys2"]
+  "expect_skip_on_jobname": ["azure", "msys2"]
 }

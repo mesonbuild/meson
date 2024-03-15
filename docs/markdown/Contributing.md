@@ -334,9 +334,11 @@ Each value must contain the `val` key for the value of the option.
 `null` can be used for adding matrix entries without the current
 option.
 
-The `skip_on_env`, `skip_on_jobname` and `skip_on_os` keys (as described below)
-may be used in the value to skip that matrix entry, based on the current
-environment.
+The `skip_on_env` key (as described below) may be used in the value to skip that
+matrix entry, based on the current environment.
+
+The `expect_skip_on_jobname` and `expect_skip_on_os` keys (as described below)
+may be used to expect that the test will be skipped, based on the current environment.
 
 Similarly, the `compilers` key can be used to define a mapping of
 compilers to languages that are required for this value.
@@ -412,23 +414,23 @@ The `skip_on_env` key can be used to specify a list of environment variables. If
 at least one environment variable in the `skip_on_env` list is present, the test
 is skipped.
 
-#### skip_on_jobname
+#### expect_skip_on_jobname
 
-The `skip_on_jobname` key contains a list of strings. If the `MESON_CI_JOBNAME`
+The `expect_skip_on_jobname` key contains a list of strings. If the `MESON_CI_JOBNAME`
 environment variable is set, and any of them are a sub-string of it, the test is
 expected to be skipped (that is, it is expected that the test will output
 `MESON_SKIP_TEST`, because the CI environment is not one in which it can run,
 for whatever reason).
 
-The test is failed if it skips or runs unexpectedly.
+The test is failed if it either skips unexpectedly or runs unexpectedly.
 
-#### skip_on_os
+#### expect_skip_on_os
 
-The `skip_on_os` key can be used to specify a list of OS names (or their
-negations, prefixed with a `!`).  If at least one item in the `skip_on_os` list
+The `expect_skip_on_os` key can be used to specify a list of OS names (or their
+negations, prefixed with a `!`).  If at least one item in the `expect_skip_on_os` list
 is matched, the test is expected to be skipped.
 
-The test is failed if it skips or runs unexpectedly.
+The test is failed if it either skips unexpectedly or runs unexpectedly.
 
 ### Skipping integration tests
 

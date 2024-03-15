@@ -87,13 +87,13 @@
                     "type": "string"
                   }
                 },
-                "skip_on_jobname": {
+                "expect_skip_on_jobname": {
                   "type": "array",
                   "items": {
                     "type": "string"
                   }
                 },
-                "skip_on_os": {
+                "expect_skip_on_os": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -167,13 +167,13 @@
         "type": "string"
       }
     },
-    "skip_on_jobname": {
+    "expect_skip_on_jobname": {
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "skip_on_os": {
+    "expect_skip_on_os": {
       "type": "array",
       "items": {
         "type": "string"
