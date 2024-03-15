@@ -831,11 +831,10 @@ class Environment:
         new.exe_wrapper = None
 
         # replace any host specific options with their build specific equivalent
-        new.options = dict(self.options)
-        for opt, val in self.options.items():
-            if opt.machine is MachineChoice.BUILD:
-                del new.options[opt]
-                new.options[opt.as_host()] = val
+        new.options = {k: v for k, v in self.options.items()
+                       if k.machine is MachineChoice.HOST and not self.coredata.is_per_machine_option(k)}
+        new.options.update({k.as_host(): v for k, v in self.options.items()
+                            if k.machine is MachineChoice.BUILD})
 
         new.machines = PerThreeMachineDefaultable(self.machines.build).default_missing()
         new.binaries = PerMachineDefaultable(self.binaries.build).default_missing()

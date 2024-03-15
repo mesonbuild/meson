@@ -359,6 +359,8 @@ class Build:
                     continue
             setattr(self, k, v)
 
+        self.environment.coredata.merge(other.environment.coredata)
+
     def ensure_static_linker(self, compiler: Compiler) -> None:
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
