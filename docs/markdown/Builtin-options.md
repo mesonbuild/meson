@@ -25,10 +25,11 @@ Installation options are usually relative to the prefix but it should
 not be relied on, since they can be absolute paths in the following cases:
 
 * When the prefix is `/usr`: `sysconfdir` defaults to `/etc`,
- `localstatedir` defaults to `/var`, and `sharedstatedir` defaults to
- `/var/lib`
+ `localstatedir` defaults to `/var`, `runstatedir` defaults to
+ `/run`, and `sharedstatedir` defaults to `/var/lib`
 * When the prefix is `/usr/local`: `localstatedir` defaults
- to `/var/local`, and `sharedstatedir` defaults to `/var/local/lib`
+ to `/var/local`, `runstatedir` defaults to `/var/local/run`,
+ and `sharedstatedir` defaults to `/var/local/lib`
 * When an absolute path outside of prefix is provided by the user/distributor.
 
 ### Directories
@@ -46,6 +47,7 @@ not be relied on, since they can be absolute paths in the following cases:
 | localedir                            | share/locale  | Locale data directory |
 | localstatedir                        | var           | Localstate data directory |
 | mandir                               | share/man     | Manual page directory |
+| runstatedir                          | run           | Runtime data directory |
 | sbindir                              | sbin          | System executable directory |
 | sharedstatedir                       | com           | Architecture-independent data directory |
 | sysconfdir                           | etc           | Sysconf data directory |
