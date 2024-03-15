@@ -198,6 +198,9 @@ Display basic information about a configured project in `builddir`:
 meson introspect builddir --projectinfo
 ```
 
+*(since 1.4.0)* `--devenv` was added.
+
+
 ### install
 
 *(since 0.47.0)*
