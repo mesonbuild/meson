@@ -28,8 +28,8 @@ class DlangModule(ExtensionModule):
         })
 
     def _init_dub(self, state):
-        if DlangModule.class_dubbin is None:
-            self.dubbin = DubDependency.class_dubbin
+        if DlangModule.class_dubbin is None and DubDependency.class_dubbin is not None:
+            self.dubbin = DubDependency.class_dubbin[0]
             DlangModule.class_dubbin = self.dubbin
         else:
             self.dubbin = DlangModule.class_dubbin
