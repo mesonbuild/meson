@@ -654,7 +654,7 @@ class Resolver:
             return None
 
         login, account, password = self.netrc.authenticators(netloc)
-        if account is not None:
+        if account:
             login = account
 
         return login, password
