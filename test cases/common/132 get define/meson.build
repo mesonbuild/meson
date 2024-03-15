@@ -19,6 +19,8 @@ system_define_map = {
   # being run on various versions of FreeBSD, just test that the define is
   # set.
   'freebsd'   : ['__FreeBSD__'],
+  # TEE likes OpenTEE didn't define any thing
+  'teeos'     : [],
 }
 
 foreach lang : ['c', 'cpp']
