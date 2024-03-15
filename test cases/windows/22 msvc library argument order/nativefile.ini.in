@@ -1,0 +1,9 @@
+[constants]
+common_args = ['-I@MESON_TEST_ROOT@/include']
+common_link_args = ['-LIBPATH:@MESON_TEST_ROOT@/lib']
+
+[properties]
+c_args = common_args
+cpp_args = common_args
+c_link_args = common_link_args
+cpp_link_args = common_link_args
