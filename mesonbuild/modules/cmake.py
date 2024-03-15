@@ -125,9 +125,13 @@ class CMakeSubproject(ModuleObject):
         return res
 
     @noKwargs
-    @stringArgs
-    def get_variable(self, state: ModuleState, args: T.List[str], kwargs: TYPE_kwargs) -> TYPE_var:
-        return self.subp.get_variable_method(args, kwargs)
+    @typed_pos_args('CMakeSubproject.get_variable', str, optargs=[str])
+    def get_variable(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> TYPE_var:
+        key, fallback = args
+        res = self.subp.get_variable(key, fallback)
+        if res is None:
+            raise InvalidArguments(f'Requested variable "{key}" not found.')
+        return res
 
     @FeatureNewKwargs('dependency', '0.56.0', ['include_type'])
     @permittedKwargs({'include_type'})
