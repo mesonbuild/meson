@@ -311,6 +311,8 @@ class Build:
         new = copy.copy(self)
         new.environment = self.environment.copy_for_build()
         new.projects = PerMachineDefaultable(self.projects.build.copy()).default_missing()
+        new.projects_args = PerMachineDefaultable(self.projects_args.build.copy()).default_missing()
+        new.projects_link_args = PerMachineDefaultable(self.projects_link_args.build.copy()).default_missing()
         new.subprojects = PerMachineDefaultable(self.subprojects.build.copy()).default_missing()
         new.find_overrides = PerMachineDefaultable(self.find_overrides.build.copy()).default_missing()
         new.searched_programs = PerMachineDefaultable(self.searched_programs.build.copy()).default_missing()
