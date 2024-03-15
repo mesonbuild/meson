@@ -795,6 +795,7 @@ class SubprojectHolder(MesonInterpreterObject):
         self.callstack = callstack
         self.methods.update({'get_variable': self.get_variable_method,
                              'found': self.found_method,
+                             'build_root': self.build_root_method,
                              })
 
     @noPosargs
@@ -825,6 +826,13 @@ class SubprojectHolder(MesonInterpreterObject):
             return self.held_object._holderify(args[1])
 
         raise InvalidArguments(f'Requested variable "{varname}" not found.')
+
+    @FeatureNew('subproject.build_root', '0.63.0')
+    @noPosargs
+    @noKwargs
+    def build_root_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        interpreter = T.cast('Interpreter', self.held_object)
+        return os.path.join(interpreter.environment.get_build_dir(), interpreter.root_subdir)
 
 class ModuleObjectHolder(ObjectHolder[ModuleObject]):
     def method_call(self, method_name: str, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:
