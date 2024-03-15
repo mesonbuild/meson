@@ -102,6 +102,7 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
                              'enable_auto_if': self.enable_auto_if_method,
                              'disable_if': self.disable_if_method,
                              'enable_if': self.enable_if_method,
+                             'to_string': self.to_string_method,
                              })
 
     @property
@@ -196,6 +197,12 @@ class FeatureOptionHolder(ObjectHolder[coredata.UserFeatureOption]):
     @typed_pos_args('feature_option.enable_auto_if', bool)
     def enable_auto_if_method(self, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> coredata.UserFeatureOption:
         return self.as_enabled() if self.value == 'auto' and args[0] else copy.deepcopy(self.held_object)
+
+    @FeatureNew('feature_option.to_string()', '1.3.0')
+    @noKwargs
+    @noPosargs
+    def to_string_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.held_object.value
 
 
 class RunProcess(MesonInterpreterObject):
