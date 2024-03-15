@@ -14,6 +14,7 @@ import typing as T
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
+from ...linkers import RSPFileSyntax
 from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
@@ -361,7 +362,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # false without compiling anything
         return name in {'dllimport', 'dllexport'}, False
 
-    def get_argument_syntax(self) -> str:
+    @staticmethod
+    def get_argument_syntax() -> str:
         return 'msvc'
 
     def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
@@ -381,6 +383,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # As a last resort, try search in a compiled binary
         return self._symbols_have_underscore_prefix_searchbin(env)
 
+    @staticmethod
+    def rsp_file_syntax() -> 'RSPFileSyntax':
+        return RSPFileSyntax.MSVC
 
 class MSVCCompiler(VisualStudioLikeCompiler):
 
