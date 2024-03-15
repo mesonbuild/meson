@@ -19,11 +19,10 @@ from pathlib import Path, PurePath
 import sys
 import typing as T
 
-from . import build, mesonlib, coredata as cdata
+from . import build, environment, mesonlib, mlog, coredata as cdata
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
 from .dependencies import Dependency
-from . import environment
 from .interpreterbase import ObjectHolder
 from .mesonlib import OptionKey
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, BaseStringNode
@@ -54,7 +53,7 @@ class IntroCommand:
 
 def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
                                   builddata: T.Optional[build.Build] = None,
-                                  backend: T.Optional[backends.Backend] = None) -> 'T.Mapping[str, IntroCommand]':
+                                  backend: T.Optional[backends.Backend] = None) -> T.Mapping[str, IntroCommand]:
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
@@ -96,7 +95,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Enable pretty printed JSON.')
     parser.add_argument('-f', '--force-object-output', action='store_true', dest='force_dict', default=False,
                         help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
-    parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
+    parser.add_argument('builddir', nargs='?', default='.', help='The source or build directory')
 
 def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     printer = AstJSONPrinter()
@@ -526,64 +525,73 @@ def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
     with open(get_info_file(infodir, kind), encoding='utf-8') as fp:
         return json.load(fp)
 
+def get_source_dir(directory: str) -> T.Optional[str]:
+    dir_path = Path(directory)
+    if dir_path.name == environment.build_filename:
+        return str(dir_path.parent)
+
+    if (dir_path / environment.build_filename).exists():
+        return str(dir_path)
+
+    return None
+
 def run(options: argparse.Namespace) -> int:
-    datadir = 'meson-private'
-    infodir = get_infodir(options.builddir)
-    if options.builddir is not None:
-        datadir = os.path.join(options.builddir, datadir)
-    indent = 4 if options.indent else None
     results: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]] = []
-    sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
+    indent = 4 if options.indent else None
+    sourcedir = get_source_dir(options.builddir)
     intro_types = get_meson_introspection_types()
 
-    if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
+    if sourcedir:
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
         with redirect_stdout(sys.stderr):
+            mesonlib.setup_vsenv()
             backend = backends.get_backend_from_name(options.backend)
             assert backend is not None
             intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
             intr.analyze()
 
-        for key, val in intro_types.items():
-            if (not options.all and not getattr(options, key, False)) or not val.no_bd:
-                continue
-            results += [(key, val.no_bd(intr))]
-        return print_results(options, results, indent)
+    else:
+        infodir = get_infodir(options.builddir)
+        try:
+            raw = load_info_file(infodir)
+            intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')
+        except FileNotFoundError:
+            raise mesonlib.MesonException(
+                'Introspection file {} does not exist.\n'
+                'It is also possible that the build directory was generated with an old\n'
+                'meson version. Please regenerate it in this case.'.format(get_info_file(infodir)))
 
-    try:
-        raw = load_info_file(infodir)
-        intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')
-    except FileNotFoundError:
-        if not os.path.isdir(datadir) or not os.path.isdir(infodir):
-            print('Current directory is not a meson build directory.\n'
-                  'Please specify a valid build dir or change the working directory to it.')
-        else:
-            print('Introspection file {} does not exist.\n'
-                  'It is also possible that the build directory was generated with an old\n'
-                  'meson version. Please regenerate it in this case.'.format(get_info_file(infodir)))
-        return 1
-
-    vers_to_check = get_meson_introspection_required_version()
-    for i in vers_to_check:
-        if not mesonlib.version_compare(intro_vers, i):
-            print('Introspection version {} is not supported. '
-                  'The required version is: {}'
-                  .format(intro_vers, ' and '.join(vers_to_check)))
-            return 1
+        vers_to_check = get_meson_introspection_required_version()
+        for i in vers_to_check:
+            if not mesonlib.version_compare(intro_vers, i):
+                raise mesonlib.MesonException(
+                    'Introspection version {} is not supported. The required version is: {}'
+                    .format(intro_vers, ' and '.join(vers_to_check)))
 
     # Extract introspection information from JSON
-    for i, v in intro_types.items():
-        if not v.func:
+    for key, val in intro_types.items():
+        if not options.all and not getattr(options, key, False):
             continue
-        if not options.all and not getattr(options, i, False):
-            continue
-        try:
-            results += [(i, load_info_file(infodir, i))]
-        except FileNotFoundError:
-            print('Introspection file {} does not exist.'.format(get_info_file(infodir, i)))
-            return 1
+
+        if sourcedir:
+            if not val.no_bd:
+                if not options.all:
+                    mlog.warning(f'--{key} is not available when introspecting source tree')
+                continue
+            results += [(key, val.no_bd(intr))]
+        else:
+            if not val.func:
+                if not options.all:
+                    mlog.warning(f'--{key} is not available when introspecting build dir')
+                continue
+
+            try:
+                results += [(key, load_info_file(infodir, key))]
+            except FileNotFoundError:
+                raise mesonlib.MesonException('Introspection file {} does not exist.'.format(get_info_file(infodir, key)))
 
     return print_results(options, results, indent)
+
 
 updated_introspection_files: T.List[str] = []
 
