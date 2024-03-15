@@ -972,7 +972,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 ast.accept(printer)
                 printer.post_process()
                 bsubdir = os.path.join(self.build.environment.get_build_dir(),
-                                       subdir if not new_build.environment.coredata.is_build_only else f'build.{subdir}')
+                                       build.compute_build_subdir(subdir, new_build.environment.coredata.is_build_only))
                 os.makedirs(bsubdir, exist_ok=True)
                 meson_filename = os.path.join(bsubdir, 'meson.build')
                 with open(meson_filename, "w", encoding='utf-8') as f:

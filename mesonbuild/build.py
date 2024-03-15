@@ -458,7 +458,7 @@ class IncludeDirs(HoldableObject):
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
-        bsubdir = f'build.{self.curdir}' if self.is_build_only_subproject else self.curdir
+        bsubdir = compute_build_subdir(self.curdir, self.is_build_only_subproject)
 
         strlist: T.List[str] = []
         for idir in self.incdirs:
@@ -672,9 +672,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return self.subdir
 
     def get_output_subdir(self) -> str:
-        if self.build_only_subproject:
-            return f'build.{self.subdir}'
-        return self.get_source_subdir()
+        return compute_build_subdir(self.subdir, self.build_only_subproject)
 
     def get_typename(self) -> str:
         return self.typename
@@ -2005,9 +2003,7 @@ class GeneratedList(HoldableObject):
         return self.subdir
 
     def get_output_subdir(self) -> str:
-        if self.is_build_only_subproject:
-            return f'build.{self.subdir}'
-        return self.get_source_subdir()
+        return compute_build_subdir(self.subdir, self.is_build_only_subproject)
 
 
 class Executable(BuildTarget):
@@ -3185,6 +3181,11 @@ def get_sources_string_names(sources, backend):
         else:
             raise AssertionError(f'Unknown source type: {s!r}')
     return names
+
+def compute_build_subdir(subdir: str, build_only_subproject: bool) -> str:
+    if build_only_subproject:
+        return f'build.{subdir}'
+    return subdir
 
 def load(build_dir: str) -> Build:
     filename = os.path.join(build_dir, 'meson-private', 'build.dat')
