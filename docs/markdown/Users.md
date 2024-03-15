@@ -167,15 +167,8 @@ format files
  - [ThorVG](https://www.thorvg.org/), vector-based scenes and animations library
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
- - [TSCL Xtest](https://github.com/trilobite-stdlib/tscl-xtest-c), a framework for testing C/C++ code
- - [TSCL Xmock](https://github.com/trilobite-stdlib/tscl-xtest-c), a framework for mocking C/C++ code
- - [TSCL Xmemory](https://github.com/trilobite-stdlib/tscl-xmemory-c), a library for low-level, memory and bitwise operations in C
- - [TSCL Xscience](https://github.com/trilobite-stdlib/tscl-xscience-c), a library for scientific calculations in C
- - [TSCL Xstring](https://github.com/trilobite-stdlib/tscl-xstring-c), a library for working with strings and ciphers in C
- - [TSCL Xdata](https://github.com/trilobite-stdlib/tscl-xdata-c), a library with data structures and algorithms in C
- - [TSCL Xutil](https://github.com/trilobite-stdlib/tscl-xutil-c), a library with utilities for the most tedious task in C
- - [TSCL Xmath](https://github.com/trilobite-stdlib/tscl-xmath-c), a library with mathematical components for projects in C
- - [TSCL Xcore](https://github.com/trilobite-stdlib/tscl-xcore-c), a core framework with essentials for any projects in C
+ - [FSCL Xtest](https://github.com/fossil-lib/fscl-xtest-c), a framework for testing C/C++ code
+ - [FSCL Project](https://github.com/fossil-lib), a core framework with essentials for any projects in C/C++
  - [UFJF-MLTK](https://github.com/mateus558/UFJF-Machine-Learning-Toolkit), A C++ cross-platform framework for machine learning algorithms development and testing
  - [Vala Language Server](https://github.com/benwaffle/vala-language-server), code intelligence engine for the Vala and Genie programming languages
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
