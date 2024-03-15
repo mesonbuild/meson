@@ -281,7 +281,6 @@ class Build:
             environment.is_cross_build(), {}, {})
         self.devenv: T.List[EnvironmentVariables] = []
         self.modules: T.List[str] = []
-        self.is_build_only = False
 
     def get_build_targets(self):
         build_targets = OrderedDict()
@@ -307,10 +306,9 @@ class Build:
         return other
 
     def copy_for_build_machine(self) -> Build:
-        if not self.environment.is_cross_build() or self.is_build_only:
+        if not self.environment.is_cross_build() or self.environment.coredata.is_build_only:
             return self.copy()
         new = copy.copy(self)
-        new.is_build_only = True
         new.environment = self.environment.copy_for_build()
         new.projects = PerMachineDefaultable(self.projects.build.copy()).default_missing()
         new.subprojects = PerMachineDefaultable(self.subprojects.build.copy()).default_missing()
@@ -333,19 +331,21 @@ class Build:
 
     def merge(self, other: Build) -> None:
         # TODO: this is incorrect for build-only
+        self_is_build_only = self.environment.coredata.is_build_only
+        other_is_build_only = other.environment.coredata.is_build_only
         for k, v in other.__dict__.items():
-            # These are modified for the build-only config, and we don't want to
-            # copy them into the build != host config
-            if k in {'is_build_only', 'environment'}:
+            # This is modified for the build-only config, and we don't want to
+            # copy it into the build != host config
+            if k == 'environment':
                 continue
 
             # These are install data, and we don't want to install from a build only config
-            if other.is_build_only and k in {'emptydir', 'headers', 'man', 'data', 'symlinks',
+            if other_is_build_only and k in {'emptydir', 'headers', 'man', 'data', 'symlinks',
                                              'install_dirs', 'install_scripts', 'postconf_scripts'}:
                 continue
 
-            if self.is_build_only != other.is_build_only:
-                assert self.is_build_only is False, 'We should never merge a multi machine subproject into a single machine subproject, right?'
+            if self_is_build_only != other_is_build_only:
+                assert self_is_build_only is False, 'We should never merge a multi machine subproject into a single machine subproject, right?'
                 # TODO: we likely need to drop some other values we're not going to
                 #      use like install, man, postconf, etc
                 if isinstance(v, PerMachine):
@@ -1890,7 +1890,7 @@ class Generator(HoldableObject):
         # TODO: need a test for a generator in a build-only subproject
         is_build_only: T.Optional[bool] = getattr(state, 'is_build_only_subproject', None)
         if is_build_only is None:
-            is_build_only = T.cast('Interpreter', state).build.is_build_only
+            is_build_only = T.cast('Interpreter', state).coredata.is_build_only
         output = GeneratedList(
             self,
             state.subdir,

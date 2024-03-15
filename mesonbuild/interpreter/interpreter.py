@@ -876,7 +876,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def do_subproject(self, subp_name: SubProject, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-        kwargs['for_machine'] = for_machine = kwargs['for_machine'] if not self.build.is_build_only else MachineChoice.BUILD
+        kwargs['for_machine'] = for_machine = kwargs['for_machine'] if not self.coredata.is_build_only else MachineChoice.BUILD
 
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -971,7 +971,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 ast.accept(AstIndentationGenerator())
                 ast.accept(printer)
                 printer.post_process()
-                bsubdir = os.path.join(self.build.environment.get_build_dir(), subdir if not new_build.is_build_only else f'build.{subdir}')
+                bsubdir = os.path.join(self.build.environment.get_build_dir(),
+                                       subdir if not new_build.environment.coredata.is_build_only else f'build.{subdir}')
                 os.makedirs(bsubdir, exist_ok=True)
                 meson_filename = os.path.join(bsubdir, 'meson.build')
                 with open(meson_filename, "w", encoding='utf-8') as f:
@@ -1280,7 +1281,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.dep_manifest[proj_name] = build.DepManifest(self.project_version, proj_license,
                                                                proj_license_files, self.subproject)
 
-        for_machine = MachineChoice.BUILD if self.build.is_build_only else MachineChoice.HOST
+        for_machine = MachineChoice.BUILD if self.coredata.is_build_only else MachineChoice.HOST
 
         if self.subproject in self.build.projects[for_machine]:
             raise InvalidCode('Second call to project().')
@@ -2002,7 +2003,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             cmd,
             self.source_strings_to_files(kwargs['input']),
             kwargs['output'],
-            self.build.is_build_only,
+            self.coredata.is_build_only,
             build_by_default=True,
             build_always_stale=True,
         )
@@ -2124,7 +2125,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             command,
             inputs,
             kwargs['output'],
-            self.build.is_build_only,
+            self.coredata.is_build_only,
             build_always_stale=build_always_stale,
             build_by_default=build_by_default,
             capture=kwargs['capture'],
@@ -2877,7 +2878,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
                 raise InvalidArguments(f'Include dir {a} does not exist.')
         i = build.IncludeDirs(
-            self.subdir, incdir_strings, is_system, is_build_only_subproject=self.build.is_build_only)
+            self.subdir, incdir_strings, is_system, is_build_only_subproject=self.coredata.is_build_only)
         return i
 
     @typed_pos_args('add_test_setup', str)
@@ -3461,7 +3462,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 kwargs['implib'] = False
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
-                             self.environment, self.compilers[for_machine], self.build.is_build_only, kwargs)
+                             self.environment, self.compilers[for_machine], self.coredata.is_build_only, kwargs)
 
         self.add_target(name, target)
         self.project_args_frozen = True

@@ -572,6 +572,7 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.options: 'MutableKeyedOptionDictType' = {}
+        self.is_build_only = False
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
 
@@ -611,6 +612,7 @@ class CoreData:
         if not self.is_cross_build():
             return self
         new = copy.copy(self)
+        new.is_build_only = True
         # Use only the build deps, not any host ones
         new.deps = PerMachineDefaultable(self.deps.build).default_missing()
         new.compilers = PerMachineDefaultable(self.compilers.build).default_missing()

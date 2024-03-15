@@ -347,7 +347,7 @@ class HotdocTargetBuilder:
                               extra_extension_paths=self._extra_extension_paths,
                               extra_assets=self._extra_assets,
                               subprojects=self._subprojects,
-                              is_build_only_subproject=self.interpreter.build.is_build_only,
+                              is_build_only_subproject=self.interpreter.coredata.is_build_only,
                               command=target_cmd,
                               extra_depends=self.extra_depends,
                               outputs=[fullname],
