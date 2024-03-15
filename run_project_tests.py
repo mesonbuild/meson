@@ -785,13 +785,13 @@ def _skip_keys(test_def: T.Dict) -> T.Tuple[bool, bool]:
 
     # Test is expected to skip if MESON_CI_JOBNAME contains any of the list of
     # substrings
-    if ('skip_on_jobname' in test_def) and (ci_jobname is not None):
-        skip_expected = any(s in ci_jobname for s in test_def['skip_on_jobname'])
+    if ('expect_skip_on_jobname' in test_def) and (ci_jobname is not None):
+        skip_expected = any(s in ci_jobname for s in test_def['expect_skip_on_jobname'])
 
     # Test is expected to skip if os matches
-    if 'skip_on_os' in test_def:
+    if 'expect_skip_on_os' in test_def:
         mesonenv = environment.Environment('', '', get_fake_options('/'))
-        for skip_os in test_def['skip_on_os']:
+        for skip_os in test_def['expect_skip_on_os']:
             if skip_os.startswith('!'):
                 if mesonenv.machines.host.system != skip_os[1:]:
                     skip_expected = True

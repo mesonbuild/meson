@@ -60,5 +60,5 @@
     {"type": "file", "file": "usr/share/gtk-doc/html/foobar3/up.png"},
     {"type": "file", "file": "usr/share/gtk-doc/html/foobar3/up-insensitive.png"}
   ],
-  "skip_on_jobname": ["azure", "msys2"]
+  "expect_skip_on_jobname": ["azure", "msys2"]
 }
