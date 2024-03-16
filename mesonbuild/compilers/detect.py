@@ -287,8 +287,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             # practice, Meson will block waiting for Watcom's cl.exe to
             # exit, which requires user input and thus will never exit.
             if 'WATCOM' in os.environ:
-                def sanitize(p: str) -> str:
-                    return os.path.normcase(os.path.abspath(p))
+                def sanitize(p: T.Optional[str]) -> T.Optional[str]:
+                    return os.path.normcase(os.path.abspath(p)) if p else None
 
                 watcom_cls = [sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl')),
                               sanitize(os.path.join(os.environ['WATCOM'], 'BINNT', 'cl.exe')),
