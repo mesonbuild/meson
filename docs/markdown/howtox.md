@@ -43,19 +43,23 @@ pass to the compiler's special argument (such as `-fuse-ld` with clang
 and gcc), with the latter it should be an executable, such as
 `lld-link.exe`.
 
+Meson may try to automatically find a library archiver/static-linker
+but this can be explicitly specified with either the `AR` environment
+variable or through the `ar` entry in a native or cross file.
+
 *NOTE* In Meson 0.53.0 the `ld` entry in the cross/native file and the
 `LD` environment variable were used, this resulted in a large number
 of regressions and was changed in 0.53.1 to `<lang>_ld` and `<comp
 variable>_LD`.
 
 ```console
-$ CC=clang CC_LD=lld meson <options>
+$ CC=clang CC_LD=lld AR=ar meson <options>
 ```
 
 or
 
 ```console
-$ CC=clang-cl CC_LD=link meson <options>
+$ CC=clang-cl CC_LD=lld-link AR=llvm-lib meson <options>
 ```
 
 or in a cross or native file:
@@ -64,6 +68,7 @@ or in a cross or native file:
 [binaries]
 c = 'clang'
 c_ld = 'lld'
+ar = 'ar'
 ```
 
 There is a table of all environment variables supported
