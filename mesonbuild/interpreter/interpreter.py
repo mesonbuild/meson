@@ -1393,6 +1393,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     )
     def func_summary(self, node: mparser.BaseNode, args: T.Tuple[T.Union[str, T.Dict[str, T.Any]], T.Optional[T.Any]],
                      kwargs: 'kwtypes.Summary') -> None:
+        if self.coredata.is_build_only:
+            return
         if args[1] is None:
             if not isinstance(args[0], dict):
                 raise InterpreterException('Summary first argument must be dictionary.')
