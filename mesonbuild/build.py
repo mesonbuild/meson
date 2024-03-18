@@ -327,6 +327,8 @@ class Build:
         new.install_scripts = []
         new.postconf_scripts = []
         new.install_dirs = []
+        new.test_setups = {}
+        new.test_setup_default_name = None
         # TODO: what about dist scripts?
 
         return new
