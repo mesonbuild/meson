@@ -1015,7 +1015,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             if pv == 'undefined' or not mesonlib.version_compare_many(pv, wanted)[0]:
                 raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
         self.active_projectname = current_active
-        self.subprojects[for_machine].update(subi.subprojects[for_machine])
         self.subprojects[for_machine][subp_name] = SubprojectHolder(
             subi, subdir, warnings=subi_warnings, callstack=self.subproject_stack)
         # Duplicates are possible when subproject uses files from project root
