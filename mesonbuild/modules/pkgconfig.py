@@ -610,6 +610,9 @@ class PkgConfigModule(NewExtensionModule):
     def generate(self, state: ModuleState,
                  args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]],
                  kwargs: GenerateKw) -> ModuleReturnValue:
+        if state.is_build_only_subproject:
+            return ModuleReturnValue(None, [])
+
         default_version = state.project_version
         default_install_dir: T.Optional[str] = None
         default_description: T.Optional[str] = None
