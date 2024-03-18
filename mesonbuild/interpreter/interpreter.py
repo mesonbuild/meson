@@ -1826,7 +1826,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments('"allow_fallback" argument must be boolean')
         fallback = kwargs.get('fallback')
         default_options = kwargs.get('default_options')
-        for_machine = self.machine_from_native_kwarg(kwargs)
+        for_machine = MachineChoice.BUILD if self.coredata.is_build_only else self.machine_from_native_kwarg(kwargs)
         df = DependencyFallbacksHolder(self, names, for_machine, allow_fallback, default_options)
         df.set_fallback(fallback)
         not_found_message = kwargs.get('not_found_message', '')
