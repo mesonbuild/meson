@@ -226,7 +226,7 @@ class XCodeBackend(backends.Backend):
         return dirname
 
     def get_custom_target_output_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
-        dirname = target.get_source_subdir()
+        dirname = target.get_output_subdir()
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
