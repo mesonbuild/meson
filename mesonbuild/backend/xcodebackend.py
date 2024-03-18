@@ -1478,12 +1478,12 @@ class XCodeBackend(backends.Backend):
             headerdirs = []
             bridging_header = ""
             is_swift = self.is_swift_target(target)
-            for d in target.include_dirs:
-                for sd in d.incdirs:
-                    cd = os.path.join(d.curdir, sd)
-                    headerdirs.append(os.path.join(self.environment.get_source_dir(), cd))
-                    headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
-                for extra in d.extra_build_dirs:
+            for d in target.get_include_dirs():
+                for sd in d.expand_incdirs(self.environment.get_build_dir()):
+                    headerdirs.append(os.path.join(self.environment.get_source_dir(), sd.source))
+                    if sd.build is not None:
+                        headerdirs.append(os.path.join(self.environment.get_build_dir(), sd.build))
+                for extra in d.expand_extra_build_dirs():
                     headerdirs.append(os.path.join(self.environment.get_build_dir(), extra))
             # Swift can import declarations from C-based code using bridging headers.
             # There can only be one header, and it must be included as a source file.

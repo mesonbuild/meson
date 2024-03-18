@@ -449,8 +449,42 @@ class IncludeDirs(HoldableObject):
     def get_incdirs(self) -> T.List[str]:
         return self.incdirs
 
+    def expand_incdirs(self, builddir: str) -> T.List[IncludeSubdirPair]:
+        pairlist = []
+
+        curdir = self.curdir
+        bsubdir = compute_build_subdir(curdir, self.is_build_only_subproject)
+        for d in self.incdirs:
+            # Avoid superfluous '/.' at the end of paths when d is '.'
+            if d not in ('', '.'):
+                sdir = os.path.normpath(os.path.join(curdir, d))
+                bdir = os.path.normpath(os.path.join(bsubdir, d))
+            else:
+                sdir = curdir
+                bdir = bsubdir
+
+            # There may be include dirs where a build directory has not been
+            # created for some source dir. For example if someone does this:
+            #
+            # inc = include_directories('foo/bar/baz')
+            #
+            # But never subdir()s into the actual dir.
+            if not os.path.isdir(os.path.join(builddir, bdir)):
+                bdir = None
+
+            pairlist.append(IncludeSubdirPair(sdir, bdir))
+
+        return pairlist
+
     def get_extra_build_dirs(self) -> T.List[str]:
         return self.extra_build_dirs
+
+    def expand_extra_build_dirs(self) -> T.List[str]:
+        dirlist = []
+        bsubdir = compute_build_subdir(self.curdir, self.is_build_only_subproject)
+        for d in self.extra_build_dirs:
+            dirlist.append(os.path.normpath(os.path.join(bsubdir, d)))
+        return dirlist
 
     def to_string_list(self, sourcedir: str, builddir: str) -> T.List[str]:
         """Convert IncludeDirs object to a list of strings.
@@ -460,13 +494,17 @@ class IncludeDirs(HoldableObject):
             be added if this is unset
         :returns: A list of strings (without compiler argument)
         """
-        bsubdir = compute_build_subdir(self.curdir, self.is_build_only_subproject)
-
         strlist: T.List[str] = []
-        for idir in self.incdirs:
-            strlist.append(os.path.join(sourcedir, self.curdir, idir))
-            strlist.append(os.path.join(builddir, bsubdir, idir))
+        for d in self.expand_incdirs(builddir):
+            strlist.append(os.path.join(sourcedir, d.source))
+            if d.build is not None:
+                strlist.append(os.path.join(builddir, d.build))
         return strlist
+
+@dataclass
+class IncludeSubdirPair:
+    source: str
+    build: T.Optional[str]
 
 @dataclass(eq=False)
 class ExtractedObjects(HoldableObject):
