@@ -1543,7 +1543,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         for lang in sorted(args, key=compilers.sort_clink):
             if lang in self.compilers[for_machine]:
                 continue
-            machine_name = for_machine.get_lower_case_name()
+            machine_name = 'build' if self.coredata.is_build_only else for_machine.get_lower_case_name()
             comp = self.coredata.compilers[for_machine].get(lang)
             if not comp:
                 try:
