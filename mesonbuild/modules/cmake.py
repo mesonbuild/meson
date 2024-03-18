@@ -216,7 +216,7 @@ class CMakeSubprojectOptions(ModuleObject):
     def append_compile_args(self, state: ModuleState, args: T.Tuple[str, T.List[str]], kwargs: TYPE_kwargs) -> None:
         self._get_opts(kwargs).append_args(args[0], args[1])
 
-    @typed_pos_args('subproject_options.append_compile_args', varargs=str, min_varargs=1)
+    @typed_pos_args('subproject_options.append_link_args', varargs=str, min_varargs=1)
     @permittedKwargs({'target'})
     def append_link_args(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> None:
         self._get_opts(kwargs).append_link_args(args[0])
