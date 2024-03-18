@@ -201,7 +201,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             'Dependency', mlog.bold(self._display_name),
             'for', mlog.bold(self.for_machine.get_lower_case_name()), 'machine']
         if subproject:
-            msg.extend(['from subproject:', subproject])
+            msg.extend(['from subproject', subproject])
         msg.extend(['found:', mlog.red('NO') if not found else mlog.green('YES')])
         if extra_args:
             msg.extend(extra_args)
