@@ -923,7 +923,7 @@ class CoreData:
                                  fatal=False)
 
         # Find any extranious keys for this project and remove them
-        for key in list(self.options.keys() - options.keys()):
+        for key in self.options.keys() - options.keys():
             if key.is_project() and key.subproject == subproject:
                 del self.options[key]
 
