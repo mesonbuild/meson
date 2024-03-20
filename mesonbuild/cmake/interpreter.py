@@ -67,6 +67,14 @@ disable_policy_warnings = [
     'CMP0102',
 ]
 
+# CMAKE is a bit more averse to debugging, but in spirit the build types match
+buildtype_map = {
+    'debug': 'Debug',
+    'debugoptimized': 'RelWithDebInfo',  # CMAKE sets NDEBUG
+    'release': 'Release',
+    'minsize': 'MinSizeRel',  # CMAKE leaves out debug information immediately
+}
+
 target_type_map = {
     'STATIC_LIBRARY': 'static_library',
     'MODULE_LIBRARY': 'shared_module',
@@ -819,6 +827,10 @@ class CMakeInterpreter:
         cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix}']
         cmake_args += extra_cmake_options
+        if not any(arg.startswith('-DCMAKE_BUILD_TYPE=') for arg in cmake_args):
+            buildtype = T.cast('str', self.env.coredata.get_option(OptionKey('buildtype')))
+            if buildtype in buildtype_map:
+                cmake_args += [f'-DCMAKE_BUILD_TYPE={buildtype_map[buildtype]}']
         trace_args = self.trace.trace_args()
         cmcmp_args = [f'-DCMAKE_POLICY_WARNING_{x}=OFF' for x in disable_policy_warnings]
 
