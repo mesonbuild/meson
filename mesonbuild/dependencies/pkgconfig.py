@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice, join_args
+from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice, join_args, MesonException
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
@@ -36,13 +36,33 @@ class PkgConfigInterface:
         for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
         impl = PkgConfigInterface.class_impl[for_machine]
         if impl is False:
-            impl = PkgConfigCLI(env, for_machine, silent)
-            if not impl.found():
-                impl = None
-            if not impl and not silent:
+            for impl_class in PkgConfigCLI._find_impl(env, for_machine):
+                impl = impl_class(env, for_machine, silent)
+                if impl.found():
+                    PkgConfigInterface.class_impl[for_machine] = impl
+                    return impl
+
+            impl = None
+            PkgConfigInterface.class_impl[for_machine] = None
+            if not silent:
                 mlog.log('Found pkg-config:', mlog.red('NO'))
-            PkgConfigInterface.class_impl[for_machine] = impl
+
         return impl
+
+    @staticmethod
+    def _find_impl(env: Environment, for_machine: MachineChoice) -> T.List[T.Type[PkgConfigInterface]]:
+        impl_to_try: T.List[T.Type[PkgConfigInterface]] = []
+        for potential_name in env.default_pkgconfig:
+            binary_entries = env.lookup_binary_entry(for_machine, potential_name) or []
+            for entry in binary_entries:
+                if entry == 'pypkgconf':
+                    if PyPkgConf not in impl_to_try:
+                        impl_to_try.append(PyPkgConf)
+                elif PkgConfigCLI not in impl_to_try:
+                    impl_to_try.append(PkgConfigCLI)
+        if not impl_to_try:
+            impl_to_try = [PkgConfigCLI]  # default to cli if no pkg-config is specified
+        return impl_to_try
 
     @staticmethod
     def _cli(env: Environment, for_machine: MachineChoice, silent: bool = False) -> T.Optional[PkgConfigCLI]:
@@ -73,7 +93,7 @@ class PkgConfigInterface:
         cli = PkgConfigInterface._cli(env, for_machine)
         return cli._setup_env(environ, uninstalled) if cli else environ
 
-    def __init__(self, env: Environment, for_machine: MachineChoice) -> None:
+    def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool) -> None:
         self.env = env
         self.for_machine = for_machine
 
@@ -109,11 +129,161 @@ class PkgConfigInterface:
         '''Return all available pkg-config modules'''
         raise NotImplementedError
 
+    def _get_env(self, uninstalled: bool = False) -> EnvironmentVariables:
+        env = EnvironmentVariables()
+        key = OptionKey('pkg_config_path', machine=self.for_machine)
+        extra_paths: T.List[str] = self.env.coredata.options[key].value[:]
+        if uninstalled:
+            uninstalled_path = Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix()
+            if uninstalled_path not in extra_paths:
+                extra_paths.append(uninstalled_path)
+        env.set('PKG_CONFIG_PATH', extra_paths)
+        sysroot = self.env.properties[self.for_machine].get_sys_root()
+        if sysroot:
+            env.set('PKG_CONFIG_SYSROOT_DIR', [sysroot])
+        pkg_config_libdir_prop = self.env.properties[self.for_machine].get_pkg_config_libdir()
+        if pkg_config_libdir_prop:
+            env.set('PKG_CONFIG_LIBDIR', pkg_config_libdir_prop)
+        return env
+
+
+class PyPkgConf(PkgConfigInterface):
+    '''libpkgconf implementation'''
+
+    def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool):
+        super().__init__(env, for_machine, silent)
+        self.pypkgconf = None
+        try:
+            self._load_pypkgconf(silent)
+        except ImportError as e:
+            mlog.debug(str(e))
+
+    def _load_pypkgconf(self, silent: bool) -> None:
+        import pypkgconf
+
+        if not silent:
+            mlog.log(f'Found pypkgconf: {mlog.bold(pypkgconf.pypkgconf_version())} (libpkgconf {pypkgconf.pkgconf_version()})', once=True)
+        self.pypkgconf = pypkgconf
+
+    @lru_cache(maxsize=None)
+    def query(self,
+              name: T.Optional[str] = None,
+              want_flags: T.Optional[int] = None,
+              want_variable: T.Optional[str] = None,
+              define_variable: PkgConfigDefineType = None) -> T.List[str]:
+        assert self.pypkgconf is not None  # for mypy
+
+        env = self._get_env(False).get_env(os.environ)
+
+        if want_flags is None:
+            want_flags = self.pypkgconf.Flags.DEFAULT
+        args: T.Optional[T.List[str]] = [name] if name else None
+        dv = dict([define_variable]) if define_variable else None
+
+        return self.pypkgconf.query(args, want_flags=want_flags, env=env, want_variable=want_variable, define_variable=dv)
+
+    def __getstate__(self) -> object:
+        d = self.__dict__.copy()
+        del d['pypkgconf']  # module is not pickable
+        return d
+
+    def __setstate__(self, d: T.Dict) -> None:
+        self.__dict__ = d
+        try:
+            self._load_pypkgconf(silent=True)
+        except ImportError:
+            raise MesonException("module pypkgconf not found")
+
+    def found(self) -> bool:
+        '''Return whether pkg-config is supported'''
+        return self.pypkgconf is not None
+
+    def version(self, name: str) -> T.Optional[str]:
+        '''Return module version or None if not found'''
+        if self.pypkgconf is None:
+            raise MesonException('pypkgconf is not configured')
+        try:
+            v = self.query(name, self.pypkgconf.Flags.MODVERSION)
+            return v[0]
+        except self.pypkgconf.PkgConfError:
+            return None
+
+    def cflags(self, name: str, allow_system: bool = False,
+               define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
+        '''Return module cflags
+           @allow_system: If False, remove default system include paths
+        '''
+        if self.pypkgconf is None:
+            raise MesonException('pypkgconf is not configured')
+        flags = self.pypkgconf.Flags.CFLAGS
+        if allow_system:
+            flags |= self.pypkgconf.Flags.KEEP_SYSTEM_CFLAGS
+
+        try:
+            return self.query(name, flags, define_variable=define_variable)
+
+        except self.pypkgconf.PkgConfError as e:
+            raise DependencyException(f'Could not generate cflags for {name}:\n{e}\n')
+
+    def libs(self, name: str, static: bool = False, allow_system: bool = False,
+             define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
+        '''Return module libs
+           @static: If True, also include private libraries
+           @allow_system: If False, remove default system libraries search paths
+        '''
+        if self.pypkgconf is None:
+            raise MesonException('pypkgconf is not configured')
+        flags = self.pypkgconf.Flags.LIBS
+        if allow_system:
+            flags |= self.pypkgconf.Flags.KEEP_SYSTEM_CFLAGS
+        if static:
+            flags |= self.pypkgconf.Flags.STATIC
+
+        try:
+            return self.query(name, flags, define_variable=define_variable)
+
+        except self.pypkgconf.PkgConfError as e:
+            raise DependencyException(f'Could not generate libs for {name}:\n{e}\n')
+
+    def variable(self, name: str, variable_name: str,
+                 define_variable: PkgConfigDefineType) -> T.Optional[str]:
+        '''Return module variable or None if variable is not defined'''
+        if self.pypkgconf is None:
+            raise MesonException('pypkgconf is not configured')
+
+        try:
+            v = self.query(name, want_variable=variable_name, define_variable=tuple(define_variable or []))
+
+            if v:
+                variable = v[0]
+            else:
+                var_list = self.query(name, want_flags=self.pypkgconf.Flags.VARIABLES)
+                if variable_name not in var_list:
+                    return None
+                variable = ''
+
+            mlog.debug(f'Got pkg-config variable {variable_name} : {variable}')
+            return variable
+
+        except self.pypkgconf.PkgConfError as e:
+            raise DependencyException(f'Could not get variable for {name}:\n{e}\n')
+
+    def list_all(self) -> ImmutableListProtocol[str]:
+        '''Return all available pkg-config modules'''
+        if self.pypkgconf is None:
+            raise MesonException('pypkgconf is not configured')
+
+        try:
+            return self.query(want_flags=self.pypkgconf.Flags.LIST_PACKAGE_NAMES)
+        except self.pypkgconf.PkgConfError as e:
+            raise DependencyException(f'could not list modules:\n{e}\n')
+
+
 class PkgConfigCLI(PkgConfigInterface):
     '''pkg-config CLI implementation'''
 
     def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool) -> None:
-        super().__init__(env, for_machine)
+        super().__init__(env, for_machine, silent)
         self._detect_pkgbin()
         if self.pkgbin and not silent:
             mlog.log('Found pkg-config:', mlog.green('YES'), mlog.bold(f'({self.pkgbin.get_path()})'), mlog.blue(self.pkgbin_version))
@@ -236,20 +406,7 @@ class PkgConfigCLI(PkgConfigInterface):
         return out.strip()
 
     def _get_env(self, uninstalled: bool = False) -> EnvironmentVariables:
-        env = EnvironmentVariables()
-        key = OptionKey('pkg_config_path', machine=self.for_machine)
-        extra_paths: T.List[str] = self.env.coredata.options[key].value[:]
-        if uninstalled:
-            uninstalled_path = Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix()
-            if uninstalled_path not in extra_paths:
-                extra_paths.append(uninstalled_path)
-        env.set('PKG_CONFIG_PATH', extra_paths)
-        sysroot = self.env.properties[self.for_machine].get_sys_root()
-        if sysroot:
-            env.set('PKG_CONFIG_SYSROOT_DIR', [sysroot])
-        pkg_config_libdir_prop = self.env.properties[self.for_machine].get_pkg_config_libdir()
-        if pkg_config_libdir_prop:
-            env.set('PKG_CONFIG_LIBDIR', pkg_config_libdir_prop)
+        env = super()._get_env(uninstalled)
         env.set('PKG_CONFIG', [join_args(self.pkgbin.get_command())])
         return env
 
