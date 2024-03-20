@@ -109,10 +109,17 @@ class ExternalProgram(mesonlib.HoldableObject):
             output = o.strip()
             if not output:
                 output = e.strip()
-            match = re.search(r'([0-9][0-9\.]+)', output)
-            if not match:
+
+            first_line = next(iter(output.splitlines()))
+            # Strip the program name.
+            if re.match(r'^[a-zA-Z]', first_line):
+                first_line = first_line[first_line.find(' ') + 1:].strip()
+            # find the version string
+            matches = re.findall(r'[0-9]+(?:\.[0-9]+){0,3}', first_line)
+            if not matches:
                 raise mesonlib.MesonException(f'Could not find a version number in output of {raw_cmd!r}')
-            self.cached_version = match.group(1)
+            matches.sort(key=len)
+            self.cached_version = matches[-1]
         return self.cached_version
 
     @classmethod
