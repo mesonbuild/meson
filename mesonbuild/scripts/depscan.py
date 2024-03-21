@@ -1,21 +1,59 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2020 The Meson development team
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
+import collections
 import json
 import os
 import pathlib
 import pickle
 import re
-import sys
 import typing as T
 
-from ..backend.ninjabackend import ninja_quote
-from ..compilers.compilers import lang_suffixes
-
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal, TypedDict, NotRequired
     from ..backend.ninjabackend import TargetDependencyScannerInfo
+
+    Require = TypedDict(
+        'Require',
+        {
+            'logical-name': str,
+            'compiled-module-path': NotRequired[str],
+            'source-path': NotRequired[str],
+            'unique-on-source-path': NotRequired[bool],
+            'lookup-method': NotRequired[Literal['by-name', 'include-angle', 'include-quote']]
+        },
+    )
+
+    Provide = TypedDict(
+        'Provide',
+        {
+            'logical-name': str,
+            'compiled-module-path': NotRequired[str],
+            'source-path': NotRequired[str],
+            'unique-on-source-path': NotRequired[bool],
+            'is-interface': NotRequired[bool],
+        },
+    )
+
+    Rule = TypedDict(
+        'Rule',
+        {
+            'primary-output': NotRequired[str],
+            'outputs': NotRequired[T.List[str]],
+            'provides': NotRequired[T.List[Provide]],
+            'requires': NotRequired[T.List[Require]],
+        }
+    )
+
+    class Description(TypedDict):
+
+        version: int
+        revision: int
+        rules: T.List[Rule]
+
 
 CPP_IMPORT_RE = re.compile(r'\w*import ([a-zA-Z0-9]+);')
 CPP_EXPORT_RE = re.compile(r'\w*export module ([a-zA-Z0-9]+);')
@@ -30,26 +68,21 @@ FORTRAN_SUBMOD_RE = re.compile(FORTRAN_SUBMOD_PAT, re.IGNORECASE)
 FORTRAN_USE_RE = re.compile(FORTRAN_USE_PAT, re.IGNORECASE)
 
 class DependencyScanner:
-    def __init__(self, pickle_file: str, outfile: str, sources: T.List[str]):
+    def __init__(self, pickle_file: str, outfile: str):
         with open(pickle_file, 'rb') as pf:
             self.target_data: TargetDependencyScannerInfo = pickle.load(pf)
         self.outfile = outfile
-        self.sources = sources
+        self.sources = self.target_data.sources
         self.provided_by: T.Dict[str, str] = {}
         self.exports: T.Dict[str, str] = {}
-        self.needs: T.Dict[str, T.List[str]] = {}
+        self.imports: collections.defaultdict[str, T.List[str]] = collections.defaultdict(list)
         self.sources_with_exports: T.List[str] = []
 
-    def scan_file(self, fname: str) -> None:
-        suffix = os.path.splitext(fname)[1][1:]
-        if suffix != 'C':
-            suffix = suffix.lower()
-        if suffix in lang_suffixes['fortran']:
+    def scan_file(self, fname: str, lang: Literal['cpp', 'fortran']) -> None:
+        if lang == 'fortran':
             self.scan_fortran_file(fname)
-        elif suffix in lang_suffixes['cpp']:
-            self.scan_cpp_file(fname)
         else:
-            sys.exit(f'Can not scan files with suffix .{suffix}.')
+            self.scan_cpp_file(fname)
 
     def scan_fortran_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
@@ -63,10 +96,7 @@ class DependencyScanner:
                 # In Fortran you have an using declaration also for the module
                 # you define in the same file. Prevent circular dependencies.
                 if needed not in modules_in_this_file:
-                    if fname in self.needs:
-                        self.needs[fname].append(needed)
-                    else:
-                        self.needs[fname] = [needed]
+                    self.imports[fname].append(needed)
             if export_match:
                 exported_module = export_match.group(1).lower()
                 assert exported_module not in modules_in_this_file
@@ -97,10 +127,7 @@ class DependencyScanner:
                 # submodule (a1:a2) a3        <- requires a1@a2.smod
                 #
                 # a3 does not depend on the a1 parent module directly, only transitively.
-                if fname in self.needs:
-                    self.needs[fname].append(parent_module_name_full)
-                else:
-                    self.needs[fname] = [parent_module_name_full]
+                self.imports[fname].append(parent_module_name_full)
 
     def scan_cpp_file(self, fname: str) -> None:
         fpath = pathlib.Path(fname)
@@ -109,10 +136,7 @@ class DependencyScanner:
             export_match = CPP_EXPORT_RE.match(line)
             if import_match:
                 needed = import_match.group(1)
-                if fname in self.needs:
-                    self.needs[fname].append(needed)
-                else:
-                    self.needs[fname] = [needed]
+                self.imports[fname].append(needed)
             if export_match:
                 exported_module = export_match.group(1)
                 if exported_module in self.provided_by:
@@ -121,14 +145,8 @@ class DependencyScanner:
                 self.provided_by[exported_module] = fname
                 self.exports[fname] = exported_module
 
-    def objname_for(self, src: str) -> str:
-        objname = self.target_data.source2object[src]
-        assert isinstance(objname, str)
-        return objname
-
-    def module_name_for(self, src: str) -> str:
-        suffix = os.path.splitext(src)[1][1:].lower()
-        if suffix in lang_suffixes['fortran']:
+    def module_name_for(self, src: str, lang: Literal['cpp', 'fortran']) -> str:
+        if lang == 'fortran':
             exported = self.exports[src]
             # Module foo:bar goes to a file name foo@bar.smod
             # Module Foo goes to a file name foo.mod
@@ -138,61 +156,53 @@ class DependencyScanner:
             else:
                 extension = 'mod'
             return os.path.join(self.target_data.private_dir, f'{namebase}.{extension}')
-        elif suffix in lang_suffixes['cpp']:
-            return '{}.ifc'.format(self.exports[src])
-        else:
-            raise RuntimeError('Unreachable code.')
+        return '{}.ifc'.format(self.exports[src])
 
     def scan(self) -> int:
-        for s in self.sources:
-            self.scan_file(s)
-        with open(self.outfile, 'w', encoding='utf-8') as ofile:
-            ofile.write('ninja_dyndep_version = 1\n')
-            for src in self.sources:
-                objfilename = self.objname_for(src)
-                mods_and_submods_needed = []
-                module_files_generated = []
-                module_files_needed = []
-                if src in self.sources_with_exports:
-                    module_files_generated.append(self.module_name_for(src))
-                if src in self.needs:
-                    for modname in self.needs[src]:
-                        if modname not in self.provided_by:
-                            # Nothing provides this module, we assume that it
-                            # comes from a dependency library somewhere and is
-                            # already built by the time this compilation starts.
-                            pass
-                        else:
-                            mods_and_submods_needed.append(modname)
+        for s, lang in self.sources:
+            self.scan_file(s, lang)
+        description: Description = {
+            'version': 1,
+            'revision': 0,
+            'rules': [],
+        }
+        for src, lang in self.sources:
+            rule: Rule = {
+                'primary-output': self.target_data.source2object[src],
+                'requires': [],
+                'provides': [],
+            }
+            if src in self.sources_with_exports:
+                rule['outputs'] = [self.module_name_for(src, lang)]
+            if src in self.imports:
+                for modname in self.imports[src]:
+                    provider_src = self.provided_by.get(modname)
+                    if provider_src == src:
+                        continue
+                    rule['requires'].append({
+                        'logical-name': modname,
+                    })
+                    if provider_src:
+                        rule['requires'][-1].update({
+                            'source-path': provider_src,
+                            'compiled-module-path': self.module_name_for(provider_src, lang),
+                        })
+            if src in self.exports:
+                modname = self.exports[src]
+                rule['provides'].append({
+                    'logical-name': modname,
+                    'source-path': src,
+                    'compiled-module-path': self.module_name_for(src, lang),
+                })
+            description['rules'].append(rule)
 
-                for modname in mods_and_submods_needed:
-                    provider_src = self.provided_by[modname]
-                    provider_modfile = self.module_name_for(provider_src)
-                    # Prune self-dependencies
-                    if provider_src != src:
-                        module_files_needed.append(provider_modfile)
+        with open(self.outfile, 'w', encoding='utf-8') as f:
+            json.dump(description, f)
 
-                quoted_objfilename = ninja_quote(objfilename, True)
-                quoted_module_files_generated = [ninja_quote(x, True) for x in module_files_generated]
-                quoted_module_files_needed = [ninja_quote(x, True) for x in module_files_needed]
-                if quoted_module_files_generated:
-                    mod_gen = '| ' + ' '.join(quoted_module_files_generated)
-                else:
-                    mod_gen = ''
-                if quoted_module_files_needed:
-                    mod_dep = '| ' + ' '.join(quoted_module_files_needed)
-                else:
-                    mod_dep = ''
-                build_line = 'build {} {}: dyndep {}'.format(quoted_objfilename,
-                                                             mod_gen,
-                                                             mod_dep)
-                ofile.write(build_line + '\n')
         return 0
 
 def run(args: T.List[str]) -> int:
-    assert len(args) == 3, 'got wrong number of arguments!'
-    pickle_file, outfile, jsonfile = args
-    with open(jsonfile, encoding='utf-8') as f:
-        sources = json.load(f)
-    scanner = DependencyScanner(pickle_file, outfile, sources)
+    assert len(args) == 2, 'got wrong number of arguments!'
+    outfile, pickle_file = args
+    scanner = DependencyScanner(pickle_file, outfile)
     return scanner.scan()
