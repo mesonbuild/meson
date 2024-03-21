@@ -14,9 +14,11 @@ if T.TYPE_CHECKING:
 
 class ExtraFrameworkDependency(ExternalDependency):
     system_framework_paths: T.Optional[T.List[str]] = None
+    extra_header_dirs: T.List[str] = None
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, skip_finding: bool = False) -> None:
         paths = stringlistify(kwargs.get('paths', []))
+        self.extra_header_dirs = stringlistify(kwargs.get('extra_header_dirs', []))
         super().__init__(DependencyTypeName('extraframeworks'), env, kwargs, language=language)
         self.name = name
         # Full path to framework directory
@@ -33,7 +35,8 @@ class ExtraFrameworkDependency(ExternalDependency):
                     self.is_found = False
                     return
                 raise
-        self.detect(name, paths)
+        if not skip_finding:
+            self.detect(name, paths)
 
     def detect(self, name: str, paths: T.List[str]) -> None:
         if not paths:
@@ -67,6 +70,8 @@ class ExtraFrameworkDependency(ExternalDependency):
             incdir = self._get_framework_include_path(framework_path)
             if incdir:
                 self.compile_args += ['-idirafter' + incdir]
+            for extra_incdir in self.extra_header_dirs:
+                self.compile_args += ['-idirafter' + extra_incdir]
             self.is_found = True
             return
 

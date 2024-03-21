@@ -499,6 +499,48 @@ methods:
         When the `has_headers` kwarg is also used, this argument is passed to
         [[compiler.has_header]] as `prefix`.
 
+- name: find_framework
+  returns: dep
+  description: Tries to find the framework specified in the positional argument.
+
+  posargs:
+    libname:
+      type: str
+      description: The framework to find.
+  kwargs:
+    required:
+      type: bool | feature
+      default: true
+      description: |
+        If set `true`, Meson will abort with an error if the framework could not
+        be found. Otherwise, Meson will continue and the found method of the
+        returned object will return `false`.
+
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
+
+        The value of a `feature` option can also be passed here.
+    disabler:
+      type: bool
+      default: false
+      description: If `true`, this method will return a [[@disabler]] on a failed check.
+    dirs:
+      type: list[str]
+      description: |
+        Additional directories to search in.
+
+        By default the framework is searched for in the system framework directories
+        (e.g. /Library/Frameworks and /System/Library/Frameworks). Specifying more
+        directories here, causes Meson to search in those directories as well as the
+        system directories.
+    extra_header_dirs:
+      type: list[str]
+      description: |
+        Additional directories in which headers for this framework live.
+
+        This is useful for frameworks that package their headers separately from the
+        framework itself.
+
 # Compiler arguments
 - name: has_argument
   returns: bool

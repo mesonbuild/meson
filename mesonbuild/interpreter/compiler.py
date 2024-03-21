@@ -91,6 +91,10 @@ if T.TYPE_CHECKING:
         header_prefix: str
         header_required: T.Union[bool, coredata.UserFeatureOption]
 
+    class FindFrameworkKW(ExtractRequired, ExtractSearchDirs):
+        disabler: bool
+        extra_header_dirs: T.List[str]
+
     class PreprocessKW(TypedDict):
         output: str
         compile_args: T.List[str]
@@ -209,6 +213,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                              'version': self.version_method,
                              'cmd_array': self.cmd_array_method,
                              'find_library': self.find_library_method,
+                             'find_framework': self.find_framework_method,
                              'has_argument': self.has_argument_method,
                              'has_function_attribute': self.has_func_attribute_method,
                              'get_supported_function_attributes': self.get_supported_function_attributes_method,
@@ -707,6 +712,41 @@ class CompilerHolder(ObjectHolder['Compiler']):
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
                                            self.compiler.language)
         return lib
+
+    def _notfound_framework(self, fwname: str) -> 'dependencies.framework.ExtraFrameworkDependency':
+        return dependencies.framework.ExtraFrameworkDependency(fwname, self.environment, {}, language=self.compiler.language, skip_finding=True)
+
+    @disablerIfNotFound
+    @typed_pos_args('compiler.find_framework', str)
+    @typed_kwargs(
+        'compiler.find_framework',
+        KwargInfo('required', (bool, coredata.UserFeatureOption), default=True),
+        KwargInfo('disabler', bool, default=False),
+        KwargInfo('dirs', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('extra_header_dirs', ContainerTypeInfo(list, str), listify=True, default=[])
+    )
+    def find_framework_method(self, args: T.Tuple[str], kwargs: 'FindFrameworkKW') -> 'dependencies.framework.ExtraFrameworkDependency':
+        FeatureNew.single_use('compiler.find_framework()', '1.4.0', self.subproject, location=self.current_node)
+        fwname = args[0]
+
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled:
+            mlog.log('Framework', mlog.bold(fwname), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return self._notfound_framework(fwname)
+
+        search_dirs = extract_search_dirs(kwargs)
+
+        fw = dependencies.framework.ExtraFrameworkDependency(
+            fwname,
+            self.environment,
+            {'paths': search_dirs,
+             'extra_header_dirs': kwargs.get('extra_header_dirs')},
+            language=self.compiler.language
+        )
+
+        if required and not fw.is_found:
+            raise InterpreterException('framework {!r} not found'.format(fwname))
+        return fw
 
     def _has_argument_impl(self, arguments: T.Union[str, T.List[str]],
                            mode: _TestMode = _TestMode.COMPILER,
