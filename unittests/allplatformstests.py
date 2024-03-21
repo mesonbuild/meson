@@ -1439,11 +1439,15 @@ class AllPlatformTests(BasePlatformTests):
             with open(os.path.join(project_dir, '.hg', 'hgrc'), 'w', encoding='utf-8') as f:
                 print('[ui]', file=f)
                 print('username=Author Person <teh_coderz@example.com>', file=f)
-            subprocess.check_call(['hg', 'add', 'meson.build', 'distexe.c'], cwd=project_dir)
+            subprocess.check_call(['hg', 'add'], cwd=project_dir)
+            subprocess.check_call(['hg', 'commit', '-m', 'I am a project'], cwd=project_dir)
+
+        def hg_add_all(project_dir):
+            subprocess.check_call(['hg', 'add', "."], cwd=project_dir)
             subprocess.check_call(['hg', 'commit', '-m', 'I am a project'], cwd=project_dir)
 
         try:
-            self.dist_impl(hg_init, include_subprojects=False)
+            self.dist_impl(hg_init, hg_add_all)
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the hg files so cleaning up the dir
@@ -1481,7 +1485,7 @@ class AllPlatformTests(BasePlatformTests):
             ofile.write(f"project('{name}', version: '1.0')")
         return path
 
-    def dist_impl(self, vcs_init, vcs_add_all=None, include_subprojects=True):
+    def dist_impl(self, vcs_init, vcs_add_all):
         # Create this on the fly because having rogue .git directories inside
         # the source tree leads to all kinds of trouble.
         with tempfile.TemporaryDirectory() as project_dir:
@@ -1510,12 +1514,10 @@ class AllPlatformTests(BasePlatformTests):
             zip_distfile = os.path.join(self.distdir, 'disttest-1.4.3.zip')
             zip_checksumfile = zip_distfile + '.sha256sum'
             vcs_init(project_dir)
-            if include_subprojects:
-                vcs_init(self.create_dummy_subproject(project_dir, 'vcssub'))
-                self.create_dummy_subproject(project_dir, 'tarballsub')
-                self.create_dummy_subproject(project_dir, 'unusedsub')
-            if vcs_add_all:
-                vcs_add_all(self.create_dummy_subproject(project_dir, 'samerepo'))
+            vcs_init(self.create_dummy_subproject(project_dir, 'vcssub'))
+            self.create_dummy_subproject(project_dir, 'tarballsub')
+            self.create_dummy_subproject(project_dir, 'unusedsub')
+            vcs_add_all(self.create_dummy_subproject(project_dir, 'samerepo'))
             self.init(project_dir)
             self.build('dist')
             self.assertPathExists(xz_distfile)
@@ -1547,47 +1549,61 @@ class AllPlatformTests(BasePlatformTests):
             self.assertPathExists(zip_distfile)
             self.assertPathExists(zip_checksumfile)
 
-            if include_subprojects:
-                # Verify that without --include-subprojects we have files from
-                # the main project and also files from subprojects part of the
-                # main vcs repository.
-                z = zipfile.ZipFile(zip_distfile)
-                expected = ['disttest-1.4.3/',
+            # Verify that without --include-subprojects we have files from
+            # the main project and also files from subprojects part of the
+            # main vcs repository.
+            z = zipfile.ZipFile(zip_distfile)
+            expected = set(['disttest-1.4.3/',
                             'disttest-1.4.3/meson.build',
-                            'disttest-1.4.3/distexe.c']
-                if vcs_add_all:
-                    expected += ['disttest-1.4.3/subprojects/',
-                                 'disttest-1.4.3/subprojects/samerepo/',
-                                 'disttest-1.4.3/subprojects/samerepo/meson.build']
-                self.assertEqual(sorted(expected),
-                                 sorted(z.namelist()))
-                # Verify that with --include-subprojects we now also have files
-                # from tarball and separate vcs subprojects. But not files from
-                # unused subprojects.
-                self._run(self.meson_command + ['dist', '--formats', 'zip', '--include-subprojects'],
-                          workdir=self.builddir)
-                z = zipfile.ZipFile(zip_distfile)
-                expected += ['disttest-1.4.3/subprojects/tarballsub/',
-                             'disttest-1.4.3/subprojects/tarballsub/meson.build',
-                             'disttest-1.4.3/subprojects/vcssub/',
-                             'disttest-1.4.3/subprojects/vcssub/meson.build']
-                self.assertEqual(sorted(expected),
-                                 sorted(z.namelist()))
-            if vcs_add_all:
-                # Verify we can distribute separately subprojects in the same vcs
-                # repository as the main project.
-                subproject_dir = os.path.join(project_dir, 'subprojects', 'samerepo')
-                self.new_builddir()
-                self.init(subproject_dir)
-                self.build('dist')
-                xz_distfile = os.path.join(self.distdir, 'samerepo-1.0.tar.xz')
-                xz_checksumfile = xz_distfile + '.sha256sum'
-                self.assertPathExists(xz_distfile)
-                self.assertPathExists(xz_checksumfile)
-                tar = tarfile.open(xz_distfile, "r:xz")  # [ignore encoding]
-                self.assertEqual(sorted(['samerepo-1.0',
-                                         'samerepo-1.0/meson.build']),
-                                 sorted(i.name for i in tar))
+                            'disttest-1.4.3/distexe.c',
+                            'disttest-1.4.3/subprojects/',
+                            'disttest-1.4.3/subprojects/samerepo/',
+                            'disttest-1.4.3/subprojects/samerepo/meson.build'])
+
+            obtained = set(z.namelist())
+            if vcs_init.__name__ == "hg_init":
+                obtained.remove("disttest-1.4.3/.hg_archival.txt")
+
+            self.assertEqual(expected, obtained)
+            # Verify that with --include-subprojects we now also have files
+            # from tarball and separate vcs subprojects. But not files from
+            # unused subprojects.
+            self._run(self.meson_command + ['dist', '--formats', 'zip', '--include-subprojects'],
+                        workdir=self.builddir)
+            z = zipfile.ZipFile(zip_distfile)
+
+            obtained = set(z.namelist())
+            if vcs_init.__name__ == "hg_init":
+                obtained = {item for item in obtained
+                            if not item.endswith(".hg_archival.txt")}
+
+            expected.update([
+                'disttest-1.4.3/subprojects/tarballsub/',
+                'disttest-1.4.3/subprojects/tarballsub/meson.build',
+                'disttest-1.4.3/subprojects/vcssub/',
+                'disttest-1.4.3/subprojects/vcssub/meson.build'])
+            self.assertEqual(expected, obtained)
+
+            # skip the end for too old Mercurial (Ubuntu Bionic 18.04)
+            if vcs_init.__name__ == 'hg_init':
+                out = subprocess.check_output(['hg', '--version'], text=True, encoding='utf-8')
+                if version_compare(search_version(out), '<= 4.5.3'):
+                    return
+
+            # Verify we can distribute separately subprojects in the same vcs
+            # repository as the main project.
+            subproject_dir = os.path.join(project_dir, 'subprojects', 'samerepo')
+            self.new_builddir()
+            self.init(subproject_dir)
+            self.build('dist')
+            xz_distfile = os.path.join(self.distdir, 'samerepo-1.0.tar.xz')
+            xz_checksumfile = xz_distfile + '.sha256sum'
+            self.assertPathExists(xz_distfile)
+            self.assertPathExists(xz_checksumfile)
+            tar = tarfile.open(xz_distfile, "r:xz")  # [ignore encoding]
+            self.assertEqual(set(['samerepo-1.0',
+                                  'samerepo-1.0/meson.build']),
+                             set(i.name for i in tar))
 
     def test_rpath_uses_ORIGIN(self):
         '''
