@@ -570,9 +570,20 @@ class CMakeDependency(ExternalDependency):
         if cmake_cache.exists():
             cmake_cache.unlink()
         shutil.rmtree(cmake_files.as_posix(), ignore_errors=True)
-
         # Insert language parameters into the CMakeLists.txt and write new CMakeLists.txt
-        cmake_txt = importlib.resources.read_text('mesonbuild.dependencies.data', cmake_file, encoding = 'utf-8')
+        import sys
+
+        if sys.version_info >= (3, 9):
+            cmake_txt = importlib.resources.files(
+                'mesonbuild.dependencies.data',
+            ).joinpath(cmake_file).read_text(encoding='utf-8')
+        else:
+            cmake_txt = importlib.resources.read_text( # [ignore encoding] it's on the next lines, Mr. Lint
+                # ('mesonbuild' / self.path.parent).as_posix().replace('/', '.'),
+                'mesonbuild.dependencies.data',
+                # self.path.name,
+                cmake_file,
+                encoding='utf-8')
 
         # In general, some Fortran CMake find_package() also require C language enabled,
         # even if nothing from C is directly used. An easy Fortran example that fails
