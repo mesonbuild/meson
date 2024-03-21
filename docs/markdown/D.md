@@ -139,6 +139,6 @@ DUB is a fully integrated build system for D, but it is also a way to
 provide dependencies. Adding dependencies from the [D package
 registry](https://code.dlang.org/) is pretty straight forward. You can
 find how to do this in
-[Dependencies](Dependencies.md#some-notes-on-dub). You can also
+[Dependencies](Dependencies.md#dub). You can also
 automatically generate a `dub.json` file as explained in
 [Dlang](Dlang-module.md#generate_dub_file).
