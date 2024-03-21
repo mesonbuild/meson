@@ -52,6 +52,7 @@ class ModuleState:
         self.global_args = interpreter.build.global_args.host
         self.project_args = interpreter.build.projects_args.host.get(interpreter.subproject, {})
         self.current_node = interpreter.current_node
+        self.is_build_only_subproject = interpreter.coredata.is_build_only
 
     def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], prefix: str = '-I') -> T.List[str]:
         if not include_dirs:
@@ -83,7 +84,7 @@ class ModuleState:
     def find_tool(self, name: str, depname: str, varname: str, required: bool = True,
                   wanted: T.Optional[str] = None) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         # Look in overrides in case it's built as subproject
-        progobj = self._interpreter.program_from_overrides([name], [])
+        progobj = self._interpreter.program_from_overrides([name], [], MachineChoice.HOST)
         if progobj is not None:
             return progobj
 

@@ -1023,18 +1023,17 @@ class Vs2010Backend(backends.Backend):
             # need them to be looked in first.
             for d in reversed(target.get_include_dirs()):
                 # reversed is used to keep order of includes
-                for i in reversed(d.get_incdirs()):
-                    curdir = os.path.join(d.get_curdir(), i)
+                for i in reversed(d.expand_incdirs(self.environment.get_build_dir())):
                     try:
                         # Add source subdir first so that the build subdir overrides it
-                        args.append('-I' + os.path.join(proj_to_src_root, curdir))  # src dir
-                        args.append('-I' + self.relpath(curdir, target.subdir)) # build dir
+                        args.append('-I' + os.path.join(proj_to_src_root, i.source))
+                        if i.build is not None:
+                            args.append('-I' + self.relpath(i.build, target.subdir))
                     except ValueError:
                         # Include is on different drive
-                        args.append('-I' + os.path.normpath(curdir))
-                for i in d.get_extra_build_dirs():
-                    curdir = os.path.join(d.get_curdir(), i)
-                    args.append('-I' + self.relpath(curdir, target.subdir))  # build dir
+                        args.append('-I' + os.path.normpath(i.build))
+                for i in d.expand_extra_build_dirs():
+                    args.append('-I' + self.relpath(i, target.subdir))
         # Add per-target compile args, f.ex, `c_args : ['/DFOO']`. We set these
         # near the end since these are supposed to override everything else.
         for l, args in target.extra_args.items():
@@ -1724,7 +1723,7 @@ class Vs2010Backend(backends.Backend):
                         self.add_additional_options(lang, inc_cl, file_args)
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                        s = File.from_built_file(target.get_subdir(), s)
+                        s = File.from_built_file(target.get_output_subdir(), s)
                         ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
                             self.object_filename_from_source(target, s)
             for lang, headers in pch_sources.items():

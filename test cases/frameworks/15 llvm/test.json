@@ -3,8 +3,8 @@
     "options": {
       "method": [
         { "val": "config-tool", "expect_skip_on_jobname": ["msys2-gcc"] },
-        { "val": "cmake", "expect_skip_on_jobname": ["msys2"] },
-        { "val": "combination", "expect_skip_on_jobname": ["msys2"] }
+        { "val": "cmake", "expect_skip_on_jobname": ["msys2-gcc"] },
+        { "val": "combination", "expect_skip_on_jobname": ["msys2-gcc"] }
       ],
       "link-static": [
         { "val": true, "expect_skip_on_jobname": ["arch", "opensuse", "linux-gentoo-gcc"] },
