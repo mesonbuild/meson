@@ -469,16 +469,16 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             # paths under /lib would be considered not a "system path",
             # which is wrong and breaks things. Store everything, just to be sure.
             pobj = pathlib.Path(p)
-            unresolved = pobj.as_posix()
             if pobj.exists():
-                if unresolved not in result:
-                    result.append(unresolved)
                 try:
-                    resolved = pathlib.Path(p).resolve().as_posix()
+                    resolved = pobj.resolve(True).as_posix()
                     if resolved not in result:
                         result.append(resolved)
                 except FileNotFoundError:
                     pass
+                unresolved = pobj.as_posix()
+                if unresolved not in result:
+                    result.append(unresolved)
         return result
 
     def get_compiler_dirs(self, env: 'Environment', name: str) -> T.List[str]:
