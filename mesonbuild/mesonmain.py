@@ -61,7 +61,7 @@ def errorhandler(e: Exception, command: str) -> int:
 class CommandLineParser:
     def __init__(self) -> None:
         # only import these once we do full argparse processing
-        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
+        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv, mpkgconfig
         from .scripts import env2mfile
         from .wrap import wraptool
         import shutil
@@ -108,6 +108,8 @@ class CommandLineParser:
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
                          help_msg=argparse.SUPPRESS)
         self.add_command('unstable-coredata', munstable_coredata.add_arguments, munstable_coredata.run,
+                         help_msg=argparse.SUPPRESS)
+        self.add_command('pkg-config', mpkgconfig.add_arguments, mpkgconfig.run,
                          help_msg=argparse.SUPPRESS)
 
     def add_command(self, name: str, add_arguments_func: T.Callable[[argparse.ArgumentParser], None],

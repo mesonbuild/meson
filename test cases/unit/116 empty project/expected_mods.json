@@ -230,6 +230,7 @@
       "mesonbuild.scripts.meson_exe",
       "mesonbuild.utils",
       "mesonbuild.utils.core",
+      "mesonbuild.utils.pkgconfig",
       "mesonbuild.utils.platform",
       "mesonbuild.utils.posix",
       "mesonbuild.utils.universal",
@@ -237,6 +238,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 68
+    "count": 69
   }
 }

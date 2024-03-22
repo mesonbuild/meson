@@ -1,0 +1,4 @@
+# test-conflict-req1 requires test-conflict-req2 but we conflict with versions
+# greater than 1.99. test-conflict-req2 has version 2.0, parsing this file should fail.
+Requires: test-conflict-req1
+Conflicts: test-conflict-req2 >= 1.99
