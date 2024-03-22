@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import dataclasses
 import functools
@@ -691,6 +692,10 @@ class BoostDependency(SystemDependency):
             tmp += [Path('/usr/local/opt/boost')]
             tmp += [Path('/usr/local')]
             tmp += [Path('/usr')]
+
+            if "HOMEBREW_PREFIX" in os.environ:
+                tmp += [Path(os.environ["HOMEBREW_PREFIX"])]
+                tmp += [Path(os.environ["HOMEBREW_PREFIX"] + "/opt/boost")]
 
             # Cleanup paths
             tmp = [x for x in tmp if x.is_dir()]
