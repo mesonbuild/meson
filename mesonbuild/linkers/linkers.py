@@ -910,7 +910,37 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
             raise mesonlib.MesonBugException(f'win_subsystem: {value} not handled in lld linker. This should not be possible.')
 
 
-class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
+class LLVMWASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
+
+    """ LLVM's wasm-ld """
+
+    id = 'wasm-ld'
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return self._apply_prefix('--import-undefined')
+
+    def no_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+        return []
+
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        return self._apply_prefix('--shared')
+
+    def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
+        return self._apply_prefix('--export-dynamic')
+
+    def get_asneeded_args(self) -> T.List[str]:
+        return []
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
+
+class EmscriptenWASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Emscripten's wasm-ld."""
 
