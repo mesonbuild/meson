@@ -196,11 +196,15 @@ kwargs:
     since: 0.52.0
     description: |
       An enum flag, marking how the dependency
-      flags should be converted. Supported values are `'preserve'`, `'system'` and
-      `'non-system'`. System dependencies may be handled differently on some
+      flags should be converted. Supported values are `'preserve'`, `'system'`,
+      `'non-system'` and *(since 1.5.0)* `'delete'`.
+      System dependencies may be handled differently on some
       platforms, for instance, using `-isystem` instead of `-I`, where possible.
       If `include_type` is set to `'preserve'`, no additional conversion will be
       performed.
+
+      *Since 1.5.0* if `include_type` is set to `'delete'`, these flags are deleted
+      and not passed to compilers.
 
   disabler:
     type: bool

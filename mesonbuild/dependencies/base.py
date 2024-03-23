@@ -102,8 +102,8 @@ class Dependency(HoldableObject):
             return 'preserve'
         if not isinstance(kwargs['include_type'], str):
             raise DependencyException('The include_type kwarg must be a string type')
-        if kwargs['include_type'] not in ['preserve', 'system', 'non-system']:
-            raise DependencyException("include_type may only be one of ['preserve', 'system', 'non-system']")
+        if kwargs['include_type'] not in ['preserve', 'system', 'non-system', 'delete']:
+            raise DependencyException("include_type may only be one of ['preserve', 'system', 'non-system', 'delete']")
         return kwargs['include_type']
 
     def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
@@ -164,6 +164,12 @@ class Dependency(HoldableObject):
                 if i.startswith('-isystem'):
                     converted += ['-I' + i[8:]]
                 else:
+                    converted += [i]
+            return converted
+        if self.include_type == 'delete':
+            converted = []
+            for i in self.compile_args:
+                if not (i.startswith('-I') or i.startswith('/I') or i.startswith('-isystem')):
                     converted += [i]
             return converted
         return self.compile_args

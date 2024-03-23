@@ -26,6 +26,9 @@ assert(dep2.include_type() == 'system', 'include_type must be true when set')
 dep2_sys = dep2.as_system('non-system')
 assert(dep2_sys.include_type() == 'non-system', 'as_system must set include_type correctly')
 
+dep3_del = dep2.as_system('delete')
+assert(dep3_del.include_type() == 'delete', 'as_system must set include_type correctly')
+
 sp = subproject('subDep')
 sp_dep = sp.get_variable('subDep_dep')
 assert(sp_dep.include_type() == 'preserve', 'default is preserve')
