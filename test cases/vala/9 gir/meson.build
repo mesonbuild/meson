@@ -1,4 +1,4 @@
-project('foo', 'c', 'vala')
+project('foo', 'c', 'vala', meson_version : '>= 1.4.0')
 
 glib = dependency('glib-2.0')
 gobject = dependency('gobject-2.0')
@@ -10,8 +10,14 @@ foo = shared_library('foo', 'foo.vala',
                      vala_gir: 'Foo-1.0.gir',
                      dependencies: [glib, gobject])
 
+custom_target('warn-typelib',
+              command: [g_ir_compiler, '--output', '@OUTPUT@', '@INPUT@'],
+              input: meson.current_build_dir() / 'Foo-1.0.gir',
+              output: 'Warn-1.0.typelib',
+              depends: foo)
+
 custom_target('foo-typelib',
               command: [g_ir_compiler, '--output', '@OUTPUT@', '@INPUT@'],
-              input: meson.current_build_dir() + '/Foo-1.0.gir',
+              input: foo.get_gir(),
               output: 'Foo-1.0.typelib',
               depends: foo)
