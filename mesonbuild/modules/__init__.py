@@ -36,22 +36,22 @@ class ModuleState:
         self.build_to_src = relpath(interpreter.environment.get_source_dir(),
                                     interpreter.environment.get_build_dir())
         self.subproject = interpreter.subproject
-        self.subdir = interpreter.subdir
-        self.root_subdir = interpreter.root_subdir
-        self.current_lineno = interpreter.current_lineno
+        self.subdir = interpreter.state.local.subdir
+        self.root_subdir = interpreter.state.local.root_subdir
+        self.current_lineno = interpreter.state.local.current_node.lineno
         self.environment = interpreter.environment
-        self.project_name = interpreter.build.project_name
-        self.project_version = interpreter.build.dep_manifest[interpreter.active_projectname].version
+        self.project_name = interpreter.state.world.build.project_name
+        self.project_version = interpreter.state.world.build.dep_manifest[interpreter.state.local.project_name].version
         # The backend object is under-used right now, but we will need it:
         # https://github.com/mesonbuild/meson/issues/1419
-        self.backend = interpreter.backend
-        self.targets = interpreter.build.targets
-        self.data = interpreter.build.data
-        self.headers = interpreter.build.get_headers()
-        self.man = interpreter.build.get_man()
-        self.global_args = interpreter.build.global_args.host
-        self.project_args = interpreter.build.projects_args.host.get(interpreter.subproject, {})
-        self.current_node = interpreter.current_node
+        self.backend = interpreter.state.world.backend
+        self.targets = interpreter.state.world.build.targets
+        self.data = interpreter.state.world.build.data
+        self.headers = interpreter.state.world.build.get_headers()
+        self.man = interpreter.state.world.build.get_man()
+        self.global_args = interpreter.state.world.build.global_args.host
+        self.project_args = interpreter.state.world.build.projects_args.host.get(interpreter.subproject, {})
+        self.current_node = interpreter.state.local.current_node
 
     def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], prefix: str = '-I') -> T.List[str]:
         if not include_dirs:
@@ -142,7 +142,7 @@ class ModuleState:
                                lang: T.Optional[str] = None,
                                module: T.Optional[str] = None) -> bool:
         key = mesonlib.OptionKey(name, subproject, machine, lang, module)
-        return key in self._interpreter.user_defined_options.cmd_line_options
+        return key in self._interpreter.state.world.user_defined_options.cmd_line_options
 
     def process_include_dirs(self, dirs: T.Iterable[T.Union[str, IncludeDirs]]) -> T.Iterable[IncludeDirs]:
         """Convert raw include directory arguments to only IncludeDirs

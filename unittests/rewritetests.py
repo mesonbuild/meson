@@ -400,7 +400,7 @@ class RewriterTests(BasePlatformTests):
         interpreter.analyze()
 
         printer = RawPrinter()
-        interpreter.ast.accept(printer)
+        interpreter.state.local.ast.accept(printer)
         # new_contents = printer.result.encode('utf-8')
         new_contents = printer.result
 

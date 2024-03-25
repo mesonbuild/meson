@@ -242,13 +242,13 @@ class MesonApp:
 
             self.finalize_postconf_hooks(b, intr)
             if self.options.profile:
-                fname = f'profile-{intr.backend.name}-backend.log'
+                fname = f'profile-{intr.state.world.backend.name}-backend.log'
                 fname = os.path.join(self.build_dir, 'meson-logs', fname)
-                profile.runctx('gen_result = intr.backend.generate(capture, vslite_ctx)', globals(), locals(), filename=fname)
+                profile.runctx('gen_result = intr.state.world.backend.generate(capture, vslite_ctx)', globals(), locals(), filename=fname)
                 captured_compile_args = locals()['gen_result']
                 assert captured_compile_args is None or isinstance(captured_compile_args, dict)
             else:
-                captured_compile_args = intr.backend.generate(capture, vslite_ctx)
+                captured_compile_args = intr.state.world.backend.generate(capture, vslite_ctx)
 
             build.save(b, dumpfile)
             if env.first_invocation:
@@ -263,13 +263,13 @@ class MesonApp:
             # Generate an IDE introspection file with the same syntax as the already existing API
             if self.options.profile:
                 fname = os.path.join(self.build_dir, 'meson-logs', 'profile-introspector.log')
-                profile.runctx('mintro.generate_introspection_file(b, intr.backend)', globals(), locals(), filename=fname)
+                profile.runctx('mintro.generate_introspection_file(b, intr.state.world.backend)', globals(), locals(), filename=fname)
             else:
-                mintro.generate_introspection_file(b, intr.backend)
+                mintro.generate_introspection_file(b, intr.state.world.backend)
             mintro.write_meson_info_file(b, [], True)
 
             # Post-conf scripts must be run after writing coredata or else introspection fails.
-            intr.backend.run_postconf_scripts()
+            intr.state.world.backend.run_postconf_scripts()
 
             # collect warnings about unsupported build configurations; must be done after full arg processing
             # by Interpreter() init, but this is most visible at the end
@@ -306,7 +306,7 @@ class MesonApp:
         return captured_compile_args
 
     def finalize_postconf_hooks(self, b: build.Build, intr: interpreter.Interpreter) -> None:
-        b.devenv.append(intr.backend.get_devenv())
+        b.devenv.append(intr.state.world.backend.get_devenv())
         for mod in intr.modules.values():
             mod.postconf_hook(b)
 
