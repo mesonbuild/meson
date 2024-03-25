@@ -176,7 +176,9 @@ class Runner:
         latest_version = info['versions'][0]
         new_branch, new_revision = latest_version.rsplit('-', 1)
         if new_branch != branch or new_revision != revision:
-            filename = self.wrap.filename if self.wrap.has_wrap else f'{self.wrap.filename}.wrap'
+            filename = self.wrap.original_filename
+            if not filename:
+                filename = os.path.join(self.wrap.subprojects_dir, f'{self.wrap.name}.wrap')
             update_wrap_file(filename, self.wrap.name,
                              new_branch, new_revision,
                              options.allow_insecure)
@@ -521,16 +523,10 @@ class Runner:
             return True
 
         if self.wrap.redirected:
-            redirect_file = Path(self.wrap.original_filename).resolve()
+            wrapfile = Path(self.wrap.original_filename).resolve()
             if options.confirm:
-                redirect_file.unlink()
-            mlog.log(f'Deleting {redirect_file}')
-
-        if self.wrap.type == 'redirect':
-            redirect_file = Path(self.wrap.filename).resolve()
-            if options.confirm:
-                redirect_file.unlink()
-            self.log(f'Deleting {redirect_file}')
+                wrapfile.unlink()
+            mlog.log(f'Deleting {wrapfile}')
 
         if options.include_cache:
             packagecache = Path(self.wrap_resolver.cachedir).resolve()
