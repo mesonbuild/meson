@@ -29,7 +29,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
-from ..interpreterbase import stringifyUserArguments
+from ..interpreterbase import stringifyUserArguments, resolve_second_level_holders
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..optinterpreter import optname_regex
 
@@ -684,6 +684,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('version', (str, NoneType)),
         KwargInfo('objects', ContainerTypeInfo(list, build.ExtractedObjects), listify=True, default=[], since='1.1.0'),
     )
+    @noSecondLevelHolderResolving
     def func_declare_dependency(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                                 kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
         deps = kwargs['dependencies']
@@ -1851,6 +1852,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @permittedKwargs(known_library_kwargs)
     @typed_pos_args('both_libraries', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('both_libraries', *LIBRARY_KWS, allow_unknown=True)
+    @noSecondLevelHolderResolving
     def func_both_lib(self, node: mparser.BaseNode,
                       args: T.Tuple[str, SourcesVarargsType],
                       kwargs: kwtypes.Library) -> build.BothLibraries:
@@ -1868,6 +1870,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @permittedKwargs(known_library_kwargs)
     @typed_pos_args('library', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('library', *LIBRARY_KWS, allow_unknown=True)
+    @noSecondLevelHolderResolving
     def func_library(self, node: mparser.BaseNode,
                      args: T.Tuple[str, SourcesVarargsType],
                      kwargs: kwtypes.Library) -> build.Executable:
@@ -1885,12 +1888,16 @@ class Interpreter(InterpreterBase, HoldableObject):
     @permittedKwargs(known_build_target_kwargs)
     @typed_pos_args('build_target', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('build_target', *BUILD_TARGET_KWS, allow_unknown=True)
+    @noSecondLevelHolderResolving
     def func_build_target(self, node: mparser.BaseNode,
                           args: T.Tuple[str, SourcesVarargsType],
                           kwargs: kwtypes.BuildTarget
                           ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary,
                                        build.SharedModule, build.BothLibraries, build.Jar]:
         target_type = kwargs['target_type']
+        if target_type not in {'both_libraries', 'library'}:
+            args, kwargs = resolve_second_level_holders(args, kwargs)
+
         if target_type == 'executable':
             return self.build_target(node, args, kwargs, build.Executable)
         elif target_type == 'shared_library':
@@ -2128,10 +2135,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         return tg
 
     @FeatureNew('alias_target', '0.52.0')
-    @typed_pos_args('alias_target', str, varargs=build.Target, min_varargs=1)
+    @typed_pos_args('alias_target', str, varargs=(build.Target, build.BothLibraries), min_varargs=1)
     @noKwargs
-    def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[build.Target]],
-                          kwargs: 'TYPE_kwargs') -> build.AliasTarget:
+    @noSecondLevelHolderResolving
+    def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[T.Union[build.Target, build.BothLibraries]]],
+                          kwargs: TYPE_kwargs) -> build.AliasTarget:
         name, deps = args
         if any(isinstance(d, build.RunTarget) for d in deps):
             FeatureNew.single_use('alias_target that depends on run_targets', '0.60.0', self.subproject)
@@ -3200,6 +3208,11 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
+        preferred_library = self.coredata.get_option(OptionKey('default_both_libraries'))
+        if preferred_library == 'auto':
+            preferred_library = self.coredata.get_option(OptionKey('default_library'))
+            if preferred_library == 'both':
+                preferred_library = 'shared'
 
         if self.backend.name == 'xcode':
             # Xcode is a bit special in that you can't (at least for the moment)
@@ -3231,14 +3244,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Keep only compilers used for linking
             static_lib.compilers = {k: v for k, v in static_lib.compilers.items() if k in compilers.clink_langs}
 
-        return build.BothLibraries(shared_lib, static_lib)
+        return build.BothLibraries(shared_lib, static_lib, preferred_library)
 
     def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library):
         default_library = self.coredata.get_option(OptionKey('default_library', subproject=self.subproject))
         assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
+            args, kwargs = resolve_second_level_holders(args, kwargs)
             return self.build_target(node, args, T.cast('kwtypes.StaticLibrary', kwargs), build.SharedLibrary)
         elif default_library == 'static':
+            args, kwargs = resolve_second_level_holders(args, kwargs)
             return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.StaticLibrary)
         elif default_library == 'both':
             return self.build_both_libraries(node, args, kwargs)
