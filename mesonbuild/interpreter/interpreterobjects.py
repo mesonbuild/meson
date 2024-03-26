@@ -462,6 +462,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
                              'include_type': self.include_type_method,
                              'as_system': self.as_system_method,
                              'as_link_whole': self.as_link_whole_method,
+                             'link_args': self.get_link_args,
                              })
 
     def found(self) -> bool:
@@ -579,6 +580,12 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('as_link_whole method is only supported on declare_dependency() objects')
         new_dep = self.held_object.generate_link_whole_dependency()
         return new_dep
+
+    def get_link_args(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> list[str]:
+        from ..dependencies.pkgconfig import PkgConfigDependency
+        if not isinstance(self.held_object, PkgConfigDependency):
+            raise InterpreterException('link_args method is only supported on pkgconfig objects')
+        return self.held_object.get_link_args()
 
 _EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
 
