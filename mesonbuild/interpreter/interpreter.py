@@ -2440,7 +2440,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     # It was likely added "because it exists", but should never be used. In
     # theory it is useful for directories, but we never apply modes to
     # directories other than in install_emptydir.
-    def _warn_kwarg_install_mode_sticky(self, mode: FileMode) -> None:
+    def _warn_kwarg_install_mode_sticky(self, mode: FileMode) -> FileMode:
         if mode.perms > 0 and mode.perms & stat.S_ISVTX:
             mlog.deprecation('install_mode with the sticky bit on a file does not do anything and will '
                              'be ignored since Meson 0.64.0', location=self.current_node)
