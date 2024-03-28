@@ -371,15 +371,12 @@ class Module(NewExtensionModule):
                 values: List[ConflictAttr] = getattr(fet, attr)
                 accumulate_values = test_result[attr]  # type: ignore
                 for conflict in values:
-                    if not conflict.match:
-                        accumulate_values.append(conflict.val)
-                        continue
                     conflict_vals: List[str] = []
                     # select the acc items based on the match
                     new_acc: List[str] = []
                     for acc in accumulate_values:
                         # not affected by the match so we keep it
-                        if not conflict.match.match(acc):
+                        if not (conflict.match and conflict.match.match(acc)):
                             new_acc.append(acc)
                             continue
                         # no filter so we totaly escape it
@@ -396,7 +393,7 @@ class Module(NewExtensionModule):
                             continue
                         conflict_vals.append(conflict.mjoin.join(filter_val))
                     new_acc.append(conflict.val + conflict.mjoin.join(conflict_vals))
-                    test_result[attr] = new_acc  # type: ignore
+                    accumulate_values = test_result[attr] = new_acc  # type: ignore
 
         test_args = compiler.has_multi_arguments
         args = test_result['args']
