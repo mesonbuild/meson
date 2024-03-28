@@ -494,6 +494,7 @@ class NinjaBackend(backends.Backend):
         self.created_llvm_ir_rule = PerMachine(False, False)
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs = []
+        self._uses_dyndeps = False
 
     def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilename: str) -> NinjaBuildElement:
         '''
@@ -669,7 +670,8 @@ class NinjaBackend(backends.Backend):
         os.replace(tempfilename, outfilename)
         mlog.cmd_ci_include(outfilename)  # For CI debugging
         # Refresh Ninja's caches. https://github.com/ninja-build/ninja/pull/1685
-        if mesonlib.version_compare(self.ninja_version, '>=1.10.0') and os.path.exists(os.path.join(self.environment.build_dir, '.ninja_log')):
+        # Cannot use when running with dyndeps: https://github.com/ninja-build/ninja/issues/1952
+        if mesonlib.version_compare(self.ninja_version, '>=1.10.0') and os.path.exists(os.path.join(self.environment.build_dir, '.ninja_log')) and not self._uses_dyndeps:
             subprocess.call(self.ninja_command + ['-t', 'restat'], cwd=self.environment.build_dir)
             subprocess.call(self.ninja_command + ['-t', 'cleandead'], cwd=self.environment.build_dir)
         self.generate_compdb()
@@ -1094,6 +1096,7 @@ class NinjaBackend(backends.Backend):
                                         object_deps: T.List['mesonlib.FileOrString']) -> None:
         if not self.should_use_dyndeps_for_target(target):
             return
+        self._uses_dyndeps = True
         depscan_file = self.get_dep_scan_file_for(target)
         pickle_base = target.name + '.dat'
         pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
