@@ -379,7 +379,7 @@ def fix_elf(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optiona
             # note: e.get_rpath() and e.get_runpath() may be useful
             e.fix_rpath(fname, rpath_dirs_to_remove, new_rpath)
 
-def get_darwin_rpaths_to_remove(fname: str) -> T.List[str]:
+def get_darwin_rpaths(fname: str) -> T.List[str]:
     p, out, _ = Popen_safe(['otool', '-l', fname], stderr=subprocess.DEVNULL)
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, p.args, out)
@@ -397,43 +397,32 @@ def get_darwin_rpaths_to_remove(fname: str) -> T.List[str]:
             result.append(rp)
     return result
 
-def fix_darwin(fname: str, new_rpath: str, final_path: str, install_name_mappings: T.Dict[str, str]) -> None:
+def fix_darwin(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: str, final_path: str, install_name_mappings: T.Dict[str, str]) -> None:
     try:
-        rpaths = get_darwin_rpaths_to_remove(fname)
+        old_rpaths = get_darwin_rpaths(fname)
     except subprocess.CalledProcessError:
         # Otool failed, which happens when invoked on a
         # non-executable target. Just return.
         return
+    new_rpaths: OrderedSet[str] = OrderedSet()
+    if new_rpath:
+        new_rpaths.update(new_rpath)
+    # filter out build-only rpath entries, like in
+    # fix_rpathtype_entry
+    remove_rpaths = [x.decode('utf8') for x in rpath_dirs_to_remove]
+    for rpath_dir in old_rpaths:
+        if rpath_dir and rpath_dir not in remove_rpaths:
+            new_rpaths.add(rpath_dir)
     try:
         args = []
-        if rpaths:
-            # TODO: fix this properly, not totally clear how
-            #
-            # removing rpaths from binaries on macOS has tons of
-            # weird edge cases. For instance, if the user provided
-            # a '-Wl,-rpath' argument in LDFLAGS that happens to
-            # coincide with an rpath generated from a dependency,
-            # this would cause installation failures, as meson would
-            # generate install_name_tool calls with two identical
-            # '-delete_rpath' arguments, which install_name_tool
-            # fails on. Because meson itself ensures that it never
-            # adds duplicate rpaths, duplicate rpaths necessarily
-            # come from user variables. The idea of using OrderedSet
-            # is to remove *at most one* duplicate RPATH entry. This
-            # is not optimal, as it only respects the user's choice
-            # partially: if they provided a non-duplicate '-Wl,-rpath'
-            # argument, it gets removed, if they provided a duplicate
-            # one, it remains in the final binary. A potentially optimal
-            # solution would split all user '-Wl,-rpath' arguments from
-            # LDFLAGS, and later add them back with '-add_rpath'.
-            for rp in OrderedSet(rpaths):
-                args += ['-delete_rpath', rp]
-            subprocess.check_call(['install_name_tool', fname] + args,
-                                  stdout=subprocess.DEVNULL,
-                                  stderr=subprocess.DEVNULL)
-        args = []
-        if new_rpath:
-            args += ['-add_rpath', new_rpath]
+        # compute diff, translate it into -delete_rpath and -add_rpath
+        # calls
+        for path in new_rpaths:
+            if path not in old_rpaths:
+                args += ['-add_rpath', path]
+        for path in old_rpaths:
+            if path not in new_rpaths:
+                args += ['-delete_rpath', path]
         # Rewrite -install_name @rpath/libfoo.dylib to /path/to/libfoo.dylib
         if fname.endswith('dylib'):
             args += ['-id', final_path]
@@ -492,4 +481,4 @@ def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union
     if INSTALL_NAME_TOOL:
         if isinstance(new_rpath, bytes):
             new_rpath = new_rpath.decode('utf8')
-        fix_darwin(fname, new_rpath, final_path, install_name_mappings)
+        fix_darwin(fname, rpath_dirs_to_remove, new_rpath, final_path, install_name_mappings)
