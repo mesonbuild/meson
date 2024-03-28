@@ -1103,8 +1103,16 @@ class NinjaBackend(backends.Backend):
 
         scaninfo = TargetDependencyScannerInfo(
             self.get_target_private_dir(target), source2object, scan_sources)
-        with open(pickle_abs, 'wb') as p:
-            pickle.dump(scaninfo, p)
+
+        write = True
+        if os.path.exists(pickle_abs):
+            with open(pickle_abs, 'rb') as p:
+                old = pickle.load(p)
+            write = old != scaninfo
+
+        if write:
+            with open(pickle_abs, 'wb') as p:
+                pickle.dump(scaninfo, p)
 
         elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, pickle_file)
         # Add any generated outputs to the order deps of the scan target, so
