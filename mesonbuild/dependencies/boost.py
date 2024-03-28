@@ -594,7 +594,8 @@ class BoostDependency(SystemDependency):
         # mlog.debug('    - vscrt: {}'.format(vscrt))
         libs = [x for x in libs if x.static == self.static or not self.explicit_static]
         libs = [x for x in libs if x.mt == self.multithreading]
-        libs = [x for x in libs if x.version_matches(lib_vers)]
+        if not self.env.machines[self.for_machine].is_openbsd():
+            libs = [x for x in libs if x.version_matches(lib_vers)]
         libs = [x for x in libs if x.arch_matches(self.arch)]
         libs = [x for x in libs if x.vscrt_matches(vscrt)]
         libs = [x for x in libs if x.nvsuffix != 'dll']  # Only link to import libraries
