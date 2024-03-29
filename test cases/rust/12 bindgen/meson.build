@@ -105,9 +105,9 @@ if prog_bindgen.version().version_compare('>= 0.65')
     input : 'src/header3.h',
     output : 'header3.rs',
     output_inline_wrapper : 'header3.c',
-    include_directories : 'include',
+    include_directories : inc,
   )
-  c_inline_wrapper = static_library('c_wrapper', gen3[1])
+  c_inline_wrapper = static_library('c_wrapper', gen3[1], include_directories: inc)
 
   f = configure_file(
     input : 'src/main3.rs',
