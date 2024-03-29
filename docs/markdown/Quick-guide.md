@@ -79,19 +79,20 @@ $ meson setup builddir
 $ bash: /usr/bin/meson: No such file or directory
 ```
 
-Description: The default installation prefix for the python pip module
-installation is not included in your shell environment PATH. The
-default prefix for python pip installation modules is located under
-``/usr/local``.
+**Description**: The default installation prefix for the python pip module
+installation might not be included in your shell environment `PATH`.
+The default install location varies depending on your OS, distro and
+Python version.
 
-**Resolution:
-This issue can be resolved by altering the default shell environment
-PATH to include ``/usr/local/bin``. **
+**Resolution**: This issue can be resolved by altering the default shell
+environment `PATH` to include the path where Pip installed the
+binaries. This can be, e.g. ``/usr/local/bin`` or
+`/home/<username>/.local/bin`.
 
-*Note: There are other ways of fixing this issue such as using
+**Note**: There are other ways of fixing this issue such as using
  symlinks or copying the binaries to a default path and these methods
  are not recommended or supported as they may break package management
- interoperability.*
+ interoperability.
 
 
 Compiling a Meson project
