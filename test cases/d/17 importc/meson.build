@@ -1,5 +1,9 @@
 project('d importC', 'd')
 
+if meson.get_compiler('d').get_id() == 'gcc'
+    error('MESON_SKIP_TEST: C preprocessor directive #include is not supported by GDC')
+endif
+
 e = executable(
   'd_importc',
   sources: [
