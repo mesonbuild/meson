@@ -173,7 +173,8 @@ class UserBooleanOption(UserOption[bool]):
         raise MesonException(f'Option "{self.name}" value {value} is not boolean (true or false).')
 
 class UserIntegerOption(UserOption[int]):
-    def __init__(self, name: str, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
+    def __init__(self, name: str, description: str, value: T.Tuple[T.Optional[int], T.Optional[int], int],
+                 yielding: bool = DEFAULT_YIELDING,
                  deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
         min_value, max_value, default_value = value
         self.min_value = min_value
@@ -1421,7 +1422,7 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
     (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
     (OptionKey('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
-    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4))),
+    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', (0, None, 4))),
     (OptionKey('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'], yielding=False)),
     (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
