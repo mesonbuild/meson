@@ -49,5 +49,5 @@ subprojects with unity, while building the main project incrementally.
 The `unity_size` option allows to specify the number of source files
 included per unity file. The default is 4. Having more source files
 per unity file will speed up full builds, but slow down incremental
-builds. To get only one unity file per build target, you can use
-a very big number for `unity_size`.
+builds. To get only one unity file per build target, set the `unity_size`
+to -1 (*since 1.5.0*) or use a very big number.

@@ -205,6 +205,26 @@ class UserIntegerOption(UserOption[int]):
         except ValueError:
             raise MesonException(f'Value string "{valuestring}" for option "{self.name}" is not convertible to an integer.')
 
+
+class UserUnityOption(UserIntegerOption):
+    """Subclass of IntValue for unity_size
+
+    since we allow 0 or >=2, but don't want to allow 1
+    """
+    def __init__(self, name: str, description: str, value: T.Tuple[T.Optional[int], T.Optional[int], int],
+                 yielding: bool = DEFAULT_YIELDING,
+                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
+        super().__init__(name, description, value, yielding, deprecated)
+        self.choices = f'-1 or {self.choices}'
+
+    def validate_value(self, value: T.Any) -> int:
+        if isinstance(value, str):
+            value = self.toint(value)
+        if value == -1:
+            return value
+
+        return super().validate_value(value)
+
 class OctalInt(int):
     # NinjaBackend.get_user_option_args uses str() to converts it to a command line option
     # UserUmaskOption.toint() uses int(str, 8) to convert it to an integer
@@ -1422,7 +1442,7 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
     (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
     (OptionKey('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
-    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', (0, None, 4))),
+    (OptionKey('unity_size'),      BuiltinOption(UserUnityOption, 'Unity block size', (0, None, 4))),
     (OptionKey('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'], yielding=False)),
     (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),

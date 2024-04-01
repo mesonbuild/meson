@@ -438,7 +438,8 @@ class Backend:
 
         # For each language, generate unity source files and return the list
         for comp, srcs in compsrcs.items():
-            for unity_file_number, chunk in enumerate(grouper(srcs, unity_size)):
+            chunks = [srcs] if unity_size == -1 else grouper(srcs, unity_size)
+            for unity_file_number, chunk in enumerate(chunks):
                 with init_language_file(comp.get_default_suffix(), unity_file_number) as f:
                     for src in chunk:
                         if src is None:
@@ -906,7 +907,8 @@ class Backend:
                 if comp.language in LANGS_CANT_UNITY:
                     sources += srcs
                     continue
-                for i in range((len(srcs) + unity_size - 1) // unity_size):
+                indexes = [0] if unity_size == -1 else range((len(srcs) + unity_size - 1) // unity_size)
+                for i in indexes:
                     _src = self.get_unity_source_file(extobj.target,
                                                       comp.get_default_suffix(), i)
                     sources.append(_src)
