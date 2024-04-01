@@ -29,6 +29,7 @@ from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet,
     ExecutableSerialisation, classify_unity_sources, OptionKey
 )
+from ..utils.universal import grouper
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
@@ -437,22 +438,12 @@ class Backend:
 
         # For each language, generate unity source files and return the list
         for comp, srcs in compsrcs.items():
-            files_in_current = unity_size + 1
-            unity_file_number = 0
-            # TODO: this could be simplified with an algorithm that pre-sorts
-            # the sources into the size of chunks we want
-            ofile = None
-            for src in srcs:
-                if files_in_current >= unity_size:
-                    if ofile:
-                        ofile.close()
-                    ofile = init_language_file(comp.get_default_suffix(), unity_file_number)
-                    unity_file_number += 1
-                    files_in_current = 0
-                ofile.write(f'#include<{src}>\n')
-                files_in_current += 1
-            if ofile:
-                ofile.close()
+            for unity_file_number, chunk in enumerate(grouper(srcs, unity_size)):
+                with init_language_file(comp.get_default_suffix(), unity_file_number) as f:
+                    for src in chunk:
+                        if src is None:
+                            break
+                        f.write(f'#include <{src}>\n')
 
         for x in abs_files:
             mesonlib.replace_if_different(x, x + '.tmp')
