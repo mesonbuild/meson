@@ -9,5 +9,9 @@ if not ['gcc', 'clang', 'clang-cl'].contains(compiler_id)
 endif
 
 lib_include_directories = include_directories('lib', is_system: true)
+
+# test that a system library include_directories just contains a single path
+assert('@0@'.format(lib_include_directories.to_list()) == '[\'lib\']')
+
 add_project_arguments('-Wsign-conversion', language: 'cpp')
-executable('system_include_dir_test', sources: 'main.cpp', include_directories: lib_include_directories)
+executable('system_include_dir_b_test', sources: 'main.cpp', include_directories: lib_include_directories)
