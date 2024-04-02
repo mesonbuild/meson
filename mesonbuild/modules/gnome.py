@@ -408,7 +408,7 @@ class GnomeModule(ExtensionModule):
                 subdirs.append(dep.subdir)
             else:
                 depends.append(dep)
-                subdirs.append(dep.get_subdir())
+                subdirs.append(dep.get_source_subdir())
                 if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
                     m = 'The "dependencies" argument of gnome.compile_resources() cannot\n' \
                         'be used with the current version of glib-compile-resources due to\n' \
@@ -502,6 +502,7 @@ class GnomeModule(ExtensionModule):
             target_cmd,
             [input_file],
             [output],
+            state.is_build_only_subproject,
             build_by_default=kwargs['build_by_default'],
             depfile=depfile,
             depend_files=depend_files,
@@ -525,6 +526,7 @@ class GnomeModule(ExtensionModule):
             cmd,
             [input_file],
             [f'{target_name}.h'],
+            state.is_build_only_subproject,
             build_by_default=kwargs['build_by_default'],
             extra_depends=depends,
             install=install_header,
@@ -583,7 +585,7 @@ class GnomeModule(ExtensionModule):
                     if fname is not None:
                         raw_dep_files.remove(resfile)
                         depends.append(dep)
-                        subdirs.append(dep.get_subdir())
+                        subdirs.append(dep.get_source_subdir())
                         break
             else:
                 # In generate-dependencies mode, glib-compile-resources doesn't raise
@@ -685,7 +687,7 @@ class GnomeModule(ExtensionModule):
                 for source in dep.sources:
                     if isinstance(source, GirTarget):
                         gi_includes.update([os.path.join(state.environment.get_build_dir(),
-                                            source.get_subdir())])
+                                            source.get_source_subdir())])
             # This should be any dependency other than an internal one.
             elif isinstance(dep, Dependency):
                 cflags.update(dep.get_compile_args())
@@ -812,8 +814,8 @@ class GnomeModule(ExtensionModule):
             if isinstance(inc, str):
                 ret += [f'--include={inc}']
             elif isinstance(inc, GirTarget):
-                gir_inc_dirs .append(os.path.join(state.environment.get_build_dir(), inc.get_subdir()))
-                ret.append(f"--include-uninstalled={os.path.join(inc.get_subdir(), inc.get_basename())}")
+                gir_inc_dirs .append(os.path.join(state.environment.get_build_dir(), inc.get_source_subdir()))
+                ret.append(f"--include-uninstalled={os.path.join(inc.get_source_subdir(), inc.get_basename())}")
                 depends.append(inc)
 
         return ret, gir_inc_dirs, depends
@@ -840,7 +842,7 @@ class GnomeModule(ExtensionModule):
             else:
                 # Because of https://gitlab.gnome.org/GNOME/gobject-introspection/merge_requests/72
                 # we can't use the full path until this is merged.
-                libpath = os.path.join(girtarget.get_subdir(), girtarget.get_filename())
+                libpath = os.path.join(girtarget.get_source_subdir(), girtarget.get_filename())
                 # Must use absolute paths here because g-ir-scanner will not
                 # add them to the runtime path list if they're relative. This
                 # means we cannot use @BUILD_ROOT@
@@ -987,6 +989,7 @@ class GnomeModule(ExtensionModule):
             scan_command,
             generated_files,
             [girfile],
+            state.is_build_only_subproject,
             build_by_default=kwargs['build_by_default'],
             extra_depends=depends,
             install=install,
@@ -1018,6 +1021,7 @@ class GnomeModule(ExtensionModule):
             typelib_cmd,
             generated_files,
             [typelib_output],
+            state.is_build_only_subproject,
             install=install,
             install_dir=[install_dir],
             install_tag=['typelib'],
@@ -1044,7 +1048,7 @@ class GnomeModule(ExtensionModule):
                     if isinstance(source, GirTarget) and source not in depends:
                         new_depends.append(source)
                         subdir = os.path.join(state.environment.get_build_dir(),
-                                              source.get_subdir())
+                                              source.get_source_subdir())
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
             # Do the same, but for dependencies of dependencies. These are
@@ -1056,7 +1060,7 @@ class GnomeModule(ExtensionModule):
                 for g_source in dep.generated:
                     if isinstance(g_source, GirTarget):
                         subdir = os.path.join(state.environment.get_build_dir(),
-                                              g_source.get_subdir())
+                                              g_source.get_source_subdir())
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
             if isinstance(dep, Dependency):
@@ -1249,6 +1253,7 @@ class GnomeModule(ExtensionModule):
             cmd,
             [],
             ['gschemas.compiled'],
+            state.is_build_only_subproject,
             build_by_default=kwargs['build_by_default'],
             depend_files=kwargs['depend_files'],
             description='Compiling gschemas {}',
@@ -1364,6 +1369,7 @@ class GnomeModule(ExtensionModule):
                 [msgfmt, '@INPUT@', '-o', '@OUTPUT@'],
                 [po_file],
                 [gmo_file],
+                state.is_build_only_subproject,
                 install_tag=['doc'],
                 description='Generating yelp doc {}',
             )
@@ -1377,6 +1383,7 @@ class GnomeModule(ExtensionModule):
                 [itstool, '-m', os.path.join(l_subdir, gmo_file), '--lang', l, '-o', '@OUTDIR@', '@INPUT@'],
                 sources_files,
                 sources,
+                state.is_build_only_subproject,
                 extra_depends=[gmotarget],
                 install=True,
                 install_dir=[l_install_dir],
@@ -1526,6 +1533,7 @@ class GnomeModule(ExtensionModule):
             command + t_args,
             [],
             [f'{modulename}-decl.txt'],
+            state.is_build_only_subproject,
             build_always_stale=True,
             extra_depends=new_depends,
             description='Generating gtkdoc {}',
@@ -1671,6 +1679,7 @@ class GnomeModule(ExtensionModule):
             c_cmd,
             xml_files,
             [output],
+            state.is_build_only_subproject,
             build_by_default=build_by_default,
             description='Generating gdbus source {}',
         )
@@ -1692,6 +1701,7 @@ class GnomeModule(ExtensionModule):
             hfile_cmd,
             xml_files,
             [output],
+            state.is_build_only_subproject,
             build_by_default=build_by_default,
             extra_depends=depends,
             install=install_header,
@@ -1724,6 +1734,7 @@ class GnomeModule(ExtensionModule):
                 docbook_cmd,
                 xml_files,
                 outputs,
+                state.is_build_only_subproject,
                 build_by_default=build_by_default,
                 extra_depends=depends,
                 description='Generating gdbus docbook {}',
@@ -1956,6 +1967,7 @@ class GnomeModule(ExtensionModule):
             real_cmd,
             sources,
             [output],
+            state.is_build_only_subproject,
             capture=True,
             install=install,
             install_dir=[_install_dir],
@@ -2025,6 +2037,7 @@ class GnomeModule(ExtensionModule):
             h_cmd,
             sources,
             [header_file],
+            state.is_build_only_subproject,
             install=install_header,
             install_dir=[kwargs['install_dir']] if kwargs['install_dir'] else [],
             install_tag=['devel'],
@@ -2047,6 +2060,7 @@ class GnomeModule(ExtensionModule):
             c_cmd,
             sources,
             [f'{output}.c'],
+            state.is_build_only_subproject,
             capture=capture,
             depend_files=kwargs['depend_files'],
             extra_depends=extra_deps,
@@ -2077,9 +2091,9 @@ class GnomeModule(ExtensionModule):
                 targets = [t for t in arg.sources if isinstance(t, VapiTarget)]
                 for target in targets:
                     srcdir = os.path.join(state.environment.get_source_dir(),
-                                          target.get_subdir())
+                                          target.get_source_subdir())
                     outdir = os.path.join(state.environment.get_build_dir(),
-                                          target.get_subdir())
+                                          target.get_source_subdir())
                     outfile = target.get_outputs()[0][:-5] # Strip .vapi
                     vapi_args.append('--vapidir=' + outdir)
                     vapi_args.append('--girdir=' + outdir)
@@ -2152,7 +2166,7 @@ class GnomeModule(ExtensionModule):
             elif isinstance(i, GirTarget):
                 link_with += self._get_vapi_link_with(i)
                 subdir = os.path.join(state.environment.get_build_dir(),
-                                      i.get_subdir())
+                                      i.get_source_subdir())
                 gir_file = os.path.join(subdir, i.get_outputs()[0])
                 cmd.append(gir_file)
 
@@ -2170,9 +2184,10 @@ class GnomeModule(ExtensionModule):
             state.subdir,
             state.subproject,
             state.environment,
-            command=cmd,
-            sources=inputs,
-            outputs=[vapi_output],
+            cmd,
+            inputs,
+            [vapi_output],
+            state.is_build_only_subproject,
             extra_depends=vapi_depends,
             install=kwargs['install'],
             install_dir=[install_dir],
@@ -2183,7 +2198,8 @@ class GnomeModule(ExtensionModule):
         # - link with the correct library
         # - include the vapi and dependent vapi files in sources
         # - add relevant directories to include dirs
-        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False)]
+        incs = [build.IncludeDirs(state.subdir, ['.'] + vapi_includes, False,
+                is_build_only_subproject=state.is_build_only_subproject)]
         sources = [vapi_target] + vapi_depends
         rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], [], {}, [], [], [])
         created_values.append(rv)

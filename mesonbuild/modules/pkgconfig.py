@@ -210,10 +210,10 @@ class DependenciesHelper:
                 # than needed build deps.
                 # See https://bugs.freedesktop.org/show_bug.cgi?id=105572
                 processed_libs.append(obj)
-                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
+                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_source_subdir())
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
-                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_subdir())
+                self._add_uninstalled_incdirs(obj.get_include_dirs(), obj.get_source_subdir())
                 # If there is a static library in `Libs:` all its deps must be
                 # public too, otherwise the generated pc file will never be
                 # usable without --static.
@@ -610,6 +610,9 @@ class PkgConfigModule(NewExtensionModule):
     def generate(self, state: ModuleState,
                  args: T.Tuple[T.Optional[T.Union[build.SharedLibrary, build.StaticLibrary]]],
                  kwargs: GenerateKw) -> ModuleReturnValue:
+        if state.is_build_only_subproject:
+            return ModuleReturnValue(None, [])
+
         default_version = state.project_version
         default_install_dir: T.Optional[str] = None
         default_description: T.Optional[str] = None

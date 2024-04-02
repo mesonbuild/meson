@@ -124,7 +124,7 @@ class MesonMain(MesonInterpreterObject):
                 script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
             elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 new = True
-                script_args.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
+                script_args.extend([os.path.join(a.get_source_subdir(), o) for o in a.get_outputs()])
 
                 # This feels really hacky, but I'm not sure how else to fix
                 # this without completely rewriting install script handling.
@@ -217,11 +217,10 @@ class MesonMain(MesonInterpreterObject):
     @noPosargs
     @noKwargs
     def current_build_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        src = self.interpreter.environment.build_dir
         sub = self.interpreter.subdir
         if sub == '':
-            return src
-        return os.path.join(src, sub)
+            return self.interpreter.environment.build_dir
+        return self.interpreter.absolute_builddir_path_for(sub)
 
     @noPosargs
     @noKwargs
@@ -325,8 +324,8 @@ class MesonMain(MesonInterpreterObject):
 
     @FeatureNew('meson.override_find_program', '0.46.0')
     @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable))
-    @noKwargs
-    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable]], kwargs: 'TYPE_kwargs') -> None:
+    @typed_kwargs('meson.override_find_program', NATIVE_KW.evolve(since='1.3.0'))
+    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable]], kwargs: NativeKW) -> None:
         name, exe = args
         if isinstance(exe, mesonlib.File):
             abspath = exe.absolute_path(self.interpreter.environment.source_dir,
@@ -334,7 +333,7 @@ class MesonMain(MesonInterpreterObject):
             if not os.path.exists(abspath):
                 raise InterpreterException(f'Tried to override {name} with a file that does not exist.')
             exe = OverrideProgram(name, [abspath])
-        self.interpreter.add_find_program_override(name, exe)
+        self.interpreter.add_find_program_override(name, exe, kwargs['native'])
 
     @typed_kwargs(
         'meson.override_dependency',

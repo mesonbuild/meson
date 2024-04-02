@@ -572,6 +572,7 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.options: 'MutableKeyedOptionDictType' = {}
+        self.is_build_only = False
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
 
@@ -601,6 +602,49 @@ class CoreData:
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')
         self.builtin_options_libdir_cross_fixup()
         self.init_builtins('')
+
+    def copy_as_build(self) -> CoreData:
+        """Create a copy if this coredata, but for the build machine.
+
+        If this is not a cross build, then a reference to self will be returned
+        instead.
+        """
+        if not self.is_cross_build():
+            return self
+
+        new = copy.copy(self)
+        new.is_build_only = True
+
+        new.options = {}
+        new.init_builtins('')
+        new.options.update({k: v for k, v in self.options.items()
+                            if k.machine is MachineChoice.HOST and not self.is_per_machine_option(k)})
+        new.options.update({k.as_host(): v for k, v in self.options.items()
+                            if k.machine is MachineChoice.BUILD})
+        new.options.update({k: v for k, v in self.options.items()
+                            if k.machine is MachineChoice.BUILD})
+
+        # Use only the build deps, not any host ones
+        new.deps = PerMachineDefaultable(self.deps.build).default_missing()
+        new.compilers = PerMachineDefaultable(self.compilers.build).default_missing()
+        new.cmake_cache = PerMachineDefaultable(self.cmake_cache.build).default_missing()
+
+        # Drop any cross files, since this is not a cross compile
+        new.cross_files = []
+
+        return new
+
+    def merge(self, other: CoreData) -> None:
+        build_only_boundary = not self.is_build_only and other.is_build_only
+        if not build_only_boundary:
+            return
+
+        self.options.update({k: v for k, v in other.options.items()
+                             if k.machine is MachineChoice.HOST and not self.is_per_machine_option(k)})
+        self.options.update({k: v for k, v in other.options.items()
+                             if k.machine is MachineChoice.BUILD})
+        self.options.update({k.as_build(): v for k, v in other.options.items()
+                             if k.machine is MachineChoice.HOST and k.subproject and k.is_project()})
 
     @staticmethod
     def __load_config_files(options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
@@ -886,6 +930,8 @@ class CoreData:
 
     @staticmethod
     def is_per_machine_option(optname: OptionKey) -> bool:
+        if optname.subproject and optname.is_project():
+            return True
         if optname.name in BUILTIN_OPTIONS_PER_MACHINE:
             return True
         return optname.lang is not None
