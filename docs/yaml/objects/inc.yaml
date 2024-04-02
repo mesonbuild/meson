@@ -1,3 +1,13 @@
 name: inc
 long_name: Include directories
 description: Opaque wrapper for storing include directories
+
+methods:
+- name: to_list
+  returns: list[str]
+  since: 1.5.0
+  description: |
+    Returns a list of strings of absolute paths to the directories
+    contained within the object. Unless the path is a system path,
+    there will be a path relative to the source root and one
+    relative to the build root. System paths are provided as-is.
