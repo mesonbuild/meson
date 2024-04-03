@@ -26,6 +26,9 @@ description: |
   - `@SOURCE_DIR@`: the full path to the root of the source tree
   - `@CURRENT_SOURCE_DIR@`: this is the directory where the currently processed meson.build is located in
   - `@BUILD_DIR@`: the full path to the root of the build dir where the output will be placed
+  - `@INCLUDE_DIRS@`: The values provided to `include_directories`, formatted
+    according to `include_directories_template`. This is required if
+    `include_directories` is not empty.
 
   NOTE: Generators should only be used for outputs that will ***only***
   be used as inputs for a [[build_target]] or a [[custom_target]].
@@ -81,3 +84,24 @@ kwargs:
       When this argument is set to true, Meson captures `stdout`
       of the `executable` and writes it to the target file
       specified as `output`.
+
+  include_directories:
+    type: list[str | inc]
+    since: 1.5.0
+    default: []
+    description: |
+      Directories that need to be passed to `arguments` as includes, these are
+      formatted by the `include_directories_template` keyword argument.
+
+      When this value is set `arguments` must have the special parameter
+      `@INCLUDE_DIRS@`. Thee string formatted directory arguments will then
+      replace this parameter in the command.
+
+  include_directories_template:
+    type: list[str]
+    since: 1.5.0
+    default: ['-I@DIR@']
+    description: |
+      A template that is used to format include_directory entires. It must
+      include the special string '@DIR@' as either part of or as an entry in the
+      array.

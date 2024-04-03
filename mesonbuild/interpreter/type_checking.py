@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 
 """Helpers for strict type checking."""
 
@@ -403,6 +403,13 @@ INCLUDE_DIRECTORIES: KwargInfo[T.List[T.Union[str, IncludeDirs]]] = KwargInfo(
     ContainerTypeInfo(list, (str, IncludeDirs)),
     listify=True,
     default=[],
+)
+
+INCLUDE_DIRECTORIES_TEMPL: KwargInfo[T.List[str]] = KwargInfo(
+    'include_directories_template',
+    ContainerTypeInfo(list, str),
+    default=['-I@DIR@'],
+    listify=True, since='1.5.0',
 )
 
 DEFAULT_OPTIONS = OVERRIDE_OPTIONS_KW.evolve(name='default_options')

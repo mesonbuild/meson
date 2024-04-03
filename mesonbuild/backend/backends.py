@@ -1371,11 +1371,13 @@ class Backend:
             arr = bt.get_command()
         return arr
 
-    def replace_extra_args(self, args: T.List[str], genlist: 'build.GeneratedList') -> T.List[str]:
+    def replace_extra_args(self, args: T.List[str], genlist: build.GeneratedList) -> T.List[str]:
         final_args: T.List[str] = []
         for a in args:
             if a == '@EXTRA_ARGS@':
-                final_args += genlist.get_extra_args()
+                final_args.extend(genlist.get_extra_args())
+            elif a == '@INCLUDE_DIRS@':
+                final_args.extend(genlist.get_include_dirs(self.environment))
             else:
                 final_args.append(a)
         return final_args

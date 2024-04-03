@@ -95,12 +95,15 @@ class FuncGenerator(TypedDict):
     depfile: T.Optional[str]
     capture:  bool
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+    include_directories: T.List[T.Union[build.IncludeDirs, str]]
+    include_directories_template: T.List[str]
 
 
 class GeneratorProcess(TypedDict):
 
     """Keyword Arguments for generator.process."""
 
+    include_directories: T.List[T.Union[build.IncludeDirs, str]]
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: EnvironmentVariables

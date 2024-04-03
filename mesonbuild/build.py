@@ -1763,6 +1763,8 @@ class Generator(HoldableObject):
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
                  depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget', 'CustomTargetIndex']]] = None,
+                 include_directories: T.Optional[T.List[IncludeDirs]] = None,
+                 include_directories_template: T.Optional[T.List[str]] = None,
                  name: str = 'Generator'):
         self.exe = exe
         self.depfile = depfile
@@ -1771,6 +1773,8 @@ class Generator(HoldableObject):
         self.arglist = arguments
         self.outputs = output
         self.name = name
+        self.include_directories = include_directories or []
+        self.include_directories_template = include_directories_template or ['-I@DIR@']
 
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
@@ -1809,13 +1813,18 @@ class Generator(HoldableObject):
                       state: T.Union['Interpreter', 'ModuleState'],
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
-                      env: T.Optional[EnvironmentVariables] = None) -> 'GeneratedList':
+                      env: T.Optional[EnvironmentVariables] = None,
+                      includes: T.Optional[T.List[IncludeDirs]] = None) -> 'GeneratedList':
+        extra_args = extra_args or []
+        includes = (includes or [])
+
         output = GeneratedList(
             self,
             state.subdir,
             preserve_path_from,
-            extra_args=extra_args if extra_args is not None else [],
-            env=env if env is not None else EnvironmentVariables())
+            extra_args=extra_args,
+            env=env if env is not None else EnvironmentVariables(),
+            include_directories=includes)
 
         for e in files:
             if isinstance(e, CustomTarget):
@@ -1855,6 +1864,7 @@ class GeneratedList(HoldableObject):
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: T.Optional[EnvironmentVariables]
+    include_directories: T.List[IncludeDirs]
 
     def __post_init__(self) -> None:
         self.name = self.generator.exe
@@ -1915,6 +1925,11 @@ class GeneratedList(HoldableObject):
 
     def get_subdir(self) -> str:
         return self.subdir
+
+    def get_include_dirs(self, env: environment.Environment) -> T.Iterable[str]:
+        for inc in itertools.chain(self.include_directories, self.generator.include_directories):
+            for path in inc.to_string_list(env.source_dir, env.build_dir):
+                yield from (a.replace('@DIR@', path) for a in self.generator.include_directories_template)
 
 
 class Executable(BuildTarget):
