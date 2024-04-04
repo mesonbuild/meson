@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
 import collections
@@ -302,7 +302,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_pos_args('compiler.run', (str, mesonlib.File))
     @typed_kwargs('compiler.run', *_COMPILES_KWS)
     def run_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> 'RunResult':
-        if self.compiler.language not in {'d', 'c', 'cpp', 'objc', 'objcpp'}:
+        if self.compiler.language not in {'d', 'c', 'cpp', 'objc', 'objcpp', 'fortran'}:
             FeatureNew.single_use(f'compiler.run for {self.compiler.get_display_language()} language',
                                   '1.5.0', self.subproject, location=self.current_node)
         code = args[0]
