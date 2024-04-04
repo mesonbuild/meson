@@ -11,7 +11,7 @@ import typing as T
 
 from ... import mesonlib
 from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
-    MoldDynamicLinker
+    MoldDynamicLinker, MSVCDynamicLinker
 from ...mesonlib import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
@@ -111,6 +111,13 @@ class ClangCompiler(GnuLikeCompiler):
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
 
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        if isinstance(self.linker, (MSVCDynamicLinker)):
+            # With MSVC, DLLs only export symbols that are explicitly exported,
+            # so if a module defs file is specified, we use that to export symbols
+            return ['-Wl,/DEF:' + defsfile]
+        return super().gen_vs_module_defs_args(defsfile)
+
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         # Clang additionally can use a linker specified as a path, which GCC
@@ -154,6 +161,12 @@ class ClangCompiler(GnuLikeCompiler):
             assert mode == 'default', 'someone forgot to wire something up'
             args.extend(super().get_lto_compile_args(threads=threads))
         return args
+
+    def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
+        if isinstance(self.linker, (ClangClDynamicLinker, MSVCDynamicLinker)):
+            return [flag if flag.startswith('-Wl,') else f'-Wl,{flag}' for flag in args]
+        else:
+            return args
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:

@@ -1319,6 +1319,9 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
 
+    def fatal_warnings(self) -> T.List[str]:
+        return ['-WX']
+
 
 class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
@@ -1347,6 +1350,9 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return ["/lldltocache:" + path]
+
+    def fatal_warnings(self) -> T.List[str]:
+        return ['-WX']
 
 
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
