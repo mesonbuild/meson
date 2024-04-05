@@ -284,6 +284,7 @@ class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], Mu
 
     def __init__(self, obj: mesonlib.EnvironmentVariables, interpreter: 'Interpreter'):
         super().__init__(obj, interpreter)
+        MutableInterpreterObject.__init__(self)
         self.methods.update({'set': self.set_method,
                              'unset': self.unset_method,
                              'append': self.append_method,
@@ -308,12 +309,14 @@ class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], Mu
     @typed_kwargs('environment.set', ENV_SEPARATOR_KW)
     def set_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
+        self.check_used(self.interpreter, fatal=False)
         self.held_object.set(name, values, kwargs['separator'])
 
     @FeatureNew('environment.unset', '1.4.0')
     @typed_pos_args('environment.unset', str)
     @noKwargs
     def unset_method(self, args: T.Tuple[str], kwargs: TYPE_kwargs) -> None:
+        self.check_used(self.interpreter, fatal=False)
         self.held_object.unset(args[0])
 
     @typed_pos_args('environment.append', str, varargs=str, min_varargs=1)
@@ -321,6 +324,7 @@ class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], Mu
     def append_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
         self.warn_if_has_name(name)
+        self.check_used(self.interpreter, fatal=False)
         self.held_object.append(name, values, kwargs['separator'])
 
     @typed_pos_args('environment.prepend', str, varargs=str, min_varargs=1)
@@ -328,6 +332,7 @@ class EnvironmentVariablesHolder(ObjectHolder[mesonlib.EnvironmentVariables], Mu
     def prepend_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'EnvironmentSeparatorKW') -> None:
         name, values = args
         self.warn_if_has_name(name)
+        self.check_used(self.interpreter, fatal=False)
         self.held_object.prepend(name, values, kwargs['separator'])
 
 
@@ -338,6 +343,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
 
     def __init__(self, obj: build.ConfigurationData, interpreter: 'Interpreter'):
         super().__init__(obj, interpreter)
+        MutableInterpreterObject.__init__(self)
         self.methods.update({'set': self.set_method,
                              'set10': self.set10_method,
                              'set_quoted': self.set_quoted_method,
@@ -349,32 +355,31 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
                              })
 
     def __deepcopy__(self, memo: T.Dict) -> 'ConfigurationDataHolder':
-        return ConfigurationDataHolder(copy.deepcopy(self.held_object), self.interpreter)
-
-    def is_used(self) -> bool:
-        return self.held_object.used
-
-    def __check_used(self) -> None:
+        obj = ConfigurationDataHolder(copy.deepcopy(self.held_object), self.interpreter)
         if self.is_used():
-            raise InterpreterException("Can not set values on configuration object that has been used.")
+            # Copies of used ConfigurationData used to be immutable. It is now
+            # allowed but we need this flag to print a FeatureNew warning if
+            # that happens.
+            obj.mutable_feature_new = True
+        return obj
 
     @typed_pos_args('configuration_data.set', str, (str, int, bool))
     @typed_kwargs('configuration_data.set', _CONF_DATA_SET_KWS)
     def set_method(self, args: T.Tuple[str, T.Union[str, int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
-        self.__check_used()
+        self.check_used(self.interpreter)
         self.held_object.values[args[0]] = (args[1], kwargs['description'])
 
     @typed_pos_args('configuration_data.set_quoted', str, str)
     @typed_kwargs('configuration_data.set_quoted', _CONF_DATA_SET_KWS)
     def set_quoted_method(self, args: T.Tuple[str, str], kwargs: 'kwargs.ConfigurationDataSet') -> None:
-        self.__check_used()
+        self.check_used(self.interpreter)
         escaped_val = '\\"'.join(args[1].split('"'))
         self.held_object.values[args[0]] = (f'"{escaped_val}"', kwargs['description'])
 
     @typed_pos_args('configuration_data.set10', str, (int, bool))
     @typed_kwargs('configuration_data.set10', _CONF_DATA_SET_KWS)
     def set10_method(self, args: T.Tuple[str, T.Union[int, bool]], kwargs: 'kwargs.ConfigurationDataSet') -> None:
-        self.__check_used()
+        self.check_used(self.interpreter)
         # bool is a subclass of int, so we need to check for bool explicitly.
         # We already have typed_pos_args checking that this is either a bool or
         # an int.
@@ -437,6 +442,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
     @noKwargs
     def merge_from_method(self, args: T.Tuple[build.ConfigurationData], kwargs: TYPE_kwargs) -> None:
         from_object = args[0]
+        self.check_used(self.interpreter)
         self.held_object.values.update(from_object.values)
 
 

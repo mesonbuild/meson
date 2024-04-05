@@ -39,7 +39,7 @@ use a single `configuration_data` object as many times as you like,
 but it becomes immutable after being passed to the `configure_file`
 function. That is, after it has been used once to generate output the
 `set` function becomes unusable and trying to call it causes an error.
-Copy of immutable `configuration_data` is still immutable.
+*Since 1.5.0* Copy of immutable `configuration_data` is however mutable.
 
 For more complex configuration file generation Meson provides a second
 form. To use it, put a line like this in your configuration file.
