@@ -120,6 +120,27 @@ class MesonInterpreterObject(InterpreterObject):
 
 class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
+    def __init__(self) -> None:
+        self.used = False
+        self.mutable_feature_new = False
+
+    def mark_used(self) -> None:
+        self.used = True
+
+    def is_used(self) -> bool:
+        return self.used
+
+    def check_used(self, interpreter: Interpreter, fatal: bool = True) -> None:
+        from .decorators import FeatureDeprecated, FeatureNew
+        if self.is_used():
+            if fatal:
+                raise InvalidArguments('Can not modify object after it has been used.')
+            FeatureDeprecated.single_use('Modify object after it has been used', '1.5.0',
+                                         interpreter.subproject, location=interpreter.current_node)
+        elif self.mutable_feature_new:
+            FeatureNew.single_use('Modify a copy of an immutable object', '1.5.0',
+                                  interpreter.subproject, location=interpreter.current_node)
+            self.mutable_feature_new = False
 
 HoldableTypes = (HoldableObject, int, bool, str, list, dict)
 TYPE_HoldableTypes = T.Union[TYPE_elementary, HoldableObject]
