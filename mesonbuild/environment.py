@@ -109,13 +109,13 @@ def detect_llvm_cov(suffix: T.Optional[str] = None):
             tool = 'llvm-cov'
         else:
             tool = f'llvm-cov-{suffix}'
-        if mesonlib.exe_exists([tool, '--version']):
+        if shutil.which(tool) is not None:
             return tool
     else:
         # Otherwise guess in the dark
         tools = get_llvm_tool_names('llvm-cov')
         for tool in tools:
-            if mesonlib.exe_exists([tool, '--version']):
+            if shutil.which(tool):
                 return tool
     return None
 
@@ -139,7 +139,7 @@ def compute_llvm_suffix(coredata: coredata.CoreData):
 
 def detect_lcov_genhtml(lcov_exe: str = 'lcov', genhtml_exe: str = 'genhtml'):
     lcov_exe, lcov_version = detect_lcov(lcov_exe)
-    if not mesonlib.exe_exists([genhtml_exe, '--version']):
+    if shutil.which(genhtml_exe) is None:
         genhtml_exe = None
 
     return lcov_exe, lcov_version, genhtml_exe
