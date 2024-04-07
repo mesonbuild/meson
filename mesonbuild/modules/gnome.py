@@ -1874,20 +1874,21 @@ class GnomeModule(ExtensionModule):
             GType
             {func_prefix}@enum_name@_get_type (void)
             {{
-            static gsize gtype_id = 0;
-            static const G@Type@Value values[] = {{'''))
+                static gsize gtype_id = 0;
+                static const G@Type@Value values[] = {{'''))
 
-        c_cmd.extend(['--vprod', '    { C_@TYPE@(@VALUENAME@), "@VALUENAME@", "@valuenick@" },'])
+        c_cmd.extend(['--vprod', '        { C_@TYPE@ (@VALUENAME@), "@VALUENAME@", "@valuenick@" },'])
 
         c_cmd.append('--vtail')
         c_cmd.append(textwrap.dedent(
-            '''    { 0, NULL, NULL }
-            };
-            if (g_once_init_enter (&gtype_id)) {
-                GType new_type = g_@type@_register_static (g_intern_static_string ("@EnumName@"), values);
-                g_once_init_leave (&gtype_id, new_type);
-            }
-            return (GType) gtype_id;
+            '''\
+                    { 0, NULL, NULL }
+                };
+                if (g_once_init_enter (&gtype_id)) {
+                    GType new_type = g_@type@_register_static (g_intern_static_string ("@EnumName@"), values);
+                    g_once_init_leave (&gtype_id, new_type);
+                }
+                return (GType) gtype_id;
             }'''))
         c_cmd.append('@INPUT@')
 
@@ -1896,13 +1897,16 @@ class GnomeModule(ExtensionModule):
         # .h file generation
         h_cmd = cmd.copy()
 
+        if header_prefix and not header_prefix.endswith('\n'):
+            header_prefix += '\n'  # Extra trailing newline for style
+
         h_cmd.append('--fhead')
         h_cmd.append(textwrap.dedent(
-            f'''#pragma once
+            f'''\
+            #pragma once
 
             #include <glib-object.h>
             {header_prefix}
-
             G_BEGIN_DECLS
             '''))
 
@@ -1912,9 +1916,13 @@ class GnomeModule(ExtensionModule):
             /* enumerations from "@basename@" */
             '''))
 
+        extra_newline = ''
+        if decl_decorator:
+            extra_newline = '\n'  # Extra leading newline for style
+
         h_cmd.append('--vhead')
-        h_cmd.append(textwrap.dedent(
-            f'''
+        h_cmd.append(extra_newline + textwrap.dedent(
+            f'''\
             {decl_decorator}
             GType {func_prefix}@enum_name@_get_type (void);
             #define @ENUMPREFIX@_TYPE_@ENUMSHORT@ ({func_prefix}@enum_name@_get_type())'''))
