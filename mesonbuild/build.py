@@ -1966,7 +1966,9 @@ class Executable(BuildTarget):
             # Executable for Windows or C#/Mono
             if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
                 self.suffix = 'exe'
-            elif machine.system.startswith('wasm') or machine.system == 'emscripten':
+            elif machine.system.startswith('wasm') or machine.system.startswith('wasi'):
+                self.suffix = 'wasm'
+            elif machine.system == 'emscripten':
                 self.suffix = 'js'
             elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('armclang') or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('armclang')):

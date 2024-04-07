@@ -152,7 +152,15 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         if 'ld64.lld' in newerr:
             lld_cls = linkers.LLVMLD64DynamicLinker
         else:
-            lld_cls = linkers.LLVMDynamicLinker
+            if isinstance(comp_class.LINKER_PREFIX, str):
+                cmd = compiler + override + [comp_class.LINKER_PREFIX]
+            else:
+                cmd = compiler + override + comp_class.LINKER_PREFIX
+            _, _, newerr = Popen_safe(cmd)
+            if 'wasm-ld' in newerr:
+                lld_cls = linkers.LLVMWASMDynamicLinker
+            else:
+                lld_cls = linkers.LLVMDynamicLinker
 
         linker = lld_cls(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
