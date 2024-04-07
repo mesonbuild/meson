@@ -98,7 +98,6 @@ __all__ = [
     'do_conf_file',
     'do_conf_str',
     'do_replacement',
-    'exe_exists',
     'expand_arguments',
     'extract_as_list',
     'first',
@@ -683,14 +682,8 @@ def is_qnx() -> bool:
 def is_aix() -> bool:
     return platform.system().lower() == 'aix'
 
-def exe_exists(arglist: T.List[str]) -> bool:
-    try:
-        if subprocess.run(arglist, timeout=10).returncode == 0:
-            return True
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    return False
-
+def exe_exists(exe: str) -> bool:
+    return shutil.which(exe) is not None
 
 @lru_cache(maxsize=None)
 def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
