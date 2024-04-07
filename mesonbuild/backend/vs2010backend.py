@@ -129,6 +129,14 @@ def get_non_primary_lang_intellisense_fields(vslite_ctx: dict,
             defs_paths_opts_per_lang_and_buildtype[src_lang][buildtype] = Vs2010Backend._extract_nmake_fields(args_list)
     return defs_paths_opts_per_lang_and_buildtype
 
+# Returns if a target generates a manifest or not.
+def get_gen_manifest(target):
+    if isinstance(target, build.BuildTarget):
+        upper_args = [arg.upper() for arg in target.link_args]
+        manifest_args = [arg for arg in upper_args if arg == '/MANIFEST' or arg.startswith('/MANIFEST:')]
+        return len(manifest_args) == 0 or manifest_args[-1] != '/MANIFEST:NO'
+    return True
+
 class Vs2010Backend(backends.Backend):
 
     name = 'vs2010'
@@ -613,7 +621,8 @@ class Vs2010Backend(backends.Backend):
                              guid,
                              conftype='Utility',
                              target_ext=None,
-                             target_platform=None) -> T.Tuple[ET.Element, ET.Element]:
+                             target_platform=None,
+                             gen_manifest=True) -> T.Tuple[ET.Element, ET.Element]:
         root = ET.Element('Project', {'DefaultTargets': "Build",
                                       'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
@@ -685,13 +694,16 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(direlem, 'TargetExt').text = target_ext
 
             ET.SubElement(direlem, 'EmbedManifest').text = 'false'
+            if not gen_manifest:
+                ET.SubElement(direlem, 'GenerateManifest').text = 'false'
 
         return (root, type_config)
 
     def gen_run_target_vcxproj(self, target: build.RunTarget, ofname: str, guid: str) -> None:
         (root, type_config) = self.create_basic_project(target.name,
                                                         temp_dir=target.get_id(),
-                                                        guid=guid)
+                                                        guid=guid,
+                                                        gen_manifest=get_gen_manifest(target))
         depend_files = self.get_target_depend_files(target)
 
         if not target.command:
@@ -726,7 +738,8 @@ class Vs2010Backend(backends.Backend):
         (root, type_config) = self.create_basic_project(target.name,
                                                         temp_dir=target.get_id(),
                                                         guid=guid,
-                                                        target_platform=platform)
+                                                        target_platform=platform,
+                                                        gen_manifest=get_gen_manifest(target))
         # We need to always use absolute paths because our invocation is always
         # from the target dir, not the build root.
         target.absolute_paths = True
@@ -766,7 +779,8 @@ class Vs2010Backend(backends.Backend):
         (root, type_config) = self.create_basic_project(target.name,
                                                         temp_dir=target.get_id(),
                                                         guid=guid,
-                                                        target_platform=platform)
+                                                        target_platform=platform,
+                                                        gen_manifest=get_gen_manifest(target))
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         target.generated = [self.compile_target_to_generator(target)]
         target.sources = []
@@ -1598,7 +1612,8 @@ class Vs2010Backend(backends.Backend):
                                                         guid=guid,
                                                         conftype=conftype,
                                                         target_ext=tfilename[1],
-                                                        target_platform=platform)
+                                                        target_platform=platform,
+                                                        gen_manifest=get_gen_manifest(target))
 
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(
             target, root)
