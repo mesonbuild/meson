@@ -9,7 +9,11 @@ Meson build files.
 
 ## Tabs or spaces?
 
-Always spaces.
+Always spaces. Two spaces is the most common.
+
+## Trailing commas?
+
+Yes, where possible. They help make nicer diffs in version control systems.
 
 ## Naming Variable
 
@@ -70,7 +74,7 @@ normal files. This rule also applies recursively for subdirectories.
 The following example shows correct source list definition:
 
 ```meson
-sources = files([
+sources = files(
   'aaa/a1.c',
   'aaa/a2.c',
   'bbb/subdir1/b1.c',
@@ -82,6 +86,6 @@ sources = files([
   'f1.c',
   'f2.c',
   'f10.c',
-  'f20.c'
-])
+  'f20.c',
+)
 ```
