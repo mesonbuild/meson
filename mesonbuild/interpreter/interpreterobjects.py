@@ -644,6 +644,7 @@ class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
         self.methods.update({'found': self.found_method,
                              'type_name': self.type_name_method,
                              'partial_dependency': self.partial_dependency_method,
+                             'name': self.name_method,
                              })
 
     @noPosargs
@@ -662,6 +663,13 @@ class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return pdep
+
+    @FeatureNew('name', '1.5.0')
+    @noPosargs
+    @noKwargs
+    def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.held_object.name
+
 
 # A machine that's statically known from the cross file
 class MachineHolder(ObjectHolder['MachineInfo']):

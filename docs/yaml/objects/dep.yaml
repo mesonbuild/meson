@@ -15,6 +15,9 @@ methods:
       Returns `'internal'` for dependencies created with
       [[declare_dependency]].
 
+      NOTE: This was not implemented for dep objects returned by
+      [[compiler.find_library]] until Meson 1.5.0
+
   - name: get_pkgconfig_variable
     since: 0.36.0
     deprecated: 0.56.0
