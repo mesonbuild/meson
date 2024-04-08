@@ -167,15 +167,18 @@ format files
  - [ThorVG](https://www.thorvg.org/), vector-based scenes and animations library
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
- - [TSCL Xtest](https://github.com/trilobite-stdlib/tscl-xtest-c), a framework for testing C/C++ code
- - [TSCL Xmock](https://github.com/trilobite-stdlib/tscl-xtest-c), a framework for mocking C/C++ code
- - [TSCL Xmemory](https://github.com/trilobite-stdlib/tscl-xmemory-c), a library for low-level, memory and bitwise operations in C
- - [TSCL Xscience](https://github.com/trilobite-stdlib/tscl-xscience-c), a library for scientific calculations in C
- - [TSCL Xstring](https://github.com/trilobite-stdlib/tscl-xstring-c), a library for working with strings and ciphers in C
- - [TSCL Xdata](https://github.com/trilobite-stdlib/tscl-xdata-c), a library with data structures and algorithms in C
- - [TSCL Xutil](https://github.com/trilobite-stdlib/tscl-xutil-c), a library with utilities for the most tedious task in C
- - [TSCL Xmath](https://github.com/trilobite-stdlib/tscl-xmath-c), a library with mathematical components for projects in C
- - [TSCL Xcore](https://github.com/trilobite-stdlib/tscl-xcore-c), a core framework with essentials for any projects in C
+ - [FSCL XTest](https://github.com/fossil-lib/tscl-xtest-c), a framework for testing C/C++ code
+ - [FSCL XMock](https://github.com/fossil-lib/tscl-xmock-c), a framework for mocking C/C++ code
+ - [FSCL XCore](https://github.com/fossil-lib/tscl-xcore-c), essintal compoments for C code
+ - [FSCL XTool](https://github.com/fossil-lib/tscl-xtool-c), essintal tool for low-level related task
+ - [FSCL XString](https://github.com/fossil-lib/tscl-xstring-c), string and char types in C
+ - [FSCL XToFu](https://github.com/fossil-lib/tscl-xtofu-c), a framework for generic types in C
+ - [FSCL XJellyfish](https://github.com/fossil-lib/tscl-xfish-c), a framework for AI development using JellyFish in C
+ - [FSCL XStructure](https://github.com/fossil-lib/tscl-xstructure-c), a framework for data structures in C
+ - [FSCL XAlgorithm](https://github.com/fossil-lib/tscl-xalgorithm-c), a framework for algorithms C
+ - [FSCL XPattern](https://github.com/fossil-lib/tscl-xpattern-c), a framework for design patterns C
+ - [FSCL XScience](https://github.com/fossil-lib/tscl-xscience-c), a framework for scientific projects in C
+ - [FSCL XCube](https://github.com/fossil-lib/tscl-xcube-c), a framework for creating a portable curses TUI in C
  - [UFJF-MLTK](https://github.com/mateus558/UFJF-Machine-Learning-Toolkit), A C++ cross-platform framework for machine learning algorithms development and testing
  - [Vala Language Server](https://github.com/benwaffle/vala-language-server), code intelligence engine for the Vala and Genie programming languages
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
