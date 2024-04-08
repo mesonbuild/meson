@@ -69,6 +69,7 @@ from .type_checking import (
     ENV_METHOD_KW,
     ENV_SEPARATOR_KW,
     INCLUDE_DIRECTORIES,
+    INCLUDE_DIRECTORIES_TEMPL,
     INSTALL_KW,
     INSTALL_DIR_KW,
     INSTALL_MODE_KW,
@@ -1991,6 +1992,26 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments(f'{name}: output cannot contain "@PLAINNAME@" or "@BASENAME@" '
                                        'when there is more than one input (we can\'t know which to use)')
 
+    def ct_gen_include_convertor(self, args: T.Sequence[T.Union[str, build.IncludeDirs]], template: T.List[str]) -> T.Iterable[str]:
+        """Convert IncludeDirs objects into string lists for CustomTarget and Generator.
+
+        This means applying a (possibly) user supplied template, which may be an
+        array. A generator is used to avoid creating multiple concrete instances.
+
+        :param args: A list of str | InclueDir to be converted
+        :param template: The string template array to be applied, the special
+            `@DIR@` parameter will be replaced.
+        :yield: The converted arguments one string at a time
+        """
+        assert not isinstance(args, str), 'Use a container such as list'
+        includes = [self.build_incdir_object([a]) if isinstance(a, str) else a for a in args]
+        if not any('@DIR@' in a for a in template):
+            raise InvalidArguments('inlcude_directories_template must have @DIR@ template paramter')
+        for inc in includes:
+            for i in inc.to_string_list(self.environment.source_dir, self.environment.build_dir):
+                for a in template:
+                    yield a.replace('@DIR@', i)
+
     @typed_pos_args('custom_target', optargs=[str])
     @typed_kwargs(
         'custom_target',
@@ -2006,6 +2027,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         DEPEND_FILES_KW,
         DEPFILE_KW,
         ENV_KW.evolve(since='0.57.0'),
+        INCLUDE_DIRECTORIES.evolve(since='1.5.0'),
+        INCLUDE_DIRECTORIES_TEMPL,
         INSTALL_KW,
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         KwargInfo('feed', bool, default=False, since='0.59.0'),
@@ -2052,6 +2075,18 @@ class Interpreter(InterpreterBase, HoldableObject):
             name = ''
         inputs = self.source_strings_to_files(kwargs['input'], strict=False)
         command = kwargs['command']
+        includes = self.ct_gen_include_convertor(kwargs['include_directories'], kwargs['include_directories_template'])
+        if '@INCLUDE_DIRS@' in command:
+            new_cmd: T.List[str] = []
+            for c in command:
+                if c == '@INCLUDE_DIRS@':
+                    new_cmd.extend(includes)
+                else:
+                    new_cmd.append(c)
+            command = new_cmd
+        elif list(includes):  # Need a list because a generator will always be true
+            raise InvalidArguments('include_directories are provided, but command does not have @INCLUDE_DIRS@')
+
         if command and isinstance(command[0], str):
             command[0] = self.find_program_impl([command[0]])
 
@@ -2146,6 +2181,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         DEPFILE_KW,
         DEPENDS_KW,
+        INCLUDE_DIRECTORIES.evolve(since='1.5.0'),
+        INCLUDE_DIRECTORIES_TEMPL,
         KwargInfo('capture', bool, default=False, since='0.43.0'),
     )
     def func_generator(self, node: mparser.FunctionNode,
@@ -2160,6 +2197,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             for o in kwargs['output']:
                 if '@OUTPUT@' in o:
                     raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
+
+        kwargs['include_directories'] = [self.build_incdir_object([a]) if isinstance(a, str) else a for a in kwargs['include_directories']]
+
+        if kwargs['include_directories'] and '@INCLUDE_DIRS@' not in kwargs['arguments']:
+            raise InvalidArguments('include_directories are provided, but command does not have @INCLUDE_DIRS@')
 
         gen = build.Generator(args[0], **kwargs)
         self.generators.append(gen)
@@ -2775,7 +2817,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                  kwargs: 'kwtypes.FuncIncludeDirectories') -> build.IncludeDirs:
         return self.build_incdir_object(args[0], kwargs['is_system'])
 
-    def build_incdir_object(self, incdir_strings: T.List[str], is_system: bool = False) -> build.IncludeDirs:
+    def build_incdir_object(self, incdir_strings: T.List[str], is_system: bool = False, permissive: bool = True) -> build.IncludeDirs:
         if not isinstance(is_system, bool):
             raise InvalidArguments('Is_system must be boolean.')
         src_root = self.environment.get_source_dir()
@@ -2812,6 +2854,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 try:
                     self.validate_within_subproject(self.subdir, a)
                 except InterpreterException:
+                    if not permissive:
+                        raise
                     mlog.warning('include_directories sandbox violation!', location=self.current_node)
                     print(textwrap.dedent(f'''\
                         The project is trying to access the directory {a!r} which belongs to a different

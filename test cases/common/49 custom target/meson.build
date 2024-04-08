@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2024 Intel Corporation
+
 project('custom target')
 
 python = find_program('python3', required : false)
@@ -71,3 +74,14 @@ endif
 assert(mytarget_disabled, 'Disabled custom target should not be found.')
 
 subdir('depfile')
+
+includes = custom_target(
+  input : 'includes.txt',
+  output : 'formatted.txt',
+  command : ['generator.py', '@INPUT@', '@OUTPUT@', '@INCLUDE_DIRS@'],
+  include_directories : 'includes',
+  include_directories_template : ['--include-dir', '@DIR@'],
+)
+
+prog_tester = find_program('tester.py')
+test('includes', prog_tester, args : [includes, 'A\nB\nC\nD\nE\nF\n'])

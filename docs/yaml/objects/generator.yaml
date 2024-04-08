@@ -43,3 +43,18 @@ methods:
           `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
           or an [[@env]] object which allows more
           sophisticated environment juggling.
+
+      include_directories:
+        type: list[str | inc]
+        since: 1.5.0
+        default: []
+        description: |
+          Directories that need to be passed to `arguments` as includes, these are
+          formatted by the `include_directories_template` keyword argument.
+
+          Arguments passed to `process()` will be included *before* arguments
+          passed to the [[generator]] call.
+
+          When this value is set `arguments` must have the special parameter
+          `@INCLUDE_DIRS@`. Thee string formatted directory arguments will then
+          replace this parameter in the command.

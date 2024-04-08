@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015 The Meson development team
-# Copyright © 2021-2023 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -450,31 +450,32 @@ class QtBaseModule(ExtensionModule):
         if not (kwargs['headers'] or kwargs['sources']):
             raise build.InvalidArguments('At least one of the "headers" or "sources" keyword arguments must be provided and not empty')
 
-        inc = state.get_include_args(include_dirs=kwargs['include_directories'])
+        inc = list(state.process_include_dirs(kwargs['include_directories']))
         compile_args: T.List[str] = []
         for dep in kwargs['dependencies']:
             compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
             if isinstance(dep, InternalDependency):
-                for incl in dep.include_directories:
-                    compile_args.extend(f'-I{i}' for i in incl.to_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
+                inc.extend(dep.include_directories)
 
         output: T.List[build.GeneratedList] = []
 
         # depfile arguments (defaults to <output-name>.d)
         DEPFILE_ARGS: T.List[str] = ['--output-dep-file'] if self._moc_supports_depfiles else []
 
-        arguments = kwargs['extra_args'] + DEPFILE_ARGS + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
+        arguments = kwargs['extra_args'] + DEPFILE_ARGS + ['@INCLUDE_DIRS@'] + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
         preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
         if kwargs['headers']:
             moc_gen = build.Generator(
                 self.tools['moc'], arguments, ['moc_@BASENAME@.cpp'],
                 depfile='moc_@BASENAME@.cpp.d',
+                include_directories=inc,
                 name=f'Qt{self.qt_version} moc header')
             output.append(moc_gen.process_files(kwargs['headers'], state, preserve_path_from))
         if kwargs['sources']:
             moc_gen = build.Generator(
                 self.tools['moc'], arguments, ['@BASENAME@.moc'],
                 depfile='@BASENAME@.moc.d',
+                include_directories=inc,
                 name=f'Qt{self.qt_version} moc source')
             output.append(moc_gen.process_files(kwargs['sources'], state, preserve_path_from))
 

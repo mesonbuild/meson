@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 The Meson Developers
-# Copyright © 2021 Intel Corporation
+# Copyright 2021 The Meson Developers
+# Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
 """Keyword Argument type annotations."""
@@ -95,12 +95,15 @@ class FuncGenerator(TypedDict):
     depfile: T.Optional[str]
     capture:  bool
     depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
+    include_directories: T.List[T.Union[build.IncludeDirs, str]]
+    include_directories_template: T.List[str]
 
 
 class GeneratorProcess(TypedDict):
 
     """Keyword Arguments for generator.process."""
 
+    include_directories: T.List[T.Union[build.IncludeDirs, str]]
     preserve_path_from: T.Optional[str]
     extra_args: T.List[str]
     env: EnvironmentVariables
@@ -186,6 +189,8 @@ class CustomTarget(TypedDict):
     depfile: T.Optional[str]
     env: EnvironmentVariables
     feed: bool
+    include_directories: T.List[T.Union[build.IncludeDirs, str]]
+    include_directories_template: T.List[str]
     input: T.List[T.Union[str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex,
                           build.ExtractedObjects, build.GeneratedList, ExternalProgram, File]]
     install: bool

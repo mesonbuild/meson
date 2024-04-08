@@ -40,6 +40,9 @@ description: |
   - `@CURRENT_SOURCE_DIR@`: this is the directory where the currently
     processed meson.build is located in.  Depending on the backend,
     this may be an absolute or a relative to current workdir path.
+  - `@INCLUDE_DIRS@`: The values provided to `include_directories`, formatted
+    according to `include_directories_template`. This is required if
+    `include_directories` is not empty.
 
   *(since 0.47.0)* The `depfile` keyword argument also accepts the
   `@BASENAME@` and `@PLAINNAME@` substitutions.
@@ -233,3 +236,24 @@ kwargs:
       their input from a file and instead read it from standard input. When this
       argument is set to `true`, Meson feeds the input file to `stdin`. Note that
       your argument list may not contain `@INPUT@` when feed mode is active.
+
+  include_directories:
+    type: list[str | inc]
+    since: 1.5.0
+    default: []
+    description: |
+      Directories that need to be passed to command as includes, these are
+      formatted by the `include_directories_template` keyword argument.
+
+      When this value is set `command` must have the special parameter
+      `@INCLUDE_DIRS@`. Thee string formatted directory arguments will then
+      replace this parameter in the command.
+
+  include_directories_template:
+    type: list[str]
+    since: 1.5.0
+    default: ['-I@DIR@']
+    description: |
+      A template that is used to format include_directory entires. It must
+      include the special string '@DIR@' as either part of or as an entry in the
+      array.
