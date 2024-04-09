@@ -62,7 +62,7 @@ modules = [
     'mesonbuild/modules/keyval.py',
     'mesonbuild/modules/modtest.py',
     'mesonbuild/modules/pkgconfig.py',
-    'mesonbuild/modules/qt.py',
+    'mesonbuild/modules/_qt.py',
     'mesonbuild/modules/qt4.py',
     'mesonbuild/modules/qt5.py',
     'mesonbuild/modules/qt6.py',

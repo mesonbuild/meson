@@ -201,7 +201,7 @@ class DataTests(unittest.TestCase):
             html = f.read().lower()
         self.assertIsNotNone(html)
         for f in Path('mesonbuild/modules').glob('*.py'):
-            if f.name in {'modtest.py', 'qt.py', '__init__.py'}:
+            if f.name.startswith('_') or f.name == 'modtest.py':
                 continue
             name = f'{f.stem}-module.html'
             name = name.replace('unstable_', '')

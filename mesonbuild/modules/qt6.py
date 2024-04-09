@@ -4,7 +4,7 @@
 from __future__ import annotations
 import typing as T
 
-from .qt import QtBaseModule
+from ._qt import QtBaseModule
 from . import ModuleInfo
 
 if T.TYPE_CHECKING:
