@@ -48,7 +48,7 @@ foreach qt : ['qt4', 'qt5', 'qt6']
   qtdep = dependency(qt, modules : qt_modules, main : true, private_headers: true, required : required, method : get_option('method'))
   if qtdep.found()
     qtmodule = import(qt)
-    assert(qtmodule.has_tools())
+    assert(qtmodule.has_tools(), 'You may be missing a devel package. (qttools5-dev-tools on Debian based systems)')
 
     # Test that fetching a variable works and yields a non-empty value
     assert(qtdep.get_variable('prefix', configtool: 'QT_INSTALL_PREFIX') != '')
