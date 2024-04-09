@@ -608,6 +608,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         if disabled:
             return NotFoundExtensionModule(modname)
 
+        # Always report implementation detail modules don't exist
+        if modname.startswith('_'):
+            raise InvalidArguments(f'Module "{modname}" does not exist')
+
         expect_unstable = False
         # Some tests use "unstable_" instead of "unstable-", and that happens to work because
         # of implementation details
