@@ -2258,15 +2258,17 @@ class NinjaBackend(backends.Backend):
             elem = self.generate_link(target, self.get_target_filename(target),
                                       rel_objects, self.build.static_linker[target.for_machine])
             self.add_build(elem)
-        elif isinstance(target, build.Executable):
+        else:
             elem = NinjaBuildElement(self.all_outputs, self.get_target_filename(target), rulename, [])
             elem.add_dep(rel_objects)
             elem.add_dep(link_deps)
-            elem.add_item('ARGS', link_args + swiftc.get_std_exe_link_args() + objects + abs_link_deps)
+            if isinstance(target, build.Executable):
+                link_args += swiftc.get_std_exe_link_args()
+            else:
+                link_args += swiftc.get_std_shared_lib_link_args()
+            elem.add_item('ARGS', link_args + objects + abs_link_deps)
             elem.add_item('RUNDIR', rundir)
             self.add_build(elem)
-        else:
-            raise MesonException('Swift supports only executable and static library targets.')
         # Introspection information
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
