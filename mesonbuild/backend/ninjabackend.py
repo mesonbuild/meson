@@ -2228,7 +2228,7 @@ class NinjaBackend(backends.Backend):
             if reldir == '':
                 reldir = '.'
             link_args += ['-L', os.path.normpath(os.path.join(self.environment.get_build_dir(), reldir))]
-        (rel_generated, _) = self.split_swift_generated_sources(target)
+        (rel_generated, other_generated) = self.split_swift_generated_sources(target)
         abs_generated = [os.path.join(self.environment.get_build_dir(), x) for x in rel_generated]
         # We need absolute paths because swiftc needs to be invoked in a subdir
         # and this is the easiest way about it.
@@ -2244,13 +2244,13 @@ class NinjaBackend(backends.Backend):
 
         # Swiftc does not seem to be able to emit objects and module files in one go.
         elem = NinjaBuildElement(self.all_outputs, rel_objects, rulename, abssrc)
-        elem.add_dep(in_module_files + rel_generated)
+        elem.add_dep(in_module_files + rel_generated + other_generated)
         elem.add_dep(abs_headers)
         elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
         elem = NinjaBuildElement(self.all_outputs, out_module_name, rulename, abssrc)
-        elem.add_dep(in_module_files + rel_generated)
+        elem.add_dep(in_module_files + rel_generated + other_generated)
         elem.add_item('ARGS', compile_args + abs_generated + module_includes + swiftc.get_mod_gen_args())
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
