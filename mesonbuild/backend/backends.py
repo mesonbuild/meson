@@ -505,7 +505,7 @@ class Backend:
     @staticmethod
     def is_swift_target(target: build.BuildTarget) -> bool:
         for s in target.sources:
-            if s.endswith('swift'):
+            if isinstance(s, (str, File)) and s.endswith('swift'):
                 return True
         return False
 
