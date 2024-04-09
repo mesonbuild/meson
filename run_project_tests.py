@@ -72,6 +72,7 @@ if T.TYPE_CHECKING:
         failfast: bool
         no_unittests: bool
         only: T.List[str]
+        v: bool
 
 ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux',
@@ -89,6 +90,7 @@ class BuildStep(Enum):
     clean = 5
     validate = 6
 
+verbose_output = False
 
 class TestResult(BaseException):
     def __init__(self, cicmds: T.List[str]) -> None:
@@ -1178,8 +1180,9 @@ class TestRunFuture:
         return self.future.result() if self.future else None
 
     def log(self) -> None:
-        without_install = '' if install_commands else '(without install)'
-        safe_print(self.status.value, without_install, *self.testdef.display_name())
+        if verbose_output or self.status.value != TestStatus.OK.value:
+            without_install = '' if install_commands else '(without install)'
+            safe_print(self.status.value, without_install, *self.testdef.display_name())
 
     def update_log(self, new_status: TestStatus) -> None:
         self.status = new_status
@@ -1606,10 +1609,13 @@ if __name__ == '__main__':
                         help='Not used, only here to simplify run_tests.py')
     parser.add_argument('--only', default=[],
                         help='name of test(s) to run, in format "category[/name]" where category is one of: ' + ', '.join(ALL_TESTS), nargs='+')
+    parser.add_argument('-v', default=False, action='store_true',
+                        help='Verbose mode')
     parser.add_argument('--cross-file', action='store', help='File describing cross compilation environment.')
     parser.add_argument('--native-file', action='store', help='File describing native compilation environment.')
     parser.add_argument('--use-tmpdir', action='store_true', help='Use tmp directory for temporary files.')
     options = T.cast('ArgumentType', parser.parse_args())
+    verbose_output = options.v
 
     if options.cross_file:
         options.extra_args += ['--cross-file', options.cross_file]
