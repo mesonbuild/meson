@@ -397,7 +397,7 @@ def main():
         else:
             print(mlog.bold('Running unittests.'))
             print(flush=True)
-            cmd = mesonlib.python_command + ['run_unittests.py', '-v'] + backend_flags
+            cmd = mesonlib.python_command + ['run_unittests.py'] + backend_flags
             if options.failfast:
                 cmd += ['--failfast']
             returncode += subprocess_call(cmd, env=env)
