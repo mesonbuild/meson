@@ -11,6 +11,7 @@ from ..mesonlib import EnvironmentException
 from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:
+    from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
@@ -48,6 +49,16 @@ class SwiftCompiler(Compiler):
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-emit-dependencies']
+
+    def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
+        result = []
+        for arg in dep.get_link_args():
+            if arg.startswith("-Wl,"):
+                for flag in arg[4:].split(","):
+                    result += ["-Xlinker", flag]
+            else:
+                result.append(arg)
+        return result
 
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         return os.path.splitext(objfile)[0] + '.' + self.get_depfile_suffix()
