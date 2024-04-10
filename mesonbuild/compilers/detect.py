@@ -46,9 +46,8 @@ if is_windows():
     # There is currently no pgc++ for Windows, only for  Mac and Linux.
     defaults['cpp'] = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
     defaults['fortran'] = ['ifort', 'gfortran', 'flang', 'pgfortran', 'g95']
-    # Clang and clang++ are valid, but currently unsupported.
-    defaults['objc'] = ['cc', 'gcc']
-    defaults['objcpp'] = ['c++', 'g++']
+    defaults['objc'] = ['clang-cl', 'gcc']
+    defaults['objcpp'] = ['clang-cl', 'g++']
     defaults['cs'] = ['csc', 'mcs']
 else:
     if platform.machine().lower() == 'e2k':
@@ -59,8 +58,8 @@ else:
     else:
         defaults['c'] = ['cc', 'gcc', 'clang', 'nvc', 'pgcc', 'icc', 'icx']
         defaults['cpp'] = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc', 'icpx']
-        defaults['objc'] = ['cc', 'gcc', 'clang']
-        defaults['objcpp'] = ['c++', 'g++', 'clang++']
+        defaults['objc'] = ['clang', 'gcc']
+        defaults['objcpp'] = ['clang++', 'g++']
     defaults['fortran'] = ['gfortran', 'flang', 'nvfortran', 'pgfortran', 'ifort', 'ifx', 'g95']
     defaults['cs'] = ['mcs', 'csc']
 defaults['d'] = ['ldc2', 'ldc', 'gdc', 'dmd']
