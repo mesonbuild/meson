@@ -2164,7 +2164,17 @@ class NinjaBackend(backends.Backend):
             if isinstance(d, build.StaticLibrary):
                 for dep in d.get_external_deps():
                     args += swiftc.get_dependency_link_args(dep)
-        return args
+
+        deduped_args = []
+        seen_libs = set()
+        for arg in args:
+            if arg.startswith("-l"):
+                if arg not in seen_libs:
+                    deduped_args.append(arg)
+                    seen_libs.add(arg)
+            else:
+                deduped_args.append(arg)
+        return deduped_args
 
     def get_swift_link_deps(self, target):
         result = []
