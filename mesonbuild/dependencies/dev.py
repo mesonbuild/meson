@@ -393,7 +393,7 @@ class LLVMDependencyCMake(CMakeDependency):
             compilers = env.coredata.compilers.build
         else:
             compilers = env.coredata.compilers.host
-        if not compilers or not all(x in compilers for x in ('c', 'cpp')):
+        if not compilers or not {'c', 'cpp'}.issubset(compilers):
             # Initialize basic variables
             ExternalDependency.__init__(self, DependencyTypeName('cmake'), env, kwargs)
 
@@ -401,8 +401,29 @@ class LLVMDependencyCMake(CMakeDependency):
             self.found_modules: T.List[str] = []
             self.name = name
 
-            # Warn and return
-            mlog.warning('The LLVM dependency was not found via CMake since both a C and C++ compiler are required.')
+            langs: T.List[str] = []
+            if not compilers:
+                langs = ['c', 'cpp']
+            else:
+                if 'c' not in compilers:
+                    langs.append('c')
+                if 'cpp' not in compilers:
+                    langs.append('cpp')
+
+            mlog.warning(
+                'The LLVM dependency was not found via CMake, as this method requires',
+                'both a C and C++ compiler to be enabled, but',
+                'only' if langs else 'neither',
+                'a',
+                " nor ".join(l.upper() for l in langs),
+                'compiler is enabled for the',
+                f"{self.for_machine}.",
+                "Consider adding {0} to your project() call or using add_languages({0}, native : {1})".format(
+                    ', '.join(f"'{l}'" for l in langs),
+                    'true' if self.for_machine is mesonlib.MachineChoice.BUILD else 'false',
+                ),
+                'before the LLVM dependency lookup.'
+            )
             return
 
         super().__init__(name, env, kwargs, language='cpp', force_use_global_compilers=True)
