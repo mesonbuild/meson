@@ -266,11 +266,12 @@ DC="dmd" meson setup builddir
 
 ## Config tool
 
-[CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
-[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
-modules or additionally can be detected via a config tool
-(cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
-tools, and they can be found like other dependencies:
+[CUPS](#cups), [LLVM](#llvm), [ObjFW](#objfw), [pcap](#pcap),
+[WxWidgets](#wxwidgets), [libwmf](#libwmf), [GCrypt](#libgcrypt),
+[GPGME](#gpgme), and GnuStep either do not provide pkg-config modules or
+additionally can be detected via a config tool (cups-config, llvm-config,
+libgcrypt-config, etc). Meson has native support for these tools, and they can
+be found like other dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
@@ -278,6 +279,7 @@ cups_dep = dependency('cups', version : '>=1.4')
 llvm_dep = dependency('llvm', version : '>=4.0')
 libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
 gpgme_dep = dependency('gpgme', version: '>= 1.0')
+objfw_dep = dependency('objfw', version: '>= 1.0')
 ```
 
 *Since 0.55.0* Meson won't search $PATH any more for a config tool
@@ -636,6 +638,36 @@ language-specific, you must specify the requested language using the
  * `dependency('netcdf', language: 'fortran')` for the Fortran NetCDF headers and libraries
 
 Meson uses pkg-config to find NetCDF.
+
+## ObjFW
+
+*(added 1.5.0)*
+
+Meson has native support for ObjFW, including support for ObjFW packages.
+
+In order to use ObjFW, simply create the dependency:
+
+```meson
+objfw_dep = dependency('objfw')
+```
+
+In order to also use ObjFW packages, simply specify them as modules:
+
+```meson
+objfw_dep = dependency('objfw', modules: ['SomePackage'])
+```
+
+If you need a dependency with and without packages, e.g. because your tests
+want to use ObjFWTest, but you don't want to link your application against the
+tests, simply get two dependencies and use them as appropriate:
+
+```meson
+objfw_dep = dependency('objfw', modules: ['SomePackage'])
+objfwtest_dep = dependency('objfw', modules: ['ObjFWTest'])
+```
+
+Then use `objfw_dep` for your library and only `objfwtest_dep` (not both) for
+your tests.
 
 ## OpenMP
 

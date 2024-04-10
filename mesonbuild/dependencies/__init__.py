@@ -223,6 +223,7 @@ packages.defaults.update({
     'openssl': 'misc',
     'libcrypto': 'misc',
     'libssl': 'misc',
+    'objfw': 'misc',
 
     # From platform:
     'appleframeworks': 'platform',

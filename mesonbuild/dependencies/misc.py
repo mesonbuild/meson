@@ -474,6 +474,30 @@ class OpensslSystemDependency(SystemDependency):
                     self.link_args.extend(sublib)
 
 
+class ObjFWDependency(ConfigToolDependency):
+
+    tools = ['objfw-config']
+    tool_name = 'objfw-config'
+
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__('objfw', environment, kwargs)
+        self.feature_since = ('1.5.0', '')
+        if not self.is_found:
+            return
+
+        # TODO: Expose --reexport
+        # TODO: Expose --framework-libs
+        extra_flags = []
+
+        for module in mesonlib.stringlistify(mesonlib.extract_as_list(kwargs, 'modules')):
+            extra_flags.append('--package')
+            extra_flags.append(module)
+
+        # TODO: Once Meson supports adding flags per language, only add --objcflags to ObjC
+        self.compile_args = self.get_config_value(['--cppflags', '--cflags', '--objcflags'] + extra_flags, 'compile_args')
+        self.link_args = self.get_config_value(['--ldflags', '--libs'] + extra_flags, 'link_args')
+
+
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment',
                    for_machine: 'mesonlib.MachineChoice',
@@ -616,3 +640,5 @@ packages['libssl'] = libssl_factory = DependencyFactory(
     system_class=OpensslSystemDependency,
     cmake_class=CMakeDependencyFactory('OpenSSL', modules=['OpenSSL::SSL']),
 )
+
+packages['objfw'] = ObjFWDependency
