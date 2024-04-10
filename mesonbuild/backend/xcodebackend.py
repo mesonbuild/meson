@@ -777,7 +777,12 @@ class XCodeBackend(backends.Backend):
                     # Yasm doesn't generate escaped build rules
                     commands += self.compiler_to_generator_args(target, compiler, output='"$SCRIPT_OUTPUT_FILE_0"', input='"$SCRIPT_INPUT_FILE"', depfile=None)
                 else:
-                    commands += self.compiler_to_generator_args(target, compiler, output='"$SCRIPT_OUTPUT_FILE_0"', input='"$SCRIPT_INPUT_FILE"', depfile='"$(dirname "$SCRIPT_OUTPUT_FILE_0")/$(basename "$SCRIPT_OUTPUT_FILE_0" .o).d"', extras=['$OTHER_INPUT_FILE_FLAGS'])
+                    commands += self.compiler_to_generator_args(target,
+                                                                compiler,
+                                                                output='"$SCRIPT_OUTPUT_FILE_0"',
+                                                                input='"$SCRIPT_INPUT_FILE"',
+                                                                depfile='"$(dirname "$SCRIPT_OUTPUT_FILE_0")/$(basename "$SCRIPT_OUTPUT_FILE_0" .o).d"',
+                                                                extras=['$OTHER_INPUT_FILE_FLAGS'])
                 buildrule.add_item('script', self.to_shell_script(commands))
                 objects_dict.add_item(idval, buildrule, 'PBXBuildRule')
 
