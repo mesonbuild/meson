@@ -413,16 +413,17 @@ class LLVMDependencyCMake(CMakeDependency):
             mlog.warning(
                 'The LLVM dependency was not found via CMake, as this method requires',
                 'both a C and C++ compiler to be enabled, but',
-                'only' if langs else 'neither',
+                'only' if len(langs) == 1 else 'neither',
                 'a',
-                " nor ".join(l.upper() for l in langs),
+                " nor ".join(l.upper() for l in langs).replace('CPP', 'C++'),
                 'compiler is enabled for the',
                 f"{self.for_machine}.",
-                "Consider adding {0} to your project() call or using add_languages({0}, native : {1})".format(
+                'Consider adding "{0}" to your project() call or using add_languages({0}, native : {1})'.format(
                     ', '.join(f"'{l}'" for l in langs),
                     'true' if self.for_machine is mesonlib.MachineChoice.BUILD else 'false',
                 ),
-                'before the LLVM dependency lookup.'
+                'before the LLVM dependency lookup.',
+                fatal=False,
             )
             return
 
