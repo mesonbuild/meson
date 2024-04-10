@@ -27,7 +27,6 @@ nasm_optimization_args: T.Dict[str, T.List[str]] = {
 class NasmCompiler(Compiler):
     language = 'nasm'
     id = 'nasm'
-    links_with_msvc = False
 
     # https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features
     crt_args: T.Dict[str, T.List[str]] = {
@@ -43,6 +42,7 @@ class NasmCompiler(Compiler):
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
         super().__init__(ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+        self.links_with_msvc = False
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
             self.links_with_msvc = True
