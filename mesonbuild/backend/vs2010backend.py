@@ -129,14 +129,6 @@ def get_non_primary_lang_intellisense_fields(vslite_ctx: dict,
             defs_paths_opts_per_lang_and_buildtype[src_lang][buildtype] = Vs2010Backend._extract_nmake_fields(args_list)
     return defs_paths_opts_per_lang_and_buildtype
 
-# Returns if a target generates a manifest or not.
-def get_gen_manifest(target):
-    if isinstance(target, build.BuildTarget):
-        upper_args = [arg.upper() for arg in target.link_args]
-        manifest_args = [arg for arg in upper_args if arg == '/MANIFEST' or arg.startswith('/MANIFEST:')]
-        return len(manifest_args) == 0 or manifest_args[-1] != '/MANIFEST:NO'
-    return True
-
 class Vs2010Backend(backends.Backend):
 
     name = 'vs2010'
@@ -703,7 +695,7 @@ class Vs2010Backend(backends.Backend):
         (root, type_config) = self.create_basic_project(target.name,
                                                         temp_dir=target.get_id(),
                                                         guid=guid,
-                                                        gen_manifest=get_gen_manifest(target))
+                                                        gen_manifest=self.get_gen_manifest(target))
         depend_files = self.get_target_depend_files(target)
 
         if not target.command:
@@ -739,7 +731,7 @@ class Vs2010Backend(backends.Backend):
                                                         temp_dir=target.get_id(),
                                                         guid=guid,
                                                         target_platform=platform,
-                                                        gen_manifest=get_gen_manifest(target))
+                                                        gen_manifest=self.get_gen_manifest(target))
         # We need to always use absolute paths because our invocation is always
         # from the target dir, not the build root.
         target.absolute_paths = True
@@ -780,7 +772,7 @@ class Vs2010Backend(backends.Backend):
                                                         temp_dir=target.get_id(),
                                                         guid=guid,
                                                         target_platform=platform,
-                                                        gen_manifest=get_gen_manifest(target))
+                                                        gen_manifest=self.get_gen_manifest(target))
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         target.generated = [self.compile_target_to_generator(target)]
         target.sources = []
@@ -1613,7 +1605,7 @@ class Vs2010Backend(backends.Backend):
                                                         conftype=conftype,
                                                         target_ext=tfilename[1],
                                                         target_platform=platform,
-                                                        gen_manifest=get_gen_manifest(target))
+                                                        gen_manifest=self.get_gen_manifest(target))
 
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(
             target, root)
@@ -2092,3 +2084,25 @@ class Vs2010Backend(backends.Backend):
 
     def generate_lang_standard_info(self, file_args: T.Dict[str, CompilerArgs], clconf: ET.Element) -> None:
         pass
+
+    # Returns if a target generates a manifest or not.
+    def get_gen_manifest(self, target):
+        if not isinstance(target, build.BuildTarget):
+            return True
+
+        compiler = self._get_cl_compiler(target)
+        link_args = compiler.compiler_args()
+        if not isinstance(target, build.StaticLibrary):
+            link_args += self.build.get_project_link_args(compiler, target.subproject, target.for_machine)
+            link_args += self.build.get_global_link_args(compiler, target.for_machine)
+            link_args += self.environment.coredata.get_external_link_args(
+                target.for_machine, compiler.get_language())
+            link_args += target.link_args
+
+        for arg in reversed(link_args):
+            arg = arg.upper()
+            if arg == '/MANIFEST:NO':
+                return False
+            if arg == '/MANIFEST' or arg.startswith('/MANIFEST:'):
+                break
+        return True
