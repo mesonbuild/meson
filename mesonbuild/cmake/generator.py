@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from .. import mesonlib
 from .. import mlog
+from ..mesonlib import OptionKey
 from .common import cmake_is_debug
 import typing as T
 
@@ -130,6 +131,10 @@ def parse_generator_expressions(
         'TARGET_NAME_IF_EXISTS': lambda x: x if x in trace.targets else '',
         'TARGET_PROPERTY': target_property,
         'TARGET_FILE': target_file,
+
+        # Configurations (Debug, Release...)
+        # CMake is case-insensitive
+        'CONFIG': lambda x: '1' if x.upper() == trace.env.coredata.get_option(OptionKey('buildtype')).upper() else '0'
     }
 
     # Recursively evaluate generator expressions
