@@ -2284,6 +2284,7 @@ class NinjaBackend(backends.Backend):
             elem = NinjaBuildElement(self.all_outputs, self.get_target_filename(target), rulename, [])
             elem.add_dep(rel_objects)
             elem.add_dep(link_deps)
+            elem.add_dep([self.get_dependency_filename(t) for t in target.link_depends])
             if isinstance(target, build.Executable):
                 link_args += swiftc.get_std_exe_link_args()
             else:
