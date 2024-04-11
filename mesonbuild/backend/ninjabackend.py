@@ -2249,6 +2249,7 @@ class NinjaBackend(backends.Backend):
                 reldir = '.'
             link_args += ['-L', os.path.normpath(os.path.join(self.environment.get_build_dir(), reldir))]
         link_args += self.determine_swift_external_dep_link_args(target, swiftc)
+        link_args += target.link_args
         (rel_generated, other_generated) = self.split_swift_generated_sources(target)
         abs_generated = [os.path.join(self.environment.get_build_dir(), x) for x in rel_generated]
         # We need absolute paths because swiftc needs to be invoked in a subdir
