@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import functools
 import re
+import textwrap
 import typing as T
 
 from .. import mesonlib
@@ -129,16 +130,26 @@ class OpenMPDependency(SystemDependency):
                     return
                 self.link_args.extend(clangcl_openmp_link_args)
 
-            # Flang has omp_lib.h
-            header_names = ('omp.h', 'omp_lib.h')
-            for name in header_names:
-                if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
-                    self.is_found = True
-                    self.compile_args.extend(self.clib_compiler.openmp_flags())
-                    self.link_args.extend(self.clib_compiler.openmp_link_flags())
-                    break
-            if not self.is_found:
-                mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
+            self.compile_args.extend(self.clib_compiler.openmp_flags())
+            self.link_args.extend(self.clib_compiler.openmp_link_flags())
+            if language == 'fortran':
+                code = textwrap.dedent('''\
+                    program test
+                    use omp_lib                ! include OpenMP
+                    implicit none
+                    !$ integer :: N            ! This is an OpenMP line
+                    N = omp_get_num_threads()  ! Ensure that OpenMP is linked
+                    end program test
+                ''')
+                self.is_found = self.clib_compiler.links(
+                    code, environment, compiler=self.clib_compiler, dependencies=[self], disable_cache=True)[0]
+            else:
+                for name in ['omp.h', 'omp_lib.h']:
+                    if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
+                        self.is_found = True
+                        break
+                else:
+                    mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
 
 packages['openmp'] = OpenMPDependency
 
