@@ -2214,7 +2214,8 @@ class NinjaBackend(backends.Backend):
             else:
                 raise InvalidArguments(f'Swift target {target.get_basename()} contains a non-swift source file.')
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
-        compile_args = swiftc.get_compile_only_args()
+        compile_args = swiftc.get_mod_gen_args()
+        compile_args += swiftc.get_compile_only_args()
         compile_args += swiftc.get_optimization_args(target.get_option(OptionKey('optimization')))
         compile_args += swiftc.get_debug_args(target.get_option(OptionKey('debug')))
         compile_args += swiftc.get_module_args(module_name)
@@ -2264,16 +2265,10 @@ class NinjaBackend(backends.Backend):
 
         rulename = self.compiler_to_rule_name(swiftc)
 
-        # Swiftc does not seem to be able to emit objects and module files in one go.
-        elem = NinjaBuildElement(self.all_outputs, rel_objects, rulename, abssrc)
+        elem = NinjaBuildElement(self.all_outputs, [out_module_name] + rel_objects, rulename, abssrc)
         elem.add_dep(in_module_files + rel_generated + other_generated)
         elem.add_dep(abs_headers)
         elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
-        elem.add_item('RUNDIR', rundir)
-        self.add_build(elem)
-        elem = NinjaBuildElement(self.all_outputs, out_module_name, rulename, abssrc)
-        elem.add_dep(in_module_files + rel_generated + other_generated)
-        elem.add_item('ARGS', compile_args + abs_generated + module_includes + swiftc.get_mod_gen_args())
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
         if isinstance(target, build.StaticLibrary):
