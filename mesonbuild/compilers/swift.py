@@ -24,7 +24,7 @@ swift_optimization_args: T.Dict[str, T.List[str]] = {
     '1': ['-O'],
     '2': ['-O'],
     '3': ['-O'],
-    's': ['-O'],
+    's': ['-Osize'],
 }
 
 class SwiftCompiler(Compiler):
