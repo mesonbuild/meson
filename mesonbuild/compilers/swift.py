@@ -40,11 +40,17 @@ class SwiftCompiler(Compiler):
                          linker=linker)
         self.version = version
 
+    def get_pic_args(self) -> T.List[str]:
+        return []
+
+    def get_pie_args(self) -> T.List[str]:
+        return []
+
     def needs_static_linker(self) -> bool:
         return True
 
     def get_werror_args(self) -> T.List[str]:
-        return ['--fatal-warnings']
+        return ['-warnings-as-errors']
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-emit-dependencies']
