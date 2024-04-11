@@ -1220,9 +1220,16 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
         # As for 5.0.1 swiftc *requires* a file to check the linker:
         with tempfile.NamedTemporaryFile(suffix='.swift') as f:
             cls = SwiftCompiler
-            linker = guess_nix_linker(env,
-                                      exelist, cls, version, for_machine,
-                                      extra_args=[f.name])
+
+            outhandle, outfile = tempfile.mkstemp('.out')
+            os.close(outhandle)
+
+            try:
+                linker = guess_nix_linker(env,
+                                          exelist, cls, version, for_machine,
+                                          extra_args=[f.name, '-o', outfile])
+            finally:
+                windows_proof_rm(outfile)
         return cls(
             exelist, version, for_machine, is_cross, info, linker=linker)
 
