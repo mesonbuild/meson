@@ -2,7 +2,7 @@ project('cmakeSubTest', ['c', 'cpp'])
 
 cm = import('cmake')
 
-if (get_option('debug'))
+if get_option('debug')
   add_global_arguments(['-DDEBUG'], language: ['c', 'cpp'])
 endif
 
