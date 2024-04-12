@@ -10,6 +10,7 @@ from .. import options
 from .. import mlog
 from ..mesonlib import MesonException, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
+from .mixins.apple import AppleCompilerMixin
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
 from .mixins.xc16 import Xc16Compiler
@@ -187,7 +188,7 @@ class ArmLtdClangCCompiler(ClangCCompiler):
     id = 'armltdclang'
 
 
-class AppleClangCCompiler(ClangCCompiler):
+class AppleClangCCompiler(AppleCompilerMixin, ClangCCompiler):
 
     """Handle the differences between Apple Clang and Vanilla Clang.
 
