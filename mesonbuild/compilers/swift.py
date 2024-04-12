@@ -11,6 +11,7 @@ from ..mesonlib import EnvironmentException
 from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:
+    from ..build.include_dirs import IncludeType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
@@ -73,7 +74,7 @@ class SwiftCompiler(Compiler):
     def get_mod_gen_args(self) -> T.List[str]:
         return ['-emit-module']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         return ['-I' + path]
 
     def get_compile_only_args(self) -> T.List[str]:

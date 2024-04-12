@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
+from ..build.include_dirs import IncludeDirs
 from ..mesonlib import is_windows, MesonException, PerMachine, stringlistify, extract_as_list
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, resolve_cmake_trace_targets, cmake_is_debug
 from .. import mlog
@@ -406,6 +407,7 @@ class CMakeDependency(ExternalDependency):
                 raise
             else:
                 self.compile_args = []
+                self.include_directories = []
                 self.link_args = []
                 self.is_found = False
                 self.reason = e2
@@ -497,12 +499,13 @@ class CMakeDependency(ExternalDependency):
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
-                self.compile_args = [f'-I{x}' for x in incDirs] + defs
+                self.compile_args = defs
+                self.include_directories.append(IncludeDirs(None, incDirs))
                 self.link_args = []
                 for j in libs:
                     rtgt = resolve_cmake_trace_targets(j, self.traceparser, self.env, clib_compiler=self.clib_compiler)
                     self.link_args += rtgt.libraries
-                    self.compile_args += [f'-I{x}' for x in rtgt.include_directories]
+                    self.include_directories.append(IncludeDirs(None, rtgt.include_directories))
                     self.compile_args += rtgt.public_compile_opts
                 mlog.debug(f'using old-style CMake variables for dependency {name}')
                 mlog.debug(f'Include Dirs:         {incDirs}')
@@ -552,7 +555,8 @@ class CMakeDependency(ExternalDependency):
         mlog.debug(f'Compiler Options:     {compileOptions}')
         mlog.debug(f'Libraries:            {libraries}')
 
-        self.compile_args = compileOptions + [f'-I{x}' for x in incDirs]
+        self.compile_args = compileOptions
+        self.include_directories.append(IncludeDirs(None, incDirs))
         self.link_args = libraries
 
     def _get_build_dir(self) -> Path:

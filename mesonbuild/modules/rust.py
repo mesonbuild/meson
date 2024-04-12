@@ -12,6 +12,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
+from ..build.include_dirs import IncludeType
 from ..compilers.compilers import are_asserts_disabled, lang_suffixes
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW,
@@ -23,7 +24,8 @@ from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..build import IncludeDirs, LibTypes
+    from ..build import LibTypes
+    from ..build.include_dirs import IncludeDirs
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
@@ -236,7 +238,13 @@ class RustModule(ExtensionModule):
 
         for de in kwargs['dependencies']:
             for i in de.get_include_dirs():
-                clang_args.extend([f'-I{x}' for x in i.to_string_list(
+                if i.kind is IncludeType.NORMAL:
+                    template = '-I{}'
+                elif i.kind is IncludeType.SYSTEM:
+                    template = '-isystem{}'
+                else:
+                    raise mesonlib.MesonBugException(f'Unhandled include type: {i.kind}')
+                clang_args.extend([template.format(x) for x in i.to_string_list(
                     state.environment.get_source_dir(), state.environment.get_build_dir())])
             clang_args.extend(de.get_all_compile_args())
             for s in de.get_sources():

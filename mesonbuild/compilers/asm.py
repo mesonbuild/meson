@@ -8,6 +8,7 @@ from .compilers import Compiler
 from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
 
 if T.TYPE_CHECKING:
+    from ..build.include_dirs import IncludeType
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
@@ -101,7 +102,7 @@ class NasmCompiler(Compiler):
     def get_pic_args(self) -> T.List[str]:
         return []
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if not path:
             path = '.'
         return ['-I' + path]
@@ -184,7 +185,7 @@ class MasmCompiler(Compiler):
     def get_pic_args(self) -> T.List[str]:
         return []
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if not path:
             path = '.'
         return ['-I' + path]
@@ -235,7 +236,7 @@ class MasmARMCompiler(Compiler):
     def get_pic_args(self) -> T.List[str]:
         return []
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if not path:
             path = '.'
         return ['-i' + path]

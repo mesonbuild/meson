@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015 The Meson development team
-# Copyright © 2021-2023 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from . import ModuleReturnValue, ExtensionModule
 from .. import build
 from .. import coredata
 from .. import mlog
-from ..dependencies import find_external_dependency, Dependency, ExternalLibrary, InternalDependency
+from ..dependencies import find_external_dependency, Dependency, ExternalLibrary
 from ..mesonlib import MesonException, File, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
 from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
@@ -58,7 +58,7 @@ if T.TYPE_CHECKING:
         headers: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
         extra_args: T.List[str]
         method: str
-        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        include_directories: T.List[T.Union[str, build.include_dirs.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         preserve_paths: bool
 
@@ -72,7 +72,7 @@ if T.TYPE_CHECKING:
         moc_extra_arguments: T.List[str]
         rcc_extra_arguments: T.List[str]
         uic_extra_arguments: T.List[str]
-        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        include_directories: T.List[T.Union[str, build.include_dirs.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         method: str
         preserve_paths: bool
@@ -425,7 +425,7 @@ class QtBaseModule(ExtensionModule):
         ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (build.include_dirs.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )
@@ -453,10 +453,9 @@ class QtBaseModule(ExtensionModule):
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
         for dep in kwargs['dependencies']:
-            compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
-            if isinstance(dep, InternalDependency):
-                for incl in dep.include_directories:
-                    compile_args.extend(f'-I{i}' for i in incl.to_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
+            # The -I is left here because it's possible that an InternalDependency has -I options in it
+            compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+            inc.extend(state.get_include_args(dep.get_all_include_dirs()))
 
         output: T.List[build.GeneratedList] = []
 
@@ -492,7 +491,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (build.include_dirs.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )

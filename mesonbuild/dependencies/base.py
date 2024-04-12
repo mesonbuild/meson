@@ -24,9 +24,10 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
+        CustomTarget, CustomTargetIndex, LibTypes,
         StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
     )
+    from ..build.include_dirs import IncludeDirs
     from ..interpreter.type_checking import PkgConfigDefineType
 
     _MissingCompilerBase = Compiler
@@ -127,6 +128,7 @@ class Dependency(HoldableObject):
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
         self.feature_since: T.Optional[T.Tuple[str, str]] = None
+        self.include_directories: T.List[IncludeDirs] = []
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Dependency):
@@ -150,28 +152,21 @@ class Dependency(HoldableObject):
         return mlog.AnsiText(mlog.green('YES'), ' ', mlog.cyan(self.version))
 
     def get_compile_args(self) -> T.List[str]:
-        if self.include_type == 'system':
-            converted = []
-            for i in self.compile_args:
-                if i.startswith('-I') or i.startswith('/I'):
-                    converted += ['-isystem' + i[2:]]
-                else:
-                    converted += [i]
-            return converted
-        if self.include_type == 'non-system':
-            converted = []
-            for i in self.compile_args:
-                if i.startswith('-isystem'):
-                    converted += ['-I' + i[8:]]
-                else:
-                    converted += [i]
-            return converted
         return self.compile_args
 
     def get_all_compile_args(self) -> T.List[str]:
         """Get the compile arguments from this dependency and it's sub dependencies."""
         return list(itertools.chain(self.get_compile_args(),
                                     *(d.get_all_compile_args() for d in self.ext_deps)))
+
+    def get_all_include_dirs(self) -> T.Iterable[IncludeDirs]:
+        """Recursively get all include directories from this dependency and its dependencies
+
+        :yield: include directories objects.
+        """
+        yield from self.get_include_dirs()
+        for d in self.ext_deps:
+            yield from d.get_include_dirs()
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
@@ -204,8 +199,8 @@ class Dependency(HoldableObject):
         else:
             return 'unknown'
 
-    def get_include_dirs(self) -> T.List['IncludeDirs']:
-        return []
+    def get_include_dirs(self) -> T.List[IncludeDirs]:
+        return self.include_directories
 
     def get_include_type(self) -> str:
         return self.include_type
@@ -399,7 +394,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         if not sources:
             new.sources = []
         if not includes:
-            pass # TODO maybe filter compile_args?
+            self.include_directories = []
         if not sources:
             new.sources = []
 

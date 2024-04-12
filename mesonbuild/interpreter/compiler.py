@@ -15,6 +15,7 @@ from .. import coredata
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
+from ..build.include_dirs import IncludeType
 from ..compilers import SUFFIX_TO_LANG
 from ..compilers.compilers import CompileCheckMode
 from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
@@ -47,7 +48,7 @@ if T.TYPE_CHECKING:
 
     class BaseCompileKW(TypedDict):
         no_builtin_args: bool
-        include_directories: T.List[build.IncludeDirs]
+        include_directories: T.List[build.include_dirs.IncludeDirs]
         args: T.List[str]
 
     class CompileKW(BaseCompileKW):
@@ -86,7 +87,7 @@ if T.TYPE_CHECKING:
         # prepended to the key
         header_args: T.List[str]
         header_dependencies: T.List[dependencies.Dependency]
-        header_include_directories: T.List[build.IncludeDirs]
+        header_include_directories: T.List[build.include_dirs.IncludeDirs]
         header_no_builtin_args: bool
         header_prefix: str
         header_required: T.Union[bool, coredata.UserFeatureOption]
@@ -94,7 +95,7 @@ if T.TYPE_CHECKING:
     class PreprocessKW(TypedDict):
         output: str
         compile_args: T.List[str]
-        include_directories: T.List[build.IncludeDirs]
+        include_directories: T.List[build.include_dirs.IncludeDirs]
         dependencies: T.List[dependencies.Dependency]
         depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
 
@@ -155,9 +156,9 @@ _DEPENDS_KW: KwargInfo[T.List[T.Union[build.BuildTarget, build.CustomTarget, bui
     listify=True,
     default=[],
 )
-_INCLUDE_DIRS_KW: KwargInfo[T.List[build.IncludeDirs]] = KwargInfo(
+_INCLUDE_DIRS_KW: KwargInfo[T.List[build.include_dirs.IncludeDirs]] = KwargInfo(
     'include_directories',
-    ContainerTypeInfo(list, build.IncludeDirs),
+    ContainerTypeInfo(list, build.include_dirs.IncludeDirs),
     default=[],
     listify=True,
 )
@@ -266,7 +267,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         args: T.List[str] = []
         for i in kwargs['include_directories']:
             for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
-                args.extend(self.compiler.get_include_args(idir, False))
+                args.extend(self.compiler.get_include_args(idir, IncludeType.NORMAL))
         if not kwargs['no_builtin_args']:
             opts = coredata.OptionsView(self.environment.coredata.options, self.subproject)
             args += self.compiler.get_option_compile_args(opts)

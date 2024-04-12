@@ -9,6 +9,8 @@ import shlex
 import subprocess
 import typing as T
 
+from mesonbuild.build.include_dirs import IncludeDirs
+
 from . import ExtensionModule, ModuleReturnValue, NewExtensionModule, ModuleInfo
 from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING
@@ -263,10 +265,10 @@ class ExternalProject(NewExtensionModule):
         abs_libdir = Path(self.install_dir, self.rel_prefix, self.libdir)
 
         version = self.project_version
-        compile_args = [f'-I{abs_includedir}']
+        inc_args = [IncludeDirs(None, [str(abs_includedir)])]
         link_args = [f'-L{abs_libdir}', f'-l{libname}']
         sources = self.target
-        dep = InternalDependency(version, [], compile_args, link_args, [],
+        dep = InternalDependency(version, inc_args, [], link_args, [],
                                  [], [sources], [], [], {}, [], [], [])
         return dep
 

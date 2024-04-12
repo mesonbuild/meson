@@ -15,6 +15,7 @@ from .. import build
 from .. import optinterpreter
 from .. import compilers
 from .. import envconfig
+from ..build.include_dirs import IncludeType
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
@@ -2777,11 +2778,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('include_directories', KwargInfo('is_system', bool, default=False))
     def func_include_directories(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]],
                                  kwargs: 'kwtypes.FuncIncludeDirectories') -> build.IncludeDirs:
-        return self.build_incdir_object(args[0], kwargs['is_system'])
+        return self.build_incdir_object(args[0], IncludeType.SYSTEM if kwargs['is_system'] else IncludeType.NORMAL)
 
-    def build_incdir_object(self, incdir_strings: T.List[str], is_system: bool = False) -> build.IncludeDirs:
-        if not isinstance(is_system, bool):
-            raise InvalidArguments('Is_system must be boolean.')
+    def build_incdir_object(self, incdir_strings: T.List[str], kind: IncludeType = IncludeType.NORMAL) -> build.IncludeDirs:
         src_root = self.environment.get_source_dir()
         build_root = self.environment.get_build_dir()
         absbase_src = os.path.join(src_root, self.subdir)
@@ -2843,7 +2842,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
                 raise InvalidArguments(f'Include dir {a} does not exist.')
-        i = build.IncludeDirs(self.subdir, incdir_strings, is_system)
+        i = build.IncludeDirs(self.subdir, incdir_strings, kind)
         return i
 
     @typed_pos_args('add_test_setup', str)

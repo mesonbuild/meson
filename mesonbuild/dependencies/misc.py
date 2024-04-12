@@ -205,7 +205,8 @@ class PcapDependencyConfigTool(ConfigToolDependency):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
-        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self.get_config_value(['--cflags'], 'compile_args'))
         self.link_args = self.get_config_value(['--libs'], 'link_args')
         if self.version is None:
             # older pcap-config versions don't support this
@@ -234,7 +235,8 @@ class CupsDependencyConfigTool(ConfigToolDependency):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
-        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self.get_config_value(['--cflags'], 'compile_args'))
         self.link_args = self.get_config_value(['--ldflags', '--libs'], 'link_args')
 
 
@@ -247,7 +249,8 @@ class LibWmfDependencyConfigTool(ConfigToolDependency):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
-        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self.get_config_value(['--cflags'], 'compile_args'))
         self.link_args = self.get_config_value(['--libs'], 'link_args')
 
 
@@ -260,7 +263,8 @@ class LibGCryptDependencyConfigTool(ConfigToolDependency):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
-        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self.get_config_value(['--cflags'], 'compile_args'))
         self.link_args = self.get_config_value(['--libs'], 'link_args')
         self.version = self.get_config_value(['--version'], 'version')[0]
 
@@ -274,7 +278,8 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
-        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self.get_config_value(['--cflags'], 'compile_args'))
         self.link_args = self.get_config_value(['--libs'], 'link_args')
         self.version = self.get_config_value(['--version'], 'version')[0]
 
@@ -317,7 +322,8 @@ class CursesConfigToolDependency(ConfigToolDependency):
         super().__init__(name, env, kwargs, language)
         if not self.is_found:
             return
-        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self.get_config_value(['--cflags'], 'compile_args'))
         self.link_args = self.get_config_value(['--libs'], 'link_args')
 
 

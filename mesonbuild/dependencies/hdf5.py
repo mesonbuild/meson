@@ -9,6 +9,7 @@ import os
 import re
 from pathlib import Path
 
+from ..build.include_dirs import IncludeDirs
 from ..mesonlib import OrderedSet, join_args
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
@@ -38,12 +39,12 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
 
         # some broken pkgconfig don't actually list the full path to the needed includes
         newinc: T.List[str] = []
-        for arg in self.compile_args:
-            if arg.startswith('-I'):
+        for i in self.include_directories:
+            for arg in i.incdirs:
                 stem = 'static' if self.static else 'shared'
                 if (Path(arg[2:]) / stem).is_dir():
-                    newinc.append('-I' + str(Path(arg[2:]) / stem))
-        self.compile_args += newinc
+                    newinc.append(str(Path(arg[2:]) / stem))
+        self.include_directories.append(IncludeDirs(None, newinc))
 
         link_args: T.List[str] = []
         for larg in self.get_link_args():
@@ -120,11 +121,16 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
         # We first need to call the tool with -c to get the compile arguments
         # and then without -c to get the link arguments.
-        args = self.get_config_value(['-show', '-c'], 'args')[1:]
-        args += self.get_config_value(['-show', '-noshlib' if self.static else '-shlib'], 'args')[1:]
+        inc, args = self._split_include_dirs(self.get_config_value(['-show', '-c'], 'args')[1:])
+        _i, _a = self._split_include_dirs(self.get_config_value(['-show', '-noshlib' if self.static else '-shlib'], 'args')[1:])
+        args.extend(_a)
+        inc.extend(_i)
+        self.include_directories.extend(inc)
+
         found = False
         for arg in args:
-            if arg.startswith(('-I', '-f', '-D')) or arg == '-pthread':
+            assert not arg.startswith('-I')
+            if arg.startswith(('-f', '-D')) or arg == '-pthread':
                 self.compile_args.append(arg)
             elif arg.startswith(('-L', '-l', '-Wl')):
                 self.link_args.append(arg)

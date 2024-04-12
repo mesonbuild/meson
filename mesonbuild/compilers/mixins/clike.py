@@ -25,6 +25,7 @@ from pathlib import Path
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
+from ...build.include_dirs import IncludeType
 from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType, OptionKey
 from .. import compilers
@@ -179,10 +180,10 @@ class CLikeCompiler(Compiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         if path == '':
             path = '.'
-        if is_system:
+        if kind is IncludeType.SYSTEM:
             return ['-isystem', path]
         return ['-I' + path]
 
@@ -430,10 +431,10 @@ class CLikeCompiler(Compiler):
         for d in dependencies:
             # Add compile flags needed by dependencies
             cargs += d.get_compile_args()
-            system_incdir = d.get_include_type() == 'system'
-            for i in d.get_include_dirs():
-                for idir in i.to_string_list(env.get_source_dir(), env.get_build_dir()):
-                    cargs.extend(self.get_include_args(idir, system_incdir))
+            inctype = IncludeType.SYSTEM if d.get_include_type() == 'system' else IncludeType.NORMAL
+            for i in d.include_directories:
+                for x in i.to_string_list(env.source_dir, env.build_dir):
+                    cargs.extend(self.get_include_args(x, inctype))
             if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies
                 largs += d.get_link_args()

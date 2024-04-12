@@ -163,7 +163,7 @@ class DependenciesHelper:
     def add_cflags(self, cflags: T.List[str]) -> None:
         self.cflags += mesonlib.stringlistify(cflags)
 
-    def _add_uninstalled_incdirs(self, incdirs: T.List[build.IncludeDirs], subdir: T.Optional[str] = None) -> None:
+    def _add_uninstalled_incdirs(self, incdirs: T.List[build.include_dirs.IncludeDirs], subdir: T.Optional[str] = None) -> None:
         for i in incdirs:
             curdir = i.get_curdir()
             for d in i.get_incdirs():
@@ -190,18 +190,15 @@ class DependenciesHelper:
                 if obj.found():
                     processed_reqs.append(obj.name)
                     self.add_version_reqs(obj.name, obj.version_reqs)
-            elif isinstance(obj, dependencies.InternalDependency):
-                if obj.found():
-                    if obj.objects:
-                        raise mesonlib.MesonException('.pc file cannot refer to individual object files.')
-                    processed_libs += obj.get_link_args()
-                    processed_cflags += obj.get_compile_args()
-                    self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
-                    self._add_uninstalled_incdirs(obj.get_include_dirs())
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
+                    if isinstance(obj, dependencies.InternalDependency):
+                        if obj.objects:
+                            raise mesonlib.MesonException('.pc file cannot refer to individual object files.')
+                        self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
+                        self._add_uninstalled_incdirs(obj.get_include_dirs())
             elif isinstance(obj, build.SharedLibrary) and obj.shared_library_only:
                 # Do not pull dependencies for shared libraries because they are
                 # only required for static linking. Adding private requires has

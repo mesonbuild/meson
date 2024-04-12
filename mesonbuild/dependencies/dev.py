@@ -15,9 +15,10 @@ import functools
 from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
+from ..build.include_dirs import IncludeDirs, IncludeType
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, version_compare_many, search_version, stringlistify, extract_as_list
-from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
+from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -73,7 +74,7 @@ class GTestDependencySystem(SystemDependency):
             self.prebuilt = True
         elif self.detect_srcdir():
             self.is_found = True
-            self.compile_args = ['-I' + d for d in self.src_include_dirs]
+            self.include_directories.append(IncludeDirs(None, self.src_include_dirs))
             self.link_args = []
             if self.main:
                 self.sources = [self.all_src, self.main_src]
@@ -153,7 +154,7 @@ class GMockDependencySystem(SystemDependency):
                 # Yes, we need both because there are multiple
                 # versions of gmock that do different things.
                 d2 = os.path.normpath(os.path.join(d, '..'))
-                self.compile_args += ['-I' + d, '-I' + d2, '-I' + os.path.join(d2, 'include')]
+                self.include_directories.append(IncludeDirs(None, [d, d2, os.path.join(d2, 'include')]))
                 all_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock-all.cc'))
                 main_src = mesonlib.File.from_absolute_file(os.path.join(d, 'gmock_main.cc'))
                 if self.main:
@@ -217,8 +218,9 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         self.check_components(opt_modules, required=False)
 
         cargs = mesonlib.OrderedSet(self.get_config_value(['--cppflags'], 'compile_args'))
-        self.compile_args = list(cargs.difference(self.__cpp_blacklist))
-        self.compile_args = strip_system_includedirs(environment, self.for_machine, self.compile_args)
+        compile_args = list(cargs.difference(self.__cpp_blacklist))
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            strip_system_libdirs(environment, self.for_machine, compile_args))
 
         if version_compare(self.version, '>= 3.9'):
             self._set_new_link_args(environment)
@@ -442,13 +444,26 @@ class LLVMDependencyCMake(CMakeDependency):
 
         # Extract extra include directories and definitions
         inc_dirs = self.traceparser.get_cmake_var('PACKAGE_INCLUDE_DIRS')
+        self.include_directories.append(IncludeDirs(None, inc_dirs))
+
         defs = self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS')
         # LLVM explicitly uses space-separated variables rather than semicolon lists
         if len(defs) == 1:
             defs = defs[0].split(' ')
-        temp = ['-I' + x for x in inc_dirs] + defs
-        self.compile_args += [x for x in temp if x not in self.compile_args]
-        self.compile_args = strip_system_includedirs(env, self.for_machine, self.compile_args)
+        incs: T.List[str] = []
+        sys_incs: T.List[str] = []
+        for d in defs:
+            if d.startswith('-I'):
+                incs.append(d[len('-I'):])
+            elif d.startswith('-isystem'):
+                sys_incs.append(d[len('-isystem'):])
+            elif d not in self.compile_args:
+                self.compile_args.append(d)
+        if incs:
+            self.include_directories.append(IncludeDirs(None, incs))
+        if sys_incs:
+            self.include_directories.append(IncludeDirs(None, sys_incs, IncludeType.SYSTEM))
+
         if not self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
             self.is_found = False
             return
@@ -612,8 +627,7 @@ class JNISystemDependency(SystemDependency):
             return
 
         java_home_include = self.java_home / 'include'
-        self.compile_args.append(f'-I{java_home_include}')
-        self.compile_args.append(f'-I{java_home_include / platform_include_dir}')
+        self.include_directories.append(IncludeDirs(None, [str(java_home_include), str(java_home_include / platform_include_dir)]))
 
         if modules:
             if m.is_windows():

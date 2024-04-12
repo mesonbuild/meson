@@ -28,6 +28,8 @@ from ..mesonlib import HoldableObject, OptionKey, listify, Popen_safe
 
 import typing as T
 
+from mesonbuild import dependencies
+
 if T.TYPE_CHECKING:
     from . import kwargs
     from ..cmake.interpreter import CMakeInterpreter
@@ -528,6 +530,9 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @noPosargs
     @typed_kwargs('dependency.partial_dependency', *_PARTIAL_DEP_KWARGS)
     def partial_dependency_method(self, args: T.List[TYPE_nvar], kwargs: 'kwargs.DependencyMethodPartialDependency') -> Dependency:
+        if kwargs['includes'] and not isinstance(self.held_object, dependencies.InternalDependency):
+            FeatureNew.single_use('dependency.partial_depencency with "includes" for exteranl dependencies', '1.5.0', self.subproject,
+                                  'use "compile_args: meson.version().version_compare(\'< 1.5.0\')"', self.current_node)
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return pdep
 
@@ -704,7 +709,7 @@ class MachineHolder(ObjectHolder['MachineInfo']):
         raise InterpreterException('Subsystem not defined or could not be autodetected.')
 
 
-class IncludeDirsHolder(ObjectHolder[build.IncludeDirs]):
+class IncludeDirsHolder(ObjectHolder[build.include_dirs.IncludeDirs]):
     pass
 
 class FileHolder(ObjectHolder[mesonlib.File]):
@@ -897,8 +902,8 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
 
     @noPosargs
     @noKwargs
-    def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.IncludeDirs:
-        return build.IncludeDirs('', [], False, [self.interpreter.backend.get_target_private_dir(self._target_object)])
+    def private_dir_include_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.include_dirs.IncludeDirs:
+        return build.include_dirs.IncludeDirs('', [], build.include_dirs.IncludeType.NORMAL, [self.interpreter.backend.get_target_private_dir(self._target_object)])
 
     @noPosargs
     @noKwargs

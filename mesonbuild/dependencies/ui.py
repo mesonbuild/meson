@@ -13,6 +13,7 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..compilers.compilers import CrossNoRunException
+from ..build.include_dirs import IncludeDirs
 from ..mesonlib import (
     Popen_safe, extract_as_list, version_compare_many
 )
@@ -62,7 +63,7 @@ class GnuStepDependency(ConfigToolDependency):
         if not self.is_found:
             return
         self.modules = kwargs.get('modules', [])
-        self.compile_args = self.filter_args(
+        self.include_directories, self.compile_args = self._split_include_dirs(
             self.get_config_value(['--objc-flags'], 'compile_args'))
         self.link_args = self.weird_filter(self.get_config_value(
             ['--gui-libs' if 'gui' in self.modules else '--base-libs'],
@@ -140,7 +141,8 @@ class SDL2DependencyConfigTool(ConfigToolDependency):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
-        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self.get_config_value(['--cflags'], 'compile_args'))
         self.link_args = self.get_config_value(['--libs'], 'link_args')
 
 
@@ -168,7 +170,8 @@ class WxDependency(ConfigToolDependency):
 
         # wx-config seems to have a cflags as well but since it requires C++,
         # this should be good, at least for now.
-        self.compile_args = self.get_config_value(['--cxxflags'] + extra_args + self.requested_modules, 'compile_args')
+        self.include_directories, self.compile_args = self._split_include_dirs(
+            self.get_config_value(['--cxxflags'], 'compile_args'))
         self.link_args = self.get_config_value(['--libs'] + extra_args + self.requested_modules, 'link_args')
 
     @staticmethod
@@ -223,7 +226,7 @@ class VulkanDependencySystem(SystemDependency):
             # XXX: this is very odd, and may deserve being removed
             self.type_name = DependencyTypeName('vulkan_sdk')
             self.is_found = True
-            self.compile_args.append('-I' + inc_path)
+            self.include_directories.append(IncludeDirs(None, [inc_path]))
             self.link_args.append('-L' + lib_path)
             self.link_args.append('-l' + lib_name)
         else:

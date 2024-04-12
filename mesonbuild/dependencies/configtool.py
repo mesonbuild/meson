@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
+from ..build.include_dirs import IncludeDirs, IncludeType
 from ..mesonlib import listify, Popen_safe, Popen_safe_logged, split_args, version_compare, version_compare_many
 from ..programs import find_external_program
 from .. import mlog
@@ -68,6 +69,32 @@ class ConfigToolDependency(ExternalDependency):
             # `1.2.3.git-1234`
             return m.group(0).rstrip('.')
         return version
+
+    @staticmethod
+    def _split_include_dirs(args: T.Iterable[str]) -> T.Tuple[T.List[IncludeDirs], T.List[str]]:
+        """Split include and other compile args
+
+        And convert the include arguments into an IncludeDirs object
+
+        :param args: An iterable of include directories as strings
+        :return: A tuple of IncludeDirs and List of compile arguments
+        """
+        inc: T.List[str] = []
+        sys: T.List[str] = []
+        comp: T.List[str] = []
+        for a in args:
+            if a.startswith(('-I', '/I')):
+                inc.append(a[2:])
+            elif a.startswith('-isystem'):
+                sys.append(a[8:])
+            else:
+                comp.append(a)
+        ret: T.List[IncludeDirs] = []
+        if inc:
+            ret.append(IncludeDirs(None, inc))
+        if sys:
+            ret.append(IncludeDirs(None, sys, IncludeType.SYSTEM))
+        return ret, comp
 
     def find_config(self, versions: T.List[str], returncode: int = 0) \
             -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:

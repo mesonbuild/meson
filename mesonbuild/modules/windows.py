@@ -29,7 +29,7 @@ if T.TYPE_CHECKING:
 
         depend_files: T.List[mesonlib.FileOrString]
         depends: T.List[T.Union[build.BuildTarget, build.CustomTarget]]
-        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        include_directories: T.List[T.Union[str, build.include_dirs.IncludeDirs]]
         args: T.List[str]
 
     class RcKwargs(TypedDict):
@@ -119,7 +119,7 @@ class WindowsModule(ExtensionModule):
         for d in wrc_depends:
             if isinstance(d, build.CustomTarget):
                 extra_args += state.get_include_args([
-                    build.IncludeDirs('', [], False, [os.path.join('@BUILD_ROOT@', self.interpreter.backend.get_target_dir(d))])
+                    build.include_dirs.IncludeDirs('', [], build.include_dirs.IncludeType.NORMAL, [os.path.join('@BUILD_ROOT@', self.interpreter.backend.get_target_dir(d))])
                 ])
         extra_args += state.get_include_args(kwargs['include_directories'])
 

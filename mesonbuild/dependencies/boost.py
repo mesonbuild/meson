@@ -9,8 +9,9 @@ import functools
 import typing as T
 from pathlib import Path
 
-from .. import mlog
 from .. import mesonlib
+from .. import mlog
+from ..build.include_dirs import IncludeDirs
 
 from .base import DependencyException, SystemDependency
 from .detect import packages
@@ -497,7 +498,7 @@ class BoostDependency(SystemDependency):
             # if we found all modules we are done
             if not not_found:
                 self.version = inc.version
-                self.compile_args = ['-I' + inc.path.as_posix()]
+                self.include_directories.append(IncludeDirs(None, [inc.path.as_posix()]))
                 self.compile_args += comp_args
                 self.compile_args += self._extra_compile_args()
                 self.compile_args = list(mesonlib.OrderedSet(self.compile_args))

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget, DFeatures
+    from ..build.include_dirs import IncludeType
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -1045,6 +1046,20 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         return dep.get_compile_args()
 
+    def get_dependency_include_args(self, dep: 'Dependency') -> T.List[str]:
+        """Convert include arguments to strings.
+
+        This needs to add the relavent argument (such as -I or -isystem)
+
+        :param dep: The dependency to generate includes from
+        :return: A string list of includes, with the arguments
+        """
+        inc: T.List[str] = []
+        for i in dep.include_directories:
+            for p in i.incdirs:
+                inc.extend(self.get_include_args(p, i.kind))
+        return inc
+
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return dep.get_link_args()
 
@@ -1190,7 +1205,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # TODO: is this a linker property?
         return []
 
-    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+    def get_include_args(self, path: str, kind: IncludeType) -> T.List[str]:
         return []
 
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
@@ -1261,6 +1276,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         for d in dependencies:
             # Add compile flags needed by dependencies
             args += d.get_compile_args()
+            for i in d.include_directories:
+                args.extend(f'-I{x}' for x in i.to_string_list(env.source_dir, env.build_dir))
             if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies
                 args += d.get_link_args()
