@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2020 The Meson development team
-# Copyright © 2020-2023 Intel Corporation
+# Copyright © 2020-2024 Intel Corporation
 
 """Meson specific typing helpers.
 
