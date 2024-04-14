@@ -256,7 +256,9 @@ class PkgConfigCLI(PkgConfigInterface):
     def _get_env(self, uninstalled: bool = False) -> EnvironmentVariables:
         env = EnvironmentVariables()
         key = OptionKey('pkg_config_path', machine=self.for_machine)
-        extra_paths: T.List[str] = self.env.coredata.optstore.get_value(key)[:]
+        pathlist = self.env.coredata.optstore.get_value_for(key)
+        assert isinstance(pathlist, list)
+        extra_paths: T.List[str] = pathlist[:]
         if uninstalled:
             bpath = self.env.get_build_dir()
             if bpath is not None:
@@ -419,7 +421,7 @@ class PkgConfigDependency(ExternalDependency):
         #
         # Only prefix_libpaths are reordered here because there should not be
         # too many system_libpaths to cause library version issues.
-        pkg_config_path: T.List[str] = self.env.coredata.optstore.get_value(OptionKey('pkg_config_path', machine=self.for_machine))
+        pkg_config_path: T.List[str] = self.env.coredata.optstore.get_value(OptionKey('pkg_config_path', machine=self.for_machine)) # type: ignore[assignment]
         pkg_config_path = self._convert_mingw_paths(pkg_config_path)
         prefix_libpaths = OrderedSet(sort_libpaths(list(prefix_libpaths), pkg_config_path))
         system_libpaths: OrderedSet[str] = OrderedSet()
