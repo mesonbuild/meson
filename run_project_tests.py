@@ -45,7 +45,7 @@ from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.modules.python import PythonExternalProgram
 from run_tests import (
     get_fake_options, run_configure, get_meson_script, get_backend_commands,
-    get_backend_args_for_dir, Backend, ensure_backend_detects_changes,
+    get_backend_args_for_dir, Backend,
     guess_backend, handle_meson_skip_test,
 )
 
@@ -723,7 +723,6 @@ def _run_test(test: TestDef,
 
     # Touch the meson.build file to force a regenerate
     def force_regenerate() -> None:
-        ensure_backend_detects_changes(backend)
         os.utime(str(test.path / 'meson.build'))
 
     # just test building
