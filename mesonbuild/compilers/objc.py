@@ -20,6 +20,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from ..build import BuildTarget
 
 
 class ObjCCompiler(CLikeCompiler, Compiler):
@@ -75,13 +76,17 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
                                          self.supported_warn_args(gnu_common_warning_args) +
                                          self.supported_warn_args(gnu_objc_warning_args))}
 
-    def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
-        args = []
-        std = options.get_value(self.form_compileropt_key('std'))
+    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        key = OptionKey('c_std', machine=self.for_machine)
+        if target:
+            std = env.coredata.get_option_for_target(target, key)
+        else:
+            std = env.coredata.get_option_for_subproject(key, subproject)
+        assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
-
 
 class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
@@ -109,9 +114,11 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
             return 'c_std'
         return super().make_option_name(key)
 
-    def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
-        std = options.get_value(self.form_compileropt_key('std'))
+        key = OptionKey('c_std', machine=self.for_machine)
+        std = self.get_compileropt_value(key, env, target, subproject)
+        assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
         return args

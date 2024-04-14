@@ -16,7 +16,6 @@ from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
                         EnvironmentVariables)
-from ..options import OptionKey
 from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`
@@ -293,24 +292,12 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTarge
     default=[],
 )
 
-def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, ElementaryOptionValues]]) -> T.Dict[OptionKey, ElementaryOptionValues]:
-    if isinstance(raw, str):
-        raw = [raw]
-    if isinstance(raw, list):
-        output: T.Dict[OptionKey, ElementaryOptionValues] = {}
-        for each in raw:
-            k, v = split_equal_string(each)
-            output[OptionKey.from_string(k)] = v
-        return output
-    return {OptionKey.from_string(k): v for k, v in raw.items()}
-
 
 OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, ElementaryOptionValues], T.List[str]]] = KwargInfo(
     'override_options',
     (str, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, (str, int, bool, list))),
     default={},
     validator=_options_validator,
-    convertor=_override_options_convertor,
     since_values={dict: '1.2.0'},
 )
 
