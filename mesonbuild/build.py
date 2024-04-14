@@ -832,6 +832,7 @@ class BuildTarget(Target):
     def __str__(self):
         return f"{self.name}"
 
+    # FIXME: this entire method needs to be removed.
     @property
     def is_unity(self) -> bool:
         unity_opt = self.get_option(OptionKey('unity'))
