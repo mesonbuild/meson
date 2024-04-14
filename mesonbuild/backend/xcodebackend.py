@@ -10,9 +10,12 @@ from . import backends
 from .. import build
 from .. import mesonlib
 from .. import mlog
+from ..arglist import CompilerArgs
 from ..mesonlib import MesonBugException, MesonException, OptionKey
 
 if T.TYPE_CHECKING:
+    from ..build import BuildTarget
+    from ..compilers import Compiler
     from ..interpreter import Interpreter
 
 INDENT = '\t'
@@ -33,10 +36,12 @@ XCODETYPEMAP = {'c': 'sourcecode.c.c',
                 'dylib': 'compiled.mach-o.dylib',
                 'o': 'compiled.mach-o.objfile',
                 's': 'sourcecode.asm',
-                'asm': 'sourcecode.asm',
+                'asm': 'sourcecode.nasm',
                 'metal': 'sourcecode.metal',
                 'glsl': 'sourcecode.glsl',
                 }
+NEEDS_CUSTOM_RULES = {'nasm': 'sourcecode.nasm',
+                      }
 LANGNAMEMAP = {'c': 'C',
                'cpp': 'CPLUSPLUS',
                'objc': 'OBJC',
@@ -271,6 +276,7 @@ class XCodeBackend(backends.Backend):
         self.generate_native_target_map()
         self.generate_native_frameworks_map()
         self.generate_custom_target_map()
+        self.generate_native_target_build_rules_map()
         self.generate_generator_target_map()
         self.generate_source_phase_map()
         self.generate_target_dependency_map()
@@ -288,6 +294,9 @@ class XCodeBackend(backends.Backend):
         objects_dict.add_comment(PbxComment('Begin PBXBuildFile section'))
         self.generate_pbx_build_file(objects_dict)
         objects_dict.add_comment(PbxComment('End PBXBuildFile section'))
+        objects_dict.add_comment(PbxComment('Begin PBXBuildRule section'))
+        self.generate_pbx_build_rule(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXBuildRule section'))
         objects_dict.add_comment(PbxComment('Begin PBXBuildStyle section'))
         self.generate_pbx_build_style(objects_dict)
         objects_dict.add_comment(PbxComment('End PBXBuildStyle section'))
@@ -400,6 +409,16 @@ class XCodeBackend(backends.Backend):
         self.native_targets = {}
         for t in self.build_targets:
             self.native_targets[t] = self.gen_id()
+
+    def generate_native_target_build_rules_map(self) -> None:
+        self.build_rules = {}
+        for name, target in self.build_targets.items():
+            languages = {}
+            for language in target.compilers:
+                if language not in NEEDS_CUSTOM_RULES:
+                    continue
+                languages[language] = self.gen_id()
+            self.build_rules[name] = languages
 
     def generate_custom_target_map(self) -> None:
         self.shell_targets = {}
@@ -719,6 +738,53 @@ class XCodeBackend(backends.Backend):
             styledict.add_item('buildSettings', settings_dict)
             settings_dict.add_item('COPY_PHASE_STRIP', 'NO')
             styledict.add_item('name', f'"{name}"')
+
+    def to_shell_script(self, args: CompilerArgs) -> str:
+        quoted_cmd = []
+        for c in args:
+            quoted_cmd.append(c.replace('"', chr(92) + '"'))
+        cmd = ' '.join(quoted_cmd)
+        return f"\"#!/bin/sh\\n{cmd}\\n\""
+
+    def generate_pbx_build_rule(self, objects_dict: PbxDict) -> None:
+        for name, languages in self.build_rules.items():
+            target: BuildTarget = self.build_targets[name]
+            for language, idval in languages.items():
+                compiler: Compiler = target.compilers[language]
+                buildrule = PbxDict()
+                buildrule.add_item('isa', 'PBXBuildRule')
+                buildrule.add_item('compilerSpec', 'com.apple.compilers.proxy.script')
+                if compiler.get_id() != 'yasm':
+                    # Yasm doesn't generate escaped build rules
+                    buildrule.add_item('dependencyFile', '"$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).d"')
+                buildrule.add_item('fileType', NEEDS_CUSTOM_RULES[language])
+                inputfiles = PbxArray()
+                buildrule.add_item('inputFiles', inputfiles)
+                buildrule.add_item('isEditable', '0')
+                outputfiles = PbxArray()
+                outputfiles.add_item('"$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).o"')
+                buildrule.add_item('outputFiles', outputfiles)
+                # Do NOT use this parameter. Xcode will accept it from the UI,
+                # but the parser will break down inconsistently upon next
+                # opening. rdar://FB12144055
+                # outputargs = PbxArray()
+                # args = self.generate_basic_compiler_args(target, compiler)
+                # outputargs.add_item(self.to_shell_script(args))
+                # buildrule.add_item('outputFilesCompilerFlags', outputargs)
+                commands = CompilerArgs(compiler)
+                commands += compiler.get_exelist()
+                if compiler.get_id() == 'yasm':
+                    # Yasm doesn't generate escaped build rules
+                    commands += self.compiler_to_generator_args(target, compiler, output='"$SCRIPT_OUTPUT_FILE_0"', input='"$SCRIPT_INPUT_FILE"', depfile=None)
+                else:
+                    commands += self.compiler_to_generator_args(target,
+                                                                compiler,
+                                                                output='"$SCRIPT_OUTPUT_FILE_0"',
+                                                                input='"$SCRIPT_INPUT_FILE"',
+                                                                depfile='"$(dirname "$SCRIPT_OUTPUT_FILE_0")/$(basename "$SCRIPT_OUTPUT_FILE_0" .o).d"',
+                                                                extras=['$OTHER_INPUT_FILE_FLAGS'])
+                buildrule.add_item('script', self.to_shell_script(commands))
+                objects_dict.add_item(idval, buildrule, 'PBXBuildRule')
 
     def generate_pbx_container_item_proxy(self, objects_dict: PbxDict) -> None:
         for t in self.build_targets:
@@ -1115,7 +1181,10 @@ class XCodeBackend(backends.Backend):
                     generator_id += 1
             for bpname, bpval in t.buildphasemap.items():
                 buildphases_array.add_item(bpval, f'{bpname} yyy')
-            ntarget_dict.add_item('buildRules', PbxArray())
+            build_rules = PbxArray()
+            for language, build_rule_idval in self.build_rules[tname].items():
+                build_rules.add_item(build_rule_idval, f'{language}')
+            ntarget_dict.add_item('buildRules', build_rules)
             dep_array = PbxArray()
             ntarget_dict.add_item('dependencies', dep_array)
             dep_array.add_item(self.regen_dependency_id)

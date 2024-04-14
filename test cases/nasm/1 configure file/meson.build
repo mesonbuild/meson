@@ -1,15 +1,17 @@
 project('nasm config file', 'c')
 
-if host_machine.cpu_family() == 'x86' and host_machine.system() == 'windows'
-  asm_format = 'win32'
-elif host_machine.cpu_family() == 'x86_64' and host_machine.system() == 'windows'
-  asm_format = 'win64'
-elif host_machine.cpu_family() == 'x86' and host_machine.system() == 'linux'
+if not host_machine.cpu_family().startswith('x86')
+  error('MESON_SKIP_TEST: nasm only supported for x86 and x86_64')
+endif
+
+if host_machine.system() != 'linux'
+  error('MESON_SKIP_TEST: this test asm is made for Linux')
+endif
+
+if host_machine.cpu_family() == 'x86'
   asm_format = 'elf32'
-elif host_machine.cpu_family() == 'x86_64' and host_machine.system() == 'linux'
-  asm_format = 'elf64'
 else
-  error('MESON_SKIP_TEST: skipping test on this platform')
+  asm_format = 'elf64'
 endif
 
 nasm = find_program('nasm', required: false)
