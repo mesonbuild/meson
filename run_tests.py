@@ -39,29 +39,27 @@ from mesonbuild.mesonlib import OptionKey, setup_vsenv
 if T.TYPE_CHECKING:
     from mesonbuild.coredata import SharedCMDOptions
 
-NINJA_1_9_OR_NEWER = False
+NINJA_1_12_OR_NEWER = False
 NINJA_CMD = None
 # If we're on CI, detecting ninja for every subprocess unit test that we run is slow
 # Optimize this by respecting $NINJA and skipping detection, then exporting it on
 # first run.
 try:
-    NINJA_1_9_OR_NEWER = bool(int(os.environ['NINJA_1_9_OR_NEWER']))
+    NINJA_1_12_OR_NEWER = bool(int(os.environ['NINJA_1_12_OR_NEWER']))
     NINJA_CMD = [os.environ['NINJA']]
 except (KeyError, ValueError):
-    # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
-    # is fixed
-    NINJA_CMD = detect_ninja('1.9')
+    # Look for 1.12, which removes -w dupbuild=err
+    NINJA_CMD = detect_ninja('1.12')
     if NINJA_CMD is not None:
-        NINJA_1_9_OR_NEWER = True
+        NINJA_1_12_OR_NEWER = True
     else:
-        mlog.warning('Found ninja <1.9, tests will run slower', once=True)
         NINJA_CMD = detect_ninja()
 
 if NINJA_CMD is not None:
-    os.environ['NINJA_1_9_OR_NEWER'] = str(int(NINJA_1_9_OR_NEWER))
+    os.environ['NINJA_1_12_OR_NEWER'] = str(int(NINJA_1_12_OR_NEWER))
     os.environ['NINJA'] = NINJA_CMD[0]
 else:
-    raise RuntimeError('Could not find Ninja v1.7 or newer')
+    raise RuntimeError('Could not find Ninja.')
 
 # Emulate running meson with -X utf8 by making sure all open() calls have a
 # sane encoding. This should be a python default, but PEP 540 considered it not
@@ -271,7 +269,9 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         global NINJA_CMD
-        cmd = NINJA_CMD + ['-w', 'dupbuild=err', '-d', 'explain']
+        cmd = NINJA_CMD + ['-d', 'explain']
+        if not NINJA_1_12_OR_NEWER:
+            cmd += ['-w', 'dupbuild=err']
         if debug:
             cmd += ['-v']
         clean_cmd = cmd + ['clean']
@@ -281,21 +281,6 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
     else:
         raise AssertionError(f'Unknown backend: {backend!r}')
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
-
-def ensure_backend_detects_changes(backend: Backend) -> None:
-    global NINJA_1_9_OR_NEWER
-    if backend is not Backend.ninja:
-        return
-    need_workaround = False
-    # We're using ninja >= 1.9 which has QuLogic's patch for sub-1s resolution
-    # timestamps
-    if not NINJA_1_9_OR_NEWER:
-        mlog.warning('Don\'t have ninja >= 1.9, enabling timestamp resolution workaround', once=True)
-        need_workaround = True
-    # Increase the difference between build.ninja's timestamp and the timestamp
-    # of whatever you changed: https://github.com/ninja-build/ninja/issues/371
-    if need_workaround:
-        time.sleep(1)
 
 def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str, str]:
     out = StringIO()

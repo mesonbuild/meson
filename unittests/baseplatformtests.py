@@ -31,7 +31,7 @@ import mesonbuild.modules.pkgconfig
 
 
 from run_tests import (
-    Backend, ensure_backend_detects_changes, get_backend_commands,
+    Backend, get_backend_commands,
     get_builddir_target_args, get_meson_script, run_configure_inprocess,
     run_mtest_inprocess, handle_meson_skip_test,
 )
@@ -294,8 +294,6 @@ class BasePlatformTests(TestCase):
             arg = [arg]
         else:
             arg = list(arg)
-        if will_build:
-            ensure_backend_detects_changes(self.backend)
         self._run(self.mconf_command + arg + [self.builddir])
 
     def getconf(self, optname: str):
@@ -309,7 +307,6 @@ class BasePlatformTests(TestCase):
         windows_proof_rmtree(self.builddir)
 
     def utime(self, f):
-        ensure_backend_detects_changes(self.backend)
         os.utime(f)
 
     def get_compdb(self):
