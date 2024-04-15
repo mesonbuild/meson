@@ -10,6 +10,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from .traceparser import CMakeTarget as CMakeTraceTarget, CMakeTraceParser
+    from .traceparser import CMakeTarget as CMakeTraceTarget, CMakeTraceParser
     from ..environment import Environment
     from ..interpreterbase import TYPE_var
 
