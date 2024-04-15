@@ -143,6 +143,45 @@ were never turned on by Meson.
 bindgen_clang_arguments = ['--target', 'x86_64-linux-gnu']
 ```
 
+## cbindgen()
+
+*Since 1.12.0*
+
+```meson
+file_h = rustmod.cbindgen('infile.rs', 'outfile.h', config : 'cbindgen.toml')
+```
+
+This function wraps cbindgen to simplify creating C bindings for Rust targets.
+It has several advantages over invoking a `custom_target` directly:
+
+  - Correctly handles depfiles, adding them when supported
+  - Sets the profile to `debug` when Meson is configured with -Ddebug=true
+  - Automatically passes some useful options for use in Meson, such as `--quiet`
+    and `--cpp-compat`
+  - Handles structured_sources correctly
+  - Automatically detect language based on file extension (c or c++ only),
+
+The majority of the configuration should be handled inside the `config.toml`
+file.
+
+It takes the following positional arguments:
+
+  - `infile`: the root rust file to bind, or a [[@structured_src]] instance
+  - `outfile`: the header to generate
+
+It takes the following keyword arguments
+
+  - `config`: The Path to a configuration toml. May be a File, str, or CustomTarget.
+    Customarily, this is called `cbindgen.toml`, but Meson does not require this.
+  - `language`: The language to bind for. If unset, Meson will choose a language
+    based on the file extension of the output file. Currently, auto detection only
+    works for C and C++. May be one of: `c`, `cpp`, `cython`.
+  - `depends`: An array of CustomTargets that this target depends on
+  - `depend_files`: An array of files that this target depends on
+  - `install`: A boolean controlling whether to install the generated header
+  - `install_dir`: Where to install the header. This is required if `install` is true.
+
+
 ### compiler_target()
 
 *Since 1.11.0*
