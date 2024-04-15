@@ -2,7 +2,7 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-from .common import cmake_is_debug
+from .common import get_config_declined_property
 from .. import mlog
 from ..mesonlib import Version
 
@@ -11,7 +11,7 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
-    from .traceparser import CMakeTraceParser, CMakeTarget
+    from .traceparser import CMakeTraceParser
     from ..environment import Environment
     from ..compilers import Compiler
     from ..dependencies import MissingCompiler
@@ -44,34 +44,6 @@ class ResolvedTarget:
         self.link_flags:          T.List[str] = []
         self.public_compile_opts: T.List[str] = []
         self.libraries:           T.List[str] = []
-
-# Get a property that can be overriden depending on the configuration name
-# Example: IMPORTED_LOCATION which can be overriden as IMPORTED_LOCATION_RELEASE
-# https://cmake.org/cmake/help/latest/prop_tgt/IMPORTED_CONFIGURATIONS.html#imported-configurations
-def get_config_declined_property(target: CMakeTarget,
-                                 property: str,
-                                 trace: 'CMakeTraceParser') -> T.List[str]:
-    cfg = trace.build_type.upper() if trace.build_type else None
-    imported_cfgs: T.List[str] = []
-    if f'MAP_IMPORTED_CONFIG_{cfg}' in target.properties:
-        cfg = target.properties[f'MAP_IMPORTED_CONFIG_{cfg}'][0].upper()
-    if 'IMPORTED_CONFIGURATIONS' in target.properties:
-        imported_cfgs = [x.upper() for x in target.properties['IMPORTED_CONFIGURATIONS'] if x]
-        if cfg not in imported_cfgs:
-            if cmake_is_debug(trace.env):
-                if 'DEBUG' in imported_cfgs:
-                    cfg = 'DEBUG'
-                elif 'RELEASE' in imported_cfgs:
-                    cfg = 'RELEASE'
-            else:
-                if 'RELEASE' in imported_cfgs:
-                    cfg = 'RELEASE'
-
-    if cfg and f'{property}_{cfg}' in target.properties:
-        return target.properties[f'{property}_{cfg}']
-    if property in target.properties:
-        return target.properties[property]
-    return []
 
 def resolve_cmake_trace_targets(target_name: str,
                                 trace: 'CMakeTraceParser',

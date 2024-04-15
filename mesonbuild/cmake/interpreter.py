@@ -11,12 +11,12 @@ from pathlib import Path
 import re
 import typing as T
 
-from .common import CMakeException, CMakeTarget, language_map, cmake_get_generator_args, check_cmake_args
+from .common import CMakeException, CMakeTarget, language_map, cmake_get_generator_args, check_cmake_args, get_config_declined_property
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
 from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser
-from .tracetargets import resolve_cmake_trace_targets, get_config_declined_property
+from .tracetargets import resolve_cmake_trace_targets
 from .. import mlog, mesonlib
 from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible, OptionKey
 from ..mesondata import DataFile
