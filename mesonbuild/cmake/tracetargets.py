@@ -2,7 +2,8 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
-from .common import cmake_is_debug, CMakeTarget
+from .common import cmake_is_debug
+from .traceparser import CMakeTarget
 from .. import mlog
 from ..mesonlib import Version
 
@@ -54,7 +55,7 @@ def get_config_declined_property(target: CMakeTarget,
     cfg = trace.build_type.upper() if trace.build_type else None
     imported_cfgs: T.List[str] = []
     if f'MAP_IMPORTED_CONFIG_{cfg}' in target.properties:
-        cfg = target.properties[f'MAP_IMPORTED_CONFIG_{cfg}'].upper()
+        cfg = target.properties[f'MAP_IMPORTED_CONFIG_{cfg}'][0].upper()
     if 'IMPORTED_CONFIGURATIONS' in target.properties:
         imported_cfgs = [x.upper() for x in target.properties['IMPORTED_CONFIGURATIONS'] if x]
         if cfg not in imported_cfgs:
