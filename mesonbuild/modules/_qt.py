@@ -572,7 +572,7 @@ class QtBaseModule(ExtensionModule):
         compile_args: T.List[str] = []
         sources: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
         for dep in kwargs['dependencies']:
-            compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
+            compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-F', '-D')))
             if isinstance(dep, InternalDependency):
                 for incl in dep.include_directories:
                     compile_args.extend(f'-I{i}' for i in incl.abs_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
