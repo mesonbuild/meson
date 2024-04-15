@@ -2072,6 +2072,11 @@ class Executable(BuildTarget):
         """Provides compatibility with ExternalProgram."""
         return True
 
+    def get_version(self, interpreter: T.Optional[Interpreter] = None) -> str:
+        # TODO: add an option to either meson.override_find_program or to
+        # Executable itself to set a version, or maybe get from project?
+        return 'unknown'
+
 
 class StaticLibrary(BuildTarget):
     known_kwargs = known_stlib_kwargs
