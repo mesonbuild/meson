@@ -4,6 +4,7 @@
 """Implementation of Interpreter state for the base Interpreter."""
 
 from __future__ import annotations
+import collections
 import dataclasses
 import typing as T
 
@@ -40,6 +41,13 @@ class LocalState:
     variables: T.Dict[str, InterpreterObject] = dataclasses.field(
         default_factory=dict, init=False)
     """All variables assigned during a subproject."""
+
+    local_variables: T.DefaultDict[str, T.Dict[str, InterpreterObject]] = dataclasses.field(
+        default_factory=lambda: collections.defaultdict(dict), init=False)
+    """Variables that are only in scope for a single file,.
+
+    Mapping is `{filename : {variable name : value}}`
+    """
 
     processed_buildfiles: T.Set[str] = dataclasses.field(default_factory=set, init=False)
     """All build files of the current project that have been read already."""
