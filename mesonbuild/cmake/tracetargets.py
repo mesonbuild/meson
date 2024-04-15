@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from .common import cmake_is_debug
-from .traceparser import CMakeTarget
 from .. import mlog
 from ..mesonlib import Version
 
@@ -12,7 +11,7 @@ import re
 import typing as T
 
 if T.TYPE_CHECKING:
-    from .traceparser import CMakeTraceParser
+    from .traceparser import CMakeTraceParser, CMakeTarget
     from ..environment import Environment
     from ..compilers import Compiler
     from ..dependencies import MissingCompiler
