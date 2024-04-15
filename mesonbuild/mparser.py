@@ -108,7 +108,7 @@ class Lexer:
         self.in_unit_test = 'MESON_RUNNING_IN_PROJECT_TESTS' in os.environ
         if self.in_unit_test:
             self.keywords.update({'testcase', 'endtestcase'})
-        self.token_specification = [
+        self.token_specification: T.List[T.Tuple[str, re.Pattern]] = [
             # Need to be sorted longest to shortest.
             ('whitespace', re.compile(r'[ \t]+')),
             ('multiline_fstring', re.compile(r"f'''(.|\n)*?'''", re.M)),
