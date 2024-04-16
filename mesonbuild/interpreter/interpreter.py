@@ -570,9 +570,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         if f not in self.state.world.build_def_files:
             self.state.world.build_def_files.add(f)
 
-    def get_variables(self) -> T.Dict[str, InterpreterObject]:
-        return self.state.local.variables
-
     def check_stdlibs(self) -> None:
         machine_choices = [MachineChoice.HOST]
         if self.coredata.is_cross_build():
