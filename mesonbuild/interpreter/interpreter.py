@@ -3497,7 +3497,7 @@ This will become a hard error in the future.''', location=self.state.local.curre
     @typed_pos_args('is_variable', str)
     @noKwargs
     def func_is_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
-        return args[0] in self.state.local.variables
+        return args[0] in self.state.local.variables or arg[0] in self.state.local.local_variables[self.state.local.subdir]
 
     @FeatureNew('unset_variable', '0.60.0')
     @typed_pos_args('unset_variable', str)
@@ -3505,7 +3505,10 @@ This will become a hard error in the future.''', location=self.state.local.curre
     def func_unset_variable(self, node: mparser.BaseNode, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
         varname = args[0]
         try:
-            del self.state.local.variables[varname]
+            if varname in self.state.local.local_variables[self.state.local.subdir]:
+                del self.state.local.local_variables[self.state.local.subdir][varname]
+            else:
+                del self.state.local.variables[varname]
         except KeyError:
             raise InterpreterException(f'Tried to unset unknown variable "{varname}".')
 

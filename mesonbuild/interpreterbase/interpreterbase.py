@@ -641,9 +641,9 @@ class InterpreterBase:
         # For mutable objects we need to make a copy on assignment
         if isinstance(value, MutableInterpreterObject):
             value = copy.deepcopy(value)
-        self.set_variable(var_name, value)
+        self.set_variable(var_name, value, scope=node.scope)
 
-    def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, holderify: bool = False) -> None:
+    def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, scope: mparser.Scope = mparser.Scope.GLOBAL, holderify: bool = False) -> None:
         if variable is None:
             raise InvalidCode('Can not assign void to variable.')
         if holderify:
@@ -658,11 +658,17 @@ class InterpreterBase:
             raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
             raise InvalidCode(f'Tried to overwrite internal variable "{varname}"')
-        self.state.local.variables[varname] = variable
+
+        if scope is mparser.Scope.LOCAL:
+            self.state.local.local_variables[self.state.local.subdir][varname] = variable
+        else:
+            self.state.local.variables[varname] = variable
 
     def get_variable(self, varname: str) -> InterpreterObject:
         if varname in self.builtin:
             return self.builtin[varname]
+        if varname in self.state.local.local_variables[self.state.local.subdir]:
+            return self.state.local.local_variables[self.state.local.subdir][varname]
         if varname in self.state.local.variables:
             return self.state.local.variables[varname]
         raise InvalidCode(f'Unknown variable "{varname}".')
