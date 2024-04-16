@@ -6,13 +6,12 @@ add_library(cmMod::cmModLib++ STATIC IMPORTED)
 get_target_property(CMMOD_LIB_DIR cmModLib_internal BINARY_DIR)
 get_target_property(CMMOD_LIB_NAME cmModLib_internal NAME)
 
-get_target_property(CMMOD_LIB_PREFIX cmModLib_internal PREFIX)
-if(NOT CMMOD_LIB_PREFIX)
+# meson Windows static library naming scheme
+if(MSVC)
+  set(CMMOD_LIB_PREFIX lib)
+  set(CMMOD_LIB_SUFFIX .a)
+else()
   set(CMMOD_LIB_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
-endif()
-
-get_target_property(CMMOD_LIB_SUFFIX cmModLib_internal SUFFIX)
-if(NOT CMMOD_LIB_SUFFIX)
   set(CMMOD_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
 
