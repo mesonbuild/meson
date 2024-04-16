@@ -10,5 +10,6 @@ endif()
 add_library(cmModLib_internal STATIC cmMod.cpp)
 
 add_library(cmModLib++ INTERFACE)
-find_package(cmMod CONFIG PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+set(cmMod_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+find_package(cmMod CONFIG)
 target_link_libraries(cmModLib++ INTERFACE cmMod::cmModLib++)
