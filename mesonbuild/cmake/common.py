@@ -71,19 +71,19 @@ def get_config_declined_property(target: 'CMakeTraceTarget',
                                  trace: 'CMakeTraceParser') -> T.List[str]:
     cfg = trace.build_type.upper() if trace.build_type else None
     imported_cfgs: T.List[str] = []
+    # Does the target define custom build type mapping?
     if f'MAP_IMPORTED_CONFIG_{cfg}' in target.properties:
         cfg = target.properties[f'MAP_IMPORTED_CONFIG_{cfg}'][0].upper()
+    # If IMPORTED_CONFIGURATIONS is defined, only explicitly listed configurations may be selected
     if 'IMPORTED_CONFIGURATIONS' in target.properties:
         imported_cfgs = [x.upper() for x in target.properties['IMPORTED_CONFIGURATIONS'] if x]
         if cfg not in imported_cfgs:
-            if cmake_is_debug(trace.env):
-                if 'DEBUG' in imported_cfgs:
-                    cfg = 'DEBUG'
-                elif 'RELEASE' in imported_cfgs:
-                    cfg = 'RELEASE'
+            if cmake_is_debug(trace.env) and 'DEBUG' in imported_cfgs:
+                cfg = 'DEBUG'
+            elif not cmake_is_debug(trace.env) and 'RELEASE' in imported_cfgs:
+                cfg = 'RELEASE'
             else:
-                if 'RELEASE' in imported_cfgs:
-                    cfg = 'RELEASE'
+                cfg = imported_cfgs[0]
 
     if cfg and f'{property}_{cfg}' in target.properties:
         return target.properties[f'{property}_{cfg}']
