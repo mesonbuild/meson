@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-import enum
 import re
 import codecs
 import os
@@ -32,12 +31,6 @@ ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
 
 def decode_match(match: T.Match[str]) -> str:
     return codecs.decode(match.group(0).encode(), 'unicode_escape')
-
-
-class Scope(enum.Enum):
-
-    GLOBAL = enum.auto()
-    LOCAL = enum.auto()
 
 class ParseException(MesonException):
 
@@ -120,7 +113,7 @@ class Lexer:
             ('whitespace', re.compile(r'[ \t]+')),
             ('multiline_fstring', re.compile(r"f'''(.|\n)*?'''", re.M)),
             ('fstring', re.compile(r"f'([^'\\]|(\\.))*'")),
-            ('id', re.compile('([_a-zA-Z][_0-9a-zA-Z]*)(\s*:\s*(local|global))?')),
+            ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
             ('number', re.compile(r'0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|0|[1-9]\d*')),
             ('eol_cont', re.compile(r'\\[ \t]*(#.*)?\n')),
             ('eol', re.compile(r'\n')),
@@ -292,17 +285,7 @@ class BooleanNode(ElementaryNode[bool]):
     pass
 
 class IdNode(ElementaryNode[str]):
-
-    scope: Scope
-
-    def __init__(self, token: Token[str]):
-        BaseNode.__init__(self, token.lineno, token.colno, token.filename)
-        self.raw_value = token.value
-        split = [s.strip() for s in token.value.split(':')]
-        self.value = split[0]
-        scope = split[1] if len(split) > 1 else 'local'
-        self.scope = Scope.LOCAL if scope == 'local' else Scope.GLOBAL
-
+    pass
 
 @dataclass(unsafe_hash=True)
 class NumberNode(ElementaryNode[int]):
