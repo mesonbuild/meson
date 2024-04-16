@@ -3488,8 +3488,8 @@ This will become a hard error in the future.''', location=self.state.local.curre
             return varname
 
         try:
-            return self.state.local.variables[varname]
-        except KeyError:
+            return self.get_variable(varname)
+        except InvalidCode:
             if fallback is not None:
                 return self._holderify(fallback)
         raise InterpreterException(f'Tried to get unknown variable "{varname}".')

@@ -438,7 +438,7 @@ class InterpreterBase:
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:
-                val = _unholder(self.state.local.variables[var])
+                val = _unholder(self.get_variable(var))
                 if isinstance(val, (list, dict)):
                     FeatureNew.single_use('List or dictionary in f-string', '1.3.0', self.subproject, location=self.state.local.current_node)
                 try:
