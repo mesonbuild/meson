@@ -1,0 +1,11 @@
+- id: meson-format
+  name: Formatting Meson files
+  language: python
+  entry: meson format --inplace
+  types: ['file', 'meson']
+
+- id: meson-check-format
+  name: Checking format of Meson files
+  language: python
+  entry: meson format --check-only
+  types: ['file', 'meson']
