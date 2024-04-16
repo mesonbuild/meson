@@ -143,10 +143,10 @@ class Lexer:
             ('star', re.compile(r'\*')),
             ('percent', re.compile(r'%')),
             ('fslash', re.compile(r'/')),
-            ('colon', re.compile(r':')),
             ('equal', re.compile(r'==')),
             ('nequal', re.compile(r'!=')),
-            ('assign', re.compile(r'=')),
+            ('assign', re.compile(r'(:\s*(local|global)\s*)?=')),
+            ('colon', re.compile(r':')),
             ('le', re.compile(r'<=')),
             ('lt', re.compile(r'<')),
             ('ge', re.compile(r'>=')),
@@ -545,12 +545,15 @@ class AssignmentNode(BaseNode):
     var_name: IdNode
     operator: SymbolNode
     value: BaseNode
+    # TODO: this really doesn't apply to PlusAssignmentNode
+    scope: Scope
 
-    def __init__(self, var_name: IdNode, operator: SymbolNode, value: BaseNode):
+    def __init__(self, var_name: IdNode, operator: SymbolNode, value: BaseNode, scope: Scope = Scope.GLOBAL):
         super().__init__(var_name.lineno, var_name.colno, var_name.filename)
         self.var_name = var_name
         self.operator = operator
         self.value = value
+        self.scope = scope
 
 class PlusAssignmentNode(AssignmentNode):
     pass
@@ -699,6 +702,8 @@ class Parser:
 
         self.getsym()
         self.in_ternary = False
+        # Track how deep we are in arguments or dictionaries
+        self.in_arg_dict = 0
 
     def create_node(self, node_type: T.Type[BaseNodeT], *args: T.Any, **kwargs: T.Any) -> BaseNodeT:
         node = node_type(*args, **kwargs)
@@ -769,13 +774,18 @@ class Parser:
             assert isinstance(left.value, str)
             return self.create_node(PlusAssignmentNode, left, operator, value)
         elif self.accept('assign'):
+            # TODO: how to map the socpe rule for the rewriter/formatter
             operator = self.create_node(SymbolNode, self.previous)
+            if ':' in self.previous.value and 'local' in self.previous.value:
+                scope = Scope.LOCAL
+            else:
+                scope = Scope.GLOBAL
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
             assert isinstance(left.value, str)
-            return self.create_node(AssignmentNode, left, operator, value)
+            return self.create_node(AssignmentNode, left, operator, value, scope)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
@@ -940,6 +950,7 @@ class Parser:
         return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
     def key_values(self) -> ArgumentNode:
+        self.in_arg_dict += 1
         s = self.statement()
         a = self.create_node(ArgumentNode, self.current)
 
@@ -954,6 +965,7 @@ class Parser:
                 raise ParseException('Only key:value pairs are valid in dict construction.',
                                      self.getline(), s.lineno, s.colno)
             s = self.statement()
+        self.in_arg_dict -= 1
         return a
 
     def args(self) -> ArgumentNode:
