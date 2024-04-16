@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+import enum
 import re
 import codecs
 import os
@@ -31,6 +32,13 @@ ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
 
 def decode_match(match: T.Match[str]) -> str:
     return codecs.decode(match.group(0).encode(), 'unicode_escape')
+
+
+class Scope(enum.Enum):
+
+    LOCAL = enum.auto()
+    GLOBAL = enum.auto()
+
 
 class ParseException(MesonException):
 
