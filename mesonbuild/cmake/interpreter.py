@@ -43,7 +43,7 @@ from ..mparser import (
 
 if T.TYPE_CHECKING:
     from .common import CMakeConfiguration, TargetOptions
-    from .traceparser import CMakeGeneratorTarget
+    from .traceparser import CMakeGeneratorTarget, CMakeTarget as CMakeTraceTarget
     from .._typing import ImmutableListProtocol
     from ..backend.backends import Backend
     from ..environment import Environment
@@ -206,7 +206,8 @@ class OutputTargetMap:
         return f'__art_{fname.name}__'
 
 class ConverterTarget:
-    def __init__(self, target: CMakeTarget, env: 'Environment', for_machine: MachineChoice) -> None:
+    def __init__(self, target: CMakeTarget, env: 'Environment', for_machine: MachineChoice,
+                 trace_target: 'CMakeTraceTarget' = None) -> None:
         self.env = env
         self.for_machine = for_machine
         self.artifacts = target.artifacts
@@ -222,6 +223,9 @@ class ConverterTarget:
         self.link_flags = target.link_flags + target.link_lang_flags
         self.depends_raw: T.List[str] = []
         self.depends: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
+        self.trace_target = trace_target
+        if trace_target:
+            trace_target.target = self
 
         if target.install_paths:
             self.install_dir = target.install_paths[0]
@@ -352,6 +356,10 @@ class ConverterTarget:
 
         temp = []
         for i in self.link_libraries:
+            if isinstance(i, ConverterTarget):
+                if self != i:
+                    self.link_with += [i]
+                continue
             # Let meson handle this arcane magic
             if ',-rpath,' in i:
                 continue
@@ -921,7 +929,8 @@ class CMakeInterpreter:
                     # dummy CMake internal target types
                     if k_0.type not in skip_targets and k_0.name not in added_target_names:
                         added_target_names += [k_0.name]
-                        self.targets += [ConverterTarget(k_0, self.env, self.for_machine)]
+                        trace_target = self.trace.targets[k_0.name] if k_0.name in self.trace.targets else None
+                        self.targets += [ConverterTarget(k_0, self.env, self.for_machine, trace_target=trace_target)]
 
         # Add interface targets from trace, if not already present.
         # This step is required because interface targets were removed from

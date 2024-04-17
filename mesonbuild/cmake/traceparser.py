@@ -5,7 +5,7 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from .common import CMakeException
+from .common import CMakeException, CMakeTarget as CMakeFileAPITarget
 from .generator import parse_generator_expressions
 from .. import mlog
 from ..mesonlib import version_compare
@@ -47,7 +47,8 @@ class CMakeTarget:
                 target_type: str,
                 properties:  T.Optional[T.Dict[str, T.List[str]]] = None,
                 imported:    bool = False,
-                tline:       T.Optional[CMakeTraceLine] = None
+                tline:       T.Optional[CMakeTraceLine] = None,
+                target:      T.Optional[CMakeFileAPITarget] = None
             ):
         if properties is None:
             properties = {}
@@ -59,6 +60,7 @@ class CMakeTarget:
         self.depends: T.List[str] = []
         self.current_bin_dir: T.Optional[Path] = None
         self.current_src_dir: T.Optional[Path] = None
+        self.target = target
 
     def __repr__(self) -> str:
         s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- imported:  {}\n  -- properties: {{\n{}     }}\n  -- tline: {}'

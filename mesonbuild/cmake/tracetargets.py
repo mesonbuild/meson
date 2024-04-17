@@ -115,8 +115,13 @@ def resolve_cmake_trace_targets(target_name: str,
         if 'INTERFACE_COMPILE_OPTIONS' in tgt.properties:
             res.public_compile_opts += [x for x in tgt.properties['INTERFACE_COMPILE_OPTIONS'] if x]
 
-        res.libraries += get_config_declined_property(tgt, 'IMPORTED_IMPLIB', trace)
-        res.libraries += get_config_declined_property(tgt, 'IMPORTED_LOCATION', trace)
+        if tgt.imported:
+            res.libraries += get_config_declined_property(tgt, 'IMPORTED_IMPLIB', trace)
+            res.libraries += get_config_declined_property(tgt, 'IMPORTED_LOCATION', trace)
+        elif tgt.target:
+            res.libraries += [tgt.target]
+        else:
+            not_found_warning(curr)
 
         if 'LINK_LIBRARIES' in tgt.properties:
             targets += [x for x in tgt.properties['LINK_LIBRARIES'] if x]
