@@ -17,6 +17,7 @@ from .compilers import (
     msvc_winlibs,
     Compiler,
     CompileCheckMode,
+    CompileCheckResult,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.apple import AppleCompilerMixin
@@ -99,13 +100,13 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                          dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         # Check if it's a C-like symbol
-        found, cached = super().has_header_symbol(hname, symbol, prefix, env,
-                                                  extra_args=extra_args,
-                                                  dependencies=dependencies)
-        if found:
-            return True, cached
+        result = super().has_header_symbol(hname, symbol, prefix, env,
+                                           extra_args=extra_args,
+                                           dependencies=dependencies)
+        if result.result:
+            return result
         # Check if it's a class or a template
         if extra_args is None:
             extra_args = []
@@ -186,8 +187,8 @@ class _StdCPPLibMixin(CompilerMixinBase):
 
     def language_stdlib_provider(self, env: Environment) -> str:
         # https://stackoverflow.com/a/31658120
-        header = 'version' if self.has_header('version', '', env)[0] else 'ciso646'
-        is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '', env)[0]
+        header = 'version' if self.has_header('version', '', env).result else 'ciso646'
+        is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '', env).result
         lib = 'c++' if is_libcxx else 'stdc++'
         return lib
 
@@ -609,9 +610,9 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
     # So we should explicitly fail at this case.
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         if funcname == 'lchmod':
-            return False, False
+            return CompileCheckResult(False)
         else:
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,

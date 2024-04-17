@@ -45,7 +45,7 @@ class GLDependencySystem(SystemDependency):
             return
         else:
             links = self.clib_compiler.find_library('GL', environment, [])
-            has_header = self.clib_compiler.has_header('GL/gl.h', '', environment)[0]
+            has_header = self.clib_compiler.has_header('GL/gl.h', '', environment).result
             if links and has_header:
                 self.is_found = True
                 self.link_args = links
@@ -229,7 +229,7 @@ class VulkanDependencySystem(SystemDependency):
         else:
             # simply try to guess it, usually works on linux
             libs = self.clib_compiler.find_library('vulkan', environment, [])
-            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment, disable_cache=True)[0]:
+            if libs is not None and self.clib_compiler.has_header('vulkan/vulkan.h', '', environment, disable_cache=True).result:
                 self.is_found = True
                 for lib in libs:
                     self.link_args.append(lib)

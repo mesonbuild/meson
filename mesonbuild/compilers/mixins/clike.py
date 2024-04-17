@@ -28,7 +28,7 @@ from ... import mlog
 from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType
 from .. import compilers
-from ..compilers import CompileCheckMode
+from ..compilers import CompileCheckMode, CompileCheckResult
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
@@ -330,7 +330,7 @@ class CLikeCompiler(Compiler):
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         code = f'''{prefix}
         #include <{hname}>'''
         return self.compiles(code, env, extra_args=extra_args,
@@ -339,7 +339,7 @@ class CLikeCompiler(Compiler):
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
                    extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None,
-                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+                   disable_cache: bool = False) -> CompileCheckResult:
         code = f'''{prefix}
         #ifdef __has_include
          #if !__has_include("{hname}")
@@ -354,7 +354,7 @@ class CLikeCompiler(Compiler):
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                          dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         t = f'''{prefix}
         #include <{hname}>
         int main(void) {{
@@ -465,7 +465,7 @@ class CLikeCompiler(Compiler):
         #include <stddef.h>
         int main(void) {{ static int a[1-2*!({expression})]; a[0]=0; return 0; }}'''
         return self.compiles(t, env, extra_args=extra_args,
-                             dependencies=dependencies)[0]
+                             dependencies=dependencies).result
 
     def cross_compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
                           guess: T.Optional[int], prefix: str, env: 'Environment',
@@ -549,7 +549,7 @@ class CLikeCompiler(Compiler):
             return 0;
         }}'''
         if not self.compiles(t, env, extra_args=extra_args,
-                             dependencies=dependencies)[0]:
+                             dependencies=dependencies).result:
             return -1
         return self.cross_compute_int(f'sizeof({typename})', None, None, None, prefix, env, extra_args, dependencies)
 
@@ -588,8 +588,7 @@ class CLikeCompiler(Compiler):
             {typename} something;
             return 0;
         }}'''
-        if not self.compiles(t, env, extra_args=extra_args,
-                             dependencies=dependencies)[0]:
+        if not self.compiles(t, env, extra_args=extra_args, dependencies=dependencies).result:
             return -1
         t = f'''{prefix}
         #include <stddef.h>
@@ -765,7 +764,7 @@ class CLikeCompiler(Compiler):
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         """Determine if a function exists.
 
         First, this function looks for the symbol in the default libraries
@@ -784,7 +783,7 @@ class CLikeCompiler(Compiler):
             val = env.properties.host.get(varname, None)
             if val is not None:
                 if isinstance(val, bool):
-                    return val, False
+                    return CompileCheckResult(val)
                 raise mesonlib.EnvironmentException(f'Cross variable {varname} is not a boolean.')
 
         # TODO: we really need a protocol for this,
@@ -818,14 +817,14 @@ class CLikeCompiler(Compiler):
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        res, cached = self.links(templ.format(**fargs), env, extra_args=extra_args,
-                                 dependencies=dependencies)
-        if res:
-            return True, cached
+        result = self.links(templ.format(**fargs), env, extra_args=extra_args,
+                            dependencies=dependencies)
+        if result.result:
+            return result
 
         # MSVC does not have compiler __builtin_-s.
         if self.get_id() in {'msvc', 'intel-cl'}:
-            return False, False
+            return CompileCheckResult(False)
 
         # Detect function as a built-in
         #
@@ -866,7 +865,7 @@ class CLikeCompiler(Compiler):
     def has_members(self, typename: str, membernames: T.List[str],
                     prefix: str, env: 'Environment', *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                    dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                    dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         if extra_args is None:
             extra_args = []
         # Create code that accesses all members
@@ -882,7 +881,7 @@ class CLikeCompiler(Compiler):
 
     def has_type(self, typename: str, prefix: str, env: 'Environment',
                  extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]], *,
-                 dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                 dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         t = f'''{prefix}
         void bar(void) {{
             (void) sizeof({typename});
@@ -1125,7 +1124,7 @@ class CLikeCompiler(Compiler):
             largs = self.get_linker_always_args() + self.get_allow_undefined_link_args()
             extra_args = cargs + self.linker_to_compiler_args(largs)
 
-            if self.links(code, env, extra_args=extra_args, disable_cache=True)[0]:
+            if self.links(code, env, extra_args=extra_args, disable_cache=True).result:
                 return cargs
             # Don't do a manual search for internal libs
             if libname in self.internal_libs:
@@ -1215,7 +1214,7 @@ class CLikeCompiler(Compiler):
         # then we must also pass -L/usr/lib to pick up libSystem.dylib
         extra_args = [] if allow_system else ['-Z', '-L/usr/lib']
         link_args += ['-framework', name]
-        if self.links(code, env, extra_args=(extra_args + link_args), disable_cache=True)[0]:
+        if self.links(code, env, extra_args=(extra_args + link_args), disable_cache=True).result:
             return link_args
         return None
 
@@ -1261,10 +1260,10 @@ class CLikeCompiler(Compiler):
         return args.copy()
 
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
-                      mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+                      mode: CompileCheckMode) -> CompileCheckResult:
         return self.compiles(code, env, extra_args=args, mode=mode)
 
-    def _has_multi_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
+    def _has_multi_arguments(self, args: T.List[str], env: 'Environment', code: str) -> CompileCheckResult:
         new_args: T.List[str] = []
         for arg in args:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
@@ -1285,10 +1284,10 @@ class CLikeCompiler(Compiler):
             new_args.append(arg)
         return self.has_arguments(new_args, env, code, mode=CompileCheckMode.COMPILE)
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> CompileCheckResult:
         return self._has_multi_arguments(args, env, 'extern int i;\nint i;\n')
 
-    def _has_multi_link_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
+    def _has_multi_link_arguments(self, args: T.List[str], env: 'Environment', code: str) -> CompileCheckResult:
         # First time we check for link flags we need to first check if we have
         # --fatal-warnings, otherwise some linker checks could give some
         # false positive.
@@ -1296,7 +1295,7 @@ class CLikeCompiler(Compiler):
         args = self.linker_to_compiler_args(args)
         return self.has_arguments(args, env, code, mode=CompileCheckMode.LINK)
 
-    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> CompileCheckResult:
         return self._has_multi_link_arguments(args, env, 'int main(void) { return 0; }\n')
 
     @staticmethod
@@ -1315,13 +1314,13 @@ class CLikeCompiler(Compiler):
         # mixins.
         return ['-Werror']
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_func_attribute(self, name: str, env: 'Environment') -> CompileCheckResult:
         # Just assume that if we're not on windows that dllimport and dllexport
         # don't work
         m = env.machines[self.for_machine]
         if not (m.is_windows() or m.is_cygwin()):
             if name in {'dllimport', 'dllexport'}:
-                return False, False
+                return CompileCheckResult(False)
 
         return self.compiles(self.attribute_check_func(name), env,
                              extra_args=self.get_has_func_attribute_extra_args(name))

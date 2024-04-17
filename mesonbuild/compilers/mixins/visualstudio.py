@@ -14,9 +14,9 @@ import typing as T
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
-from mesonbuild.compilers.compilers import CompileCheckMode
 from ...options import OptionKey
 from mesonbuild.linkers.linkers import ClangClDynamicLinker
+from ..compilers import CompileCheckMode, CompileCheckResult
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -297,12 +297,12 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> CompileCheckResult:
         warning_text = '4044' if mode == CompileCheckMode.LINK else '9002'
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
-                return False, p.cached
-            return not (warning_text in p.stderr or warning_text in p.stdout), p.cached
+                return CompileCheckResult(False, p.cached)
+            return CompileCheckResult(not (warning_text in p.stderr or warning_text in p.stdout), p.cached)
 
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         pdbarr = rel_obj.split('.')[:-1]
@@ -358,10 +358,10 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         crt_val = self.get_crt_val(crt_val, buildtype)
         return self.crt_args[crt_val]
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_func_attribute(self, name: str, env: 'Environment') -> CompileCheckResult:
         # MSVC doesn't have __attribute__ like Clang and GCC do, so just return
         # false without compiling anything
-        return name in {'dllimport', 'dllexport'}, False
+        return CompileCheckResult(name in {'dllimport', 'dllexport'})
 
     @staticmethod
     def get_argument_syntax() -> str:
@@ -452,7 +452,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: CompileCheckMode) -> CompileCheckResult:
         if mode != CompileCheckMode.LINK:
             args = args + ['-Werror=unknown-argument', '-Werror=unknown-warning-option']
         return super().has_arguments(args, env, code, mode)
