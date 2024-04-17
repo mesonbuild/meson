@@ -851,6 +851,7 @@ class SubprojectHolder(ObjectHolder[SubprojectState]):
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable first argument must be a string.')
         try:
+            # explicitly only use the .variables and not .local_variables
             return self.held_object.state.variables[varname]
         except KeyError:
             pass

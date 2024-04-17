@@ -38,6 +38,7 @@ class Scope(enum.Enum):
 
     LOCAL = enum.auto()
     GLOBAL = enum.auto()
+    DEFAULT = enum.auto()
 
 
 class ParseException(MesonException):
@@ -548,7 +549,7 @@ class AssignmentNode(BaseNode):
     # TODO: this really doesn't apply to PlusAssignmentNode
     scope: Scope
 
-    def __init__(self, var_name: IdNode, operator: SymbolNode, value: BaseNode, scope: Scope = Scope.GLOBAL):
+    def __init__(self, var_name: IdNode, operator: SymbolNode, value: BaseNode, scope: Scope = Scope.DEFAULT):
         super().__init__(var_name.lineno, var_name.colno, var_name.filename)
         self.var_name = var_name
         self.operator = operator
@@ -776,10 +777,13 @@ class Parser:
         elif self.accept('assign'):
             # TODO: how to map the socpe rule for the rewriter/formatter
             operator = self.create_node(SymbolNode, self.previous)
-            if ':' in self.previous.value and 'local' in self.previous.value:
-                scope = Scope.LOCAL
+            if ':' in self.previous.value:
+                if 'local' in self.previous.value:
+                    scope = Scope.LOCAL
+                else:
+                    scope = Scope.GLOBAL
             else:
-                scope = Scope.GLOBAL
+                scope = Scope.DEFAULT
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',

@@ -659,7 +659,7 @@ class InterpreterBase:
         if varname in self.builtin:
             raise InvalidCode(f'Tried to overwrite internal variable "{varname}"')
 
-        if scope is mparser.Scope.LOCAL:
+        if scope is mparser.Scope.LOCAL or varname in self.state.local.local_variables[self.state.local.subdir]:
             self.state.local.local_variables[self.state.local.subdir][varname] = variable
         else:
             self.state.local.variables[varname] = variable
