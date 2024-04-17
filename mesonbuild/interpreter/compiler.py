@@ -355,20 +355,20 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        had, cached = self.compiler.has_members(typename, [membername], kwargs['prefix'],
-                                                self.environment,
-                                                extra_args=extra_args,
-                                                dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if required and not had:
+        result = self.compiler.has_members(typename, [membername], kwargs['prefix'],
+                                           self.environment,
+                                           extra_args=extra_args,
+                                           dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if result.cached else ''
+        if required and not result:
             raise InterpreterException(f'{self.compiler.get_display_language()} member {membername!r} of type {typename!r} not usable')
-        elif had:
+        elif result:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
         mlog.log('Checking whether type', mlog.bold(typename, True),
                  'has member', mlog.bold(membername, True), msg, hadtxt, cached_msg)
-        return had
+        return result.result
 
     @typed_pos_args('compiler.has_members', str, varargs=str, min_varargs=1)
     @typed_kwargs('compiler.has_members', _HAS_REQUIRED_KW, *_COMMON_KWS)
@@ -381,21 +381,21 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        had, cached = self.compiler.has_members(typename, membernames, kwargs['prefix'],
-                                                self.environment,
-                                                extra_args=extra_args,
-                                                dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if required and not had:
+        result = self.compiler.has_members(typename, membernames, kwargs['prefix'],
+                                           self.environment,
+                                           extra_args=extra_args,
+                                           dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if result.cached else ''
+        if required and not result:
             # print members as array: ['member1', 'member2']
             raise InterpreterException(f'{self.compiler.get_display_language()} members {membernames!r} of type {typename!r} not usable')
-        elif had:
+        elif result:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
         mlog.log('Checking whether type', mlog.bold(typename, True),
                  'has members', members, msg, hadtxt, cached_msg)
-        return had
+        return result.result
 
     @typed_pos_args('compiler.has_function', str)
     @typed_kwargs('compiler.has_function', _HAS_REQUIRED_KW, *_COMMON_KWS)
@@ -407,18 +407,18 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = self._determine_args(kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
-        had, cached = self.compiler.has_function(funcname, kwargs['prefix'], self.environment,
-                                                 extra_args=extra_args,
-                                                 dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if required and not had:
+        result = self.compiler.has_function(funcname, kwargs['prefix'], self.environment,
+                                            extra_args=extra_args,
+                                            dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if result.cached else ''
+        if required and not result:
             raise InterpreterException(f'{self.compiler.get_display_language()} function {funcname!r} not usable')
-        elif had:
+        elif result:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
         mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt, cached_msg)
-        return had
+        return result.result
 
     @typed_pos_args('compiler.has_type', str)
     @typed_kwargs('compiler.has_type', _HAS_REQUIRED_KW, *_COMMON_KWS)
@@ -430,17 +430,17 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        had, cached = self.compiler.has_type(typename, kwargs['prefix'], self.environment,
-                                             extra_args=extra_args, dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if required and not had:
+        result = self.compiler.has_type(typename, kwargs['prefix'], self.environment,
+                                        extra_args=extra_args, dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if result.cached else ''
+        if required and not result:
             raise InterpreterException(f'{self.compiler.get_display_language()} type {typename!r} not usable')
-        elif had:
+        elif result:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
         mlog.log('Checking for type', mlog.bold(typename, True), msg, hadtxt, cached_msg)
-        return had
+        return result.result
 
     @FeatureNew('compiler.compute_int', '0.40.0')
     @typed_pos_args('compiler.compute_int', str)
@@ -520,17 +520,17 @@ class CompilerHolder(ObjectHolder['Compiler']):
         testname = kwargs['name']
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
-        result, cached = self.compiler.compiles(code, self.environment,
-                                                extra_args=extra_args,
-                                                dependencies=deps)
+        result = self.compiler.compiles(code, self.environment,
+                                        extra_args=extra_args,
+                                        dependencies=deps)
         if testname:
             if result:
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
-            cached_msg = mlog.blue('(cached)') if cached else ''
+            cached_msg = mlog.blue('(cached)') if result.cached else ''
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'compiles:', h, cached_msg)
-        return result
+        return result.result
 
     @typed_pos_args('compiler.links', (str, mesonlib.File))
     @typed_kwargs('compiler.links', *_COMPILES_KWS)
@@ -559,18 +559,18 @@ class CompilerHolder(ObjectHolder['Compiler']):
         testname = kwargs['name']
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
-        result, cached = self.compiler.links(code, self.environment,
-                                             compiler=compiler,
-                                             extra_args=extra_args,
-                                             dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
+        result = self.compiler.links(code, self.environment,
+                                     compiler=compiler,
+                                     extra_args=extra_args,
+                                     dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if result.cached else ''
         if testname:
             if result:
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'links:', h, cached_msg)
-        return result
+        return result.result
 
     @FeatureNew('compiler.check_header', '0.47.0')
     @typed_pos_args('compiler.check_header', str)
@@ -583,18 +583,18 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        haz, cached = self.compiler.check_header(hname, kwargs['prefix'], self.environment,
-                                                 extra_args=extra_args,
-                                                 dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if required and not haz:
+        result = self.compiler.check_header(hname, kwargs['prefix'], self.environment,
+                                            extra_args=extra_args,
+                                            dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if result.cached else ''
+        if required and not result:
             raise InterpreterException(f'{self.compiler.get_display_language()} header {hname!r} not usable')
-        elif haz:
+        elif result:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         mlog.log('Check usable header', mlog.bold(hname, True), msg, h, cached_msg)
-        return haz
+        return result.result
 
     def _has_header_impl(self, hname: str, kwargs: 'HeaderKW') -> bool:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
@@ -603,17 +603,17 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        haz, cached = self.compiler.has_header(hname, kwargs['prefix'], self.environment,
-                                               extra_args=extra_args, dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        if required and not haz:
+        result = self.compiler.has_header(hname, kwargs['prefix'], self.environment,
+                                          extra_args=extra_args, dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if result.cached else ''
+        if required and not result:
             raise InterpreterException(f'{self.compiler.get_display_language()} header {hname!r} not found')
-        elif haz:
+        elif result:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         mlog.log('Has header', mlog.bold(hname, True), msg, h, cached_msg)
-        return haz
+        return result.result
 
     @typed_pos_args('compiler.has_header', str)
     @typed_kwargs('compiler.has_header', *_HEADER_KWS)
@@ -630,18 +630,18 @@ class CompilerHolder(ObjectHolder['Compiler']):
             return False
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
-        haz, cached = self.compiler.has_header_symbol(hname, symbol, kwargs['prefix'], self.environment,
-                                                      extra_args=extra_args,
-                                                      dependencies=deps)
-        if required and not haz:
+        result = self.compiler.has_header_symbol(hname, symbol, kwargs['prefix'], self.environment,
+                                                 extra_args=extra_args,
+                                                 dependencies=deps)
+        if required and not result:
             raise InterpreterException(f'{self.compiler.get_display_language()} symbol {symbol} not found in header {hname}')
-        elif haz:
+        elif result:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
-        cached_msg = mlog.blue('(cached)') if cached else ''
+        cached_msg = mlog.blue('(cached)') if result.cached else ''
         mlog.log('Header', mlog.bold(hname, True), 'has symbol', mlog.bold(symbol, True), msg, h, cached_msg)
-        return haz
+        return result.result
 
     def notfound_library(self, libname: str) -> 'dependencies.ExternalLibrary':
         lib = dependencies.ExternalLibrary(libname, None,
@@ -728,16 +728,16 @@ class CompilerHolder(ObjectHolder['Compiler']):
             mlog.log(*logargs)
             return False
         test = self.compiler.has_multi_link_arguments if mode is _TestMode.LINKER else self.compiler.has_multi_arguments
-        result, cached = test(arguments, self.environment)
+        result = test(arguments, self.environment)
         if required and not result:
             logargs += ['not usable']
             raise InterpreterException(*logargs)
         logargs += [
             mlog.green('YES') if result else mlog.red('NO'),
-            mlog.blue('(cached)') if cached else '',
+            mlog.blue('(cached)') if result.cached else '',
         ]
         mlog.log(*logargs)
-        return result
+        return result.result
 
     @typed_pos_args('compiler.has_argument', str)
     @typed_kwargs('compiler.has_argument', _HAS_REQUIRED_KW)
@@ -826,16 +826,16 @@ class CompilerHolder(ObjectHolder['Compiler']):
             logargs += ['skipped: feature', mlog.bold(feature), 'disabled']
             mlog.log(*logargs)
             return False
-        had, cached = self.compiler.has_func_attribute(attr, self.environment)
-        if required and not had:
+        result = self.compiler.has_func_attribute(attr, self.environment)
+        if required and not result:
             logargs += ['not usable']
             raise InterpreterException(*logargs)
         logargs += [
-            mlog.green('YES') if had else mlog.red('NO'),
-            mlog.blue('(cached)') if cached else ''
+            mlog.green('YES') if result else mlog.red('NO'),
+            mlog.blue('(cached)') if result.cached else ''
         ]
         mlog.log(*logargs)
-        return had
+        return result.result
 
     @FeatureNew('compiler.has_function_attribute', '0.48.0')
     @typed_pos_args('compiler.has_function_attribute', str)

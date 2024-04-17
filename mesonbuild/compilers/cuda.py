@@ -14,7 +14,7 @@ from ..mesonlib import (
     EnvironmentException, Popen_safe,
     is_windows, LibType, OptionKey, version_compare,
 )
-from .compilers import Compiler
+from .compilers import Compiler, CompileCheckResult
 
 if T.TYPE_CHECKING:
     from .compilers import CompileCheckMode
@@ -599,7 +599,7 @@ class CudaCompiler(Compiler):
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                          dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         if extra_args is None:
             extra_args = []
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
@@ -613,9 +613,9 @@ class CudaCompiler(Compiler):
             #endif
             return 0;
         }}'''
-        found, cached = self.compiles(t.format_map(fargs), env, extra_args=extra_args, dependencies=dependencies)
-        if found:
-            return True, cached
+        result = self.compiles(t.format_map(fargs), env, extra_args=extra_args, dependencies=dependencies)
+        if result:
+            return result
         # Check if it's a class or a template
         t = '''{prefix}
         #include <{header}>

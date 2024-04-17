@@ -30,6 +30,7 @@ from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
+    CompileCheckResult,
 )
 
 if T.TYPE_CHECKING:
@@ -78,7 +79,7 @@ class CCompiler(CLikeCompiler, Compiler):
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
                           extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                          dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
         t = '''{prefix}
         #include <{header}>
@@ -377,7 +378,7 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         if funcname == 'lchmod':
-            return False, False
+            return CompileCheckResult(False)
         else:
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,
