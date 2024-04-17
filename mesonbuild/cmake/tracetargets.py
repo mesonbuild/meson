@@ -12,6 +12,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from .traceparser import CMakeTraceParser
+    from .interpreter import ConverterTarget
     from ..environment import Environment
     from ..compilers import Compiler
     from ..dependencies import MissingCompiler
@@ -44,6 +45,7 @@ class ResolvedTarget:
         self.link_flags:          T.List[str] = []
         self.public_compile_opts: T.List[str] = []
         self.libraries:           T.List[str] = []
+        self.link_with:           T.List[ConverterTarget] = []
 
 def resolve_cmake_trace_targets(target_name: str,
                                 trace: 'CMakeTraceParser',
@@ -119,7 +121,8 @@ def resolve_cmake_trace_targets(target_name: str,
             res.libraries += get_config_declined_property(tgt, 'IMPORTED_IMPLIB', trace)
             res.libraries += get_config_declined_property(tgt, 'IMPORTED_LOCATION', trace)
         elif tgt.target:
-            res.libraries += [tgt.target]
+            if target_name != curr:
+                res.link_with += [tgt.target]
         else:
             not_found_warning(curr)
 

@@ -5,7 +5,7 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from .common import CMakeException, CMakeTarget as CMakeFileAPITarget
+from .common import CMakeException
 from .generator import parse_generator_expressions
 from .. import mlog
 from ..mesonlib import version_compare
@@ -18,6 +18,7 @@ import json
 import textwrap
 
 if T.TYPE_CHECKING:
+    from .interpreter import ConverterTarget
     from ..environment import Environment
 
 class CMakeTraceLine:
@@ -48,7 +49,7 @@ class CMakeTarget:
                 properties:  T.Optional[T.Dict[str, T.List[str]]] = None,
                 imported:    bool = False,
                 tline:       T.Optional[CMakeTraceLine] = None,
-                target:      T.Optional[CMakeFileAPITarget] = None
+                target:      T.Optional[ConverterTarget] = None
             ):
         if properties is None:
             properties = {}

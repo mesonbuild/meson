@@ -350,16 +350,13 @@ class ConverterTarget:
             self.link_flags += rtgt.link_flags
             self.public_compile_opts += rtgt.public_compile_opts
             self.link_libraries += rtgt.libraries
+            self.link_with += rtgt.link_with
 
         elif self.type.upper() not in ['EXECUTABLE', 'OBJECT_LIBRARY']:
             mlog.warning('CMake: Target', mlog.bold(self.cmake_name), 'not found in CMake trace. This can lead to build errors')
 
         temp = []
         for i in self.link_libraries:
-            if isinstance(i, ConverterTarget):
-                if self != i:
-                    self.link_with += [i]
-                continue
             # Let meson handle this arcane magic
             if ',-rpath,' in i:
                 continue
