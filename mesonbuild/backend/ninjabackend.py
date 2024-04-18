@@ -199,7 +199,9 @@ class NinjaRule:
                 # shell constructs shouldn't be shell quoted
                 return NinjaCommandArg(c, Quoting.notShell)
             if c.startswith('$'):
-                var = re.search(r'\$\{?(\w*)\}?', c).group(1)
+                varp = re.search(r'\$\{?(\w*)\}?', c)
+                assert varp is not None, 'for mypy'
+                var: str = varp.group(1)
                 if var not in raw_names:
                     # ninja variables shouldn't be ninja quoted, and their value
                     # is already shell quoted
@@ -227,26 +229,25 @@ class NinjaRule:
             self.depfile += '_UNQUOTED'
 
     @staticmethod
-    def _quoter(x, qf = quote_func):
-        if isinstance(x, NinjaCommandArg):
-            if x.quoting == Quoting.none:
-                return x.s
-            elif x.quoting == Quoting.notNinja:
-                return qf(x.s)
-            elif x.quoting == Quoting.notShell:
-                return ninja_quote(x.s)
-            # fallthrough
+    def _quoter(x: NinjaCommandArg, qf: T.Callable[[str], str] = quote_func) -> str:
+        if x.quoting == Quoting.none:
+            return x.s
+        elif x.quoting == Quoting.notNinja:
+            return qf(x.s)
+        elif x.quoting == Quoting.notShell:
+            return ninja_quote(x.s)
         return ninja_quote(qf(str(x)))
 
     def write(self, outfile: T.TextIO) -> None:
         rspfile_args = self.args
+        rspfile_quote_func: T.Callable[[str], str]
         if self.rspfile_quote_style is RSPFileSyntax.MSVC:
             rspfile_quote_func = cmd_quote
             rspfile_args = [NinjaCommandArg('$in_newline', arg.quoting) if arg.s == '$in' else arg for arg in rspfile_args]
         else:
             rspfile_quote_func = gcc_rsp_quote
 
-        def rule_iter():
+        def rule_iter() -> T.Iterable[str]:
             if self.refcount:
                 yield ''
             if self.rsprefcount:
@@ -272,13 +273,14 @@ class NinjaRule:
                     outfile.write('\n')
             outfile.write('\n')
 
-    def length_estimate(self, infiles, outfiles, elems):
+    def length_estimate(self, infiles: str, outfiles: str,
+                        elems: T.List[T.Tuple[str, T.List[str]]]) -> int:
         # determine variables
         # this order of actions only approximates ninja's scoping rules, as
         # documented at: https://ninja-build.org/manual.html#ref_scope
-        ninja_vars = {}
+        ninja_vars: T.Dict[str, T.Union[T.List[str], T.Optional[str]]] = {}
         for e in elems:
-            (name, value) = e
+            name, value = e
             ninja_vars[name] = value
         ninja_vars['deps'] = self.deps
         ninja_vars['depfile'] = self.depfile
