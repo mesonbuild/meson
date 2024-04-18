@@ -2,6 +2,7 @@
 # Copyright 2022 The Meson development team
 
 from __future__ import annotations
+import typing as T
 
 from .backends import Backend
 from .. import mlog
@@ -12,7 +13,7 @@ class NoneBackend(Backend):
 
     name = 'none'
 
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> None:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> None:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect the none backend to generate with \'capture = True\'')
