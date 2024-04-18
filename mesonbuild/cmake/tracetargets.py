@@ -121,6 +121,8 @@ def resolve_cmake_trace_targets(target_name: str,
             res.libraries += get_config_declined_property(tgt, 'IMPORTED_IMPLIB', trace)
             res.libraries += get_config_declined_property(tgt, 'IMPORTED_LOCATION', trace)
         elif tgt.target:
+            # FIXME: mesonbuild/cmake/interpreter.py#363: probably belongs here
+            # now that the ConverterTarget and the CMakeTraceTarget are linked
             if target_name != curr:
                 res.link_with += [tgt.target]
         else:
