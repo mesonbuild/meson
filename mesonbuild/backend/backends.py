@@ -287,7 +287,7 @@ class Backend:
     # 'vslite_ctx' is only provided when
     # we expect this backend setup/generation to make use of previously captured
     # compile args (as is the case when using '--genvslite').
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict]:
         raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
     def get_target_filename(self, t: T.Union[build.Target, build.CustomTargetIndex], *, warn_multi_output: bool = True) -> str:

@@ -221,7 +221,7 @@ class Vs2010Backend(backends.Backend):
 
     def generate(self,
                  capture: bool = False,
-                 vslite_ctx: dict = None) -> T.Optional[dict]:
+                 vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict]:
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')

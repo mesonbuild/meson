@@ -581,7 +581,7 @@ class NinjaBackend(backends.Backend):
 
         raise MesonException(f'Could not determine vs dep dependency prefix string. output: {stderr} {stdout}')
 
-    def generate(self, capture: bool = False, vslite_ctx: dict = None) -> T.Optional[dict]:
+    def generate(self, capture: bool = False, vslite_ctx: T.Optional[T.Dict] = None) -> T.Optional[T.Dict]:
         if vslite_ctx:
             # We don't yet have a use case where we'd expect to make use of this,
             # so no harm in catching and reporting something unexpected.
