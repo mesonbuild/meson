@@ -278,14 +278,13 @@ class NinjaRule:
         # determine variables
         # this order of actions only approximates ninja's scoping rules, as
         # documented at: https://ninja-build.org/manual.html#ref_scope
-        ninja_vars: T.Dict[str, T.Union[T.List[str], T.Optional[str]]] = {}
-        for e in elems:
-            name, value = e
-            ninja_vars[name] = value
-        ninja_vars['deps'] = self.deps
-        ninja_vars['depfile'] = self.depfile
-        ninja_vars['in'] = infiles
-        ninja_vars['out'] = outfiles
+        ninja_vars = dict(elems)
+        if self.deps is not None:
+            ninja_vars['deps'] = [self.deps]
+        if self.depfile is not None:
+            ninja_vars['depfile'] = [self.depfile]
+        ninja_vars['in'] = [infiles]
+        ninja_vars['out'] = [outfiles]
 
         # expand variables in command
         command = ' '.join([self._quoter(x) for x in self.command + self.args])
