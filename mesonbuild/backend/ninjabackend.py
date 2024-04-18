@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -2767,11 +2767,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             return compiler.get_compile_debugfile_args(objfile, pch=False)
 
-    def get_link_debugfile_name(self, linker, target) -> T.Optional[str]:
-        return linker.get_link_debugfile_name(self.get_target_debug_filename(target))
+    def get_link_debugfile_name(self, linker: T.Union[Compiler, StaticLinker], target: build.BuildTarget) -> T.Optional[str]:
+        filename = self.get_target_debug_filename(target)
+        if filename:
+            return linker.get_link_debugfile_name(filename)
+        return None
 
-    def get_link_debugfile_args(self, linker, target):
-        return linker.get_link_debugfile_args(self.get_target_debug_filename(target))
+    def get_link_debugfile_args(self, linker: T.Union[Compiler, StaticLinker], target: build.BuildTarget) -> T.List[str]:
+        filename = self.get_target_debug_filename(target)
+        if filename:
+            return linker.get_link_debugfile_args(filename)
+        return []
 
     def generate_llvm_ir_compile(self, target, src: mesonlib.FileOrString):
         base_proxy = target.get_options()
