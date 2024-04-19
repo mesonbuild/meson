@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2024 Intel Corporation
+
+option(
+  'method',
+  type : 'combo',
+  choices : ['system', 'cmake']
+)
+option(
+  'link-static',
+  type : 'boolean',
+  value : false,
+)
