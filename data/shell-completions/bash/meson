@@ -566,6 +566,7 @@ _meson-test() {
     no-rebuild
     gdb
     gdb-path
+    interactive
     list
     wrapper
     suite
