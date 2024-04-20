@@ -683,6 +683,9 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_option(self, key: OptionKey) -> ElementaryOptionValues:
         return self.options.get_value(key)
 
+    def get_raw_override(self, key: str) -> T.Optional(str):
+        return None # FIXME
+
     @staticmethod
     def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
         opts = kwargs.get('override_options', [])
