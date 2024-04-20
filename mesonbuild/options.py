@@ -49,11 +49,11 @@ DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
+_U = T.TypeVar('_U', bound=UserOption[_T])
 
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
 genvslitelist = ['vs2022']
 buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
-
 
 # This is copied from coredata. There is no way to share this, because this
 # is used in the OptionKey constructor, and the coredata lists are
@@ -251,7 +251,6 @@ class OptionKey:
             return self.evolve(newname)
         return self
 
-
 @dataclasses.dataclass
 class UserOption(T.Generic[_T], HoldableObject):
 
@@ -285,7 +284,6 @@ class UserOption(T.Generic[_T], HoldableObject):
         oldvalue = self.value
         self.value = self.validate_value(newvalue)
         return self.value != oldvalue
-
 
 @dataclasses.dataclass
 class EnumeratedUserOption(UserOption[_T]):
@@ -487,7 +485,6 @@ class UserFeatureOption(UserComboOption):
 
     def is_auto(self) -> bool:
         return self.value == 'auto'
-
 
 _U = T.TypeVar('_U', bound=UserOption)
 

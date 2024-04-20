@@ -422,10 +422,6 @@ class ExtractedObjects(HoldableObject):
     recursive: bool = True
     pch: bool = False
 
-    def __post_init__(self) -> None:
-        if self.target.is_unity:
-            self.check_unity_compatible()
-
     def __repr__(self) -> str:
         r = '<{0} {1!r}: {2}>'
         return r.format(self.__class__.__name__, self.target.name, self.srclist)
@@ -542,7 +538,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
                    for k, v in overrides.items()}
         else:
             ovr = {}
-        self.options = coredata.OptionsView(self.environment.coredata.optstore, self.subproject, ovr)
         # XXX: this should happen in the interpreter
         if has_path_sep(self.name):
             # Fix failing test 53 when this becomes an error.
@@ -834,12 +829,6 @@ class BuildTarget(Target):
 
     def __str__(self):
         return f"{self.name}"
-
-    # FIXME: this entire method needs to be removed.
-    @property
-    def is_unity(self) -> bool:
-        unity_opt = self.get_option(OptionKey('unity'))
-        return unity_opt == 'on' or (unity_opt == 'subprojects' and self.subproject != '')
 
     def validate_install(self):
         if self.for_machine is MachineChoice.BUILD and self.install:
@@ -2880,10 +2869,6 @@ class CompileTarget(BuildTarget):
 
     def type_suffix(self) -> str:
         return "@compile"
-
-    @property
-    def is_unity(self) -> bool:
-        return False
 
     def _add_output(self, f: File) -> None:
         plainname = os.path.basename(f.fname)
