@@ -273,7 +273,7 @@ list of strings.
 [cmake]
 
 CMAKE_C_COMPILER    = '/usr/bin/gcc'
-CMAKE_CXX_COMPILER  = 'C:\\user\\bin\\g++'
+CMAKE_CXX_COMPILER  = 'C:\\usr\\bin\\g++'
 CMAKE_SOME_VARIABLE = ['some', 'value with spaces']
 ```
 
