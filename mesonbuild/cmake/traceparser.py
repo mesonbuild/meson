@@ -18,6 +18,7 @@ import json
 import textwrap
 
 if T.TYPE_CHECKING:
+    from .interpreter import ConverterTarget
     from ..environment import Environment
 
 class CMakeTraceLine:
@@ -47,7 +48,8 @@ class CMakeTarget:
                 target_type: str,
                 properties:  T.Optional[T.Dict[str, T.List[str]]] = None,
                 imported:    bool = False,
-                tline:       T.Optional[CMakeTraceLine] = None
+                tline:       T.Optional[CMakeTraceLine] = None,
+                target:      T.Optional[ConverterTarget] = None
             ):
         if properties is None:
             properties = {}
@@ -59,6 +61,7 @@ class CMakeTarget:
         self.depends: T.List[str] = []
         self.current_bin_dir: T.Optional[Path] = None
         self.current_src_dir: T.Optional[Path] = None
+        self.target = target
 
     def __repr__(self) -> str:
         s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- imported:  {}\n  -- properties: {{\n{}     }}\n  -- tline: {}'
