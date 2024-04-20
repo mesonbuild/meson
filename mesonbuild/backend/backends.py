@@ -988,7 +988,6 @@ class Backend:
         # starting from hard-coded defaults followed by build options and so on.
         commands = compiler.compiler_args()
 
-        copt_proxy = target.get_options()
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden
@@ -1005,7 +1004,7 @@ class Backend:
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
-        commands += compiler.get_option_compile_args(copt_proxy)
+        commands += compiler.get_option_compile_args(target, self.environment)
 
         optimization = self.get_target_option(target, 'optimization')
         assert isinstance(optimization, str), 'for mypy'
