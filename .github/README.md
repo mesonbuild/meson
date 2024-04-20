@@ -6,7 +6,7 @@ It includes:
  * Support for `conan` `CMake` config files
  * Support for `$CONFIG` generator expressions
  * Support for `install_data(FILES ...)`
- * Several bugfixes related target dependencies
+ * Several bugfixes related to handling the target dependencies
 
  # Why fork `meson`
 
