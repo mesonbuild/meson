@@ -886,7 +886,7 @@ class CoreData:
 
     @staticmethod
     def is_per_machine_option(optname: OptionKey) -> bool:
-        if optname.name in BUILTIN_OPTIONS_PER_MACHINE:
+        if optname.as_host() in BUILTIN_OPTIONS_PER_MACHINE:
             return True
         return optname.lang is not None
 
