@@ -300,6 +300,9 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def get_preprocess_only_args(self) -> T.List[str]:
         return ['-cpp', '-EP']
 
+    def get_werror_args(self) -> T.List[str]:
+        return ['-warn', 'errors']
+
     def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
         # TODO: needs default search path added
         return ['-lifcore', '-limf']
@@ -348,6 +351,9 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
         if std.value != 'none':
             args.append('/stand:' + stds[std.value])
         return args
+
+    def get_werror_args(self) -> T.List[str]:
+        return ['/warn:errors']
 
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['/module:' + path]
