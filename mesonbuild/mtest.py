@@ -1497,7 +1497,7 @@ class SingleTestRunner:
             await self._run_cmd(harness, cmd)
         return self.runobj
 
-    async def _run_subprocess(self, args: T.List[str], *,
+    async def _run_subprocess(self, args: T.List[str], *, stdin: T.Optional[int],
                               stdout: T.Optional[int], stderr: T.Optional[int],
                               env: T.Dict[str, str], cwd: T.Optional[str]) -> TestSubprocess:
         # Let gdb handle ^C instead of us
@@ -1523,6 +1523,7 @@ class SingleTestRunner:
                 signal.signal(signal.SIGINT, previous_sigint_handler)
 
         p = await asyncio.create_subprocess_exec(*args,
+                                                 stdin=stdin,
                                                  stdout=stdout,
                                                  stderr=stderr,
                                                  env=env,
@@ -1533,9 +1534,11 @@ class SingleTestRunner:
 
     async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
         if self.console_mode is ConsoleUser.INTERACTIVE:
+            stdin = None
             stdout = None
             stderr = None
         else:
+            stdin = asyncio.subprocess.DEVNULL
             stdout = asyncio.subprocess.PIPE
             stderr = asyncio.subprocess.STDOUT \
                 if not self.options.split and not self.runobj.needs_parsing \
@@ -1549,6 +1552,7 @@ class SingleTestRunner:
             extra_cmd.append(f'--gtest_output=xml:{gtestname}.xml')
 
         p = await self._run_subprocess(cmd + extra_cmd,
+                                       stdin=stdin,
                                        stdout=stdout,
                                        stderr=stderr,
                                        env=self.runobj.env,
