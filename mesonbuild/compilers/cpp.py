@@ -479,27 +479,40 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
             )
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment') -> T.List[str]:
+    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject=None) -> T.List[str]:
         args: T.List[str] = []
         key = self.form_langopt_key('std')
-        std = env.coredata.get_option_for_target(target, key)
+        if target:
+            std = env.coredata.get_option_for_target(target, key)
+            rtti = env.coredata.get_option_for_target(target, key.evolve('rtti'))
+            debugstl = env.coredata.get_option_for_target(target, key.evolve('debugstl'))
+            eh = env.coredata.get_option_for_target(target, key.evolve('eh'))
+        else:
+            std = env.coredata.get_option_for_subproject(key, subproject)
+            rtti = env.coredata.get_option_for_subproject(key.evolve('rtti'), subproject)
+            debugstl = env.coredata.get_option_for_subproject(key.evolve('debugstl'), subproject)
+            eh = env.coredata.get_option_for_subproject(key.evolve('eh'), subproject)
+
         if std != 'none':
             args.append(self._find_best_cpp_std(std))
 
-        non_msvc_eh_options(env.coredata.get_option_for_target(target, key.evolve('eh')), args)
+        non_msvc_eh_options(eh, args)
 
-        if not env.coredata.get_option_for_target(target, key.evolve('rtti')):
+        if not rtti:
             args.append('-fno-rtti')
 
-        if env.coredata.get_option_for_target(target, key.evolve('debugstl')):
+        if debugstl:
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment') -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject=None) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typedict mypy can't understand this.
             key = self.form_langopt_key('winlibs')
-            libs = env.coredata.get_option_for_target(target, key).copy()
+            if target:
+                libs = env.coredata.get_option_for_target(target, key).copy()
+            else:
+                libs = env.coredata.get_option_for_subproject(key, subproject)
             assert isinstance(libs, list)
             for l in libs:
                 assert isinstance(l, str)
