@@ -1996,7 +1996,7 @@ class GnomeModule(ExtensionModule):
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd: T.List[T.Union['ToolType', str]] = [self._find_tool(state, 'glib-genmarshal')]
+        cmd: T.List[T.Union['ToolType', str]] = [self._find_tool(state, 'glib-genmarshal'), '--quiet']
         if kwargs['prefix']:
             cmd.extend(['--prefix', kwargs['prefix']])
         if kwargs['extra_args']:
