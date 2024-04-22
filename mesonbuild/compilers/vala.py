@@ -7,13 +7,17 @@ import os.path
 import typing as T
 
 from .. import mlog
+from .. import mesonlib
 from ..mesonlib import EnvironmentException, version_compare, LibType, OptionKey
 from .compilers import CompileCheckMode, Compiler
+from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
+    from ..coredata import KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from ..dependencies import Dependency
 
 class ValaCompiler(Compiler):
 
@@ -25,6 +29,7 @@ class ValaCompiler(Compiler):
         super().__init__([], exelist, version, for_machine, info, is_cross=is_cross)
         self.version = version
         self.base_options = {OptionKey('b_colorout')}
+        self.force_link = False
 
     def needs_static_linker(self) -> bool:
         return False # Because compiles into C.
@@ -40,6 +45,20 @@ class ValaCompiler(Compiler):
 
     def get_compile_only_args(self) -> T.List[str]:
         return [] # Because compiles into C.
+
+    def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> T.List[str]:
+        args: T.List[str] = []
+        if mode is CompileCheckMode.LINK and self.force_link:
+            return args
+        args += self.get_always_args()
+        if mode is CompileCheckMode.COMPILE:
+            args += self.get_compile_only_args()
+        elif mode is CompileCheckMode.PREPROCESS:
+            args += self.get_preprocess_only_args()
+        return args
+
+    def get_preprocess_only_args(self) -> T.List[str]:
+        return []
 
     def get_pic_args(self) -> T.List[str]:
         return []
@@ -119,3 +138,24 @@ class ValaCompiler(Compiler):
 
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return []
+
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        return []
+
+    def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+              compiler: T.Optional['Compiler'] = None,
+              extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
+              dependencies: T.Optional[T.List['Dependency']] = None,
+              disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        self.force_link = True
+        if compiler:
+            with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
+                objfile = mesonlib.File.from_absolute_file(r.output_name)
+                result = self.compiles(objfile, env, extra_args=extra_args,
+                                       dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=True)
+                self.force_link = False
+                return result
+        result = self.compiles(code, env, extra_args=extra_args,
+                               dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
+        self.force_link = False
+        return result
