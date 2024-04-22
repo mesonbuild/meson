@@ -5,7 +5,7 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
-from .common import CMakeException
+from .common import CMakeException, CMakeInstallPack
 from .generator import parse_generator_expressions
 from .. import mlog
 from ..mesonlib import version_compare
@@ -108,6 +108,8 @@ class CMakeTraceParser:
 
         self.errors: T.List[str] = []
 
+        self.install_packs: T.List[CMakeInstallPack] = []
+
         # State for delayed command execution. Delayed command execution is realised
         # with a custom CMake file that overrides some functions and adds some
         # introspection information to the trace.
@@ -131,6 +133,7 @@ class CMakeTraceParser:
             'target_link_options': self._cmake_target_link_options,
             'add_dependencies': self._cmake_add_dependencies,
             'message': self._cmake_message,
+            'install': self._cmake_install_files,
 
             # Special functions defined in the preload script.
             # These functions do nothing in the CMake code, but have special
@@ -654,6 +657,38 @@ class CMakeTraceParser:
             return
 
         self.errors += [' '.join(args[1:])]
+
+    def _cmake_install_files(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/install.html#files
+        args = list(tline.args)
+        install_list = []
+        pack_type = None
+        dest = None
+        if args[0].upper().strip() in set(['TARGETS', 'IMPORTED_RUNTIME_ARTIFACTS']):
+            # These are already handled via the targets system
+            return
+        if args[0].upper().strip() in set(['FILES', 'PROGRAMS', 'DIRECTORY']):
+            i = 1
+            pack_type = args[0].upper()
+            while i < len(args):
+                if args[i].upper() in set(['TYPE', 'DESTINATION', 'PERMISSIONS', 'CONFIGURATIONS',
+                                           'COMPONENT', 'RENAME', 'OPTIONAL', 'EXCLUDE_FROM_ALL']):
+                    break
+                install_list += [args[i]]
+                i += 1
+
+            while i < len(args):
+                if args[i].upper() == 'DESTINATION' and i + 1 < len(args):
+                    dest = args[i + 1]
+                i += 1
+
+        if not pack_type:
+            mlog.warning(f'install({args[0]}...) is not supported by meson')
+            return
+        if not dest:
+            mlog.warning(f'install({args[0]}...) without DESTINATION is not supported by meson')
+            return
+        self.install_packs += [CMakeInstallPack(pack_type, install_list, dest)]
 
     def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False) -> None:
         if ignore is None:

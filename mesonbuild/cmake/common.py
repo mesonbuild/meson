@@ -358,3 +358,9 @@ class TargetOptions:
         if tgt in self.target_options:
             initial = self.target_options[tgt].get_install(initial)
         return initial
+
+class CMakeInstallPack:
+    def __init__(self, pack_type: str, elements: T.List[str], dest: str) -> None:
+        self.pack_type = pack_type
+        self.elements = elements
+        self.dest = dest

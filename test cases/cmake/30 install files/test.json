@@ -1,0 +1,8 @@
+{
+  "installed": [
+    {"type": "exe", "file": "usr/bin/main"},
+    {"type": "file", "file": "usr/share/cmake_install_files/main.cpp"},
+    {"type": "file", "file": "usr/share/data-static.txt"},
+    {"type": "file", "file": "usr/share/data-dynamic.txt"}
+  ]
+}

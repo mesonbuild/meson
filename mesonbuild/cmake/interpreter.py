@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import typing as T
 
-from .common import CMakeException, CMakeTarget, language_map, cmake_get_generator_args, check_cmake_args, get_config_declined_property
+from .common import CMakeException, CMakeTarget, CMakeInstallPack, language_map, cmake_get_generator_args, check_cmake_args, get_config_declined_property
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
 from .toolchain import CMakeToolchain, CMakeExecScope
@@ -819,6 +819,8 @@ class CMakeInterpreter:
                     self._object_lib_workaround = True
                     break
 
+        self.install_packs: T.List[CMakeInstallPack] = []
+
     def configure(self, extra_cmake_options: T.List[str]) -> CMakeExecutor:
         # Find CMake
         # TODO: Using MachineChoice.BUILD should always be correct here, but also evaluate the use of self.for_machine
@@ -978,6 +980,9 @@ class CMakeInterpreter:
         # Fourth pass: Remove rassigned dependencies
         for tgt in self.targets:
             tgt.cleanup_dependencies()
+
+        # Pass the install packs up the chain
+        self.install_packs = self.trace.install_packs
 
         mlog.log('CMake project', mlog.bold(self.project_name), mlog.bold(self.project_version), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
 
@@ -1269,6 +1274,13 @@ class CMakeInterpreter:
             processed[tgt.name] = {'inc': None, 'src': None, 'dep': None, 'tgt': tgt_var, 'func': 'custom_target'}
             name_map[tgt.cmake_name] = tgt.name
 
+        def process_install_pack(pack: CMakeInstallPack) -> None:
+            name = re.sub(r'\W', '_', pack.elements[0])
+            files_node = assign(f"install_files_{name}", function('install_data', pack.elements, {'install_dir': pack.dest}))
+            processed[name] = {'func': 'install_data'}
+            name_map[name] = name
+            root_cb.lines += [files_node]
+
         # Now generate the target function calls
         for ctgt in self.custom_targets:
             if ctgt.name not in processed:
@@ -1276,6 +1288,8 @@ class CMakeInterpreter:
         for tgt in self.targets:
             if tgt.name not in processed:
                 process_target(tgt)
+        for inst_pack in self.install_packs:
+            process_install_pack(inst_pack)
 
         self.generated_targets = processed
         self.internal_name_map = name_map
