@@ -199,7 +199,7 @@ class NinjaRule:
                 # shell constructs shouldn't be shell quoted
                 return NinjaCommandArg(c, Quoting.notShell)
             if c.startswith('$'):
-                varp = re.search(r'\$\{?(\w*)\}?', c)
+                varp = re.match(r'\$\{?(\w*)\}?', c)
                 assert varp is not None, 'for mypy'
                 var: str = varp.group(1)
                 if var not in raw_names:
