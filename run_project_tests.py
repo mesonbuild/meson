@@ -1513,7 +1513,7 @@ class ToolInfo(T.NamedTuple):
     regex: T.Pattern
     match_group: int
 
-def print_tool_versions() -> None:
+def detect_tools(report: bool = True) -> None:
     tools: T.List[ToolInfo] = [
         ToolInfo(
             'ninja',
@@ -1552,6 +1552,11 @@ def print_tool_versions() -> None:
                 return '{} ({})'.format(exe, m.group(t.match_group))
 
         return f'{exe} (unknown)'
+
+    if not report:
+        for tool in tools:
+            get_version(tool)
+        return
 
     print()
     print('tools')
@@ -1646,7 +1651,7 @@ if __name__ == '__main__':
         print('VSCMD version', os.environ['VSCMD_VER'])
     setup_commands(options.backend)
     detect_system_compiler(options)
-    print_tool_versions()
+    detect_tools()
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
