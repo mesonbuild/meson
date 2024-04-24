@@ -126,7 +126,9 @@ jobs:
         verbose: true
 
   Qt4macos:
-    runs-on: macos-latest
+    # This job only works on Intel Macs, because OpenSSL 1.0 doesn't build on
+    # Apple ARM
+    runs-on: macos-13
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
