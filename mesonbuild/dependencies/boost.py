@@ -665,8 +665,9 @@ class BoostDependency(SystemDependency):
         inc_paths = [x.resolve() for x in inc_paths]
         roots += inc_paths
 
+        m = self.env.machines[self.for_machine]
         # Add system paths
-        if self.env.machines[self.for_machine].is_windows():
+        if m.is_windows():
             # Where boost built from source actually installs it
             c_root = Path('C:/Boost')
             if c_root.is_dir():
@@ -688,8 +689,12 @@ class BoostDependency(SystemDependency):
             tmp: T.List[Path] = []
 
             # Add some default system paths
+            if m.is_darwin():
+                tmp.extend([
+                    Path('/opt/homebrew/'),        # for Apple Silicon MacOS
+                    Path('/usr/local/opt/boost'),  # for Intel Silicon MacOS
+                ])
             tmp += [Path('/opt/local')]
-            tmp += [Path('/usr/local/opt/boost')]
             tmp += [Path('/usr/local')]
             tmp += [Path('/usr')]
 
