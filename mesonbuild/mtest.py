@@ -127,6 +127,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Run test under gdb.')
     parser.add_argument('--gdb-path', default='gdb', dest='gdb_path',
                         help='Path to the gdb binary (default: gdb).')
+    parser.add_argument('-i', '--interactive', default=False, dest='interactive',
+                        action='store_true', help='Run tests with interactive input/output.')
     parser.add_argument('--list', default=False, dest='list', action='store_true',
                         help='List available tests.')
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
@@ -233,8 +235,8 @@ class ConsoleUser(enum.Enum):
     # the logger can use the console
     LOGGER = 0
 
-    # the console is used by gdb
-    GDB = 1
+    # the console is used by gdb or the user
+    INTERACTIVE = 1
 
     # the console is used to write stdout/stderr
     STDOUT = 2
@@ -1417,7 +1419,7 @@ class SingleTestRunner:
         if ('MSAN_OPTIONS' not in env or not env['MSAN_OPTIONS']):
             env['MSAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1'
 
-        if self.options.gdb or self.test.timeout is None or self.test.timeout <= 0:
+        if self.options.interactive or self.test.timeout is None or self.test.timeout <= 0:
             timeout = None
         elif self.options.timeout_multiplier is None:
             timeout = self.test.timeout
@@ -1426,12 +1428,12 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout * self.options.timeout_multiplier
 
-        is_parallel = test.is_parallel and self.options.num_processes > 1 and not self.options.gdb
+        is_parallel = test.is_parallel and self.options.num_processes > 1 and not self.options.interactive
         verbose = (test.verbose or self.options.verbose) and not self.options.quiet
         self.runobj = TestRun(test, env, name, timeout, is_parallel, verbose)
 
-        if self.options.gdb:
-            self.console_mode = ConsoleUser.GDB
+        if self.options.interactive:
+            self.console_mode = ConsoleUser.INTERACTIVE
         elif self.runobj.direct_stdout:
             self.console_mode = ConsoleUser.STDOUT
         else:
@@ -1495,17 +1497,17 @@ class SingleTestRunner:
             await self._run_cmd(harness, cmd)
         return self.runobj
 
-    async def _run_subprocess(self, args: T.List[str], *,
+    async def _run_subprocess(self, args: T.List[str], *, stdin: T.Optional[int],
                               stdout: T.Optional[int], stderr: T.Optional[int],
                               env: T.Dict[str, str], cwd: T.Optional[str]) -> TestSubprocess:
         # Let gdb handle ^C instead of us
-        if self.options.gdb:
+        if self.options.interactive:
             previous_sigint_handler = signal.getsignal(signal.SIGINT)
             # Make the meson executable ignore SIGINT while gdb is running.
             signal.signal(signal.SIGINT, signal.SIG_IGN)
 
         def preexec_fn() -> None:
-            if self.options.gdb:
+            if self.options.interactive:
                 # Restore the SIGINT handler for the child process to
                 # ensure it can handle it.
                 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -1516,11 +1518,12 @@ class SingleTestRunner:
                 os.setsid()
 
         def postwait_fn() -> None:
-            if self.options.gdb:
+            if self.options.interactive:
                 # Let us accept ^C again
                 signal.signal(signal.SIGINT, previous_sigint_handler)
 
         p = await asyncio.create_subprocess_exec(*args,
+                                                 stdin=stdin,
                                                  stdout=stdout,
                                                  stderr=stderr,
                                                  env=env,
@@ -1530,10 +1533,12 @@ class SingleTestRunner:
                               postwait_fn=postwait_fn if not is_windows() else None)
 
     async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
-        if self.console_mode is ConsoleUser.GDB:
+        if self.console_mode is ConsoleUser.INTERACTIVE:
+            stdin = None
             stdout = None
             stderr = None
         else:
+            stdin = asyncio.subprocess.DEVNULL
             stdout = asyncio.subprocess.PIPE
             stderr = asyncio.subprocess.STDOUT \
                 if not self.options.split and not self.runobj.needs_parsing \
@@ -1547,6 +1552,7 @@ class SingleTestRunner:
             extra_cmd.append(f'--gtest_output=xml:{gtestname}.xml')
 
         p = await self._run_subprocess(cmd + extra_cmd,
+                                       stdin=stdin,
                                        stdout=stdout,
                                        stderr=stderr,
                                        env=self.runobj.env,
@@ -1591,7 +1597,7 @@ class TestHarness:
         self.ninja: T.List[str] = None
 
         self.logfile_base: T.Optional[str] = None
-        if self.options.logbase and not self.options.gdb:
+        if self.options.logbase and not self.options.interactive:
             namebase = None
             self.logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
 
@@ -1691,6 +1697,7 @@ class TestHarness:
         if not options.gdb:
             options.gdb = current.gdb
         if options.gdb:
+            options.interactive = True
             options.verbose = True
         if options.timeout_multiplier is None:
             options.timeout_multiplier = current.timeout_multiplier
@@ -2143,7 +2150,7 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
     return True
 
 def run(options: argparse.Namespace) -> int:
-    if options.benchmark:
+    if options.benchmark or options.interactive:
         options.num_processes = 1
 
     if options.verbose and options.quiet:
@@ -2152,11 +2159,14 @@ def run(options: argparse.Namespace) -> int:
 
     check_bin = None
     if options.gdb:
-        options.verbose = True
+        options.interactive = True
         if options.wrapper:
             print('Must not specify both a wrapper and gdb at the same time.')
             return 1
         check_bin = 'gdb'
+
+    if options.interactive:
+        options.verbose = True
 
     if options.wrapper:
         check_bin = options.wrapper[0]

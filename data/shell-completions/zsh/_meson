@@ -181,6 +181,7 @@ local -a meson_commands=(
   '--no-rebuild[do not rebuild before running tests]'
   '--gdb[run tests under gdb]'
   '--gdb-path=[program to run for gdb (can be wrapper or compatible program)]:program:_path_commands'
+  '(--interactive -i)'{'--interactive','-i'}'[run tests with interactive input/output]'
   '--list[list available tests]'
   '(--wrapper --wrap)'{'--wrapper=','--wrap='}'[wrapper to run tests with]:wrapper program:_path_commands'
   "$__meson_cd"
