@@ -43,6 +43,7 @@ class RustCompiler(Compiler):
         '1': [],
         '2': [],
         '3': ['-W', 'warnings'],
+        'everything': ['-W', 'warnings'],
     }
 
     # Those are static libraries, but we use dylib= here as workaround to avoid
