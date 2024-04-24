@@ -1,7 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2024 Intel Corporation
+
 project(
   'has header symbol',
   'c', 'cpp',
-  default_options : ['cpp_std=c++11'],
+  default_options : ['cpp_std=c++14'],
 )
 
 cc = meson.get_compiler('c')
