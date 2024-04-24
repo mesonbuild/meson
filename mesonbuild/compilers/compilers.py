@@ -412,7 +412,11 @@ def get_base_link_args(target: 'BuildTarget',
 
     try:
         crt_val = env.coredata.get_option_for_target(target, 'b_vscrt')
+<<<<<<< HEAD
         buildtype =env.coredata.get_option_for_target('buildtype')
+=======
+        buildtype = env.coredata.get_option_for_target(target, 'buildtype')
+>>>>>>> 7c137502f (Convert more usages to per-target methods.)
         try:
             args += linker.get_crt_link_args(crt_val, buildtype)
         except AttributeError:
