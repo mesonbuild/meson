@@ -625,9 +625,17 @@ class CLikeCompiler(Compiler):
             raise mesonlib.EnvironmentException('Could not compile alignment test.')
         if res.returncode != 0:
             raise mesonlib.EnvironmentException('Could not run alignment test binary.')
-        align = int(res.stdout)
+
+        align: int
+        try:
+            align = int(res.stdout)
+        except ValueError:
+            # If we get here, the user is most likely using a script that is
+            # pretending to be a compiler.
+            raise mesonlib.EnvironmentException('Could not run alignment test binary.')
         if align == 0:
             raise mesonlib.EnvironmentException(f'Could not determine alignment of {typename}. Sorry. You might want to file a bug.')
+
         return align, res.cached
 
     def get_define(self, dname: str, prefix: str, env: 'Environment',
