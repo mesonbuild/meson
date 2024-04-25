@@ -104,9 +104,13 @@ class OpenMPDependency(SystemDependency):
             self.compile_args = self.link_args = self.clib_compiler.openmp_flags(environment)
             return
 
+        # Set these now so they're available for the following compiler checks
+        self.compile_args.extend(self.clib_compiler.openmp_flags(environment))
+        self.link_args.extend(self.clib_compiler.openmp_link_flags(environment))
+
         try:
             openmp_date = self.clib_compiler.get_define(
-                '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(environment), [self], disable_cache=True)[0]
+                '_OPENMP', '', self.env, [], [self], disable_cache=True)[0]
         except mesonlib.EnvironmentException as e:
             mlog.debug('OpenMP support not available in the compiler')
             mlog.debug(e)
@@ -134,8 +138,6 @@ class OpenMPDependency(SystemDependency):
             for name in header_names:
                 if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
                     self.is_found = True
-                    self.compile_args.extend(self.clib_compiler.openmp_flags(environment))
-                    self.link_args.extend(self.clib_compiler.openmp_link_flags(environment))
                     break
             if not self.is_found:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
