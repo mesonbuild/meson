@@ -121,6 +121,16 @@ methods:
 - name: _compiles
   returns: void
   description: You have found a bug if you can see this!
+  kwargs:
+    required:
+      type: bool | feature
+      default: false
+      since: 1.5.0
+      description:
+        When set to `true`, Meson will halt if the check fails.
+
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
   kwargs_inherit:
     - compiler._args
     - compiler._include_directories
