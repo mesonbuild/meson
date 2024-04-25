@@ -118,25 +118,24 @@ class OpenMPDependency(SystemDependency):
         except mesonlib.EnvironmentException as e:
             mlog.debug('OpenMP support not available in the compiler')
             mlog.debug(e)
-            openmp_date = None
+            return
 
-        if openmp_date:
-            try:
-                self.version = self.VERSIONS[openmp_date]
-            except KeyError:
-                mlog.debug(f'Could not find an OpenMP version matching {openmp_date}')
-                if openmp_date == '_OPENMP':
-                    mlog.debug('This can be caused by flags such as gcc\'s `-fdirectives-only`, which affect preprocessor behavior.')
-                return
+        try:
+            self.version = self.VERSIONS[openmp_date]
+        except KeyError:
+            mlog.debug(f'Could not find an OpenMP version matching {openmp_date}')
+            if openmp_date == '_OPENMP':
+                mlog.debug('This can be caused by flags such as gcc\'s `-fdirectives-only`, which affect preprocessor behavior.')
+            return
 
-            # Flang has omp_lib.h
-            header_names = ('omp.h', 'omp_lib.h')
-            for name in header_names:
-                if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
-                    self.is_found = True
-                    break
-            else:
-                mlog.warning('OpenMP found but omp.h missing.', fatal=False)
+        # Flang has omp_lib.h
+        header_names = ('omp.h', 'omp_lib.h')
+        for name in header_names:
+            if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
+                self.is_found = True
+                break
+        else:
+            mlog.warning('OpenMP found but omp.h missing.', fatal=False)
 
 packages['openmp'] = OpenMPDependency
 
