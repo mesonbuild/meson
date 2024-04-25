@@ -402,7 +402,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return gnulike_default_include_dirs(tuple(self.get_exelist(ccache=False)), self.language).copy()
 
     @abc.abstractmethod
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         pass
 
     def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
@@ -585,7 +585,7 @@ class GnuCompiler(GnuLikeCompiler):
     def get_pch_suffix(self) -> str:
         return 'gch'
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-fopenmp']
 
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str,

@@ -204,10 +204,10 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         objname = os.path.splitext(source)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['/openmp']
 
-    def openmp_link_flags(self) -> T.List[str]:
+    def openmp_link_flags(self, env: Environment) -> T.List[str]:
         return []
 
     # FIXME, no idea what these should be.

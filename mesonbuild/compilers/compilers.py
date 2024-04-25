@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -936,11 +936,11 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return self.linker.thread_flags(env)
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
 
-    def openmp_link_flags(self) -> T.List[str]:
-        return self.openmp_flags()
+    def openmp_link_flags(self, env: Environment) -> T.List[str]:
+        return self.openmp_flags(env)
 
     def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
         return []
