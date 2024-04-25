@@ -15,7 +15,7 @@ from .. import coredata
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from ..compilers import SUFFIX_TO_LANG
+from ..compilers import SUFFIX_TO_LANG, RunResult
 from ..compilers.compilers import CompileCheckMode
 from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
                                FeatureNew, FeatureNewKwargs, disablerIfNotFound,
@@ -27,7 +27,7 @@ from .type_checking import REQUIRED_KW, in_set_validator, NoneType
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
-    from ..compilers import Compiler, RunResult
+    from ..compilers import Compiler
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from .kwargs import ExtractRequired, ExtractSearchDirs
     from .interpreter import SourceOutputs
@@ -50,7 +50,7 @@ if T.TYPE_CHECKING:
         include_directories: T.List[build.IncludeDirs]
         args: T.List[str]
 
-    class CompileKW(BaseCompileKW):
+    class CompileKW(BaseCompileKW, ExtractRequired):
 
         name: str
         dependencies: T.List[dependencies.Dependency]
@@ -178,7 +178,8 @@ _COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, 
 
 # Common methods of compiles, links, runs, and similar
 _COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW,
-                                    _WERROR_KW]
+                                    _WERROR_KW,
+                                    REQUIRED_KW.evolve(since='1.5.0', default=False)]
 
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
 _HAS_REQUIRED_KW = REQUIRED_KW.evolve(since='1.3.0', default=False)
@@ -306,15 +307,25 @@ class CompilerHolder(ObjectHolder['Compiler']):
             FeatureNew.single_use(f'compiler.run for {self.compiler.get_display_language()} language',
                                   '1.5.0', self.subproject, location=self.current_node)
         code = args[0]
+        testname = kwargs['name']
+
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            if testname:
+                mlog.log('Checking if', mlog.bold(testname, True), 'runs:', 'skipped: feature', mlog.bold(feature), 'disabled')
+            return RunResult(compiled=True, returncode=0, stdout='', stderr='', cached=False)
+
         if isinstance(code, mesonlib.File):
             self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
-        testname = kwargs['name']
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
         result = self.compiler.run(code, self.environment, extra_args=extra_args,
                                    dependencies=deps)
+        if required and result.returncode != 0:
+            raise InterpreterException(f'Could not run {testname if testname else "code"}')
+
         if testname:
             if not result.compiled:
                 h = mlog.red('DID NOT COMPILE')
@@ -510,6 +521,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs('compiler.compiles', *_COMPILES_KWS)
     def compiles_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
+        testname = kwargs['name']
+
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            if testname:
+                mlog.log('Checking if', mlog.bold(testname, True), 'compiles:', 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+
         if isinstance(code, mesonlib.File):
             if code.is_built:
                 FeatureNew.single_use('compiler.compiles with file created at setup time', '1.2.0', self.subproject,
@@ -517,12 +536,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
             self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
-        testname = kwargs['name']
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
         result, cached = self.compiler.compiles(code, self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
+        if required and not result:
+            raise InterpreterException(f'Could not compile {testname}')
+
         if testname:
             if result:
                 h = mlog.green('YES')
@@ -536,6 +557,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs('compiler.links', *_COMPILES_KWS)
     def links_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
+        testname = kwargs['name']
+
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            if testname:
+                mlog.log('Checking if', mlog.bold(testname, True), 'links:', 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+
         compiler = None
         if isinstance(code, mesonlib.File):
             if code.is_built:
@@ -556,19 +585,21 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 else:
                     compiler = clist[SUFFIX_TO_LANG[suffix]]
 
-        testname = kwargs['name']
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
         result, cached = self.compiler.links(code, self.environment,
                                              compiler=compiler,
                                              extra_args=extra_args,
                                              dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
+        if required and not result:
+            raise InterpreterException(f'Could not link {testname if testname else "code"}')
+
         if testname:
             if result:
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
+            cached_msg = mlog.blue('(cached)') if cached else ''
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'links:', h, cached_msg)
         return result
 
