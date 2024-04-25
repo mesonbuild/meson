@@ -139,8 +139,8 @@ class OpenMPDependency(SystemDependency):
                 if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
                     self.is_found = True
                     break
-            if not self.is_found:
-                mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
+            else:
+                mlog.warning('OpenMP found but omp.h missing.', fatal=False)
 
 packages['openmp'] = OpenMPDependency
 
