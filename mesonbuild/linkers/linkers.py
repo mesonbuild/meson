@@ -62,7 +62,7 @@ class StaticLinker:
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return []
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return []
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:

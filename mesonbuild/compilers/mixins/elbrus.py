@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -89,5 +89,5 @@ class ElbrusCompiler(GnuLikeCompiler):
             args.append('-std=' + std)
         return args
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-fopenmp']

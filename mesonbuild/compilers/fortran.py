@@ -256,7 +256,7 @@ class SunFortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-moddir=' + path]
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-xopenmp']
 
 
@@ -381,7 +381,7 @@ class PathScaleFortranCompiler(FortranCompiler):
                           '3': default_warn_args,
                           'everything': default_warn_args}
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-mp']
 
 
@@ -482,7 +482,7 @@ class Open64FortranCompiler(FortranCompiler):
                           '3': default_warn_args,
                           'everything': default_warn_args}
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-mp']
 
 
@@ -525,5 +525,5 @@ class NAGFortranCompiler(FortranCompiler):
     def get_std_exe_link_args(self) -> T.List[str]:
         return self.get_always_args()
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-openmp']
