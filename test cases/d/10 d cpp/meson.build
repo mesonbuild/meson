@@ -1,8 +1,9 @@
 project('d and c++', 'd', 'cpp')
 
 cpp = meson.get_compiler('cpp')
+dc = meson.get_compiler('d')
 
-if cpp.get_id() == 'clang'
+if cpp.get_id() == 'clang' and dc.get_id() == 'gcc'
   error('MESON_SKIP_TEST combining Clang C++ with GDC produces broken executables.')
 endif
 
