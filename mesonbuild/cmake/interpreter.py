@@ -1275,7 +1275,7 @@ class CMakeInterpreter:
             name_map[tgt.cmake_name] = tgt.name
 
         def process_install_pack(pack: CMakeInstallPack) -> None:
-            name = re.sub(r'\W', '_', pack.elements[0])
+            name = re.sub(r'\W', '_', str(pack.elements[0]))
             files_node = assign(f"install_files_{name}", function('install_data', pack.elements, {'install_dir': pack.dest}))
             processed[name] = {'func': 'install_data'}
             name_map[name] = name

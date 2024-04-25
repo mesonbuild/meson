@@ -661,7 +661,7 @@ class CMakeTraceParser:
     def _cmake_install_files(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/install.html#files
         args = list(tline.args)
-        install_list = []
+        install_list: T.List[Path] = []
         pack_type = None
         dest = None
         if args[0].upper().strip() in set(['TARGETS', 'IMPORTED_RUNTIME_ARTIFACTS']):
@@ -674,7 +674,8 @@ class CMakeTraceParser:
                 if args[i].upper() in set(['TYPE', 'DESTINATION', 'PERMISSIONS', 'CONFIGURATIONS',
                                            'COMPONENT', 'RENAME', 'OPTIONAL', 'EXCLUDE_FROM_ALL']):
                     break
-                install_list += [args[i]]
+                absolute = Path(args[i]) if Path(args[i]).is_absolute() else Path(tline.file).parent / Path(args[i])
+                install_list += [absolute]
                 i += 1
 
             while i < len(args):

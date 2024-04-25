@@ -360,7 +360,7 @@ class TargetOptions:
         return initial
 
 class CMakeInstallPack:
-    def __init__(self, pack_type: str, elements: T.List[str], dest: str) -> None:
+    def __init__(self, pack_type: str, elements: T.List[Path], dest: str) -> None:
         self.pack_type = pack_type
         self.elements = elements
         self.dest = dest
