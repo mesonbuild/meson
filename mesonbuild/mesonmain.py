@@ -257,7 +257,7 @@ def run(original_args: T.List[str], mainfile: str) -> int:
     # https://github.com/mesonbuild/meson/issues/3653
     if sys.platform == 'cygwin' and os.environ.get('MSYSTEM', '') not in ['MSYS', '']:
         mlog.error('This python3 seems to be msys/python on MSYS2 Windows, but you are in a MinGW environment')
-        mlog.error('Please install and use mingw-w64-x86_64-python3 and/or mingw-w64-x86_64-meson with Pacman')
+        mlog.error('Please install it via https://packages.msys2.org/base/mingw-w64-python')
         return 2
 
     args = original_args[:]
