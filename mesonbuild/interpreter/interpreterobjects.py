@@ -664,7 +664,7 @@ class ExternalLibraryHolder(ObjectHolder[ExternalLibrary]):
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return pdep
 
-    @FeatureNew('name', '1.5.0')
+    @FeatureNew('dependency.name', '1.5.0')
     @noPosargs
     @noKwargs
     def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
