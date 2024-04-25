@@ -33,6 +33,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
             'contains': self.contains_method,
             'length': self.length_method,
             'get': self.get_method,
+            'remove': self.remove_method,
         })
 
         self.trivial_operators.update({
@@ -99,6 +100,14 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
                                       location=self.current_node)
             other = [other]
         return self.held_object + other
+
+    @noArgsFlattening
+    @noKwargs
+    @typed_pos_args('array.remove', list)
+    def remove_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> None:
+        for items in args:
+            for item in items:
+                self.held_object.remove(item)
 
     @typed_operator(MesonOperator.INDEX, int)
     def op_index(self, other: int) -> TYPE_var:
