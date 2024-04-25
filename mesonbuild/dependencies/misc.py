@@ -95,18 +95,18 @@ class OpenMPDependency(SystemDependency):
             # No macro defined for OpenMP, but OpenMP 3.1 is supported.
             self.version = '3.1'
             self.is_found = True
-            self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
+            self.compile_args = self.link_args = self.clib_compiler.openmp_flags(environment)
             return
         if self.clib_compiler.get_id() == 'pgi':
             # through at least PGI 19.4, there is no macro defined for OpenMP, but OpenMP 3.1 is supported.
             self.version = '3.1'
             self.is_found = True
-            self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
+            self.compile_args = self.link_args = self.clib_compiler.openmp_flags(environment)
             return
 
         try:
             openmp_date = self.clib_compiler.get_define(
-                '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(), [self], disable_cache=True)[0]
+                '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(environment), [self], disable_cache=True)[0]
         except mesonlib.EnvironmentException as e:
             mlog.debug('OpenMP support not available in the compiler')
             mlog.debug(e)
@@ -134,8 +134,8 @@ class OpenMPDependency(SystemDependency):
             for name in header_names:
                 if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
                     self.is_found = True
-                    self.compile_args.extend(self.clib_compiler.openmp_flags())
-                    self.link_args.extend(self.clib_compiler.openmp_link_flags())
+                    self.compile_args.extend(self.clib_compiler.openmp_flags(environment))
+                    self.link_args.extend(self.clib_compiler.openmp_link_flags(environment))
                     break
             if not self.is_found:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
