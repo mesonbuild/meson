@@ -140,6 +140,7 @@ class GitDist(Dist):
 
     def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in git'''
+        subprocess.check_call(['git', '-C', self.src_root, 'update-index', '-q', '--refresh'])
         ret = subprocess.call(['git', '-C', self.src_root, 'diff-index', '--quiet', 'HEAD'])
         return ret == 1
 
