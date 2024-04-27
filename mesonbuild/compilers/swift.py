@@ -11,6 +11,7 @@ from ..mesonlib import EnvironmentException
 from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:
+    from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
@@ -23,7 +24,7 @@ swift_optimization_args: T.Dict[str, T.List[str]] = {
     '1': ['-O'],
     '2': ['-O'],
     '3': ['-O'],
-    's': ['-O'],
+    's': ['-Osize'],
 }
 
 class SwiftCompiler(Compiler):
@@ -49,6 +50,16 @@ class SwiftCompiler(Compiler):
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-emit-dependencies']
 
+    def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
+        result = []
+        for arg in dep.get_link_args():
+            if arg.startswith("-Wl,"):
+                for flag in arg[4:].split(","):
+                    result += ["-Xlinker", flag]
+            else:
+                result.append(arg)
+        return result
+
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         return os.path.splitext(objfile)[0] + '.' + self.get_depfile_suffix()
 
@@ -66,6 +77,9 @@ class SwiftCompiler(Compiler):
 
     def get_std_exe_link_args(self) -> T.List[str]:
         return ['-emit-executable']
+
+    def get_std_shared_lib_link_args(self) -> T.List[str]:
+        return ['-emit-library']
 
     def get_module_args(self, modname: str) -> T.List[str]:
         return ['-module-name', modname]

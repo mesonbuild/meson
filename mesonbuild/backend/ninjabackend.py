@@ -2157,6 +2157,26 @@ class NinjaBackend(backends.Backend):
                 result.append(self.swift_module_file_name(l))
         return result
 
+    def determine_swift_external_dep_link_args(self, target, swiftc):
+        args = []
+        for dep in target.get_external_deps():
+            args += swiftc.get_dependency_link_args(dep)
+        for d in target.get_dependencies():
+            if isinstance(d, build.StaticLibrary):
+                for dep in d.get_external_deps():
+                    args += swiftc.get_dependency_link_args(dep)
+
+        deduped_args = []
+        seen_libs = set()
+        for arg in args:
+            if arg.startswith("-l"):
+                if arg not in seen_libs:
+                    deduped_args.append(arg)
+                    seen_libs.add(arg)
+            else:
+                deduped_args.append(arg)
+        return deduped_args
+
     def get_swift_link_deps(self, target):
         result = []
         for l in target.link_targets:
@@ -2195,7 +2215,8 @@ class NinjaBackend(backends.Backend):
             else:
                 raise InvalidArguments(f'Swift target {target.get_basename()} contains a non-swift source file.')
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
-        compile_args = swiftc.get_compile_only_args()
+        compile_args = swiftc.get_mod_gen_args()
+        compile_args += swiftc.get_compile_only_args()
         compile_args += swiftc.get_optimization_args(target.get_option(OptionKey('optimization')))
         compile_args += swiftc.get_debug_args(target.get_option(OptionKey('debug')))
         compile_args += swiftc.get_module_args(module_name)
@@ -2229,7 +2250,9 @@ class NinjaBackend(backends.Backend):
             if reldir == '':
                 reldir = '.'
             link_args += ['-L', os.path.normpath(os.path.join(self.environment.get_build_dir(), reldir))]
-        (rel_generated, _) = self.split_swift_generated_sources(target)
+        link_args += self.determine_swift_external_dep_link_args(target, swiftc)
+        link_args += target.link_args
+        (rel_generated, other_generated) = self.split_swift_generated_sources(target)
         abs_generated = [os.path.join(self.environment.get_build_dir(), x) for x in rel_generated]
         # We need absolute paths because swiftc needs to be invoked in a subdir
         # and this is the easiest way about it.
@@ -2243,31 +2266,28 @@ class NinjaBackend(backends.Backend):
 
         rulename = self.compiler_to_rule_name(swiftc)
 
-        # Swiftc does not seem to be able to emit objects and module files in one go.
-        elem = NinjaBuildElement(self.all_outputs, rel_objects, rulename, abssrc)
-        elem.add_dep(in_module_files + rel_generated)
+        elem = NinjaBuildElement(self.all_outputs, [out_module_name] + rel_objects, rulename, abssrc)
+        elem.add_dep(in_module_files + rel_generated + other_generated)
         elem.add_dep(abs_headers)
         elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
-        elem.add_item('RUNDIR', rundir)
-        self.add_build(elem)
-        elem = NinjaBuildElement(self.all_outputs, out_module_name, rulename, abssrc)
-        elem.add_dep(in_module_files + rel_generated)
-        elem.add_item('ARGS', compile_args + abs_generated + module_includes + swiftc.get_mod_gen_args())
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
         if isinstance(target, build.StaticLibrary):
             elem = self.generate_link(target, self.get_target_filename(target),
                                       rel_objects, self.build.static_linker[target.for_machine])
             self.add_build(elem)
-        elif isinstance(target, build.Executable):
+        else:
             elem = NinjaBuildElement(self.all_outputs, self.get_target_filename(target), rulename, [])
             elem.add_dep(rel_objects)
             elem.add_dep(link_deps)
-            elem.add_item('ARGS', link_args + swiftc.get_std_exe_link_args() + objects + abs_link_deps)
+            elem.add_dep([self.get_dependency_filename(t) for t in target.link_depends])
+            if isinstance(target, build.Executable):
+                link_args += swiftc.get_std_exe_link_args()
+            else:
+                link_args += swiftc.get_std_shared_lib_link_args()
+            elem.add_item('ARGS', link_args + objects + abs_link_deps)
             elem.add_item('RUNDIR', rundir)
             self.add_build(elem)
-        else:
-            raise MesonException('Swift supports only executable and static library targets.')
         # Introspection information
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
