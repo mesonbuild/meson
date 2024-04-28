@@ -1090,7 +1090,10 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        cppversion = self.get_target_option(target, OptionKey('std', machine=target.for_machine, lang='cpp'))
+        cppversion = self.get_target_option(target, OptionKey('std',
+                                                              machine=target.for_machine,
+                                                              lang='cpp',
+                                                              subproject=target.subproject))
         if cppversion not in ('latest', 'c++latest', 'vc++latest'):
             return False
         if not mesonlib.current_vs_supports_modules():
