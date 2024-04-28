@@ -1006,4 +1006,3 @@ class Environment:
             return self.coredata.get_option_for_target(target, key)
         else:
             return self.coredata.get_option_for_subproject(key, subproject)
-
