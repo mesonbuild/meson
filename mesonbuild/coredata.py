@@ -1102,14 +1102,18 @@ class MachineFileParser():
         self.sections: T.Dict[str, T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = {}
 
         for fname in filenames:
-            with open(fname, encoding='utf-8') as f:
-                content = f.read()
-                content = content.replace('@GLOBAL_SOURCE_ROOT@', sourcedir)
-                content = content.replace('@DIRNAME@', os.path.dirname(fname))
-                try:
-                    self.parser.read_string(content, fname)
-                except configparser.Error as e:
-                    raise EnvironmentException(f'Malformed machine file: {e}')
+            try:
+                with open(fname, encoding='utf-8') as f:
+                    content = f.read()
+            except UnicodeDecodeError as e:
+                raise EnvironmentException(f'Malformed machine file {fname!r} failed to parse as unicode: {e}')
+
+            content = content.replace('@GLOBAL_SOURCE_ROOT@', sourcedir)
+            content = content.replace('@DIRNAME@', os.path.dirname(fname))
+            try:
+                self.parser.read_string(content, fname)
+            except configparser.Error as e:
+                raise EnvironmentException(f'Malformed machine file: {e}')
 
         # Parse [constants] first so they can be used in other sections
         if self.parser.has_section('constants'):
