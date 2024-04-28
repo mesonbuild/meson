@@ -294,6 +294,7 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTarge
 )
 
 def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, ElementaryOptionValues]]) -> T.Dict[OptionKey, ElementaryOptionValues]:
+    # FIXME OPTIONS: this needs to return options as plain strings.
     if isinstance(raw, str):
         raw = [raw]
     if isinstance(raw, list):
