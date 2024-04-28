@@ -1007,7 +1007,7 @@ class Backend:
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
-        commands += compiler.get_option_compile_args(target, self.environment)
+        commands += compiler.get_option_compile_args(target, self.environment, target.subproject)
 
         optimization = self.get_target_option(target, 'optimization')
         assert isinstance(optimization, str), 'for mypy'
@@ -2095,10 +2095,12 @@ class Backend:
 
     def get_target_option(self, target: build.Target, name: T.Union[str, OptionKey]) -> T.Union[str, int, bool, 'WrapMode']:
         if isinstance(name, str):
-            key = OptionKey(name)
+            key = OptionKey(name, subproject=target.subproject)
         elif isinstance(name, OptionKey):
             key = name
         else:
             import sys
             sys.exit('Internal error: invalid option type.')
+        if key.name == 'std':
+            pass
         return self.environment.coredata.get_option_for_target(target, key)
