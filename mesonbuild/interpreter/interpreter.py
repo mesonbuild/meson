@@ -2425,9 +2425,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
             raise InterpreterException(f"Nonexistent build file '{buildfilename!s}'")
-        with open(absname, encoding='utf-8') as f:
-            code = f.read()
-        assert isinstance(code, str)
+        code = self.read_buildfile(absname, buildfilename)
         try:
             codeblock = mparser.Parser(code, absname).parse()
         except mesonlib.MesonException as me:

@@ -93,12 +93,19 @@ class InterpreterBase:
         # do nothing in an AST interpreter
         return
 
+    def read_buildfile(self, fname: str, errname: str) -> str:
+        try:
+            with open(fname, encoding='utf-8') as f:
+                return f.read()
+        except UnicodeDecodeError as e:
+            node = mparser.BaseNode(1, 1, errname)
+            raise InvalidCode.from_node(f'Build file failed to parse as unicode: {e}', node=node)
+
     def load_root_meson_file(self) -> None:
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments(f'Missing Meson file in {mesonfile}')
-        with open(mesonfile, encoding='utf-8') as mf:
-            code = mf.read()
+        code = self.read_buildfile(mesonfile, mesonfile)
         if code.isspace():
             raise InvalidCode('Builder file is empty.')
         assert isinstance(code, str)

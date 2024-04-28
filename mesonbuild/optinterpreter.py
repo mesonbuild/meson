@@ -78,7 +78,11 @@ class OptionInterpreter:
     def process(self, option_file: str) -> None:
         try:
             with open(option_file, encoding='utf-8') as f:
-                ast = mparser.Parser(f.read(), option_file).parse()
+                code = f.read()
+        except UnicodeDecodeError as e:
+            raise mesonlib.MesonException(f'Malformed option file {option_file!r} failed to parse as unicode: {e}')
+        try:
+            ast = mparser.Parser(code, option_file).parse()
         except mesonlib.MesonException as me:
             me.file = option_file
             raise me
