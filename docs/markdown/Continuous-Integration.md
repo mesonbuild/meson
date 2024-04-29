@@ -291,12 +291,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        meson_version: ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0"]
+        meson_version: ["1.2.0", "1.3.0", "1.4.0"]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install dependencies
