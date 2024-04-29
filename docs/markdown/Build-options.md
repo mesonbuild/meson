@@ -6,7 +6,7 @@ short-description: Build options to configure project properties
 
 Most non-trivial builds require user-settable options. As an example a
 program may have two different data backends that are selectable at
-build time. Meson provides for this by having a option definition
+build time. Meson provides for this by having an option definition
 file. Its name is `meson.options` and it is placed at the root of
 your source tree. For versions of meson before 1.1, this file was called
 `meson_options.txt`.
@@ -46,7 +46,7 @@ value is supplied then `true` will be used as the default.
 ### Combos
 
 A combo allows any one of the values in the `choices` parameter to be
-selected.  If no default value is set then the first value will be the
+selected. If no default value is set then the first value will be the
 default.
 
 ### Integers
@@ -60,7 +60,7 @@ This type is available since Meson version 0.45.0.
 ### Arrays
 
 Arrays represent an array of strings. By default the array can contain
-arbitrary strings. To limit the possible values that can used set the
+arbitrary strings. To limit the possible values that can be used set the
 `choices` parameter. Meson will then only allow the value array to
 contain strings that are in the given list. The array may be
 empty. The `value` parameter specifies the default value of the option
@@ -75,7 +75,7 @@ This type is available since version 0.44.0
 ### Features
 
 A `feature` option has three states: `enabled`, `disabled` or `auto`.
-It is intended to be passed as value for the `required` keyword
+It is intended to be passed as a value for the `required` keyword
 argument of most functions. Currently supported in
 [[add_languages]],
 [[compiler.find_library]],
