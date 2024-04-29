@@ -197,20 +197,17 @@ image:
 - Visual Studio 2022
 - Visual Studio 2019
 - Visual Studio 2017
-environment:
-  _CRT_SECURE_NO_WARNINGS: 1
-  _SCL_SECURE_NO_WARNINGS: 1
 
 install:
-- sh: python -m pip install meson ninja
+- cmd: python -m pip install meson ninja
 
 build_script:
-- sh: >-
+- cmd: >-
     meson setup builddir
     meson compile -C builddir
 
 test_script:
-- sh: meson test -C builddir
+- cmd: meson test -C builddir
 ```
 
 ### Qt
