@@ -40,7 +40,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson setup builddir && meson test -C builddir; fi
 ```
 
-## CircleCi for Linux (with Docker)
+## CircleCI for Linux host (with custom Docker images)
 
 [CircleCi](https://circleci.com/) can work for spinning all of the
 Linux images you wish. Here's a sample `yml` file for use with that.
@@ -68,25 +68,43 @@ jobs:
     executor: meson_ubuntu_builder
     steps:
       - checkout
-      - run: meson setup builddir --backend ninja
-      - run: meson compile -C builddir
-      - run: meson test -C builddir
+      - run:
+          name: Configure Project
+          command: meson setup builddir --backend ninja
+      - run:
+          name: Compile Project
+          command: meson compile -C builddir
+      - run:
+          name: Run Tests
+          command: meson test -C builddir
 
   meson_debian_build:
     executor: meson_debian_builder
     steps:
       - checkout
-      - run: meson setup builddir --backend ninja
-      - run: meson compile -C builddir
-      - run: meson test -C builddir
+      - run:
+          name: Configure Project
+          command: meson setup builddir --backend ninja
+      - run:
+          name: Compile Project
+          command: meson compile -C builddir
+      - run:
+          name: Run Tests
+          command: meson test -C builddir
 
   meson_fedora_build:
     executor: meson_fedora_builder
     steps:
       - checkout
-      - run: meson setup builddir --backend ninja
-      - run: meson compile -C builddir
-      - run: meson test -C builddir
+      - run:
+          name: Configure Project
+          command: meson setup builddir --backend ninja
+      - run:
+          name: Compile Project
+          command: meson compile -C builddir
+      - run:
+          name: Run Tests
+          command: meson test -C builddir
 
 workflows:
   version: 2
@@ -95,6 +113,71 @@ workflows:
       - meson_ubuntu_build
       - meson_debian_build
       - meson_fedora_build
+
+```
+
+## CircleCI for Linux host (without custom Docker images)
+
+This CircleCI configuration defines two jobs, `build-linux` and `build-macos`,
+within a workflow named `build`. The `build-linux` job utilizes a Docker image
+with Python 3.12.3, while `build-macos` runs on macOS with Xcode 15.3.0. Each
+job involves checking out the code, installing Meson and Ninja, configuring the
+project, compiling it, and running tests using Meson.
+
+```yaml
+version: 2.1
+
+jobs:
+  build-linux:
+    docker:
+      - image: cimg/python:3.12.3
+    steps:
+      - checkout
+      - run:
+          name: Install Meson and Ninja
+          command: |
+            python -m pip install --user meson ninja
+      - run:
+          name: Configure Project
+          command: |
+            meson setup builddir
+      - run:
+          name: Compile Project
+          command: |
+            meson compile -C builddir
+      - run:
+          name: Run Tests
+          command: |
+            meson test -C builddir
+
+  build-macos:
+    macos:
+      xcode: 15.3.0
+    steps:
+      - checkout
+      - run:
+          name: Install Meson and Ninja
+          command: |
+            python -m pip install meson ninja
+      - run:
+          name: Configure Project
+          command: |
+            meson setup builddir
+      - run:
+          name: Compile Project
+          command: |
+            meson compile -C builddir
+      - run:
+          name: Run Tests
+          command: |
+            meson test -C builddir
+
+workflows:
+  version: 2.1
+  build:
+    jobs:
+      - build-linux
+      - build-macos
 ```
 
 ## AppVeyor for Windows
@@ -106,45 +189,25 @@ AppVeyor also has
 [MacOS](https://www.appveyor.com/docs/macos-images-software/) and
 [Linux](https://www.appveyor.com/docs/linux-images-software/) CI
 images. This is a sample `appveyor.yml` file for Windows with Visual
-Studio 2015 and 2017.
+Studio 2017, 2019, and 2022.
 
 ```yaml
-image: Visual Studio 2017
-
-environment:
-  matrix:
-    - arch: x86
-      compiler: msvc2015
-    - arch: x64
-      compiler: msvc2015
-    - arch: x86
-      compiler: msvc2017
-    - arch: x64
-      compiler: msvc2017
-
-platform:
-  - x64
+version: 1.0.{build}
+image:
+- Visual Studio 2022
+- Visual Studio 2019
+- Visual Studio 2017
 
 install:
-  # Set paths to dependencies (based on architecture)
-  - cmd: if %arch%==x86 (set PYTHON_ROOT=C:\python37) else (set PYTHON_ROOT=C:\python37-x64)
-  # Print out dependency paths
-  - cmd: echo Using Python at %PYTHON_ROOT%
-  # Add necessary paths to PATH variable
-  - cmd: set PATH=%cd%;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
-  # Install meson and ninja
-  - cmd: pip install ninja meson
-  # Set up the build environment
-  - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
-  - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" %arch% )
+- cmd: python -m pip install meson ninja
 
 build_script:
-  - cmd: echo Building on %arch% with %compiler%
-  - cmd: meson --backend=ninja builddir
-  - cmd: meson compile -C builddir
+- cmd: >-
+    meson setup builddir
+    meson compile -C builddir
 
 test_script:
-  - cmd: meson test -C builddir
+- cmd: meson test -C builddir
 ```
 
 ### Qt
@@ -199,16 +262,17 @@ script:
 
 ## GitHub Actions
 
-GitHub Actions are distinct from Azure Pipelines in their workflow
-syntax. It can be easier to setup specific CI tasks in Actions than
-Pipelines, depending on the particular task. This is an example file:
-.github/workflows/ci_meson.yml supposing the project is C-based, using
-GCC on Linux, Mac and Windows. The optional `on:` parameters only run
-this CI when the C code is changed--corresponding ci_python.yml might
-run only on "**.py" file changes.
+GitHub Actions provides a versatile platform for continuous integration
+(CI). This example workflow file, `ci_meson.yml`, is tailored for C-based
+projects utilizing GCC on Linux, macOS, and Windows. Triggered by changes
+to C code files, it automates building and testing processes using different
+versions of Meson (1.0.0, 1.1.0, 1.2.0, 1.3.0, 1.4.0) across various operating
+systems. Each job in the workflow handles checkout, dependency installation,
+project configuration, test execution, and optional test log uploads upon
+failure.
 
 ```yaml
-name: ci_meson
+name: CI Meson
 
 on:
   push:
@@ -221,59 +285,33 @@ on:
       - "**.h"
 
 jobs:
-
-  linux:
-    runs-on: ubuntu-latest
+  build:
+    name: Build and Test on ${{ matrix.os }} with Meson v${{ matrix.meson_version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        meson_version: ["1.2.0", "1.3.0", "1.4.0"]
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
-      with:
-        python-version: '3.x'
-    - run: pip install meson ninja
-    - run: meson setup builddir/
-      env:
-        CC: gcc
-    - run: meson test -C builddir/ -v
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: Linux_Meson_Testlog
-        path: builddir/meson-logs/testlog.txt
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: python -m pip install meson==${{ matrix.meson_version }} ninja
+      - name: Configure Project
+        run: meson setup builddir/
+        env:
+          CC: gcc
+      - name: Run Tests
+        run: meson test -C builddir/ -v
+      - name: Upload Test Log
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ matrix.os }}_Meson_Testlog
+          path: builddir/meson-logs/testlog.txt
 
-  macos:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
-      with:
-        python-version: '3.x'
-    - run: brew install gcc
-    - run: pip install meson ninja
-    - run: meson setup builddir/
-      env:
-        CC: gcc
-    - run: meson test -C builddir/ -v
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: MacOS_Meson_Testlog
-        path: builddir/meson-logs/testlog.txt
-
-  windows:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
-      with:
-        python-version: '3.x'
-    - run: pip install meson ninja
-    - run: meson setup builddir/
-      env:
-        CC: gcc
-    - run: meson test -C builddir/ -v
-    - uses: actions/upload-artifact@v1
-      if: failure()
-      with:
-        name: Windows_Meson_Testlog
-        path: builddir/meson-logs/testlog.txt
 ```
