@@ -142,6 +142,50 @@ class ValaCompiler(Compiler):
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
 
+    def build_wrapper_args(self, env: 'Environment',
+                           extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
+                           dependencies: T.Optional[T.List['Dependency']],
+                           mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
+        if callable(extra_args):
+            extra_args = extra_args(mode)
+        if extra_args is None:
+            extra_args = []
+        if dependencies is None:
+            dependencies = []
+
+        # Collect compiler arguments
+        args = self.compiler_args(self.get_compiler_check_args(mode))
+        for d in dependencies:
+            # Add compile flags needed by dependencies
+            if mode is CompileCheckMode.LINK and self.force_link:
+                # As we are passing the parameter to valac we don't need the dependent libraries.
+                a = d.get_compile_args()
+                if a:
+                    p = a[0]
+                    n = p[max(p.rfind('/'), p.rfind('\\'))+1:]
+                    if not n == d.get_name():
+                        args += ['--pkg=' + d.get_name()] # This is used by gio-2.0 among others.
+                    else:
+                        args += ['--pkg=' + n]
+                else:
+                    args += ['--Xcc=-l' + d.get_name()] # This is used by the maths library(-lm) among others.
+            else:
+                args += d.get_compile_args()
+            if mode is CompileCheckMode.LINK:
+                # Add link flags needed to find dependencies
+                if not self.force_link: # There are no need for link dependencies when linking with valac.
+                    args += d.get_link_args()
+
+        if mode is CompileCheckMode.COMPILE:
+            # Add DFLAGS from the env
+            args += env.coredata.get_external_args(self.for_machine, self.language)
+        elif mode is CompileCheckMode.LINK:
+            # Add LDFLAGS from the env
+            args += env.coredata.get_external_link_args(self.for_machine, self.language)
+        # extra_args must override all other arguments, so we add them last
+        args += extra_args
+        return args
+
     def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
