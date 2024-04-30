@@ -9,7 +9,15 @@ endif()
 
 add_library(cmModLib_internal STATIC cmMod.cpp)
 
-add_library(cmModLib++ INTERFACE)
 set(cmMod_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 find_package(cmMod CONFIG)
+
+# This is the exported target, it comes from the config file
+add_library(cmModLib++ INTERFACE)
 target_link_libraries(cmModLib++ INTERFACE cmMod::cmModLib++)
+
+# This is a standalone executable that uses one of the libraries
+# It is a specific test that ensure deduping of '-L' arguments when
+# the meson cmake interpreter uses the fileAPI to process the targets
+add_executable(test2 test2.cpp)
+target_link_libraries(test2 cmModLib2)

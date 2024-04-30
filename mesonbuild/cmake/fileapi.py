@@ -145,7 +145,10 @@ class CMakeFileAPI:
                 elif i['role'] == 'libraries':
                     link_libs += [i['fragment']]
                 elif i['role'] == 'libraryPath':
-                    link_flags += ['-L{}'.format(i['fragment'])]
+                    if i['fragment'].startswith('-L'):
+                        link_flags += ['{}'.format(i['fragment'])]
+                    else:
+                        link_flags += ['-L{}'.format(i['fragment'])]
                 elif i['role'] == 'frameworkPath':
                     link_flags += ['-F{}'.format(i['fragment'])]
             for i in tgt.get('archive', {}).get('commandFragments', []):
