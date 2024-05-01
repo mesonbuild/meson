@@ -58,3 +58,11 @@ endforeach
 assert(join_paths('/foo/bar', '/builddir', '', mode: 'absolute') == '/foo/bar/builddir/', 'Absolute mode (meson) is broken')
 assert(join_paths('/foo/bar', '/builddir', '', flavor: 'posix', mode: 'absolute') == '/foo/bar/builddir/', 'Absolute mode (posix) is broken')
 assert(join_paths('/foo/bar', '/builddir', '', flavor: 'windows', mode: 'absolute') == '\\foo\\bar\\builddir\\', 'Absolute mode (windows) is broken')
+
+if build_machine.system() == 'windows'
+    assert(join_paths('C:\\foo\\bar', 'D:\\builddir', '', mode: 'absolute') == 'C:/foo/bar/builddir/', 'Absolute mode (meson) is broken')
+else
+    assert(join_paths('C:\\foo\\bar', 'D:\\builddir', '', mode: 'absolute') == 'C:/foo/bar/D:/builddir/', 'Absolute mode (meson) is broken')
+endif
+assert(join_paths('C:\\foo\\bar', 'D:\\builddir', '', flavor: 'posix', mode: 'absolute') == 'C:\\foo\\bar/D:\\builddir/', 'Absolute mode (posix) is broken')
+assert(join_paths('C:\\foo\\bar', 'D:\\builddir', '', flavor: 'windows', mode: 'absolute') == 'C:\\foo\\bar\\builddir\\', 'Absolute mode (windows) is broken')
