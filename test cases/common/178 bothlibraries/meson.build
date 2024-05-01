@@ -2,6 +2,7 @@ project('both libraries linking test', 'c', 'cpp')
 
 both_libs = both_libraries('mylib', 'libfile.c')
 dep = declare_dependency(link_with: both_libs)
+alias_target('alias', both_libs)
 exe_shared = executable('prog-shared', 'main.c', link_with : both_libs.get_shared_lib())
 exe_static = executable('prog-static', 'main.c',
                         c_args : ['-DSTATIC_COMPILATION'],

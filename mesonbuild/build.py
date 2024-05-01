@@ -136,6 +136,7 @@ def get_target_macos_dylib_install_name(ld) -> str:
     name.append('.dylib')
     return ''.join(name)
 
+
 class InvalidArguments(MesonException):
     pass
 
@@ -773,8 +774,8 @@ class BuildTarget(Target):
         # we have to call process_compilers() first and we need to process libraries
         # from link_with and link_whole first.
         # See https://github.com/mesonbuild/meson/pull/11957#issuecomment-1629243208.
-        link_targets = extract_as_list(kwargs, 'link_with') + self.link_targets
-        link_whole_targets = extract_as_list(kwargs, 'link_whole') + self.link_whole_targets
+        link_targets = self.extract_targets_as_list(kwargs, 'link_with')
+        link_whole_targets = self.extract_targets_as_list(kwargs, 'link_whole')
         self.link_targets.clear()
         self.link_whole_targets.clear()
         self.link(link_targets)
@@ -1720,6 +1721,20 @@ class BuildTarget(Target):
                 'a file object, a Custom Target, or a Custom Target Index')
         self.process_link_depends(path)
 
+    def extract_targets_as_list(self, kwargs: T.Dict[str, T.Any], key: str) -> T.List[LibTypes]:
+        bl_type = self.environment.coredata.get_option(OptionKey('default_both_libraries'))
+        if bl_type == 'auto':
+            bl_type = 'static' if isinstance(self, StaticLibrary) else 'shared'
+
+        def _resolve_both_libs(lib: LibTypes) -> LibTypes:
+            if isinstance(lib, BothLibraries):
+                return getattr(lib, bl_type)
+            return lib
+
+        self_libs: T.List[LibTypes] = self.link_targets if key == 'link_with' else self.link_whole_targets
+        lib_list = listify(kwargs.get(key, [])) + self_libs
+        return [_resolve_both_libs(t) for t in lib_list]
+
 class FileInTargetPrivateDir:
     """Represents a file with the path '/path/to/build/target_private_dir/fname'.
        target_private_dir is the return value of get_target_private_dir which is e.g. 'subdir/target.p'.
@@ -2470,8 +2485,8 @@ class SharedModule(SharedLibrary):
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
 
 class BothLibraries(SecondLevelHolder):
-    def __init__(self, shared: SharedLibrary, static: StaticLibrary) -> None:
-        self._preferred_library = 'shared'
+    def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: str) -> None:
+        self._preferred_library = preferred_library
         self.shared = shared
         self.static = static
         self.subproject = self.shared.subproject
@@ -2485,6 +2500,9 @@ class BothLibraries(SecondLevelHolder):
         elif self._preferred_library == 'static':
             return self.static
         raise MesonBugException(f'self._preferred_library == "{self._preferred_library}" is neither "shared" nor "static".')
+
+    def get_id(self) -> str:
+        return self.get_default_object().get_id()
 
 class CommandBase:
 
@@ -2864,13 +2882,22 @@ class AliasTarget(RunTarget):
 
     typename = 'alias'
 
-    def __init__(self, name: str, dependencies: T.Sequence['Target'],
+    def __init__(self, name: str, dependencies: T.Sequence[T.Union[Target, BothLibraries]],
                  subdir: str, subproject: str, environment: environment.Environment):
-        super().__init__(name, [], dependencies, subdir, subproject, environment)
+        super().__init__(name, [], list(self._deps_generator(dependencies)), subdir, subproject, environment)
 
     def __repr__(self):
         repr_str = "<{0} {1}>"
         return repr_str.format(self.__class__.__name__, self.get_id())
+
+    @staticmethod
+    def _deps_generator(dependencies: T.Sequence[T.Union[Target, BothLibraries]]) -> T.Generator[Target, None, None]:
+        for dep in dependencies:
+            if isinstance(dep, BothLibraries):
+                yield dep.shared
+                yield dep.static
+            else:
+                yield dep
 
 class Jar(BuildTarget):
     known_kwargs = known_jar_kwargs
