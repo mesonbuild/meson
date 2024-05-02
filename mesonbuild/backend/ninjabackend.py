@@ -1993,6 +1993,7 @@ class NinjaBackend(backends.Backend):
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
         target_deps = target.get_dependencies()
+        have_c_abi_libs = False
         for d in target_deps:
             linkdirs.add(d.subdir)
             deps.append(self.get_dependency_filename(d))
@@ -2009,6 +2010,8 @@ class NinjaBackend(backends.Backend):
                 args += ['--extern', '{}={}'.format(d_name, os.path.join(d.subdir, d.filename))]
                 project_deps.append(RustDep(d_name, self.rust_crates[d.name].order))
                 continue
+            else:
+                have_c_abi_libs = True
 
             # Link a C ABI library
 
@@ -2052,6 +2055,13 @@ class NinjaBackend(backends.Backend):
                     _link_library(lib, static)
                 else:
                     args.append(f'-Clink-arg={a}')
+
+        # Fix from:
+        # https://bugs.launchpad.net/ubuntu/+source/meson/+bug/2049904
+        # Link with libc last if we have C ABI libraries
+        if have_c_abi_libs:
+            args.append("-Clink-arg=-lc")
+
 
         for d in linkdirs:
             d = d or '.'
