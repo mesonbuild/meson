@@ -29,6 +29,7 @@ set_property(TARGET cmMod::cmModLib++ PROPERTY IMPORTED_LOCATION_IMPORTED_SPECIA
 
 # Another name for the same library as interface, so that meson cmake uses
 # the fileAPI to process it - it checks that '-L' arguments are not duped
+# and that non-target libraries are correctly resolved
 add_library(cmModLib2 INTERFACE)
-set_property(TARGET cmModLib2 PROPERTY INTERFACE_LINK_LIBRARIES ${CMMOD_LIB_NAME})
-set_property(TARGET cmModLib2 PROPERTY INTERFACE_LINK_DIRECTORIES ${CMMOD_LIB_DIR})
+set_property(TARGET cmModLib2 PROPERTY INTERFACE_LINK_LIBRARIES -l${CMMOD_LIB_NAME})
+set_property(TARGET cmModLib2 PROPERTY INTERFACE_LINK_DIRECTORIES ${CMMOD_LIB_DIR}/..)

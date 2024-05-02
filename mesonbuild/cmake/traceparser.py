@@ -356,12 +356,9 @@ class CMakeTraceParser:
         # DOC: https://cmake.org/cmake/help/latest/command/add_executable.html
         args = list(tline.args) # Make a working copy
 
-        # Make sure the exe is imported
-        is_imported = True
-        if 'IMPORTED' not in args:
-            return self._gen_exception('add_executable', 'non imported executables are not supported', tline)
-
-        args.remove('IMPORTED')
+        is_imported = 'IMPORTED' in args
+        if is_imported:
+            args.remove('IMPORTED')
 
         if len(args) < 1:
             return self._gen_exception('add_executable', 'requires at least 1 argument', tline)

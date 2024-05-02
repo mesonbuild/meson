@@ -47,6 +47,13 @@ class ResolvedTarget:
         self.libraries:           T.List[str] = []
         self.link_with:           T.List[ConverterTarget] = []
 
+# CMake library specs (when not referring to a CMake target) can be
+# files or library names, prefixed w/ -l or w/o
+def resolve_cmake_lib(lib: str) -> str:
+    if lib.startswith('-') or '/' in lib or '.' in lib:
+        return lib
+    return f'-l{lib}'
+
 def resolve_cmake_trace_targets(target_name: str,
                                 trace: 'CMakeTraceParser',
                                 env: 'Environment',
@@ -129,9 +136,15 @@ def resolve_cmake_trace_targets(target_name: str,
             not_found_warning(curr)
 
         if 'LINK_LIBRARIES' in tgt.properties:
-            targets += [x for x in tgt.properties['LINK_LIBRARIES'] if x]
+            targets += [x for x in tgt.properties['LINK_LIBRARIES'] if x and x in trace.targets]
+            res.libraries += [resolve_cmake_lib(x) for x in tgt.properties['LINK_LIBRARIES'] if x and x not in trace.targets]
         if 'INTERFACE_LINK_LIBRARIES' in tgt.properties:
-            targets += [x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x]
+            targets += [x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x and x in trace.targets]
+            res.libraries += [resolve_cmake_lib(x) for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x and x not in trace.targets]
+        if 'LINK_DIRECTORIES' in tgt.properties:
+            res.link_flags += [(f'-L{x}' if not x.startswith('-') else x) for x in tgt.properties['LINK_DIRECTORIES'] if x]
+        if 'INTERFACE_LINK_DIRECTORIES' in tgt.properties:
+            res.link_flags += [(f'-L{x}' if not x.startswith('-') else x) for x in tgt.properties['INTERFACE_LINK_DIRECTORIES'] if x]
 
         targets += get_config_declined_property(tgt, 'IMPORTED_LINK_DEPENDENT_LIBRARIES', trace)
 

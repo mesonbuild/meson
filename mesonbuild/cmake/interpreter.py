@@ -1094,6 +1094,7 @@ class CMakeInterpreter:
 
             # First handle inter target dependencies
             link_with: T.List[IdNode] = []
+            link_depends: T.List[IdNode] = []
             objec_libs: T.List[IdNode] = []
             sources: T.List[Path] = []
             generated: T.List[T.Union[IdNode, IndexNode]] = []
@@ -1111,11 +1112,12 @@ class CMakeInterpreter:
                     process_target(i)
                 objec_libs += [extract_tgt(i)]
             for i in tgt.depends:
-                if not isinstance(i, ConverterCustomTarget):
-                    continue
-                if i.name not in processed:
-                    process_custom_target(i)
-                dependencies += [extract_tgt(i)]
+                if isinstance(i, ConverterCustomTarget):
+                    if i.name not in processed:
+                        process_custom_target(i)
+                    dependencies += [extract_tgt(i)]
+                else:
+                    link_depends += [extract_tgt(i)]
 
             # Generate the source list and handle generated sources
             sources += tgt.sources
@@ -1164,6 +1166,7 @@ class CMakeInterpreter:
                 'build_by_default': install_tgt,
                 'link_args': options.get_link_args(tgt.cmake_name, tgt.link_flags + tgt.link_libraries),
                 'link_with': link_with,
+                'link_depends': link_depends,
                 'include_directories': id_node(inc_var),
                 'install': install_tgt,
                 'override_options': options.get_override_options(tgt.cmake_name, tgt.override_options),
