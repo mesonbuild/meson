@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import re
-import os
 
 import typing as T
 
-from ...mesonlib import version_compare, version_compare_many
+from ...mesonlib import join_paths, version_compare, version_compare_many
 from ...interpreterbase import (
     ObjectHolder,
     MesonOperator,
@@ -175,14 +174,10 @@ class StringHolder(ObjectHolder[str]):
             FeatureNew.single_use('version_compare() with multiple arguments', '1.8.0', self.subproject, location=self.current_node)
         return version_compare_many(self.held_object, args[0])[0]
 
-    @staticmethod
-    def _op_div(this: str, other: str) -> str:
-        return os.path.join(this, other).replace('\\', '/')
-
     @FeatureNew('/ with string arguments', '0.49.0')
     @typed_operator(MesonOperator.DIV, str)
     def op_div(self, other: str) -> str:
-        return self._op_div(self.held_object, other)
+        return join_paths(self.held_object, other)
 
     @typed_operator(MesonOperator.INDEX, int)
     def op_index(self, other: int) -> str:
@@ -245,5 +240,5 @@ class OptionStringHolder(StringHolder):
 
     def op_div(self, other: str) -> T.Union[str, OptionString]:
         ret = super().op_div(other)
-        name = self._op_div(self.held_object.optname, other)
+        name = join_paths(self.held_object.optname, other)
         return OptionString(ret, name)
