@@ -18,7 +18,7 @@ from .helpers import is_ci
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command
 from mesonbuild.mformat import match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
-from run_tests import Backend
+from run_tests import Backend, run_mtest_inprocess
 
 @skipIf(is_ci() and not is_linux(), "Run only on fast platforms")
 class PlatformAgnosticTests(BasePlatformTests):
@@ -451,3 +451,30 @@ class PlatformAgnosticTests(BasePlatformTests):
             f.write("option('new_option', type : 'boolean', value : false)")
         self.setconf('-Dsubproject:new_option=true')
         self.assertEqual(self.getconf('subproject:new_option'), True)
+
+    def test_add_test_suite(self) -> None:
+        testdir = self.copy_srcdir(os.path.join(self.unit_test_dir, '124 test suite'))
+        self.init(testdir)
+        common_args = ['-C', self.builddir, '--list']
+
+        exit_code, output = run_mtest_inprocess(common_args + ['--suite', 'B'])
+        self.assertEqual(exit_code, 0)
+        self.assertNotIn('test A', output)
+        self.assertIn('test B', output)
+        self.assertNotIn('test C', output)
+        self.assertNotIn('bench D', output)
+
+        for suite in ('A', 'all', 'everything'):
+            exit_code, output = run_mtest_inprocess(common_args + ['--suite', suite])
+            self.assertEqual(exit_code, 0)
+            self.assertIn('test A', output)
+            self.assertIn('test B', output)
+            self.assertIn('test C', output)
+            self.assertNotIn('bench D', output)
+
+        exit_code, output = run_mtest_inprocess(common_args + ['--benchmark', '--suite', 'everything'])
+        self.assertEqual(exit_code, 0)
+        self.assertNotIn('test A', output)
+        self.assertNotIn('test B', output)
+        self.assertNotIn('test C', output)
+        self.assertIn('bench D', output)

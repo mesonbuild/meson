@@ -1,0 +1,21 @@
+name: add_test_suite
+returns: void
+since: 1.5.0
+description: |
+  Add the specified tests or benchmarks to a test suite.
+  This function allows to gather in one place all the tests belonging to a
+  given suite.
+
+posargs:
+  suite:
+    type: str
+    description: |
+      `'label'` to attach to the tests.
+      The suite name is qualified by a (sub)project
+      name resulting in `(sub)project_name:label`.
+  
+varargs:
+  name: Test
+  type: test
+  min_varargs: 1
+  description: The test or benchmark on which to attach the label.

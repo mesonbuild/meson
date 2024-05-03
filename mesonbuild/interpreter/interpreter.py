@@ -349,6 +349,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            'add_project_dependencies': self.func_add_project_dependencies,
                            'add_project_link_arguments': self.func_add_project_link_arguments,
                            'add_test_setup': self.func_add_test_setup,
+                           'add_test_suite': self.func_add_test_suite,
                            'alias_target': self.func_alias_target,
                            'assert': self.func_assert,
                            'benchmark': self.func_benchmark,
@@ -2883,6 +2884,18 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.build.test_setup_default_name = setup_name
         self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, kwargs['gdb'], timeout_multiplier, kwargs['env'],
                                                              kwargs['exclude_suites'])
+
+    @FeatureNew('add_test_suite', '1.5.0')
+    @typed_pos_args('add_test_suite', str, varargs=Test, min_varargs=1)
+    @noKwargs
+    def func_add_test_suite(self, node: mparser.FunctionNode, args: T.Tuple[str, T.List[Test]], kwargs: TYPE_kwargs) -> None:
+        suite, tests = args
+        if suite:
+            suite = ':' + suite
+        for test in tests:
+            suite_name = test.project_name.replace(' ', '_').replace(':', '_') + suite
+            if suite_name not in test.suite:
+                test.suite.append(suite_name)
 
     @typed_pos_args('add_global_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', NATIVE_KW, LANGUAGE_KW)

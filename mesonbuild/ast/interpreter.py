@@ -146,6 +146,7 @@ class AstInterpreter(InterpreterBase):
                            'option': self.func_do_nothing,
                            'both_libraries': self.func_do_nothing,
                            'add_test_setup': self.func_do_nothing,
+                           'add_test_suite': self.func_do_nothing,
                            'subdir_done': self.func_do_nothing,
                            'alias_target': self.func_do_nothing,
                            'summary': self.func_do_nothing,
