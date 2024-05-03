@@ -1,5 +1,5 @@
 name: benchmark
-returns: void
+returns: test
 description: |
   Creates a benchmark item that will be run when the benchmark target is
   run. The behavior of this function is identical to [[test]]

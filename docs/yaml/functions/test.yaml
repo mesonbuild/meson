@@ -1,5 +1,5 @@
 name: test
-returns: void
+returns: test
 description: |
   Defines a test to run with the test harness. Takes two positional
   arguments, the first is the name of the test and the second is the

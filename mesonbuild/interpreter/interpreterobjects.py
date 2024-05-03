@@ -754,7 +754,7 @@ class EmptyDirHolder(ObjectHolder[build.EmptyDir]):
 class GeneratedObjectsHolder(ObjectHolder[build.ExtractedObjects]):
     pass
 
-class Test(MesonInterpreterObject):
+class Test(MesonInterpreterObject, HoldableObject):
     def __init__(self, name: str, project: str, suite: T.List[str],
                  exe: T.Union[ExternalProgram, build.Executable, build.CustomTarget, build.CustomTargetIndex],
                  depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
@@ -784,6 +784,9 @@ class Test(MesonInterpreterObject):
 
     def get_name(self) -> str:
         return self.name
+
+class TestHolder(ObjectHolder[Test]):
+    pass
 
 class NullSubprojectInterpreter(HoldableObject):
     pass

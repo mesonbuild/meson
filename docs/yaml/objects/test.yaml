@@ -1,0 +1,4 @@
+name: test
+long_name: Test Target
+description: Opaque object for test and benchmark targets
+since: 1.5.0

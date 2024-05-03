@@ -39,7 +39,7 @@ from .mesonmain import MesonMain
 from .dependencyfallbacks import DependencyFallbacksHolder
 from .interpreterobjects import (
     SubprojectHolder,
-    Test,
+    Test, TestHolder,
     RunProcess,
     extract_required_kwarg,
     extract_search_dirs,
@@ -453,6 +453,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
             envconfig.MachineInfo: OBJ.MachineHolder,
             build.ConfigurationData: OBJ.ConfigurationDataHolder,
+            Test: TestHolder,
         })
 
         '''
@@ -2173,15 +2174,15 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_kwargs('benchmark', *TEST_KWS)
     def func_benchmark(self, node: mparser.BaseNode,
                        args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File]],
-                       kwargs: 'kwtypes.FuncBenchmark') -> None:
-        self.add_test(node, args, kwargs, False)
+                       kwargs: 'kwtypes.FuncBenchmark') -> Test:
+        return self.add_test(node, args, kwargs, False)
 
     @typed_pos_args('test', str, (build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex))
     @typed_kwargs('test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
     def func_test(self, node: mparser.BaseNode,
                   args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
-                  kwargs: 'kwtypes.FuncTest') -> None:
-        self.add_test(node, args, kwargs, True)
+                  kwargs: 'kwtypes.FuncTest') -> Test:
+        return self.add_test(node, args, kwargs, True)
 
     def unpack_env_kwarg(self, kwargs: T.Union[EnvironmentVariables, T.Dict[str, 'TYPE_var'], T.List['TYPE_var'], str]) -> EnvironmentVariables:
         envlist = kwargs.get('env')
@@ -2241,7 +2242,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def add_test(self, node: mparser.BaseNode,
                  args: T.Tuple[str, T.Union[build.Executable, build.Jar, ExternalProgram, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]],
-                 kwargs: T.Dict[str, T.Any], is_base_test: bool):
+                 kwargs: T.Dict[str, T.Any], is_base_test: bool) -> Test:
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
 
@@ -2252,6 +2253,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             self.build.benchmarks.append(t)
             mlog.debug('Adding benchmark', mlog.bold(t.name, True))
+        return t
 
     @typed_pos_args('install_headers', varargs=(str, mesonlib.File))
     @typed_kwargs(
