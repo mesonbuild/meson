@@ -2113,11 +2113,11 @@ class TestHarness:
             for l in self.loggers:
                 await l.finish(self)
 
-def list_tests(th: TestHarness) -> bool:
+def list_tests(th: TestHarness) -> int:
     tests = th.get_tests(errorfile=sys.stderr)
     for t in tests:
         print(th.get_pretty_suite(t))
-    return not tests
+    return 0 if tests else 1
 
 def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) -> bool:
     def convert_path_to_target(path: str) -> str:
