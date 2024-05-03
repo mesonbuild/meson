@@ -18,5 +18,11 @@ sub2_config = sub_pro.dependency('cmModLib2', include_type: 'system')
 exe2 = executable('main2', ['main.cpp'], dependencies: [sub2_config],
   link_depends: [tgt_internal, tgt_test_cmake])
 
+# use the library through a config file w/ target_link_libraries & target_link_directories
+sub3_config = sub_pro.dependency('cmModLib3')
+exe3 = executable('main3', ['main.cpp'], dependencies: [sub3_config],
+  link_depends: [tgt_internal, tgt_test_cmake])
+
 test('test1', exe1)
 test('test2', exe2)
+test('test3', exe3)

@@ -130,6 +130,7 @@ class CMakeTraceParser:
             'target_compile_options': self._cmake_target_compile_options,
             'target_include_directories': self._cmake_target_include_directories,
             'target_link_libraries': self._cmake_target_link_libraries,
+            'target_link_directories': self._cmake_target_link_directories,
             'target_link_options': self._cmake_target_link_options,
             'add_dependencies': self._cmake_add_dependencies,
             'message': self._cmake_message,
@@ -642,6 +643,10 @@ class CMakeTraceParser:
     def _cmake_target_link_libraries(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_link_libraries.html
         self._parse_common_target_options('target_link_options', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', tline)
+
+    def _cmake_target_link_directories(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_link_directories.html
+        self._parse_common_target_options('target_link_options', 'LINK_DIRECTORIES', 'INTERFACE_LINK_DIRECTORIES', tline, paths=True)
 
     def _cmake_message(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/message.html

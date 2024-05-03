@@ -33,3 +33,8 @@ set_property(TARGET cmMod::cmModLib++ PROPERTY IMPORTED_LOCATION_IMPORTED_SPECIA
 add_library(cmModLib2 INTERFACE)
 set_property(TARGET cmModLib2 PROPERTY INTERFACE_LINK_LIBRARIES -l${CMMOD_LIB_NAME})
 set_property(TARGET cmModLib2 PROPERTY INTERFACE_LINK_DIRECTORIES ${CMMOD_LIB_DIR}/..)
+
+# Yet another name for the same library, it checks target_link_directories
+add_library(cmModLib3 INTERFACE)
+target_link_libraries(cmModLib3 INTERFACE -l${CMMOD_LIB_NAME})
+target_link_directories(cmModLib3 INTERFACE ${CMMOD_LIB_DIR}/..)
