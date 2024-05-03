@@ -208,6 +208,9 @@ Sometimes you need to run the tests multiple times, which is done like this:
 $ meson test --repeat=10
 ```
 
+Meson will set the `MESON_TEST_ITERATION` environment variable to the
+current iteration of the test *(added 1.5.0)*.
+
 Invoking tests via a helper executable such as Valgrind can be done with the
 `--wrap` argument
 

@@ -1709,7 +1709,7 @@ class TestHarness:
             sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
         return current.env.get_env(os.environ.copy())
 
-    def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
+    def get_test_runner(self, test: TestSerialisation, iteration: int) -> SingleTestRunner:
         name = self.get_pretty_suite(test)
         options = deepcopy(self.options)
         if self.options.setup:
@@ -1721,6 +1721,7 @@ class TestHarness:
         if (test.is_cross_built and test.needs_exe_wrapper and
                 test.exe_wrapper and test.exe_wrapper.found()):
             env['MESON_EXE_WRAPPER'] = join_args(test.exe_wrapper.get_command())
+        env['MESON_TEST_ITERATION'] = str(iteration + 1)
         return SingleTestRunner(test, env, name, options)
 
     def process_test_result(self, result: TestRun) -> None:
@@ -1822,7 +1823,7 @@ class TestHarness:
             os.chdir(self.options.wd)
             runners: T.List[SingleTestRunner] = []
             for i in range(self.options.repeat):
-                runners.extend(self.get_test_runner(test) for test in tests)
+                runners.extend(self.get_test_runner(test, i) for test in tests)
                 if i == 0:
                     self.duration_max_len = max(len(str(int(runner.timeout or 99)))
                                                 for runner in runners)
