@@ -91,7 +91,7 @@ machine](#specifying-options-per-machine) section for details.
 | strip                                  | false         | Strip targets on install                                       | no             | no                |
 | unity {on, off, subprojects}           | off           | Unity build                                                    | no             | no                |
 | unity_size {>=2}                       | 4             | Unity file block size                                          | no             | no                |
-| warning_level {0, 1, 2, 3, everything} | 1             | Set the warning level. From 0 = none to everything = highest   | no             | yes               |
+| warning_level {0, 1, 2, 3, everything} | 1             | Set the warning level. From 0 = compiler default to everything = highest | no   | yes               |
 | werror                                 | false         | Treat warnings as errors                                       | no             | yes               |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                   | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
