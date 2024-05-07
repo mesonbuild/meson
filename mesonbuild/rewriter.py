@@ -423,7 +423,7 @@ class Rewriter:
             node = self.interpreter.state.local.assignments[target]
             if isinstance(node, FunctionNode):
                 if node.func_name.value in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
-                    tgt = self.interpreter.assign_vals[target]
+                    tgt = self.interpreter.state.local.assign_vals[target]
 
         return tgt
 

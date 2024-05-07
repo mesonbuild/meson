@@ -51,7 +51,7 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var
+    from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var, InterpreterObject
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -99,6 +99,9 @@ class LocalState(_LocalState):
     assignments: T.Dict[str, BaseNode] = dataclasses.field(default_factory=dict)
     """Associate variable names with the node last assigned to them."""
 
+    assign_vals: T.Dict[str, T.Optional[InterpreterObject]] = \
+        dataclasses.field(default_factory=dict)
+
 
 class State(_State):
 
@@ -115,7 +118,6 @@ class AstInterpreter(InterpreterBase):
         self.state = State(LocalState(subproject, subdir), GlobalState(source_root, subproject_dir))
         super().__init__()
         self.visitors = visitors if visitors is not None else []
-        self.assign_vals: T.Dict[str, T.Any] = {}
         self.reverse_assignment: T.Dict[str, BaseNode] = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
@@ -271,7 +273,7 @@ class AstInterpreter(InterpreterBase):
         self.state.local.assignments[node.var_name.value] = node.value  # Save a reference to the value node
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
-        self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
+        self.state.local.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
 
     def evaluate_indexing(self, node: IndexNode) -> int:
         return 0
@@ -336,7 +338,7 @@ class AstInterpreter(InterpreterBase):
         self.state.local.assignments[node.var_name.value] = node.value # Save a reference to the value node
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
-        self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
+        self.state.local.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
         def quick_resolve(n: BaseNode, loop_detect: T.Optional[T.List[str]] = None) -> T.Any:
