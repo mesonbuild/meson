@@ -382,8 +382,11 @@ class CudaCompiler(Compiler):
                 # This is ambiguously either an MVSC-style /switch or an absolute path
                 # to a file. For some magical reason the following works acceptably in
                 # both cases.
+                # We only want to prefix arguments that are NOT static archives, since
+                # the latter could contain relocatable device code (-dc/-rdc=true).
+                prefix = '' if flag.endswith('.a') else f'-X{phase.value}='
                 wrap = '"' if ',' in flag else ''
-                xflags.append(f'-X{phase.value}={wrap}{flag}{wrap}')
+                xflags.append(f'{prefix}{wrap}{flag}{wrap}')
                 continue
             elif len(flag) >= 2 and flag[0] == '-' and flag[1] in 'IDULlmOxmte':
                 # This is a single-letter short option. These options (with the
