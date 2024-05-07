@@ -6,6 +6,7 @@
 # or an interpreter-based tool
 
 from __future__ import annotations
+import contextlib
 import copy
 import dataclasses
 import os
@@ -63,12 +64,34 @@ class GlobalState(_GlobalState):
     environment: environment.Environment
     """An environment object."""
 
+    def copy(self) -> GlobalState:
+        return GlobalState(
+            self.source_root, self.subproject_dir, self.visitors,
+            self.cross_file, self.backend, self.environment,
+        )
 
 @dataclasses.dataclass
 class State(_State):
 
     local: LocalState
     world: GlobalState
+
+    def copy(self) -> State:
+        return State(self.local, self.world.copy())
+
+    @contextlib.contextmanager
+    def subproject(self, new: LocalState) -> T.Iterator[LocalState]:
+        """Replace the local state with a new one, and ensure it's set back
+
+        :param new: the new state to use
+        :yield: the old state
+        """
+        old = self.local
+        self.local = new
+        try:
+            yield old
+        finally:
+            self.local = old
 
 
 class IntrospectionHelper:
@@ -186,15 +209,16 @@ class IntrospectionInterpreter(AstInterpreter):
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
     def do_subproject(self, dirname: SubProject) -> None:
-        subproject_dir_abs = os.path.join(self.state.world.environment.get_source_dir(), self.state.world.subproject_dir)
-        subpr = os.path.join(subproject_dir_abs, dirname)
-        try:
-            subi = IntrospectionInterpreter(subpr, '', self.state.world.backend, cross_file=self.state.world.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.state.world.environment, visitors=self.state.world.visitors)
-            subi.analyze()
-            subi.state.local.project_data['name'] = dirname
-            self.state.local.project_data['subprojects'] += [subi.state.local.project_data]
-        except (mesonlib.MesonException, RuntimeError):
-            return
+        snapshot = self.state.copy()
+        subdir = os.path.join(self.state.world.subproject_dir, dirname)
+        local = LocalState(dirname, subdir, default_subproject_options={OptionKey('backend'): self.state.world.backend})
+        with self.state.subproject(local) as current_state:
+            try:
+                self.analyze()
+                local.project_data['name'] = dirname
+                current_state.project_data['subprojects'].append(local.project_data)
+            except (mesonlib.MesonException, RuntimeError):
+                self.state = snapshot
 
     def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         kwargs = self.flatten_kwargs(kwargs)
