@@ -22,7 +22,7 @@ from ..interpreterbase import (
     Disabler,
     default_resolve_key,
 )
-from ..interpreterbase.state import State as _State, LocalState, GlobalState as _GlobalState
+from ..interpreterbase.state import State as _State, LocalState as _LocalState, GlobalState as _GlobalState
 
 from ..interpreter import (
     StringHolder,
@@ -93,6 +93,13 @@ class GlobalState(_GlobalState):
     subproject_dir: str
 
 
+@dataclasses.dataclass
+class LocalState(_LocalState):
+
+    assignments: T.Dict[str, BaseNode] = dataclasses.field(default_factory=dict)
+    """Associate variable names with the node last assigned to them."""
+
+
 class State(_State):
 
     local: LocalState
@@ -108,7 +115,6 @@ class AstInterpreter(InterpreterBase):
         self.state = State(LocalState(subproject, subdir), GlobalState(source_root, subproject_dir))
         super().__init__()
         self.visitors = visitors if visitors is not None else []
-        self.assignments: T.Dict[str, BaseNode] = {}
         self.assign_vals: T.Dict[str, T.Any] = {}
         self.reverse_assignment: T.Dict[str, BaseNode] = {}
         self.funcs.update({'project': self.func_do_nothing,
@@ -262,7 +268,7 @@ class AstInterpreter(InterpreterBase):
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
         assert isinstance(node, PlusAssignmentNode)
         # Cheat by doing a reassignment
-        self.assignments[node.var_name.value] = node.value  # Save a reference to the value node
+        self.state.local.assignments[node.var_name.value] = node.value  # Save a reference to the value node
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
@@ -327,7 +333,7 @@ class AstInterpreter(InterpreterBase):
 
     def assignment(self, node: AssignmentNode) -> None:
         assert isinstance(node, AssignmentNode)
-        self.assignments[node.var_name.value] = node.value # Save a reference to the value node
+        self.state.local.assignments[node.var_name.value] = node.value # Save a reference to the value node
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
@@ -338,9 +344,9 @@ class AstInterpreter(InterpreterBase):
                 loop_detect = []
             if isinstance(n, IdNode):
                 assert isinstance(n.value, str)
-                if n.value in loop_detect or n.value not in self.assignments:
+                if n.value in loop_detect or n.value not in self.state.local.assignments:
                     return []
-                return quick_resolve(self.assignments[n.value], loop_detect = loop_detect + [n.value])
+                return quick_resolve(self.state.local.assignments[n.value], loop_detect = loop_detect + [n.value])
             elif isinstance(n, ElementaryNode):
                 return n.value
             else:

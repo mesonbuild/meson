@@ -240,8 +240,8 @@ class IntrospectionInterpreter(AstInterpreter):
                     # Try to resolve the ID and append the node to the queue
                     assert isinstance(curr.value, str)
                     var_name = curr.value
-                    if var_name in self.assignments:
-                        tmp_node = self.assignments[var_name]
+                    if var_name in self.state.local.assignments:
+                        tmp_node = self.state.local.assignments[var_name]
                         if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
                             inqueue += [tmp_node]
                 elif isinstance(curr, ArithmeticNode):

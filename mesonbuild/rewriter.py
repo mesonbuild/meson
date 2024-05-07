@@ -419,8 +419,8 @@ class Rewriter:
 
         # Check the assignments
         tgt = None
-        if target in self.interpreter.assignments:
-            node = self.interpreter.assignments[target]
+        if target in self.interpreter.state.local.assignments:
+            node = self.interpreter.state.local.assignments[target]
             if isinstance(node, FunctionNode):
                 if node.func_name.value in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
                     tgt = self.interpreter.assign_vals[target]
@@ -439,8 +439,8 @@ class Rewriter:
             return dep
 
         # Check the assignments
-        if dependency in self.interpreter.assignments:
-            node = self.interpreter.assignments[dependency]
+        if dependency in self.interpreter.state.local.assignments:
+            node = self.interpreter.state.local.assignments[dependency]
             if isinstance(node, FunctionNode):
                 if node.func_name.value == 'dependency':
                     name = self.interpreter.flatten_args(node.args)[0]
@@ -740,7 +740,7 @@ class Rewriter:
                         self.modified_nodes += [tgt_function]
                 target['extra_files'] = [node]
             if isinstance(node, IdNode):
-                node = self.interpreter.assignments[node.value]
+                node = self.interpreter.state.local.assignments[node.value]
                 target['extra_files'] = [node]
             if not isinstance(node, ArrayNode):
                 mlog.error('Target', mlog.bold(cmd['target']), 'extra_files argument must be a list', *self.on_error())
