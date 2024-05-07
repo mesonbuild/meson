@@ -123,7 +123,9 @@ kwargs:
     type: str
     description: |
       The output file name. *(since 0.41.0)* may contain
-      `@PLAINNAME@` or `@BASENAME@` substitutions. In configuration mode,
+      `@PLAINNAME@` or `@BASENAME@` substitutions, as well as *(since 1.5.0)*
+      their indexed versions, like `@PLAINNAME0@` or `@BASENAME0@`.
+      In configuration mode,
       the permissions of the input file (if it is specified) are copied to
       the output file.
 

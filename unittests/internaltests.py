@@ -287,6 +287,7 @@ class InternalTests(unittest.TestCase):
         outputs = []
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c'}
         # Check dictionary
         self.assertEqual(ret, d)
@@ -309,6 +310,7 @@ class InternalTests(unittest.TestCase):
         outputs = ['out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': '.'}
         # Check dictionary
@@ -330,6 +332,7 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
         # Check dictionary
@@ -339,7 +342,9 @@ class InternalTests(unittest.TestCase):
         inputs = ['bar/foo.c.in', 'baz/foo.c.in']
         outputs = []
         ret = dictfunc(inputs, outputs)
-        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1]}
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c'}
         # Check dictionary
         self.assertEqual(ret, d)
         # Check substitutions
@@ -376,6 +381,8 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
         # Check dictionary
         self.assertEqual(ret, d)
@@ -402,6 +409,8 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c', 'dir/out2.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTPUT1@': outputs[1],
              '@OUTDIR@': 'dir'}
         # Check dictionary

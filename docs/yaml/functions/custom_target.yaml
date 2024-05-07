@@ -31,7 +31,9 @@ description: |
   - `@OUTDIR@`: the full path to the directory where the output(s) must be written
   - `@DEPFILE@`: the full path to the dependency file passed to `depfile`
   - `@PLAINNAME@`: the input filename, without a path
+  - `@PLAINNAME0@` `@PLAINNAME1@` `...` *(since 1.5.0)*: the input filename without a path, with the specified array index in `input`
   - `@BASENAME@`: the input filename, with extension removed
+  - `@BASENAME0@` `@BASENAME1@` `...` *(since 1.5.0)*: the input filename with extension removed, with the specified array index in `input`
   - `@PRIVATE_DIR@` *(since 0.50.1)*: path to a directory where the custom target must store all its intermediate files.
   - `@SOURCE_ROOT@`: the path to the root of the source tree. Depending on the backend,
     this may be an absolute or a relative to current workdir path.
