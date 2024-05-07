@@ -194,7 +194,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
         res = [x.resolve() for x in res]
         return res
 
-    for i in intr.targets:
+    for i in intr.state.local.targets:
         sources = nodes_to_paths(i['sources'])
         extra_f = nodes_to_paths(i['extra_files'])
         outdir = get_target_dir(intr.coredata, i['subdir'])

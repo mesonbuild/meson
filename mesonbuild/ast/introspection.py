@@ -42,6 +42,9 @@ class LocalState(_LocalState):
     project_data: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
     """Data from the project function call"""
 
+    targets: T.List[T.Dict[str, T.Any]] = dataclasses.field(default_factory=list)
+    """Data for target function calls"""
+
 
 @dataclasses.dataclass
 class GlobalState(_GlobalState):
@@ -102,7 +105,6 @@ class IntrospectionInterpreter(AstInterpreter):
         super().__init__(state)
         self.coredata = self.state.world.environment.get_coredata()
         self.default_options = {OptionKey('backend'): backend}
-        self.targets: T.List[T.Dict[str, T.Any]] = []
         self.dependencies: T.List[T.Dict[str, T.Any]] = []
 
         self.funcs.update({
@@ -332,7 +334,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'node': node,
         }
 
-        self.targets += [new_target]
+        self.state.local.targets += [new_target]
         return new_target
 
     def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:

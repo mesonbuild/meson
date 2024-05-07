@@ -400,7 +400,7 @@ class Rewriter:
     def find_target(self, target: str):
         def check_list(name: str) -> T.List[BaseNode]:
             result = []
-            for i in self.interpreter.targets:
+            for i in self.interpreter.state.local.targets:
                 if name in {i['name'], i['id']}:
                     result += [i]
             return result
