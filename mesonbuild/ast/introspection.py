@@ -40,7 +40,9 @@ class LocalState(_LocalState):
 
 @dataclasses.dataclass
 class GlobalState(_GlobalState):
-    pass
+
+    cross_file: T.Optional[str]
+    """A cross file (if there is one)."""
 
 
 
@@ -80,12 +82,11 @@ class IntrospectionInterpreter(AstInterpreter):
         visitors = visitors if visitors is not None else []
         state = State(
             LocalState(subproject, subdir),
-            GlobalState(source_root, subproject_dir, visitors)
+            GlobalState(source_root, subproject_dir, visitors, cross_file)
         )
         super().__init__(state)
 
         options = IntrospectionHelper(cross_file)
-        self.cross_file = cross_file
         if env is None:
             self.environment = environment.Environment(source_root, None, options)
         else:
@@ -166,7 +167,7 @@ class IntrospectionInterpreter(AstInterpreter):
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.state.world.subproject_dir)
         subpr = os.path.join(subproject_dir_abs, dirname)
         try:
-            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.environment, visitors=self.state.world.visitors)
+            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.state.world.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.environment, visitors=self.state.world.visitors)
             subi.analyze()
             subi.project_data['name'] = dirname
             self.project_data['subprojects'] += [subi.project_data]
