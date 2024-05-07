@@ -44,6 +44,9 @@ class GlobalState(_GlobalState):
     cross_file: T.Optional[str]
     """A cross file (if there is one)."""
 
+    backend: str
+    """The string name of the backend to be emulated."""
+
     environment: environment.Environment
     """An environment object."""
 
@@ -88,13 +91,13 @@ class IntrospectionInterpreter(AstInterpreter):
             LocalState(subproject, subdir),
             GlobalState(
                 source_root, subproject_dir, visitors, cross_file,
+                backend,
                 env if env is not None else environment.Environment(source_root, None, options)
             )
         )
         super().__init__(state)
         self.coredata = self.state.world.environment.get_coredata()
-        self.backend = backend
-        self.default_options = {OptionKey('backend'): self.backend}
+        self.default_options = {OptionKey('backend'): backend}
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[T.Dict[str, T.Any]] = []
         self.dependencies: T.List[T.Dict[str, T.Any]] = []
@@ -162,7 +165,7 @@ class IntrospectionInterpreter(AstInterpreter):
                     if os.path.isdir(os.path.join(subprojects_dir, i)):
                         self.do_subproject(SubProject(i))
 
-        self.coredata.init_backend_options(self.backend)
+        self.coredata.init_backend_options(self.state.world.backend)
         options = {k: v for k, v in self.state.world.environment.options.items() if k.is_backend()}
 
         self.coredata.set_options(options)
@@ -173,7 +176,7 @@ class IntrospectionInterpreter(AstInterpreter):
         subproject_dir_abs = os.path.join(self.state.world.environment.get_source_dir(), self.state.world.subproject_dir)
         subpr = os.path.join(subproject_dir_abs, dirname)
         try:
-            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.state.world.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.state.world.environment, visitors=self.state.world.visitors)
+            subi = IntrospectionInterpreter(subpr, '', self.state.world.backend, cross_file=self.state.world.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.state.world.environment, visitors=self.state.world.visitors)
             subi.analyze()
             subi.project_data['name'] = dirname
             self.project_data['subprojects'] += [subi.project_data]
