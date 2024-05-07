@@ -4129,6 +4129,7 @@ class AllPlatformTests(BasePlatformTests):
                     c_args = common_flags + ['-DSOMETHING']
                     cpp_args = c_args + ['-DSOMETHING_ELSE']
                     rel_to_src = '@GLOBAL_SOURCE_ROOT@' / 'tool'
+                    rel_to_build = '@GLOBAL_BUILD_ROOT@' / 'tool'
                     rel_to_file = '@DIRNAME@' / 'tool'
                     no_escaping = '@@DIRNAME@@' / 'tool'
 
@@ -4136,13 +4137,15 @@ class AllPlatformTests(BasePlatformTests):
                     c = toolchain / compiler
                     '''))
 
-            values = mesonbuild.coredata.parse_machine_files([crossfile1, crossfile2], self.builddir)
+            values = mesonbuild.coredata.parse_machine_files([crossfile1, crossfile2],
+                                                             self.builddir, os.path.join(self.builddir, 'build'))
             self.assertEqual(values['binaries']['c'], '/toolchain/gcc')
             self.assertEqual(values['properties']['c_args'],
                              ['--sysroot=/toolchain/sysroot', '-DSOMETHING'])
             self.assertEqual(values['properties']['cpp_args'],
                              ['--sysroot=/toolchain/sysroot', '-DSOMETHING', '-DSOMETHING_ELSE'])
             self.assertEqual(values['properties']['rel_to_src'], os.path.join(self.builddir, 'tool'))
+            self.assertEqual(values['properties']['rel_to_build'], os.path.join(self.builddir, 'build', 'tool'))
             self.assertEqual(values['properties']['rel_to_file'], os.path.join(os.path.dirname(crossfile2), 'tool'))
             self.assertEqual(values['properties']['no_escaping'], os.path.join(f'@{os.path.dirname(crossfile2)}@', 'tool'))
 

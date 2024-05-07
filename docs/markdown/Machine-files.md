@@ -128,9 +128,13 @@ b = a + 'World'
 a = 'Hello'
 ```
 
-*Since 1.3.0* Some tokens are replaced in the machine file before parsing it:
+Some tokens are replaced in the machine file before parsing it:
+*Since 1.3.0*
 - `@GLOBAL_SOURCE_ROOT@`: the absolute path to the project's source tree
 - `@DIRNAME@`: the absolute path to the machine file's parent directory.
+
+*In `node-hadron`*
+- `@GLOBAL_BUILD_ROOT@`: the absolute path to the project's build root
 
 It can be used, for example, to have paths relative to the source directory, or
 relative to toolchain's installation directory.

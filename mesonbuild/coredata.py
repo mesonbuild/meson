@@ -1091,7 +1091,7 @@ class CmdLineFileParser(configparser.ConfigParser):
         return optionstr
 
 class MachineFileParser():
-    def __init__(self, filenames: T.List[str], sourcedir: str) -> None:
+    def __init__(self, filenames: T.List[str], sourcedir: str, builddir: str) -> None:
         self.parser = CmdLineFileParser()
         self.constants: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = {'True': True, 'False': False}
         self.sections: T.Dict[str, T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = {}
@@ -1104,6 +1104,7 @@ class MachineFileParser():
                 raise EnvironmentException(f'Malformed machine file {fname!r} failed to parse as unicode: {e}')
 
             content = content.replace('@GLOBAL_SOURCE_ROOT@', sourcedir)
+            content = content.replace('@GLOBAL_BUILD_ROOT@', builddir)
             content = content.replace('@DIRNAME@', os.path.dirname(fname))
             try:
                 self.parser.read_string(content, fname)
@@ -1166,8 +1167,8 @@ class MachineFileParser():
                     return os.path.join(l, r)
         raise EnvironmentException('Unsupported node type')
 
-def parse_machine_files(filenames: T.List[str], sourcedir: str):
-    parser = MachineFileParser(filenames, sourcedir)
+def parse_machine_files(filenames: T.List[str], sourcedir: str, builddir: str):
+    parser = MachineFileParser(filenames, sourcedir, builddir)
     return parser.sections
 
 def get_cmd_line_file(build_dir: str) -> str:

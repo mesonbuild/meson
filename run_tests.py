@@ -146,7 +146,7 @@ def get_fake_options(prefix: str = '') -> SharedCMDOptions:
     opts.cmd_line_options = {}
     return opts
 
-def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
+def get_fake_env(sdir='src', bdir='build', prefix='', opts=None):
     if opts is None:
         opts = get_fake_options(prefix)
     env = Environment(sdir, bdir, opts)
