@@ -48,6 +48,8 @@ class LocalState(_LocalState):
     dependencies: T.List[T.Dict[str, T.Any]] = dataclasses.field(default_factory=list)
     """Data for dependency generating function calls."""
 
+    default_subproject_options: T.Dict[OptionKey, str] = dataclasses.field(default_factory=dict)
+
 
 @dataclasses.dataclass
 class GlobalState(_GlobalState):
@@ -98,7 +100,10 @@ class IntrospectionInterpreter(AstInterpreter):
         visitors = visitors if visitors is not None else []
         options = IntrospectionHelper(cross_file)
         state = State(
-            LocalState(subproject, subdir),
+            LocalState(
+                subproject, subdir,
+                default_subproject_options={OptionKey('backend'): backend},
+            ),
             GlobalState(
                 source_root, subproject_dir, visitors, cross_file,
                 backend,
@@ -107,7 +112,6 @@ class IntrospectionInterpreter(AstInterpreter):
         )
         super().__init__(state)
         self.coredata = self.state.world.environment.get_coredata()
-        self.default_options = {OptionKey('backend'): backend}
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -158,8 +162,8 @@ class IntrospectionInterpreter(AstInterpreter):
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
         self.state.local.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
-        self.default_options.update(self.state.local.project_default_options)
-        self.coredata.set_default_options(self.default_options, self.subproject, self.state.world.environment)
+        self.state.local.default_subproject_options.update(self.state.local.project_default_options)
+        self.coredata.set_default_options(self.state.local.default_subproject_options, self.subproject, self.state.world.environment)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
