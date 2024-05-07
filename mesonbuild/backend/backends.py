@@ -1080,6 +1080,15 @@ class Backend:
                 continue
             if compiler.get_language() == 'd':
                 arg = '-Wl,' + arg
+            elif compiler.get_linker_id() == 'nvlink' and arg.endswith('.a'):
+                # We need to pass static archives without -Xlinker= to nvcc,
+                # since they may contain relocatable device code. When passing
+                # the static archive to nvcc with -Xlinker=, we bypass the
+                # frontend which means we lose the opportunity to perform device
+                # linking. We only need to do this for static archives, since
+                # nvcc doesn't support device linking with dynamic libraries:
+                # https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#libraries
+                pass
             else:
                 arg = compiler.get_linker_lib_prefix() + arg
             args.append(arg)
