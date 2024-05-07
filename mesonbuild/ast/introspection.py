@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 import copy
+import dataclasses
 import os
 import typing as T
 
@@ -17,7 +18,7 @@ from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject
 from ..mesonlib import MachineChoice, OptionKey
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
-from .interpreter import AstInterpreter
+from .interpreter import AstInterpreter, State as _State, LocalState as _LocalState, GlobalState as _GlobalState
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
@@ -30,6 +31,25 @@ BUILD_TARGET_FUNCTIONS = [
     'executable', 'jar', 'library', 'shared_library', 'shared_module',
     'static_library', 'both_libraries'
 ]
+
+
+@dataclasses.dataclass
+class LocalState(_LocalState):
+    pass
+
+
+@dataclasses.dataclass
+class GlobalState(_GlobalState):
+    pass
+
+
+
+@dataclasses.dataclass
+class State(_State):
+
+    local: LocalState
+    world: GlobalState
+
 
 class IntrospectionHelper:
     # mimic an argparse namespace
@@ -45,6 +65,9 @@ class IntrospectionHelper:
 class IntrospectionInterpreter(AstInterpreter):
     # Interpreter to detect the options without a build directory
     # Most of the code is stolen from interpreter.Interpreter
+
+    state: State
+
     def __init__(self,
                  source_root: str,
                  subdir: str,
@@ -54,7 +77,12 @@ class IntrospectionInterpreter(AstInterpreter):
                  subproject: SubProject = SubProject(''),
                  subproject_dir: str = 'subprojects',
                  env: T.Optional[environment.Environment] = None) -> None:
-        super().__init__(source_root, subdir, subproject, visitors=visitors, subproject_dir=subproject_dir)
+        visitors = visitors if visitors is not None else []
+        state = State(
+            LocalState(subproject, subdir),
+            GlobalState(source_root, subproject_dir, visitors)
+        )
+        super().__init__(state)
 
         options = IntrospectionHelper(cross_file)
         self.cross_file = cross_file

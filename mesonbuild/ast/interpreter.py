@@ -119,10 +119,8 @@ class AstInterpreter(InterpreterBase):
 
     state: State
 
-    def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None,
-                 subproject_dir: str = 'subprojects'):
-        visitors = visitors if visitors is not None else []
-        self.state = State(LocalState(subproject, subdir), GlobalState(source_root, subproject_dir, visitors))
+    def __init__(self, state: State):
+        self.state = state
         super().__init__()
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
