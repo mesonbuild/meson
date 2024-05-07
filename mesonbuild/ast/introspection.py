@@ -35,7 +35,9 @@ BUILD_TARGET_FUNCTIONS = [
 
 @dataclasses.dataclass
 class LocalState(_LocalState):
-    pass
+
+    project_node: T.Optional[FunctionNode] = None
+    """The Node that the project() call is in."""
 
 
 @dataclasses.dataclass
@@ -101,7 +103,6 @@ class IntrospectionInterpreter(AstInterpreter):
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[T.Dict[str, T.Any]] = []
         self.dependencies: T.List[T.Dict[str, T.Any]] = []
-        self.project_node: BaseNode = None
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -122,9 +123,12 @@ class IntrospectionInterpreter(AstInterpreter):
         return self.state.world.environment
 
     def func_project(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
-        if self.project_node:
+        # The signature must be a BaseNode, but we know this is a FunctionNode,
+        # and things will fail badly if it's not.
+        assert isinstance(node, FunctionNode), 'for mypy'
+        if self.state.local.project_node:
             raise InvalidArguments('Second call to project()')
-        self.project_node = node
+        self.state.local.project_node = node
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
 

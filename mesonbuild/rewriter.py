@@ -503,7 +503,7 @@ class Rewriter:
         kwargs_def = rewriter_func_kwargs[cmd['function']]
 
         # Find the function node to modify
-        node = None
+        node: T.Optional[FunctionNode] = None
         arg_node = None
         if cmd['function'] == 'project':
             # msys bash may expand '/' to a path. It will mangle '//' to '/'
@@ -513,7 +513,8 @@ class Rewriter:
             if {'/', '//'}.isdisjoint({cmd['id']}):
                 mlog.error('The ID for the function type project must be "/" or "//" not "' + cmd['id'] + '"', *self.on_error())
                 return self.handle_error()
-            node = self.interpreter.project_node
+            node = self.interpreter.state.local.project_node
+            assert node is not None, 'for mypy'
             arg_node = node.args
         elif cmd['function'] == 'target':
             tmp = self.find_target(cmd['id'])
