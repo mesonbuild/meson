@@ -117,6 +117,12 @@ if ['gcc', 'intel'].contains(c.get_id())
   endif
 endif
 
+if c.get_id() == 'gcc'
+  if c.version().version_compare('>= 14.1')
+    attributes += 'null_terminated_string_arg'
+  endif
+endif
+
 if get_option('mode') == 'single'
   foreach a : attributes
     x = c.has_function_attribute(a)

@@ -272,54 +272,55 @@ These values are supported using the GCC style `__attribute__` annotations,
 which are supported by GCC, Clang, and other compilers.
 
 
-| Name                     |
-|--------------------------|
-| alias                    |
-| aligned                  |
-| alloc_size               |
-| always_inline            |
-| artificial               |
-| cold                     |
-| const                    |
-| constructor              |
-| constructor_priority     |
-| deprecated               |
-| destructor               |
-| error                    |
-| externally_visible       |
-| fallthrough              |
-| flatten                  |
-| format                   |
-| format_arg               |
-| force_align_arg_pointer³ |
-| gnu_inline               |
-| hot                      |
-| ifunc                    |
-| malloc                   |
-| noclone                  |
-| noinline                 |
-| nonnull                  |
-| noreturn                 |
-| nothrow                  |
-| optimize                 |
-| packed                   |
-| pure                     |
-| retain⁴                  |
-| returns_nonnull          |
-| section⁵                 |
-| sentinel⁵                |
-| unused                   |
-| used                     |
-| vector_size⁶             |
-| visibility*              |
-| visibility:default†      |
-| visibility:hidden†       |
-| visibility:internal†     |
-| visibility:protected†    |
-| warning                  |
-| warn_unused_result       |
-| weak                     |
-| weakref                  |
+| Name                        |
+|-----------------------------|
+| alias                       |
+| aligned                     |
+| alloc_size                  |
+| always_inline               |
+| artificial                  |
+| cold                        |
+| const                       |
+| constructor                 |
+| constructor_priority        |
+| deprecated                  |
+| destructor                  |
+| error                       |
+| externally_visible          |
+| fallthrough                 |
+| flatten                     |
+| format                      |
+| format_arg                  |
+| force_align_arg_pointer³    |
+| gnu_inline                  |
+| hot                         |
+| ifunc                       |
+| malloc                      |
+| noclone                     |
+| noinline                    |
+| nonnull                     |
+| noreturn                    |
+| nothrow                     |
+| null_terminated_string_arg⁷ |
+| optimize                    |
+| packed                      |
+| pure                        |
+| retain⁴                     |
+| returns_nonnull             |
+| section⁵                    |
+| sentinel⁵                   |
+| unused                      |
+| used                        |
+| vector_size⁶                |
+| visibility*                 |
+| visibility:default†         |
+| visibility:hidden†          |
+| visibility:internal†        |
+| visibility:protected†       |
+| warning                     |
+| warn_unused_result          |
+| weak                        |
+| weakref                     |
 
 \* *Changed in 0.52.0* the "visibility" target no longer includes
 "protected", which is not present in Apple's clang.
@@ -334,6 +335,8 @@ which are supported by GCC, Clang, and other compilers.
 ⁵ *New in 0.63.0*
 
 ⁶ *New in 1.1.0*
+
+⁷ *New in 1.5.0*
 
 ### MSVC __declspec
 
