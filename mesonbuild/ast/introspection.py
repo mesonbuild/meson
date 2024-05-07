@@ -45,6 +45,9 @@ class LocalState(_LocalState):
     targets: T.List[T.Dict[str, T.Any]] = dataclasses.field(default_factory=list)
     """Data for target function calls"""
 
+    dependencies: T.List[T.Dict[str, T.Any]] = dataclasses.field(default_factory=list)
+    """Data for dependency generating function calls."""
+
 
 @dataclasses.dataclass
 class GlobalState(_GlobalState):
@@ -105,7 +108,6 @@ class IntrospectionInterpreter(AstInterpreter):
         super().__init__(state)
         self.coredata = self.state.world.environment.get_coredata()
         self.default_options = {OptionKey('backend'): backend}
-        self.dependencies: T.List[T.Dict[str, T.Any]] = []
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -245,7 +247,7 @@ class IntrospectionInterpreter(AstInterpreter):
             required = required.value
         if not isinstance(required, bool):
             required = False
-        self.dependencies += [{
+        self.state.local.dependencies += [{
             'name': name,
             'required': required,
             'version': version,

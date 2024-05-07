@@ -371,7 +371,7 @@ def list_compilers(coredata: cdata.CoreData) -> T.Dict[str, T.Dict[str, T.Dict[s
 
 def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool]]]:
     result: T.List[T.Dict[str, T.Union[str, bool]]] = []
-    for i in intr.dependencies:
+    for i in intr.state.local.dependencies:
         keys = [
             'name',
             'required',

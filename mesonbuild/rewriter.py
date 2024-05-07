@@ -429,7 +429,7 @@ class Rewriter:
 
     def find_dependency(self, dependency: str):
         def check_list(name: str):
-            for i in self.interpreter.dependencies:
+            for i in self.interpreter.state.local.dependencies:
                 if name == i['name']:
                     return i
             return None
