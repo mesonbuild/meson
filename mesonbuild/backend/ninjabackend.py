@@ -496,6 +496,19 @@ class NinjaBackend(backends.Backend):
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs = []
         self._uses_dyndeps = False
+        # nvcc chokes on thin archives:
+        #   nvlink fatal   : Could not open input file 'libfoo.a.p'
+        #   nvlink fatal   : elfLink internal error
+        # hence we disable them if 'cuda' is enabled globally. See also
+        # - https://github.com/mesonbuild/meson/pull/9453
+        # - https://github.com/mesonbuild/meson/issues/9479#issuecomment-953485040
+        self._allow_thin_archives = PerMachine[bool](
+            'cuda' not in self.environment.coredata.compilers.build,
+            'cuda' not in self.environment.coredata.compilers.host) if self.environment else PerMachine[bool](True, True)
+        if not self._allow_thin_archives.build:
+            mlog.debug('cuda enabled globally, disabling thin archives for build machine, since nvcc/nvlink cannot handle thin archives natively')
+        if not self._allow_thin_archives.host:
+            mlog.debug('cuda enabled globally, disabling thin archives for host machine, since nvcc/nvlink cannot handle thin archives natively')
 
     def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilename: str) -> NinjaBuildElement:
         '''
@@ -3255,7 +3268,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
         elif isinstance(target, build.StaticLibrary):
-            commands += linker.get_std_link_args(self.environment, not target.should_install())
+            produce_thin_archive = self._allow_thin_archives[target.for_machine] and not target.should_install()
+            commands += linker.get_std_link_args(self.environment, produce_thin_archive)
         else:
             raise RuntimeError('Unknown build target type.')
         return commands
