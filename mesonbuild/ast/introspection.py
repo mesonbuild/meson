@@ -39,6 +39,9 @@ class LocalState(_LocalState):
     project_node: T.Optional[FunctionNode] = None
     """The Node that the project() call is in."""
 
+    project_data: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    """Data from the project function call"""
+
 
 @dataclasses.dataclass
 class GlobalState(_GlobalState):
@@ -51,7 +54,6 @@ class GlobalState(_GlobalState):
 
     environment: environment.Environment
     """An environment object."""
-
 
 
 @dataclasses.dataclass
@@ -100,7 +102,6 @@ class IntrospectionInterpreter(AstInterpreter):
         super().__init__(state)
         self.coredata = self.state.world.environment.get_coredata()
         self.default_options = {OptionKey('backend'): backend}
-        self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[T.Dict[str, T.Any]] = []
         self.dependencies: T.List[T.Dict[str, T.Any]] = []
 
@@ -139,7 +140,7 @@ class IntrospectionInterpreter(AstInterpreter):
             proj_vers = proj_vers.value
         if not isinstance(proj_vers, str):
             proj_vers = 'undefined'
-        self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
+        self.state.local.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
 
         optfile = os.path.join(self.state.world.source_root, self.state.local.subdir, 'meson.options')
         if not os.path.exists(optfile):
@@ -162,7 +163,7 @@ class IntrospectionInterpreter(AstInterpreter):
                 assert isinstance(spdirname.value, str)
                 self.state.world.subproject_dir = spdirname.value
         if not self.is_subproject():
-            self.project_data['subprojects'] = []
+            self.state.local.project_data['subprojects'] = []
             subprojects_dir = os.path.join(self.state.world.source_root, self.state.world.subproject_dir)
             if os.path.isdir(subprojects_dir):
                 for i in os.listdir(subprojects_dir):
@@ -182,8 +183,8 @@ class IntrospectionInterpreter(AstInterpreter):
         try:
             subi = IntrospectionInterpreter(subpr, '', self.state.world.backend, cross_file=self.state.world.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.state.world.environment, visitors=self.state.world.visitors)
             subi.analyze()
-            subi.project_data['name'] = dirname
-            self.project_data['subprojects'] += [subi.project_data]
+            subi.state.local.project_data['name'] = dirname
+            self.state.local.project_data['subprojects'] += [subi.state.local.project_data]
         except (mesonlib.MesonException, RuntimeError):
             return
 

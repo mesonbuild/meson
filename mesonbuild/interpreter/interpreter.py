@@ -17,7 +17,7 @@ from .. import compilers
 from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
-from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
+from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException,
                         FileMode, MachineChoice, OptionKey, listify,
                         extract_as_list, has_path_sep, path_is_in_root)
 from ..programs import ExternalProgram, NonExistingExternalProgram

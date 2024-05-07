@@ -372,8 +372,8 @@ class Rewriter:
     def analyze_meson(self):
         mlog.log('Analyzing meson file:', mlog.bold(os.path.join(self.sourcedir, environment.build_filename)))
         self.interpreter.analyze()
-        mlog.log('  -- Project:', mlog.bold(self.interpreter.project_data['descriptive_name']))
-        mlog.log('  -- Version:', mlog.cyan(self.interpreter.project_data['version']))
+        mlog.log('  -- Project:', mlog.bold(self.interpreter.state.local.project_data['descriptive_name']))
+        mlog.log('  -- Version:', mlog.cyan(self.interpreter.state.local.project_data['version']))
 
     def add_info(self, cmd_type: str, cmd_id: str, data: dict):
         if self.info_dump is None:
