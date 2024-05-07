@@ -92,6 +92,9 @@ class GlobalState(_GlobalState):
 
     subproject_dir: str
 
+    visitors: T.List[AstVisitor]
+    """Visitor functions for the AST Nodes."""
+
 
 @dataclasses.dataclass
 class LocalState(_LocalState):
@@ -118,9 +121,9 @@ class AstInterpreter(InterpreterBase):
 
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None,
                  subproject_dir: str = 'subprojects'):
-        self.state = State(LocalState(subproject, subdir), GlobalState(source_root, subproject_dir))
+        visitors = visitors if visitors is not None else []
+        self.state = State(LocalState(subproject, subdir), GlobalState(source_root, subproject_dir, visitors))
         super().__init__()
-        self.visitors = visitors if visitors is not None else []
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -193,7 +196,7 @@ class AstInterpreter(InterpreterBase):
 
     def load_root_meson_file(self) -> None:
         super().load_root_meson_file()
-        for i in self.visitors:
+        for i in self.state.world.visitors:
             self.state.local.ast.accept(i)
 
     def func_subdir(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
@@ -225,7 +228,7 @@ class AstInterpreter(InterpreterBase):
             raise me
 
         self.state.local.subdir = subdir
-        for i in self.visitors:
+        for i in self.state.world.visitors:
             codeblock.accept(i)
         self.evaluate_codeblock(codeblock)
         self.state.local.subdir = prev_subdir
