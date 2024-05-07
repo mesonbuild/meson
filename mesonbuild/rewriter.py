@@ -605,8 +605,8 @@ class Rewriter:
             self.modified_nodes += [node]
 
     def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
-        if node.ast_id and node.ast_id in self.interpreter.reverse_assignment:
-            return self.interpreter.reverse_assignment[node.ast_id]
+        if node.ast_id and node.ast_id in self.interpreter.state.local.reverse_assignment:
+            return self.interpreter.state.local.reverse_assignment[node.ast_id]
         return None
 
     @RequiredKeys(rewriter_keys['target'])

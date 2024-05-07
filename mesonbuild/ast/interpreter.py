@@ -101,6 +101,9 @@ class LocalState(_LocalState):
 
     assign_vals: T.Dict[str, T.Optional[InterpreterObject]] = \
         dataclasses.field(default_factory=dict)
+    """Associate variable names with the value last assigned to them."""
+
+    reverse_assignment: T.Dict[str, BaseNode] = dataclasses.field(default_factory=dict)
 
 
 class State(_State):
@@ -118,7 +121,6 @@ class AstInterpreter(InterpreterBase):
         self.state = State(LocalState(subproject, subdir), GlobalState(source_root, subproject_dir))
         super().__init__()
         self.visitors = visitors if visitors is not None else []
-        self.reverse_assignment: T.Dict[str, BaseNode] = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -272,7 +274,7 @@ class AstInterpreter(InterpreterBase):
         # Cheat by doing a reassignment
         self.state.local.assignments[node.var_name.value] = node.value  # Save a reference to the value node
         if node.value.ast_id:
-            self.reverse_assignment[node.value.ast_id] = node
+            self.state.local.reverse_assignment[node.value.ast_id] = node
         self.state.local.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
 
     def evaluate_indexing(self, node: IndexNode) -> int:
@@ -337,7 +339,7 @@ class AstInterpreter(InterpreterBase):
         assert isinstance(node, AssignmentNode)
         self.state.local.assignments[node.var_name.value] = node.value # Save a reference to the value node
         if node.value.ast_id:
-            self.reverse_assignment[node.value.ast_id] = node
+            self.state.local.reverse_assignment[node.value.ast_id] = node
         self.state.local.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
