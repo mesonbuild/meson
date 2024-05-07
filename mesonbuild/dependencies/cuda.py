@@ -24,7 +24,7 @@ if T.TYPE_CHECKING:
 
 class CudaDependency(SystemDependency):
 
-    supported_languages = ['cuda', 'cpp', 'c'] # see also _default_language
+    supported_languages = ['cpp', 'c', 'cuda'] # see also _default_language
 
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         compilers = environment.coredata.compilers[self.get_for_machine_from_kwargs(kwargs)]
