@@ -44,6 +44,9 @@ class GlobalState(_GlobalState):
     cross_file: T.Optional[str]
     """A cross file (if there is one)."""
 
+    environment: environment.Environment
+    """An environment object."""
+
 
 
 @dataclasses.dataclass
@@ -80,18 +83,16 @@ class IntrospectionInterpreter(AstInterpreter):
                  subproject_dir: str = 'subprojects',
                  env: T.Optional[environment.Environment] = None) -> None:
         visitors = visitors if visitors is not None else []
+        options = IntrospectionHelper(cross_file)
         state = State(
             LocalState(subproject, subdir),
-            GlobalState(source_root, subproject_dir, visitors, cross_file)
+            GlobalState(
+                source_root, subproject_dir, visitors, cross_file,
+                env if env is not None else environment.Environment(source_root, None, options)
+            )
         )
         super().__init__(state)
-
-        options = IntrospectionHelper(cross_file)
-        if env is None:
-            self.environment = environment.Environment(source_root, None, options)
-        else:
-            self.environment = env
-        self.coredata = self.environment.get_coredata()
+        self.coredata = self.state.world.environment.get_coredata()
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
         self.project_data: T.Dict[str, T.Any] = {}
@@ -111,6 +112,11 @@ class IntrospectionInterpreter(AstInterpreter):
             'static_library': self.func_static_lib,
             'both_libraries': self.func_both_lib,
         })
+
+    @property
+    def environment(self) -> environment.Environment:
+        # Needed for polymorphic guarantee
+        return self.state.world.environment
 
     def func_project(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         if self.project_node:
@@ -141,7 +147,7 @@ class IntrospectionInterpreter(AstInterpreter):
         _project_default_options = mesonlib.stringlistify(def_opts)
         self.state.local.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
         self.default_options.update(self.state.local.project_default_options)
-        self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
+        self.coredata.set_default_options(self.default_options, self.subproject, self.state.world.environment)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
@@ -157,17 +163,17 @@ class IntrospectionInterpreter(AstInterpreter):
                         self.do_subproject(SubProject(i))
 
         self.coredata.init_backend_options(self.backend)
-        options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
+        options = {k: v for k, v in self.state.world.environment.options.items() if k.is_backend()}
 
         self.coredata.set_options(options)
         self._add_languages(proj_langs, True, MachineChoice.HOST)
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
     def do_subproject(self, dirname: SubProject) -> None:
-        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.state.world.subproject_dir)
+        subproject_dir_abs = os.path.join(self.state.world.environment.get_source_dir(), self.state.world.subproject_dir)
         subpr = os.path.join(subproject_dir_abs, dirname)
         try:
-            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.state.world.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.environment, visitors=self.state.world.visitors)
+            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.state.world.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.state.world.environment, visitors=self.state.world.visitors)
             subi.analyze()
             subi.project_data['name'] = dirname
             self.project_data['subprojects'] += [subi.project_data]
@@ -199,7 +205,7 @@ class IntrospectionInterpreter(AstInterpreter):
             lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
                 try:
-                    comp = detect_compiler_for(self.environment, lang, for_machine, True, self.subproject)
+                    comp = detect_compiler_for(self.state.world.environment, lang, for_machine, True, self.subproject)
                 except mesonlib.MesonException:
                     # do we even care about introspecting this language?
                     if required:
@@ -212,7 +218,7 @@ class IntrospectionInterpreter(AstInterpreter):
                         v = copy.copy(self.coredata.options[k])
                         k = k.evolve(subproject=self.subproject)
                         options[k] = v
-                    self.coredata.add_compiler_options(options, lang, for_machine, self.environment, self.subproject)
+                    self.coredata.add_compiler_options(options, lang, for_machine, self.state.world.environment, self.subproject)
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         args = self.flatten_args(args)
@@ -300,7 +306,7 @@ class IntrospectionInterpreter(AstInterpreter):
         # Passing the unresolved sources list causes errors
         kwargs_reduced['_allow_no_sources'] = True
         target = targetclass(name, self.state.local.subdir, self.subproject, for_machine, empty_sources, None, objects,
-                             self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
+                             self.state.world.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
         new_target = {
