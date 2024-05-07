@@ -4,12 +4,14 @@
 """Implementation of Interpreter state for the base Interpreter."""
 
 from __future__ import annotations
+import contextlib
 import dataclasses
 import typing as T
 
 from .. mparser import BaseNode, CodeBlockNode, Token
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Self
     from . import InterpreterObject, SubProject
     from ..utils.universal import OptionKey
 
@@ -59,6 +61,8 @@ class GlobalState:
 
     """State that is global, it applies to all subprojects."""
 
+    def copy(self) -> Self: ...
+
     source_root: str
     """The root of the source directory of the main project."""
 
@@ -71,8 +75,29 @@ class GlobalState:
     """
 
 
-@dataclasses.dataclass
-class State:
+_L = T.TypeVar('_L', bound=LocalState, covariant=True)
+_G = T.TypeVar('_G', bound=GlobalState, covariant=True)
 
-    local: LocalState
-    world: GlobalState
+
+@dataclasses.dataclass
+class State(T.Generic[_L, _G]):
+
+    local: _L
+    world: _G
+
+    def copy(self) -> State[_L, _G]:
+        return State(self.local, self.world.copy())
+
+    @contextlib.contextmanager
+    def subproject(self, new: _L) -> T.Iterator[_L]:  # type: ignore[misc]
+        """Replace the local state with a new one, and ensure it's set back
+
+        :param new: the new state to use
+        :yield: the old state
+        """
+        old = self.local
+        self.local = new
+        try:
+            yield old
+        finally:
+            self.local = old

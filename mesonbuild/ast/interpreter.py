@@ -22,7 +22,7 @@ from ..interpreterbase import (
     Disabler,
     default_resolve_key,
 )
-from ..interpreterbase.state import State as _State, LocalState as _LocalState, GlobalState as _GlobalState
+from ..interpreterbase.state import State, LocalState as _LocalState, GlobalState as _GlobalState
 
 from ..interpreter import (
     StringHolder,
@@ -109,17 +109,11 @@ class LocalState(_LocalState):
     reverse_assignment: T.Dict[str, BaseNode] = dataclasses.field(default_factory=dict)
 
 
-class State(_State):
-
-    local: LocalState
-    world: GlobalState
-
-
 class AstInterpreter(InterpreterBase):
 
-    state: State
+    state: State[LocalState, GlobalState]
 
-    def __init__(self, state: State):
+    def __init__(self, state: State[LocalState, GlobalState]):
         self.state = state
         super().__init__()
         self.funcs.update({'project': self.func_do_nothing,

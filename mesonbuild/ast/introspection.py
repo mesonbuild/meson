@@ -6,7 +6,6 @@
 # or an interpreter-based tool
 
 from __future__ import annotations
-import contextlib
 import copy
 import dataclasses
 import os
@@ -17,9 +16,10 @@ from .. import coredata as cdata
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject
+from ..interpreterbase.state import State
 from ..mesonlib import MachineChoice, OptionKey
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
-from .interpreter import AstInterpreter, State as _State, LocalState as _LocalState, GlobalState as _GlobalState
+from .interpreter import AstInterpreter, LocalState as _LocalState, GlobalState as _GlobalState
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
@@ -70,29 +70,6 @@ class GlobalState(_GlobalState):
             self.cross_file, self.backend, self.environment,
         )
 
-@dataclasses.dataclass
-class State(_State):
-
-    local: LocalState
-    world: GlobalState
-
-    def copy(self) -> State:
-        return State(self.local, self.world.copy())
-
-    @contextlib.contextmanager
-    def subproject(self, new: LocalState) -> T.Iterator[LocalState]:
-        """Replace the local state with a new one, and ensure it's set back
-
-        :param new: the new state to use
-        :yield: the old state
-        """
-        old = self.local
-        self.local = new
-        try:
-            yield old
-        finally:
-            self.local = old
-
 
 class IntrospectionHelper:
     # mimic an argparse namespace
@@ -109,7 +86,7 @@ class IntrospectionInterpreter(AstInterpreter):
     # Interpreter to detect the options without a build directory
     # Most of the code is stolen from interpreter.Interpreter
 
-    state: State
+    state: State[LocalState, GlobalState]
 
     def __init__(self,
                  source_root: str,

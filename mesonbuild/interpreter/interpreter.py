@@ -30,12 +30,13 @@ from ..interpreterbase import Disabler, disablerIfNotFound, SubProject
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..interpreterbase import stringifyUserArguments
+from ..interpreterbase.state import State
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..optinterpreter import optname_regex
 
 from . import interpreterobjects as OBJ
 from . import compiler as compilerOBJ
-from .state import InterpreterState, LocalInterpreterState, GlobalInterpreterState
+from .state import LocalInterpreterState, GlobalInterpreterState
 from .mesonmain import MesonMain
 from .dependencyfallbacks import DependencyFallbacksHolder
 from .interpreterobjects import (
@@ -259,7 +260,7 @@ implicit_check_false_warning = """You should add the boolean check kwarg to the 
          See also: https://github.com/mesonbuild/meson/issues/9300"""
 class Interpreter(InterpreterBase):
 
-    state: InterpreterState
+    state: State[LocalInterpreterState, GlobalInterpreterState]
 
     def __init__(
                 self,
@@ -272,7 +273,7 @@ class Interpreter(InterpreterBase):
                 relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
                 user_defined_options: T.Optional[coredata.SharedCMDOptions] = None,
             ) -> None:
-        self.state = InterpreterState(
+        self.state = State(
             LocalInterpreterState(
                 subproject, subdir,
                 rule_relaxations=relaxations or set(),

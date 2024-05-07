@@ -40,7 +40,7 @@ import textwrap
 if T.TYPE_CHECKING:
     from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
     from ..interpreter import Interpreter
-    from .state import State
+    from .state import State, LocalState, GlobalState
 
     HolderMapType = T.Dict[
         T.Union[
@@ -69,7 +69,7 @@ class InvalidCodeOnVoid(InvalidCode):
 
 class InterpreterBase:
 
-    state: State
+    state: State[LocalState, GlobalState]
 
     def __init__(self) -> None:
         self.funcs: FunctionType = {}

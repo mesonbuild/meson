@@ -4,11 +4,10 @@
 """Implementation of Interpreter state for the primary Interpreter."""
 
 from __future__ import annotations
-import contextlib
 import dataclasses
 import typing as T
 
-from ..interpreterbase.state import State, LocalState, GlobalState
+from ..interpreterbase.state import LocalState, GlobalState
 from ..utils.universal import OrderedSet, PerMachine
 
 if T.TYPE_CHECKING:
@@ -125,27 +124,3 @@ class GlobalInterpreterState(GlobalState):
         c.args_frozen = self.args_frozen
         c.build_def_files = OrderedSet(self.build_def_files)
         return c
-
-
-@dataclasses.dataclass
-class InterpreterState(State):
-
-    local: LocalInterpreterState
-    world: GlobalInterpreterState
-
-    def copy(self) -> InterpreterState:
-        return InterpreterState(self.local, self.world.copy())
-
-    @contextlib.contextmanager
-    def subproject(self, new: LocalInterpreterState) -> T.Iterator[LocalInterpreterState]:
-        """Replace the local state with a new one, and ensure it's set back
-
-        :param new: the new state to use
-        :yield: the old state
-        """
-        old = self.local
-        self.local = new
-        try:
-            yield old
-        finally:
-            self.local = old
