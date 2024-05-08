@@ -14,3 +14,10 @@ ext_mod = py.extension_module('not_limited',
   'not_limited.c',
   install: true,
 )
+
+test('load-test',
+  py,
+  args: [files('test_limited.py')],
+  env: { 'PYTHONPATH': meson.current_build_dir() },
+  workdir: meson.current_source_dir()
+)
