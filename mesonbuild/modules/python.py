@@ -184,13 +184,9 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
             new_cpp_args.append(limited_api_definition)
             kwargs['cpp_args'] = new_cpp_args
 
-            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
-            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
-            # directives. We manually override these here as this interferes with the intended
-            # use of the 'limited_api' kwarg
+            # On Windows, the limited API DLL is python3.dll, not python3X.dll.
             for_machine = kwargs['native']
-            compilers = self.interpreter.environment.coredata.compilers[for_machine]
-            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
+            if self.interpreter.environment.machines[for_machine].is_windows():
                 pydep_copy = copy.copy(pydep)
                 pydep_copy.find_libpy_windows(self.env, limited_api=True)
                 if not pydep_copy.found():
@@ -199,6 +195,12 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
                 new_deps.remove(pydep)
                 new_deps.append(pydep_copy)
 
+            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
+            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
+            # directives. We manually override these here as this interferes with the intended
+            # use of the 'limited_api' kwarg
+            compilers = self.interpreter.environment.coredata.compilers[for_machine]
+            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
                 pyver = pydep.version.replace('.', '')
                 python_windows_debug_link_exception = f'/NODEFAULTLIB:python{pyver}_d.lib'
                 python_windows_release_link_exception = f'/NODEFAULTLIB:python{pyver}.lib'
