@@ -248,9 +248,15 @@ class _PythonDependencyBase(_Base):
             lib = Path(self.variables.get('base_prefix')) / libpath
         elif self.platform.startswith('mingw'):
             if self.static:
-                libname = self.variables.get('LIBRARY')
+                if limited_api:
+                    libname = self.variables.get('ABI3DLLLIBRARY')
+                else:
+                    libname = self.variables.get('LIBRARY')
             else:
-                libname = self.variables.get('LDLIBRARY')
+                if limited_api:
+                    libname = self.variables.get('ABI3LDLIBRARY')
+                else:
+                    libname = self.variables.get('LDLIBRARY')
             lib = Path(self.variables.get('LIBDIR')) / libname
         else:
             raise mesonlib.MesonBugException(
