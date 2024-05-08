@@ -16,7 +16,7 @@ import abc
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from functools import lru_cache, wraps, total_ordering
-from itertools import tee
+from itertools import tee, zip_longest
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
 import textwrap
@@ -108,6 +108,7 @@ __all__ = [
     'get_variable_regex',
     'get_wine_shortpath',
     'git',
+    'grouper',
     'has_path_sep',
     'is_aix',
     'is_android',
@@ -2446,3 +2447,51 @@ def first(iter: T.Iterable[_T], predicate: T.Callable[[_T], bool]) -> T.Optional
         if predicate(i):
             return i
     return None
+
+@T.overload
+def grouper(iterable: T.Iterable[_T], size: int, *,
+            incomplete: Literal['fill'] = 'fill',
+            fillvalue: T.Optional[_T] = None) -> T.Iterable[T.Iterable[T.Optional[_T]]]: ...
+
+@T.overload
+def grouper(iterable: T.Iterable[_T], size: int, *,
+            incomplete: Literal['strict']) -> T.Iterable[T.Iterable[_T]]: ...
+
+@T.overload
+def grouper(iterable: T.Iterable[_T], size: int, *,
+            incomplete: Literal['ignore']) -> T.Iterable[T.Iterable[_T]]: ...
+
+def grouper(iterable: T.Iterable[_T], size: int, *,
+            incomplete: Literal['fill', 'strict', 'ignore'] = 'fill',
+            fillvalue: T.Optional[_T] = None) -> T.Iterable[T.Iterable[T.Optional[_T]]]:
+    """Collect data in to non-overlapping fixed-length blocks.
+
+    Adapated from the recipe called "grouper" here:
+    https://docs.python.org/3/library/itertools.html
+
+    :param iter: An iterable to segement
+    :param size: The size of the segments
+    :param fillvaue: When using the 'fill' incomplete mode, the value to fill with
+    :param incomplete: how to handle iterators that cannot be broken into
+        equal `:param:size` groups.
+        fill: add the `:param:fillvalue` to create equally sized groups
+        strict: error if the groups cannot be split into equally sized groups of `:param:size`
+        ignore: The last group will be smaller that the previous groups
+        defaults to 'fill'
+    :return: _description_
+    """
+    iterators = [iter(iterable)] * size
+    if incomplete == 'fill':
+        return zip_longest(*iterators, fillvalue=fillvalue)
+    if incomplete == 'strict':
+        # Fast path for python >= 3.10, since it's implemented in C
+        if sys.version_info >= (3, 10, 0):
+            return zip(*iterators, strict=True)
+        conc = list(iterable)
+        if len(conc) % size != 0:
+            raise ValueError(f"iterable is not evenly dividable into {size} groups")
+        # Since we've already created a concrete instance, re-use that to avoid
+        # doing expensive computations multiple times
+        iterators = [iter(conc)] * size
+        return zip(*iterators)
+    return zip(*iterators)
