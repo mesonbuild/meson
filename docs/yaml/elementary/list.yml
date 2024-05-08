@@ -40,3 +40,14 @@ methods:
 - name: length
   returns: int
   description: Returns the current size of the array / list.
+
+- name: unique
+  returns: list
+  description: |
+    Returns a list without duplicated elements. If other lists are provided
+    as arguments, it combines those lists and remove duplicated elements.
+    List order is preserved.
+  varargs:
+    name: other
+    type: list
+    description: Other lists to merge.

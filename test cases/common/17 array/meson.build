@@ -63,3 +63,15 @@ endif
 if one.contains('abcd')
   error('One claims to contain abcd.')
 endif
+
+if file_list.unique(file_a) != file_list
+  error('File not deduplicated in list')
+endif
+
+if empty.unique(one, two) != one + two
+  error('Unique does not combine arrays')
+endif
+
+if [0, 0, 0, 1, 1, 2, 3, 2, 1, 4, 0, 5].unique() != [0, 1, 2, 3, 4, 5]
+  error('Unique without arguments did not deduplicated integers')
+endif
