@@ -46,3 +46,20 @@ methods:
 - name: keys
   returns: list[str]
   description: Returns an array of keys in the dictionary.
+
+- name: map
+  since: 1.5.0
+  returns: list
+  description: Returns a list of dict values for the given list of keys
+
+  posargs:
+    keys:
+      type: list[str]
+      description: dict keys to select
+
+  kwargs:
+    ignore_unknown:
+      type: bool
+      description: |
+        If `true`, unknown keys are skipped.
+        If `false`, an unknown key results in an error.

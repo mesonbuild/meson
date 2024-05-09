@@ -80,3 +80,13 @@ d = {
 assert(d['sanity'] == 1)
 assert(not is_disabler(d['meson']))
 assert(not is_disabler(d['host']))
+
+
+# Map method
+d = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}
+assert(d.map(['a', 'c', 'e']) == [1, 3, 5], 'Incorrect result for dictionary map function')
+assert(d.map(['a', 'g', 'c', 'e'], ignore_unknown: true) == [1, 3, 5], 'Incorrect result for dictionary map function (ignore unknown keys)')
+
+testcase expect_error('Key \'g\' is not in the dictionary.')
+  d.map(['a', 'g', 'c'])
+endtestcase

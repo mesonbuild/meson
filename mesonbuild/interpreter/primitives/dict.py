@@ -7,12 +7,15 @@ import typing as T
 from ...interpreterbase import (
     ObjectHolder,
     IterableObject,
+    KwargInfo,
     MesonOperator,
     typed_operator,
     noKwargs,
     noPosargs,
     noArgsFlattening,
+    typed_kwargs,
     typed_pos_args,
+    FeatureNew,
 
     TYPE_var,
 
@@ -31,6 +34,7 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
             'has_key': self.has_key_method,
             'keys': self.keys_method,
             'get': self.get_method,
+            'map': self.map_method,
         })
 
         self.trivial_operators.update({
@@ -80,6 +84,17 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
         if args[1] is not None:
             return args[1]
         raise InvalidArguments(f'Key {args[0]!r} is not in the dictionary.')
+
+    @FeatureNew('dict.map', '1.5.0')
+    @noArgsFlattening
+    @typed_pos_args('dict.map', list)
+    @typed_kwargs('dict.map', KwargInfo('ignore_unknown', bool, default = False))
+    def map_method(self, args: T.Tuple[T.List[str]], kwargs: T.Dict[str, bool]) -> list:
+        keys = [k for k in args[0] if k in self.held_object] if kwargs['ignore_unknown'] else args[0]
+        try:
+            return [self.held_object[k] for k in keys]
+        except KeyError as e:
+            raise InvalidArguments(f'Key {e} is not in the dictionary.') from e
 
     @typed_operator(MesonOperator.INDEX, str)
     def op_index(self, other: str) -> TYPE_var:
