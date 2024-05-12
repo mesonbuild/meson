@@ -1225,6 +1225,7 @@ def do_replacement_cmake(regex: T.Pattern[str], line: str, at_only: bool,
                    confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
     if not at_only:
+        line, _ = do_replacement_cmake(get_variable_regex("cmake@"), line, True, confdata)
         start_tag = '${'
         backslash_tag = '\\${'
     else:
