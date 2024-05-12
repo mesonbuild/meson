@@ -1183,13 +1183,12 @@ def do_replacement(regex: T.Pattern[str], line: str,
                    confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
     if variable_format == "meson":
         return do_replacement_meson(regex, line, confdata)
-    elif variable_format == "cmake" or variable_format == "cmake@":
+    elif variable_format in {'cmake', 'cmake@'}:
         return do_replacement_cmake(regex, line, variable_format == "cmake@", confdata)
     else:
-        raise MesonException(f'Invalid variable format')
+        raise MesonException('Invalid variable format')
 
-def do_replacement_meson(regex: T.Pattern[str], line: str,
-                   confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+def do_replacement_meson(regex: T.Pattern[str], line: str, confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
     start_tag = '@'
     backslash_tag = '\\@'
@@ -1221,8 +1220,7 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
             return var_str
     return re.sub(regex, variable_replace, line), missing_variables
 
-def do_replacement_cmake(regex: T.Pattern[str], line: str, at_only: bool,
-                   confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
+def do_replacement_cmake(regex: T.Pattern[str], line: str, at_only: bool, confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
     if not at_only:
         line, _ = do_replacement_cmake(get_variable_regex("cmake@"), line, True, confdata)
@@ -1261,8 +1259,7 @@ def do_replacement_cmake(regex: T.Pattern[str], line: str, at_only: bool,
             return var_str
     return re.sub(regex, variable_replace, line), missing_variables
 
-def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
-              subproject: T.Optional[SubProject] = None) -> str:
+def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData', subproject: T.Optional[SubProject] = None) -> str:
     arr = line.split()
     if len(arr) != 2:
         raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
@@ -1288,8 +1285,7 @@ def do_define_meson(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
-def do_define_cmake(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
-              at_only: bool, subproject: T.Optional[SubProject] = None) -> str:
+def do_define_cmake(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData', at_only: bool, subproject: T.Optional[SubProject] = None) -> str:
     cmake_bool_define = "cmakedefine01" in line
 
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
@@ -1344,14 +1340,13 @@ def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
                 subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
     if variable_format == "meson":
         return do_conf_str_meson(src, data, confdata, subproject)
-    elif variable_format == "cmake" or variable_format == "cmake@":
+    elif variable_format in {'cmake', 'cmake@'}:
         return do_conf_str_cmake(src, data, confdata, variable_format == "cmake@", subproject)
     else:
-        raise MesonException(f'Invalid variable format')
+        raise MesonException('Invalid variable format')
 
-def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData',
-                subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
-    variable_format = "meson"
+def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData', subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+    variable_format: Literal["meson"] = "meson"
 
     regex = get_variable_regex(variable_format)
 
@@ -1376,12 +1371,11 @@ def do_conf_str_meson(src: str, data: T.List[str], confdata: 'ConfigurationData'
 
     return result, missing_variables, confdata_useless
 
-def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData', at_only: bool,
-                subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData', at_only: bool, subproject: T.Optional[SubProject] = None) -> T.Tuple[T.List[str], T.Set[str], bool]:
+
+    variable_format: Literal["cmake", "cmake@"] = "cmake"
     if at_only:
         variable_format = "cmake@"
-    else:
-        variable_format = "cmake"
 
     regex = get_variable_regex(variable_format)
 
