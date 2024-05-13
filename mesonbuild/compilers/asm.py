@@ -158,7 +158,8 @@ class MasmCompiler(Compiler):
     def get_compile_only_args(self) -> T.List[str]:
         return ['/c']
 
-    def get_argument_syntax(self) -> str:
+    @staticmethod
+    def get_argument_syntax() -> str:
         return 'msvc'
 
     def needs_static_linker(self) -> bool:
