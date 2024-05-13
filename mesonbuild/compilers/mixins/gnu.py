@@ -420,7 +420,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # For other targets, discard the .def file.
         return []
 
-    def get_argument_syntax(self) -> str:
+    @staticmethod
+    def get_argument_syntax() -> str:
         return 'gcc'
 
     def get_profile_generate_args(self) -> T.List[str]:

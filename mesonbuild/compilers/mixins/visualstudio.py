@@ -362,7 +362,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # false without compiling anything
         return name in {'dllimport', 'dllexport'}, False
 
-    def get_argument_syntax(self) -> str:
+    @staticmethod
+    def get_argument_syntax() -> str:
         return 'msvc'
 
     def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
