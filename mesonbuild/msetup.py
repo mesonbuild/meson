@@ -242,10 +242,11 @@ class MesonApp:
 
             self.finalize_postconf_hooks(b, intr)
             if self.options.profile:
+                localvars = locals()
                 fname = f'profile-{intr.backend.name}-backend.log'
                 fname = os.path.join(self.build_dir, 'meson-logs', fname)
-                profile.runctx('gen_result = intr.backend.generate(capture, vslite_ctx)', globals(), locals(), filename=fname)
-                captured_compile_args = locals()['gen_result']
+                profile.runctx('gen_result = intr.backend.generate(capture, vslite_ctx)', globals(), localvars, filename=fname)
+                captured_compile_args = localvars['gen_result']
                 assert captured_compile_args is None or isinstance(captured_compile_args, dict)
             else:
                 captured_compile_args = intr.backend.generate(capture, vslite_ctx)
