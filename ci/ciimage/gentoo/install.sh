@@ -115,6 +115,9 @@ cat <<-EOF >> /etc/portage/make.conf
 	EMERGE_DEFAULT_OPTS="\${EMERGE_DEFAULT_OPTS} --autounmask-write --autounmask-continue --autounmask-keep-keywords=y --autounmask-use=y"
 	EMERGE_DEFAULT_OPTS="\${EMERGE_DEFAULT_OPTS} --binpkg-respect-use=y"
 
+	# prevent painfully verbose Github Actions logs.
+	FETCHCOMMAND='wget --no-show-progress -t 3 -T 60 --passive-ftp -O "\\\${DISTDIR}/\\\${FILE}" "\\\${URI}"'
+
 	# Fortran is no longer enabled by default in 23.0, but we do need and use it.
 	USE="\${USE} fortran"
 
