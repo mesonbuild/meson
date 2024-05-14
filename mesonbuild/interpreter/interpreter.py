@@ -2793,8 +2793,15 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         for a in incdir_strings:
             if path_is_in_root(Path(a), Path(src_root)):
-                raise InvalidArguments(textwrap.dedent('''\
-                    Tried to form an absolute path to a dir in the source tree.
+                raise InvalidArguments(textwrap.dedent(f'''\
+                    The path:
+
+                        {a}
+
+                    is an absolute path to a dir in the source tree:
+
+                        {src_root}
+
                     You should not do that but use relative paths instead, for
                     directories that are part of your project.
 
