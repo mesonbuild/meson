@@ -24,6 +24,7 @@ pkgs_stable=(
   #dev-util/bindgen
 
   dev-libs/elfutils
+  dev-util/gdbus-codegen
   dev-libs/gobject-introspection
   dev-util/itstool
   dev-libs/protobuf
