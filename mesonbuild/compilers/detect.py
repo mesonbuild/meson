@@ -224,14 +224,13 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return linkers.CcrxLinker(linker)
         if out.startswith('GNU ar') and 'xc16-ar' in linker_name:
             return linkers.Xc16Linker(linker)
-        if "-->  error: bad option 'e'" in err: # TI
+        if 'Texas Instruments Incorporated' in out:
             if 'ar2000' in linker_name:
                 return linkers.C2000Linker(linker)
+            elif 'ar6000' in linker_name:
+                return linkers.C6000Linker(linker)
             else:
                 return linkers.TILinker(linker)
-        if 'Texas Instruments Incorporated' in out:
-            if 'ar6000' in linker_name:
-                return linkers.C6000Linker(linker)
         if out.startswith('The CompCert'):
             return linkers.CompCertLinker(linker)
         if out.strip().startswith('Metrowerks') or out.strip().startswith('Freescale'):
@@ -437,8 +436,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
            'TI ARM C/C++ Compiler': (c.TICCompiler, cpp.TICPPCompiler, linkers.TIDynamicLinker),
            'MSP430 C/C++': (c.TICCompiler, cpp.TICPPCompiler, linkers.TIDynamicLinker)
         }
-        for indentifier, compiler_classes in ti_compilers.items():
-            if indentifier in out:
+        for identifier, compiler_classes in ti_compilers.items():
+            if identifier in out:
                 cls = compiler_classes[0] if lang == 'c' else compiler_classes[1]
                 lnk = compiler_classes[2]
                 env.coredata.add_lang_args(cls.language, cls, for_machine, env)
