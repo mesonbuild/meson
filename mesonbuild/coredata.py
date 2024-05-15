@@ -714,6 +714,18 @@ class CoreData:
     def can_set_per_sb(self, keystr):
         return True
 
+    def set_options_from_configure_strings(self, D) -> bool:
+        dirty = False
+        for entry in D:
+            key, val = entry.split('=', 1)
+            if key in self.sp_option_overrides:
+                self.sp_option_overrides[key] = val
+                dirty = True
+            else:
+                # FIXME call the default setter, possibly after creating an OptionKey first.
+                pass
+        return dirty
+
     def create_sp_options(self, A) -> bool:
         if A is None:
             return False
