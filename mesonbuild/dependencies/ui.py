@@ -1,27 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2017 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This file contains the detection logic for external dependencies that
 # are UI-related.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import typing as T
 
 from .. import mlog
 from .. import mesonlib
+from ..compilers.compilers import CrossNoRunException
 from ..mesonlib import (
     Popen_safe, extract_as_list, version_compare_many
 )
@@ -235,10 +226,6 @@ class VulkanDependencySystem(SystemDependency):
             self.compile_args.append('-I' + inc_path)
             self.link_args.append('-L' + lib_path)
             self.link_args.append('-l' + lib_name)
-
-            # TODO: find a way to retrieve the version from the sdk?
-            # Usually it is a part of the path to it (but does not have to be)
-            return
         else:
             # simply try to guess it, usually works on linux
             libs = self.clib_compiler.find_library('vulkan', environment, [])
@@ -246,7 +233,33 @@ class VulkanDependencySystem(SystemDependency):
                 self.is_found = True
                 for lib in libs:
                     self.link_args.append(lib)
-                return
+
+        if self.is_found:
+            get_version = '''\
+#include <stdio.h>
+#include <vulkan/vulkan.h>
+
+int main() {
+    printf("%i.%i.%i", VK_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE),
+                       VK_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE),
+                       VK_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
+    return 0;
+}
+'''
+            try:
+                run = self.clib_compiler.run(get_version, environment, extra_args=self.compile_args)
+            except CrossNoRunException:
+                run = None
+            if run and run.compiled and run.returncode == 0:
+                self.version = run.stdout
+            elif self.vulkan_sdk:
+                # fall back to heuristics: detect version number in path
+                # matches the default install path on Windows
+                match = re.search(rf'VulkanSDK{re.escape(os.path.sep)}([0-9]+(?:\.[0-9]+)+)', self.vulkan_sdk)
+                if match:
+                    self.version = match.group(1)
+                else:
+                    mlog.warning(f'Environment variable VULKAN_SDK={self.vulkan_sdk} is present, but Vulkan version could not be extracted.')
 
 packages['gl'] = gl_factory = DependencyFactory(
     'gl',

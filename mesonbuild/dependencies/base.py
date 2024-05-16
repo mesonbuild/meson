@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2018 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Copyright © 2024 Intel Corporation
 
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
@@ -30,24 +20,42 @@ from ..mesonlib import version_compare_many
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from .._typing import ImmutableListProtocol
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
         CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
-        StaticLibrary, StructuredSources, ExtractedObjects
+        StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
     )
-    from ..mesonlib import FileOrString
+    from ..interpreter.type_checking import PkgConfigDefineType
+
+    _MissingCompilerBase = Compiler
+else:
+    _MissingCompilerBase = object
 
 
 class DependencyException(MesonException):
     '''Exceptions raised while trying to find dependencies'''
 
 
-class MissingCompiler:
+class MissingCompiler(_MissingCompilerBase):
     """Represent a None Compiler - when no tool chain is found.
     replacing AttributeError with DependencyException"""
+
+    # These are needed in type checking mode to avoid errors, but we don't want
+    # the extra overhead at runtime
+    if T.TYPE_CHECKING:
+        def __init__(self) -> None:
+            pass
+
+        def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+            return []
+
+        def get_output_args(self, outputname: str) -> T.List[str]:
+            return []
+
+        def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+            return None
 
     def __getattr__(self, item: str) -> T.Any:
         if item.startswith('__'):
@@ -99,6 +107,9 @@ class Dependency(HoldableObject):
         return kwargs['include_type']
 
     def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
+        # This allows two Dependencies to be compared even after being copied.
+        # The purpose is to allow the name to be changed, but still have a proper comparison
+        self.__id = id(self)
         self.name = f'dep{id(self)}'
         self.version:  T.Optional[str] = None
         self.language: T.Optional[str] = None # None means C-like
@@ -109,13 +120,21 @@ class Dependency(HoldableObject):
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
         self.raw_link_args: T.Optional[T.List[str]] = None
-        self.sources: T.List[T.Union['FileOrString', 'CustomTarget', 'StructuredSources']] = []
+        self.sources: T.List[T.Union[mesonlib.File, GeneratedTypes, 'StructuredSources']] = []
         self.extra_files: T.List[mesonlib.File] = []
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
         self.feature_since: T.Optional[T.Tuple[str, str]] = None
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Dependency):
+            return NotImplemented
+        return self.__id == other.__id
+
+    def __hash__(self) -> int:
+        return self.__id
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self.name}: {self.is_found}>'
@@ -167,7 +186,7 @@ class Dependency(HoldableObject):
     def found(self) -> bool:
         return self.is_found
 
-    def get_sources(self) -> T.List[T.Union['FileOrString', 'CustomTarget', 'StructuredSources']]:
+    def get_sources(self) -> T.List[T.Union[mesonlib.File, GeneratedTypes, 'StructuredSources']]:
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
@@ -193,14 +212,6 @@ class Dependency(HoldableObject):
 
     def get_exe_args(self, compiler: 'Compiler') -> T.List[str]:
         return []
-
-    def get_pkgconfig_variable(self, variable_name: str,
-                               define_variable: 'ImmutableListProtocol[str]',
-                               default: T.Optional[str]) -> str:
-        raise DependencyException(f'{self.name!r} is not a pkgconfig dependency')
-
-    def get_configtool_variable(self, variable_name: str) -> str:
-        raise DependencyException(f'{self.name!r} is not a config-tool dependency')
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
@@ -239,7 +250,7 @@ class Dependency(HoldableObject):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
         if default_value is not None:
             return default_value
         raise DependencyException(f'No default provided for dependency {self!r}, which is not pkg-config, cmake, or config-tool based.')
@@ -254,7 +265,7 @@ class InternalDependency(Dependency):
                  link_args: T.List[str],
                  libraries: T.List[LibTypes],
                  whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
-                 sources: T.Sequence[T.Union[FileOrString, CustomTarget, StructuredSources]],
+                 sources: T.Sequence[T.Union[mesonlib.File, GeneratedTypes, StructuredSources]],
                  extra_files: T.Sequence[mesonlib.File],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
                  d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
@@ -298,16 +309,6 @@ class InternalDependency(Dependency):
             return True
         return any(d.is_built() for d in self.ext_deps)
 
-    def get_pkgconfig_variable(self, variable_name: str,
-                               define_variable: 'ImmutableListProtocol[str]',
-                               default: T.Optional[str]) -> str:
-        raise DependencyException('Method "get_pkgconfig_variable()" is '
-                                  'invalid for an internal dependency')
-
-    def get_configtool_variable(self, variable_name: str) -> str:
-        raise DependencyException('Method "get_configtool_variable()" is '
-                                  'invalid for an internal dependency')
-
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
                                includes: bool = False, sources: bool = False,
@@ -333,7 +334,7 @@ class InternalDependency(Dependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
         val = self.variables.get(internal, default_value)
         if val is not None:
             return val
@@ -425,7 +426,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                 self.is_found = False
                 found_msg: mlog.TV_LoggableList = []
                 found_msg += ['Dependency', mlog.bold(self.name), 'found:']
-                found_msg += [mlog.red('NO'), 'unknown version, but need:', self.version_reqs]
+                found_msg += [str(mlog.red('NO')) + '.', 'Unknown version, but need:', self.version_reqs]
                 mlog.log(*found_msg)
 
                 if self.required:
@@ -437,8 +438,8 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                     version_compare_many(self.version, self.version_reqs)
                 if not self.is_found:
                     found_msg = ['Dependency', mlog.bold(self.name), 'found:']
-                    found_msg += [mlog.red('NO'),
-                                  'found', mlog.normal_cyan(self.version), 'but need:',
+                    found_msg += [str(mlog.red('NO')) + '.',
+                                  'Found', mlog.normal_cyan(self.version), 'but need:',
                                   mlog.bold(', '.join([f"'{e}'" for e in not_found]))]
                     if found:
                         found_msg += ['; matched:',
@@ -567,7 +568,7 @@ def strip_system_includedirs(environment: 'Environment', for_machine: MachineCho
     return [i for i in include_args if i not in exclude]
 
 def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[str, T.Any]) -> T.List[DependencyMethods]:
-    method = kwargs.get('method', 'auto')  # type: T.Union[DependencyMethods, str]
+    method: T.Union[DependencyMethods, str] = kwargs.get('method', 'auto')
     if isinstance(method, DependencyMethods):
         return [method]
     # TODO: try/except?

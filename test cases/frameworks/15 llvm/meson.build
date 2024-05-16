@@ -86,7 +86,7 @@ else
     dep_tinfo = cpp.find_library('tinfo', required: false)
   endif
 
-  if static and method == 'cmake' and d.version().startswith('16.0') and d.version()[5].to_int() <= 5
+  if static and method == 'cmake' and d.version().startswith('16.0')
     message('Skipping modules with cmake due to an LLVM bug, see https://github.com/mesonbuild/meson/issues/11642')
     llvm_dep = dependency(
       'llvm',

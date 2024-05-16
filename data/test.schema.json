@@ -26,12 +26,15 @@
               "exe",
               "shared_lib",
               "python_lib",
+              "python_limited_lib",
               "python_bytecode",
               "pdb",
               "implib",
               "py_implib",
+              "py_limited_implib",
               "implibempty",
-              "expr"
+              "expr",
+              "link"
             ]
           },
           "platform": {
@@ -84,13 +87,13 @@
                     "type": "string"
                   }
                 },
-                "skip_on_jobname": {
+                "expect_skip_on_jobname": {
                   "type": "array",
                   "items": {
                     "type": "string"
                   }
                 },
-                "skip_on_os": {
+                "expect_skip_on_os": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -164,13 +167,13 @@
         "type": "string"
       }
     },
-    "skip_on_jobname": {
+    "expect_skip_on_jobname": {
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "skip_on_os": {
+    "expect_skip_on_os": {
       "type": "array",
       "items": {
         "type": "string"

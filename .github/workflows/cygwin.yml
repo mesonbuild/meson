@@ -6,6 +6,10 @@ concurrency:
 
 on:
   push:
+    branches:
+      - master
+      # Stable branches such as 0.56 or 1.0
+      - '[0-9]+.[0-9]+'
     paths:
       - "mesonbuild/**"
       - "test cases/**"
@@ -76,8 +80,7 @@ jobs:
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          # jsonschema is max capped because the new version depends on rust dependencies which are... hard to get on cygwin
-          python3 -m pip --disable-pip-version-check install gcovr 'jsonschema<4.18' pefile pytest pytest-subtests pytest-xdist coverage
+          python3 -m pip --disable-pip-version-check install gcovr fastjsonschema pefile pytest pytest-subtests pytest-xdist coverage
         shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - uses: actions/cache/save@v3

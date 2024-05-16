@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2015-2022 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 from __future__ import annotations
 from collections import defaultdict
@@ -26,7 +15,7 @@ from .. import dependencies
 from .. import mesonlib
 from .. import mlog
 from ..coredata import BUILTIN_DIR_OPTIONS
-from ..dependencies.pkgconfig import PkgConfigDependency
+from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -307,7 +296,7 @@ class DependenciesHelper:
         for name in reqs:
             vreqs = self.version_reqs.get(name, None)
             if vreqs:
-                result += [name + ' ' + self.format_vreq(vreq) for vreq in vreqs]
+                result += [name + ' ' + self.format_vreq(vreq) for vreq in sorted(vreqs)]
             else:
                 result += [name]
         return ', '.join(result)
@@ -381,7 +370,7 @@ class PkgConfigModule(NewExtensionModule):
 
     # Track already generated pkg-config files This is stored as a class
     # variable so that multiple `import()`s share metadata
-    devenv: T.Optional[build.EnvironmentVariables] = None
+    devenv: T.Optional[mesonlib.EnvironmentVariables] = None
     _metadata: T.ClassVar[T.Dict[str, MetaData]] = {}
 
     def __init__(self) -> None:
@@ -650,6 +639,7 @@ class PkgConfigModule(NewExtensionModule):
         if dataonly:
             default_subdirs = []
             blocked_vars = ['libraries', 'libraries_private', 'requires_private', 'extra_cflags', 'subdirs']
+            # Mypy can't figure out that this TypedDict index is correct, without repeating T.Literal for the entire list
             if any(kwargs[k] for k in blocked_vars):  # type: ignore
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
             default_install_dir = os.path.join(state.environment.get_datadir(), 'pkgconfig')
@@ -681,7 +671,8 @@ class PkgConfigModule(NewExtensionModule):
         if dversions:
             compiler = state.environment.coredata.compilers.host.get('d')
             if compiler:
-                deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
+                deps.add_cflags(compiler.get_feature_args(
+                    {'versions': dversions, 'import_dirs': [], 'debug': [], 'unittest': False}, None))
 
         deps.remove_dups()
 
@@ -689,6 +680,8 @@ class PkgConfigModule(NewExtensionModule):
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
             for name, value in vardict.items():
+                if not value:
+                    FeatureNew.single_use('empty variable value in pkg.generate', '1.4.0', state.subproject, location=state.current_node)
                 if not dataonly and name in reserved:
                     raise mesonlib.MesonException(f'Variable "{name}" is reserved')
                 variables.append((name, value))
@@ -740,7 +733,7 @@ class PkgConfigModule(NewExtensionModule):
                     self._metadata[lib.get_id()] = MetaData(
                         filebase, name, state.current_node)
         if self.devenv is None:
-            self.devenv = PkgConfigDependency.get_env(state.environment, mesonlib.MachineChoice.HOST, uninstalled=True)
+            self.devenv = PkgConfigInterface.get_env(state.environment, mesonlib.MachineChoice.HOST, uninstalled=True)
         return ModuleReturnValue(res, [res])
 
 

@@ -1,22 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2020 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 """A library of random helper functionality."""
 
 from __future__ import annotations
 from pathlib import Path
 import argparse
+import ast
 import enum
 import sys
 import stat
@@ -29,9 +20,9 @@ from itertools import tee
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
 import textwrap
-import copy
 import pickle
 import errno
+import json
 
 from mesonbuild import mlog
 from .core import MesonException, HoldableObject
@@ -41,7 +32,7 @@ if T.TYPE_CHECKING:
 
     from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
-    from ..coredata import KeyedOptionDictType, UserOption, StrOrBytesPath
+    from ..coredata import StrOrBytesPath
     from ..environment import Environment
     from ..compilers.compilers import Compiler
     from ..interpreterbase.baseobjects import SubProject
@@ -78,7 +69,6 @@ __all__ = [
     'GitException',
     'OptionKey',
     'dump_conf_header',
-    'OptionOverrideProxy',
     'OptionType',
     'OrderedSet',
     'PerMachine',
@@ -140,6 +130,7 @@ __all__ = [
     'iter_regexin_iter',
     'join_args',
     'listify',
+    'listify_array_value',
     'partition',
     'path_is_in_root',
     'pickle_load',
@@ -177,8 +168,11 @@ project_meson_versions: T.DefaultDict[str, str] = collections.defaultdict(str)
 
 from glob import glob
 
-if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-    # using a PyInstaller bundle, e.g. the MSI installed executable
+if getattr(sys, 'frozen', False):
+    # Using e.g. a PyInstaller bundle, such as the MSI installed executable.
+    # It is conventional for freeze programs to set this attribute to indicate
+    # that the program is self hosted, and for example there is no associated
+    # "python" executable.
     python_command = [sys.executable, 'runpython']
 else:
     python_command = [sys.executable]
@@ -487,6 +481,9 @@ class MachineChoice(enum.IntEnum):
     BUILD = 0
     HOST = 1
 
+    def __str__(self) -> str:
+        return f'{self.get_lower_case_name()} machine'
+
     def get_lower_case_name(self) -> str:
         return PerMachine('build', 'host')[self]
 
@@ -521,6 +518,10 @@ class PerMachine(T.Generic[_T]):
         if unfreeze.host == unfreeze.build:
             unfreeze.host = None
         return unfreeze
+
+    def assign(self, build: _T, host: _T) -> None:
+        self.build = build
+        self.host = host
 
     def __repr__(self) -> str:
         return f'PerMachine({self.build!r}, {self.host!r})'
@@ -1204,6 +1205,8 @@ def do_replacement(regex: T.Pattern[str], line: str,
                 var, _ = confdata.get(varname)
                 if isinstance(var, str):
                     var_str = var
+                elif variable_format.startswith("cmake") and isinstance(var, bool):
+                    var_str = str(int(var))
                 elif isinstance(var, int):
                     var_str = str(var)
                 else:
@@ -1217,8 +1220,17 @@ def do_replacement(regex: T.Pattern[str], line: str,
 
 def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
               variable_format: Literal['meson', 'cmake', 'cmake@'], subproject: T.Optional[SubProject] = None) -> str:
+    cmake_bool_define = False
+    if variable_format != "meson":
+        cmake_bool_define = "cmakedefine01" in line
+
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
         arr = line.split()
+
+        if cmake_bool_define:
+            (v, desc) = confdata.get(arr[1])
+            return str(int(bool(v)))
+
         define_value: T.List[str] = []
         for token in arr[2:]:
             try:
@@ -1240,22 +1252,29 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
     try:
         v, _ = confdata.get(varname)
     except KeyError:
-        return '/* #undef %s */\n' % varname
-    if isinstance(v, bool):
+        if cmake_bool_define:
+            return '#define %s 0\n' % varname
+        else:
+            return '/* #undef %s */\n' % varname
+
+    if isinstance(v, str) or variable_format != "meson":
+        if variable_format == 'meson':
+            result = v
+        else:
+            if not cmake_bool_define and not v:
+                return '/* #undef %s */\n' % varname
+
+            result = get_cmake_define(line, confdata)
+        result = f'#define {varname} {result}'.strip() + '\n'
+        result, _ = do_replacement(regex, result, variable_format, confdata)
+        return result
+    elif isinstance(v, bool):
         if v:
             return '#define %s\n' % varname
         else:
             return '#undef %s\n' % varname
     elif isinstance(v, int):
         return '#define %s %d\n' % (varname, v)
-    elif isinstance(v, str):
-        if variable_format == 'meson':
-            result = v
-        else:
-            result = get_cmake_define(line, confdata)
-        result = f'#define {varname} {result}\n'
-        result, _ = do_replacement(regex, result, variable_format, confdata)
-        return result
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
@@ -1292,7 +1311,7 @@ def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
     # during substitution so we can warn the user to use the `copy:` kwarg.
     confdata_useless = not confdata.keys()
     for line in data:
-        if line.startswith(search_token):
+        if line.lstrip().startswith(search_token):
             confdata_useless = False
             line = do_define(regex, line, confdata, variable_format, subproject)
         else:
@@ -1331,7 +1350,7 @@ CONF_C_PRELUDE = '''/*
  * Do not edit, your changes will be lost.
  */
 
-#pragma once
+{}
 
 '''
 
@@ -1340,34 +1359,52 @@ CONF_NASM_PRELUDE = '''; Autogenerated by the Meson build system.
 
 '''
 
-def dump_conf_header(ofilename: str, cdata: 'ConfigurationData', output_format: T.Literal['c', 'nasm']) -> None:
+def _dump_c_header(ofile: T.TextIO,
+                   cdata: ConfigurationData,
+                   output_format: Literal['c', 'nasm'],
+                   macro_name: T.Optional[str]) -> None:
+    format_desc: T.Callable[[str], str]
     if output_format == 'c':
-        prelude = CONF_C_PRELUDE
+        if macro_name:
+            prelude = CONF_C_PRELUDE.format('#ifndef {0}\n#define {0}'.format(macro_name))
+        else:
+            prelude = CONF_C_PRELUDE.format('#pragma once')
         prefix = '#'
-    else:
+        format_desc = lambda desc: f'/* {desc} */\n'
+    else:  # nasm
         prelude = CONF_NASM_PRELUDE
         prefix = '%'
+        format_desc = lambda desc: '; ' + '\n; '.join(desc.splitlines()) + '\n'
 
+    ofile.write(prelude)
+    for k in sorted(cdata.keys()):
+        (v, desc) = cdata.get(k)
+        if desc:
+            ofile.write(format_desc(desc))
+        if isinstance(v, bool):
+            if v:
+                ofile.write(f'{prefix}define {k}\n\n')
+            else:
+                ofile.write(f'{prefix}undef {k}\n\n')
+        elif isinstance(v, (int, str)):
+            ofile.write(f'{prefix}define {k} {v}\n\n')
+        else:
+            raise MesonException('Unknown data type in configuration file entry: ' + k)
+    if output_format == 'c' and macro_name:
+        ofile.write('#endif\n')
+
+
+def dump_conf_header(ofilename: str, cdata: ConfigurationData,
+                     output_format: Literal['c', 'nasm', 'json'],
+                     macro_name: T.Optional[str]) -> None:
     ofilename_tmp = ofilename + '~'
     with open(ofilename_tmp, 'w', encoding='utf-8') as ofile:
-        ofile.write(prelude)
-        for k in sorted(cdata.keys()):
-            (v, desc) = cdata.get(k)
-            if desc:
-                if output_format == 'c':
-                    ofile.write('/* %s */\n' % desc)
-                elif output_format == 'nasm':
-                    for line in desc.split('\n'):
-                        ofile.write('; %s\n' % line)
-            if isinstance(v, bool):
-                if v:
-                    ofile.write(f'{prefix}define {k}\n\n')
-                else:
-                    ofile.write(f'{prefix}undef {k}\n\n')
-            elif isinstance(v, (int, str)):
-                ofile.write(f'{prefix}define {k} {v}\n\n')
-            else:
-                raise MesonException('Unknown data type in configuration file entry: ' + k)
+        if output_format == 'json':
+            data = {k: v[0] for k, v in cdata.values.items()}
+            json.dump(data, ofile, sort_keys=True)
+        else:  # c, nasm
+            _dump_c_header(ofile, cdata, output_format, macro_name)
+
     replace_if_different(ofilename, ofilename_tmp)
 
 
@@ -1403,6 +1440,26 @@ def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
             result.append(i)
     return result
 
+def listify_array_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
+    if isinstance(value, str):
+        if value.startswith('['):
+            try:
+                newvalue = ast.literal_eval(value)
+            except ValueError:
+                raise MesonException(f'malformed value {value}')
+        elif value == '':
+            newvalue = []
+        else:
+            if shlex_split_args:
+                newvalue = split_args(value)
+            else:
+                newvalue = [v.strip() for v in value.split(',')]
+    elif isinstance(value, list):
+        newvalue = value
+    else:
+        raise MesonException(f'"{value}" should be a string array, but it is not')
+    assert isinstance(newvalue, list)
+    return newvalue
 
 def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> T.List[_U]:
     '''
@@ -1467,9 +1524,9 @@ def partition(pred: T.Callable[[_T], object], iterable: T.Iterable[_T]) -> T.Tup
 
 
 def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
-               stdin: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.DEVNULL,
-               stdout: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
-               stderr: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
+               stdin: T.Union[None, T.TextIO, T.BinaryIO, int] = subprocess.DEVNULL,
+               stdout: T.Union[None, T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
+               stderr: T.Union[None, T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
                **kwargs: T.Any) -> T.Tuple['subprocess.Popen[str]', str, str]:
     import locale
     encoding = locale.getpreferredencoding()
@@ -1499,13 +1556,13 @@ def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
 
 
 def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
-                      stdin: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.DEVNULL,
-                      stdout: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
-                      stderr: T.Union[T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
+                      stdin: T.Union[None, T.TextIO, T.BinaryIO, int] = subprocess.DEVNULL,
+                      stdout: T.Union[None, T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
+                      stderr: T.Union[None, T.TextIO, T.BinaryIO, int] = subprocess.PIPE,
                       **kwargs: T.Any) -> T.Tuple['subprocess.Popen[str]', str, str]:
     p = subprocess.Popen(args, universal_newlines=False, close_fds=False,
                          stdin=stdin, stdout=stdout, stderr=stderr, **kwargs)
-    input_ = None  # type: T.Optional[bytes]
+    input_: T.Optional[bytes] = None
     if write is not None:
         input_ = write.encode('utf-8')
     o, e = p.communicate(input_)
@@ -1526,8 +1583,14 @@ def Popen_safe_logged(args: T.List[str], msg: str = 'Called', **kwargs: T.Any) -
     '''
     Wrapper around Popen_safe that assumes standard piped o/e and logs this to the meson log.
     '''
-    p, o, e = Popen_safe(args, **kwargs)
-    rc, out, err = p.returncode, o.strip(), e.strip()
+    try:
+        p, o, e = Popen_safe(args, **kwargs)
+    except Exception as excp:
+        mlog.debug('-----------')
+        mlog.debug(f'{msg}: `{join_args(args)}` -> {excp}')
+        raise
+
+    rc, out, err = p.returncode, o.strip() if o else None, e.strip() if e else None
     mlog.debug('-----------')
     mlog.debug(f'{msg}: `{join_args(args)}` -> {rc}')
     if out:
@@ -1681,6 +1744,8 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
     If there is more than one input file, the following keys are also created:
 
     @INPUT0@, @INPUT1@, ... one for each input file
+    @PLAINNAME0@, @PLAINNAME1@, ... one for each input file
+    @BASENAME0@, @BASENAME1@, ... one for each input file
 
     If there is more than one output file, the following keys are also created:
 
@@ -1694,6 +1759,9 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
         for (ii, vv) in enumerate(inputs):
             # Write out @INPUT0@, @INPUT1@, ...
             values[f'@INPUT{ii}@'] = vv
+            plain = os.path.basename(vv)
+            values[f'@PLAINNAME{ii}@'] = plain
+            values[f'@BASENAME{ii}@'] = os.path.splitext(plain)[0]
         if len(inputs) == 1:
             # Just one value, substitute @PLAINNAME@ and @BASENAME@
             values['@PLAINNAME@'] = plain = os.path.basename(inputs[0])
@@ -1838,8 +1906,8 @@ class OrderedSet(T.MutableSet[_T]):
     def __repr__(self) -> str:
         # Don't print 'OrderedSet("")' for an empty set.
         if self.__container:
-            return 'OrderedSet("{}")'.format(
-                '", "'.join(repr(e) for e in self.__container.keys()))
+            return 'OrderedSet([{}])'.format(
+                ', '.join(repr(e) for e in self.__container.keys()))
         return 'OrderedSet()'
 
     def __reversed__(self) -> T.Iterator[_T]:
@@ -1870,14 +1938,14 @@ class OrderedSet(T.MutableSet[_T]):
         for item in iterable:
             self.discard(item)
 
-def relpath(path: str, start: str) -> str:
+def relpath(path: T.Union[str, Path], start: T.Union[str, Path]) -> str:
     # On Windows a relative path can't be evaluated for paths on two different
     # drives (i.e. c:\foo and f:\bar).  The only thing left to do is to use the
     # original absolute path.
     try:
         return os.path.relpath(path, start)
     except (TypeError, ValueError):
-        return path
+        return str(path)
 
 def path_is_in_root(path: Path, root: Path, resolve: bool = False) -> bool:
     # Check whether a path is within the root directory root
@@ -2085,52 +2153,6 @@ def generate_list(func: T.Callable[..., T.Generator[_T, None, None]]) -> T.Calla
         return list(func(*args, **kwargs))
 
     return wrapper
-
-
-class OptionOverrideProxy(collections.abc.Mapping):
-    '''Mimic an option list but transparently override selected option
-    values.
-    '''
-
-    # TODO: the typing here could be made more explicit using a TypeDict from
-    # python 3.8 or typing_extensions
-
-    def __init__(self, overrides: T.Dict['OptionKey', T.Any], options: 'KeyedOptionDictType',
-                 subproject: T.Optional[str] = None):
-        self.overrides = overrides
-        self.options = options
-        self.subproject = subproject
-
-    def __getitem__(self, key: 'OptionKey') -> 'UserOption':
-        # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
-        # We should try to share the code somehow.
-        key = key.evolve(subproject=self.subproject)
-        if not key.is_project():
-            opt = self.options.get(key)
-            if opt is None or opt.yielding:
-                opt = self.options[key.as_root()]
-        else:
-            opt = self.options[key]
-            if opt.yielding:
-                opt = self.options.get(key.as_root(), opt)
-        override_value = self.overrides.get(key.as_root())
-        if override_value is not None:
-            opt = copy.copy(opt)
-            opt.set_value(override_value)
-        return opt
-
-    def __iter__(self) -> T.Iterator['OptionKey']:
-        return iter(self.options)
-
-    def __len__(self) -> int:
-        return len(self.options)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, OptionOverrideProxy):
-            return NotImplemented
-        t1 = (self.overrides, self.subproject, self.options)
-        t2 = (other.overrides, other.subproject, other.options)
-        return t1 == t2
 
 
 class OptionType(enum.IntEnum):

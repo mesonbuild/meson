@@ -1,16 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
+# Copyright © 2023 Intel Corporation
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import abc
@@ -18,6 +9,7 @@ import contextlib, os.path, re
 import enum
 import itertools
 import typing as T
+from dataclasses import dataclass
 from functools import lru_cache
 
 from .. import coredata
@@ -32,7 +24,7 @@ from ..mesonlib import (
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
-    from ..build import BuildTarget
+    from ..build import BuildTarget, DFeatures
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -43,6 +35,7 @@ if T.TYPE_CHECKING:
 
     CompilerType = T.TypeVar('CompilerType', bound='Compiler')
     _T = T.TypeVar('_T')
+    UserOptionType = T.TypeVar('UserOptionType', bound=coredata.UserOption)
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -57,7 +50,7 @@ lib_suffixes = {'a', 'lib', 'dll', 'dll.a', 'dylib', 'so', 'js'}
 # First suffix is the language's default.
 lang_suffixes = {
     'c': ('c',),
-    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx', 'C'),
+    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx', 'C', 'H'),
     'cuda': ('cu',),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
@@ -71,7 +64,7 @@ lang_suffixes = {
     'swift': ('swift',),
     'java': ('java',),
     'cython': ('pyx', ),
-    'nasm': ('asm',),
+    'nasm': ('asm', 'nasm',),
     'masm': ('masm',),
 }
 all_languages = lang_suffixes.keys()
@@ -190,78 +183,6 @@ class CompileCheckMode(enum.Enum):
     LINK = 'link'
 
 
-cuda_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': ['-g', '-G'],
-    'debugoptimized': ['-g', '-lineinfo'],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
-java_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': ['-g'],
-    'debugoptimized': ['-g'],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
-rust_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
-d_gdc_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': ['-finline-functions'],
-    'release': ['-finline-functions'],
-    'minsize': [],
-    'custom': [],
-}
-
-d_ldc_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
-    'release': ['-enable-inlining', '-Hkeep-all-bodies'],
-    'minsize': [],
-    'custom': [],
-}
-
-d_dmd_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': ['-inline'],
-    'release': ['-inline'],
-    'minsize': [],
-    'custom': [],
-}
-
-mono_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': ['-optimize+'],
-    'release': ['-optimize+'],
-    'minsize': [],
-    'custom': [],
-}
-
-swift_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}
-
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
                '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
 
@@ -279,55 +200,53 @@ clike_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Os'],
 }
 
-cuda_optimization_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    '0': [],
-    'g': ['-O0'],
-    '1': ['-O1'],
-    '2': ['-O2'],
-    '3': ['-O3'],
-    's': ['-O3']
-}
-
-cuda_debug_args: T.Dict[bool, T.List[str]] = {
-    False: [],
-    True: ['-g']
-}
-
 clike_debug_args: T.Dict[bool, T.List[str]] = {
     False: [],
     True: ['-g']
 }
 
-base_options: 'KeyedOptionDictType' = {
-    OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
-    OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
-    OptionKey('b_lto_threads'): coredata.UserIntegerOption('Use multiple threads for Link Time Optimization', (None, None, 0)),
-    OptionKey('b_lto_mode'): coredata.UserComboOption('Select between different LTO modes.',
-                                                      ['default', 'thin'],
-                                                      'default'),
-    OptionKey('b_thinlto_cache'): coredata.UserBooleanOption('Use LLVM ThinLTO caching for faster incremental builds', False),
-    OptionKey('b_thinlto_cache_dir'): coredata.UserStringOption('Directory to store ThinLTO cache objects', ''),
-    OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
-                                                      ['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined'],
-                                                      'none'),
-    OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
-    OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
-    OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
-                                                 ['off', 'generate', 'use'],
-                                                 'off'),
-    OptionKey('b_coverage'): coredata.UserBooleanOption('Enable coverage tracking.', False),
-    OptionKey('b_colorout'): coredata.UserComboOption('Use colored output',
-                                                      ['auto', 'always', 'never'],
-                                                      'always'),
-    OptionKey('b_ndebug'): coredata.UserComboOption('Disable asserts', ['true', 'false', 'if-release'], 'false'),
-    OptionKey('b_staticpic'): coredata.UserBooleanOption('Build static libraries as position independent', True),
-    OptionKey('b_pie'): coredata.UserBooleanOption('Build executables as position independent', False),
-    OptionKey('b_bitcode'): coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)', False),
-    OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
-                                                   ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
-                                                   'from_buildtype'),
+
+MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
+
+@dataclass
+class BaseOption(T.Generic[coredata._T, coredata._U]):
+    opt_type: T.Type[coredata._U]
+    description: str
+    default: T.Any = None
+    choices: T.Any = None
+
+    def init_option(self, name: OptionKey) -> coredata._U:
+        keywords = {'value': self.default}
+        if self.choices:
+            keywords['choices'] = self.choices
+        return self.opt_type(name.name, self.description, **keywords)
+
+BASE_OPTIONS: T.Mapping[OptionKey, BaseOption] = {
+    OptionKey('b_pch'): BaseOption(coredata.UserBooleanOption, 'Use precompiled headers', True),
+    OptionKey('b_lto'): BaseOption(coredata.UserBooleanOption, 'Use link time optimization', False),
+    OptionKey('b_lto_threads'): BaseOption(coredata.UserIntegerOption, 'Use multiple threads for Link Time Optimization', (None, None, 0)),
+    OptionKey('b_lto_mode'): BaseOption(coredata.UserComboOption, 'Select between different LTO modes.', 'default',
+                                        choices=['default', 'thin']),
+    OptionKey('b_thinlto_cache'): BaseOption(coredata.UserBooleanOption, 'Use LLVM ThinLTO caching for faster incremental builds', False),
+    OptionKey('b_thinlto_cache_dir'): BaseOption(coredata.UserStringOption, 'Directory to store ThinLTO cache objects', ''),
+    OptionKey('b_sanitize'): BaseOption(coredata.UserComboOption, 'Code sanitizer to use', 'none',
+                                        choices=['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined']),
+    OptionKey('b_lundef'): BaseOption(coredata.UserBooleanOption, 'Use -Wl,--no-undefined when linking', True),
+    OptionKey('b_asneeded'): BaseOption(coredata.UserBooleanOption, 'Use -Wl,--as-needed when linking', True),
+    OptionKey('b_pgo'): BaseOption(coredata.UserComboOption, 'Use profile guided optimization', 'off',
+                                   choices=['off', 'generate', 'use']),
+    OptionKey('b_coverage'): BaseOption(coredata.UserBooleanOption, 'Enable coverage tracking.', False),
+    OptionKey('b_colorout'): BaseOption(coredata.UserComboOption, 'Use colored output', 'always',
+                                        choices=['auto', 'always', 'never']),
+    OptionKey('b_ndebug'): BaseOption(coredata.UserComboOption, 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
+    OptionKey('b_staticpic'): BaseOption(coredata.UserBooleanOption, 'Build static libraries as position independent', True),
+    OptionKey('b_pie'): BaseOption(coredata.UserBooleanOption, 'Build executables as position independent', False),
+    OptionKey('b_bitcode'): BaseOption(coredata.UserBooleanOption, 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
+    OptionKey('b_vscrt'): BaseOption(coredata.UserComboOption, 'VS run-time library type to use.', 'from_buildtype',
+                                     choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
 }
+
+base_options: KeyedOptionDictType = {key: base_opt.init_option(key) for key, base_opt in BASE_OPTIONS.items()}
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
                    option: OptionKey) -> bool:
@@ -364,7 +283,7 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
              options[OptionKey('buildtype')].value in {'release', 'plain'}))
 
 
-def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
+def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     try:
         if options[OptionKey('b_lto')].value:
@@ -395,7 +314,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     except KeyError:
         pass
     try:
-        args += compiler.get_assert_args(are_asserts_disabled(options))
+        args += compiler.get_assert_args(are_asserts_disabled(options), env)
     except KeyError:
         pass
     # This does not need a try...except
@@ -417,6 +336,9 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     args: T.List[str] = []
     try:
         if options[OptionKey('b_lto')].value:
+            if options[OptionKey('werror')].value:
+                args.extend(linker.get_werror_args())
+
             thinlto_cache_dir = None
             if get_option_value(options, OptionKey('b_thinlto_cache'), False):
                 thinlto_cache_dir = get_option_value(options, OptionKey('b_thinlto_cache_dir'), '')
@@ -525,7 +447,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     language: str
     id: str
     warn_args: T.Dict[str, T.List[str]]
-    mode = CompileCheckMode.COMPILE
+    mode = 'COMPILER'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
@@ -667,6 +589,14 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return []
 
+    def create_option(self, option_type: T.Type[UserOptionType], option_key: OptionKey, *args: T.Any, **kwargs: T.Any) -> T.Tuple[OptionKey, UserOptionType]:
+        return option_key, option_type(f'{self.language}_{option_key.name}', *args, **kwargs)
+
+    @staticmethod
+    def update_options(options: MutableKeyedOptionDictType, *args: T.Tuple[OptionKey, UserOptionType]) -> MutableKeyedOptionDictType:
+        options.update(args)
+        return options
+
     def get_options(self) -> 'MutableKeyedOptionDictType':
         return {}
 
@@ -713,10 +643,33 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def run(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
+    def run(self, code: 'mesonlib.FileOrString', env: 'Environment',
             extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None,
-            dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
-        raise EnvironmentException('Language %s does not support run checks.' % self.get_display_language())
+            dependencies: T.Optional[T.List['Dependency']] = None,
+            run_env: T.Optional[T.Dict[str, str]] = None,
+            run_cwd: T.Optional[str] = None) -> RunResult:
+        need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
+        if need_exe_wrapper and not env.has_exe_wrapper():
+            raise CrossNoRunException('Can not run test applications in this cross environment.')
+        with self._build_wrapper(code, env, extra_args, dependencies, mode=CompileCheckMode.LINK, want_output=True) as p:
+            if p.returncode != 0:
+                mlog.debug(f'Could not compile test file {p.input_name}: {p.returncode}\n')
+                return RunResult(False)
+            if need_exe_wrapper:
+                cmdlist = env.exe_wrapper.get_command() + [p.output_name]
+            else:
+                cmdlist = [p.output_name]
+            try:
+                pe, so, se = mesonlib.Popen_safe(cmdlist, env=run_env, cwd=run_cwd)
+            except Exception as e:
+                mlog.debug(f'Could not run: {cmdlist} (error: {e})\n')
+                return RunResult(False)
+
+        mlog.debug('Program stdout:\n')
+        mlog.debug(so)
+        mlog.debug('Program stderr:\n')
+        mlog.debug(se)
+        return RunResult(True, pe.returncode, so, se)
 
     # Caching run() in general seems too risky (no way to know what the program
     # depends on), but some callers know more about the programs they intend to
@@ -792,11 +745,23 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return []
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        """Checks if the compiler has all of the arguments.
+
+        :returns:
+            A tuple of (bool, bool). The first value is whether the check
+            succeeded, and the second is whether it was retrieved from a cache
+        """
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        """Checks if the linker has all of the arguments.
+
+        :returns:
+            A tuple of (bool, bool). The first value is whether the check
+            succeeded, and the second is whether it was retrieved from a cache
+        """
         return self.linker.has_multi_arguments(args, env)
 
     def _get_compile_output(self, dirname: str, mode: CompileCheckMode) -> str:
@@ -828,7 +793,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def compile(self, code: 'mesonlib.FileOrString',
                 extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
                 *, mode: CompileCheckMode = CompileCheckMode.LINK, want_output: bool = False,
-                temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
+                temp_dir: T.Optional[str] = None) -> T.Iterator[CompileResult]:
         # TODO: there isn't really any reason for this to be a contextmanager
 
         if mode == CompileCheckMode.PREPROCESS:
@@ -846,14 +811,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                     ofile.write(code)
                 # ccache would result in a cache miss
                 no_ccache = True
-                contents = code
+                code_debug = f'Code:\n{code}'
             else:
                 srcname = code.fname
-                if not is_object(code.fname):
-                    with open(code.fname, encoding='utf-8') as f:
-                        contents = f.read()
-                else:
-                    contents = '<binary>'
+                code_debug = f'Source file: {srcname}'
 
             # Construct the compiler command-line
             commands = self.compiler_args()
@@ -874,7 +835,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             command_list = self.get_exelist(ccache=not no_ccache) + commands.to_native()
             mlog.debug('Running compile:')
             mlog.debug('Working directory: ', tmpdirname)
-            mlog.debug('Code:\n', contents)
+            mlog.debug(code_debug)
             os_env = os.environ.copy()
             os_env['LC_ALL'] = 'C'
             if no_ccache:
@@ -890,7 +851,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
                        extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
                        mode: CompileCheckMode = CompileCheckMode.LINK,
-                       temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
+                       temp_dir: T.Optional[str] = None) -> T.Iterator[CompileResult]:
         # TODO: There's isn't really any reason for this to be a context manager
 
         # Calculate the key
@@ -920,6 +881,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     # These args specify where it should be written.
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         return []
+
+    def should_link_pch_object(self) -> bool:
+        return False
 
     def get_link_debugfile_name(self, targetfile: str) -> T.Optional[str]:
         return self.linker.get_debugfile_name(targetfile)
@@ -981,10 +945,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
         return []
-
-    def get_gui_app_args(self, value: bool) -> T.List[str]:
-        # Only used on Windows
-        return self.linker.get_gui_app_args(value)
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         # By default the dynamic linker is going to return an empty
@@ -1069,11 +1029,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        raise EnvironmentException(f'{self.id} does not implement get_buildtype_args')
-
-    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
-        return self.linker.get_buildtype_args(buildtype)
+    def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
+        return self.linker.get_optimization_link_args(optimization_level)
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
@@ -1103,13 +1060,35 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_coverage_link_args(self) -> T.List[str]:
         return self.linker.get_coverage_args()
 
-    def get_assert_args(self, disable: bool) -> T.List[str]:
+    def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         """Get arguments to enable or disable assertion.
 
         :param disable: Whether to disable assertions
         :return: A list of string arguments for this compiler
         """
         return []
+
+    def get_crt_val(self, crt_val: str, buildtype: str) -> str:
+        if crt_val in MSCRT_VALS:
+            return crt_val
+        assert crt_val in {'from_buildtype', 'static_from_buildtype'}
+
+        dbg = 'mdd'
+        rel = 'md'
+        if crt_val == 'static_from_buildtype':
+            dbg = 'mtd'
+            rel = 'mt'
+
+        # Match what build type flags used to do.
+        if buildtype == 'plain':
+            return 'none'
+        elif buildtype == 'debug':
+            return dbg
+        elif buildtype in {'debugoptimized', 'release', 'minsize'}:
+            return rel
+        else:
+            assert buildtype == 'custom'
+            raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         raise EnvironmentException('This compiler does not support Windows CRT selection')
@@ -1301,7 +1280,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                        extra_args: T.Union[None, CompilerArgs, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
                        mode: CompileCheckMode = CompileCheckMode.COMPILE, want_output: bool = False,
-                       disable_cache: bool = False) -> T.Iterator[T.Optional[CompileResult]]:
+                       disable_cache: bool = False) -> T.Iterator[CompileResult]:
         """Helper for getting a cached value when possible.
 
         This method isn't meant to be called externally, it's mean to be
@@ -1320,6 +1299,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: CompileCheckMode = CompileCheckMode.COMPILE,
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        """Run a compilation or link test to see if code can be compiled/linked.
+
+        :returns:
+            A tuple of (bool, bool). The first value is whether the check
+            succeeded, and the second is whether it was retrieved from a cache
+        """
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
@@ -1337,7 +1322,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return self.compiles(code, env, extra_args=extra_args,
                              dependencies=dependencies, mode=CompileCheckMode.LINK, disable_cache=disable_cache)
 
-    def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
+    def get_feature_args(self, kwargs: DFeatures, build_to_src: str) -> T.List[str]:
         """Used by D for extra language features."""
         # TODO: using a TypeDict here would improve this
         raise EnvironmentException(f'{self.id} does not implement get_feature_args')
@@ -1355,10 +1340,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         """Arguments required for a debug build."""
-        return []
-
-    def get_no_warn_args(self) -> T.List[str]:
-        """Arguments to completely disable warnings."""
         return []
 
     def needs_static_linker(self) -> bool:
@@ -1385,12 +1366,14 @@ def get_global_options(lang: str,
     link_options = env.options.get(largkey, [])
 
     cargs = coredata.UserArrayOption(
+        f'{lang}_{argkey.name}',
         description + ' compiler',
-        comp_options, split_args=True, user_input=True, allow_dups=True)
+        comp_options, split_args=True, allow_dups=True)
 
     largs = coredata.UserArrayOption(
+        f'{lang}_{largkey.name}',
         description + ' linker',
-        link_options, split_args=True, user_input=True, allow_dups=True)
+        link_options, split_args=True, allow_dups=True)
 
     if comp.INVOKES_LINKER and comp_key == envkey:
         # If the compiler acts as a linker driver, and we're using the

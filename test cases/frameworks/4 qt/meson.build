@@ -48,7 +48,10 @@ foreach qt : ['qt4', 'qt5', 'qt6']
   qtdep = dependency(qt, modules : qt_modules, main : true, private_headers: true, required : required, method : get_option('method'))
   if qtdep.found()
     qtmodule = import(qt)
-    assert(qtmodule.has_tools())
+    assert(qtmodule.has_tools(), 'You may be missing a devel package. (qttools5-dev-tools on Debian based systems)')
+
+    # Test that fetching a variable works and yields a non-empty value
+    assert(qtdep.get_variable('prefix', configtool: 'QT_INSTALL_PREFIX') != '')
 
     # The following has two resource files because having two in one target
     # requires you to do it properly or you get linker symbol clashes.
@@ -58,11 +61,15 @@ foreach qt : ['qt4', 'qt5', 'qt6']
       method : get_option('method')
     )
     # XML files that need to be compiled with the uic tol.
-    prep += qtmodule.compile_ui(sources : 'mainWindow.ui', method: get_option('method'))
+    prep += qtmodule.compile_ui(
+      sources : 'ui/mainWindow.ui',
+      method: get_option('method'),
+      preserve_paths: true)
 
     qtmodule.preprocess(
-      ui_files : 'mainWindow.ui',
-      method: get_option('method'))
+      ui_files : 'ui/mainWindow.ui',
+      method: get_option('method'),
+      preserve_paths: true)
 
     # Resource file(s) for rcc compiler
     extra_cpp_args = []

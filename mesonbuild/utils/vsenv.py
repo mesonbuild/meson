@@ -9,7 +9,8 @@ import tempfile
 import locale
 
 from .. import mlog
-from .universal import MesonException, is_windows, windows_detect_native_arch
+from .core import MesonException
+from .universal import is_windows, windows_detect_native_arch
 
 
 __all__ = [

@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019-2022 The meson development team
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+
 from __future__ import annotations
 
 """Provides mixins for GNU compilers and GNU-like compilers."""
@@ -45,15 +35,6 @@ else:
 clike_debug_args: T.Dict[bool, T.List[str]] = {
     False: [],
     True: ['-g'],
-}
-
-gnulike_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
 }
 
 gnu_optimization_args: T.Dict[str, T.List[str]] = {
@@ -400,9 +381,6 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_pie_args(self) -> T.List[str]:
         return ['-fPIE']
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return gnulike_buildtype_args[buildtype]
-
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         pass
@@ -451,9 +429,6 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_profile_use_args(self) -> T.List[str]:
         return ['-fprofile-use']
 
-    def get_gui_app_args(self, value: bool) -> T.List[str]:
-        return ['-mwindows' if value else '-mconsole']
-
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
@@ -494,16 +469,16 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             # paths under /lib would be considered not a "system path",
             # which is wrong and breaks things. Store everything, just to be sure.
             pobj = pathlib.Path(p)
-            unresolved = pobj.as_posix()
             if pobj.exists():
-                if unresolved not in result:
-                    result.append(unresolved)
                 try:
-                    resolved = pathlib.Path(p).resolve().as_posix()
+                    resolved = pobj.resolve(True).as_posix()
                     if resolved not in result:
                         result.append(resolved)
                 except FileNotFoundError:
                     pass
+                unresolved = pobj.as_posix()
+                if unresolved not in result:
+                    result.append(unresolved)
         return result
 
     def get_compiler_dirs(self, env: 'Environment', name: str) -> T.List[str]:

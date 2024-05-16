@@ -121,12 +121,23 @@ methods:
 - name: _compiles
   returns: void
   description: You have found a bug if you can see this!
+  kwargs:
+    required:
+      type: bool | feature
+      default: false
+      since: 1.5.0
+      description:
+        When set to `true`, Meson will halt if the check fails.
+
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
   kwargs_inherit:
     - compiler._args
     - compiler._include_directories
     - compiler._dependencies
     - compiler._no_builtin_args
     - compiler._name
+    - compiler._werror
 
 - name: _header
   returns: void
@@ -143,6 +154,29 @@ methods:
         When set to a [`feature`](Build-options.md#features) option, the feature
         will control if it is searched and whether to fail if not found.
 
+- name: _required
+  returns: void
+  description: You have found a bug if you can see this!
+  kwargs:
+    required:
+      type: bool | feature
+      default: false
+      since: 1.3.0
+      description:
+        When set to `true`, Meson will halt if the check fails.
+
+        When set to a [`feature`](Build-options.md#features) option, the feature
+        will control if it is searched and whether to fail if not found.
+
+- name: _werror
+  returns: void
+  description: You have found a bug if you can see this!
+  kwargs:
+    werror:
+      type: bool
+      default: false
+      description: When set to `true`, compiler warnings are treated as error.
+      since: 1.3.0
 
 # Star of the actual functions
 - name: version
@@ -156,7 +190,11 @@ methods:
 
 - name: alignment
   returns: int
-  description: Returns the alignment of the specified type.
+  description: |
+    Returns the alignment of the specified type. For C-like languages,
+    For C-like languages, the header `stddef.h` and `stdio.h` are included
+    implicitly for native compilation, only `stddef.h` is included when
+    cross-compiling.
 
   posargs:
     typename:
@@ -196,7 +234,9 @@ methods:
 - name: has_member
   returns: bool
   description: Returns true if the type has the specified member.
-  kwargs_inherit: compiler._common
+  kwargs_inherit:
+    - compiler._common
+    - compiler._required
   posargs:
     typename:
       type: str
@@ -208,7 +248,9 @@ methods:
 - name: has_members
   returns: bool
   description: Returns `true` if the type has *all* the specified members.
-  kwargs_inherit: compiler._common
+  kwargs_inherit:
+    - compiler._common
+    - compiler._required
   posargs:
     typename:
       type: str
@@ -225,7 +267,9 @@ methods:
     Returns true if the given function is provided
     by the standard library or a library passed in with the `args` keyword.
 
-  kwargs_inherit: compiler._common
+  kwargs_inherit:
+    - compiler._common
+    - compiler._required
   posargs:
     funcname:
       type: str
@@ -234,7 +278,9 @@ methods:
 - name: has_type
   returns: bool
   description: Returns `true` if the specified token is a type.
-  kwargs_inherit: compiler._common
+  kwargs_inherit:
+    - compiler._common
+    - compiler._required
   posargs:
     typename:
       type: str
@@ -251,6 +297,9 @@ methods:
     (defaults to -1024), `high` (defaults to 1024) and `guess` to
     specify max and min values for the search and the value to try
     first.
+    For C-like languages, the header `stddef.h` and `stdio.h` are included
+    implicitly for native compilation, only `stddef.h` is included when
+    cross-compiling.
 
   posargs:
     expr:
@@ -272,7 +321,11 @@ methods:
 
 - name: sizeof
   returns: int
-  description: returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown.
+  description: |
+    returns the size of the given type (e.g. `'int'`) or -1 if the type is unknown.
+    For C-like languages, the header `stddef.h` and `stdio.h` are included
+    implicitly for native compilation, only `stddef.h` is included when
+    cross-compiling.
   kwargs_inherit: compiler._common
   posargs:
     typename:
@@ -289,6 +342,17 @@ methods:
     *(since 0.47.0)* This method will concatenate string literals as
     the compiler would. E.g. `"a" "b"` will become `"ab"`.
 
+  kwargs_inherit: compiler._common
+  posargs:
+    definename:
+      type: str
+      description: The define to check.
+
+- name: has_define
+  returns: bool
+  since: 1.3.0
+  description: |
+    Returns true if the given preprocessor symbol is *defined*.
   kwargs_inherit: compiler._common
   posargs:
     definename:
@@ -457,6 +521,8 @@ methods:
     argument:
       type: str
       description: The argument to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: has_multi_arguments
   since: 0.37.0
@@ -469,6 +535,8 @@ methods:
     name: arg
     type: str
     description: The arguments to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: get_supported_arguments
   returns: list[str]
@@ -515,6 +583,8 @@ methods:
     argument:
       type: str
       description: The argument to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: has_multi_link_arguments
   since: 0.46.0
@@ -527,6 +597,8 @@ methods:
     name: arg
     type: str
     description: The link arguments to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: get_supported_link_arguments
   returns: list[str]
@@ -556,10 +628,6 @@ methods:
     Given a list of strings, returns the first argument that passes the
     [[compiler.has_link_argument]] test or an empty array if none pass.
 
-
-
-
-
 - name: has_function_attribute
   returns: bool
   since: 0.48.0
@@ -573,6 +641,8 @@ methods:
     name:
       type: str
       description: The attribute name to check.
+  kwargs_inherit:
+    - compiler._required
 
 - name: get_supported_function_attributes
   returns: list[str]
@@ -603,7 +673,17 @@ methods:
     will receive the same arguments (include directories, defines, etc) as with
     normal compilation. That includes for example args added with
     `add_project_arguments()`, or on the command line with `-Dc_args=-DFOO`.
-  varargs_inherit: _build_target_base
+  varargs:
+    name: source
+    type: str | file | custom_tgt | custom_idx | generated_list
+    description: |
+      Input source to preprocess. The following types are supported:
+
+      - Strings relative to the current source directory
+      - [[@file]] objects defined in any preceding build file
+      - The return value of configure-time generators such as [[configure_file]]
+      - The return value of build-time generators such as
+        [[custom_target]] or [[generator.process]]
   kwargs_inherit:
     - compiler._include_directories
   kwargs:
@@ -621,3 +701,10 @@ methods:
       type: dep | list[dep]
       description: Additionally dependencies required.
       since: 1.1.0
+    depends:
+      type: list[build_tgt | custom_tgt]
+      description: |
+        Specifies that this target depends on the specified
+        target(s). These targets should be built before starting
+        to preprocess an input.
+      since: 1.4.0

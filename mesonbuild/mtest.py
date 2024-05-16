@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2017 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # A tool to run tests in many different ways.
 from __future__ import annotations
@@ -44,9 +33,9 @@ import xml.etree.ElementTree as et
 from . import build
 from . import environment
 from . import mlog
-from .coredata import MesonVersionMismatchException, OptionKey, major_versions_differ
+from .coredata import MesonVersionMismatchException, major_versions_differ
 from .coredata import version as coredata_version
-from .mesonlib import (MesonException, OrderedSet, RealPathAction,
+from .mesonlib import (MesonException, OptionKey, OrderedSet, RealPathAction,
                        get_wine_shortpath, join_args, split_args, setup_vsenv)
 from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
@@ -124,6 +113,8 @@ def determine_worker_count() -> int:
             num_workers = 1
     return num_workers
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--maxfail', default=0, type=int,
                         help='Number of failing tests before aborting the '
@@ -136,14 +127,13 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Run test under gdb.')
     parser.add_argument('--gdb-path', default='gdb', dest='gdb_path',
                         help='Path to the gdb binary (default: gdb).')
+    parser.add_argument('-i', '--interactive', default=False, dest='interactive',
+                        action='store_true', help='Run tests with interactive input/output.')
     parser.add_argument('--list', default=False, dest='list', action='store_true',
                         help='List available tests.')
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
                         help='wrapper to run tests with (e.g. Valgrind)')
     parser.add_argument('-C', dest='wd', action=RealPathAction,
-                        # https://github.com/python/typeshed/issues/3107
-                        # https://github.com/python/mypy/issues/7177
-                        type=os.path.abspath,  # type: ignore
                         help='directory to cd into before running')
     parser.add_argument('--suite', default=[], dest='include_suites', action='append', metavar='SUITE',
                         help='Only run tests belonging to the given suite.')
@@ -157,7 +147,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help="Run benchmarks instead of tests.")
     parser.add_argument('--logbase', default='testlog',
                         help="Base name for log file.")
-    parser.add_argument('--num-processes', default=determine_worker_count(), type=int,
+    parser.add_argument('-j', '--num-processes', default=determine_worker_count(), type=int,
                         help='How many parallel processes to use.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
                         help='Do not redirect stdout and stderr')
@@ -245,8 +235,8 @@ class ConsoleUser(enum.Enum):
     # the logger can use the console
     LOGGER = 0
 
-    # the console is used by gdb
-    GDB = 1
+    # the console is used by gdb or the user
+    INTERACTIVE = 1
 
     # the console is used to write stdout/stderr
     STDOUT = 2
@@ -521,10 +511,10 @@ class ConsoleLogger(TestLogger):
     RTRI = "\u25B6 "
 
     def __init__(self) -> None:
-        self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
-        self.progress_test = None          # type: T.Optional['TestRun']
-        self.progress_task = None          # type: T.Optional[asyncio.Future]
-        self.max_left_width = 0            # type: int
+        self.running_tests: OrderedSet['TestRun'] = OrderedSet()
+        self.progress_test: T.Optional['TestRun'] = None
+        self.progress_task: T.Optional[asyncio.Future] = None
+        self.max_left_width = 0
         self.stop = False
         # TODO: before 3.10 this cannot be created immediately, because
         # it will create a new event loop
@@ -770,14 +760,16 @@ class TextLogfileBuilder(TestFileLogger):
 
 class JsonLogfileBuilder(TestFileLogger):
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
-        jresult = {'name': result.name,
-                   'stdout': result.stdo,
-                   'result': result.res.value,
-                   'starttime': result.starttime,
-                   'duration': result.duration,
-                   'returncode': result.returncode,
-                   'env': result.env,
-                   'command': result.cmd}  # type: T.Dict[str, T.Any]
+        jresult: T.Dict[str, T.Any] = {
+            'name': result.name,
+            'stdout': result.stdo,
+            'result': result.res.value,
+            'starttime': result.starttime,
+            'duration': result.duration,
+            'returncode': result.returncode,
+            'env': result.env,
+            'command': result.cmd,
+        }
         if result.stde:
             jresult['stderr'] = result.stde
         self.file.write(json.dumps(jresult) + '\n')
@@ -804,7 +796,7 @@ class JunitBuilder(TestLogger):
         self.filename = filename
         self.root = et.Element(
             'testsuites', tests='0', errors='0', failures='0')
-        self.suites = {}  # type: T.Dict[str, et.Element]
+        self.suites: T.Dict[str, et.Element] = {}
 
     def log(self, harness: 'TestHarness', test: 'TestRun') -> None:
         """Log a single test case."""
@@ -922,24 +914,24 @@ class TestRun:
                  name: str, timeout: T.Optional[int], is_parallel: bool, verbose: bool):
         self.res = TestResult.PENDING
         self.test = test
-        self._num = None       # type: T.Optional[int]
+        self._num: T.Optional[int] = None
         self.name = name
         self.timeout = timeout
-        self.results = []      # type: T.List[TAPParser.Test]
-        self.returncode = None  # type: T.Optional[int]
-        self.starttime = None  # type: T.Optional[float]
-        self.duration = None   # type: T.Optional[float]
+        self.results: T.List[TAPParser.Test] = []
+        self.returncode: T.Optional[int] = None
+        self.starttime: T.Optional[float] = None
+        self.duration: T.Optional[float] = None
         self.stdo = ''
         self.stde = ''
         self.additional_error = ''
-        self.cmd = None        # type: T.Optional[T.List[str]]
-        self.env = test_env    # type: T.Dict[str, str]
+        self.cmd: T.Optional[T.List[str]] = None
+        self.env = test_env
         self.should_fail = test.should_fail
         self.project = test.project_name
-        self.junit = None      # type: T.Optional[et.ElementTree]
+        self.junit: T.Optional[et.ElementTree] = None
         self.is_parallel = is_parallel
         self.verbose = verbose
-        self.warnings = []     # type: T.List[str]
+        self.warnings: T.List[str] = []
 
     def start(self, cmd: T.List[str]) -> None:
         self.res = TestResult.RUNNING
@@ -1086,7 +1078,7 @@ class TestRunTAP(TestRun):
 
     async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> None:
         res = None
-        warnings = [] # type: T.List[TAPParser.UnknownLine]
+        warnings: T.List[TAPParser.UnknownLine] = []
         version = 12
 
         async for i in TAPParser().parse_async(lines):
@@ -1285,9 +1277,9 @@ class TestSubprocess:
         self.stderr = stderr
         self.stdo_task: T.Optional[asyncio.Task[None]] = None
         self.stde_task: T.Optional[asyncio.Task[None]] = None
-        self.postwait_fn = postwait_fn   # type: T.Callable[[], None]
-        self.all_futures = []            # type: T.List[asyncio.Future]
-        self.queue = None                # type: T.Optional[asyncio.Queue[T.Optional[str]]]
+        self.postwait_fn = postwait_fn
+        self.all_futures: T.List[asyncio.Future] = []
+        self.queue: T.Optional[asyncio.Queue[T.Optional[str]]] = None
 
     def stdout_lines(self) -> T.AsyncIterator[str]:
         self.queue = asyncio.Queue()
@@ -1416,7 +1408,18 @@ class SingleTestRunner:
         if ('MALLOC_PERTURB_' not in env or not env['MALLOC_PERTURB_']) and not options.benchmark:
             env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
-        if self.options.gdb or self.test.timeout is None or self.test.timeout <= 0:
+        # Sanitizers do not default to aborting on error. This is counter to
+        # expectations when using -Db_sanitize and has led to confusion in the wild
+        # in CI. Set our own values of {ASAN,UBSAN}_OPTIONS to rectify this, but
+        # only if the user has not defined them.
+        if ('ASAN_OPTIONS' not in env or not env['ASAN_OPTIONS']):
+            env['ASAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1'
+        if ('UBSAN_OPTIONS' not in env or not env['UBSAN_OPTIONS']):
+            env['UBSAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1'
+        if ('MSAN_OPTIONS' not in env or not env['MSAN_OPTIONS']):
+            env['MSAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1'
+
+        if self.options.interactive or self.test.timeout is None or self.test.timeout <= 0:
             timeout = None
         elif self.options.timeout_multiplier is None:
             timeout = self.test.timeout
@@ -1425,12 +1428,12 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout * self.options.timeout_multiplier
 
-        is_parallel = test.is_parallel and self.options.num_processes > 1 and not self.options.gdb
+        is_parallel = test.is_parallel and self.options.num_processes > 1 and not self.options.interactive
         verbose = (test.verbose or self.options.verbose) and not self.options.quiet
         self.runobj = TestRun(test, env, name, timeout, is_parallel, verbose)
 
-        if self.options.gdb:
-            self.console_mode = ConsoleUser.GDB
+        if self.options.interactive:
+            self.console_mode = ConsoleUser.INTERACTIVE
         elif self.runobj.direct_stdout:
             self.console_mode = ConsoleUser.STDOUT
         else:
@@ -1457,6 +1460,11 @@ class SingleTestRunner:
                            'found. Please check the command and/or add it to PATH.')
                     raise TestException(msg.format(self.test.exe_wrapper.name))
                 return self.test.exe_wrapper.get_command() + self.test.fname
+        elif self.test.cmd_is_built and not self.test.cmd_is_exe and is_windows():
+            test_cmd = ExternalProgram._shebang_to_cmd(self.test.fname[0])
+            if test_cmd is not None:
+                test_cmd += self.test.fname[1:]
+            return test_cmd
         return self.test.fname
 
     def _get_cmd(self) -> T.Optional[T.List[str]]:
@@ -1489,17 +1497,17 @@ class SingleTestRunner:
             await self._run_cmd(harness, cmd)
         return self.runobj
 
-    async def _run_subprocess(self, args: T.List[str], *,
+    async def _run_subprocess(self, args: T.List[str], *, stdin: T.Optional[int],
                               stdout: T.Optional[int], stderr: T.Optional[int],
                               env: T.Dict[str, str], cwd: T.Optional[str]) -> TestSubprocess:
         # Let gdb handle ^C instead of us
-        if self.options.gdb:
+        if self.options.interactive:
             previous_sigint_handler = signal.getsignal(signal.SIGINT)
             # Make the meson executable ignore SIGINT while gdb is running.
             signal.signal(signal.SIGINT, signal.SIG_IGN)
 
         def preexec_fn() -> None:
-            if self.options.gdb:
+            if self.options.interactive:
                 # Restore the SIGINT handler for the child process to
                 # ensure it can handle it.
                 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -1510,11 +1518,12 @@ class SingleTestRunner:
                 os.setsid()
 
         def postwait_fn() -> None:
-            if self.options.gdb:
+            if self.options.interactive:
                 # Let us accept ^C again
                 signal.signal(signal.SIGINT, previous_sigint_handler)
 
         p = await asyncio.create_subprocess_exec(*args,
+                                                 stdin=stdin,
                                                  stdout=stdout,
                                                  stderr=stderr,
                                                  env=env,
@@ -1524,16 +1533,18 @@ class SingleTestRunner:
                               postwait_fn=postwait_fn if not is_windows() else None)
 
     async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
-        if self.console_mode is ConsoleUser.GDB:
+        if self.console_mode is ConsoleUser.INTERACTIVE:
+            stdin = None
             stdout = None
             stderr = None
         else:
+            stdin = asyncio.subprocess.DEVNULL
             stdout = asyncio.subprocess.PIPE
             stderr = asyncio.subprocess.STDOUT \
                 if not self.options.split and not self.runobj.needs_parsing \
                 else asyncio.subprocess.PIPE
 
-        extra_cmd = []  # type: T.List[str]
+        extra_cmd: T.List[str] = []
         if self.test.protocol is TestProtocol.GTEST:
             gtestname = self.test.name
             if self.test.workdir:
@@ -1541,6 +1552,7 @@ class SingleTestRunner:
             extra_cmd.append(f'--gtest_output=xml:{gtestname}.xml')
 
         p = await self._run_subprocess(cmd + extra_cmd,
+                                       stdin=stdin,
                                        stdout=stdout,
                                        stderr=stderr,
                                        env=self.runobj.env,
@@ -1568,7 +1580,7 @@ class SingleTestRunner:
 class TestHarness:
     def __init__(self, options: argparse.Namespace):
         self.options = options
-        self.collected_failures = []  # type: T.List[TestRun]
+        self.collected_failures: T.List[TestRun] = []
         self.fail_count = 0
         self.expectedfail_count = 0
         self.unexpectedpass_count = 0
@@ -1578,14 +1590,14 @@ class TestHarness:
         self.test_count = 0
         self.name_max_len = 0
         self.is_run = False
-        self.loggers = []         # type: T.List[TestLogger]
+        self.loggers: T.List[TestLogger] = []
         self.console_logger = ConsoleLogger()
         self.loggers.append(self.console_logger)
         self.need_console = False
-        self.ninja = None # type: T.List[str]
+        self.ninja: T.List[str] = None
 
-        self.logfile_base = None  # type: T.Optional[str]
-        if self.options.logbase and not self.options.gdb:
+        self.logfile_base: T.Optional[str] = None
+        if self.options.logbase and not self.options.interactive:
             namebase = None
             self.logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
 
@@ -1685,6 +1697,7 @@ class TestHarness:
         if not options.gdb:
             options.gdb = current.gdb
         if options.gdb:
+            options.interactive = True
             options.verbose = True
         if options.timeout_multiplier is None:
             options.timeout_multiplier = current.timeout_multiplier
@@ -1696,7 +1709,7 @@ class TestHarness:
             sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
         return current.env.get_env(os.environ.copy())
 
-    def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
+    def get_test_runner(self, test: TestSerialisation, iteration: int) -> SingleTestRunner:
         name = self.get_pretty_suite(test)
         options = deepcopy(self.options)
         if self.options.setup:
@@ -1708,6 +1721,7 @@ class TestHarness:
         if (test.is_cross_built and test.needs_exe_wrapper and
                 test.exe_wrapper and test.exe_wrapper.found()):
             env['MESON_EXE_WRAPPER'] = join_args(test.exe_wrapper.get_command())
+        env['MESON_TEST_ITERATION'] = str(iteration + 1)
         return SingleTestRunner(test, env, name, options)
 
     def process_test_result(self, result: TestRun) -> None:
@@ -1807,9 +1821,9 @@ class TestHarness:
         startdir = os.getcwd()
         try:
             os.chdir(self.options.wd)
-            runners = []             # type: T.List[SingleTestRunner]
+            runners: T.List[SingleTestRunner] = []
             for i in range(self.options.repeat):
-                runners.extend(self.get_test_runner(test) for test in tests)
+                runners.extend(self.get_test_runner(test, i) for test in tests)
                 if i == 0:
                     self.duration_max_len = max(len(str(int(runner.timeout or 99)))
                                                 for runner in runners)
@@ -1962,7 +1976,7 @@ class TestHarness:
 
     @staticmethod
     def get_wrapper(options: argparse.Namespace) -> T.List[str]:
-        wrap = []  # type: T.List[str]
+        wrap: T.List[str] = []
         if options.gdb:
             wrap = [options.gdb_path, '--quiet']
             if options.repeat > 1:
@@ -2005,10 +2019,10 @@ class TestHarness:
 
     async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
-        futures = deque()  # type: T.Deque[asyncio.Future]
-        running_tests = {}  # type: T.Dict[asyncio.Future, str]
+        futures: T.Deque[asyncio.Future] = deque()
+        running_tests: T.Dict[asyncio.Future, str] = {}
         interrupted = False
-        ctrlc_times = deque(maxlen=MAX_CTRLC)  # type: T.Deque[float]
+        ctrlc_times: T.Deque[float] = deque(maxlen=MAX_CTRLC)
         loop = asyncio.get_running_loop()
 
         async def run_test(test: SingleTestRunner) -> None:
@@ -2115,9 +2129,9 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
 
     assert len(ninja) > 0
 
-    depends = set()        # type: T.Set[str]
-    targets = set()        # type: T.Set[str]
-    intro_targets = {}     # type: T.Dict[str, T.List[str]]
+    depends: T.Set[str] = set()
+    targets: T.Set[str] = set()
+    intro_targets: T.Dict[str, T.List[str]] = {}
     for target in load_info_file(get_infodir(wd), kind='targets'):
         intro_targets[target['id']] = [
             convert_path_to_target(f)
@@ -2137,7 +2151,7 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
     return True
 
 def run(options: argparse.Namespace) -> int:
-    if options.benchmark:
+    if options.benchmark or options.interactive:
         options.num_processes = 1
 
     if options.verbose and options.quiet:
@@ -2146,11 +2160,14 @@ def run(options: argparse.Namespace) -> int:
 
     check_bin = None
     if options.gdb:
-        options.verbose = True
+        options.interactive = True
         if options.wrapper:
             print('Must not specify both a wrapper and gdb at the same time.')
             return 1
         check_bin = 'gdb'
+
+    if options.interactive:
+        options.verbose = True
 
     if options.wrapper:
         check_bin = options.wrapper[0]

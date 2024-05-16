@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This file contains the detection logic for external dependencies that
 # are UI-related.
@@ -24,7 +13,7 @@ from .. import mlog
 from ..dependencies import Dependency
 from ..dependencies.dub import DubDependency
 from ..interpreterbase import typed_pos_args
-from ..mesonlib import Popen_safe, MesonException
+from ..mesonlib import Popen_safe, MesonException, listify
 
 class DlangModule(ExtensionModule):
     class_dubbin = None
@@ -80,27 +69,18 @@ class DlangModule(ExtensionModule):
 
         for key, value in kwargs.items():
             if key == 'dependencies':
+                values = listify(value, flatten=False)
                 config[key] = {}
-                if isinstance(value, list):
-                    for dep in value:
-                        if isinstance(dep, Dependency):
-                            name = dep.get_name()
-                            ret, res = self._call_dubbin(['describe', name])
-                            if ret == 0:
-                                version = dep.get_version()
-                                if version is None:
-                                    config[key][name] = ''
-                                else:
-                                    config[key][name] = version
-                elif isinstance(value, Dependency):
-                    name = value.get_name()
-                    ret, res = self._call_dubbin(['describe', name])
-                    if ret == 0:
-                        version = value.get_version()
-                        if version is None:
-                            config[key][name] = ''
-                        else:
-                            config[key][name] = version
+                for dep in values:
+                    if isinstance(dep, Dependency):
+                        name = dep.get_name()
+                        ret, res = self._call_dubbin(['describe', name])
+                        if ret == 0:
+                            version = dep.get_version()
+                            if version is None:
+                                config[key][name] = ''
+                            else:
+                                config[key][name] = version
             else:
                 config[key] = value
 

@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2020 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from pathlib import Path
@@ -20,14 +10,14 @@ import typing as T
 
 from ..mesonlib import OptionKey
 from .base import DependencyMethods
-from .base import DependencyException
 from .cmake import CMakeDependency
 from .detect import packages
 from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment, MachineChoice
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
     from .factory import DependencyGenerator
 
 
@@ -143,17 +133,10 @@ class MKLPkgConfigDependency(PkgConfigDependency):
             self.link_args.insert(i + 1, '-lmkl_blacs_intelmpi_lp64')
 
     def _set_cargs(self) -> None:
-        env = None
+        allow_system = False
         if self.language == 'fortran':
             # gfortran doesn't appear to look in system paths for INCLUDE files,
             # so don't allow pkg-config to suppress -I flags for system paths
-            env = os.environ.copy()
-            env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
-        ret, out, err = self._call_pkgbin([
-            '--cflags', self.name,
-            '--define-variable=prefix=' + self.__mklroot.as_posix()],
-            env=env)
-        if ret != 0:
-            raise DependencyException('Could not generate cargs for %s:\n%s\n' %
-                                      (self.name, err))
-        self.compile_args = self._convert_mingw_paths(self._split_args(out))
+            allow_system = True
+        cflags = self.pkgconfig.cflags(self.name, allow_system, define_variable=(('prefix', self.__mklroot.as_posix()),))
+        self.compile_args = self._convert_mingw_paths(cflags)

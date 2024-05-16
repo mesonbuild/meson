@@ -179,7 +179,7 @@ kwargs:
       subproject if it was not set explicitly in `default_options` keyword argument.
 
   version:
-    type: str
+    type: list[str] | str
     since: 0.37.0
     description: |
       Specifies the required version,

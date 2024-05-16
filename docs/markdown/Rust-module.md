@@ -3,7 +3,7 @@ short-description: Rust language integration module
 authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
-      years: [2020, 2021, 2022]
+      years: [2020, 2021, 2022, 2024]
 ...
 
 # Rust module
@@ -18,7 +18,11 @@ like Meson, rather than Meson work more like rust.
 
 ## Functions
 
-### test(name: string, target: library | executable, dependencies: []Dependency, link_with: []targets, rust_args: []string)
+### test()
+
+```meson
+rustmod.test(name, target, ...)
+```
 
 This function creates a new rust unittest target from an existing rust
 based target, which may be a library or executable. It does this by
@@ -26,22 +30,21 @@ copying the sources and arguments passed to the original target and
 adding the `--test` argument to the compilation, then creates a new
 test target which calls that executable, using the rust test protocol.
 
-This accepts all of the keyword arguments as the
-[[test]] function except `protocol`, it will set
-that automatically.
+This function takes two positional arguments, the first is the name of the
+test and the second is the library or executable that is the rust based target.
+It also takes the following keyword arguments:
 
-Additional, test only dependencies may be passed via the dependencies
-argument.
+- `dependencies`: a list of test-only Dependencies
+- `link_with`: a list of additional build Targets to link with (*since 1.2.0*)
+- `rust_args`: a list of extra arguments passed to the Rust compiler (*since 1.2.0*)
 
-*(since 1.2.0)* the link_with argument can be used to pass additional build
-targets to link with
-*(since 1.2.0)* the `rust_args` keyword argument can be ussed to pass extra
-arguments to the Rust compiler.
+This function  also accepts all of the keyword arguments accepted by the
+[[test]] function except `protocol`, it will set that automatically.
 
-### bindgen(*, input: string | BuildTarget | [](string | BuildTarget), output: string, include_directories: [](include_directories | string), c_args: []string, args: []string, dependencies: []Dependency)
+### bindgen()
 
 This function wraps bindgen to simplify creating rust bindings around C
-libraries. This has two advantages over hand-rolling ones own with a
+libraries. This has two advantages over invoking bindgen with a
 `generator` or `custom_target`:
 
 - It handles `include_directories`, so one doesn't have to manually convert them to `-I...`
@@ -51,14 +54,19 @@ libraries. This has two advantages over hand-rolling ones own with a
 
 It takes the following keyword arguments
 
-- input — A list of Files, Strings, or CustomTargets. The first element is
+- `input`: a list of Files, Strings, or CustomTargets. The first element is
   the header bindgen will parse, additional elements are dependencies.
-- output — the name of the output rust file
-- include_directories — A list of `include_directories` or `string` objects,
+- `output`: the name of the output rust file
+- `output_inline_wrapper`: the name of the optional output c file containing
+  wrappers for static inline function. This requires `bindgen-0.65` or
+  newer (*since 1.3.0*).
+- `include_directories`: A list of `include_directories` or `string` objects,
   these are passed to clang as `-I` arguments *(string since 1.0.0)*
-- c_args — A list of string arguments to pass to clang untouched
-- args — A list of string arguments to pass to `bindgen` untouched.
-- dependencies — A list of `Dependency` objects to pass to the underlying clang call (*since 1.0.0*)
+- `c_args`: a list of string arguments to pass to clang untouched
+- `args`: a list of string arguments to pass to `bindgen` untouched.
+- `dependencies`: a list of `Dependency` objects to pass to the underlying clang call (*since 1.0.0*)
+- `language`: A literal string value of `c` or `cpp`. When set this will force bindgen to treat a source as the given language. Defaults to checking based on the input file extension. *(since 1.4.0)*
+- `bindgen_version`: a list of string version values. When set the found bindgen binary must conform to these constraints. *(since 1.4.0)*
 
 ```meson
 rust = import('unstable-rust')
@@ -100,5 +108,34 @@ were never turned on by Meson.
 
 ```ini
 [properties]
-bindgen_clang_arguments = ['--target', 'x86_64-linux-gnu']
+bindgen_clang_arguments = ['-target', 'x86_64-linux-gnu']
 ```
+
+### proc_macro()
+
+```meson
+rustmod.proc_macro(name, sources, ...)
+```
+
+*Since 1.3.0*
+
+This function creates a Rust `proc-macro` crate, similar to:
+```meson
+[[shared_library]](name, sources,
+  rust_crate_type: 'proc-macro',
+  native: true)
+```
+
+`proc-macro` targets can be passed to `link_with` keyword argument of other Rust
+targets.
+
+Only a subset of [[shared_library]] keyword arguments are allowed:
+- rust_args
+- rust_dependency_map
+- sources
+- dependencies
+- extra_files
+- link_args
+- link_depends
+- link_with
+- override_options

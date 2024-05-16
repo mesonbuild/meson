@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import os.path, subprocess
@@ -20,15 +10,16 @@ import typing as T
 from ..mesonlib import EnvironmentException
 from ..linkers import RSPFileSyntax
 
-from .compilers import Compiler, mono_buildtype_args
+from .compilers import Compiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
+    from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
-cs_optimization_args = {
+cs_optimization_args: T.Dict[str, T.List[str]] = {
                         'plain': [],
                         '0': [],
                         'g': [],
@@ -36,7 +27,7 @@ cs_optimization_args = {
                         '2': ['-optimize+'],
                         '3': ['-optimize+'],
                         's': ['-optimize+'],
-                        }  # type: T.Dict[str, T.List[str]]
+                        }
 
 
 class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
@@ -69,6 +60,12 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def get_pic_args(self) -> T.List[str]:
         return []
+
+    def get_dependency_compile_args(self, dep: Dependency) -> T.List[str]:
+        # Historically we ignored all compile args.  Accept what we can, but
+        # filter out -I arguments, which are in some pkg-config files and
+        # aren't accepted by mcs.
+        return [a for a in dep.get_compile_args() if not a.startswith('-I')]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
@@ -113,9 +110,6 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return mono_buildtype_args[buildtype]
-
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return ['-debug'] if is_debug else []
 
@@ -139,16 +133,11 @@ class VisualStudioCsCompiler(CsCompiler):
 
     id = 'csc'
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        res = mono_buildtype_args[buildtype]
-        if not self.info.is_windows():
-            tmp = []
-            for flag in res:
-                if flag == '-debug':
-                    flag = '-debug:portable'
-                tmp.append(flag)
-            res = tmp
-        return res
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        if is_debug:
+            return ['-debug'] if self.info.is_windows() else ['-debug:portable']
+        else:
+            return []
 
     def rsp_file_syntax(self) -> 'RSPFileSyntax':
         return RSPFileSyntax.MSVC

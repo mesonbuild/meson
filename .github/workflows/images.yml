@@ -7,7 +7,6 @@ concurrency:
 on:
   push:
     branches:
-      - master
     paths:
       - 'ci/ciimage/**'
       - '.github/workflows/images.yml'
@@ -41,6 +40,7 @@ jobs:
           - { name: Arch Linux,       id: arch     }
           - { name: CUDA (on Arch),   id: cuda     }
           - { name: Fedora,           id: fedora   }
+          - { name: Gentoo,           id: gentoo   }
           - { name: OpenSUSE,         id: opensuse }
           - { name: Ubuntu Bionic,    id: bionic   }
           - { name: Ubuntu Rolling,   id: ubuntu-rolling  }

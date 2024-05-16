@@ -1,5 +1,5 @@
-# SPDX-License-Identifer: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2021-2023 Intel Corporation
 from __future__ import annotations
 
 """Helper script to copy files at build time.

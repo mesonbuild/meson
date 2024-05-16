@@ -1,17 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
+# Copyright © 2024 Intel Corporation
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+from __future__ import annotations
 from pathlib import PurePath
 from unittest import mock, TestCase, SkipTest
 import json
@@ -20,6 +11,7 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 import tempfile
 import typing as T
 
@@ -39,9 +31,9 @@ import mesonbuild.modules.pkgconfig
 
 
 from run_tests import (
-    Backend, ensure_backend_detects_changes, get_backend_commands,
+    Backend, get_backend_commands,
     get_builddir_target_args, get_meson_script, run_configure_inprocess,
-    run_mtest_inprocess
+    run_mtest_inprocess, handle_meson_skip_test,
 )
 
 
@@ -96,6 +88,7 @@ class BasePlatformTests(TestCase):
             # XCode backend is untested with unit tests, help welcome!
             self.no_rebuild_stdout = [f'UNKNOWN BACKEND {self.backend.name!r}']
         os.environ['COLUMNS'] = '80'
+        os.environ['PYTHONIOENCODING'] = 'utf8'
 
         self.builddirs = []
         self.new_builddir()
@@ -171,22 +164,23 @@ class BasePlatformTests(TestCase):
             env = os.environ.copy()
             env.update(override_envvars)
 
-        p = subprocess.run(command, stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
-                           env=env,
-                           encoding='utf-8',
-                           text=True, cwd=workdir, timeout=60 * 5)
+        proc = subprocess.run(command, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT if stderr else subprocess.PIPE,
+                              env=env,
+                              encoding='utf-8',
+                              text=True, cwd=workdir, timeout=60 * 5)
         print('$', join_args(command))
         print('stdout:')
-        print(p.stdout)
+        print(proc.stdout)
         if not stderr:
             print('stderr:')
-            print(p.stderr)
-        if p.returncode != 0:
-            if 'MESON_SKIP_TEST' in p.stdout:
-                raise SkipTest('Project requested skipping.')
-            raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
-        return p.stdout
+            print(proc.stderr)
+        if proc.returncode != 0:
+            skipped, reason = handle_meson_skip_test(proc.stdout)
+            if skipped:
+                raise SkipTest(f'Project requested skipping: {reason}')
+            raise subprocess.CalledProcessError(proc.returncode, command, output=proc.stdout)
+        return proc.stdout
 
     def init(self, srcdir, *,
              extra_args=None,
@@ -234,8 +228,9 @@ class BasePlatformTests(TestCase):
                 mesonbuild.mlog._logger.log_dir = None
                 mesonbuild.mlog._logger.log_file = None
 
-            if 'MESON_SKIP_TEST' in out:
-                raise SkipTest('Project requested skipping.')
+            skipped, reason = handle_meson_skip_test(out)
+            if skipped:
+                raise SkipTest(f'Project requested skipping: {reason}')
             if returncode != 0:
                 self._print_meson_log()
                 print('Stdout:\n')
@@ -247,8 +242,6 @@ class BasePlatformTests(TestCase):
         else:
             try:
                 out = self._run(self.setup_command + args + extra_args + build_and_src_dir_args, override_envvars=override_envvars, workdir=workdir)
-            except SkipTest:
-                raise SkipTest('Project requested skipping: ' + srcdir)
             except Exception:
                 if not allow_fail:
                     self._print_meson_log()
@@ -296,18 +289,24 @@ class BasePlatformTests(TestCase):
         '''
         return self.build(target=target, override_envvars=override_envvars)
 
-    def setconf(self, arg, will_build=True):
-        if not isinstance(arg, list):
+    def setconf(self, arg: T.Sequence[str], will_build: bool = True) -> None:
+        if isinstance(arg, str):
             arg = [arg]
-        if will_build:
-            ensure_backend_detects_changes(self.backend)
+        else:
+            arg = list(arg)
         self._run(self.mconf_command + arg + [self.builddir])
+
+    def getconf(self, optname: str):
+        opts = self.introspect('--buildoptions')
+        for x in opts:
+            if x.get('name') == optname:
+                return x.get('value')
+        self.fail(f'Option {optname} not found')
 
     def wipe(self):
         windows_proof_rmtree(self.builddir)
 
     def utime(self, f):
-        ensure_backend_detects_changes(self.backend)
         os.utime(f)
 
     def get_compdb(self):
@@ -495,3 +494,23 @@ class BasePlatformTests(TestCase):
 
     def assertLength(self, val, length):
         assert len(val) == length, f'{val} is not length {length}'
+
+    def copy_srcdir(self, srcdir: str) -> str:
+        """Copies a source tree and returns that copy.
+
+        ensures that the copied tree is deleted after running.
+
+        :param srcdir: The locaiton of the source tree to copy
+        :return: The location of the copy
+        """
+        dest = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dest)
+
+        # shutil.copytree expects the destinatin directory to not exist, Once
+        # python 3.8 is required the `dirs_exist_ok` parameter negates the need
+        # for this
+        dest = os.path.join(dest, 'subdir')
+
+        shutil.copytree(srcdir, dest)
+
+        return dest

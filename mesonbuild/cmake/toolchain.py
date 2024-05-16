@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2020 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from pathlib import Path
@@ -144,7 +134,7 @@ class CMakeToolchain:
         return res
 
     def get_defaults(self) -> T.Dict[str, T.List[str]]:
-        defaults = {}  # type: T.Dict[str, T.List[str]]
+        defaults: T.Dict[str, T.List[str]] = {}
 
         # Do nothing if the user does not want automatic defaults
         if not self.properties.get_cmake_defaults():
@@ -153,13 +143,13 @@ class CMakeToolchain:
         # Best effort to map the meson system name to CMAKE_SYSTEM_NAME, which
         # is not trivial since CMake lacks a list of all supported
         # CMAKE_SYSTEM_NAME values.
-        SYSTEM_MAP = {
+        SYSTEM_MAP: T.Dict[str, str] = {
             'android': 'Android',
             'linux': 'Linux',
             'windows': 'Windows',
             'freebsd': 'FreeBSD',
             'darwin': 'Darwin',
-        }  # type: T.Dict[str, str]
+        }
 
         # Only set these in a cross build. Otherwise CMake will trip up in native
         # builds and thing they are cross (which causes TRY_RUN() to break)

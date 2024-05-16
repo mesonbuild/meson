@@ -14,6 +14,10 @@ methods:
 
     See [the Meson syntax entry](Syntax.md#string-formatting) for more
     information.
+
+    *Since 1.3.0* values other than strings, integers, bools, options,
+    dictionaries and lists thereof are deprecated. They were previously printing
+    the internal representation of the raw Python object.
   example: |
     ```meson
     template = 'string: @0@, number: @1@, bool: @2@'
@@ -61,7 +65,10 @@ methods:
 
 # str.strip()
 - name: strip
-  description: Removes leading/ending spaces and newlines from the string.
+  description: |
+    Removes leading/ending characters from the string.
+
+    By default the characters to remove are spaces and newlines.
   returns: str
   example: |
     ```meson
@@ -75,7 +82,7 @@ methods:
     strip_chars:
       type: str
       since: 0.43.0
-      description: All characters in this string will be stripped.
+      description: Instead of whitespace, strip all the characters in this string.
 
 # str.to_lower()
 - name: to_lower
@@ -157,6 +164,9 @@ methods:
     The method accepts negative values where negative `start` is relative to the end of
     string `len(string) - start` as well as negative `end`.
 
+    If `start` or `end` are out of bounds, the position of the closest character will be used.
+    If `start` is bigger than `end`, the result will be an empty substring.
+
   example: |
     ```meson
     # Similar to the Python str[start:end] syntax
@@ -171,6 +181,15 @@ methods:
     string = 'foobar'
     string.substring(-5, -3) # => 'oo'
     string.substring(1, -1) # => 'ooba'
+    ```
+
+    Example with out of bound values:
+
+    ```meson
+    string = 'foobar'
+    string.substring(64) # => ''
+    string.substring(0, 64) # => 'foobar'
+    string.substring(64, 0) # => ''
     ```
 
   optargs:

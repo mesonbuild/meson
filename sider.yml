@@ -1,7 +1,0 @@
-linter:
-  flake8:
-    version: 3
-    plugins:
-      - flake8-blind-except
-      - flake8-builtins
-      - flake8-bugbear

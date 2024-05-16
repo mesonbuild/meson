@@ -34,3 +34,12 @@ methods:
           `subdir/one.input` is processed it generates a file `{target private
           directory}/subdir/one.out` as opposed to `{target private
           directory}/one.out`.
+
+      env:
+        type: env | list[str] | dict[str]
+        since: 1.3.0
+        description: |
+          environment variables to set, such as
+          `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
+          or an [[@env]] object which allows more
+          sophisticated environment juggling.

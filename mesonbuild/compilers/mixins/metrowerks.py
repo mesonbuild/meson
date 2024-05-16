@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2019 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 """Representations specific to the Metrowerks/Freescale Embedded C/C++ compiler family."""
@@ -29,15 +19,6 @@ else:
     # for runtime we make them descend from object (which all classes normally
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
-
-mwcc_buildtype_args: T.Dict[str, T.List[str]] = {
-    'plain': [],
-    'debug': ['-g'],
-    'debugoptimized': ['-g', '-O4'],
-    'release': ['-O4,p'],
-    'minsize': ['-Os'],
-    'custom': [],
-}
 
 mwccarm_instruction_set_args: T.Dict[str, T.List[str]] = {
     'generic': ['-proc', 'generic'],
@@ -173,7 +154,7 @@ mwcc_optimization_args: T.Dict[str, T.List[str]] = {
     'g': ['-Op'],
     '1': ['-O1'],
     '2': ['-O2'],
-    '3': ['-O3'],
+    '3': ['-O4,p'],
     's': ['-Os']
 }
 
@@ -212,9 +193,6 @@ class MetrowerksCompiler(Compiler):
 
     def get_always_args(self) -> T.List[str]:
         return ['-gccinc']
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return mwcc_buildtype_args[buildtype]
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         return []

@@ -1,23 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import subprocess
+from itertools import zip_longest
 import json
 import os
+from pathlib import Path
 import shutil
 import unittest
 
+from mesonbuild.ast import IntrospectionInterpreter, AstIDGenerator
+from mesonbuild.ast.printer import RawPrinter
 from mesonbuild.mesonlib import windows_proof_rmtree
 from .baseplatformtests import BasePlatformTests
 
@@ -396,3 +389,21 @@ class RewriterTests(BasePlatformTests):
         # Check the written file
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
         self.assertDictEqual(out, expected)
+
+    def test_raw_printer_is_idempotent(self):
+        test_path = Path(self.unit_test_dir, '120 rewrite')
+        meson_build_file = test_path / 'meson.build'
+        # original_contents = meson_build_file.read_bytes()
+        original_contents = meson_build_file.read_text(encoding='utf-8')
+
+        interpreter = IntrospectionInterpreter(test_path, '', 'ninja', visitors = [AstIDGenerator()])
+        interpreter.analyze()
+
+        printer = RawPrinter()
+        interpreter.ast.accept(printer)
+        # new_contents = printer.result.encode('utf-8')
+        new_contents = printer.result
+
+        # Do it line per line because it is easier to debug like that
+        for orig_line, new_line in zip_longest(original_contents.splitlines(), new_contents.splitlines()):
+            self.assertEqual(orig_line, new_line)

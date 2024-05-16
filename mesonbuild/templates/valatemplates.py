@@ -1,20 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
-from mesonbuild.templates.sampleimpl import SampleImpl
-import re
+from mesonbuild.templates.sampleimpl import FileImpl
 
 
 hello_vala_template = '''void main (string[] args) {{
@@ -83,43 +72,11 @@ test('{test_name}', test_exe)
 '''
 
 
-class ValaProject(SampleImpl):
-    def __init__(self, options):
-        super().__init__()
-        self.name = options.name
-        self.version = options.version
+class ValaProject(FileImpl):
 
-    def create_executable(self) -> None:
-        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
-        source_name = lowercase_token + '.vala'
-        open(source_name, 'w', encoding='utf-8').write(hello_vala_template.format(project_name=self.name))
-        open('meson.build', 'w', encoding='utf-8').write(
-            hello_vala_meson_template.format(project_name=self.name,
-                                             exe_name=lowercase_token,
-                                             source_name=source_name,
-                                             version=self.version))
-
-    def create_library(self) -> None:
-        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
-        uppercase_token = lowercase_token.upper()
-        class_name = uppercase_token[0] + lowercase_token[1:]
-        test_exe_name = lowercase_token + '_test'
-        namespace = lowercase_token
-        lib_vala_name = lowercase_token + '.vala'
-        test_vala_name = lowercase_token + '_test.vala'
-        kwargs = {'utoken': uppercase_token,
-                  'ltoken': lowercase_token,
-                  'header_dir': lowercase_token,
-                  'class_name': class_name,
-                  'namespace': namespace,
-                  'source_file': lib_vala_name,
-                  'test_source_file': test_vala_name,
-                  'test_exe_name': test_exe_name,
-                  'project_name': self.name,
-                  'lib_name': lowercase_token,
-                  'test_name': lowercase_token,
-                  'version': self.version,
-                  }
-        open(lib_vala_name, 'w', encoding='utf-8').write(lib_vala_template.format(**kwargs))
-        open(test_vala_name, 'w', encoding='utf-8').write(lib_vala_test_template.format(**kwargs))
-        open('meson.build', 'w', encoding='utf-8').write(lib_vala_meson_template.format(**kwargs))
+    source_ext = 'vala'
+    exe_template = hello_vala_template
+    exe_meson_template = hello_vala_meson_template
+    lib_template = lib_vala_template
+    lib_test_template = lib_vala_test_template
+    lib_meson_template = lib_vala_meson_template

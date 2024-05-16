@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2022 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import sys, os, subprocess, shutil
@@ -31,6 +21,8 @@ def has_for_build() -> bool:
             return True
     return False
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--debarch', default=None,
                         help='The dpkg architecture to generate.')
@@ -246,7 +238,7 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
             write_args_line(ofile, exename, exe)
         ofile.write('\n')
 
-        ofile.write('[properties]\n')
+        ofile.write('[built-in options]\n')
         all_langs = list(set(infos.compile_args.keys()).union(set(infos.link_args.keys())))
         all_langs.sort()
         for lang in all_langs:
@@ -254,6 +246,9 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
                 write_args_line(ofile, lang + '_args', infos.compile_args[lang])
             if lang in infos.link_args:
                 write_args_line(ofile, lang + '_link_args', infos.link_args[lang])
+        ofile.write('\n')
+
+        ofile.write('[properties]\n')
         for k, v in infos.properties.items():
             write_args_line(ofile, k, v)
         ofile.write('\n')
@@ -278,7 +273,6 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
     os.replace(tmpfilename, ofilename)
 
 def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') -> T.Tuple[T.List[str], T.List[str]]:
-    ldflags = tuple(shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, '')))
     compile_args = []
     if langname in compilers.CFLAGS_MAPPING:
         compile_args = shlex.split(os.environ.get(compilers.CFLAGS_MAPPING[langname] + envvar_suffix, ''))
@@ -287,7 +281,10 @@ def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') ->
         lang_compile_args = list(cppflags) + compile_args
     else:
         lang_compile_args = compile_args
-    lang_link_args = list(ldflags) + compile_args
+    lang_link_args = []
+    if langname in compilers.LANGUAGES_USING_LDFLAGS:
+        lang_link_args += shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, ''))
+    lang_link_args += compile_args
     return (lang_compile_args, lang_link_args)
 
 def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
@@ -296,7 +293,10 @@ def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
         compilerstr = os.environ.get(envvarname + envvar_suffix)
         if not compilerstr:
             continue
-        compiler = shlex.split(compilerstr)
+        if os.path.exists(compilerstr):
+            compiler = [compilerstr]
+        else:
+            compiler = shlex.split(compilerstr)
         infos.compilers[langname] = compiler
         lang_compile_args, lang_link_args = detect_language_args_from_envvars(langname, envvar_suffix)
         if lang_compile_args:

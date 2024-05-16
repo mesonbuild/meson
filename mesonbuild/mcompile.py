@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2020 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 """Entrypoint script for backend agnostic compile."""
@@ -26,16 +16,15 @@ from pathlib import Path
 
 from . import mlog
 from . import mesonlib
-from .mesonlib import MesonException, RealPathAction, join_args, setup_vsenv
+from .mesonlib import MesonException, RealPathAction, join_args, listify_array_value, setup_vsenv
 from mesonbuild.environment import detect_ninja
-from mesonbuild.coredata import UserArrayOption
 from mesonbuild import build
 
 if T.TYPE_CHECKING:
     import argparse
 
 def array_arg(value: str) -> T.List[str]:
-    return UserArrayOption(None, value, allow_dups=True, user_input=True).value
+    return listify_array_value(value)
 
 def validate_builddir(builddir: Path) -> None:
     if not (builddir / 'meson-private' / 'coredata.dat').is_file():
@@ -54,16 +43,18 @@ def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     with path_to_intro.open(encoding='utf-8') as f:
         schema = json.load(f)
 
-    parsed_data = defaultdict(list) # type: T.Dict[str, T.List[dict]]
+    parsed_data: T.Dict[str, T.List[dict]] = defaultdict(list)
     for target in schema:
         parsed_data[target['name']] += [target]
     return parsed_data
 
 class ParsedTargetName:
     full_name = ''
+    base_name = ''
     name = ''
     type = ''
     path = ''
+    suffix = ''
 
     def __init__(self, target: str):
         self.full_name = target
@@ -79,6 +70,13 @@ class ParsedTargetName:
             self.name = split[1]
         else:
             self.name = split[0]
+
+        split = self.name.rsplit('.', 1)
+        if len(split) > 1:
+            self.base_name = split[0]
+            self.suffix = split[1]
+        else:
+            self.base_name = split[0]
 
     @staticmethod
     def _is_valid_type(type: str) -> bool:
@@ -96,19 +94,32 @@ class ParsedTargetName:
         return type in allowed_types
 
 def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
-    if target.name not in introspect_data:
+    if target.name not in introspect_data and target.base_name not in introspect_data:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
 
     intro_targets = introspect_data[target.name]
-    found_targets = []  # type: T.List[T.Dict[str, T.Any]]
+    # if target.name doesn't find anything, try just the base name
+    if not intro_targets:
+        intro_targets = introspect_data[target.base_name]
+    found_targets: T.List[T.Dict[str, T.Any]] = []
 
     resolved_bdir = builddir.resolve()
 
-    if not target.type and not target.path:
+    if not target.type and not target.path and not target.suffix:
         found_targets = intro_targets
     else:
         for intro_target in intro_targets:
+            # Parse out the name from the id if needed
+            intro_target_name = intro_target['name']
+            split = intro_target['id'].rsplit('@', 1)
+            if len(split) > 1:
+                split = split[0].split('@@', 1)
+                if len(split) > 1:
+                    intro_target_name = split[1]
+                else:
+                    intro_target_name = split[0]
             if ((target.type and target.type != intro_target['type'].replace(' ', '_')) or
+                (target.name != intro_target_name) or
                 (target.path and intro_target['filename'] != 'no_name' and
                  Path(target.path) != Path(intro_target['filename'][0]).relative_to(resolved_bdir).parent)):
                 continue
@@ -119,12 +130,20 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     elif len(found_targets) > 1:
         suggestions: T.List[str] = []
         for i in found_targets:
-            p = Path(i['filename'][0]).relative_to(resolved_bdir).parent / i['name']
+            i_name = i['name']
+            split = i['id'].rsplit('@', 1)
+            if len(split) > 1:
+                split = split[0].split('@@', 1)
+                if len(split) > 1:
+                    i_name = split[1]
+                else:
+                    i_name = split[0]
+            p = Path(i['filename'][0]).relative_to(resolved_bdir).parent / i_name
             t = i['type'].replace(' ', '_')
             suggestions.append(f'- ./{p}:{t}')
         suggestions_str = '\n'.join(suggestions)
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambiguous name.'
-                             f'Add target type and/or path:\n{suggestions_str}')
+                             f' Add target type and/or path:\n{suggestions_str}')
 
     return found_targets[0]
 
@@ -174,7 +193,7 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
 
     # Normalize project name
     # Source: https://docs.microsoft.com/en-us/visualstudio/msbuild/how-to-build-specific-targets-in-solutions-by-using-msbuild-exe
-    target_name = re.sub(r"[\%\$\@\;\.\(\)']", '_', intro_target['id'])  # type: str
+    target_name = re.sub(r"[\%\$\@\;\.\(\)']", '_', intro_target['id'])
     rel_path = Path(intro_target['filename'][0]).relative_to(builddir.resolve()).parent
     if rel_path != Path('.'):
         target_name = str(rel_path / target_name)
@@ -271,6 +290,8 @@ def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tu
     cmd += options.xcode_args
     return cmd, None
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     """Add compile specific arguments."""
     parser.add_argument(
@@ -278,7 +299,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         metavar='TARGET',
         nargs='*',
         default=None,
-        help='Targets to build. Target has the following format: [PATH_TO_TARGET/]TARGET_NAME[:TARGET_TYPE].')
+        help='Targets to build. Target has the following format: [PATH_TO_TARGET/]TARGET_NAME.TARGET_SUFFIX[:TARGET_TYPE].')
     parser.add_argument(
         '--clean',
         action='store_true',
@@ -337,8 +358,8 @@ def run(options: 'argparse.Namespace') -> int:
     if setup_vsenv(need_vsenv):
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
-    cmd = []    # type: T.List[str]
-    env = None  # type: T.Optional[T.Dict[str, str]]
+    cmd: T.List[str] = []
+    env: T.Optional[T.Dict[str, str]] = None
 
     backend = cdata.get_option(mesonlib.OptionKey('backend'))
     assert isinstance(backend, str)

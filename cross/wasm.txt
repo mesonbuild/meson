@@ -1,7 +1,7 @@
 [binaries]
-c = '/home/jpakkane/src/emsdk/upstream/emscripten/emcc'
-cpp = '/home/jpakkane/src/emsdk/upstream/emscripten/em++'
-ar = '/home/jpakkane/src/emsdk/upstream/emscripten/emar'
+c = 'emcc'
+cpp = 'em++'
+ar = 'emar'
 
 [built-in options]
 c_args = []

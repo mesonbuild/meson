@@ -5,19 +5,22 @@ import argparse
 import tempfile
 import shutil
 import itertools
+import typing as T
 
 from pathlib import Path
 from . import build, minstall
-from .mesonlib import (MesonException, is_windows, setup_vsenv, OptionKey,
-                       get_wine_shortpath, MachineChoice)
+from .mesonlib import (EnvironmentVariables, MesonException, is_windows, setup_vsenv, OptionKey,
+                       get_wine_shortpath, MachineChoice, relpath)
 from . import mlog
 
-import typing as T
+
 if T.TYPE_CHECKING:
-    from .backends import InstallData
+    from .backend.backends import InstallData
 
 POWERSHELL_EXES = {'pwsh.exe', 'powershell.exe'}
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-C', dest='builddir', type=Path, default='.',
                         help='Path to build directory')
@@ -55,7 +58,7 @@ def reduce_winepath(env: T.Dict[str, str]) -> None:
     mlog.log('Meson detected wine and has set WINEPATH accordingly')
 
 def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
-    extra_env = build.EnvironmentVariables()
+    extra_env = EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
 
@@ -85,7 +88,7 @@ def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List
         datadir = b.environment.coredata.get_option(OptionKey('datadir'))
         assert isinstance(datadir, str), 'for mypy'
         datadir_abs = os.path.join(prefix, datadir)
-        completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=['datadir', datadir_abs])
+        completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=(('datadir', datadir_abs),))
         assert isinstance(completionsdir, str), 'for mypy'
         completionsdir_path = Path(completionsdir)
         for f in install_data.data:
@@ -137,7 +140,7 @@ def write_gdb_script(privatedir: Path, install_data: 'InstallData', workdir: Pat
         if first_time:
             gdbinit_path = gdbinit_path.resolve()
             workdir_path = workdir.resolve()
-            rel_path = gdbinit_path.relative_to(workdir_path)
+            rel_path = Path(relpath(gdbinit_path, workdir_path))
             mlog.log('Meson detected GDB helpers and added config in', mlog.bold(str(rel_path)))
             mlog.log('To load it automatically you might need to:')
             mlog.log(' - Add', mlog.bold(f'add-auto-load-safe-path {gdbinit_path.parent}'),

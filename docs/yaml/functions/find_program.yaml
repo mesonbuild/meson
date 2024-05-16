@@ -98,10 +98,10 @@ kwargs:
       instead of a not-found object.
 
   version:
-    type: str
+    type: str | list[str]
     since: 0.52.0
     description: |
-      specifies the required version, see
+      Specifies the required version, see
       [[dependency]] for argument format. The version of the program
       is determined by running `program_name --version` command. If stdout is empty
       it fallbacks to stderr. If the output contains more text than simply a version
@@ -113,3 +113,13 @@ kwargs:
     type: list[str]
     since: 0.53.0
     description: extra list of absolute paths where to look for program names.
+
+  default_options:
+    type: list[str] | dict[str | bool | int | list[str]]
+    since: 1.3.0
+    description: |
+      An array of default option values
+      that override those set in the subproject's `meson.options`
+      (like `default_options` in [[project]], they only have
+      effect when Meson is run for the first time, and command line
+      arguments override any default options in build files)

@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2021 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
@@ -24,6 +14,7 @@ from mesonbuild import mesonlib
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from ..interpreter.type_checking import PkgConfigDefineType
 
 class ConfigToolDependency(ExternalDependency):
 
@@ -150,16 +141,8 @@ class ConfigToolDependency(ExternalDependency):
             return []
         return split_args(out)
 
-    def get_configtool_variable(self, variable_name: str) -> str:
-        p, out, _ = Popen_safe(self.config + [f'--{variable_name}'])
-        if p.returncode != 0:
-            if self.required:
-                raise DependencyException(
-                    'Could not get variable "{}" for dependency {}'.format(
-                        variable_name, self.name))
-        variable = out.strip()
-        mlog.debug(f'Got config-tool variable {variable_name} : {variable}')
-        return variable
+    def get_variable_args(self, variable_name: str) -> T.List[str]:
+        return [f'--{variable_name}']
 
     @staticmethod
     def log_tried() -> str:
@@ -168,20 +151,13 @@ class ConfigToolDependency(ExternalDependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
         if configtool:
-            # In the not required case '' (empty string) will be returned if the
-            # variable is not found. Since '' is a valid value to return we
-            # set required to True here to force and error, and use the
-            # finally clause to ensure it's restored.
-            restore = self.required
-            self.required = True
-            try:
-                return self.get_configtool_variable(configtool)
-            except DependencyException:
-                pass
-            finally:
-                self.required = restore
+            p, out, _ = Popen_safe(self.config + self.get_variable_args(configtool))
+            if p.returncode == 0:
+                variable = out.strip()
+                mlog.debug(f'Got config-tool variable {configtool} : {variable}')
+                return variable
         if default_value is not None:
             return default_value
         raise DependencyException(f'Could not get config-tool variable and no default provided for {self!r}')

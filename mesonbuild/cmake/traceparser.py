@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
@@ -67,9 +56,9 @@ class CMakeTarget:
         self.properties = properties
         self.imported = imported
         self.tline = tline
-        self.depends = []      # type: T.List[str]
-        self.current_bin_dir = None    # type: T.Optional[Path]
-        self.current_src_dir = None    # type: T.Optional[Path]
+        self.depends: T.List[str] = []
+        self.current_bin_dir: T.Optional[Path] = None
+        self.current_src_dir: T.Optional[Path] = None
 
     def __repr__(self) -> str:
         s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- imported:  {}\n  -- properties: {{\n{}     }}\n  -- tline: {}'
@@ -89,10 +78,10 @@ class CMakeTarget:
 class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name: str) -> None:
         super().__init__(name, 'CUSTOM', {})
-        self.outputs = []        # type: T.List[Path]
-        self._outputs_str = []   # type: T.List[str]
-        self.command = []        # type: T.List[T.List[str]]
-        self.working_dir = None  # type: T.Optional[Path]
+        self.outputs: T.List[Path] = []
+        self._outputs_str: T.List[str] = []
+        self.command: T.List[T.List[str]] = []
+        self.working_dir: T.Optional[Path] = None
 
 class CMakeTraceParser:
     def __init__(self, cmake_version: str, build_dir: Path, env: 'Environment', permissive: bool = True) -> None:
@@ -101,14 +90,14 @@ class CMakeTraceParser:
         self.targets:                   T.Dict[str, CMakeTarget] = {}
         self.cache:                     T.Dict[str, CMakeCacheEntry] = {}
 
-        self.explicit_headers = set()  # type: T.Set[Path]
+        self.explicit_headers: T.Set[Path] = set()
 
         # T.List of targes that were added with add_custom_command to generate files
-        self.custom_targets = []  # type: T.List[CMakeGeneratorTarget]
+        self.custom_targets: T.List[CMakeGeneratorTarget] = []
 
         self.env = env
-        self.permissive = permissive  # type: bool
-        self.cmake_version = cmake_version  # type: str
+        self.permissive = permissive
+        self.cmake_version = cmake_version
         self.trace_file = 'cmake_trace.txt'
         self.trace_file_path = build_dir / self.trace_file
         self.trace_format = 'json-v1' if version_compare(cmake_version, '>=3.17') else 'human'
@@ -118,11 +107,11 @@ class CMakeTraceParser:
         # State for delayed command execution. Delayed command execution is realised
         # with a custom CMake file that overrides some functions and adds some
         # introspection information to the trace.
-        self.delayed_commands = []  # type: T.List[str]
-        self.stored_commands = []   # type: T.List[CMakeTraceLine]
+        self.delayed_commands: T.List[str] = []
+        self.stored_commands: T.List[CMakeTraceLine] = []
 
         # All supported functions
-        self.functions = {
+        self.functions: T.Dict[str, T.Callable[[CMakeTraceLine], None]] = {
             'set': self._cmake_set,
             'unset': self._cmake_unset,
             'add_executable': self._cmake_add_executable,
@@ -145,7 +134,7 @@ class CMakeTraceParser:
             'meson_ps_execute_delayed_calls': self._meson_ps_execute_delayed_calls,
             'meson_ps_reload_vars': self._meson_ps_reload_vars,
             'meson_ps_disabled_function': self._meson_ps_disabled_function,
-        }  # type: T.Dict[str, T.Callable[[CMakeTraceLine], None]]
+        }
 
         if version_compare(self.cmake_version, '<3.17.0'):
             mlog.deprecation(textwrap.dedent(f'''\
@@ -591,10 +580,10 @@ class CMakeTraceParser:
         # With the JSON output format, introduced in CMake 3.17, spaces are
         # handled properly and we don't have to do either options
 
-        arglist = []  # type: T.List[T.Tuple[str, T.List[str]]]
+        arglist: T.List[T.Tuple[str, T.List[str]]] = []
         if self.trace_format == 'human':
             name = args.pop(0)
-            values = []  # type: T.List[str]
+            values: T.List[str] = []
             prop_regex = re.compile(r'^[A-Z_]+$')
             for a in args:
                 if prop_regex.match(a):
@@ -768,7 +757,7 @@ class CMakeTraceParser:
 
     def _flatten_args(self, args: T.List[str]) -> T.List[str]:
         # Split lists in arguments
-        res = []  # type: T.List[str]
+        res: T.List[str] = []
         for i in args:
             res += i.split(';')
         return res
@@ -783,9 +772,9 @@ class CMakeTraceParser:
         reg_start = re.compile(r'^([A-Za-z]:)?/(.*/)*[^./]+$')
         reg_end = re.compile(r'^.*\.[a-zA-Z]+$')
 
-        fixed_list = []  # type: T.List[str]
-        curr_str = None  # type: T.Optional[str]
-        path_found = False # type: bool
+        fixed_list: T.List[str] = []
+        curr_str: T.Optional[str] = None
+        path_found = False
 
         for i in broken_list:
             if curr_str is None:

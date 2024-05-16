@@ -1,17 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2020 The Meson development team
-# Copyright © 2020 Intel Corporation
+# Copyright © 2020-2023 Intel Corporation
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from functools import lru_cache
@@ -26,7 +16,7 @@ if T.TYPE_CHECKING:
     from .compilers import Compiler
 
 # execinfo is a compiler lib on BSD
-UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt', 'execinfo']  # type: T.List[str]
+UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt', 'execinfo']
 
 
 class Dedup(enum.Enum):
@@ -82,44 +72,44 @@ class CompilerArgs(T.MutableSequence[str]):
 
     '''
     # Arg prefixes that override by prepending instead of appending
-    prepend_prefixes = ()  # type: T.Tuple[str, ...]
+    prepend_prefixes: T.Tuple[str, ...] = ()
 
     # Arg prefixes and args that must be de-duped by returning 2
-    dedup2_prefixes = ()   # type: T.Tuple[str, ...]
-    dedup2_suffixes = ()   # type: T.Tuple[str, ...]
-    dedup2_args = ()       # type: T.Tuple[str, ...]
+    dedup2_prefixes: T.Tuple[str, ...] = ()
+    dedup2_suffixes: T.Tuple[str, ...] = ()
+    dedup2_args: T.Tuple[str, ...] = ()
 
     # Arg prefixes and args that must be de-duped by returning 1
     #
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
-    dedup1_prefixes = ()  # type: T.Tuple[str, ...]
-    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')  # type: T.Tuple[str, ...]
+    dedup1_prefixes: T.Tuple[str, ...] = ()
+    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
     # Match a .so of the form path/to/libfoo.so.0.1.0
     # Only UNIX shared libraries require this. Others have a fixed extension.
     dedup1_regex = re.compile(r'([\/\\]|\A)lib.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
-    dedup1_args = ()  # type: T.Tuple[str, ...]
+    dedup1_args: T.Tuple[str, ...] = ()
     # In generate_link() we add external libs without de-dup, but we must
     # *always* de-dup these because they're special arguments to the linker
     # TODO: these should probably move too
-    always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)  # type : T.Tuple[str, ...]
+    always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)
 
     def __init__(self, compiler: T.Union['Compiler', 'StaticLinker'],
                  iterable: T.Optional[T.Iterable[str]] = None):
         self.compiler = compiler
-        self._container = list(iterable) if iterable is not None else []  # type: T.List[str]
-        self.pre = collections.deque()    # type: T.Deque[str]
-        self.post = collections.deque()   # type: T.Deque[str]
+        self._container: T.List[str] = list(iterable) if iterable is not None else []
+        self.pre: T.Deque[str] = collections.deque()
+        self.post: T.Deque[str] = collections.deque()
 
     # Flush the saved pre and post list into the _container list
     #
     # This correctly deduplicates the entries after _can_dedup definition
     # Note: This function is designed to work without delete operations, as deletions are worsening the performance a lot.
     def flush_pre_post(self) -> None:
-        new = []                          # type: T.List[str]
-        pre_flush_set = set()             # type: T.Set[str]
-        post_flush = collections.deque()  # type: T.Deque[str]
-        post_flush_set = set()            # type: T.Set[str]
+        new: T.List[str] = []
+        pre_flush_set: T.Set[str] = set()
+        post_flush: T.Deque[str] = collections.deque()
+        post_flush_set: T.Set[str] = set()
 
         #The two lists are here walked from the front to the back, in order to not need removals for deduplication
         for a in self.pre:
@@ -285,7 +275,7 @@ class CompilerArgs(T.MutableSequence[str]):
         Add two CompilerArgs while taking into account overriding of arguments
         and while preserving the order of arguments as much as possible
         '''
-        tmp_pre = collections.deque()  # type: T.Deque[str]
+        tmp_pre: T.Deque[str] = collections.deque()
         if not isinstance(args, collections.abc.Iterable):
             raise TypeError(f'can only concatenate Iterable[str] (not "{args}") to CompilerArgs')
         for arg in args:

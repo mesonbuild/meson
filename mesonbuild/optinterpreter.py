@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2014 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import re
@@ -20,7 +10,7 @@ from . import coredata
 from . import mesonlib
 from . import mparser
 from . import mlog
-from .interpreterbase import FeatureNew, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
+from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
 from .interpreter.type_checking import NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
@@ -88,7 +78,11 @@ class OptionInterpreter:
     def process(self, option_file: str) -> None:
         try:
             with open(option_file, encoding='utf-8') as f:
-                ast = mparser.Parser(f.read(), option_file).parse()
+                code = f.read()
+        except UnicodeDecodeError as e:
+            raise mesonlib.MesonException(f'Malformed option file {option_file!r} failed to parse as unicode: {e}')
+        try:
+            ast = mparser.Parser(code, option_file).parse()
         except mesonlib.MesonException as me:
             me.file = option_file
             raise me
@@ -113,8 +107,9 @@ class OptionInterpreter:
     def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> 'TYPE_var':
         if isinstance(arg, str):
             return arg
-        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode,
-                              mparser.NumberNode)):
+        if isinstance(arg, mparser.ParenthesizedNode):
+            return self.reduce_single(arg.inner)
+        elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
             return arg.value
         elif isinstance(arg, mparser.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
@@ -162,7 +157,7 @@ class OptionInterpreter:
     def evaluate_statement(self, node: mparser.BaseNode) -> None:
         if not isinstance(node, mparser.FunctionNode):
             raise OptionException('Option file may only contain option definitions')
-        func_name = node.func_name
+        func_name = node.func_name.value
         if func_name != 'option':
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
@@ -204,7 +199,7 @@ class OptionInterpreter:
         n_kwargs = {k: v for k, v in kwargs.items()
                     if k not in {'type', 'description', 'deprecated', 'yield'}}
 
-        opt = parser(description, (kwargs['yield'], kwargs['deprecated']), n_kwargs)
+        opt = parser(opt_name, description, (kwargs['yield'], kwargs['deprecated']), n_kwargs)
         if key in self.options:
             mlog.deprecation(f'Option {opt_name} already exists.')
         self.options[key] = opt
@@ -213,8 +208,8 @@ class OptionInterpreter:
         'string option',
         KwargInfo('value', str, default=''),
     )
-    def string_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArgs) -> coredata.UserOption:
-        return coredata.UserStringOption(description, kwargs['value'], *args)
+    def string_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArgs) -> coredata.UserOption:
+        return coredata.UserStringOption(name, description, kwargs['value'], *args)
 
     @typed_kwargs(
         'boolean option',
@@ -226,20 +221,20 @@ class OptionInterpreter:
             deprecated_values={str: ('1.1.0', 'use a boolean, not a string')},
         ),
     )
-    def boolean_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> coredata.UserOption:
-        return coredata.UserBooleanOption(description, kwargs['value'], *args)
+    def boolean_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: BooleanArgs) -> coredata.UserOption:
+        return coredata.UserBooleanOption(name, description, kwargs['value'], *args)
 
     @typed_kwargs(
         'combo option',
         KwargInfo('value', (str, NoneType)),
         KwargInfo('choices', ContainerTypeInfo(list, str, allow_empty=False), required=True),
     )
-    def combo_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: ComboArgs) -> coredata.UserOption:
+    def combo_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: ComboArgs) -> coredata.UserOption:
         choices = kwargs['choices']
         value = kwargs['value']
         if value is None:
             value = kwargs['choices'][0]
-        return coredata.UserComboOption(description, choices, value, *args)
+        return coredata.UserComboOption(name, description, choices, value, *args)
 
     @typed_kwargs(
         'integer option',
@@ -253,20 +248,25 @@ class OptionInterpreter:
         KwargInfo('min', (int, NoneType)),
         KwargInfo('max', (int, NoneType)),
     )
-    def integer_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: IntegerArgs) -> coredata.UserOption:
+    def integer_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: IntegerArgs) -> coredata.UserOption:
         value = kwargs['value']
         inttuple = (kwargs['min'], kwargs['max'], value)
-        return coredata.UserIntegerOption(description, inttuple, *args)
+        return coredata.UserIntegerOption(name, description, inttuple, *args)
 
     @typed_kwargs(
         'string array option',
         KwargInfo('value', (ContainerTypeInfo(list, str), str, NoneType)),
         KwargInfo('choices', ContainerTypeInfo(list, str), default=[]),
     )
-    def string_array_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> coredata.UserOption:
+    def string_array_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: StringArrayArgs) -> coredata.UserOption:
         choices = kwargs['choices']
         value = kwargs['value'] if kwargs['value'] is not None else choices
-        return coredata.UserArrayOption(description, value,
+        if isinstance(value, str):
+            if value.startswith('['):
+                FeatureDeprecated('String value for array option', '1.3.0').use(self.subproject)
+            else:
+                raise mesonlib.MesonException('Value does not define an array: ' + value)
+        return coredata.UserArrayOption(name, description, value,
                                         choices=choices,
                                         yielding=args[0],
                                         deprecated=args[1])
@@ -275,5 +275,5 @@ class OptionInterpreter:
         'feature option',
         KwargInfo('value', str, default='auto', validator=in_set_validator({'auto', 'enabled', 'disabled'})),
     )
-    def feature_parser(self, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: FeatureArgs) -> coredata.UserOption:
-        return coredata.UserFeatureOption(description, kwargs['value'], *args)
+    def feature_parser(self, name: str, description: str, args: T.Tuple[bool, _DEPRECATED_ARGS], kwargs: FeatureArgs) -> coredata.UserOption:
+        return coredata.UserFeatureOption(name, description, kwargs['value'], *args)

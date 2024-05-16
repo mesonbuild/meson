@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019-2022 The meson development team
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+
 from __future__ import annotations
 
 """Abstractions for the LLVM/Clang compiler family."""
@@ -21,7 +11,7 @@ import typing as T
 
 from ... import mesonlib
 from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
-    MoldDynamicLinker
+    MoldDynamicLinker, MSVCDynamicLinker
 from ...mesonlib import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
@@ -31,9 +21,9 @@ if T.TYPE_CHECKING:
     from ...dependencies import Dependency  # noqa: F401
 
 clang_color_args: T.Dict[str, T.List[str]] = {
-    'auto': ['-fcolor-diagnostics'],
-    'always': ['-fcolor-diagnostics'],
-    'never': ['-fno-color-diagnostics'],
+    'auto': ['-fdiagnostics-color=auto'],
+    'always': ['-fdiagnostics-color=always'],
+    'never': ['-fdiagnostics-color=never'],
 }
 
 clang_optimization_args: T.Dict[str, T.List[str]] = {
@@ -121,6 +111,13 @@ class ClangCompiler(GnuLikeCompiler):
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
 
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        if isinstance(self.linker, (MSVCDynamicLinker)):
+            # With MSVC, DLLs only export symbols that are explicitly exported,
+            # so if a module defs file is specified, we use that to export symbols
+            return ['-Wl,/DEF:' + defsfile]
+        return super().gen_vs_module_defs_args(defsfile)
+
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         # Clang additionally can use a linker specified as a path, which GCC
@@ -164,6 +161,12 @@ class ClangCompiler(GnuLikeCompiler):
             assert mode == 'default', 'someone forgot to wire something up'
             args.extend(super().get_lto_compile_args(threads=threads))
         return args
+
+    def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
+        if isinstance(self.linker, (ClangClDynamicLinker, MSVCDynamicLinker)):
+            return [flag if flag.startswith('-Wl,') else f'-Wl,{flag}' for flag in args]
+        else:
+            return args
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:

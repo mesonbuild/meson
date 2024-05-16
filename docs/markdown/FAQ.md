@@ -405,6 +405,9 @@ advantages:
    not care what the extension is](https://docs.microsoft.com/en-us/cpp/build/reference/link-input-files?view=vs-2019),
    so specifying `libfoo.a` instead of `foo.lib` does not change the workflow,
    and is an improvement since it's less ambiguous.
+1. Projects built with the MinGW compiler are fully compatible with
+   MSVC as long as they use the same CRT (e.g. UCRT with MSYS2).
+   These projects also name their static libraries `libfoo.a`.
 
 If, for some reason, you really need your project to output static
 libraries of the form `foo.lib` when building with MSVC, you can set

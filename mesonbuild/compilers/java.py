@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import os
@@ -21,13 +11,19 @@ import textwrap
 import typing as T
 
 from ..mesonlib import EnvironmentException
-from .compilers import Compiler, java_buildtype_args
+from .compilers import Compiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+
+
+java_debug_args: T.Dict[bool, T.List[str]] = {
+    False: ['-g:none'],
+    True: ['-g']
+}
 
 class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
@@ -52,9 +48,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
 
-    def get_no_warn_args(self) -> T.List[str]:
-        return ['-nowarn']
-
     def get_output_args(self, outputname: str) -> T.List[str]:
         if outputname == '':
             outputname = './'
@@ -68,9 +61,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def get_pch_name(self, name: str) -> str:
         return ''
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return java_buildtype_args[buildtype]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
@@ -120,6 +110,4 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
         return []
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
-        if is_debug:
-            return ['-g']
-        return ['-g:none']
+        return java_debug_args[is_debug]

@@ -1,70 +1,296 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2021 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from pathlib import Path
 
 from .base import ExternalDependency, DependencyException, sort_libpaths, DependencyTypeName
-from ..mesonlib import OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged
+from ..mesonlib import EnvironmentVariables, OptionKey, OrderedSet, PerMachine, Popen_safe, Popen_safe_logged, MachineChoice, join_args
 from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
+from functools import lru_cache
 import re
 import os
 import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment
-    from ..mesonlib import MachineChoice
-    from ..utils.core import EnvironOrDict
+    from typing_extensions import Literal
     from .._typing import ImmutableListProtocol
-    from ..build import EnvironmentVariables
+
+    from ..environment import Environment
+    from ..utils.core import EnvironOrDict
+    from ..interpreter.type_checking import PkgConfigDefineType
+
+class PkgConfigInterface:
+    '''Base class wrapping a pkg-config implementation'''
+
+    class_impl: PerMachine[T.Union[Literal[False], T.Optional[PkgConfigInterface]]] = PerMachine(False, False)
+    class_cli_impl: PerMachine[T.Union[Literal[False], T.Optional[PkgConfigCLI]]] = PerMachine(False, False)
+
+    @staticmethod
+    def instance(env: Environment, for_machine: MachineChoice, silent: bool) -> T.Optional[PkgConfigInterface]:
+        '''Return a pkg-config implementation singleton'''
+        for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
+        impl = PkgConfigInterface.class_impl[for_machine]
+        if impl is False:
+            impl = PkgConfigCLI(env, for_machine, silent)
+            if not impl.found():
+                impl = None
+            if not impl and not silent:
+                mlog.log('Found pkg-config:', mlog.red('NO'))
+            PkgConfigInterface.class_impl[for_machine] = impl
+        return impl
+
+    @staticmethod
+    def _cli(env: Environment, for_machine: MachineChoice, silent: bool = False) -> T.Optional[PkgConfigCLI]:
+        '''Return the CLI pkg-config implementation singleton
+        Even when we use another implementation internally, external tools might
+        still need the CLI implementation.
+        '''
+        for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
+        impl: T.Union[Literal[False], T.Optional[PkgConfigInterface]] # Help confused mypy
+        impl = PkgConfigInterface.instance(env, for_machine, silent)
+        if impl and not isinstance(impl, PkgConfigCLI):
+            impl = PkgConfigInterface.class_cli_impl[for_machine]
+            if impl is False:
+                impl = PkgConfigCLI(env, for_machine, silent)
+                if not impl.found():
+                    impl = None
+                PkgConfigInterface.class_cli_impl[for_machine] = impl
+        return T.cast('T.Optional[PkgConfigCLI]', impl) # Trust me, mypy
+
+    @staticmethod
+    def get_env(env: Environment, for_machine: MachineChoice, uninstalled: bool = False) -> EnvironmentVariables:
+        cli = PkgConfigInterface._cli(env, for_machine)
+        return cli._get_env(uninstalled) if cli else EnvironmentVariables()
+
+    @staticmethod
+    def setup_env(environ: EnvironOrDict, env: Environment, for_machine: MachineChoice,
+                  uninstalled: bool = False) -> EnvironOrDict:
+        cli = PkgConfigInterface._cli(env, for_machine)
+        return cli._setup_env(environ, uninstalled) if cli else environ
+
+    def __init__(self, env: Environment, for_machine: MachineChoice) -> None:
+        self.env = env
+        self.for_machine = for_machine
+
+    def found(self) -> bool:
+        '''Return whether pkg-config is supported'''
+        raise NotImplementedError
+
+    def version(self, name: str) -> T.Optional[str]:
+        '''Return module version or None if not found'''
+        raise NotImplementedError
+
+    def cflags(self, name: str, allow_system: bool = False,
+               define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
+        '''Return module cflags
+           @allow_system: If False, remove default system include paths
+        '''
+        raise NotImplementedError
+
+    def libs(self, name: str, static: bool = False, allow_system: bool = False,
+             define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
+        '''Return module libs
+           @static: If True, also include private libraries
+           @allow_system: If False, remove default system libraries search paths
+        '''
+        raise NotImplementedError
+
+    def variable(self, name: str, variable_name: str,
+                 define_variable: PkgConfigDefineType) -> T.Optional[str]:
+        '''Return module variable or None if variable is not defined'''
+        raise NotImplementedError
+
+    def list_all(self) -> ImmutableListProtocol[str]:
+        '''Return all available pkg-config modules'''
+        raise NotImplementedError
+
+class PkgConfigCLI(PkgConfigInterface):
+    '''pkg-config CLI implementation'''
+
+    def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool) -> None:
+        super().__init__(env, for_machine)
+        self._detect_pkgbin()
+        if self.pkgbin and not silent:
+            mlog.log('Found pkg-config:', mlog.green('YES'), mlog.bold(f'({self.pkgbin.get_path()})'), mlog.blue(self.pkgbin_version))
+
+    def found(self) -> bool:
+        return bool(self.pkgbin)
+
+    @lru_cache(maxsize=None)
+    def version(self, name: str) -> T.Optional[str]:
+        mlog.debug(f'Determining dependency {name!r} with pkg-config executable {self.pkgbin.get_path()!r}')
+        ret, version, _ = self._call_pkgbin(['--modversion', name])
+        return version if ret == 0 else None
+
+    @staticmethod
+    def _define_variable_args(define_variable: PkgConfigDefineType) -> T.List[str]:
+        ret = []
+        if define_variable:
+            for pair in define_variable:
+                ret.append('--define-variable=' + '='.join(pair))
+        return ret
+
+    @lru_cache(maxsize=None)
+    def cflags(self, name: str, allow_system: bool = False,
+               define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
+        env = None
+        if allow_system:
+            env = os.environ.copy()
+            env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
+        args: T.List[str] = []
+        args += self._define_variable_args(define_variable)
+        args += ['--cflags', name]
+        ret, out, err = self._call_pkgbin(args, env=env)
+        if ret != 0:
+            raise DependencyException(f'Could not generate cflags for {name}:\n{err}\n')
+        return self._split_args(out)
+
+    @lru_cache(maxsize=None)
+    def libs(self, name: str, static: bool = False, allow_system: bool = False,
+             define_variable: PkgConfigDefineType = None) -> ImmutableListProtocol[str]:
+        env = None
+        if allow_system:
+            env = os.environ.copy()
+            env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
+        args: T.List[str] = []
+        args += self._define_variable_args(define_variable)
+        if static:
+            args.append('--static')
+        args += ['--libs', name]
+        ret, out, err = self._call_pkgbin(args, env=env)
+        if ret != 0:
+            raise DependencyException(f'Could not generate libs for {name}:\n{err}\n')
+        return self._split_args(out)
+
+    @lru_cache(maxsize=None)
+    def variable(self, name: str, variable_name: str,
+                 define_variable: PkgConfigDefineType) -> T.Optional[str]:
+        args: T.List[str] = []
+        args += self._define_variable_args(define_variable)
+        args += ['--variable=' + variable_name, name]
+        ret, out, err = self._call_pkgbin(args)
+        if ret != 0:
+            raise DependencyException(f'Could not get variable for {name}:\n{err}\n')
+        variable = out.strip()
+        # pkg-config doesn't distinguish between empty and nonexistent variables
+        # use the variable list to check for variable existence
+        if not variable:
+            ret, out, _ = self._call_pkgbin(['--print-variables', name])
+            if not re.search(rf'^{variable_name}$', out, re.MULTILINE):
+                return None
+        mlog.debug(f'Got pkg-config variable {variable_name} : {variable}')
+        return variable
+
+    @lru_cache(maxsize=None)
+    def list_all(self) -> ImmutableListProtocol[str]:
+        ret, out, err = self._call_pkgbin(['--list-all'])
+        if ret != 0:
+            raise DependencyException(f'could not list modules:\n{err}\n')
+        return [i.split(' ', 1)[0] for i in out.splitlines()]
+
+    @staticmethod
+    def _split_args(cmd: str) -> T.List[str]:
+        # pkg-config paths follow Unix conventions, even on Windows; split the
+        # output using shlex.split rather than mesonlib.split_args
+        return shlex.split(cmd)
+
+    def _detect_pkgbin(self) -> None:
+        for potential_pkgbin in find_external_program(
+                self.env, self.for_machine, 'pkg-config', 'Pkg-config',
+                self.env.default_pkgconfig, allow_default_for_cross=False):
+            version_if_ok = self._check_pkgconfig(potential_pkgbin)
+            if version_if_ok:
+                self.pkgbin = potential_pkgbin
+                self.pkgbin_version = version_if_ok
+                return
+        self.pkgbin = None
+
+    def _check_pkgconfig(self, pkgbin: ExternalProgram) -> T.Optional[str]:
+        if not pkgbin.found():
+            mlog.log(f'Did not find pkg-config by name {pkgbin.name!r}')
+            return None
+        command_as_string = ' '.join(pkgbin.get_command())
+        try:
+            helptext = Popen_safe(pkgbin.get_command() + ['--help'])[1]
+            if 'Pure-Perl' in helptext:
+                mlog.log(f'Found pkg-config {command_as_string!r} but it is Strawberry Perl and thus broken. Ignoring...')
+                return None
+            p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
+            if p.returncode != 0:
+                mlog.warning(f'Found pkg-config {command_as_string!r} but it failed when ran')
+                return None
+        except FileNotFoundError:
+            mlog.warning(f'We thought we found pkg-config {command_as_string!r} but now it\'s not there. How odd!')
+            return None
+        except PermissionError:
+            msg = f'Found pkg-config {command_as_string!r} but didn\'t have permissions to run it.'
+            if not self.env.machines.build.is_windows():
+                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
+            mlog.warning(msg)
+            return None
+        return out.strip()
+
+    def _get_env(self, uninstalled: bool = False) -> EnvironmentVariables:
+        env = EnvironmentVariables()
+        key = OptionKey('pkg_config_path', machine=self.for_machine)
+        extra_paths: T.List[str] = self.env.coredata.options[key].value[:]
+        if uninstalled:
+            uninstalled_path = Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix()
+            if uninstalled_path not in extra_paths:
+                extra_paths.append(uninstalled_path)
+        env.set('PKG_CONFIG_PATH', extra_paths)
+        sysroot = self.env.properties[self.for_machine].get_sys_root()
+        if sysroot:
+            env.set('PKG_CONFIG_SYSROOT_DIR', [sysroot])
+        pkg_config_libdir_prop = self.env.properties[self.for_machine].get_pkg_config_libdir()
+        if pkg_config_libdir_prop:
+            env.set('PKG_CONFIG_LIBDIR', pkg_config_libdir_prop)
+        env.set('PKG_CONFIG', [join_args(self.pkgbin.get_command())])
+        return env
+
+    def _setup_env(self, env: EnvironOrDict, uninstalled: bool = False) -> T.Dict[str, str]:
+        envvars = self._get_env(uninstalled)
+        env = envvars.get_env(env)
+        # Dump all PKG_CONFIG environment variables
+        for key, value in env.items():
+            if key.startswith('PKG_'):
+                mlog.debug(f'env[{key}]: {value}')
+        return env
+
+    def _call_pkgbin(self, args: T.List[str], env: T.Optional[EnvironOrDict] = None) -> T.Tuple[int, str, str]:
+        assert isinstance(self.pkgbin, ExternalProgram)
+        env = env or os.environ
+        env = self._setup_env(env)
+        cmd = self.pkgbin.get_command() + args
+        p, out, err = Popen_safe_logged(cmd, env=env)
+        return p.returncode, out.strip(), err.strip()
+
 
 class PkgConfigDependency(ExternalDependency):
-    # The class's copy of the pkg-config path. Avoids having to search for it
-    # multiple times in the same Meson invocation.
-    class_pkgbin: PerMachine[T.Union[None, bool, ExternalProgram]] = PerMachine(None, None)
-    # We cache all pkg-config subprocess invocations to avoid redundant calls
-    pkgbin_cache: T.Dict[
-        T.Tuple[ExternalProgram, T.Tuple[str, ...], T.FrozenSet[T.Tuple[str, str]]],
-        T.Tuple[int, str, str]
-    ] = {}
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
         super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
-        # Store a copy of the pkg-config path on the object itself so it is
-        # stored in the pickled coredata and recovered.
-        self.pkgbin = self._detect_pkgbin(self.silent, self.env, self.for_machine)
-        if self.pkgbin is False:
-            self.pkgbin = None
-            msg = f'Pkg-config binary for machine {self.for_machine} not found. Giving up.'
+        pkgconfig = PkgConfigInterface.instance(self.env, self.for_machine, self.silent)
+        if not pkgconfig:
+            msg = f'Pkg-config for machine {self.for_machine} not found. Giving up.'
             if self.required:
                 raise DependencyException(msg)
-            else:
-                mlog.debug(msg)
-                return
+            mlog.debug(msg)
+            return
+        self.pkgconfig = pkgconfig
 
-        assert isinstance(self.pkgbin, ExternalProgram)
-        mlog.debug('Determining dependency {!r} with pkg-config executable '
-                   '{!r}'.format(name, self.pkgbin.get_path()))
-        ret, self.version, _ = self._call_pkgbin(['--modversion', name])
-        if ret != 0:
+        version = self.pkgconfig.version(name)
+        if version is None:
             return
 
+        self.version = version
         self.is_found = True
 
         try:
@@ -73,7 +299,7 @@ class PkgConfigDependency(ExternalDependency):
             # Fetch the libraries and library paths needed for using this
             self._set_libs()
         except DependencyException as e:
-            mlog.debug(f"pkg-config error with '{name}': {e}")
+            mlog.debug(f"Pkg-config error with '{name}': {e}")
             if self.required:
                 raise
             else:
@@ -87,88 +313,7 @@ class PkgConfigDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    @classmethod
-    def _detect_pkgbin(cls, silent: bool, env: Environment,
-                       for_machine: MachineChoice) -> T.Union[None, bool, ExternalProgram]:
-        # Only search for pkg-config for each machine the first time and store
-        # the result in the class definition
-        if cls.class_pkgbin[for_machine] is False:
-            mlog.debug(f'Pkg-config binary for {for_machine} is cached as not found.')
-        elif cls.class_pkgbin[for_machine] is not None:
-            mlog.debug(f'Pkg-config binary for {for_machine} is cached.')
-        else:
-            assert cls.class_pkgbin[for_machine] is None, 'for mypy'
-            mlog.debug(f'Pkg-config binary for {for_machine} is not cached.')
-            for potential_pkgbin in find_external_program(
-                    env, for_machine, 'pkgconfig', 'Pkg-config',
-                    env.default_pkgconfig, allow_default_for_cross=False):
-                version_if_ok = cls.check_pkgconfig(env, potential_pkgbin)
-                if not version_if_ok:
-                    continue
-                if not silent:
-                    mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
-                             f'({version_if_ok})')
-                cls.class_pkgbin[for_machine] = potential_pkgbin
-                break
-            else:
-                if not silent:
-                    mlog.log('Found Pkg-config:', mlog.red('NO'))
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
-                cls.class_pkgbin[for_machine] = False
-
-        return cls.class_pkgbin[for_machine]
-
-    def _call_pkgbin_real(self, args: T.List[str], env: T.Dict[str, str]) -> T.Tuple[int, str, str]:
-        assert isinstance(self.pkgbin, ExternalProgram)
-        cmd = self.pkgbin.get_command() + args
-        p, out, err = Popen_safe_logged(cmd, env=env)
-        return p.returncode, out.strip(), err.strip()
-
-    @staticmethod
-    def get_env(environment: 'Environment', for_machine: MachineChoice,
-                uninstalled: bool = False) -> 'EnvironmentVariables':
-        from ..build import EnvironmentVariables
-        env = EnvironmentVariables()
-        key = OptionKey('pkg_config_path', machine=for_machine)
-        extra_paths: T.List[str] = environment.coredata.options[key].value[:]
-        if uninstalled:
-            uninstalled_path = Path(environment.get_build_dir(), 'meson-uninstalled').as_posix()
-            if uninstalled_path not in extra_paths:
-                extra_paths.append(uninstalled_path)
-        env.set('PKG_CONFIG_PATH', extra_paths)
-        sysroot = environment.properties[for_machine].get_sys_root()
-        if sysroot:
-            env.set('PKG_CONFIG_SYSROOT_DIR', [sysroot])
-        pkg_config_libdir_prop = environment.properties[for_machine].get_pkg_config_libdir()
-        if pkg_config_libdir_prop:
-            env.set('PKG_CONFIG_LIBDIR', pkg_config_libdir_prop)
-        return env
-
-    @staticmethod
-    def setup_env(env: EnvironOrDict, environment: 'Environment', for_machine: MachineChoice,
-                  uninstalled: bool = False) -> T.Dict[str, str]:
-        envvars = PkgConfigDependency.get_env(environment, for_machine, uninstalled)
-        env = envvars.get_env(env)
-        # Dump all PKG_CONFIG environment variables
-        for key, value in env.items():
-            if key.startswith('PKG_'):
-                mlog.debug(f'env[{key}]: {value}')
-        return env
-
-    def _call_pkgbin(self, args: T.List[str], env: T.Optional[EnvironOrDict] = None) -> T.Tuple[int, str, str]:
-        assert isinstance(self.pkgbin, ExternalProgram)
-        env = env or os.environ
-        env = PkgConfigDependency.setup_env(env, self.env, self.for_machine)
-
-        fenv = frozenset(env.items())
-        targs = tuple(args)
-        cache = PkgConfigDependency.pkgbin_cache
-        if (self.pkgbin, targs, fenv) not in cache:
-            cache[(self.pkgbin, targs, fenv)] = self._call_pkgbin_real(args, env)
-        return cache[(self.pkgbin, targs, fenv)]
-
-    def _convert_mingw_paths(self, args: T.List[str]) -> T.List[str]:
+    def _convert_mingw_paths(self, args: ImmutableListProtocol[str]) -> T.List[str]:
         '''
         Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
         paths so convert them to C:/foo. We cannot resolve other paths starting
@@ -176,7 +321,7 @@ class PkgConfigDependency(ExternalDependency):
         error/warning from the compiler/linker.
         '''
         if not self.env.machines.build.is_windows():
-            return args
+            return args.copy()
         converted = []
         for arg in args:
             pargs: T.Tuple[str, ...] = tuple()
@@ -199,27 +344,19 @@ class PkgConfigDependency(ExternalDependency):
             converted.append(arg)
         return converted
 
-    def _split_args(self, cmd: str) -> T.List[str]:
-        # pkg-config paths follow Unix conventions, even on Windows; split the
-        # output using shlex.split rather than mesonlib.split_args
-        return shlex.split(cmd)
-
     def _set_cargs(self) -> None:
-        env = None
+        allow_system = False
         if self.language == 'fortran':
             # gfortran doesn't appear to look in system paths for INCLUDE files,
             # so don't allow pkg-config to suppress -I flags for system paths
-            env = os.environ.copy()
-            env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
-        ret, out, err = self._call_pkgbin(['--cflags', self.name], env=env)
-        if ret != 0:
-            raise DependencyException(f'Could not generate cargs for {self.name}:\n{err}\n')
-        self.compile_args = self._convert_mingw_paths(self._split_args(out))
+            allow_system = True
+        cflags = self.pkgconfig.cflags(self.name, allow_system)
+        self.compile_args = self._convert_mingw_paths(cflags)
 
-    def _search_libs(self, out: str, out_raw: str) -> T.Tuple[T.List[str], T.List[str]]:
+    def _search_libs(self, libs_in: ImmutableListProtocol[str], raw_libs_in: ImmutableListProtocol[str]) -> T.Tuple[T.List[str], T.List[str]]:
         '''
-        @out: PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 pkg-config --libs
-        @out_raw: pkg-config --libs
+        @libs_in: PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 pkg-config --libs
+        @raw_libs_in: pkg-config --libs
 
         We always look for the file ourselves instead of depending on the
         compiler to find it with -lfoo or foo.lib (if possible) because:
@@ -243,7 +380,7 @@ class PkgConfigDependency(ExternalDependency):
         # always searched first.
         prefix_libpaths: OrderedSet[str] = OrderedSet()
         # We also store this raw_link_args on the object later
-        raw_link_args = self._convert_mingw_paths(self._split_args(out_raw))
+        raw_link_args = self._convert_mingw_paths(raw_libs_in)
         for arg in raw_link_args:
             if arg.startswith('-L') and not arg.startswith(('-L-l', '-L-L')):
                 path = arg[2:]
@@ -264,7 +401,7 @@ class PkgConfigDependency(ExternalDependency):
         pkg_config_path = self._convert_mingw_paths(pkg_config_path)
         prefix_libpaths = OrderedSet(sort_libpaths(list(prefix_libpaths), pkg_config_path))
         system_libpaths: OrderedSet[str] = OrderedSet()
-        full_args = self._convert_mingw_paths(self._split_args(out))
+        full_args = self._convert_mingw_paths(libs_in)
         for arg in full_args:
             if arg.startswith(('-L-l', '-L-L')):
                 # These are D language arguments, not library paths
@@ -369,83 +506,14 @@ class PkgConfigDependency(ExternalDependency):
         return link_args, raw_link_args
 
     def _set_libs(self) -> None:
-        env = None
-        libcmd = ['--libs']
-
-        if self.static:
-            libcmd.append('--static')
-
-        libcmd.append(self.name)
-
         # Force pkg-config to output -L fields even if they are system
         # paths so we can do manual searching with cc.find_library() later.
-        env = os.environ.copy()
-        env['PKG_CONFIG_ALLOW_SYSTEM_LIBS'] = '1'
-        ret, out, err = self._call_pkgbin(libcmd, env=env)
-        if ret != 0:
-            raise DependencyException(f'Could not generate libs for {self.name}:\n{err}\n')
+        libs = self.pkgconfig.libs(self.name, self.static, allow_system=True)
         # Also get the 'raw' output without -Lfoo system paths for adding -L
         # args with -lfoo when a library can't be found, and also in
         # gnome.generate_gir + gnome.gtkdoc which need -L -l arguments.
-        ret, out_raw, err_raw = self._call_pkgbin(libcmd)
-        if ret != 0:
-            raise DependencyException(f'Could not generate libs for {self.name}:\n\n{out_raw}')
-        self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
-
-    def get_pkgconfig_variable(self, variable_name: str,
-                               define_variable: 'ImmutableListProtocol[str]',
-                               default: T.Optional[str]) -> str:
-        options = ['--variable=' + variable_name, self.name]
-
-        if define_variable:
-            options = ['--define-variable=' + '='.join(define_variable)] + options
-
-        ret, out, err = self._call_pkgbin(options)
-        variable = ''
-        if ret != 0:
-            if self.required:
-                raise DependencyException(f'dependency {self.name} not found:\n{err}\n')
-        else:
-            variable = out.strip()
-
-            # pkg-config doesn't distinguish between empty and nonexistent variables
-            # use the variable list to check for variable existence
-            if not variable:
-                ret, out, _ = self._call_pkgbin(['--print-variables', self.name])
-                if not re.search(r'^' + variable_name + r'$', out, re.MULTILINE):
-                    if default is not None:
-                        variable = default
-                    else:
-                        mlog.warning(f"pkgconfig variable '{variable_name}' not defined for dependency {self.name}.")
-
-        mlog.debug(f'Got pkgconfig variable {variable_name} : {variable}')
-        return variable
-
-    @staticmethod
-    def check_pkgconfig(env: Environment, pkgbin: ExternalProgram) -> T.Optional[str]:
-        if not pkgbin.found():
-            mlog.log(f'Did not find pkg-config by name {pkgbin.name!r}')
-            return None
-        command_as_string = ' '.join(pkgbin.get_command())
-        try:
-            helptext = Popen_safe(pkgbin.get_command() + ['--help'])[1]
-            if 'Pure-Perl' in helptext:
-                mlog.log(f'found pkg-config {command_as_string!r} but it is Strawberry Perl and thus broken. Ignoring...')
-                return None
-            p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
-            if p.returncode != 0:
-                mlog.warning(f'Found pkg-config {command_as_string!r} but it failed when run')
-                return None
-        except FileNotFoundError:
-            mlog.warning(f'We thought we found pkg-config {command_as_string!r} but now it\'s not there. How odd!')
-            return None
-        except PermissionError:
-            msg = f'Found pkg-config {command_as_string!r} but didn\'t have permissions to run it.'
-            if not env.machines.build.is_windows():
-                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
-            mlog.warning(msg)
-            return None
-        return out.strip()
+        raw_libs = self.pkgconfig.libs(self.name, self.static, allow_system=False)
+        self.link_args, self.raw_link_args = self._search_libs(libs, raw_libs)
 
     def extract_field(self, la_file: str, fieldname: str) -> T.Optional[str]:
         with open(la_file, encoding='utf-8') as f:
@@ -489,10 +557,12 @@ class PkgConfigDependency(ExternalDependency):
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
-                     pkgconfig_define: T.Optional[T.List[str]] = None) -> str:
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
         if pkgconfig:
             try:
-                return self.get_pkgconfig_variable(pkgconfig, pkgconfig_define or [], default_value)
+                variable = self.pkgconfig.variable(self.name, pkgconfig, pkgconfig_define)
+                if variable is not None:
+                    return variable
             except DependencyException:
                 pass
         if default_value is not None:

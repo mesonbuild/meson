@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 from configparser import ConfigParser
 from pathlib import Path
@@ -47,7 +36,7 @@ from mesonbuild.mesonlib import (
     OptionType
 )
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
-from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
 
@@ -252,7 +241,7 @@ class InternalTests(unittest.TestCase):
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
         l = gcc.compiler_args(['-Lfoodir', '-lfoo'])
-        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-lfoo'])
         # Direct-adding a library and a libpath appends both correctly
         l.extend_direct(['-Lbardir', '-lbar'])
         self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-Wl,--end-group'])
@@ -280,10 +269,10 @@ class InternalTests(unittest.TestCase):
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
         l = gcc.compiler_args(['-Lfoodir', '-lfoo'])
-        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-lfoo'])
         ## Test that to_native removes all system includes
         l += ['-isystem/usr/include', '-isystem=/usr/share/include', '-DSOMETHING_IMPORTANT=1', '-isystem', '/usr/local/include']
-        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group', '-DSOMETHING_IMPORTANT=1'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-lfoo', '-DSOMETHING_IMPORTANT=1'])
 
     def test_string_templates_substitution(self):
         dictfunc = mesonbuild.mesonlib.get_filenames_templates_dict
@@ -298,6 +287,7 @@ class InternalTests(unittest.TestCase):
         outputs = []
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c'}
         # Check dictionary
         self.assertEqual(ret, d)
@@ -320,6 +310,7 @@ class InternalTests(unittest.TestCase):
         outputs = ['out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': '.'}
         # Check dictionary
@@ -341,6 +332,7 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
         # Check dictionary
@@ -350,7 +342,9 @@ class InternalTests(unittest.TestCase):
         inputs = ['bar/foo.c.in', 'baz/foo.c.in']
         outputs = []
         ret = dictfunc(inputs, outputs)
-        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1]}
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c'}
         # Check dictionary
         self.assertEqual(ret, d)
         # Check substitutions
@@ -387,6 +381,8 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
         # Check dictionary
         self.assertEqual(ret, d)
@@ -413,6 +409,8 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c', 'dir/out2.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTPUT1@': outputs[1],
              '@OUTDIR@': 'dir'}
         # Check dictionary
@@ -618,7 +616,8 @@ class InternalTests(unittest.TestCase):
             out = name.with_suffix('.o')
             with src.open('w', encoding='utf-8') as f:
                 f.write('int meson_foobar (void) { return 0; }')
-            subprocess.check_call(['clang', '-c', str(src), '-o', str(out)])
+            # use of x86_64 is hardcoded in run_tests.py:get_fake_env()
+            subprocess.check_call(['clang', '-c', str(src), '-o', str(out), '-arch', 'x86_64'])
             subprocess.check_call(['ar', 'csr', str(name), str(out)])
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -643,22 +642,19 @@ class InternalTests(unittest.TestCase):
             create_static_lib(p1 / 'libdl.a')
             create_static_lib(p1 / 'librt.a')
 
-            def fake_call_pkgbin(self, args, env=None):
-                if '--libs' not in args:
-                    return 0, '', ''
-                if args[-1] == 'foo':
-                    return 0, f'-L{p2.as_posix()} -lfoo -L{p1.as_posix()} -lbar', ''
-                if args[-1] == 'bar':
-                    return 0, f'-L{p2.as_posix()} -lbar', ''
-                if args[-1] == 'internal':
-                    return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
+            class FakeInstance(PkgConfigCLI):
+                def _call_pkgbin(self, args, env=None):
+                    if '--libs' not in args:
+                        return 0, '', ''
+                    if args[-1] == 'foo':
+                        return 0, f'-L{p2.as_posix()} -lfoo -L{p1.as_posix()} -lbar', ''
+                    if args[-1] == 'bar':
+                        return 0, f'-L{p2.as_posix()} -lbar', ''
+                    if args[-1] == 'internal':
+                        return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
 
-            old_call = PkgConfigDependency._call_pkgbin
-            old_check = PkgConfigDependency.check_pkgconfig
-            PkgConfigDependency._call_pkgbin = fake_call_pkgbin
-            PkgConfigDependency.check_pkgconfig = lambda x, _: pkgbin
-            # Test begins
-            try:
+            with mock.patch.object(PkgConfigInterface, 'instance') as instance_method:
+                instance_method.return_value = FakeInstance(env, MachineChoice.HOST, silent=True)
                 kwargs = {'required': True, 'silent': True}
                 foo_dep = PkgConfigDependency('foo', env, kwargs)
                 self.assertEqual(foo_dep.get_link_args(),
@@ -673,13 +669,6 @@ class InternalTests(unittest.TestCase):
                     for link_arg in link_args:
                         for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
                             self.assertNotIn(f'lib{lib}.a', link_arg, msg=link_args)
-            finally:
-                # Test ends
-                PkgConfigDependency._call_pkgbin = old_call
-                PkgConfigDependency.check_pkgconfig = old_check
-                # Reset dependency class to ensure that in-process configure doesn't mess up
-                PkgConfigDependency.pkgbin_cache = {}
-                PkgConfigDependency.class_pkgbin = PerMachine(None, None)
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
@@ -1022,19 +1011,30 @@ class InternalTests(unittest.TestCase):
     def test_validate_json(self) -> None:
         """Validate the json schema for the test cases."""
         try:
-            from jsonschema import validate, ValidationError
+            from fastjsonschema import compile, JsonSchemaValueException as JsonSchemaFailure
+            fast = True
         except ImportError:
-            if is_ci():
-                raise
-            raise unittest.SkipTest('Python jsonschema module not found.')
+            try:
+                from jsonschema import validate, ValidationError as JsonSchemaFailure
+                fast = False
+            except:
+                if is_ci():
+                    raise
+                raise unittest.SkipTest('neither Python fastjsonschema nor jsonschema module not found.')
 
-        schema = json.loads(Path('data/test.schema.json').read_text(encoding='utf-8'))
+        with open('data/test.schema.json', 'r', encoding='utf-8') as f:
+            data = json.loads(f.read())
 
-        errors = []  # type: T.Tuple[str, Exception]
+        if fast:
+            schema_validator = compile(data)
+        else:
+            schema_validator = lambda x: validate(x, schema=data)
+
+        errors: T.List[T.Tuple[Path, Exception]] = []
         for p in Path('test cases').glob('**/test.json'):
             try:
-                validate(json.loads(p.read_text(encoding='utf-8')), schema=schema)
-            except ValidationError as e:
+                schema_validator(json.loads(p.read_text(encoding='utf-8')))
+            except JsonSchemaFailure as e:
                 errors.append((p.resolve(), e))
 
         for f, e in errors:
@@ -1671,13 +1671,16 @@ class InternalTests(unittest.TestCase):
                     actual = mesonbuild.environment.detect_cpu({})
                     self.assertEqual(actual, expected)
 
+    @mock.patch('mesonbuild.interpreter.Interpreter.load_root_meson_file', mock.Mock(return_value=None))
+    @mock.patch('mesonbuild.interpreter.Interpreter.sanity_check_ast', mock.Mock(return_value=None))
+    @mock.patch('mesonbuild.interpreter.Interpreter.parse_project', mock.Mock(return_value=None))
     def test_interpreter_unpicklable(self) -> None:
         build = mock.Mock()
         build.environment = mock.Mock()
         build.environment.get_source_dir = mock.Mock(return_value='')
         with mock.patch('mesonbuild.interpreter.Interpreter._redetect_machines', mock.Mock()), \
                 self.assertRaises(mesonbuild.mesonlib.MesonBugException):
-            i = mesonbuild.interpreter.Interpreter(build, mock=True)
+            i = mesonbuild.interpreter.Interpreter(build)
             pickle.dumps(i)
 
     def test_major_versions_differ(self) -> None:

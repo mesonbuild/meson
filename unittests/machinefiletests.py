@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 from __future__ import annotations
 
@@ -226,9 +215,12 @@ class NativeFileTests(BasePlatformTests):
 
             # We not have python2, check for it
             for v in ['2', '2.7', '-2.7']:
-                rc = subprocess.call(['pkg-config', '--cflags', f'python{v}'],
-                                     stdout=subprocess.DEVNULL,
-                                     stderr=subprocess.DEVNULL)
+                try:
+                    rc = subprocess.call(['pkg-config', '--cflags', f'python{v}'],
+                                         stdout=subprocess.DEVNULL,
+                                         stderr=subprocess.DEVNULL)
+                except FileNotFoundError:
+                    raise SkipTest('Not running Python 2 tests because pkg-config not found.')
                 if rc == 0:
                     break
             else:
@@ -375,7 +367,7 @@ class NativeFileTests(BasePlatformTests):
     def test_java_classpath(self):
         if self.backend is not Backend.ninja:
             raise SkipTest('Jar is only supported with Ninja')
-        testdir = os.path.join(self.unit_test_dir, '111 classpath')
+        testdir = os.path.join(self.unit_test_dir, '112 classpath')
         self.init(testdir)
         self.build()
         one_build_path = get_classpath(os.path.join(self.builddir, 'one.jar'))

@@ -1,20 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
-from mesonbuild.templates.sampleimpl import SampleImpl
-import re
+from mesonbuild.templates.sampleimpl import ClassImpl
 
 
 hello_cs_template = '''using System;
@@ -91,46 +80,11 @@ test('{test_name}', test_exe)
 '''
 
 
-class CSharpProject(SampleImpl):
-    def __init__(self, options):
-        super().__init__()
-        self.name = options.name
-        self.version = options.version
+class CSharpProject(ClassImpl):
 
-    def create_executable(self) -> None:
-        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
-        uppercase_token = lowercase_token.upper()
-        class_name = uppercase_token[0] + lowercase_token[1:]
-        source_name = uppercase_token[0] + lowercase_token[1:] + '.cs'
-        open(source_name, 'w', encoding='utf-8').write(
-            hello_cs_template.format(project_name=self.name,
-                                     class_name=class_name))
-        open('meson.build', 'w', encoding='utf-8').write(
-          hello_cs_meson_template.format(project_name=self.name,
-                                         exe_name=self.name,
-                                         source_name=source_name,
-                                         version=self.version))
-
-    def create_library(self) -> None:
-        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
-        uppercase_token = lowercase_token.upper()
-        class_name = uppercase_token[0] + lowercase_token[1:]
-        class_test = uppercase_token[0] + lowercase_token[1:] + '_test'
-        project_test = lowercase_token + '_test'
-        lib_cs_name = uppercase_token[0] + lowercase_token[1:] + '.cs'
-        test_cs_name = uppercase_token[0] + lowercase_token[1:] + '_test.cs'
-        kwargs = {'utoken': uppercase_token,
-                  'ltoken': lowercase_token,
-                  'class_test': class_test,
-                  'class_name': class_name,
-                  'source_file': lib_cs_name,
-                  'test_source_file': test_cs_name,
-                  'test_exe_name': project_test,
-                  'project_name': self.name,
-                  'lib_name': lowercase_token,
-                  'test_name': lowercase_token,
-                  'version': self.version,
-                  }
-        open(lib_cs_name, 'w', encoding='utf-8').write(lib_cs_template.format(**kwargs))
-        open(test_cs_name, 'w', encoding='utf-8').write(lib_cs_test_template.format(**kwargs))
-        open('meson.build', 'w', encoding='utf-8').write(lib_cs_meson_template.format(**kwargs))
+    source_ext = 'cs'
+    exe_template = hello_cs_template
+    exe_meson_template = hello_cs_meson_template
+    lib_template = lib_cs_template
+    lib_test_template = lib_cs_test_template
+    lib_meson_template = lib_cs_meson_template

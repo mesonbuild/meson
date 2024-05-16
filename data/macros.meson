@@ -1,6 +1,7 @@
 %__meson %{_bindir}/meson
 %__meson_wrap_mode nodownload
 %__meson_auto_features enabled
+%__meson_verbose 1
 
 %meson \
     %set_build_flags \
@@ -28,13 +29,14 @@
     %{shrink:%{__meson} compile \
         -C %{_vpath_builddir} \
         -j %{_smp_build_ncpus} \
-        --verbose \
+        %{?__meson_verbose:--verbose} \
         %{nil}}
 
 %meson_install \
     %{shrink:DESTDIR=%{buildroot} %{__meson} install \
         -C %{_vpath_builddir} \
         --no-rebuild \
+        %{!?__meson_verbose:--quiet} \
         %{nil}}
 
 %meson_test \

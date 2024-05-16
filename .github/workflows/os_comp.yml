@@ -8,7 +8,7 @@ on:
   push:
     branches:
       - master
-      # Stable branches such as 0.56 or the eventual 1.0
+      # Stable branches such as 0.56 or 1.0
       - '[0-9]+.[0-9]+'
     paths:
       - "mesonbuild/**"
@@ -16,7 +16,7 @@ on:
       - "unittests/**"
       - ".github/workflows/images.yml"
       - ".github/workflows/os_comp.yml"
-      - "run_unittests.py"
+      - "run*tests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
@@ -24,7 +24,7 @@ on:
       - "unittests/**"
       - ".github/workflows/images.yml"
       - ".github/workflows/os_comp.yml"
-      - "run_unittests.py"
+      - "run*tests.py"
 
 permissions:
   contents: read
@@ -40,6 +40,7 @@ jobs:
           - { name: Arch Linux,       id: arch     }
           - { name: CUDA (on Arch),   id: cuda     }
           - { name: Fedora,           id: fedora   }
+          - { name: Gentoo,           id: gentoo   }
           - { name: OpenSUSE,         id: opensuse }
           - { name: Ubuntu Bionic,    id: bionic   }
     container: mesonbuild/${{ matrix.cfg.id }}:latest

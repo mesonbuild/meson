@@ -1,6 +1,6 @@
 #include "cmMod.hpp"
 #include "genTest.hpp"
-#include "cpyBase.hpp"
+#include "cpyBase.txt"
 #include "cpyNext.hpp"
 #include "cpyTest.hpp"
 #include "cmModLib.hpp"

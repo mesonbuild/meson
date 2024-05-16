@@ -29,7 +29,7 @@ pkgs=(
   openjdk-11-jre
 )
 
-sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list"
+sed -i '/^Types: deb/s/deb/deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
 apt-get -y update
 apt-get -y upgrade
 apt-get -y install eatmydata
@@ -49,6 +49,14 @@ dub build urld --compiler=gdc
 dub_fetch dubtestproject
 dub build dubtestproject:test1 --compiler=ldc2
 dub build dubtestproject:test2 --compiler=ldc2
+
+# Remove debian version of Rust and install latest with rustup.
+# This is needed to get the cross toolchain as well.
+apt-get -y remove rustc || true
+wget -O - https://sh.rustup.rs | sh -s -- -y --profile minimal --component clippy
+source "$HOME/.cargo/env"
+rustup target add x86_64-pc-windows-gnu
+rustup target add arm-unknown-linux-gnueabihf
 
 # cleanup
 apt-get -y clean

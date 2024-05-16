@@ -23,3 +23,9 @@ six_prog = find_program('six_meson_exe')
 assert(six_prog.found())
 assert(six_prog.full_path() != '')
 assert(six_prog.full_path() == six_prog.path())
+
+# We have prog-version.py in current directory, but it's version 1.0.
+# This needs to use fallback for "prog-version" name which will be version 2.0.
+prog = find_program('prog-version.py', 'prog-version', version: '>= 2.0')
+assert(prog.found())
+assert(prog.version() == '2.0')

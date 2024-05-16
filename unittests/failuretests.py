@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 import subprocess
 import tempfile
@@ -242,12 +231,12 @@ class FailureTests(BasePlatformTests):
         dep = declare_dependency(dependencies : zlib_dep)
         dep.get_pkgconfig_variable('foo')
         '''
-        self.assertMesonRaises(code, "Method.*pkgconfig.*is invalid.*internal")
+        self.assertMesonRaises(code, ".*is not a pkgconfig dependency")
         code = '''zlib_dep = dependency('zlib', required : false)
         dep = declare_dependency(dependencies : zlib_dep)
         dep.get_configtool_variable('foo')
         '''
-        self.assertMesonRaises(code, "Method.*configtool.*is invalid.*internal")
+        self.assertMesonRaises(code, ".* is not a config-tool dependency")
 
     def test_objc_cpp_detection(self):
         '''

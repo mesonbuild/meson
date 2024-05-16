@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The meson development team
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+
 from __future__ import annotations
 
 """Abstractions for the PGI family of compilers."""
@@ -32,15 +22,6 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
-pgi_buildtype_args = {
-    'plain': [],
-    'debug': [],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}  # type: T.Dict[str, T.List[str]]
-
 
 class PGICompiler(Compiler):
 
@@ -61,9 +42,6 @@ class PGICompiler(Compiler):
     def get_module_incdir_args(self) -> T.Tuple[str]:
         return ('-module', )
 
-    def get_no_warn_args(self) -> T.List[str]:
-        return ['-silent']
-
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return []
 
@@ -75,9 +53,6 @@ class PGICompiler(Compiler):
 
     def openmp_flags(self) -> T.List[str]:
         return ['-mp']
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return pgi_buildtype_args[buildtype]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return clike_optimization_args[optimization_level]

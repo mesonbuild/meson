@@ -1,29 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
+# Copyright © 2024 Intel Corporation
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+from __future__ import annotations
 import json
 import os
 import pickle
 import tempfile
 import subprocess
 import textwrap
+import shutil
 from unittest import skipIf, SkipTest
 from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
-from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, is_linux, python_command
+from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command
+from mesonbuild.mformat import match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from run_tests import Backend
 
@@ -72,6 +65,27 @@ class PlatformAgnosticTests(BasePlatformTests):
         # platlib is allowed, only python.platlib is reserved.
         fname = write_file("option('platlib', type: 'string')")
         interp.process(fname)
+
+    def test_option_validation(self):
+        """Test cases that are not catch by the optinterpreter itself."""
+        interp = OptionInterpreter('')
+
+        def write_file(code: str):
+            with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
+                f.write(code)
+                return f.name
+
+        fname = write_file("option('intminmax', type: 'integer', value: 10, min: 0, max: 5)")
+        self.assertRaisesRegex(MesonException, 'Value 10 for option "intminmax" is more than maximum value 5.',
+                               interp.process, fname)
+
+        fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['one', 'four'])")
+        self.assertRaisesRegex(MesonException, 'Value "four" for option "array" is not in allowed choices: "one, two, three"',
+                               interp.process, fname)
+
+        fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['four', 'five', 'six'])")
+        self.assertRaisesRegex(MesonException, 'Values "four, five, six" for option "array" are not in allowed choices: "one, two, three"',
+                               interp.process, fname)
 
     def test_python_dependency_without_pkgconfig(self):
         testdir = os.path.join(self.unit_test_dir, '103 python without pkgconfig')
@@ -183,6 +197,13 @@ class PlatformAgnosticTests(BasePlatformTests):
         Path(self.builddir, 'dummy').touch()
         self.init(testdir, extra_args=['--reconfigure'])
 
+        # Setup a valid builddir should update options but not reconfigure
+        self.assertEqual(self.getconf('buildtype'), 'debug')
+        o = self.init(testdir, extra_args=['-Dbuildtype=release'])
+        self.assertIn('Directory already configured', o)
+        self.assertNotIn('The Meson build system', o)
+        self.assertEqual(self.getconf('buildtype'), 'release')
+
         # Wipe of empty builddir should work
         self.new_builddir()
         self.init(testdir, extra_args=['--wipe'])
@@ -242,7 +263,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         thing to do as new features are added, but keeping track of them is
         good.
         '''
-        testdir = os.path.join(self.unit_test_dir, '114 empty project')
+        testdir = os.path.join(self.unit_test_dir, '116 empty project')
 
         self.init(testdir)
         self._run(self.meson_command + ['--internal', 'regenerate', '--profile-self', testdir, self.builddir])
@@ -255,9 +276,178 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertEqual(data['modules'], expected)
         self.assertEqual(data['count'], 68)
 
+    def test_meson_package_cache_dir(self):
+        # Copy testdir into temporary directory to not pollute meson source tree.
+        testdir = os.path.join(self.unit_test_dir, '118 meson package cache dir')
+        srcdir = os.path.join(self.builddir, 'srctree')
+        shutil.copytree(testdir, srcdir)
+        builddir = os.path.join(srcdir, '_build')
+        self.change_builddir(builddir)
+        self.init(srcdir, override_envvars={'MESON_PACKAGE_CACHE_DIR': os.path.join(srcdir, 'cache_dir')})
+
     def test_cmake_openssl_not_found_bug(self):
         """Issue #12098"""
-        testdir = os.path.join(self.unit_test_dir, '117 openssl cmake bug')
+        testdir = os.path.join(self.unit_test_dir, '119 openssl cmake bug')
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
+
+    def test_editorconfig_match_path(self):
+        '''match_path function used to parse editorconfig in meson format'''
+        cases = [
+            ('a.txt', '*.txt', True),
+            ('a.txt', '?.txt', True),
+            ('a.txt', 'a.t?t', True),
+            ('a.txt', '*.build', False),
+
+            ('/a.txt', '*.txt', True),
+            ('/a.txt', '/*.txt', True),
+            ('a.txt', '/*.txt', False),
+
+            ('a/b/c.txt', 'a/b/*.txt', True),
+            ('a/b/c.txt', 'a/*/*.txt', True),
+            ('a/b/c.txt', '*/*.txt', True),
+            ('a/b/c.txt', 'b/*.txt', True),
+            ('a/b/c.txt', 'a/*.txt', False),
+
+            ('a/b/c/d.txt', 'a/**/*.txt', True),
+            ('a/b/c/d.txt', 'a/*', False),
+            ('a/b/c/d.txt', 'a/**', True),
+
+            ('a.txt', '[abc].txt', True),
+            ('a.txt', '[!xyz].txt', True),
+            ('a.txt', '[xyz].txt', False),
+            ('a.txt', '[!abc].txt', False),
+
+            ('a.txt', '{a,b,c}.txt', True),
+            ('a.txt', '*.{txt,tex,cpp}', True),
+            ('a.hpp', '*.{txt,tex,cpp}', False),
+
+            ('a1.txt', 'a{0..9}.txt', True),
+            ('a001.txt', 'a{0..9}.txt', True),
+            ('a-1.txt', 'a{-10..10}.txt', True),
+            ('a99.txt', 'a{0..9}.txt', False),
+            ('a099.txt', 'a{0..9}.txt', False),
+            ('a-1.txt', 'a{0..10}.txt', False),
+        ]
+
+        for filename, pattern, expected in cases:
+            self.assertTrue(match_path(filename, pattern) is expected, f'{filename} -> {pattern}')
+
+    def test_error_configuring_subdir(self):
+        testdir = os.path.join(self.common_test_dir, '152 index customtarget')
+        out = self.init(os.path.join(testdir, 'subdir'), allow_fail=True)
+
+        self.assertIn('first statement must be a call to project()', out)
+        # provide guidance diagnostics by finding a file whose first AST statement is project()
+        self.assertIn(f'Did you mean to run meson from the directory: "{testdir}"?', out)
+
+    def test_reconfigure_base_options(self):
+        testdir = os.path.join(self.unit_test_dir, '122 reconfigure base options')
+        out = self.init(testdir, extra_args=['-Db_ndebug=true'])
+        self.assertIn('\nMessage: b_ndebug: true\n', out)
+        self.assertIn('\nMessage: c_std: c89\n', out)
+
+        out = self.init(testdir, extra_args=['--reconfigure', '-Db_ndebug=if-release', '-Dsub:b_ndebug=false', '-Dc_std=c99', '-Dsub:c_std=c11'])
+        self.assertIn('\nMessage: b_ndebug: if-release\n', out)
+        self.assertIn('\nMessage: c_std: c99\n', out)
+        self.assertIn('\nsub| Message: b_ndebug: false\n', out)
+        self.assertIn('\nsub| Message: c_std: c11\n', out)
+
+    def test_setup_with_unknown_option(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+
+        for option in ('not_an_option', 'b_not_an_option'):
+            out = self.init(testdir, extra_args=['--wipe', f'-D{option}=1'], allow_fail=True)
+            self.assertIn(f'ERROR: Unknown options: "{option}"', out)
+
+    def test_configure_new_option(self) -> None:
+        """Adding a new option without reconfiguring should work."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
+        self.init(testdir)
+        with open(os.path.join(testdir, 'meson_options.txt'), 'a', encoding='utf-8') as f:
+            f.write("option('new_option', type : 'boolean', value : false)")
+        self.setconf('-Dnew_option=true')
+        self.assertEqual(self.getconf('new_option'), True)
+
+    def test_configure_removed_option(self) -> None:
+        """Removing an options without reconfiguring should still give an error."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
+        self.init(testdir)
+        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+            opts = f.readlines()
+        with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
+            for line in opts:
+                if line.startswith("option('neg'"):
+                    continue
+                f.write(line)
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self.setconf('-Dneg_int_opt=0')
+        self.assertIn('Unknown options: "neg_int_opt"', e.exception.stdout)
+
+    def test_configure_option_changed_constraints(self) -> None:
+        """Changing the constraints of an option without reconfiguring should work."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
+        self.init(testdir)
+        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+            opts = f.readlines()
+        with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
+            for line in opts:
+                if line.startswith("option('neg'"):
+                    f.write("option('neg_int_opt', type : 'integer', min : -10, max : 10, value : -3)\n")
+                else:
+                    f.write(line)
+        self.setconf('-Dneg_int_opt=-10')
+        self.assertEqual(self.getconf('neg_int_opt'), -10)
+
+    def test_configure_meson_options_txt_to_meson_options(self) -> None:
+        """Changing from a meson_options.txt to meson.options should still be detected."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
+        self.init(testdir)
+        with open(os.path.join(testdir, 'meson_options.txt'), 'r', encoding='utf-8') as f:
+            opts = f.readlines()
+        with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
+            for line in opts:
+                if line.startswith("option('neg'"):
+                    f.write("option('neg_int_opt', type : 'integer', min : -10, max : 10, value : -3)\n")
+                else:
+                    f.write(line)
+        shutil.move(os.path.join(testdir, 'meson_options.txt'), os.path.join(testdir, 'meson.options'))
+        self.setconf('-Dneg_int_opt=-10')
+        self.assertEqual(self.getconf('neg_int_opt'), -10)
+
+    def test_configure_options_file_deleted(self) -> None:
+        """Deleting all option files should make seting a project option an error."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
+        self.init(testdir)
+        os.unlink(os.path.join(testdir, 'meson_options.txt'))
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self.setconf('-Dneg_int_opt=0')
+        self.assertIn('Unknown options: "neg_int_opt"', e.exception.stdout)
+
+    def test_configure_options_file_added(self) -> None:
+        """A new project option file should be detected."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
+        self.init(testdir)
+        with open(os.path.join(testdir, 'meson.options'), 'w', encoding='utf-8') as f:
+            f.write("option('new_option', type : 'string', value : 'foo')")
+        self.setconf('-Dnew_option=bar')
+        self.assertEqual(self.getconf('new_option'), 'bar')
+
+    def test_configure_options_file_added_old(self) -> None:
+        """A new project option file should be detected."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '1 trivial'))
+        self.init(testdir)
+        with open(os.path.join(testdir, 'meson_options.txt'), 'w', encoding='utf-8') as f:
+            f.write("option('new_option', type : 'string', value : 'foo')")
+        self.setconf('-Dnew_option=bar')
+        self.assertEqual(self.getconf('new_option'), 'bar')
+
+    def test_configure_new_option_subproject(self) -> None:
+        """Adding a new option to a subproject without reconfiguring should work."""
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '43 subproject options'))
+        self.init(testdir)
+        with open(os.path.join(testdir, 'subprojects/subproject/meson_options.txt'), 'a', encoding='utf-8') as f:
+            f.write("option('new_option', type : 'boolean', value : false)")
+        self.setconf('-Dsubproject:new_option=true')
+        self.assertEqual(self.getconf('subproject:new_option'), True)

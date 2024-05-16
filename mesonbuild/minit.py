@@ -1,19 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2017 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-from __future__ import annotations
-
 """Code that creates simple startup projects."""
+
+from __future__ import annotations
 
 from pathlib import Path
 from enum import Enum
@@ -23,19 +13,33 @@ import sys
 import os
 import re
 from glob import glob
+import typing as T
+
 from mesonbuild import build, mesonlib, mlog
 from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
 from mesonbuild.environment import detect_ninja
-from mesonbuild.templates.samplefactory import sameple_generator
-import typing as T
+from mesonbuild.templates.mesontemplates import create_meson_build
+from mesonbuild.templates.samplefactory import sample_generator
 
 if T.TYPE_CHECKING:
     import argparse
 
-'''
-we currently have one meson template at this time.
-'''
-from mesonbuild.templates.mesontemplates import create_meson_build
+    from typing_extensions import Protocol, Literal
+
+    class Arguments(Protocol):
+
+        srcfiles: T.List[Path]
+        wd: str
+        name: str
+        executable: str
+        deps: str
+        language: Literal['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala']
+        build: bool
+        builddir: str
+        force: bool
+        type: Literal['executable', 'library']
+        version: str
+
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
 LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java', '.vala'} | FORTRAN_SUFFIXES
@@ -55,12 +59,12 @@ meson compile -C builddir
 '''
 
 
-def create_sample(options: 'argparse.Namespace') -> None:
+def create_sample(options: Arguments) -> None:
     '''
     Based on what arguments are passed we check for a match in language
     then check for project type and create new Meson samples project.
     '''
-    sample_gen = sameple_generator(options)
+    sample_gen = sample_generator(options)
     if options.type == DEFAULT_TYPES['EXE'].value:
         sample_gen.create_executable()
     elif options.type == DEFAULT_TYPES['LIB'].value:
@@ -69,7 +73,7 @@ def create_sample(options: 'argparse.Namespace') -> None:
         raise RuntimeError('Unreachable code')
     print(INFO_MESSAGE)
 
-def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> None:
+def autodetect_options(options: Arguments, sample: bool = False) -> None:
     '''
     Here we autodetect options for args not passed in so don't have to
     think about it.
@@ -90,7 +94,7 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
         # The rest of the autodetection is not applicable to generating sample projects.
         return
     if not options.srcfiles:
-        srcfiles = []
+        srcfiles: T.List[Path] = []
         for f in (f for f in Path().iterdir() if f.is_file()):
             if f.suffix in LANG_SUFFIXES:
                 srcfiles.append(f)
@@ -99,7 +103,6 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
                              'Run meson init in an empty directory to create a sample project.')
         options.srcfiles = srcfiles
         print("Detected source files: " + ' '.join(str(s) for s in srcfiles))
-    options.srcfiles = [Path(f) for f in options.srcfiles]
     if not options.language:
         for f in options.srcfiles:
             if f.suffix == '.c':
@@ -139,12 +142,14 @@ def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> N
             raise SystemExit("Can't autodetect language, please specify it with -l.")
         print("Detected language: " + options.language)
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     '''
     Here we add args for that the user can passed when making a new
     Meson project.
     '''
-    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. default: all recognized files in current directory")
+    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", type=Path, help="source files. default: all recognized files in current directory")
     parser.add_argument('-C', dest='wd', action=mesonlib.RealPathAction,
                         help='directory to cd into before running')
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
@@ -157,7 +162,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--type', default=DEFAULT_PROJECT, choices=('executable', 'library'), help=f"project type. default: {DEFAULT_PROJECT} based project")
     parser.add_argument('--version', default=DEFAULT_VERSION, help=f"project version. default: {DEFAULT_VERSION}")
 
-def run(options: 'argparse.Namespace') -> int:
+def run(options: Arguments) -> int:
     '''
     Here we generate the new Meson sample project.
     '''

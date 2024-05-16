@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2020 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from pathlib import Path
@@ -24,7 +14,7 @@ from .. import mlog, build
 from ..compilers.compilers import CFLAGS_MAPPING
 from ..envconfig import ENV_VAR_PROG_MAP
 from ..dependencies import InternalDependency
-from ..dependencies.pkgconfig import PkgConfigDependency
+from ..dependencies.pkgconfig import PkgConfigInterface
 from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -39,6 +29,8 @@ if T.TYPE_CHECKING:
     from ..build import BuildTarget, CustomTarget
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var
+    from ..mesonlib import EnvironmentVariables
+    from ..utils.core import EnvironOrDict
 
     class Dependency(TypedDict):
 
@@ -49,7 +41,7 @@ if T.TYPE_CHECKING:
         configure_options: T.List[str]
         cross_configure_options: T.List[str]
         verbose: bool
-        env: build.EnvironmentVariables
+        env: EnvironmentVariables
         depends: T.List[T.Union[BuildTarget, CustomTarget]]
 
 
@@ -62,7 +54,7 @@ class ExternalProject(NewExtensionModule):
                  configure_command: str,
                  configure_options: T.List[str],
                  cross_configure_options: T.List[str],
-                 env: build.EnvironmentVariables,
+                 env: EnvironmentVariables,
                  verbose: bool,
                  extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]):
         super().__init__()
@@ -73,8 +65,6 @@ class ExternalProject(NewExtensionModule):
         self.project_version = state.project_version
         self.subproject = state.subproject
         self.env = state.environment
-        self.build_machine = state.build_machine
-        self.host_machine = state.host_machine
         self.configure_command = configure_command
         self.configure_options = configure_options
         self.cross_configure_options = cross_configure_options
@@ -134,16 +124,17 @@ class ExternalProject(NewExtensionModule):
         configure_cmd += self._format_options(self.configure_options, d)
 
         if self.env.is_cross_build():
-            host = '{}-{}-{}'.format(self.host_machine.cpu_family,
-                                     self.build_machine.system,
-                                     self.host_machine.system)
+            host = '{}-{}-{}'.format(state.environment.machines.host.cpu,
+                                     'pc' if state.environment.machines.host.cpu_family in {"x86", "x86_64"}
+                                     else 'unknown',
+                                     state.environment.machines.host.system)
             d = [('HOST', None, host)]
             configure_cmd += self._format_options(self.cross_configure_options, d)
 
         # Set common env variables like CFLAGS, CC, etc.
         link_exelist: T.List[str] = []
         link_args: T.List[str] = []
-        self.run_env = os.environ.copy()
+        self.run_env: EnvironOrDict = os.environ.copy()
         for lang, compiler in self.env.coredata.compilers[MachineChoice.HOST].items():
             if any(lang not in i for i in (ENV_VAR_PROG_MAP, CFLAGS_MAPPING)):
                 continue
@@ -164,8 +155,8 @@ class ExternalProject(NewExtensionModule):
         self.run_env['LDFLAGS'] = self._quote_and_join(link_args)
 
         self.run_env = self.user_env.get_env(self.run_env)
-        self.run_env = PkgConfigDependency.setup_env(self.run_env, self.env, MachineChoice.HOST,
-                                                     uninstalled=True)
+        self.run_env = PkgConfigInterface.setup_env(self.run_env, self.env, MachineChoice.HOST,
+                                                    uninstalled=True)
 
         self.build_dir.mkdir(parents=True, exist_ok=True)
         self._run('configure', configure_cmd, workdir)
@@ -246,6 +237,7 @@ class ExternalProject(NewExtensionModule):
             depfile=f'{self.name}.d',
             console=True,
             extra_depends=extra_depends,
+            description='Generating external project {}',
         )
 
         idir = build.InstallDir(self.subdir.as_posix(),

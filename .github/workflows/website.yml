@@ -10,9 +10,11 @@ on:
     branches:
       - master
     paths:
+      - .github/workflows/website.yml
       - docs/**
   pull_request:
     paths:
+      - .github/workflows/website.yml
       - docs/**
   workflow_dispatch:
   release:
@@ -31,10 +33,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - uses: actions/cache/restore@v3
+        id: restore-cache
+        with:
+          # should use 'pip3 cache dir' to discover this path
+          path: ~/.cache/pip
+          key: website-pip-${{ github.run_number }}
+          restore-keys: website-pip-
+
       - name: Install package
         run: |
           sudo apt-get -y install python3-pip ninja-build libjson-glib-dev
           pip install hotdoc chevron strictyaml
+
+      - uses: actions/cache/save@v3
+        with:
+          # should use 'pip3 cache dir' to discover this path
+          path: ~/.cache/pip
+          key: website-pip-${{ github.run_number }}
+
       - name: Setup SSH Keys and known_hosts
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock

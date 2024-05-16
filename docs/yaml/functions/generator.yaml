@@ -50,12 +50,13 @@ kwargs:
 
   depends:
     # Not sure why this is not just `target`
-    type: list[build_tgt | custom_tgt]
+    type: list[build_tgt | custom_tgt | custom_idx]
     since: 0.51.0
     description: |
       An array of build targets that must be built before
       this generator can be run. This is used if you have a generator that calls
-      a second executable that is built in this project.
+      a second executable that is built in this project (custom_idx was not
+      available between 0.60 and 1.4.0).
 
   depfile:
     type: str

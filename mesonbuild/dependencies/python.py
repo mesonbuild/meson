@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2022 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import functools, json, os, textwrap
@@ -19,7 +9,7 @@ import sys
 import typing as T
 
 from .. import mesonlib, mlog
-from .base import process_method_kw, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
+from .base import process_method_kw, DependencyException, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
@@ -45,6 +35,7 @@ if T.TYPE_CHECKING:
         paths: T.Dict[str, str]
         platform: str
         suffix: str
+        limited_api_suffix: str
         variables: T.Dict[str, str]
         version: str
 
@@ -71,6 +62,17 @@ class Pybind11ConfigToolDependency(ConfigToolDependency):
         self.compile_args = self.get_config_value(['--includes'], 'compile_args')
 
 
+class NumPyConfigToolDependency(ConfigToolDependency):
+
+    tools = ['numpy-config']
+
+    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+
+
 class BasicPythonExternalProgram(ExternalProgram):
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  ext_prog: T.Optional[ExternalProgram] = None):
@@ -95,6 +97,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             'paths': {},
             'platform': 'sentinel',
             'suffix': 'sentinel',
+            'limited_api_suffix': 'sentinel',
             'variables': {},
             'version': '0.0',
         }
@@ -205,7 +208,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if self.link_libpython:
             # link args
             if mesonlib.is_windows():
-                self.find_libpy_windows(environment)
+                self.find_libpy_windows(environment, limited_api=False)
             else:
                 self.find_libpy(environment)
         else:
@@ -224,7 +227,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         if mesonlib.is_windows() and self.get_windows_python_arch().endswith('64') and mesonlib.version_compare(self.version, '<3.12'):
             self.compile_args += ['-DMS_WIN64=']
 
-        if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args):
+        if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args)[0]:
             self.is_found = False
 
     def find_libpy(self, environment: 'Environment') -> None:
@@ -248,7 +251,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.link_args = largs
             self.is_found = True
 
-    def get_windows_python_arch(self) -> T.Optional[str]:
+    def get_windows_python_arch(self) -> str:
         if self.platform.startswith('mingw'):
             if 'x86_64' in self.platform:
                 return 'x86_64'
@@ -257,18 +260,16 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             elif 'aarch64' in self.platform:
                 return 'aarch64'
             else:
-                mlog.log(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
-                return None
+                raise DependencyException(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
         elif self.platform == 'win32':
             return 'x86'
         elif self.platform in {'win64', 'win-amd64'}:
             return 'x86_64'
         elif self.platform in {'win-arm64'}:
             return 'aarch64'
-        mlog.log(f'Unknown Windows Python platform {self.platform!r}')
-        return None
+        raise DependencyException('Unknown Windows Python platform {self.platform!r}')
 
-    def get_windows_link_args(self) -> T.Optional[T.List[str]]:
+    def get_windows_link_args(self, limited_api: bool) -> T.Optional[T.List[str]]:
         if self.platform.startswith('win'):
             vernum = self.variables.get('py_version_nodot')
             verdot = self.variables.get('py_version_short')
@@ -286,6 +287,8 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                     else:
                         libpath = Path(f'python{vernum}.dll')
                 else:
+                    if limited_api:
+                        vernum = vernum[0]
                     libpath = Path('libs') / f'python{vernum}.lib'
                     # For a debug build, pyconfig.h may force linking with
                     # pythonX_d.lib (see meson#10776). This cannot be avoided
@@ -326,13 +329,15 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             return None
         return [str(lib)]
 
-    def find_libpy_windows(self, env: 'Environment') -> None:
+    def find_libpy_windows(self, env: 'Environment', limited_api: bool = False) -> None:
         '''
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
         '''
-        pyarch = self.get_windows_python_arch()
-        if pyarch is None:
+        try:
+            pyarch = self.get_windows_python_arch()
+        except DependencyException as e:
+            mlog.log(str(e))
             self.is_found = False
             return
         arch = detect_cpu_family(env.coredata.compilers.host)
@@ -341,7 +346,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
             self.is_found = False
             return
         # This can fail if the library is not found
-        largs = self.get_windows_link_args()
+        largs = self.get_windows_link_args(limited_api)
         if largs is None:
             self.is_found = False
             return
@@ -423,4 +428,10 @@ packages['pybind11'] = pybind11_factory = DependencyFactory(
     'pybind11',
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.CMAKE],
     configtool_class=Pybind11ConfigToolDependency,
+)
+
+packages['numpy'] = numpy_factory = DependencyFactory(
+    'numpy',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
+    configtool_class=NumPyConfigToolDependency,
 )

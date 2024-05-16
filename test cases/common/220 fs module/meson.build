@@ -1,10 +1,12 @@
-project('fs module test')
+project('fs module test', 'c')
 
 is_windows = build_machine.system() == 'windows'
 
 fs = import('fs')
 
 f = files('meson.build')
+btgt = executable('btgt', 'btgt.c')
+ctgt = fs.copyfile('ctgt.txt')
 
 assert(fs.exists('meson.build'), 'Existing file reported as missing.')
 assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
@@ -39,7 +41,9 @@ assert(fs.expanduser('~/foo').endswith('foo'), 'expanduser with tail failed')
 # -- as_posix
 assert(fs.as_posix('/') == '/', 'as_posix idempotent')
 assert(fs.as_posix('\\') == '/', 'as_posix simple')
-assert(fs.as_posix('\\\\') == '/', 'as_posix simple')
+# Python 3.12 changed how these paths are handled, so deal with both.
+drivepath = fs.as_posix('\\\\')
+assert(drivepath == '/' or drivepath == '//', 'as_posix simple')
 assert(fs.as_posix('foo\\bar/baz') == 'foo/bar/baz', 'as_posix mixed slash')
 
 # -- is_absolute
@@ -85,6 +89,13 @@ new_check = is_windows ? 'j:\\foo\\bar.ini' : '/foo/bar.ini'
 
 new = fs.replace_suffix(original, '.ini')
 assert(new == new_check, 'absolute path replace_suffix failed')
+
+new = fs.replace_suffix(btgt, '.ini')
+assert(new == 'btgt.ini', 'replace_suffix failed for build target')
+new = fs.replace_suffix(ctgt, '.ini')
+assert(new == 'ctgt.ini', 'replace_suffix failed for custom target')
+new = fs.replace_suffix(ctgt[0], '.ini')
+assert(new == 'ctgt.ini', 'replace_suffix failed for custom target index')
 
 # -- hash
 
@@ -133,11 +144,48 @@ assert(fs.parent(f[1]) == 'subdir/..', 'failed to get dirname')
 else
 assert(fs.parent(f[1]) == 'subdir\..', 'failed to get dirname')
 endif
+assert(fs.parent(btgt) == '.', 'failed to get dirname for build target')
+assert(fs.parent(ctgt) == '.', 'failed to get dirname for custom target')
+assert(fs.parent(ctgt[0]) == '.', 'failed to get dirname for custom target index')
+
 assert(fs.name('foo/bar') == 'bar', 'failed to get basename')
 assert(fs.name(f[1]) == 'meson.build', 'failed to get basename')
 assert(fs.name('foo/bar/baz.dll.a') == 'baz.dll.a', 'failed to get basename with compound suffix')
+if host_machine.system() in ['cygwin', 'windows']
+  assert(fs.name(btgt) == 'btgt.exe', 'failed to get basename of build target')
+else
+  assert(fs.name(btgt) == 'btgt', 'failed to get basename of build target')
+endif
+assert(fs.name(ctgt) == 'ctgt.txt', 'failed to get basename of custom target')
+assert(fs.name(ctgt[0]) == 'ctgt.txt', 'failed to get basename of custom target index')
 assert(fs.stem('foo/bar/baz.dll') == 'baz', 'failed to get stem with suffix')
 assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compound suffix')
+assert(fs.stem(btgt) == 'btgt', 'failed to get stem of build target')
+assert(fs.stem(ctgt) == 'ctgt', 'failed to get stem of custom target')
+assert(fs.stem(ctgt[0]) == 'ctgt', 'failed to get stem of custom target index')
+
+# relative_to
+if build_machine.system() == 'windows'
+  # strings
+  assert(fs.relative_to('c:\\prefix\\lib\\foo', 'c:\\prefix') == 'lib\\foo')
+  assert(fs.relative_to('c:\\prefix\\lib', 'c:\\prefix\\bin') == '..\\lib')
+  assert(fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar') == 'c:\\proj1\\foo')
+  assert(fs.relative_to('prefix\\lib\\foo', 'prefix') == 'lib\\foo')
+  assert(fs.relative_to('prefix\\lib', 'prefix\\bin') == '..\\lib')
+  assert(fs.relative_to('proj1\\foo', 'proj1\\bar') == '..\\foo')
+  assert(fs.relative_to('subdir/subdirfile.txt', meson.current_source_dir()) == 'subdir\\subdirfile.txt')
+  assert(fs.relative_to(files('meson.build'), files('subdir/meson.build')) == '..\\..\\meson.build')
+  assert(fs.relative_to(files('meson.build'), 'subdir/meson.build') == '..\\..\\meson.build')
+else
+  # strings
+  assert(fs.relative_to('/prefix/lib/foo', '/prefix') == 'lib/foo')
+  assert(fs.relative_to('/prefix/lib', '/prefix/bin') == '../lib')
+  assert(fs.relative_to('prefix/lib/foo', 'prefix') == 'lib/foo')
+  assert(fs.relative_to('prefix/lib', 'prefix/bin') == '../lib')
+  assert(fs.relative_to('subdir/subdirfile.txt', meson.current_source_dir()) == 'subdir/subdirfile.txt')
+  assert(fs.relative_to(files('meson.build'), files('subdir/meson.build')) == '../../meson.build')
+  assert(fs.relative_to(files('meson.build'), 'subdir/meson.build') == '../../meson.build')
+endif
 
 subdir('subdir')
 

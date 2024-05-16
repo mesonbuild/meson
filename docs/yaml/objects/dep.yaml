@@ -15,6 +15,9 @@ methods:
       Returns `'internal'` for dependencies created with
       [[declare_dependency]].
 
+      NOTE: This was not implemented for dep objects returned by
+      [[compiler.find_library]] until Meson 1.5.0
+
   - name: get_pkgconfig_variable
     since: 0.36.0
     deprecated: 0.56.0
@@ -37,6 +40,8 @@ methods:
           You can also redefine a
           variable by passing a list to this kwarg
           that can affect the retrieved variable: `['prefix', '/'])`.
+
+          *(Since 1.3.0)* Multiple variables can be specified in pairs.
 
       default:
         type: str
@@ -173,6 +178,12 @@ methods:
       was found. If `default_value` is set and the value cannot be gotten
       from the object then `default_value` is returned, if it is not set
       then an error is raised.
+
+    warnings:
+      - Before 1.3.0, specifying multiple pkgconfig_define pairs would silently
+        malform the results. Only the first variable would be redefined, but
+        its value would contain both the second variable name, as well as its
+        value.
 
     optargs:
       varname:

@@ -39,8 +39,9 @@ class CargoVersionTest(unittest.TestCase):
             ('0.0', ['< 1']),
             ('0', ['< 1']),
             ('0.0.5', ['>= 0.0.5', '< 0.0.6']),
-            ('0.5.0', ['>= 0.5', '< 0.6']),
+            ('0.5.0', ['>= 0.5.0', '< 0.6']),
             ('0.5', ['>= 0.5', '< 0.6']),
+            ('1.0.45', ['>= 1.0.45', '< 2']),
 
             # Caret (Which is the same as unqualified)
             ('^2', ['>= 2', '< 3']),
@@ -50,7 +51,7 @@ class CargoVersionTest(unittest.TestCase):
             ('^0.0', ['< 1']),
             ('^0', ['< 1']),
             ('^0.0.5', ['>= 0.0.5', '< 0.0.6']),
-            ('^0.5.0', ['>= 0.5', '< 0.6']),
+            ('^0.5.0', ['>= 0.5.0', '< 0.6']),
             ('^0.5', ['>= 0.5', '< 0.6']),
 
             # Multiple requirements
@@ -104,83 +105,83 @@ class CargoCfgTest(unittest.TestCase):
 
     def test_parse(self) -> None:
         cases = [
-            ('target_os = "windows"', cfg.Equal('', cfg.Identifier('', "target_os"), cfg.String('', "windows"))),
-            ('target_arch = "x86"', cfg.Equal('', cfg.Identifier('', "target_arch"), cfg.String('', "x86"))),
-            ('target_family = "unix"', cfg.Equal('', cfg.Identifier('', "target_family"), cfg.String('', "unix"))),
+            ('target_os = "windows"', cfg.Equal(cfg.Identifier("target_os"), cfg.String("windows"))),
+            ('target_arch = "x86"', cfg.Equal(cfg.Identifier("target_arch"), cfg.String("x86"))),
+            ('target_family = "unix"', cfg.Equal(cfg.Identifier("target_family"), cfg.String("unix"))),
             ('any(target_arch = "x86", target_arch = "x86_64")',
                 cfg.Any(
-                    '', [
-                        cfg.Equal('', cfg.Identifier('', "target_arch"), cfg.String('', "x86")),
-                        cfg.Equal('', cfg.Identifier('', "target_arch"), cfg.String('', "x86_64")),
+                    [
+                        cfg.Equal(cfg.Identifier("target_arch"), cfg.String("x86")),
+                        cfg.Equal(cfg.Identifier("target_arch"), cfg.String("x86_64")),
                     ])),
             ('all(target_arch = "x86", target_os = "linux")',
                 cfg.All(
-                    '', [
-                        cfg.Equal('', cfg.Identifier('', "target_arch"), cfg.String('', "x86")),
-                        cfg.Equal('', cfg.Identifier('', "target_os"), cfg.String('', "linux")),
+                    [
+                        cfg.Equal(cfg.Identifier("target_arch"), cfg.String("x86")),
+                        cfg.Equal(cfg.Identifier("target_os"), cfg.String("linux")),
                     ])),
             ('not(all(target_arch = "x86", target_os = "linux"))',
                 cfg.Not(
-                    '',
                     cfg.All(
-                        '', [
-                            cfg.Equal('', cfg.Identifier('', "target_arch"), cfg.String('', "x86")),
-                            cfg.Equal('', cfg.Identifier('', "target_os"), cfg.String('', "linux")),
+                        [
+                            cfg.Equal(cfg.Identifier("target_arch"), cfg.String("x86")),
+                            cfg.Equal(cfg.Identifier("target_os"), cfg.String("linux")),
                         ]))),
         ]
         for data, expected in cases:
             with self.subTest():
-                self.assertEqual(cfg.parse(iter(cfg.lexer(data)), ''), expected)
+                self.assertEqual(cfg.parse(iter(cfg.lexer(data))), expected)
 
     def test_ir_to_meson(self) -> None:
-        HOST_MACHINE = builder.identifier('host_machine', '')
+        build = builder.Builder('')
+        HOST_MACHINE = build.identifier('host_machine')
 
         cases = [
             ('target_os = "windows"',
-             builder.equal(builder.method('system', HOST_MACHINE),
-                           builder.string('windows', ''))),
+             build.equal(build.method('system', HOST_MACHINE),
+                         build.string('windows'))),
             ('target_arch = "x86"',
-             builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                           builder.string('x86', ''))),
+             build.equal(build.method('cpu_family', HOST_MACHINE),
+                         build.string('x86'))),
             ('target_family = "unix"',
-             builder.equal(builder.method('system', HOST_MACHINE),
-                           builder.string('unix', ''))),
+             build.equal(build.method('system', HOST_MACHINE),
+                         build.string('unix'))),
             ('not(target_arch = "x86")',
-             builder.not_(builder.equal(
-                builder.method('cpu_family', HOST_MACHINE),
-                builder.string('x86', '')), '')),
+             build.not_(build.equal(
+                build.method('cpu_family', HOST_MACHINE),
+                build.string('x86')))),
             ('any(target_arch = "x86", target_arch = "x86_64")',
-             builder.or_(
-                builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                              builder.string('x86', '')),
-                builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                              builder.string('x86_64', '')))),
+             build.or_(
+                build.equal(build.method('cpu_family', HOST_MACHINE),
+                            build.string('x86')),
+                build.equal(build.method('cpu_family', HOST_MACHINE),
+                            build.string('x86_64')))),
             ('any(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")',
-             builder.or_(
-                builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                              builder.string('x86', '')),
-                builder.or_(
-                    builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                                  builder.string('x86_64', '')),
-                    builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                                  builder.string('aarch64', ''))))),
+             build.or_(
+                build.equal(build.method('cpu_family', HOST_MACHINE),
+                            build.string('x86')),
+                build.or_(
+                    build.equal(build.method('cpu_family', HOST_MACHINE),
+                                build.string('x86_64')),
+                    build.equal(build.method('cpu_family', HOST_MACHINE),
+                                build.string('aarch64'))))),
             ('all(target_arch = "x86", target_arch = "x86_64")',
-             builder.and_(
-                builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                              builder.string('x86', '')),
-                builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                              builder.string('x86_64', '')))),
+             build.and_(
+                build.equal(build.method('cpu_family', HOST_MACHINE),
+                            build.string('x86')),
+                build.equal(build.method('cpu_family', HOST_MACHINE),
+                            build.string('x86_64')))),
             ('all(target_arch = "x86", target_arch = "x86_64", target_arch = "aarch64")',
-             builder.and_(
-                builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                              builder.string('x86', '')),
-                builder.and_(
-                    builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                                  builder.string('x86_64', '')),
-                    builder.equal(builder.method('cpu_family', HOST_MACHINE),
-                                  builder.string('aarch64', ''))))),
+             build.and_(
+                build.equal(build.method('cpu_family', HOST_MACHINE),
+                            build.string('x86')),
+                build.and_(
+                    build.equal(build.method('cpu_family', HOST_MACHINE),
+                                build.string('x86_64')),
+                    build.equal(build.method('cpu_family', HOST_MACHINE),
+                                build.string('aarch64'))))),
         ]
         for data, expected in cases:
             with self.subTest():
-                value = cfg.ir_to_meson(cfg.parse(iter(cfg.lexer(data)), ''))
+                value = cfg.ir_to_meson(cfg.parse(iter(cfg.lexer(data))), build)
                 self.assertEqual(value, expected)

@@ -85,7 +85,7 @@ if(LLVM_FOUND)
   elseif(NOT LLVM_MESON_DYLIB)
     # Use LLVMSupport to check if static targets exist
     set(static_tg FALSE)
-    is_static(LLVMSupport static_tg)
+    is_static(LLVMCore static_tg)
     if(static_tg)
       set(PACKAGE_FOUND TRUE)
     endif(static_tg)

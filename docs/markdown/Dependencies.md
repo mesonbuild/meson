@@ -266,11 +266,12 @@ DC="dmd" meson setup builddir
 
 ## Config tool
 
-[CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
-[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
-modules or additionally can be detected via a config tool
-(cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
-tools, and they can be found like other dependencies:
+[CUPS](#cups), [LLVM](#llvm), [ObjFW](#objfw), [pcap](#pcap),
+[WxWidgets](#wxwidgets), [libwmf](#libwmf), [GCrypt](#libgcrypt),
+[GPGME](#gpgme), and GnuStep either do not provide pkg-config modules or
+additionally can be detected via a config tool (cups-config, llvm-config,
+libgcrypt-config, etc). Meson has native support for these tools, and they can
+be found like other dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
@@ -278,6 +279,7 @@ cups_dep = dependency('cups', version : '>=1.4')
 llvm_dep = dependency('llvm', version : '>=4.0')
 libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
 gpgme_dep = dependency('gpgme', version: '>= 1.0')
+objfw_dep = dependency('objfw', version: '>= 1.0')
 ```
 
 *Since 0.55.0* Meson won't search $PATH any more for a config tool
@@ -634,9 +636,8 @@ language-specific, you must specify the requested language using the
  * `dependency('hdf5', language: 'cpp')` for the C++ HDF5 headers and libraries
  * `dependency('hdf5', language: 'fortran')` for the Fortran HDF5 headers and libraries
 
-Meson uses pkg-config to find HDF5. The standard low-level HDF5
-function and the `HL` high-level HDF5 functions are linked for each
-language.
+The standard low-level HDF5 function and the `HL` high-level HDF5
+functions are linked for each language.
 
 `method` may be `auto`, `config-tool` or `pkg-config`.
 
@@ -796,6 +797,36 @@ language-specific, you must specify the requested language using the
 
 Meson uses pkg-config to find NetCDF.
 
+## ObjFW
+
+*(added 1.5.0)*
+
+Meson has native support for ObjFW, including support for ObjFW packages.
+
+In order to use ObjFW, simply create the dependency:
+
+```meson
+objfw_dep = dependency('objfw')
+```
+
+In order to also use ObjFW packages, simply specify them as modules:
+
+```meson
+objfw_dep = dependency('objfw', modules: ['SomePackage'])
+```
+
+If you need a dependency with and without packages, e.g. because your tests
+want to use ObjFWTest, but you don't want to link your application against the
+tests, simply get two dependencies and use them as appropriate:
+
+```meson
+objfw_dep = dependency('objfw', modules: ['SomePackage'])
+objfwtest_dep = dependency('objfw', modules: ['ObjFWTest'])
+```
+
+Then use `objfw_dep` for your library and only `objfwtest_dep` (not both) for
+your tests.
+
 ## OpenMP
 
 *(added 0.46.0)*
@@ -810,6 +841,14 @@ The `language` keyword may used.
 *(added 0.62.0)*
 
 `method` may be `auto`, `pkg-config`, `system` or `cmake`.
+
+## NumPy
+
+*(added 1.4.0)*
+
+`method` may be `auto`, `pkg-config`, or `config-tool`.
+`dependency('numpy')` supports regular use of the NumPy C API.
+Use of `numpy.f2py` for binding Fortran code isn't yet supported.
 
 ## pcap
 
@@ -837,7 +876,7 @@ but dependency tries `pkg-config` first.
 
 `method` may be `auto`, `extraframework`, `pkg-config` or `sysconfig`
 
-## Qt4 & Qt5
+## Qt
 
 Meson has native Qt support. Its usage is best demonstrated with an
 example.

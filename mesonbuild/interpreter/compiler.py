@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
 import collections
@@ -15,10 +15,10 @@ from .. import coredata
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from ..compilers import SUFFIX_TO_LANG
+from ..compilers import SUFFIX_TO_LANG, RunResult
 from ..compilers.compilers import CompileCheckMode
 from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
-                               FeatureNew, disablerIfNotFound,
+                               FeatureNew, FeatureNewKwargs, disablerIfNotFound,
                                InterpreterException)
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
 from ..mesonlib import OptionKey
@@ -27,10 +27,11 @@ from .type_checking import REQUIRED_KW, in_set_validator, NoneType
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
-    from ..compilers import Compiler, RunResult
+    from ..compilers import Compiler
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from .kwargs import ExtractRequired, ExtractSearchDirs
-    from .interpreter.interpreter import SourceOutputs
+    from .interpreter import SourceOutputs
+    from ..mlog import TV_LoggableList
 
     from typing_extensions import TypedDict, Literal
 
@@ -44,20 +45,20 @@ if T.TYPE_CHECKING:
         args: T.List[str]
         dependencies: T.List[dependencies.Dependency]
 
-    class CompileKW(TypedDict):
+    class BaseCompileKW(TypedDict):
+        no_builtin_args: bool
+        include_directories: T.List[build.IncludeDirs]
+        args: T.List[str]
+
+    class CompileKW(BaseCompileKW, ExtractRequired):
 
         name: str
-        no_builtin_args: bool
-        include_directories: T.List[build.IncludeDirs]
-        args: T.List[str]
         dependencies: T.List[dependencies.Dependency]
+        werror: bool
 
-    class CommonKW(TypedDict):
+    class CommonKW(BaseCompileKW):
 
         prefix: str
-        no_builtin_args: bool
-        include_directories: T.List[build.IncludeDirs]
-        args: T.List[str]
         dependencies: T.List[dependencies.Dependency]
 
     class ComputeIntKW(CommonKW):
@@ -67,6 +68,12 @@ if T.TYPE_CHECKING:
         low: T.Optional[int]
 
     class HeaderKW(CommonKW, ExtractRequired):
+        pass
+
+    class HasKW(CommonKW, ExtractRequired):
+        pass
+
+    class HasArgumentKW(ExtractRequired):
         pass
 
     class FindLibraryKW(ExtractRequired, ExtractSearchDirs):
@@ -89,6 +96,7 @@ if T.TYPE_CHECKING:
         compile_args: T.List[str]
         include_directories: T.List[build.IncludeDirs]
         dependencies: T.List[dependencies.Dependency]
+        depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
 
 
 class _TestMode(enum.Enum):
@@ -141,6 +149,12 @@ _DEPENDENCIES_KW: KwargInfo[T.List['dependencies.Dependency']] = KwargInfo(
     listify=True,
     default=[],
 )
+_DEPENDS_KW: KwargInfo[T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = KwargInfo(
+    'depends',
+    ContainerTypeInfo(list, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)),
+    listify=True,
+    default=[],
+)
 _INCLUDE_DIRS_KW: KwargInfo[T.List[build.IncludeDirs]] = KwargInfo(
     'include_directories',
     ContainerTypeInfo(list, build.IncludeDirs),
@@ -156,15 +170,19 @@ _PREFIX_KW: KwargInfo[str] = KwargInfo(
 
 _NO_BUILTIN_ARGS_KW = KwargInfo('no_builtin_args', bool, default=False)
 _NAME_KW = KwargInfo('name', str, default='')
+_WERROR_KW = KwargInfo('werror', bool, default=False, since='1.3.0')
 
 # Many of the compiler methods take this kwarg signature exactly, this allows
 # simplifying the `typed_kwargs` calls
 _COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _PREFIX_KW, _NO_BUILTIN_ARGS_KW]
 
 # Common methods of compiles, links, runs, and similar
-_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW]
+_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW,
+                                    _WERROR_KW,
+                                    REQUIRED_KW.evolve(since='1.5.0', default=False)]
 
 _HEADER_KWS: T.List[KwargInfo] = [REQUIRED_KW.evolve(since='0.50.0', default=False), *_COMMON_KWS]
+_HAS_REQUIRED_KW = REQUIRED_KW.evolve(since='1.3.0', default=False)
 
 class CompilerHolder(ObjectHolder['Compiler']):
     preprocess_uid: T.Dict[str, itertools.count] = collections.defaultdict(itertools.count)
@@ -179,6 +197,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                              'compute_int': self.compute_int_method,
                              'sizeof': self.sizeof_method,
                              'get_define': self.get_define_method,
+                             'has_define': self.has_define_method,
                              'check_header': self.check_header_method,
                              'has_header': self.has_header_method,
                              'has_header_symbol': self.has_header_symbol_method,
@@ -243,20 +262,20 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def cmd_array_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
         return self.compiler.exelist
 
-    def _determine_args(self, nobuiltins: bool,
-                        incdirs: T.List[build.IncludeDirs],
-                        extra_args: T.List[str],
+    def _determine_args(self, kwargs: BaseCompileKW,
                         mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
-        for i in incdirs:
-            for idir in i.to_string_list(self.environment.get_source_dir()):
+        for i in kwargs['include_directories']:
+            for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
-        if not nobuiltins:
-            opts = self.environment.coredata.options
+        if not kwargs['no_builtin_args']:
+            opts = coredata.OptionsView(self.environment.coredata.options, self.subproject)
             args += self.compiler.get_option_compile_args(opts)
             if mode is CompileCheckMode.LINK:
                 args.extend(self.compiler.get_option_link_args(opts))
-        args.extend(extra_args)
+        if kwargs.get('werror', False):
+            args.extend(self.compiler.get_werror_args())
+        args.extend(kwargs['args'])
         return args
 
     def _determine_dependencies(self, deps: T.List['dependencies.Dependency'], compile_only: bool = False, endl: str = ':') -> T.Tuple[T.List['dependencies.Dependency'], str]:
@@ -284,16 +303,29 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_pos_args('compiler.run', (str, mesonlib.File))
     @typed_kwargs('compiler.run', *_COMPILES_KWS)
     def run_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> 'RunResult':
+        if self.compiler.language not in {'d', 'c', 'cpp', 'objc', 'objcpp', 'fortran'}:
+            FeatureNew.single_use(f'compiler.run for {self.compiler.get_display_language()} language',
+                                  '1.5.0', self.subproject, location=self.current_node)
         code = args[0]
+        testname = kwargs['name']
+
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            if testname:
+                mlog.log('Checking if', mlog.bold(testname, True), 'runs:', 'skipped: feature', mlog.bold(feature), 'disabled')
+            return RunResult(compiled=True, returncode=0, stdout='', stderr='', cached=False)
+
         if isinstance(code, mesonlib.File):
             self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
-        testname = kwargs['name']
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
         result = self.compiler.run(code, self.environment, extra_args=extra_args,
                                    dependencies=deps)
+        if required and result.returncode != 0:
+            raise InterpreterException(f'Could not run {testname if testname else "code"}')
+
         if testname:
             if not result.compiled:
                 h = mlog.red('DID NOT COMPILE')
@@ -325,17 +357,23 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.symbols_have_underscore_prefix(self.environment)
 
     @typed_pos_args('compiler.has_member', str, str)
-    @typed_kwargs('compiler.has_member', *_COMMON_KWS)
-    def has_member_method(self, args: T.Tuple[str, str], kwargs: 'CommonKW') -> bool:
+    @typed_kwargs('compiler.has_member', _HAS_REQUIRED_KW, *_COMMON_KWS)
+    def has_member_method(self, args: T.Tuple[str, str], kwargs: 'HasKW') -> bool:
         typename, membername = args
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Type', mlog.bold(typename, True), 'has member', mlog.bold(membername, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_members(typename, [membername], kwargs['prefix'],
                                                 self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
-        if had:
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} member {membername!r} of type {typename!r} not usable')
+        elif had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
@@ -344,36 +382,49 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return had
 
     @typed_pos_args('compiler.has_members', str, varargs=str, min_varargs=1)
-    @typed_kwargs('compiler.has_members', *_COMMON_KWS)
-    def has_members_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'CommonKW') -> bool:
+    @typed_kwargs('compiler.has_members', _HAS_REQUIRED_KW, *_COMMON_KWS)
+    def has_members_method(self, args: T.Tuple[str, T.List[str]], kwargs: 'HasKW') -> bool:
         typename, membernames = args
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        members = mlog.bold(', '.join([f'"{m}"' for m in membernames]))
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Type', mlog.bold(typename, True), 'has members', members, 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_members(typename, membernames, kwargs['prefix'],
                                                 self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
-        if had:
+        if required and not had:
+            # print members as array: ['member1', 'member2']
+            raise InterpreterException(f'{self.compiler.get_display_language()} members {membernames!r} of type {typename!r} not usable')
+        elif had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
-        members = mlog.bold(', '.join([f'"{m}"' for m in membernames]))
         mlog.log('Checking whether type', mlog.bold(typename, True),
                  'has members', members, msg, hadtxt, cached_msg)
         return had
 
     @typed_pos_args('compiler.has_function', str)
-    @typed_kwargs('compiler.has_function', *_COMMON_KWS)
-    def has_function_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
+    @typed_kwargs('compiler.has_function', _HAS_REQUIRED_KW, *_COMMON_KWS)
+    def has_function_method(self, args: T.Tuple[str], kwargs: 'HasKW') -> bool:
         funcname = args[0]
-        extra_args = self._determine_args(kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Has function', mlog.bold(funcname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        extra_args = self._determine_args(kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
         had, cached = self.compiler.has_function(funcname, kwargs['prefix'], self.environment,
                                                  extra_args=extra_args,
                                                  dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
-        if had:
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} function {funcname!r} not usable')
+        elif had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
@@ -381,15 +432,21 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return had
 
     @typed_pos_args('compiler.has_type', str)
-    @typed_kwargs('compiler.has_type', *_COMMON_KWS)
-    def has_type_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
+    @typed_kwargs('compiler.has_type', _HAS_REQUIRED_KW, *_COMMON_KWS)
+    def has_type_method(self, args: T.Tuple[str], kwargs: 'HasKW') -> bool:
         typename = args[0]
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Has type', mlog.bold(typename, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         had, cached = self.compiler.has_type(typename, kwargs['prefix'], self.environment,
                                              extra_args=extra_args, dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
-        if had:
+        if required and not had:
+            raise InterpreterException(f'{self.compiler.get_display_language()} type {typename!r} not usable')
+        elif had:
             hadtxt = mlog.green('YES')
         else:
             hadtxt = mlog.red('NO')
@@ -407,7 +464,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     )
     def compute_int_method(self, args: T.Tuple[str], kwargs: 'ComputeIntKW') -> int:
         expression = args[0]
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
         res = self.compiler.compute_int(expression, kwargs['low'], kwargs['high'],
                                         kwargs['guess'], kwargs['prefix'],
@@ -420,7 +477,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs('compiler.sizeof', *_COMMON_KWS)
     def sizeof_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> int:
         element = args[0]
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=self.compiler.is_cross)
         esize, cached = self.compiler.sizeof(element, kwargs['prefix'], self.environment,
                                              extra_args=extra_args, dependencies=deps)
@@ -434,19 +491,44 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs('compiler.get_define', *_COMMON_KWS)
     def get_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> str:
         element = args[0]
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         value, cached = self.compiler.get_define(element, kwargs['prefix'], self.environment,
                                                  extra_args=extra_args,
                                                  dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
-        mlog.log('Fetching value of define', mlog.bold(element, True), msg, value, cached_msg)
-        return value
+        value_msg = '(undefined)' if value is None else value
+        mlog.log('Fetching value of define', mlog.bold(element, True), msg, value_msg, cached_msg)
+        return value if value is not None else ''
+
+    @FeatureNew('compiler.has_define', '1.3.0')
+    @typed_pos_args('compiler.has_define', str)
+    @typed_kwargs('compiler.has_define', *_COMMON_KWS)
+    def has_define_method(self, args: T.Tuple[str], kwargs: 'CommonKW') -> bool:
+        define_name = args[0]
+        extra_args = functools.partial(self._determine_args, kwargs)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
+        value, cached = self.compiler.get_define(define_name, kwargs['prefix'], self.environment,
+                                                 extra_args=extra_args,
+                                                 dependencies=deps)
+        cached_msg = mlog.blue('(cached)') if cached else ''
+        h = mlog.green('YES') if value is not None else mlog.red('NO')
+        mlog.log('Checking if define', mlog.bold(define_name, True), msg, 'exists:', h, cached_msg)
+
+        return value is not None
 
     @typed_pos_args('compiler.compiles', (str, mesonlib.File))
     @typed_kwargs('compiler.compiles', *_COMPILES_KWS)
     def compiles_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
+        testname = kwargs['name']
+
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            if testname:
+                mlog.log('Checking if', mlog.bold(testname, True), 'compiles:', 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+
         if isinstance(code, mesonlib.File):
             if code.is_built:
                 FeatureNew.single_use('compiler.compiles with file created at setup time', '1.2.0', self.subproject,
@@ -454,12 +536,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
             self.interpreter.add_build_def_file(code)
             code = mesonlib.File.from_absolute_file(
                 code.absolute_path(self.environment.source_dir, self.environment.build_dir))
-        testname = kwargs['name']
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
         result, cached = self.compiler.compiles(code, self.environment,
                                                 extra_args=extra_args,
                                                 dependencies=deps)
+        if required and not result:
+            raise InterpreterException(f'Could not compile {testname}')
+
         if testname:
             if result:
                 h = mlog.green('YES')
@@ -473,6 +557,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_kwargs('compiler.links', *_COMPILES_KWS)
     def links_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs: 'CompileKW') -> bool:
         code = args[0]
+        testname = kwargs['name']
+
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            if testname:
+                mlog.log('Checking if', mlog.bold(testname, True), 'links:', 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+
         compiler = None
         if isinstance(code, mesonlib.File):
             if code.is_built:
@@ -493,19 +585,21 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 else:
                     compiler = clist[SUFFIX_TO_LANG[suffix]]
 
-        testname = kwargs['name']
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
         result, cached = self.compiler.links(code, self.environment,
                                              compiler=compiler,
                                              extra_args=extra_args,
                                              dependencies=deps)
-        cached_msg = mlog.blue('(cached)') if cached else ''
+        if required and not result:
+            raise InterpreterException(f'Could not link {testname if testname else "code"}')
+
         if testname:
             if result:
                 h = mlog.green('YES')
             else:
                 h = mlog.red('NO')
+            cached_msg = mlog.blue('(cached)') if cached else ''
             mlog.log('Checking if', mlog.bold(testname, True), msg, 'links:', h, cached_msg)
         return result
 
@@ -518,7 +612,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Check usable header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         haz, cached = self.compiler.check_header(hname, kwargs['prefix'], self.environment,
                                                  extra_args=extra_args,
@@ -538,7 +632,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         haz, cached = self.compiler.has_header(hname, kwargs['prefix'], self.environment,
                                                extra_args=extra_args, dependencies=deps)
@@ -565,7 +659,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         if disabled:
             mlog.log('Header', mlog.bold(hname, True), 'has symbol', mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        extra_args = functools.partial(self._determine_args, kwargs['no_builtin_args'], kwargs['include_directories'], kwargs['args'])
+        extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'])
         haz, cached = self.compiler.has_header_symbol(hname, symbol, kwargs['prefix'], self.environment,
                                                       extra_args=extra_args,
@@ -646,33 +740,46 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return lib
 
     def _has_argument_impl(self, arguments: T.Union[str, T.List[str]],
-                           mode: _TestMode = _TestMode.COMPILER) -> bool:
+                           mode: _TestMode = _TestMode.COMPILER,
+                           kwargs: T.Optional['ExtractRequired'] = None) -> bool:
         """Shared implementation for methods checking compiler and linker arguments."""
         # This simplifies the callers
         if isinstance(arguments, str):
             arguments = [arguments]
-        test = self.compiler.has_multi_link_arguments if mode is _TestMode.LINKER else self.compiler.has_multi_arguments
-        result, cached = test(arguments, self.environment)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        mlog.log(
+        logargs: TV_LoggableList = [
             'Compiler for',
             self.compiler.get_display_language(),
             'supports{}'.format(' link' if mode is _TestMode.LINKER else ''),
             'arguments {}:'.format(' '.join(arguments)),
+        ]
+        kwargs = kwargs or {'required': False}
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            logargs += ['skipped: feature', mlog.bold(feature), 'disabled']
+            mlog.log(*logargs)
+            return False
+        test = self.compiler.has_multi_link_arguments if mode is _TestMode.LINKER else self.compiler.has_multi_arguments
+        result, cached = test(arguments, self.environment)
+        if required and not result:
+            logargs += ['not usable']
+            raise InterpreterException(*logargs)
+        logargs += [
             mlog.green('YES') if result else mlog.red('NO'),
-            cached_msg)
+            mlog.blue('(cached)') if cached else '',
+        ]
+        mlog.log(*logargs)
         return result
 
-    @noKwargs
     @typed_pos_args('compiler.has_argument', str)
-    def has_argument_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_argument_impl([args[0]])
+    @typed_kwargs('compiler.has_argument', _HAS_REQUIRED_KW)
+    def has_argument_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
+        return self._has_argument_impl([args[0]], kwargs=kwargs)
 
-    @noKwargs
     @typed_pos_args('compiler.has_multi_arguments', varargs=str)
+    @typed_kwargs('compiler.has_multi_arguments', _HAS_REQUIRED_KW)
     @FeatureNew('compiler.has_multi_arguments', '0.37.0')
-    def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_argument_impl(args[0])
+    def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'HasArgumentKW') -> bool:
+        return self._has_argument_impl(args[0], kwargs=kwargs)
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @typed_pos_args('compiler.get_supported_arguments', varargs=str)
@@ -707,16 +814,16 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return []
 
     @FeatureNew('compiler.has_link_argument', '0.46.0')
-    @noKwargs
     @typed_pos_args('compiler.has_link_argument', str)
-    def has_link_argument_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_argument_impl([args[0]], mode=_TestMode.LINKER)
+    @typed_kwargs('compiler.has_link_argument', _HAS_REQUIRED_KW)
+    def has_link_argument_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
+        return self._has_argument_impl([args[0]], mode=_TestMode.LINKER, kwargs=kwargs)
 
     @FeatureNew('compiler.has_multi_link_argument', '0.46.0')
-    @noKwargs
     @typed_pos_args('compiler.has_multi_link_argument', varargs=str)
-    def has_multi_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_argument_impl(args[0], mode=_TestMode.LINKER)
+    @typed_kwargs('compiler.has_multi_link_argument', _HAS_REQUIRED_KW)
+    def has_multi_link_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: 'HasArgumentKW') -> bool:
+        return self._has_argument_impl(args[0], mode=_TestMode.LINKER, kwargs=kwargs)
 
     @FeatureNew('compiler.get_supported_link_arguments', '0.46.0')
     @noKwargs
@@ -739,19 +846,33 @@ class CompilerHolder(ObjectHolder['Compiler']):
         mlog.log('First supported link argument:', mlog.red('None'))
         return []
 
-    def _has_function_attribute_impl(self, attr: str) -> bool:
+    def _has_function_attribute_impl(self, attr: str, kwargs: T.Optional['ExtractRequired'] = None) -> bool:
         """Common helper for function attribute testing."""
-        result, cached = self.compiler.has_func_attribute(attr, self.environment)
-        cached_msg = mlog.blue('(cached)') if cached else ''
-        h = mlog.green('YES') if result else mlog.red('NO')
-        mlog.log(f'Compiler for {self.compiler.get_display_language()} supports function attribute {attr}:', h, cached_msg)
-        return result
+        logargs: TV_LoggableList = [
+            f'Compiler for {self.compiler.get_display_language()} supports function attribute {attr}:',
+        ]
+        kwargs = kwargs or {'required': False}
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            logargs += ['skipped: feature', mlog.bold(feature), 'disabled']
+            mlog.log(*logargs)
+            return False
+        had, cached = self.compiler.has_func_attribute(attr, self.environment)
+        if required and not had:
+            logargs += ['not usable']
+            raise InterpreterException(*logargs)
+        logargs += [
+            mlog.green('YES') if had else mlog.red('NO'),
+            mlog.blue('(cached)') if cached else ''
+        ]
+        mlog.log(*logargs)
+        return had
 
     @FeatureNew('compiler.has_function_attribute', '0.48.0')
-    @noKwargs
     @typed_pos_args('compiler.has_function_attribute', str)
-    def has_func_attribute_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
-        return self._has_function_attribute_impl(args[0])
+    @typed_kwargs('compiler.has_function_attribute', _HAS_REQUIRED_KW)
+    def has_func_attribute_method(self, args: T.Tuple[str], kwargs: 'HasArgumentKW') -> bool:
+        return self._has_function_attribute_impl(args[0], kwargs)
 
     @FeatureNew('compiler.get_supported_function_attributes', '0.48.0')
     @noKwargs
@@ -766,6 +887,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         return self.compiler.get_argument_syntax()
 
     @FeatureNew('compiler.preprocess', '0.64.0')
+    @FeatureNewKwargs('compiler.preprocess', '1.3.2', ['compile_args'], extra_message='compile_args were ignored before this version')
     @typed_pos_args('compiler.preprocess', varargs=(str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), min_varargs=1)
     @typed_kwargs(
         'compiler.preprocess',
@@ -773,10 +895,12 @@ class CompilerHolder(ObjectHolder['Compiler']):
         KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         _INCLUDE_DIRS_KW,
         _DEPENDENCIES_KW.evolve(since='1.1.0'),
+        _DEPENDS_KW.evolve(since='1.4.0'),
     )
     def preprocess_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs: 'PreprocessKW') -> T.List[build.CustomTargetIndex]:
         compiler = self.compiler.get_preprocessor()
-        sources: 'SourceOutputs' = self.interpreter.source_strings_to_files(args[0])
+        _sources: T.List[mesonlib.File] = self.interpreter.source_strings_to_files(args[0])
+        sources = T.cast('T.List[SourceOutputs]', _sources)
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in sources):
             FeatureNew.single_use('compiler.preprocess with generated sources', '1.1.0', self.subproject,
                                   location=self.current_node)
@@ -797,7 +921,8 @@ class CompilerHolder(ObjectHolder['Compiler']):
             self.interpreter.backend,
             kwargs['compile_args'],
             kwargs['include_directories'],
-            kwargs['dependencies'])
+            kwargs['dependencies'],
+            kwargs['depends'])
         self.interpreter.add_target(tg.name, tg)
         # Expose this target as list of its outputs, so user can pass them to
         # other targets, list outputs, etc.

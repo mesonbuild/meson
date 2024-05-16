@@ -87,6 +87,11 @@ previously reserved to `wrap-file`:
   `subprojects/packagefiles`.
 - `diff_files` - *Since 0.63.0* Comma-separated list of local diff files (see
   [Diff files](#diff-files) below).
+- `method` - *Since 1.3.0* The build system used by this subproject. Defaults to `meson`.
+  Supported methods:
+  - `meson` requires `meson.build` file.
+  - `cmake` requires `CMakeLists.txt` file. [See details](#cmake-wraps).
+  - `cargo` requires `Cargo.toml` file. [See details](#cargo-wraps).
 
 ### Specific to wrap-file
 - `source_url` - download url to retrieve the wrap-file source archive
@@ -108,6 +113,12 @@ Since *0.49.0* if `source_filename` or `patch_filename` is found in the
 project's `subprojects/packagecache` directory, it will be used instead
 of downloading the file, even if `--wrap-mode` option is set to
 `nodownload`. The file's hash will be checked.
+
+Since *1.3.0* if the `MESON_PACKAGE_CACHE_DIR` environment variable is set, it is used instead of
+the project's `subprojects/packagecache`. This allows sharing the cache across multiple
+projects. In addition it can contain an already extracted source tree as long as it
+has the same directory name as the `directory` field in the wrap file. In that
+case, the directory will be copied into `subprojects/` before applying patches.
 
 ### Specific to VCS-based wraps
 - `url` - name of the wrap-git repository to clone. Required.
@@ -283,6 +294,88 @@ program_names = myprog, otherprog
 With such wrap file, `find_program('myprog')` will automatically
 fallback to use the subproject, assuming it uses
 `meson.override_find_program('myprog')`.
+
+### CMake wraps
+
+Since the CMake module does not know the public name of the provided
+dependencies, a CMake `.wrap` file cannot use the `dependency_names = foo`
+syntax. Instead, the `dep_name = <target_name>_dep` syntax should be used, where
+`<target_name>` is the name of a CMake library with all non alphanumeric
+characters replaced by underscores `_`.
+
+For example, a CMake project that contains `add_library(foo-bar ...)` in its
+`CMakeList.txt` and that applications would usually find using the dependency
+name `foo-bar-1.0` (e.g. via pkg-config) would have a wrap file like this:
+
+```ini
+[wrap-file]
+...
+method = cmake
+[provide]
+foo-bar-1.0 = foo_bar_dep
+```
+### Cargo wraps
+
+Cargo subprojects automatically override the `<package_name>-<version>-rs` dependency
+name:
+- `package_name` is defined in `[package] name = ...` section of the `Cargo.toml`.
+- `version` is the API version deduced from `[package] version = ...` as follow:
+  * `x.y.z` -> 'x'
+  * `0.x.y` -> '0.x'
+  * `0.0.x` -> '0'
+  It allows to make different dependencies for uncompatible versions of the same
+  crate.
+- `-rs` suffix is added to distinguish from regular system dependencies, for
+  example `gstreamer-1.0` is a system pkg-config dependency and `gstreamer-0.22-rs`
+  is a Cargo dependency.
+
+That means the `.wrap` file should have `dependency_names = foo-1-rs` in their
+`[provide]` section when `Cargo.toml` has package name `foo` and version `1.2`.
+
+Note that the version component was added in Meson 1.4, previous versions were
+using `<package_name>-rs` format.
+
+Cargo subprojects require a toml parser. Python >= 3.11 have one built-in, older
+Python versions require either the external `tomli` module or `toml2json` program.
+
+For example, a Cargo project with the package name `foo-bar` would have a wrap
+file like that:
+```ini
+[wrap-file]
+...
+method = cargo
+[provide]
+dependency_names = foo-bar-0.1-rs
+```
+
+Cargo features are exposed as Meson boolean options, with the `feature-` prefix.
+For example the `default` feature is named `feature-default` and can be set from
+the command line with `-Dfoo-1-rs:feature-default=false`. When a cargo subproject
+depends on another cargo subproject, it will automatically enable features it
+needs using the `dependency('foo-1-rs', default_options: ...)` mechanism. However,
+unlike Cargo, the set of enabled features is not managed globally. Let's assume
+the main project depends on `foo-1-rs` and `bar-1-rs`, and they both depend on
+`common-1-rs`. The main project will first look up `foo-1-rs` which itself will
+configure `common-rs` with a set of features. Later, when `bar-1-rs` does a lookup
+for `common-1-rs` it has already been configured and the set of features cannot be
+changed. If `bar-1-rs` wants extra features from `common-1-rs`, Meson will error out.
+It is currently the responsability of the main project to resolve those
+issues by enabling extra features on each subproject:
+```meson
+project(...,
+  default_options: {
+    'common-1-rs:feature-something': true,
+  },
+)
+```
+
+In addition, if the file `meson/meson.build` exists, Meson will call `subdir('meson')`
+where the project can add manual logic that would usually be part of `build.rs`.
+Some naming conventions need to be respected:
+- The `extra_args` variable is pre-defined and can be used to add any Rust arguments.
+  This is typically used as `extra_args += ['--cfg', 'foo']`.
+- The `extra_deps` variable is pre-defined and can be used to add extra dependencies.
+  This is typically used as `extra_deps += dependency('foo')`.
 
 ## Using wrapped projects
 

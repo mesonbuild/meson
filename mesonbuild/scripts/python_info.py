@@ -82,6 +82,8 @@ variables = sysconfig.get_config_vars()
 variables.update({'base_prefix': getattr(sys, 'base_prefix', sys.prefix)})
 is_pypy = '__pypy__' in sys.builtin_module_names
 
+is_pypy = '__pypy__' in sys.builtin_module_names
+
 if sys.version_info < (3, 0):
     suffix = variables.get('SO')
 elif sys.version_info < (3, 8, 7):
@@ -90,6 +92,20 @@ elif sys.version_info < (3, 8, 7):
     suffix = get_config_var('EXT_SUFFIX')
 else:
     suffix = variables.get('EXT_SUFFIX')
+
+limited_api_suffix = None
+if sys.version_info >= (3, 2):
+    try:
+        from importlib.machinery import EXTENSION_SUFFIXES
+        limited_api_suffix = EXTENSION_SUFFIXES[1]
+    except Exception:
+        pass
+
+# pypy supports modules targetting the limited api but
+# does not use a special suffix to distinguish them:
+# https://doc.pypy.org/en/latest/cpython_differences.html#permitted-abi-tags-in-extensions
+if is_pypy:
+    limited_api_suffix = suffix
 
 print(json.dumps({
   'variables': variables,
@@ -102,4 +118,5 @@ print(json.dumps({
   'is_venv': sys.prefix != variables['base_prefix'],
   'link_libpython': links_against_libpython(),
   'suffix': suffix,
+  'limited_api_suffix': limited_api_suffix,
 }))

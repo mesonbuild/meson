@@ -27,11 +27,25 @@ methods:
   description: |
     Returns the feature, with `'auto'` converted to `'disabled'` if value is true.
 
-    | Feature / Condition | `value = true` | `value = false` |
-    | ------------------- | -------------- | --------------- |
-    | Enabled             | Enabled        | Enabled         |
-    | Disabled            | Disabled       | Disabled        |
-    | Auto                | Disabled       | Auto            |
+    | Feature  | `value = true` | `value = false` |
+    | -------- | -------------- | --------------- |
+    | Auto     | Disabled       | Auto            |
+    | Enabled  | Enabled        | Enabled         |
+    | Disabled | Disabled       | Disabled        |
+
+  example: |
+    `disable_auto_if` is useful to give precedence to mutually exclusive dependencies
+    (that provide the same API) if either or both are available:
+
+    ```
+    # '-Dfoo=auto -Dbar=enabled' will not pick foo even if installed.
+    use_bar = get_option('bar')
+    use_foo = get_option('foo').disable_auto_if(use_bar.enabled())
+    dep_foo = dependency('foo', required: use_foo)
+    if not dep_foo.found()
+      dep_foo = dependency('bar', required: use_bar)
+    endif
+    ```
 
   posargs:
     value:
@@ -44,11 +58,11 @@ methods:
   description: |
     Returns the feature, with `'auto'` converted to `'enabled'` if value is true.
 
-    | Feature / Condition | `value = true` | `value = false` |
-    | ------------------- | -------------- | --------------- |
-    | Enabled             | Enabled        | Enabled         |
-    | Disabled            | Disabled       | Disabled        |
-    | Auto                | Enabled        | Auto            |
+    | Feature  | `value = true` | `value = false` |
+    | -------- | -------------- | --------------- |
+    | Auto     | Enabled        | Auto            |
+    | Enabled  | Enabled        | Enabled         |
+    | Disabled | Disabled       | Disabled        |
 
   posargs:
     value:
@@ -62,6 +76,12 @@ methods:
     Returns the object itself if the value is true; an error if the object is
     `'enabled'` and the value is false; a disabled feature if the object
     is `'auto'` or `'disabled'` and the value is false.
+
+    | Feature  | `value = true` | `value = false` |
+    | -------- | -------------- | --------------- |
+    | Auto     | Auto           | Disabled        |
+    | Enabled  | Enabled        | Error           |
+    | Disabled | Disabled       | Disabled        |
 
   example: |
     `require` is useful to restrict the applicability of `'auto'` features,
@@ -84,7 +104,7 @@ methods:
     error_message:
       type: str
       default: "''"
-      description: The error Message to print if the check fails
+      description: The error message to print if the check fails
 
 - name: enable_if
   returns: feature
@@ -93,6 +113,12 @@ methods:
     Returns the object itself if the value is false; an error if the object is
     `'disabled'` and the value is true; an enabled feature if the object
     is `'auto'` or `'enabled'` and the value is true.
+
+    | Feature  | `value = true` | `value = false` |
+    | -------- | -------------- | --------------- |
+    | Auto     | Enabled        | Auto            |
+    | Enabled  | Enabled        | Enabled         |
+    | Disabled | Error          | Disabled        |
 
   example: |
     `enable_if` is useful to restrict the applicability of `'auto'` features,
@@ -112,7 +138,7 @@ methods:
     error_message:
       type: str
       default: "''"
-      description: The error Message to print if the check fails
+      description: The error message to print if the check fails
 
 - name: disable_if
   returns: feature
@@ -121,6 +147,12 @@ methods:
     Returns the object itself if the value is false; an error if the object is
     `'enabled'` and the value is true; a disabled feature if the object
     is `'auto'` or `'disabled'` and the value is true.
+
+    | Feature  | `value = true` | `value = false` |
+    | -------- | -------------- | --------------- |
+    | Auto     | Disabled       | Auto            |
+    | Enabled  | Error          | Enabled         |
+    | Disabled | Disabled       | Disabled        |
 
     This is equivalent to `feature_opt.require(not condition)`, but may make
     code easier to reason about, especially when mixed with `enable_if`
@@ -144,4 +176,4 @@ methods:
     error_message:
       type: str
       default: "''"
-      description: The error Message to print if the check fails
+      description: The error message to print if the check fails

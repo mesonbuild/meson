@@ -127,7 +127,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         func_kwargs.setdefault('version', [])
         if 'default_options' in kwargs and isinstance(kwargs['default_options'], str):
             func_kwargs['default_options'] = listify(kwargs['default_options'])
-        self.interpreter.do_subproject(subp_name, 'meson', func_kwargs)
+        self.interpreter.do_subproject(subp_name, func_kwargs)
         return self._get_subproject_dep(subp_name, varname, kwargs)
 
     def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectHolder]:

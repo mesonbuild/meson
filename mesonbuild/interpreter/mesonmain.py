@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
+import copy
 import os
 import typing as T
 
@@ -21,13 +22,12 @@ from .primitives import MesonVersionString
 from .type_checking import NATIVE_KW, NoneType
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
-    from ..backend.backends import ExecutableSerialisation
+    from typing_extensions import Literal, TypedDict
+
     from ..compilers import Compiler
     from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
-
-    from typing_extensions import TypedDict
 
     class FuncOverrideDependency(TypedDict):
 
@@ -189,6 +189,7 @@ class MesonMain(MesonInterpreterObject):
         varargs=(str, mesonlib.File, ExternalProgram)
     )
     @noKwargs
+    @FeatureNew('meson.add_dist_script', '0.48.0')
     def add_dist_script_method(
             self,
             args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
@@ -347,6 +348,16 @@ class MesonMain(MesonInterpreterObject):
         if not name:
             raise InterpreterException('First argument must be a string and cannot be empty')
 
+        # Make a copy since we're going to mutate.
+        #
+        #   dep = declare_dependency()
+        #   meson.override_dependency('foo', dep)
+        #   meson.override_dependency('foo-1.0', dep)
+        #   dep = dependency('foo')
+        #   dep.name() # == 'foo-1.0'
+        dep = copy.copy(dep)
+        dep.name = name
+
         optkey = OptionKey('default_library', subproject=self.interpreter.subproject)
         default_library = self.interpreter.coredata.get_option(optkey)
         assert isinstance(default_library, str), 'for mypy'
@@ -456,15 +467,15 @@ class MesonMain(MesonInterpreterObject):
 
     @FeatureNew('add_devenv', '0.58.0')
     @typed_kwargs('environment', ENV_METHOD_KW, ENV_SEPARATOR_KW.evolve(since='0.62.0'))
-    @typed_pos_args('add_devenv', (str, list, dict, build.EnvironmentVariables))
-    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, build.EnvironmentVariables]],
+    @typed_pos_args('add_devenv', (str, list, dict, mesonlib.EnvironmentVariables))
+    def add_devenv_method(self, args: T.Tuple[T.Union[str, list, dict, mesonlib.EnvironmentVariables]],
                           kwargs: 'AddDevenvKW') -> None:
         env = args[0]
         msg = ENV_KW.validator(env)
         if msg:
             raise build.InvalidArguments(f'"add_devenv": {msg}')
         converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
-        assert isinstance(converted, build.EnvironmentVariables)
+        assert isinstance(converted, mesonlib.EnvironmentVariables)
         self.build.devenv.append(converted)
 
     @noPosargs

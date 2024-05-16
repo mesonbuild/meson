@@ -1,33 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool
 from __future__ import annotations
 
 from .. import mparser
-from .visitor import AstVisitor
+from .visitor import AstVisitor, FullAstVisitor
+
 import re
 import typing as T
 
-arithmic_map = {
-    'add': '+',
-    'sub': '-',
-    'mod': '%',
-    'mul': '*',
-    'div': '/'
-}
 
 class AstPrinter(AstVisitor):
     def __init__(self, indent: int = 2, arg_newline_cutoff: int = 5, update_ast_line_nos: bool = False):
@@ -74,17 +57,17 @@ class AstPrinter(AstVisitor):
         node.lineno = self.curr_line or node.lineno
 
     def escape(self, val: str) -> str:
-        return val.translate(str.maketrans({'\'': '\\\'',
-                                            '\\': '\\\\'}))
+        return val.replace('\\', '\\\\').replace("'", "\'")
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         assert isinstance(node.value, str)
-        self.append("'" + self.escape(node.value) + "'", node)
-        node.lineno = self.curr_line or node.lineno
 
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
-        assert isinstance(node.value, str)
-        self.append("f'" + node.value + "'", node)
+        if node.is_fstring:
+            self.append('f', node)
+        if node.is_multiline:
+            self.append("'''" + node.value + "'''", node)
+        else:
+            self.append("'" + self.escape(node.value) + "'", node)
         node.lineno = self.curr_line or node.lineno
 
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
@@ -121,13 +104,13 @@ class AstPrinter(AstVisitor):
 
     def visit_ComparisonNode(self, node: mparser.ComparisonNode) -> None:
         node.left.accept(self)
-        self.append_padded(node.ctype, node)
+        self.append_padded(node.ctype if node.ctype != 'notin' else 'not in', node)
         node.lineno = self.curr_line or node.lineno
         node.right.accept(self)
 
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
         node.left.accept(self)
-        self.append_padded(arithmic_map[node.operation], node)
+        self.append_padded(node.operator.value, node)
         node.lineno = self.curr_line or node.lineno
         node.right.accept(self)
 
@@ -152,30 +135,30 @@ class AstPrinter(AstVisitor):
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
         node.lineno = self.curr_line or node.lineno
         node.source_object.accept(self)
-        self.append('.' + node.name + '(', node)
+        self.append('.' + node.name.value + '(', node)
         node.args.accept(self)
         self.append(')', node)
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         node.lineno = self.curr_line or node.lineno
-        self.append(node.func_name + '(', node)
+        self.append(node.func_name.value + '(', node)
         node.args.accept(self)
         self.append(')', node)
 
     def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
         node.lineno = self.curr_line or node.lineno
-        self.append(node.var_name + ' = ', node)
+        self.append(node.var_name.value + ' = ', node)
         node.value.accept(self)
 
     def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
         node.lineno = self.curr_line or node.lineno
-        self.append(node.var_name + ' += ', node)
+        self.append(node.var_name.value + ' += ', node)
         node.value.accept(self)
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
         node.lineno = self.curr_line or node.lineno
         self.append_padded('foreach', node)
-        self.append_padded(', '.join(node.varnames), node)
+        self.append_padded(', '.join(varname.value for varname in node.varnames), node)
         self.append_padded(':', node)
         node.items.accept(self)
         self.newline()
@@ -191,6 +174,7 @@ class AstPrinter(AstVisitor):
             i.accept(self)
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.append('else', node)
+            self.newline()
             node.elseblock.accept(self)
         self.append('endif', node)
 
@@ -238,14 +222,60 @@ class AstPrinter(AstVisitor):
         else:
             self.result = re.sub(r', $', '', self.result)
 
+class RawPrinter(FullAstVisitor):
+
+    def __init__(self) -> None:
+        self.result = ''
+
+    def visit_default_func(self, node: mparser.BaseNode) -> None:
+        self.enter_node(node)
+        assert hasattr(node, 'value')
+        self.result += node.value
+        self.exit_node(node)
+
+    def visit_EmptyNode(self, node: mparser.EmptyNode) -> None:
+        self.enter_node(node)
+        self.exit_node(node)
+
+    def visit_BooleanNode(self, node: mparser.BooleanNode) -> None:
+        self.enter_node(node)
+        self.result += 'true' if node.value else 'false'
+        self.exit_node(node)
+
+    def visit_NumberNode(self, node: mparser.NumberNode) -> None:
+        self.enter_node(node)
+        self.result += node.raw_value
+        self.exit_node(node)
+
+    def visit_StringNode(self, node: mparser.StringNode) -> None:
+        self.enter_node(node)
+        if node.is_fstring:
+            self.result += 'f'
+        if node.is_multiline:
+            self.result += f"'''{node.value}'''"
+        else:
+            self.result += f"'{node.raw_value}'"
+        self.exit_node(node)
+
+    def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
+        self.enter_node(node)
+        self.result += 'continue'
+        self.exit_node(node)
+
+    def visit_BreakNode(self, node: mparser.BreakNode) -> None:
+        self.enter_node(node)
+        self.result += 'break'
+        self.exit_node(node)
+
+
 class AstJSONPrinter(AstVisitor):
     def __init__(self) -> None:
-        self.result = {}  # type: T.Dict[str, T.Any]
+        self.result: T.Dict[str, T.Any] = {}
         self.current = self.result
 
     def _accept(self, key: str, node: mparser.BaseNode) -> None:
         old = self.current
-        data = {}  # type: T.Dict[str, T.Any]
+        data: T.Dict[str, T.Any] = {}
         self.current = data
         node.accept(self)
         self.current = old
@@ -253,7 +283,7 @@ class AstJSONPrinter(AstVisitor):
 
     def _accept_list(self, key: str, nodes: T.Sequence[mparser.BaseNode]) -> None:
         old = self.current
-        datalist = []  # type: T.List[T.Dict[str, T.Any]]
+        datalist: T.List[T.Dict[str, T.Any]] = []
         for i in nodes:
             self.current = {}
             i.accept(self)
@@ -293,9 +323,6 @@ class AstJSONPrinter(AstVisitor):
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         self.gen_ElementaryNode(node)
 
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
-        self.gen_ElementaryNode(node)
-
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self._accept('args', node.args)
         self.setbase(node)
@@ -323,7 +350,7 @@ class AstJSONPrinter(AstVisitor):
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
         self._accept('left', node.left)
         self._accept('right', node.right)
-        self.current['op'] = arithmic_map[node.operation]
+        self.current['op'] = node.operator.value
         self.setbase(node)
 
     def visit_NotNode(self, node: mparser.NotNode) -> None:
@@ -342,28 +369,28 @@ class AstJSONPrinter(AstVisitor):
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
         self._accept('object', node.source_object)
         self._accept('args', node.args)
-        self.current['name'] = node.name
+        self.current['name'] = node.name.value
         self.setbase(node)
 
     def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
         self._accept('args', node.args)
-        self.current['name'] = node.func_name
+        self.current['name'] = node.func_name.value
         self.setbase(node)
 
     def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
         self._accept('value', node.value)
-        self.current['var_name'] = node.var_name
+        self.current['var_name'] = node.var_name.value
         self.setbase(node)
 
     def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
         self._accept('value', node.value)
-        self.current['var_name'] = node.var_name
+        self.current['var_name'] = node.var_name.value
         self.setbase(node)
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
         self._accept('items', node.items)
         self._accept('block', node.block)
-        self.current['varnames'] = node.varnames
+        self.current['varnames'] = [varname.value for varname in node.varnames]
         self.setbase(node)
 
     def visit_IfClauseNode(self, node: mparser.IfClauseNode) -> None:
@@ -388,10 +415,10 @@ class AstJSONPrinter(AstVisitor):
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
         self._accept_list('positional', node.arguments)
-        kwargs_list = []  # type: T.List[T.Dict[str, T.Dict[str, T.Any]]]
+        kwargs_list: T.List[T.Dict[str, T.Dict[str, T.Any]]] = []
         for key, val in node.kwargs.items():
-            key_res = {}  # type: T.Dict[str, T.Any]
-            val_res = {}  # type: T.Dict[str, T.Any]
+            key_res: T.Dict[str, T.Any] = {}
+            val_res: T.Dict[str, T.Any] = {}
             self._raw_accept(key, key_res)
             self._raw_accept(val, val_res)
             kwargs_list += [{'key': key_res, 'val': val_res}]

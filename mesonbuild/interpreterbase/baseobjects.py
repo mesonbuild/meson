@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2021 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from .. import mparser
@@ -35,9 +25,6 @@ if T.TYPE_CHECKING:
     class OperatorCall(Protocol[__T]):
         def __call__(self, other: __T) -> 'TYPE_var': ...
 
-TV_fw_var = T.Union[str, int, bool, list, dict, 'InterpreterObject']
-TV_fw_args = T.List[T.Union[mparser.BaseNode, TV_fw_var]]
-TV_fw_kwargs = T.Dict[str, T.Union[mparser.BaseNode, TV_fw_var]]
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
@@ -133,6 +120,27 @@ class MesonInterpreterObject(InterpreterObject):
 
 class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
+    def __init__(self) -> None:
+        self.used = False
+        self.mutable_feature_new = False
+
+    def mark_used(self) -> None:
+        self.used = True
+
+    def is_used(self) -> bool:
+        return self.used
+
+    def check_used(self, interpreter: Interpreter, fatal: bool = True) -> None:
+        from .decorators import FeatureDeprecated, FeatureNew
+        if self.is_used():
+            if fatal:
+                raise InvalidArguments('Can not modify object after it has been used.')
+            FeatureDeprecated.single_use('Modify object after it has been used', '1.5.0',
+                                         interpreter.subproject, location=interpreter.current_node)
+        elif self.mutable_feature_new:
+            FeatureNew.single_use('Modify a copy of an immutable object', '1.5.0',
+                                  interpreter.subproject, location=interpreter.current_node)
+            self.mutable_feature_new = False
 
 HoldableTypes = (HoldableObject, int, bool, str, list, dict)
 TYPE_HoldableTypes = T.Union[TYPE_elementary, HoldableObject]

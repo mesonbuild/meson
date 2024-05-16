@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
-
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
+# Copyright © 2023-2024 Intel Corporation
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+from __future__ import annotations
 
 # Work around some pathlib bugs...
 from mesonbuild import _pathlib
@@ -36,7 +27,7 @@ import typing as T
 
 from mesonbuild.compilers.c import CCompiler
 from mesonbuild.compilers.detect import detect_c_compiler
-from mesonbuild.dependencies.pkgconfig import PkgConfigDependency
+from mesonbuild.dependencies.pkgconfig import PkgConfigInterface
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
@@ -45,29 +36,30 @@ from mesonbuild.environment import Environment, detect_ninja, detect_machine_inf
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.mesonlib import OptionKey, setup_vsenv
 
-NINJA_1_9_OR_NEWER = False
+if T.TYPE_CHECKING:
+    from mesonbuild.coredata import SharedCMDOptions
+
+NINJA_1_12_OR_NEWER = False
 NINJA_CMD = None
 # If we're on CI, detecting ninja for every subprocess unit test that we run is slow
 # Optimize this by respecting $NINJA and skipping detection, then exporting it on
 # first run.
 try:
-    NINJA_1_9_OR_NEWER = bool(int(os.environ['NINJA_1_9_OR_NEWER']))
+    NINJA_1_12_OR_NEWER = bool(int(os.environ['NINJA_1_12_OR_NEWER']))
     NINJA_CMD = [os.environ['NINJA']]
 except (KeyError, ValueError):
-    # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
-    # is fixed
-    NINJA_CMD = detect_ninja('1.9')
+    # Look for 1.12, which removes -w dupbuild=err
+    NINJA_CMD = detect_ninja('1.12')
     if NINJA_CMD is not None:
-        NINJA_1_9_OR_NEWER = True
+        NINJA_1_12_OR_NEWER = True
     else:
-        mlog.warning('Found ninja <1.9, tests will run slower', once=True)
         NINJA_CMD = detect_ninja()
 
 if NINJA_CMD is not None:
-    os.environ['NINJA_1_9_OR_NEWER'] = str(int(NINJA_1_9_OR_NEWER))
+    os.environ['NINJA_1_12_OR_NEWER'] = str(int(NINJA_1_12_OR_NEWER))
     os.environ['NINJA'] = NINJA_CMD[0]
 else:
-    raise RuntimeError('Could not find Ninja v1.7 or newer')
+    raise RuntimeError('Could not find Ninja.')
 
 # Emulate running meson with -X utf8 by making sure all open() calls have a
 # sane encoding. This should be a python default, but PEP 540 considered it not
@@ -145,9 +137,8 @@ class FakeCompilerOptions:
     def __init__(self):
         self.value = []
 
-# TODO: use a typing.Protocol here
-def get_fake_options(prefix: str = '') -> argparse.Namespace:
-    opts = argparse.Namespace()
+def get_fake_options(prefix: str = '') -> SharedCMDOptions:
+    opts = T.cast('SharedCMDOptions', argparse.Namespace())
     opts.native_file = []
     opts.cross_file = None
     opts.wrap_mode = None
@@ -161,6 +152,8 @@ def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
     env = Environment(sdir, bdir, opts)
     env.coredata.options[OptionKey('args', lang='c')] = FakeCompilerOptions()
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
+    # Invalidate cache when using a different Environment object.
+    clear_meson_configure_class_caches()
     return env
 
 def get_convincing_fake_env_and_cc(bdir, prefix):
@@ -186,6 +179,15 @@ if mesonlib.is_windows() or mesonlib.is_cygwin():
     exe_suffix = '.exe'
 else:
     exe_suffix = ''
+
+def handle_meson_skip_test(out: str) -> T.Tuple[bool, str]:
+    for line in out.splitlines():
+        for prefix in {'Problem encountered', 'Assert failed', 'Failed to configure the CMake subproject'}:
+            if f'{prefix}: MESON_SKIP_TEST' in line:
+                offset = line.index('MESON_SKIP_TEST') + 16
+                reason = line[offset:].strip()
+                return (True, reason)
+    return (False, '')
 
 def get_meson_script() -> str:
     '''
@@ -267,7 +269,9 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         global NINJA_CMD
-        cmd = NINJA_CMD + ['-w', 'dupbuild=err', '-d', 'explain']
+        cmd = NINJA_CMD + ['-d', 'explain']
+        if not NINJA_1_12_OR_NEWER:
+            cmd += ['-w', 'dupbuild=err']
         if debug:
             cmd += ['-v']
         clean_cmd = cmd + ['clean']
@@ -278,21 +282,6 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         raise AssertionError(f'Unknown backend: {backend!r}')
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
-def ensure_backend_detects_changes(backend: Backend) -> None:
-    global NINJA_1_9_OR_NEWER
-    if backend is not Backend.ninja:
-        return
-    need_workaround = False
-    # We're using ninja >= 1.9 which has QuLogic's patch for sub-1s resolution
-    # timestamps
-    if not NINJA_1_9_OR_NEWER:
-        mlog.warning('Don\'t have ninja >= 1.9, enabling timestamp resolution workaround', once=True)
-        need_workaround = True
-    # Increase the difference between build.ninja's timestamp and the timestamp
-    # of whatever you changed: https://github.com/ninja-build/ninja/issues/371
-    if need_workaround:
-        time.sleep(1)
-
 def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str, str]:
     out = StringIO()
     with mock.patch.object(sys, 'stdout', out), mock.patch.object(sys, 'stderr', out):
@@ -300,11 +289,10 @@ def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str, str]:
     return returncode, out.getvalue()
 
 def clear_meson_configure_class_caches() -> None:
-    CCompiler.find_library_cache = {}
-    CCompiler.find_framework_cache = {}
-    PkgConfigDependency.pkgbin_cache = {}
-    PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
-    mesonlib.project_meson_versions = collections.defaultdict(str)
+    CCompiler.find_library_cache.clear()
+    CCompiler.find_framework_cache.clear()
+    PkgConfigInterface.class_impl.assign(False, False)
+    mesonlib.project_meson_versions.clear()
 
 def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:
     stderr = StringIO()
@@ -394,7 +382,7 @@ def main():
         else:
             print(mlog.bold('Running unittests.'))
             print(flush=True)
-            cmd = mesonlib.python_command + ['run_unittests.py', '-v'] + backend_flags
+            cmd = mesonlib.python_command + ['run_unittests.py'] + backend_flags
             if options.failfast:
                 cmd += ['--failfast']
             returncode += subprocess_call(cmd, env=env)

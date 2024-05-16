@@ -1,20 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
-from mesonbuild.templates.sampleimpl import SampleImpl
-import re
+from mesonbuild.templates.sampleimpl import FileHeaderImpl
 
 
 hello_cpp_template = '''#include <iostream>
@@ -142,46 +131,13 @@ pkg_mod.generate(
 '''
 
 
-class CppProject(SampleImpl):
-    def __init__(self, options):
-        super().__init__()
-        self.name = options.name
-        self.version = options.version
+class CppProject(FileHeaderImpl):
 
-    def create_executable(self) -> None:
-        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
-        source_name = lowercase_token + '.cpp'
-        open(source_name, 'w', encoding='utf-8').write(hello_cpp_template.format(project_name=self.name))
-        open('meson.build', 'w', encoding='utf-8').write(
-            hello_cpp_meson_template.format(project_name=self.name,
-                                            exe_name=lowercase_token,
-                                            source_name=source_name,
-                                            version=self.version))
-
-    def create_library(self) -> None:
-        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
-        uppercase_token = lowercase_token.upper()
-        class_name = uppercase_token[0] + lowercase_token[1:]
-        test_exe_name = lowercase_token + '_test'
-        namespace = lowercase_token
-        lib_hpp_name = lowercase_token + '.hpp'
-        lib_cpp_name = lowercase_token + '.cpp'
-        test_cpp_name = lowercase_token + '_test.cpp'
-        kwargs = {'utoken': uppercase_token,
-                  'ltoken': lowercase_token,
-                  'header_dir': lowercase_token,
-                  'class_name': class_name,
-                  'namespace': namespace,
-                  'header_file': lib_hpp_name,
-                  'source_file': lib_cpp_name,
-                  'test_source_file': test_cpp_name,
-                  'test_exe_name': test_exe_name,
-                  'project_name': self.name,
-                  'lib_name': lowercase_token,
-                  'test_name': lowercase_token,
-                  'version': self.version,
-                  }
-        open(lib_hpp_name, 'w', encoding='utf-8').write(lib_hpp_template.format(**kwargs))
-        open(lib_cpp_name, 'w', encoding='utf-8').write(lib_cpp_template.format(**kwargs))
-        open(test_cpp_name, 'w', encoding='utf-8').write(lib_cpp_test_template.format(**kwargs))
-        open('meson.build', 'w', encoding='utf-8').write(lib_cpp_meson_template.format(**kwargs))
+    source_ext = 'cpp'
+    header_ext = 'hpp'
+    exe_template = hello_cpp_template
+    exe_meson_template = hello_cpp_meson_template
+    lib_template = lib_cpp_template
+    lib_header_template = lib_hpp_template
+    lib_test_template = lib_cpp_test_template
+    lib_meson_template = lib_cpp_meson_template

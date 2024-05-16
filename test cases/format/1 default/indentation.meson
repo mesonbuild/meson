@@ -1,0 +1,73 @@
+project(
+    'indentation',
+    default_options: {
+        'buildtype': 'release',
+        'default_library': 'shared',
+        'prefer_static': false,
+        'unity': 'off',
+    },
+    meson_version: '>= 1.5.0',
+    version: '1.2.3',
+)
+
+a = [
+    1,
+    2,
+    3,
+    [
+        4,
+        5,
+        6,
+        [
+            7,
+            8,
+            9,
+            [
+                10,  # 10
+                11,  # 11
+                12,  # 12
+            ],
+            13,
+            14,
+            15,
+        ],
+    ],
+]
+d = {}
+
+if meson.project_version().version_compare('>1.2')
+    if meson.version().version_compare('>1.0')
+        foreach i : a
+            e = {
+                'a': 'a',
+                'b': 'b',
+                'c': 'c',
+                'd': [
+                    1,
+                    2,
+                    3,
+                    {
+                        'e': 'e',
+                        'f': 'f',
+                        'g': 'g',
+                        'h': {
+                            'i': (
+                                # a
+                                1
+                                # b
+                                +
+                                # c
+                                2
+                            ),
+                            'j': [
+                                1,  # 1
+                                2,  # 2
+                                3,  # 3
+                            ],
+                        },
+                    },
+                ],
+            }
+        endforeach
+    endif
+endif
