@@ -440,6 +440,8 @@ class GnomeModule(ExtensionModule):
 
             depend_files, depends, subdirs = self._get_gresource_dependencies(
                 state, ifile, source_dirs, dependencies)
+        else:
+            depend_files = []
 
         # Make source dirs relative to build dir now
         source_dirs = [os.path.join(state.build_to_src, state.subdir, d) for d in source_dirs]
@@ -492,7 +494,6 @@ class GnomeModule(ExtensionModule):
             target_cmd = cmd
         else:
             depfile = f'{output}.d'
-            depend_files = []
             target_cmd = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
         target_c = GResourceTarget(
             name,
