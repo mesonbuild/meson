@@ -280,11 +280,11 @@ All these `<lang>_*` options are specified per machine. See below in
 the [specifying options per machine](#specifying-options-per-machine)
 section on how to do this in cross builds.
 
-When using MSVC, `cpp_eh=none` will result in no exception flags being
-passed, while the `cpp_eh=[value]` will result in `/EH[value]`. Since
-*0.51.0* `cpp_eh=default` will result in `/EHsc` on MSVC. When using
-gcc-style compilers, nothing is passed (allowing exceptions to work),
-while `cpp_eh=none` passes `-fno-exceptions`.
+When using MSVC, `cpp_eh=[value]` will result in `/EH[value]` being passed.
+The magic value `none` translates to `s-c-` to disable exceptions. *Since
+0.51.0* `default` translates to `sc`. When using gcc-style compilers, nothing
+is passed (allowing exceptions to work), while `cpp_eh=none` passes
+`-fno-exceptions`.
 
 Since *0.54.0* The `<lang>_thread_count` option can be used to control
 the value passed to `-s PTHREAD_POOL_SIZE` when using emcc. No other
