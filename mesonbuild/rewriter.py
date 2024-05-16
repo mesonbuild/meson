@@ -358,6 +358,8 @@ class Rewriter:
     def __init__(self, sourcedir: str, generator: str = 'ninja', skip_errors: bool = False):
         self.sourcedir = sourcedir
         self.interpreter = IntrospectionInterpreter(sourcedir, '', generator, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
+        # Convenience shortcut
+        self.state = self.interpreter.state.local
         self.skip_errors = skip_errors
         self.modified_nodes = []
         self.to_remove_nodes = []
@@ -372,8 +374,8 @@ class Rewriter:
     def analyze_meson(self):
         mlog.log('Analyzing meson file:', mlog.bold(os.path.join(self.sourcedir, environment.build_filename)))
         self.interpreter.analyze()
-        mlog.log('  -- Project:', mlog.bold(self.interpreter.project_data['descriptive_name']))
-        mlog.log('  -- Version:', mlog.cyan(self.interpreter.project_data['version']))
+        mlog.log('  -- Project:', mlog.bold(self.state.project_data['descriptive_name']))
+        mlog.log('  -- Version:', mlog.cyan(self.state.project_data['version']))
 
     def add_info(self, cmd_type: str, cmd_id: str, data: dict):
         if self.info_dump is None:
@@ -400,7 +402,7 @@ class Rewriter:
     def find_target(self, target: str):
         def check_list(name: str) -> T.List[BaseNode]:
             result = []
-            for i in self.interpreter.targets:
+            for i in self.state.targets:
                 if name in {i['name'], i['id']}:
                     result += [i]
             return result
@@ -419,17 +421,17 @@ class Rewriter:
 
         # Check the assignments
         tgt = None
-        if target in self.interpreter.assignments:
-            node = self.interpreter.assignments[target]
+        if target in self.state.assignments:
+            node = self.state.assignments[target]
             if isinstance(node, FunctionNode):
                 if node.func_name.value in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
-                    tgt = self.interpreter.assign_vals[target]
+                    tgt = self.state.assign_vals[target]
 
         return tgt
 
     def find_dependency(self, dependency: str):
         def check_list(name: str):
-            for i in self.interpreter.dependencies:
+            for i in self.state.dependencies:
                 if name == i['name']:
                     return i
             return None
@@ -439,8 +441,8 @@ class Rewriter:
             return dep
 
         # Check the assignments
-        if dependency in self.interpreter.assignments:
-            node = self.interpreter.assignments[dependency]
+        if dependency in self.state.assignments:
+            node = self.state.assignments[dependency]
             if isinstance(node, FunctionNode):
                 if node.func_name.value == 'dependency':
                     name = self.interpreter.flatten_args(node.args)[0]
@@ -503,7 +505,7 @@ class Rewriter:
         kwargs_def = rewriter_func_kwargs[cmd['function']]
 
         # Find the function node to modify
-        node = None
+        node: T.Optional[FunctionNode] = None
         arg_node = None
         if cmd['function'] == 'project':
             # msys bash may expand '/' to a path. It will mangle '//' to '/'
@@ -513,7 +515,8 @@ class Rewriter:
             if {'/', '//'}.isdisjoint({cmd['id']}):
                 mlog.error('The ID for the function type project must be "/" or "//" not "' + cmd['id'] + '"', *self.on_error())
                 return self.handle_error()
-            node = self.interpreter.project_node
+            node = self.state.project_node
+            assert node is not None, 'for mypy'
             arg_node = node.args
         elif cmd['function'] == 'target':
             tmp = self.find_target(cmd['id'])
@@ -605,8 +608,8 @@ class Rewriter:
             self.modified_nodes += [node]
 
     def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
-        if node.ast_id and node.ast_id in self.interpreter.reverse_assignment:
-            return self.interpreter.reverse_assignment[node.ast_id]
+        if node.ast_id and node.ast_id in self.state.reverse_assignment:
+            return self.state.reverse_assignment[node.ast_id]
         return None
 
     @RequiredKeys(rewriter_keys['target'])
@@ -740,7 +743,7 @@ class Rewriter:
                         self.modified_nodes += [tgt_function]
                 target['extra_files'] = [node]
             if isinstance(node, IdNode):
-                node = self.interpreter.assignments[node.value]
+                node = self.state.assignments[node.value]
                 target['extra_files'] = [node]
             if not isinstance(node, ArrayNode):
                 mlog.error('Target', mlog.bold(cmd['target']), 'extra_files argument must be a list', *self.on_error())

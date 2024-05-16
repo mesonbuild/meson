@@ -25,7 +25,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from ..compilers import Compiler
-    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..interpreterbase import TYPE_kwargs, TYPE_var, SubProject
     from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
 
@@ -50,9 +50,8 @@ if T.TYPE_CHECKING:
 
 
 class MesonMain(MesonInterpreterObject):
-    def __init__(self, build: 'build.Build', interpreter: 'Interpreter'):
+    def __init__(self, interpreter: 'Interpreter'):
         super().__init__(subproject=interpreter.subproject)
-        self.build = build
         self.interpreter = interpreter
         self.methods.update({'add_devenv': self.add_devenv_method,
                              'add_dist_script': self.add_dist_script_method,
@@ -87,6 +86,17 @@ class MesonMain(MesonInterpreterObject):
                              'version': self.version_method,
                              })
 
+    @property
+    def subproject(self) -> SubProject:
+        # Normally MesonInterpreterObjects are per-subproject, but this object
+        # is a little special
+        return self.interpreter.state.local.subproject
+
+    @subproject.setter
+    def subproject(self, _: SubProject) -> None:
+        # Needed for the InterpreterObject initializer to function
+        pass
+
     def _find_source_script(
             self, name: str, prog: T.Union[str, mesonlib.File, build.Executable, ExternalProgram],
             args: T.List[str]) -> 'ExecutableSerialisation':
@@ -104,7 +114,7 @@ class MesonMain(MesonInterpreterObject):
             largs.append(found)
 
         largs.extend(args)
-        es = self.interpreter.backend.get_executable_serialisation(largs, verbose=True)
+        es = self.interpreter.state.world.backend.get_executable_serialisation(largs, verbose=True)
         es.subproject = self.interpreter.subproject
         return es
 
@@ -166,7 +176,7 @@ class MesonMain(MesonInterpreterObject):
         script.skip_if_destdir = kwargs['skip_if_destdir']
         script.tag = kwargs['install_tag']
         script.dry_run = kwargs['dry_run']
-        self.build.install_scripts.append(script)
+        self.interpreter.state.world.build.install_scripts.append(script)
 
     @typed_pos_args(
         'meson.add_postconf_script',
@@ -181,7 +191,7 @@ class MesonMain(MesonInterpreterObject):
             kwargs: 'TYPE_kwargs') -> None:
         script_args = self._process_script_args('add_postconf_script', args[1])
         script = self._find_source_script('add_postconf_script', args[0], script_args)
-        self.build.postconf_scripts.append(script)
+        self.interpreter.state.world.build.postconf_scripts.append(script)
 
     @typed_pos_args(
         'meson.add_dist_script',
@@ -203,13 +213,13 @@ class MesonMain(MesonInterpreterObject):
                                   '0.58.0', self.interpreter.subproject, location=self.current_node)
         script_args = self._process_script_args('add_dist_script', args[1])
         script = self._find_source_script('add_dist_script', args[0], script_args)
-        self.build.dist_scripts.append(script)
+        self.interpreter.state.world.build.dist_scripts.append(script)
 
     @noPosargs
     @noKwargs
     def current_source_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.source_dir
-        sub = self.interpreter.subdir
+        sub = self.interpreter.state.local.subdir
         if sub == '':
             return src
         return os.path.join(src, sub)
@@ -218,7 +228,7 @@ class MesonMain(MesonInterpreterObject):
     @noKwargs
     def current_build_dir_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.build_dir
-        sub = self.interpreter.subdir
+        sub = self.interpreter.state.local.subdir
         if sub == '':
             return src
         return os.path.join(src, sub)
@@ -226,7 +236,7 @@ class MesonMain(MesonInterpreterObject):
     @noPosargs
     @noKwargs
     def backend_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return self.interpreter.backend.name
+        return self.interpreter.state.world.backend.name
 
     @noPosargs
     @noKwargs
@@ -245,7 +255,7 @@ class MesonMain(MesonInterpreterObject):
     @FeatureNew('meson.project_source_root', '0.56.0')
     def project_source_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.source_dir
-        sub = self.interpreter.root_subdir
+        sub = self.interpreter.state.local.root_subdir
         if sub == '':
             return src
         return os.path.join(src, sub)
@@ -255,7 +265,7 @@ class MesonMain(MesonInterpreterObject):
     @FeatureNew('meson.project_build_root', '0.56.0')
     def project_build_root_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         src = self.interpreter.environment.build_dir
-        sub = self.interpreter.root_subdir
+        sub = self.interpreter.state.local.root_subdir
         if sub == '':
             return src
         return os.path.join(src, sub)
@@ -286,15 +296,15 @@ class MesonMain(MesonInterpreterObject):
 
     def _can_run_host_binaries_impl(self) -> bool:
         return not (
-            self.build.environment.is_cross_build() and
-            self.build.environment.need_exe_wrapper() and
-            self.build.environment.exe_wrapper is None
+            self.interpreter.state.world.build.environment.is_cross_build() and
+            self.interpreter.state.world.build.environment.need_exe_wrapper() and
+            self.interpreter.state.world.build.environment.exe_wrapper is None
         )
 
     @noPosargs
     @noKwargs
     def is_cross_build_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
-        return self.build.environment.is_cross_build()
+        return self.interpreter.state.world.build.environment.is_cross_build()
 
     @typed_pos_args('meson.get_compiler', str)
     @typed_kwargs('meson.get_compiler', NATIVE_KW)
@@ -321,7 +331,7 @@ class MesonMain(MesonInterpreterObject):
     @typed_pos_args('meson.install_dependency_manifest', str)
     @noKwargs
     def install_dependency_manifest_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> None:
-        self.build.dep_manifest_name = args[0]
+        self.interpreter.state.world.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
     @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable))
@@ -396,32 +406,32 @@ class MesonMain(MesonInterpreterObject):
             nkwargs['static'] = static
         identifier = dependencies.get_dep_identifier(name, nkwargs)
         for_machine = kwargs['native']
-        override = self.build.dependency_overrides[for_machine].get(identifier)
+        override = self.interpreter.state.world.build.dependency_overrides[for_machine].get(identifier)
         if override:
             if permissive:
                 return
             m = 'Tried to override dependency {!r} which has already been resolved or overridden at {}'
             location = mlog.get_error_location_string(override.node.filename, override.node.lineno)
             raise InterpreterException(m.format(name, location))
-        self.build.dependency_overrides[for_machine][identifier] = \
-            build.DependencyOverride(dep, self.interpreter.current_node)
+        self.interpreter.state.world.build.dependency_overrides[for_machine][identifier] = \
+            build.DependencyOverride(dep, self.interpreter.state.local.current_node)
 
     @noPosargs
     @noKwargs
     def project_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return self.build.dep_manifest[self.interpreter.active_projectname].version
+        return self.interpreter.state.world.build.dep_manifest[self.interpreter.state.local.project_name].version
 
     @FeatureNew('meson.project_license()', '0.45.0')
     @noPosargs
     @noKwargs
     def project_license_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> T.List[str]:
-        return self.build.dep_manifest[self.interpreter.active_projectname].license
+        return self.interpreter.state.world.build.dep_manifest[self.interpreter.state.local.project_name].license
 
     @FeatureNew('meson.project_license_files()', '1.1.0')
     @noPosargs
     @noKwargs
     def project_license_files_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[mesonlib.File]:
-        return [l[1] for l in self.build.dep_manifest[self.interpreter.active_projectname].license_files]
+        return [l[1] for l in self.interpreter.state.world.build.dep_manifest[self.interpreter.state.local.project_name].license_files]
 
     @noPosargs
     @noKwargs
@@ -431,7 +441,7 @@ class MesonMain(MesonInterpreterObject):
     @noPosargs
     @noKwargs
     def project_name_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        return self.interpreter.active_projectname
+        return self.interpreter.state.local.project_name
 
     def __get_external_property_impl(self, propname: str, fallback: T.Optional[object], machine: MachineChoice) -> object:
         """Shared implementation for get_cross_property and get_external_property."""
@@ -476,13 +486,13 @@ class MesonMain(MesonInterpreterObject):
             raise build.InvalidArguments(f'"add_devenv": {msg}')
         converted = env_convertor_with_method(env, kwargs['method'], kwargs['separator'])
         assert isinstance(converted, mesonlib.EnvironmentVariables)
-        self.build.devenv.append(converted)
+        self.interpreter.state.world.build.devenv.append(converted)
 
     @noPosargs
     @noKwargs
     @FeatureNew('meson.build_options', '1.1.0')
     def build_options_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
-        options = self.interpreter.user_defined_options
+        options = self.interpreter.state.world.user_defined_options
         if options is None:
             return ''
         return coredata.format_cmd_line_options(options)

@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
+from __future__ import annotations
+import os
 import re
 import unittest
 from itertools import chain
@@ -15,8 +17,9 @@ import mesonbuild.envconfig
 import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
+from mesonbuild.ast.interpreter import AstInterpreter, State, LocalState, GlobalState
 from mesonbuild.interpreter import Interpreter
-from mesonbuild.ast import AstInterpreter
+from mesonbuild.interpreterbase import SubProject
 from mesonbuild.mesonlib import (
     MachineChoice, OptionKey
 )
@@ -31,6 +34,7 @@ from run_tests import (
 )
 
 from .helpers import *
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
@@ -240,5 +244,8 @@ class DataTests(unittest.TestCase):
         del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
         interp = Interpreter(FakeBuild(env))
-        astint = AstInterpreter('.', '', '')
+        astint = AstInterpreter(State(
+            LocalState(SubProject(""), ''),
+            GlobalState('', '', [])
+        ))
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))

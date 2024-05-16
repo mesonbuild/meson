@@ -273,7 +273,11 @@ class Build:
         self.dependency_overrides: PerMachine[T.Dict[T.Tuple, DependencyOverride]] = PerMachineDefaultable.default(
             environment.is_cross_build(), {}, {})
         self.devenv: T.List[EnvironmentVariables] = []
-        self.modules: T.List[str] = []
+        self.modules: T.Set[str] = set()
+        """Used to track which modules are enabled in all subprojects.
+
+        Needed for tracking whether a modules options needs to be exposed to the user.
+        """
 
     def get_build_targets(self):
         build_targets = OrderedDict()
@@ -1329,6 +1333,12 @@ class BuildTarget(Target):
     def add_deps(self, deps):
         deps = listify(deps)
         for dep in deps:
+            # InterpreterState is unhashable, so it will fail in the below check
+            if hasattr(dep, 'cm_interpreter'):
+                raise InvalidArguments('Tried to use subproject object as a dependency.\n'
+                                       'You probably wanted to use a dependency declared in it instead.\n'
+                                       'Access it by calling get_variable() on the subproject object.')
+
             if dep in self.added_deps:
                 continue
 
@@ -1365,10 +1375,6 @@ class BuildTarget(Target):
                 if hasattr(dep, 'held_object'):
                     # FIXME: subproject is not a real ObjectHolder so we have to do this by hand
                     dep = dep.held_object
-                if hasattr(dep, 'project_args_frozen') or hasattr(dep, 'global_args_frozen'):
-                    raise InvalidArguments('Tried to use subproject object as a dependency.\n'
-                                           'You probably wanted to use a dependency declared in it instead.\n'
-                                           'Access it by calling get_variable() on the subproject object.')
                 raise InvalidArguments(f'Argument is of an unacceptable type {type(dep).__name__!r}.\nMust be '
                                        'either an external dependency (returned by find_library() or '
                                        'dependency()) or an internal dependency (returned by '
@@ -1810,9 +1816,15 @@ class Generator(HoldableObject):
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None,
                       env: T.Optional[EnvironmentVariables] = None) -> 'GeneratedList':
+        # TODO: this will be able to go away later
+        if hasattr(state, 'subdir'):
+            subdir = T.cast('ModuleState', state).subdir
+        else:
+            subdir = T.cast('Interpreter', state).state.local.subdir
+
         output = GeneratedList(
             self,
-            state.subdir,
+            subdir,
             preserve_path_from,
             extra_args=extra_args if extra_args is not None else [],
             env=env if env is not None else EnvironmentVariables())
@@ -1827,7 +1839,7 @@ class Generator(HoldableObject):
                 output.depends.add(e)
                 fs = [FileInTargetPrivateDir(f) for f in e.get_outputs()]
             elif isinstance(e, str):
-                fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
+                fs = [File.from_source_file(state.environment.source_dir, subdir, e)]
             else:
                 fs = [e]
 

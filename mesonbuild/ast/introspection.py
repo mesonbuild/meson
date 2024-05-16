@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 import copy
+import dataclasses
 import os
 import typing as T
 
@@ -15,9 +16,10 @@ from .. import coredata as cdata
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject
+from ..interpreterbase.state import State
 from ..mesonlib import MachineChoice, OptionKey
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
-from .interpreter import AstInterpreter
+from .interpreter import AstInterpreter, LocalState as _LocalState, GlobalState as _GlobalState
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
@@ -30,6 +32,44 @@ BUILD_TARGET_FUNCTIONS = [
     'executable', 'jar', 'library', 'shared_library', 'shared_module',
     'static_library', 'both_libraries'
 ]
+
+
+@dataclasses.dataclass
+class LocalState(_LocalState):
+
+    project_node: T.Optional[FunctionNode] = None
+    """The Node that the project() call is in."""
+
+    project_data: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    """Data from the project function call"""
+
+    targets: T.List[T.Dict[str, T.Any]] = dataclasses.field(default_factory=list)
+    """Data for target function calls"""
+
+    dependencies: T.List[T.Dict[str, T.Any]] = dataclasses.field(default_factory=list)
+    """Data for dependency generating function calls."""
+
+    default_subproject_options: T.Dict[OptionKey, str] = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass
+class GlobalState(_GlobalState):
+
+    cross_file: T.Optional[str]
+    """A cross file (if there is one)."""
+
+    backend: str
+    """The string name of the backend to be emulated."""
+
+    environment: environment.Environment
+    """An environment object."""
+
+    def copy(self) -> GlobalState:
+        return GlobalState(
+            self.source_root, self.subproject_dir, self.visitors,
+            self.cross_file, self.backend, self.environment,
+        )
+
 
 class IntrospectionHelper:
     # mimic an argparse namespace
@@ -45,6 +85,9 @@ class IntrospectionHelper:
 class IntrospectionInterpreter(AstInterpreter):
     # Interpreter to detect the options without a build directory
     # Most of the code is stolen from interpreter.Interpreter
+
+    state: State[LocalState, GlobalState]
+
     def __init__(self,
                  source_root: str,
                  subdir: str,
@@ -53,24 +96,22 @@ class IntrospectionInterpreter(AstInterpreter):
                  cross_file: T.Optional[str] = None,
                  subproject: SubProject = SubProject(''),
                  subproject_dir: str = 'subprojects',
-                 env: T.Optional[environment.Environment] = None):
+                 env: T.Optional[environment.Environment] = None) -> None:
         visitors = visitors if visitors is not None else []
-        super().__init__(source_root, subdir, subproject, visitors=visitors)
-
         options = IntrospectionHelper(cross_file)
-        self.cross_file = cross_file
-        if env is None:
-            self.environment = environment.Environment(source_root, None, options)
-        else:
-            self.environment = env
-        self.subproject_dir = subproject_dir
-        self.coredata = self.environment.get_coredata()
-        self.backend = backend
-        self.default_options = {OptionKey('backend'): self.backend}
-        self.project_data: T.Dict[str, T.Any] = {}
-        self.targets: T.List[T.Dict[str, T.Any]] = []
-        self.dependencies: T.List[T.Dict[str, T.Any]] = []
-        self.project_node: BaseNode = None
+        state = State(
+            LocalState(
+                subproject, subdir,
+                default_subproject_options={OptionKey('backend'): backend},
+            ),
+            GlobalState(
+                source_root, subproject_dir, visitors, cross_file,
+                backend,
+                env if env is not None else environment.Environment(source_root, None, options)
+            )
+        )
+        super().__init__(state)
+        self.coredata = self.state.world.environment.get_coredata()
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -85,10 +126,18 @@ class IntrospectionInterpreter(AstInterpreter):
             'both_libraries': self.func_both_lib,
         })
 
+    @property
+    def environment(self) -> environment.Environment:
+        # Needed for polymorphic guarantee
+        return self.state.world.environment
+
     def func_project(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
-        if self.project_node:
+        # The signature must be a BaseNode, but we know this is a FunctionNode,
+        # and things will fail badly if it's not.
+        assert isinstance(node, FunctionNode), 'for mypy'
+        if self.state.local.project_node:
             raise InvalidArguments('Second call to project()')
-        self.project_node = node
+        self.state.local.project_node = node
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
 
@@ -99,11 +148,11 @@ class IntrospectionInterpreter(AstInterpreter):
             proj_vers = proj_vers.value
         if not isinstance(proj_vers, str):
             proj_vers = 'undefined'
-        self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
+        self.state.local.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
 
-        optfile = os.path.join(self.source_root, self.subdir, 'meson.options')
+        optfile = os.path.join(self.state.world.source_root, self.state.local.subdir, 'meson.options')
         if not os.path.exists(optfile):
-            optfile = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+            optfile = os.path.join(self.state.world.source_root, self.state.local.subdir, 'meson_options.txt')
         if os.path.exists(optfile):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(optfile)
@@ -112,40 +161,41 @@ class IntrospectionInterpreter(AstInterpreter):
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
-        self.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
-        self.default_options.update(self.project_default_options)
-        self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
+        self.state.local.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
+        self.state.local.default_subproject_options.update(self.state.local.project_default_options)
+        self.coredata.set_default_options(self.state.local.default_subproject_options, self.subproject, self.state.world.environment)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
             if isinstance(spdirname, StringNode):
                 assert isinstance(spdirname.value, str)
-                self.subproject_dir = spdirname.value
+                self.state.world.subproject_dir = spdirname.value
         if not self.is_subproject():
-            self.project_data['subprojects'] = []
-            subprojects_dir = os.path.join(self.source_root, self.subproject_dir)
+            self.state.local.project_data['subprojects'] = []
+            subprojects_dir = os.path.join(self.state.world.source_root, self.state.world.subproject_dir)
             if os.path.isdir(subprojects_dir):
                 for i in os.listdir(subprojects_dir):
                     if os.path.isdir(os.path.join(subprojects_dir, i)):
                         self.do_subproject(SubProject(i))
 
-        self.coredata.init_backend_options(self.backend)
-        options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
+        self.coredata.init_backend_options(self.state.world.backend)
+        options = {k: v for k, v in self.state.world.environment.options.items() if k.is_backend()}
 
         self.coredata.set_options(options)
         self._add_languages(proj_langs, True, MachineChoice.HOST)
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
     def do_subproject(self, dirname: SubProject) -> None:
-        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-        subpr = os.path.join(subproject_dir_abs, dirname)
-        try:
-            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment, visitors=self.visitors)
-            subi.analyze()
-            subi.project_data['name'] = dirname
-            self.project_data['subprojects'] += [subi.project_data]
-        except (mesonlib.MesonException, RuntimeError):
-            return
+        snapshot = self.state.copy()
+        subdir = os.path.join(self.state.world.subproject_dir, dirname)
+        local = LocalState(dirname, subdir, default_subproject_options={OptionKey('backend'): self.state.world.backend})
+        with self.state.subproject(local) as current_state:
+            try:
+                self.analyze()
+                local.project_data['name'] = dirname
+                current_state.project_data['subprojects'].append(local.project_data)
+            except (mesonlib.MesonException, RuntimeError):
+                self.state = snapshot
 
     def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         kwargs = self.flatten_kwargs(kwargs)
@@ -172,7 +222,7 @@ class IntrospectionInterpreter(AstInterpreter):
             lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
                 try:
-                    comp = detect_compiler_for(self.environment, lang, for_machine, True, self.subproject)
+                    comp = detect_compiler_for(self.state.world.environment, lang, for_machine, True, self.subproject)
                 except mesonlib.MesonException:
                     # do we even care about introspecting this language?
                     if required:
@@ -185,7 +235,7 @@ class IntrospectionInterpreter(AstInterpreter):
                         v = copy.copy(self.coredata.options[k])
                         k = k.evolve(subproject=self.subproject)
                         options[k] = v
-                    self.coredata.add_compiler_options(options, lang, for_machine, self.environment, self.subproject)
+                    self.coredata.add_compiler_options(options, lang, for_machine, self.state.world.environment, self.subproject)
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         args = self.flatten_args(args)
@@ -202,7 +252,7 @@ class IntrospectionInterpreter(AstInterpreter):
             required = required.value
         if not isinstance(required, bool):
             required = False
-        self.dependencies += [{
+        self.state.local.dependencies += [{
             'name': name,
             'required': required,
             'version': version,
@@ -242,8 +292,8 @@ class IntrospectionInterpreter(AstInterpreter):
                     # Try to resolve the ID and append the node to the queue
                     assert isinstance(curr.value, str)
                     var_name = curr.value
-                    if var_name in self.assignments:
-                        tmp_node = self.assignments[var_name]
+                    if var_name in self.state.local.assignments:
+                        tmp_node = self.state.local.assignments[var_name]
                         if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
                             inqueue += [tmp_node]
                 elif isinstance(curr, ArithmeticNode):
@@ -272,16 +322,16 @@ class IntrospectionInterpreter(AstInterpreter):
         empty_sources: T.List[T.Any] = []
         # Passing the unresolved sources list causes errors
         kwargs_reduced['_allow_no_sources'] = True
-        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, None, objects,
-                             self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
+        target = targetclass(name, self.state.local.subdir, self.subproject, for_machine, empty_sources, None, objects,
+                             self.state.world.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
         new_target = {
             'name': target.get_basename(),
             'id': target.get_id(),
             'type': target.get_typename(),
-            'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
-            'subdir': self.subdir,
+            'defined_in': os.path.normpath(os.path.join(self.state.world.source_root, self.state.local.subdir, environment.build_filename)),
+            'subdir': self.state.local.subdir,
             'build_by_default': target.build_by_default,
             'installed': target.should_install(),
             'outputs': target.get_outputs(),
@@ -291,7 +341,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'node': node,
         }
 
-        self.targets += [new_target]
+        self.state.local.targets += [new_target]
         return new_target
 
     def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
@@ -359,9 +409,9 @@ class IntrospectionInterpreter(AstInterpreter):
            This is faster than self.parse_project() which also initialize options
            and also calls parse_project() on every subproject.
         '''
-        if not self.ast.lines:
+        if not self.state.local.ast.lines:
             return None
-        project = self.ast.lines[0]
+        project = self.state.local.ast.lines[0]
         # first line is always project()
         if not isinstance(project, FunctionNode):
             return None

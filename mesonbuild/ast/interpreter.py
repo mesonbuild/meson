@@ -5,6 +5,7 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
+import dataclasses
 import os
 import sys
 import typing as T
@@ -21,6 +22,7 @@ from ..interpreterbase import (
     Disabler,
     default_resolve_key,
 )
+from ..interpreterbase.state import State, LocalState as _LocalState, GlobalState as _GlobalState
 
 from ..interpreter import (
     StringHolder,
@@ -49,7 +51,7 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var
+    from ..interpreterbase import TYPE_nkwargs, TYPE_var, InterpreterObject
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -85,14 +87,35 @@ _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
 
 
+@dataclasses.dataclass
+class GlobalState(_GlobalState):
+
+    subproject_dir: str
+
+    visitors: T.List[AstVisitor]
+    """Visitor functions for the AST Nodes."""
+
+
+@dataclasses.dataclass
+class LocalState(_LocalState):
+
+    assignments: T.Dict[str, BaseNode] = dataclasses.field(default_factory=dict)
+    """Associate variable names with the node last assigned to them."""
+
+    assign_vals: T.Dict[str, T.Optional[InterpreterObject]] = \
+        dataclasses.field(default_factory=dict)
+    """Associate variable names with the value last assigned to them."""
+
+    reverse_assignment: T.Dict[str, BaseNode] = dataclasses.field(default_factory=dict)
+
+
 class AstInterpreter(InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
-        super().__init__(source_root, subdir, subproject)
-        self.visitors = visitors if visitors is not None else []
-        self.processed_buildfiles: T.Set[str] = set()
-        self.assignments: T.Dict[str, BaseNode] = {}
-        self.assign_vals: T.Dict[str, T.Any] = {}
-        self.reverse_assignment: T.Dict[str, BaseNode] = {}
+
+    state: State[LocalState, GlobalState]
+
+    def __init__(self, state: State[LocalState, GlobalState]):
+        self.state = state
+        super().__init__()
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -165,8 +188,8 @@ class AstInterpreter(InterpreterBase):
 
     def load_root_meson_file(self) -> None:
         super().load_root_meson_file()
-        for i in self.visitors:
-            self.ast.accept(i)
+        for i in self.state.world.visitors:
+            self.state.local.ast.accept(i)
 
     def func_subdir(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         args = self.flatten_args(args)
@@ -174,17 +197,17 @@ class AstInterpreter(InterpreterBase):
             sys.stderr.write(f'Unable to evaluate subdir({args}) in AstInterpreter --> Skipping\n')
             return
 
-        prev_subdir = self.subdir
+        prev_subdir = self.state.local.subdir
         subdir = os.path.join(prev_subdir, args[0])
-        absdir = os.path.join(self.source_root, subdir)
+        absdir = os.path.join(self.state.world.source_root, subdir)
         buildfilename = os.path.join(subdir, environment.build_filename)
-        absname = os.path.join(self.source_root, buildfilename)
+        absname = os.path.join(self.state.world.source_root, buildfilename)
         symlinkless_dir = os.path.realpath(absdir)
         build_file = os.path.join(symlinkless_dir, 'meson.build')
-        if build_file in self.processed_buildfiles:
+        if build_file in self.state.local.processed_buildfiles:
             sys.stderr.write('Trying to enter {} which has already been visited --> Skipping\n'.format(args[0]))
             return
-        self.processed_buildfiles.add(build_file)
+        self.state.local.processed_buildfiles.add(build_file)
 
         if not os.path.isfile(absname):
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
@@ -196,11 +219,11 @@ class AstInterpreter(InterpreterBase):
             me.file = absname
             raise me
 
-        self.subdir = subdir
-        for i in self.visitors:
+        self.state.local.subdir = subdir
+        for i in self.state.world.visitors:
             codeblock.accept(i)
         self.evaluate_codeblock(codeblock)
-        self.subdir = prev_subdir
+        self.state.local.subdir = prev_subdir
 
     def method_call(self, node: BaseNode) -> bool:
         return True
@@ -234,20 +257,20 @@ class AstInterpreter(InterpreterBase):
             return '__AST_UNKNOWN__'
         arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)
         assert not arguments
-        self.argument_depth += 1
+        self.state.local.argument_depth += 1
         for key, value in kwargs.items():
             if isinstance(key, BaseNode):
                 self.evaluate_statement(key)
-        self.argument_depth -= 1
+        self.state.local.argument_depth -= 1
         return {}
 
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
         assert isinstance(node, PlusAssignmentNode)
         # Cheat by doing a reassignment
-        self.assignments[node.var_name.value] = node.value  # Save a reference to the value node
+        self.state.local.assignments[node.var_name.value] = node.value  # Save a reference to the value node
         if node.value.ast_id:
-            self.reverse_assignment[node.value.ast_id] = node
-        self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
+            self.state.local.reverse_assignment[node.value.ast_id] = node
+        self.state.local.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
 
     def evaluate_indexing(self, node: IndexNode) -> int:
         return 0
@@ -309,10 +332,10 @@ class AstInterpreter(InterpreterBase):
 
     def assignment(self, node: AssignmentNode) -> None:
         assert isinstance(node, AssignmentNode)
-        self.assignments[node.var_name.value] = node.value # Save a reference to the value node
+        self.state.local.assignments[node.var_name.value] = node.value # Save a reference to the value node
         if node.value.ast_id:
-            self.reverse_assignment[node.value.ast_id] = node
-        self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
+            self.state.local.reverse_assignment[node.value.ast_id] = node
+        self.state.local.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
         def quick_resolve(n: BaseNode, loop_detect: T.Optional[T.List[str]] = None) -> T.Any:
@@ -320,9 +343,9 @@ class AstInterpreter(InterpreterBase):
                 loop_detect = []
             if isinstance(n, IdNode):
                 assert isinstance(n.value, str)
-                if n.value in loop_detect or n.value not in self.assignments:
+                if n.value in loop_detect or n.value not in self.state.local.assignments:
                     return []
-                return quick_resolve(self.assignments[n.value], loop_detect = loop_detect + [n.value])
+                return quick_resolve(self.state.local.assignments[n.value], loop_detect = loop_detect + [n.value])
             elif isinstance(n, ElementaryNode):
                 return n.value
             else:
