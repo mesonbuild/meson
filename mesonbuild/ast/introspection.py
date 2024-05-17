@@ -145,7 +145,7 @@ class IntrospectionInterpreter(AstInterpreter):
             subi.project_data['name'] = dirname
             self.project_data['subprojects'] += [subi.project_data]
         except (mesonlib.MesonException, RuntimeError):
-            return
+            pass
 
     def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         kwargs = self.flatten_kwargs(kwargs)

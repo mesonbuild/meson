@@ -422,7 +422,6 @@ class IntlSystemDependency(SystemDependency):
             if self.static:
                 if not self._add_sub_dependency(iconv_factory(env, self.for_machine, {'static': True})):
                     self.is_found = False
-                    return
 
 
 class OpensslSystemDependency(SystemDependency):
