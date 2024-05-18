@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2019 The Meson development team
+
+from __future__ import annotations
+
 from mesonbuild.templates.sampleimpl import FileImpl
 
 lib_fortran_template = '''
