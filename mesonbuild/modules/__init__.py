@@ -18,7 +18,6 @@ if T.TYPE_CHECKING:
     from ..interpreter.interpreter import ProgramVersionFunc
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import OverrideProgram
-    from ..wrap import WrapMode
     from ..dependencies import Dependency
 
 class ModuleState:
@@ -134,7 +133,7 @@ class ModuleState:
     def get_option(self, name: str, subproject: str = '',
                    machine: MachineChoice = MachineChoice.HOST,
                    lang: T.Optional[str] = None,
-                   module: T.Optional[str] = None) -> T.Union[T.List[str], str, int, bool, 'WrapMode']:
+                   module: T.Optional[str] = None) -> T.Union[T.List[str], str, int, bool]:
         return self.environment.coredata.get_option(mesonlib.OptionKey(name, subproject, machine, lang, module))
 
     def is_user_defined_option(self, name: str, subproject: str = '',
