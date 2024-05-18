@@ -5,6 +5,9 @@ from __future__ import annotations
 
 import typing as T
 
+# Import the Cython project template
+from mesonbuild.templates.cython_templates import CythonProject
+
 # Import the templates for different programming languages
 from mesonbuild.templates.valatemplates import ValaProject
 from mesonbuild.templates.fortrantemplates import FortranProject
@@ -36,6 +39,7 @@ _IMPL: T.Mapping[str, T.Union[T.Type[ClassImpl], T.Type[FileHeaderImpl], T.Type[
     'rust': RustProject,
     'fortran': FortranProject,
     'vala': ValaProject,
+    'cython': CythonProject
 }
 
 
