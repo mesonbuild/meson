@@ -1,20 +1,15 @@
-# SPDX-License-Identifier: Apache-2.0
-# Copyright 2019 The Meson development team
-
-from __future__ import annotations
-
+from pathlib import Path
 from mesonbuild.templates.sampleimpl import FileImpl
-
 import typing as T
 
-
-hello_d_template = '''module main;
+hello_d_template = '''
+module main;
 import std.stdio;
 
 enum PROJECT_NAME = "{project_name}";
 
 int main(string[] args) {{
-    if (args.length != 1){{
+    if (args.length != 1) {{
         writefln("%s takes no arguments.\\n", args[0]);
         return 1;
     }}
@@ -23,17 +18,19 @@ int main(string[] args) {{
 }}
 '''
 
-hello_d_meson_template = '''project('{project_name}', 'd',
-    version : '{version}',
+hello_d_meson_template = '''
+project('{project_name}', 'd',
+    version: '{version}',
     default_options: ['warning_level=3'])
 
 exe = executable('{exe_name}', '{source_name}',
-  install : true)
+  install: true)
 
 test('basic', exe)
 '''
 
-lib_d_template = '''module {module_file};
+lib_d_template = '''
+module {module_file};
 
 /* This function will not be exported and is not
  * directly callable by users of this library.
@@ -47,13 +44,14 @@ int {function_name}() {{
 }}
 '''
 
-lib_d_test_template = '''module {module_file}_test;
+lib_d_test_template = '''
+module {module_file}_test;
 import std.stdio;
 import {module_file};
 
 
 int main(string[] args) {{
-    if (args.length != 1){{
+    if (args.length != 1) {{
         writefln("%s takes no arguments.\\n", args[0]);
         return 1;
     }}
@@ -61,40 +59,43 @@ int main(string[] args) {{
 }}
 '''
 
-lib_d_meson_template = '''project('{project_name}', 'd',
-  version : '{version}',
-  default_options : ['warning_level=3'])
+lib_d_meson_template = '''
+project('{project_name}', 'd',
+  version: '{version}',
+  default_options: ['warning_level=3'])
 
 stlib = static_library('{lib_name}', '{source_file}',
-  install : true,
-  gnu_symbol_visibility : 'hidden',
+  install: true,
+  gnu_symbol_visibility: 'hidden',
 )
 
 test_exe = executable('{test_exe_name}', '{test_source_file}',
-  link_with : stlib)
+  link_with: stlib)
 test('{test_name}', test_exe)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories: include_directories('.'),
-  link_with : stlib)
+  link_with: stlib)
 
 # Make this library usable from the Dlang
 # build system.
 dlang_mod = import('dlang')
-if find_program('dub', required: false).found()
+if find_program('dub', required: false).found():
   dlang_mod.generate_dub_file(meson.project_name().to_lower(), meson.source_root(),
-    name : meson.project_name(),
+    name: meson.project_name(),
     license: meson.project_license(),
-    sourceFiles : '{source_file}',
-    description : 'Meson sample project.',
-    version : '{version}',
+    sourceFiles: '{source_file}',
+    description: 'Meson sample project.',
+    version: '{version}',
   )
 endif
 '''
 
-
 class DlangProject(FileImpl):
+    """
+    Implementation for Dlang project.
+    """
 
     source_ext = 'd'
     exe_template = hello_d_template
