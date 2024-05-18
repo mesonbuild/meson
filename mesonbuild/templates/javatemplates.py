@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
+from __future__ import annotations
+
 from mesonbuild.templates.sampleimpl import ClassImpl
 
 hello_java_template = '''
