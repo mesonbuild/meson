@@ -5,22 +5,21 @@ from __future__ import annotations
 
 from mesonbuild.templates.sampleimpl import FileImpl
 
-
 hello_vala_template = '''void main (string[] args) {{
     stdout.printf ("Hello {project_name}!\\n");
 }}
 '''
 
 hello_vala_meson_template = '''project('{project_name}', ['c', 'vala'],
-  version : '{version}')
+  version: '{version}')
 
 dependencies = [
     dependency('glib-2.0'),
     dependency('gobject-2.0'),
 ]
 
-exe = executable('{exe_name}', '{source_name}', dependencies : dependencies,
-  install : true)
+exe = executable('{exe_name}', '{source_name}', dependencies: dependencies,
+  install: true)
 
 test('basic', exe)
 '''
@@ -40,14 +39,14 @@ lib_vala_template = '''namespace {namespace} {{
 lib_vala_test_template = '''using {namespace};
 
 public void main() {{
-    stdout.printf("\nTesting shlib");
-    stdout.printf("\n\t2 + 3 is %d", sum(2, 3));
-    stdout.printf("\n\t8 squared is %d\\n", square(8));
+    stdout.printf("\\nTesting shlib");
+    stdout.printf("\\n\\t2 + 3 is %d", sum(2, 3));
+    stdout.printf("\\n\\t8 squared is %d\\n", square(8));
 }}
 '''
 
 lib_vala_meson_template = '''project('{project_name}', ['c', 'vala'],
-  version : '{version}')
+  version: '{version}')
 
 dependencies = [
     dependency('glib-2.0'),
@@ -61,14 +60,14 @@ shlib = shared_library('foo', '{source_file}',
                install: true,
                install_dir: [true, true, true])
 
-test_exe = executable('{test_exe_name}', '{test_source_file}', dependencies : dependencies,
-  link_with : shlib)
+test_exe = executable('{test_exe_name}', '{test_source_file}', dependencies: dependencies,
+  link_with: shlib)
 test('{test_name}', test_exe)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories: include_directories('.'),
-  link_with : shlib)
+  link_with: shlib)
 '''
 
 
