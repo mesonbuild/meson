@@ -3,10 +3,7 @@
 
 from __future__ import annotations
 
-import typing as T
-
 from mesonbuild.templates.sampleimpl import FileImpl
-
 
 lib_rust_template = '''#![crate_name = "{crate_file}"]
 
@@ -31,19 +28,19 @@ fn main() {{
 
 
 lib_rust_meson_template = '''project('{project_name}', 'rust',
-  version : '{version}',
-  default_options : ['warning_level=3'])
+  version: '{version}',
+  default_options: ['warning_level=3'])
 
-shlib = static_library('{lib_name}', '{source_file}', install : true)
+shlib = static_library('{lib_name}', '{source_file}', install: true)
 
 test_exe = executable('{test_exe_name}', '{test_source_file}',
-  link_with : shlib)
+  link_with: shlib)
 test('{test_name}', test_exe)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories: include_directories('.'),
-  link_with : shlib)
+  link_with: shlib)
 '''
 
 hello_rust_template = '''
@@ -54,11 +51,10 @@ fn main() {{
 '''
 
 hello_rust_meson_template = '''project('{project_name}', 'rust',
-  version : '{version}',
-  default_options : ['warning_level=3'])
+  version: '{version}',
+  default_options: ['warning_level=3'])
 
-exe = executable('{exe_name}', '{source_name}',
-  install : true)
+exe = executable('{exe_name}', '{source_name}', install: true)
 
 test('basic', exe)
 '''
