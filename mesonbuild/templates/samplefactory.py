@@ -5,10 +5,8 @@ from __future__ import annotations
 
 import typing as T
 
-# Import the Cython project template
-from mesonbuild.templates.cython_templates import CythonProject
-
 # Import the templates for different programming languages
+from mesonbuild.templates.cythontemplates import CythonProject
 from mesonbuild.templates.valatemplates import ValaProject
 from mesonbuild.templates.fortrantemplates import FortranProject
 from mesonbuild.templates.objcpptemplates import ObjCppProject
