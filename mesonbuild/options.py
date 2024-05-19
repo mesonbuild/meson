@@ -49,7 +49,6 @@ DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
-_U = T.TypeVar('_U', bound=UserOption[_T])
 
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
 genvslitelist = ['vs2022']
@@ -296,7 +295,6 @@ class EnumeratedUserOption(UserOption[_T]):
         return [str(c) for c in self.choices]
 
 
-@dataclasses.dataclass
 class UserStringOption(UserOption[str]):
 
     def validate_value(self, value: T.Any) -> str:
