@@ -15,6 +15,7 @@ import typing as T
 
 def run_clang_format(fname: Path, exelist: T.List[str], check: bool, cformat_ver: T.Optional[str]) -> subprocess.CompletedProcess:
     clangformat_10 = False
+    original = b''
     if check and cformat_ver:
         if version_compare(cformat_ver, '>=10'):
             clangformat_10 = True

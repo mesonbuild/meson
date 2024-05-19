@@ -61,7 +61,7 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         installdata = backend.create_install_data()
         interpreter = backend.interpreter
     else:
-        benchmarkdata = testdata = installdata = None
+        interpreter = benchmarkdata = testdata = installdata = None
 
     # Enforce key order for argparse
     return collections.OrderedDict([

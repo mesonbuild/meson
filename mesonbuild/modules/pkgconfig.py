@@ -481,8 +481,9 @@ class PkgConfigModule(NewExtensionModule):
             prefix = PurePath(state.environment.get_build_dir())
             srcdir = PurePath(state.environment.get_source_dir())
         else:
-            outdir = state.environment.scratch_dir
+            outdir = state.environment.get_scratch_dir()
             prefix = PurePath(_as_str(coredata.get_option(mesonlib.OptionKey('prefix'))))
+            srcdir = PurePath(state.environment.get_source_dir())
             if pkgroot:
                 pkgroot_ = PurePath(pkgroot)
                 if not pkgroot_.is_absolute():

@@ -15,6 +15,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
 
     if gcovr_exe == '':
         gcovr_exe = None
+        gcovr_version = '0'
     else:
         gcovr_exe, gcovr_version = environment.detect_gcovr(gcovr_exe)
     if llvm_cov_exe == '' or not mesonlib.exe_exists([llvm_cov_exe, '--version']):

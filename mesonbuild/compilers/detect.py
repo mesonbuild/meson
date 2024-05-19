@@ -1139,6 +1139,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             # one path for simplicity.
             o, f = tempfile.mkstemp('.d')
             os.close(o)
+            objfile = None
 
             try:
                 if info.is_windows() or info.is_cygwin():
@@ -1157,7 +1158,8 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
                                               extra_args=[f])
             finally:
                 windows_proof_rm(f)
-                windows_proof_rm(objfile)
+                if objfile is not None:
+                    windows_proof_rm(objfile)
 
             return cls(
                 exelist, version, for_machine, info, arch,

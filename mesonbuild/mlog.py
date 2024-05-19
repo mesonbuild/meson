@@ -308,6 +308,8 @@ class _Logger:
             label = [red('ERROR:')]
         elif severity is _Severity.DEPRECATION:
             label = [red('DEPRECATION:')]
+        else:
+            sys.exit('Internal error, invalid enum value.')
         # rargs is a tuple, not a list
         args = label + list(rargs)
 

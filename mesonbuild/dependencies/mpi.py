@@ -213,6 +213,7 @@ class MSMPIDependency(SystemDependency):
         incdir = os.environ.get('MSMPI_INC')
         arch = detect_cpu_family(self.env.coredata.compilers.host)
         libdir = None
+        post = None
         if arch == 'x86':
             libdir = os.environ.get('MSMPI_LIB32')
             post = 'x86'

@@ -262,9 +262,8 @@ class DubDependency(ExternalDependency):
             self.link_args.append(flag)
 
         is_windows = self.env.machines.host.is_windows()
-        if is_windows:
-            winlibs = ['kernel32', 'user32', 'gdi32', 'winspool', 'shell32', 'ole32',
-                       'oleaut32', 'uuid', 'comdlg32', 'advapi32', 'ws2_32']
+        winlibs = ['kernel32', 'user32', 'gdi32', 'winspool', 'shell32', 'ole32',
+                   'oleaut32', 'uuid', 'comdlg32', 'advapi32', 'ws2_32'] if is_windows else []
 
         for lib in bs['libs']:
             if os.name != 'nt':

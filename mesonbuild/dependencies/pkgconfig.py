@@ -326,6 +326,7 @@ class PkgConfigDependency(ExternalDependency):
         for arg in args:
             pargs: T.Tuple[str, ...] = tuple()
             # Library search path
+            tmpl = None
             if arg.startswith('-L/'):
                 pargs = PurePath(arg[2:]).parts
                 tmpl = '-L{}:/{}'
@@ -340,6 +341,7 @@ class PkgConfigDependency(ExternalDependency):
                 # clean out improper '\\ ' as comes from some Windows pkg-config files
                 arg = arg.replace('\\ ', ' ')
             if len(pargs) > 1 and len(pargs[1]) == 1:
+                assert tmpl is not None
                 arg = tmpl.format(pargs[1], '/'.join(pargs[2:]))
             converted.append(arg)
         return converted

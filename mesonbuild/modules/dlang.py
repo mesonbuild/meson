@@ -93,6 +93,7 @@ class DlangModule(ExtensionModule):
 
     def check_dub(self, state):
         dubbin = state.find_program('dub', silent=True)
+        out = None
         if dubbin.found():
             try:
                 p, out = Popen_safe(dubbin.get_command() + ['--version'])[0:2]

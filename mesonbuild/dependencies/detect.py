@@ -180,6 +180,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
         # Create the list of dependency object constructors using a factory
         # class method, if one exists, otherwise the list just consists of the
         # constructor
+        dep = None
         if isinstance(packages[lname], type):
             entry1 = T.cast('T.Type[ExternalDependency]', packages[lname])  # mypy doesn't understand isinstance(..., type)
             if issubclass(entry1, ExternalDependency):
@@ -188,6 +189,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
         else:
             entry2 = T.cast('T.Union[DependencyFactory, WrappedFactoryFunc]', packages[lname])
             dep = entry2(env, for_machine, kwargs)
+        assert dep is not None
         return dep
 
     candidates: T.List['DependencyGenerator'] = []
