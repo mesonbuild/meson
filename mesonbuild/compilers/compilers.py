@@ -845,7 +845,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             result = CompileResult(stdo, stde, command_list, p.returncode, input_name=srcname)
             if want_output:
                 result.output_name = output
-            yield result
+            try:
+                yield result
+            except GeneratorExit:
+                return
 
     @contextlib.contextmanager
     def cached_compile(self, code: 'mesonlib.FileOrString', cdata: coredata.CoreData, *,
@@ -867,11 +870,17 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             mlog.debug('Code:\n', code)
             mlog.debug('Cached compiler stdout:\n', p.stdout)
             mlog.debug('Cached compiler stderr:\n', p.stderr)
-            yield p
+            try:
+                yield p
+            except GeneratorExit:
+                pass
         else:
             with self.compile(code, extra_args=extra_args, mode=mode, want_output=False, temp_dir=temp_dir) as p:
                 cdata.compiler_check_cache[key] = p
-                yield p
+                try:
+                    yield p
+                except GeneratorExit:
+                    pass
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         # TODO: colortype can probably be an emum
@@ -1289,10 +1298,16 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         args = self.build_wrapper_args(env, extra_args, dependencies, mode)
         if disable_cache or want_output:
             with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
-                yield r
+                try:
+                    yield r
+                except GeneratorExit:
+                    pass
         else:
             with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
-                yield r
+                try:
+                    yield r
+                except GeneratorExit:
+                    pass
 
     def compiles(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
                  extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
