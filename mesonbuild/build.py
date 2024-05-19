@@ -46,7 +46,6 @@ if T.TYPE_CHECKING:
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
-    from .wrap import WrapMode
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
@@ -662,12 +661,10 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_options(self) -> coredata.OptionsView:
         return self.options
 
-    def get_option(self, key: 'OptionKey') -> T.Union[str, int, bool, 'WrapMode']:
-        # We don't actually have wrapmode here to do an assert, so just do a
-        # cast, we know what's in coredata anyway.
+    def get_option(self, key: 'OptionKey') -> T.Union[str, int, bool]:
         # TODO: if it's possible to annotate get_option or validate_option_value
         # in the future we might be able to remove the cast here
-        return T.cast('T.Union[str, int, bool, WrapMode]', self.options[key].value)
+        return T.cast('T.Union[str, int, bool]', self.options[key].value)
 
     @staticmethod
     def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:

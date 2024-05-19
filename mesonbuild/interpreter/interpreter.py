@@ -1284,7 +1284,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.subproject_dir = self.subproject_dir
 
         # Load wrap files from this (sub)project.
-        wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
+        wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
         if not self.is_subproject() or wrap_mode != WrapMode.nopromote:
             subdir = os.path.join(self.subdir, spdirname)
             r = wrap.Resolver(self.environment.get_source_dir(), subdir, self.subproject, wrap_mode)
@@ -1679,7 +1679,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
 
         fallback = None
-        wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
+        wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:

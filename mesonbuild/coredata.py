@@ -23,7 +23,6 @@ from .mesonlib import (
     listify_array_value, OptionKey, OptionType, stringlistify,
     pickle_load
 )
-from .wrap import WrapMode
 import ast
 import argparse
 import configparser
@@ -749,11 +748,9 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 '')
 
-    def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool, WrapMode]:
+    def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool]:
         try:
             v = self.options[key].value
-            if key.name == 'wrap_mode':
-                return WrapMode[v]
             return v
         except KeyError:
             pass
@@ -761,8 +758,6 @@ class CoreData:
         try:
             v = self.options[key.as_root()]
             if v.yielding:
-                if key.name == 'wrap_mode':
-                    return WrapMode[v.value]
                 return v.value
         except KeyError:
             pass
