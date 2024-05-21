@@ -871,6 +871,7 @@ def rebuild_all(wd: str, backend: str) -> bool:
         else:
             return None, None
 
+    # TODO: python 3.9 adds user=, group= kwargs to Popen, which can avoid needing preexec_fn.
     env, preexec_fn = drop_privileges()
     ret = subprocess.run(ninja + ['-C', wd], env=env, preexec_fn=preexec_fn).returncode
     if ret != 0:
