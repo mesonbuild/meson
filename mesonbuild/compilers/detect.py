@@ -1143,11 +1143,15 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             try:
                 if info.is_windows() or info.is_cygwin():
                     objfile = os.path.basename(f)[:-1] + 'obj'
+                    extra_args = [f]
+                    if is_cross:
+                        extra_args.append(f'-mtriple={info.cpu}-windows')
+
                     linker = guess_win_linker(env,
                                               exelist,
                                               cls, full_version, for_machine,
                                               use_linker_prefix=True, invoked_directly=False,
-                                              extra_args=[f])
+                                              extra_args=extra_args)
                 else:
                     # LDC writes an object file to the current working directory.
                     # Clean it up.
