@@ -1161,7 +1161,8 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
 
             return cls(
                 exelist, version, for_machine, info, arch,
-                full_version=full_version, linker=linker, version_output=out)
+                full_version=full_version, linker=linker,
+                is_cross=is_cross, version_output=out)
         elif 'gdc' in out:
             cls = d.GnuDCompiler
             linker = guess_nix_linker(env, exelist, cls, version, for_machine)
