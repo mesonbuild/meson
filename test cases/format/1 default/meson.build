@@ -7,6 +7,7 @@ meson_files = {
     'self': files('meson.build'),
     'comments': files('crazy_comments.meson'),
     'indentation': files('indentation.meson'),
+    'gh13242': files('gh13242.meson'),
 }
 
 foreach name, f : meson_files

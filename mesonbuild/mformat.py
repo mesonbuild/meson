@@ -626,6 +626,7 @@ class ArgumentFormatter(FullAstVisitor):
             if need_comma and not has_trailing_comma:
                 comma = mparser.SymbolNode(mparser.Token('comma', node.filename, 0, 0, 0, (0, 0), ','))
                 comma.condition_level = node.condition_level
+                comma.whitespaces = mparser.WhitespaceNode(mparser.Token('whitespace', node.filename, 0, 0, 0, (0, 0), ''))
                 node.commas.append(comma)
             elif has_trailing_comma and not need_comma:
                 node.commas.pop(-1)
