@@ -6,6 +6,7 @@ from __future__ import annotations
 import typing as T
 
 from .. import coredata
+from .. import options
 from ..mesonlib import OptionKey
 
 from .compilers import Compiler
@@ -80,7 +81,7 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
     def get_options(self) -> 'coredata.MutableKeyedOptionDictType':
         return self.update_options(
             super().get_options(),
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                OptionKey('std', machine=self.for_machine, lang='c'),
                                'C language standard to use',
                                ['none', 'c89', 'c99', 'c11', 'c17', 'gnu89', 'gnu99', 'gnu11', 'gnu17'],

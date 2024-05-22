@@ -274,7 +274,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             expected = json.load(f)['meson']['modules']
 
         self.assertEqual(data['modules'], expected)
-        self.assertEqual(data['count'], 68)
+        self.assertEqual(data['count'], 69)
 
     def test_meson_package_cache_dir(self):
         # Copy testdir into temporary directory to not pollute meson source tree.

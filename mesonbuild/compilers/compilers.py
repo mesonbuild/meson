@@ -15,6 +15,7 @@ from functools import lru_cache
 from .. import coredata
 from .. import mlog
 from .. import mesonlib
+from .. import options
 from ..mesonlib import (
     HoldableObject,
     EnvironmentException, MesonException,
@@ -35,7 +36,7 @@ if T.TYPE_CHECKING:
 
     CompilerType = T.TypeVar('CompilerType', bound='Compiler')
     _T = T.TypeVar('_T')
-    UserOptionType = T.TypeVar('UserOptionType', bound=coredata.UserOption)
+    UserOptionType = T.TypeVar('UserOptionType', bound=options.UserOption)
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
@@ -209,40 +210,40 @@ clike_debug_args: T.Dict[bool, T.List[str]] = {
 MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
 
 @dataclass
-class BaseOption(T.Generic[coredata._T, coredata._U]):
-    opt_type: T.Type[coredata._U]
+class BaseOption(T.Generic[options._T, options._U]):
+    opt_type: T.Type[options._U]
     description: str
     default: T.Any = None
     choices: T.Any = None
 
-    def init_option(self, name: OptionKey) -> coredata._U:
+    def init_option(self, name: OptionKey) -> options._U:
         keywords = {'value': self.default}
         if self.choices:
             keywords['choices'] = self.choices
         return self.opt_type(name.name, self.description, **keywords)
 
 BASE_OPTIONS: T.Mapping[OptionKey, BaseOption] = {
-    OptionKey('b_pch'): BaseOption(coredata.UserBooleanOption, 'Use precompiled headers', True),
-    OptionKey('b_lto'): BaseOption(coredata.UserBooleanOption, 'Use link time optimization', False),
-    OptionKey('b_lto_threads'): BaseOption(coredata.UserIntegerOption, 'Use multiple threads for Link Time Optimization', (None, None, 0)),
-    OptionKey('b_lto_mode'): BaseOption(coredata.UserComboOption, 'Select between different LTO modes.', 'default',
+    OptionKey('b_pch'): BaseOption(options.UserBooleanOption, 'Use precompiled headers', True),
+    OptionKey('b_lto'): BaseOption(options.UserBooleanOption, 'Use link time optimization', False),
+    OptionKey('b_lto_threads'): BaseOption(options.UserIntegerOption, 'Use multiple threads for Link Time Optimization', (None, None, 0)),
+    OptionKey('b_lto_mode'): BaseOption(options.UserComboOption, 'Select between different LTO modes.', 'default',
                                         choices=['default', 'thin']),
-    OptionKey('b_thinlto_cache'): BaseOption(coredata.UserBooleanOption, 'Use LLVM ThinLTO caching for faster incremental builds', False),
-    OptionKey('b_thinlto_cache_dir'): BaseOption(coredata.UserStringOption, 'Directory to store ThinLTO cache objects', ''),
-    OptionKey('b_sanitize'): BaseOption(coredata.UserComboOption, 'Code sanitizer to use', 'none',
+    OptionKey('b_thinlto_cache'): BaseOption(options.UserBooleanOption, 'Use LLVM ThinLTO caching for faster incremental builds', False),
+    OptionKey('b_thinlto_cache_dir'): BaseOption(options.UserStringOption, 'Directory to store ThinLTO cache objects', ''),
+    OptionKey('b_sanitize'): BaseOption(options.UserComboOption, 'Code sanitizer to use', 'none',
                                         choices=['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined']),
-    OptionKey('b_lundef'): BaseOption(coredata.UserBooleanOption, 'Use -Wl,--no-undefined when linking', True),
-    OptionKey('b_asneeded'): BaseOption(coredata.UserBooleanOption, 'Use -Wl,--as-needed when linking', True),
-    OptionKey('b_pgo'): BaseOption(coredata.UserComboOption, 'Use profile guided optimization', 'off',
+    OptionKey('b_lundef'): BaseOption(options.UserBooleanOption, 'Use -Wl,--no-undefined when linking', True),
+    OptionKey('b_asneeded'): BaseOption(options.UserBooleanOption, 'Use -Wl,--as-needed when linking', True),
+    OptionKey('b_pgo'): BaseOption(options.UserComboOption, 'Use profile guided optimization', 'off',
                                    choices=['off', 'generate', 'use']),
-    OptionKey('b_coverage'): BaseOption(coredata.UserBooleanOption, 'Enable coverage tracking.', False),
-    OptionKey('b_colorout'): BaseOption(coredata.UserComboOption, 'Use colored output', 'always',
+    OptionKey('b_coverage'): BaseOption(options.UserBooleanOption, 'Enable coverage tracking.', False),
+    OptionKey('b_colorout'): BaseOption(options.UserComboOption, 'Use colored output', 'always',
                                         choices=['auto', 'always', 'never']),
-    OptionKey('b_ndebug'): BaseOption(coredata.UserComboOption, 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
-    OptionKey('b_staticpic'): BaseOption(coredata.UserBooleanOption, 'Build static libraries as position independent', True),
-    OptionKey('b_pie'): BaseOption(coredata.UserBooleanOption, 'Build executables as position independent', False),
-    OptionKey('b_bitcode'): BaseOption(coredata.UserBooleanOption, 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
-    OptionKey('b_vscrt'): BaseOption(coredata.UserComboOption, 'VS run-time library type to use.', 'from_buildtype',
+    OptionKey('b_ndebug'): BaseOption(options.UserComboOption, 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
+    OptionKey('b_staticpic'): BaseOption(options.UserBooleanOption, 'Build static libraries as position independent', True),
+    OptionKey('b_pie'): BaseOption(options.UserBooleanOption, 'Build executables as position independent', False),
+    OptionKey('b_bitcode'): BaseOption(options.UserBooleanOption, 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
+    OptionKey('b_vscrt'): BaseOption(options.UserComboOption, 'VS run-time library type to use.', 'from_buildtype',
                                      choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
 }
 
@@ -1365,12 +1366,12 @@ def get_global_options(lang: str,
     comp_options = env.options.get(comp_key, [])
     link_options = env.options.get(largkey, [])
 
-    cargs = coredata.UserArrayOption(
+    cargs = options.UserArrayOption(
         f'{lang}_{argkey.name}',
         description + ' compiler',
         comp_options, split_args=True, allow_dups=True)
 
-    largs = coredata.UserArrayOption(
+    largs = options.UserArrayOption(
         f'{lang}_{largkey.name}',
         description + ' linker',
         link_options, split_args=True, allow_dups=True)

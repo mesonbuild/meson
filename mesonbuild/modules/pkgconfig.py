@@ -14,7 +14,7 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from ..coredata import BUILTIN_DIR_OPTIONS
+from ..options import BUILTIN_DIR_OPTIONS
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated

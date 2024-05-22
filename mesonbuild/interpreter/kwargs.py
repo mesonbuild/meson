@@ -10,7 +10,7 @@ import typing as T
 from typing_extensions import TypedDict, Literal, Protocol, NotRequired
 
 from .. import build
-from .. import coredata
+from .. import options
 from ..compilers import Compiler
 from ..dependencies.base import Dependency
 from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString, OptionKey
@@ -73,7 +73,7 @@ class ExtractRequired(TypedDict):
     a boolean or a feature option should inherit it's arguments from this class.
     """
 
-    required: T.Union[bool, coredata.UserFeatureOption]
+    required: T.Union[bool, options.UserFeatureOption]
 
 
 class ExtractSearchDirs(TypedDict):

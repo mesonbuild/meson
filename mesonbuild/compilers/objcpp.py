@@ -6,6 +6,7 @@ from __future__ import annotations
 import typing as T
 
 from .. import coredata
+from .. import options
 from ..mesonlib import OptionKey
 
 from .mixins.clike import CLikeCompiler
@@ -80,7 +81,7 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
     def get_options(self) -> coredata.MutableKeyedOptionDictType:
         return self.update_options(
             super().get_options(),
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                OptionKey('std', machine=self.for_machine, lang='cpp'),
                                'C++ language standard to use',
                                ['none', 'c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b',

@@ -225,6 +225,7 @@
       "mesonbuild.mparser",
       "mesonbuild.msetup",
       "mesonbuild.optinterpreter",
+      "mesonbuild.options",
       "mesonbuild.programs",
       "mesonbuild.scripts",
       "mesonbuild.scripts.meson_exe",
@@ -237,6 +238,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 68
+    "count": 69
   }
 }

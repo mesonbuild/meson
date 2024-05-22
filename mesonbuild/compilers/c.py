@@ -6,7 +6,7 @@ from __future__ import annotations
 import os.path
 import typing as T
 
-from .. import coredata
+from .. import options
 from .. import mlog
 from ..mesonlib import MesonException, version_compare, OptionKey
 from .c_function_attributes import C_FUNC_ATTRIBUTES
@@ -96,7 +96,7 @@ class CCompiler(CLikeCompiler, Compiler):
         opts = super().get_options()
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
-            key: coredata.UserStdOption('C', _ALL_STDS),
+            key: options.UserStdOption('C', _ALL_STDS),
         })
         return opts
 
@@ -128,7 +128,7 @@ class _ClangCStds(CompilerMixinBase):
         if version_compare(self.version, self._C23_VERSION):
             stds += ['c23']
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True)
         return opts
 
@@ -154,7 +154,7 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
         if self.info.is_windows() or self.info.is_cygwin():
             self.update_options(
                 opts,
-                self.create_option(coredata.UserArrayOption,
+                self.create_option(options.UserArrayOption,
                                    OptionKey('winlibs', machine=self.for_machine, lang=self.language),
                                    'Standard Win libraries to link against',
                                    gnu_winlibs),
@@ -247,7 +247,7 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c90', 'c99', 'c11'], gnu=True)
         return opts
 
@@ -298,12 +298,12 @@ class GnuCCompiler(GnuCompiler, CCompiler):
             stds += ['c23']
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         std_opt = opts[key]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True)
         if self.info.is_windows() or self.info.is_cygwin():
             self.update_options(
                 opts,
-                self.create_option(coredata.UserArrayOption,
+                self.create_option(options.UserArrayOption,
                                    key.evolve('winlibs'),
                                    'Standard Win libraries to link against',
                                    gnu_winlibs),
@@ -377,7 +377,7 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
         if version_compare(self.version, '>=1.26.00'):
             stds += ['c17', 'c18', 'iso9899:2017', 'iso9899:2018', 'gnu17', 'gnu18']
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds)
         return opts
 
@@ -416,7 +416,7 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         if version_compare(self.version, '>=16.0.0'):
             stds += ['c11']
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True)
         return opts
 
@@ -441,7 +441,7 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
         return self.update_options(
             super().get_options(),
             self.create_option(
-                coredata.UserArrayOption,
+                options.UserArrayOption,
                 OptionKey('winlibs', machine=self.for_machine, lang=self.language),
                 'Windows libs to link against.',
                 msvc_winlibs,
@@ -480,7 +480,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         if version_compare(self.version, self._C17_VERSION):
             stds += ['c17', 'c18']
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True, gnu_deprecated=True)
         return opts
 
@@ -529,7 +529,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 
@@ -562,7 +562,7 @@ class ArmCCompiler(ArmCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 
@@ -591,7 +591,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99'])
         return opts
 
@@ -638,7 +638,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99'], gnu=True)
         return opts
 
@@ -683,7 +683,7 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99'])
         return opts
 
@@ -720,7 +720,7 @@ class TICCompiler(TICompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 

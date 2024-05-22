@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import typing as T
 
-from .. import coredata
+from .. import options
 from ..mesonlib import EnvironmentException, OptionKey, version_compare
 from .compilers import Compiler
 
@@ -69,12 +69,12 @@ class CythonCompiler(Compiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         return self.update_options(
             super().get_options(),
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                OptionKey('version', machine=self.for_machine, lang=self.language),
                                'Python version to target',
                                ['2', '3'],
                                '3'),
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                OptionKey('language', machine=self.for_machine, lang=self.language),
                                'Output C or C++ files',
                                ['c', 'cpp'],

@@ -23,7 +23,7 @@ import typing as T
 from . import builder
 from . import version
 from ..mesonlib import MesonException, Popen_safe, OptionKey
-from .. import coredata
+from .. import coredata, options
 
 if T.TYPE_CHECKING:
     from types import ModuleType
@@ -712,11 +712,11 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
     build = builder.Builder(filename)
 
     # Generate project options
-    options: T.Dict[OptionKey, coredata.UserOption] = {}
+    project_options: T.Dict[OptionKey, options.UserOption] = {}
     for feature in cargo.features:
         key = OptionKey(_option_name(feature), subproject=subp_name)
         enabled = feature == 'default'
-        options[key] = coredata.UserBooleanOption(key.name, f'Cargo {feature} feature', enabled)
+        project_options[key] = options.UserBooleanOption(key.name, f'Cargo {feature} feature', enabled)
 
     ast = _create_project(cargo, build)
     ast += [build.assign(build.function('import', [build.string('rust')]), 'rust')]
@@ -730,4 +730,4 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
         for crate_type in cargo.lib.crate_type:
             ast.extend(_create_lib(cargo, build, crate_type))
 
-    return build.block(ast), options
+    return build.block(ast), project_options

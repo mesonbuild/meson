@@ -10,7 +10,7 @@ import copy
 import os
 import typing as T
 
-from .. import compilers, environment, mesonlib, optinterpreter
+from .. import compilers, environment, mesonlib, optinterpreter, options
 from .. import coredata as cdata
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
@@ -150,8 +150,8 @@ class IntrospectionInterpreter(AstInterpreter):
     def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         kwargs = self.flatten_kwargs(kwargs)
         required = kwargs.get('required', True)
-        assert isinstance(required, (bool, cdata.UserFeatureOption)), 'for mypy'
-        if isinstance(required, cdata.UserFeatureOption):
+        assert isinstance(required, (bool, options.UserFeatureOption)), 'for mypy'
+        if isinstance(required, options.UserFeatureOption):
             required = required.is_enabled()
         if 'native' in kwargs:
             native = kwargs.get('native', False)
