@@ -33,7 +33,7 @@ if T.TYPE_CHECKING:
         name: str
         executable: str
         deps: str
-        language: Literal['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala']
+        language: Literal['c', 'cpp', 'cython', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala']
         build: bool
         builddir: str
         force: bool
@@ -42,8 +42,8 @@ if T.TYPE_CHECKING:
 
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
-LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java', '.vala'} | FORTRAN_SUFFIXES
-LANG_SUPPORTED = {'c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala'}
+LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.pyx', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java', '.vala'} | FORTRAN_SUFFIXES
+LANG_SUPPORTED = {'c', 'cpp', 'cython', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'vala'}
 
 DEFAULT_PROJECT = 'executable'
 DEFAULT_VERSION = '0.1'
@@ -137,6 +137,9 @@ def autodetect_options(options: Arguments, sample: bool = False) -> None:
                 break
             if f.suffix == '.vala':
                 options.language = 'vala'
+                break
+            if f.suffix == '.pyx':
+                options.language = 'cython'
                 break
         if not options.language:
             raise SystemExit("Can't autodetect language, please specify it with -l.")
