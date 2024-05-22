@@ -1007,7 +1007,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return dep.get_compile_args()
 
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
-        return dep.get_link_args()
+        return dep.get_link_args(self.get_language())
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
