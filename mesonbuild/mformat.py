@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import typing as T
-from configparser import ConfigParser, MissingSectionHeaderError
+from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
 from copy import deepcopy
 from dataclasses import dataclass, field, fields, asdict
 from pathlib import Path
@@ -829,7 +829,10 @@ class Formatter:
         config = FormatterConfig()
         if configuration_file:
             cp = DefaultConfigParser()
-            cp.read_default(configuration_file)
+            try:
+                cp.read_default(configuration_file)
+            except ParsingError as e:
+                raise MesonException(f'Unable to parse configuration file "{configuration_file}":\n{e}') from e
 
             for f in fields(config):
                 getter = f.metadata['getter']
