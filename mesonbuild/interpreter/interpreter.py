@@ -11,6 +11,7 @@ from .. import environment
 from .. import coredata
 from .. import dependencies
 from .. import mlog
+from .. import options
 from .. import build
 from .. import optinterpreter
 from .. import compilers
@@ -163,7 +164,7 @@ class Summary:
                 elif isinstance(i, Disabler):
                     FeatureNew.single_use('disabler in summary', '0.64.0', subproject)
                     formatted_values.append(mlog.red('NO'))
-                elif isinstance(i, coredata.UserOption):
+                elif isinstance(i, options.UserOption):
                     FeatureNew.single_use('feature option in summary', '0.58.0', subproject)
                     formatted_values.append(i.printable_value())
                 else:
@@ -450,7 +451,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.StructuredSources: OBJ.StructuredSourcesHolder,
             compilers.RunResult: compilerOBJ.TryRunResultHolder,
             dependencies.ExternalLibrary: OBJ.ExternalLibraryHolder,
-            coredata.UserFeatureOption: OBJ.FeatureOptionHolder,
+            options.UserFeatureOption: OBJ.FeatureOptionHolder,
             envconfig.MachineInfo: OBJ.MachineHolder,
             build.ConfigurationData: OBJ.ConfigurationDataHolder,
         })
@@ -1047,7 +1048,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 # FIXME: Are there other files used by cargo interpreter?
                 [os.path.join(subdir, 'Cargo.toml')])
 
-    def get_option_internal(self, optname: str) -> coredata.UserOption:
+    def get_option_internal(self, optname: str) -> options.UserOption:
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
 
         if not key.is_project():
@@ -1056,7 +1057,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if v is None or v.yielding:
                     v = opts.get(key.as_root())
                 if v is not None:
-                    assert isinstance(v, coredata.UserOption), 'for mypy'
+                    assert isinstance(v, options.UserOption), 'for mypy'
                     return v
 
         try:
@@ -1085,7 +1086,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('get_option', str)
     @noKwargs
     def func_get_option(self, nodes: mparser.BaseNode, args: T.Tuple[str],
-                        kwargs: 'TYPE_kwargs') -> T.Union[coredata.UserOption, 'TYPE_var']:
+                        kwargs: 'TYPE_kwargs') -> T.Union[options.UserOption, 'TYPE_var']:
         optname = args[0]
         if ':' in optname:
             raise InterpreterException('Having a colon in option name is forbidden, '
@@ -1096,10 +1097,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException(f'Invalid option name {optname!r}')
 
         opt = self.get_option_internal(optname)
-        if isinstance(opt, coredata.UserFeatureOption):
+        if isinstance(opt, options.UserFeatureOption):
             opt.name = optname
             return opt
-        elif isinstance(opt, coredata.UserOption):
+        elif isinstance(opt, options.UserOption):
             if isinstance(opt.value, str):
                 return P_OBJ.OptionString(opt.value, f'{{{optname}}}')
             return opt.value

@@ -9,6 +9,7 @@ import string
 import typing as T
 
 from .. import coredata
+from .. import options
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException, Popen_safe,
@@ -643,12 +644,12 @@ class CudaCompiler(Compiler):
 
         return self.update_options(
             super().get_options(),
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                OptionKey('std', machine=self.for_machine, lang=self.language),
                                'C++ language standard to use with CUDA',
                                cpp_stds,
                                'none'),
-            self.create_option(coredata.UserStringOption,
+            self.create_option(options.UserStringOption,
                                OptionKey('ccbindir', machine=self.for_machine, lang=self.language),
                                'CUDA non-default toolchain directory to use (-ccbin)',
                                ''),

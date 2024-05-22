@@ -9,6 +9,7 @@ import os.path
 import typing as T
 
 from ... import coredata
+from ... import options
 from ... import mesonlib
 from ...mesonlib import OptionKey
 from ...mesonlib import LibType
@@ -59,7 +60,7 @@ class EmscriptenMixin(Compiler):
         return self.update_options(
             super().get_options(),
             self.create_option(
-                coredata.UserIntegerOption,
+                options.UserIntegerOption,
                 OptionKey('thread_count', machine=self.for_machine, lang=self.language),
                 'Number of threads to use in web assembly, set to 0 to disable',
                 (0, None, 4),  # Default was picked at random

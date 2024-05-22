@@ -41,7 +41,8 @@ from mesonbuild.compilers import compiler_from_language
 from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof, setup_vsenv
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
-from mesonbuild.coredata import backendlist, version as meson_version
+from mesonbuild.coredata import version as meson_version
+from mesonbuild.options import backendlist
 from mesonbuild.modules.python import PythonExternalProgram
 from run_tests import (
     get_fake_options, run_configure, get_meson_script, get_backend_commands,

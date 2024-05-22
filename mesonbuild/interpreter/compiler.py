@@ -13,6 +13,7 @@ import typing as T
 from .. import build
 from .. import coredata
 from .. import dependencies
+from .. import options
 from .. import mesonlib
 from .. import mlog
 from ..compilers import SUFFIX_TO_LANG, RunResult
@@ -89,7 +90,7 @@ if T.TYPE_CHECKING:
         header_include_directories: T.List[build.IncludeDirs]
         header_no_builtin_args: bool
         header_prefix: str
-        header_required: T.Union[bool, coredata.UserFeatureOption]
+        header_required: T.Union[bool, options.UserFeatureOption]
 
     class PreprocessKW(TypedDict):
         output: str
@@ -685,7 +686,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     @typed_pos_args('compiler.find_library', str)
     @typed_kwargs(
         'compiler.find_library',
-        KwargInfo('required', (bool, coredata.UserFeatureOption), default=True),
+        KwargInfo('required', (bool, options.UserFeatureOption), default=True),
         KwargInfo('has_headers', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
         KwargInfo('static', (bool, NoneType), since='0.51.0'),
         KwargInfo('disabler', bool, default=False, since='0.49.0'),

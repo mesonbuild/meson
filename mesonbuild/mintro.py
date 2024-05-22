@@ -19,7 +19,7 @@ from pathlib import Path, PurePath
 import sys
 import typing as T
 
-from . import build, mesonlib, coredata as cdata
+from . import build, mesonlib, options, coredata as cdata
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
 from .dependencies import Dependency
@@ -88,7 +88,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         flag = '--' + key.replace('_', '-')
         parser.add_argument(flag, action='store_true', dest=key, default=False, help=val.desc)
 
-    parser.add_argument('--backend', choices=sorted(cdata.backendlist), dest='backend', default='ninja',
+    parser.add_argument('--backend', choices=sorted(options.backendlist), dest='backend', default='ninja',
                         help='The backend to use for the --buildoptions introspection.')
     parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
                         help='Print all available information.')
@@ -284,7 +284,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     optlist: T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = []
     subprojects = subprojects or []
 
-    dir_option_names = set(cdata.BUILTIN_DIR_OPTIONS)
+    dir_option_names = set(options.BUILTIN_DIR_OPTIONS)
     test_option_names = {OptionKey('errorlogs'),
                          OptionKey('stdsplit')}
 
@@ -302,20 +302,20 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
                 for s in subprojects:
                     core_options[k.evolve(subproject=s)] = v
 
-    def add_keys(options: 'cdata.KeyedOptionDictType', section: str) -> None:
-        for key, opt in sorted(options.items()):
+    def add_keys(opts: 'cdata.KeyedOptionDictType', section: str) -> None:
+        for key, opt in sorted(opts.items()):
             optdict = {'name': str(key), 'value': opt.value, 'section': section,
                        'machine': key.machine.get_lower_case_name() if coredata.is_per_machine_option(key) else 'any'}
-            if isinstance(opt, cdata.UserStringOption):
+            if isinstance(opt, options.UserStringOption):
                 typestr = 'string'
-            elif isinstance(opt, cdata.UserBooleanOption):
+            elif isinstance(opt, options.UserBooleanOption):
                 typestr = 'boolean'
-            elif isinstance(opt, cdata.UserComboOption):
+            elif isinstance(opt, options.UserComboOption):
                 optdict['choices'] = opt.choices
                 typestr = 'combo'
-            elif isinstance(opt, cdata.UserIntegerOption):
+            elif isinstance(opt, options.UserIntegerOption):
                 typestr = 'integer'
-            elif isinstance(opt, cdata.UserArrayOption):
+            elif isinstance(opt, options.UserArrayOption):
                 typestr = 'array'
                 if opt.choices:
                     optdict['choices'] = opt.choices

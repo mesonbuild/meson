@@ -6,7 +6,7 @@ from __future__ import annotations
 import typing as T
 import os
 
-from .. import coredata
+from .. import options
 from .compilers import (
     clike_debug_args,
     Compiler,
@@ -114,7 +114,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         return self.update_options(
             super().get_options(),
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                OptionKey('std', machine=self.for_machine, lang=self.language),
                                'Fortran language standard to use',
                                ['none'],

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from .. import mesonlib, mparser
 from .exceptions import InterpreterException, InvalidArguments
-from ..coredata import UserOption
+from ..options import UserOption
 
 
 import collections.abc
