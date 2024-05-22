@@ -1,0 +1,18 @@
+# Minimized meson.build
+test(
+    args: [
+        shared_library(
+            f'tstlib-@name@',
+            build_by_default: false,
+            override_options: opt,
+        ),
+    ],
+)
+
+test(
+    should_fail: (settings.get('x', false) and not settings['y'] and dep.version(
+        
+    ).version_compare(
+        '>=1.2.3',
+    )),
+)
