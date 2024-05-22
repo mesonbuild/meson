@@ -13,6 +13,7 @@ from mesonbuild.templates.rusttemplates import RustProject
 from mesonbuild.templates.javatemplates import JavaProject
 from mesonbuild.templates.cudatemplates import CudaProject
 from mesonbuild.templates.objctemplates import ObjCProject
+from mesonbuild.templates.cythontemplates import CythonProject
 from mesonbuild.templates.cpptemplates import CppProject
 from mesonbuild.templates.cstemplates import CSharpProject
 from mesonbuild.templates.ctemplates import CProject
@@ -25,6 +26,7 @@ if T.TYPE_CHECKING:
 _IMPL: T.Mapping[str, T.Union[T.Type[ClassImpl], T.Type[FileHeaderImpl], T.Type[FileImpl]]] = {
     'c': CProject,
     'cpp': CppProject,
+    'cython': CythonProject,
     'cs': CSharpProject,
     'cuda': CudaProject,
     'objc': ObjCProject,
