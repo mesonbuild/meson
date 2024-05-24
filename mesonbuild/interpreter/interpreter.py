@@ -2585,7 +2585,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         ),
         KwargInfo(
             'copy', bool, default=False, since='0.47.0',
-            deprecated='0.64.0', deprecated_message='Use fs.copyfile instead',
         ),
         KwargInfo('encoding', str, default='utf-8', since='0.47.0'),
         KwargInfo('format', str, default='meson', since='0.46.0',
