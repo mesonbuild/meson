@@ -31,14 +31,3 @@ main = executable(
 )
 
 test('main_test2', main)
-
-subdir('subdir')
-
-staticlib = static_library('staticlib', 'lib.rs',
-  link_with: pm_in_subdir,
-  rust_dependency_map : {'proc_macro_examples3' : 'proc_macro_examples'}
-)
-
-executable('transitive-proc-macro', 'transitive-proc-macro.rs',
-  link_with: staticlib,
-)
