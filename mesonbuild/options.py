@@ -4,6 +4,7 @@
 from collections import OrderedDict
 from itertools import chain
 import argparse
+import re
 
 from .mesonlib import (
     HoldableObject,
@@ -476,65 +477,45 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('purelibdir', module='python'): {},
 }
 
+OPTNAME_REGEX = r'(P<build>build\.)?(P<subproject>[^:]*:)?(P<name>.*)'
+OPTNAME_AND_VALUE_REGEX = OPTNAME_REGEX + r'=(P<value>.*)'
+OPTNAME_SPLITTER = re.compile(OPTNAME_REGEX)
+OPTNAME_AND_VALUE_SPLITTER = re.compile(OPTNAME_AND_VALUE_REGEX)
+
+class OptionParts:
+    def __init__(self, name, subproject=None, for_build=None):
+        self.name = name
+        self.subproject = subproject
+        self.for_build = for_build
+
 class OptionStore:
     def __init__(self):
-        self.d: T.Dict['OptionKey', 'UserOption[T.Any]'] = {}
+        self.options = {}
+        self.build_options = None
 
-    def __len__(self):
-        return len(self.d)
+    def form_canonical_keystring(self, name, subproject=None, for_build=None):
+        strname = name
+        if subproject is not None:
+            strname = f'{subproject}:{strname}'
+        if for_build:
+            strname = 'build.' + strname
+        return strname
 
-    def ensure_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
-        if isinstance(key, str):
-            return OptionKey(key)
-        return key
+    def split_keystring(self, option_str):
+        m = re.fullmatch(OPNAME_SPLITTER, option_str)
+        for_build = True if 'build' in m.groupdict() else None
+        subproject = m.groupdict().get('subproject', None)
+        name = m['name']
+        return OptionParts(name, subproject, for_build)
 
-    def get_value_object(self, key: T.Union[OptionKey, str]) -> 'UserOption[T.Any]':
-        return self.d[self.ensure_key(key)]
+    def add_system_option(self, name, value_object):
+        cname = self.form_canonical_keystring(name)
+        self.options[cname] = value_object
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> 'T.Any':
-        return self.get_value_object(key).value
+    def add_project_option(self, name, subproject, keystr, value_object):
+        cname = self.form_canonical_keystring(name, subproject)
+        self.options[keystr] = value_object
 
-    def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
-        key = self.ensure_key(key)
-        self.d[key] = valobj
-
-    def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
-        key = self.ensure_key(key)
-        self.d[key] = valobj
-
-    def set_value(self, key: T.Union[OptionKey, str], new_value: 'T.Any') -> bool:
-        key = self.ensure_key(key)
-        return self.d[key].set_value(new_value)
-
-    # FIXME, this should be removed.or renamed to "change_type_of_existing_object" or something like that
-    def set_value_object(self, key: T.Union[OptionKey, str], new_object: 'UserOption[T.Any]') -> bool:
-        key = self.ensure_key(key)
-        self.d[key] = new_object
-
-    def remove(self, key):
-        del self.d[key]
-
-    def __contains__(self, key):
-        key = self.ensure_key(key)
-        return key in self.d
-
-    def __repr__(self):
-        return repr(self.d)
-
-    def keys(self):
-        return self.d.keys()
-
-    def values(self):
-        return self.d.values()
-
-    def items(self) -> ItemsView['OptionKey', 'UserOption[T.Any]']:
-        return self.d.items()
-
-    def update(self, *args, **kwargs):
-        return self.d.update(*args, **kwargs)
-
-    def setdefault(self, k, o):
-        return self.d.setdefault(k, o)
-
-    def get(self, *args, **kwargs) -> UserOption:
-        return self.d.get(*args, **kwargs)
+    def get_value_for(self, name, subproject=None):
+        cname = self.form_canonical_keystring(name, subproject)
+        return self.options[cname].value
