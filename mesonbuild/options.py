@@ -21,6 +21,7 @@ from .mesonlib import (
     default_sysconfdir,
     MesonException,
     listify_array_value,
+    MesonException,
 )
 
 from . import mlog
@@ -477,8 +478,8 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('purelibdir', module='python'): {},
 }
 
-OPTNAME_REGEX = r'(P<build>build\.)?(P<subproject>[^:]*:)?(P<name>.*)'
-OPTNAME_AND_VALUE_REGEX = OPTNAME_REGEX + r'=(P<value>.*)'
+OPTNAME_REGEX = r'(?P<build>build\.)?((?P<subproject>[^:]*):)?(?P<name>.*)'
+OPTNAME_AND_VALUE_REGEX = OPTNAME_REGEX + r'=(?P<value>.*)'
 OPTNAME_SPLITTER = re.compile(OPTNAME_REGEX)
 OPTNAME_AND_VALUE_SPLITTER = re.compile(OPTNAME_AND_VALUE_REGEX)
 
@@ -492,13 +493,21 @@ class OptionStore:
     def __init__(self):
         self.options = {}
         self.build_options = None
-        self.perproject = {}
-        self.does_yield = {}
+        self.project_options = set()
+        self.augments = {}
 
     def num_options(self):
         basic = len(self.options)
         build = len(self.build_options) if self.build_options else 0
         return basic + build
+
+    def set_option(self, name, subproject, new_value):
+        cname = self.form_canonical_keystring(name)
+        self.set_option_from_string(cname, new_value)
+
+    def set_option_from_string(self, keystr, new_value):
+        m = re.fullmatch(OPTNAME_REGEX, keystr) # Merely for validation
+        self.options[keystr].set_value(new_value)
 
     def form_canonical_keystring(self, name, subproject=None, for_build=None):
         strname = name
@@ -509,11 +518,18 @@ class OptionStore:
         return strname
 
     def split_keystring(self, option_str):
-        m = re.fullmatch(OPNAME_SPLITTER, option_str)
-        for_build = True if 'build' in m.groupdict() else None
-        subproject = m.groupdict().get('subproject', None)
+        m = re.fullmatch(OPTNAME_SPLITTER, option_str)
+        if m is None:
+            raise MesonException(f'Not a valid key string: {option_str}')
+        x = m['build']
+        for_build = m['build'] is not None
+        subproject = m['subproject']
         name = m['name']
         return OptionParts(name, subproject, for_build)
+
+    def canonicalize_keystring(self, keystr):
+        parts = self.split_keystring(keystr)
+        return self.form_canonical_keystring(parts.name, parts.subproject, parts.for_build)
 
     def add_system_option(self, name, value_object):
         cname = self.form_canonical_keystring(name)
@@ -521,18 +537,38 @@ class OptionStore:
         if cname not in self.options:
             self.options[cname] = value_object
 
-    def add_project_option(self, name, subproject, yielding, value_object):
+    def add_project_option(self, name, subproject, value_object):
         cname = self.form_canonical_keystring(name, subproject)
         self.options[cname] = value_object
-        self.does_yield[cname] = yielding
+        self.project_options.add(cname)
 
     def get_value_object_for(self, name, subproject=None):
         cname = self.form_canonical_keystring(name, subproject)
-        if self.does_yield.get(cname, False):
-            top_cname = self.form_canonical_keystring(name)
-            if top_cname in self.options:
-                return self.options[top_cname]
-        return self.options[cname]
+        top_cname = self.form_canonical_keystring(name)
+        potential = self.options.get(cname, None)
+        if potential is None:
+            return self.options[top_cname]
+        if potential.yielding:
+            return self.options.get(top_cname, potential)
+        return potential
 
     def get_value_for(self, name, subproject=None):
-        return self.get_value_object_for(name, subproject).value
+        vobject = self.get_value_object_for(name, subproject)
+        cname = self.form_canonical_keystring(name, subproject)
+        if cname in self.augments:
+            return vobject.validate_value(self.augments[cname])
+        return vobject.value
+
+    def set_from_configure_command(self, D, A, U):
+        for setval in D:
+            # FIXME
+            pass
+        for add in A:
+            keystr, valstr = add.split('=', 1)
+            keystr = self.canonicalize_keystring(keystr)
+            self.augments[keystr] = valstr
+        for delete in U:
+            delete = self.canonicalize_keystring(delete)
+            if delete in self.augments:
+                del self.augments[delete]
+
