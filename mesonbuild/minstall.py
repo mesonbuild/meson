@@ -743,13 +743,17 @@ class Installer:
                         self.log('Not stripping jar target: {}'.format(os.path.basename(fname)))
                         continue
                     self.do_strip(d.strip_bin, fname, outname)
-                if fname.endswith('.js'):
-                    # Emscripten outputs js files and optionally a wasm file.
-                    # If one was generated, install it as well.
+                if fname.endswith('.js') or fname.endswith('.mjs') or fname.endswith('.cjs'):
+                    # Emscripten outputs js files and optionally a wasm file and a worker file
+                    # If these were generated, install them as well.
                     wasm_source = os.path.splitext(fname)[0] + '.wasm'
                     if os.path.exists(wasm_source):
                         wasm_output = os.path.splitext(outname)[0] + '.wasm'
                         file_copied = self.do_copyfile(wasm_source, wasm_output)
+                    worker_source = os.path.splitext(fname)[0] + '.worker' + os.path.splitext(fname)[1]
+                    if os.path.exists(worker_source):
+                        worker_output = os.path.splitext(outname)[0] + '.worker' + os.path.splitext(fname)[1]
+                        file_copied = self.do_copyfile(worker_source, worker_output)
             elif os.path.isdir(fname):
                 fname = os.path.join(d.build_dir, fname.rstrip('/'))
                 outname = os.path.join(outdir, os.path.basename(fname))

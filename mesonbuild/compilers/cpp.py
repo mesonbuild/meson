@@ -366,6 +366,7 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
         std = options[key]
         if std.value != 'none':
             args.append(self._find_best_cpp_std(std.value))
+        non_msvc_eh_options(options[OptionKey('eh', machine=self.for_machine, lang='cpp')].value, args)
         return args
 
 

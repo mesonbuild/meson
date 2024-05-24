@@ -25,6 +25,10 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
+emscripten_debug_args: T.Dict[bool, T.List[str]] = {
+    False: [],
+    True: ['-gsource-map']
+}
 
 def wrap_js_includes(args: T.List[str]) -> T.List[str]:
     final_args: T.List[str] = []
@@ -54,6 +58,19 @@ class EmscriptenMixin(Compiler):
         if count:
             args.append(f'-sPTHREAD_POOL_SIZE={count}')
         return args
+
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        return emscripten_debug_args[is_debug]
+
+    def get_option_link_args(self, options: coredata.KeyedOptionDictType) -> T.List[str]:
+        if options[OptionKey('debug')]:
+            return ['-gsource-map']
+        return []
+
+    def sanitizer_link_args(self, value: str) -> T.List[str]:
+        if 'address' in value.split(','):
+            return ['-sSAFE_HEAP=1', '-sASSERTIONS=2', '-sSTACK_OVERFLOW_CHECK=2']
+        return []
 
     def get_options(self) -> coredata.MutableKeyedOptionDictType:
         return self.update_options(

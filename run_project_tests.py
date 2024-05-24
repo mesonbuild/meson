@@ -77,8 +77,8 @@ if T.TYPE_CHECKING:
 ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux',
              'java', 'C#', 'vala', 'cython', 'rust', 'd', 'objective c', 'objective c++',
-             'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm', 'wayland',
-             'format',
+             'fortran', 'swift', 'cuda', 'python3', 'python', 'node-api', 'fpga', 'frameworks', 'nasm', 'wasm',
+             'wayland', 'format',
              ]
 
 
@@ -239,6 +239,18 @@ class InstalledFile:
                 return None
         elif self.typ == 'expr':
             return Path(platform_fix_name(p.as_posix(), canonical_compiler, env))
+        elif self.typ == 'js_module_main':
+            if env.machines.host.system == 'emscripten':
+                return p.with_suffix('.mjs')
+            return p.with_suffix('.node')
+        elif self.typ == 'js_module_ext':
+            if env.machines.host.system == 'emscripten':
+                return p.with_suffix('.wasm')
+            return None
+        elif self.typ == 'js_module_worker':
+            if env.machines.host.system == 'emscripten':
+                return p.with_suffix('.worker.mjs')
+            return None
         else:
             raise RuntimeError(f'Invalid installed file type {self.typ}')
 
@@ -1122,6 +1134,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
         TestCategory('python3', 'python3', backend is not Backend.ninja or 'python3' not in sys.executable),
         TestCategory('python', 'python'),
+        TestCategory('node-api', 'node-api', not shutil.which('npm') or not shutil.which('node')),
         TestCategory('fpga', 'fpga', shutil.which('yosys') is None),
         TestCategory('frameworks', 'frameworks'),
         TestCategory('nasm', 'nasm'),

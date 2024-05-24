@@ -50,6 +50,7 @@ index.md
 			Pkgconfig-module.md
 			Python-3-module.md
 			Python-module.md
+			Node-API-module.md
 			Qt4-module.md
 			Qt5-module.md
 			Qt6-module.md

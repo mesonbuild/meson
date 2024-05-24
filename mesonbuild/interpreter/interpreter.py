@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import hashlib
+import hashlib, json
 
 from .. import mparser
 from .. import environment
@@ -1247,6 +1247,17 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException('Version file must contain exactly one line of text.')
             self.project_version = ver_data[0]
         else:
+            # TODO: Implement a generic API for this
+            if version == 'undefined':
+                # Try to load the version number from a package.json if it exists
+                try:
+                    with open(Path(self.environment.get_source_dir()) / 'package.json', encoding='utf-8') as package_json:
+                        pkg_info = json.load(package_json)
+                        if 'version' in pkg_info:
+                            version = pkg_info['version']
+                except Exception:
+                    pass
+
             self.project_version = version
 
         if self.build.project_version is None:

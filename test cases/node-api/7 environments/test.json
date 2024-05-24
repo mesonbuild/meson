@@ -1,0 +1,6 @@
+{
+  "installed": [
+    {"type": "js_module_main", "file": "usr/hello_world"},
+    {"type": "js_module_ext", "file": "usr/hello_world"}
+  ]
+}

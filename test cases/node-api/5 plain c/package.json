@@ -1,0 +1,13 @@
+{
+  "name": "hello-world",
+  "version": "1.0.0",
+  "description": "Hello World for meson",
+  "main": "index.js",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@emnapi/runtime": "^1.1.1",
+    "chai": "^4.4.1",
+    "emnapi": "^1.1.1"
+  }
+}

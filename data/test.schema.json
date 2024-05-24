@@ -34,7 +34,10 @@
               "py_limited_implib",
               "implibempty",
               "expr",
-              "link"
+              "link",
+              "js_module_main",
+              "js_module_ext",
+              "js_module_worker"
             ]
           },
           "platform": {

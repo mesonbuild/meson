@@ -51,3 +51,30 @@ jobs:
         name: "Ubuntu nonnative"
         fail_ci_if_error: false
         verbose: true
+
+  node-api-emscripten:
+    runs-on: ubuntu-latest
+    container: mesonbuild/eoan:latest
+    env:
+      MESON_CI_JOBNAME: ubuntu-${{ github.job }}
+
+    steps:
+    - run: |
+        apt-get -y purge clang gcc gdc
+        apt-get -y autoremove
+        python3 -m pip install coverage
+    - uses: actions/checkout@v3
+    - uses: mymindstorm/setup-emsdk@v14
+    - name: Run tests
+      run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./tools/run_with_cov.py ./run_tests.py $CI_ARGS --cross node-api-emscripten.json --cross-only --only node-api'
+
+    - name: Aggregate coverage reports
+      run: ./ci/combine_cov.sh
+
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v3
+      with:
+        files: .coverage/coverage.xml
+        name: "Ubuntu nonnative"
+        fail_ci_if_error: false
+        verbose: true

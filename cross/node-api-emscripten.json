@@ -1,0 +1,5 @@
+{
+  "file": "wasm.txt",
+  "tests": ["node-api"],
+  "env": {}
+}
