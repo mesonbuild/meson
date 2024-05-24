@@ -26,6 +26,7 @@ set_property(TARGET cmMod::cmModLib++ PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_
 
 # Take this
 set_property(TARGET cmMod::cmModLib++ PROPERTY IMPORTED_LOCATION_IMPORTED_SPECIAL ${CMMOD_STATIC_LIB})
+set_property(TARGET cmMod::cmModLib++ PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Another name for the same library as interface, so that meson cmake uses
 # the fileAPI to process it - it checks that '-L' arguments are not duped
@@ -33,8 +34,15 @@ set_property(TARGET cmMod::cmModLib++ PROPERTY IMPORTED_LOCATION_IMPORTED_SPECIA
 add_library(cmModLib2 INTERFACE)
 set_property(TARGET cmModLib2 PROPERTY INTERFACE_LINK_LIBRARIES -l${CMMOD_LIB_NAME})
 set_property(TARGET cmModLib2 PROPERTY INTERFACE_LINK_DIRECTORIES ${CMMOD_LIB_DIR}/..)
+set_property(TARGET cmModLib2
+  APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+  $<$<CONFIG:Release>:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+set_property(TARGET cmModLib2
+  APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+  $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 # Yet another name for the same library, it checks target_link_directories
 add_library(cmModLib3 INTERFACE)
 target_link_libraries(cmModLib3 INTERFACE -l${CMMOD_LIB_NAME})
 target_link_directories(cmModLib3 INTERFACE ${CMMOD_LIB_DIR}/..)
+target_include_directories(cmModLib3 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)

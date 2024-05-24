@@ -50,7 +50,7 @@ class ResolvedTarget:
 # CMake library specs (when not referring to a CMake target) can be
 # files or library names, prefixed w/ -l or w/o
 def resolve_cmake_lib(lib: str) -> str:
-    if lib.startswith('-') or '/' in lib or '.' in lib:
+    if lib.startswith('-') or '/' in lib or '\\' in lib:
         return lib
     return f'-l{lib}'
 

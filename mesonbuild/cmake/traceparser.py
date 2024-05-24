@@ -686,7 +686,7 @@ class CMakeTraceParser:
                 i += 1
 
         if not pack_type:
-            mlog.warning(f'install({args[0]}...) is not supported by meson')
+            mlog.debug(f'install({args[0]}...) is not supported by meson')
             return
         if not dest:
             mlog.warning(f'install({args[0]}...) without DESTINATION is not supported by meson')
