@@ -492,10 +492,17 @@ class OptionStore:
     def __init__(self):
         self.options = {}
         self.build_options = None
+        self.perproject = {}
+        self.does_yield = {}
+
+    def num_options(self):
+        basic = len(self.options)
+        build = len(self.build_options) if self.build_options else 0
+        return basic + build
 
     def form_canonical_keystring(self, name, subproject=None, for_build=None):
         strname = name
-        if subproject is not None:
+        if subproject:
             strname = f'{subproject}:{strname}'
         if for_build:
             strname = 'build.' + strname
@@ -510,12 +517,22 @@ class OptionStore:
 
     def add_system_option(self, name, value_object):
         cname = self.form_canonical_keystring(name)
-        self.options[cname] = value_object
+        # FIXME; transfer the old value for combos etc.
+        if cname not in self.options:
+            self.options[cname] = value_object
 
-    def add_project_option(self, name, subproject, keystr, value_object):
+    def add_project_option(self, name, subproject, yielding, value_object):
         cname = self.form_canonical_keystring(name, subproject)
-        self.options[keystr] = value_object
+        self.options[cname] = value_object
+        self.does_yield[cname] = yielding
+
+    def get_value_object_for(self, name, subproject=None):
+        cname = self.form_canonical_keystring(name, subproject)
+        if self.does_yield.get(cname, False):
+            top_cname = self.form_canonical_keystring(name)
+            if top_cname in self.options:
+                return self.options[top_cname]
+        return self.options[cname]
 
     def get_value_for(self, name, subproject=None):
-        cname = self.form_canonical_keystring(name, subproject)
-        return self.options[cname].value
+        return self.get_value_object_for(name, subproject).value
