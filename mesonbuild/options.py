@@ -5,6 +5,7 @@ from collections import OrderedDict
 from itertools import chain
 import argparse
 import re
+import itertools
 
 from .mesonlib import (
     HoldableObject,
@@ -484,10 +485,17 @@ OPTNAME_SPLITTER = re.compile(OPTNAME_REGEX)
 OPTNAME_AND_VALUE_SPLITTER = re.compile(OPTNAME_AND_VALUE_REGEX)
 
 class OptionParts:
-    def __init__(self, name, subproject=None, for_build=None):
+    def __init__(self, name, subproject=None, for_build=False):
         self.name = name
-        self.subproject = subproject
+        self.subproject = subproject # None means no subproject, empty string means top level project
         self.for_build = for_build
+
+    def __hash__(self):
+        return hash((self.name, self.subproject, self.for_build))
+
+    def __eq__(self, other):
+        if isinstance(other, OptionParts):
+            return self.name == other.name and self.subproject == other.subproject and self.for_build == other.for_build
 
 class OptionStore:
     def __init__(self):
@@ -509,9 +517,12 @@ class OptionStore:
         m = re.fullmatch(OPTNAME_REGEX, keystr) # Merely for validation
         self.options[keystr].set_value(new_value)
 
+    def parts_to_canonical_keystring(self, parts):
+        return self.form_canonical_keystring(parts.name, parts.subproject, parts.for_build)
+
     def form_canonical_keystring(self, name, subproject=None, for_build=None):
         strname = name
-        if subproject:
+        if subproject is not None:
             strname = f'{subproject}:{strname}'
         if for_build:
             strname = 'build.' + strname
@@ -544,11 +555,12 @@ class OptionStore:
 
     def get_value_object_for(self, name, subproject=None):
         cname = self.form_canonical_keystring(name, subproject)
-        top_cname = self.form_canonical_keystring(name)
         potential = self.options.get(cname, None)
         if potential is None:
+            top_cname = self.form_canonical_keystring(name)
             return self.options[top_cname]
         if potential.yielding:
+            top_cname = self.form_canonical_keystring(name, '')
             return self.options.get(top_cname, potential)
         return potential
 
@@ -561,14 +573,25 @@ class OptionStore:
 
     def set_from_configure_command(self, D, A, U):
         for setval in D:
-            # FIXME
-            pass
+            keystr, valstr = setval.split('=', 1)
+            if keystr in self.augments:
+                self.augments[keystr] = valstr
+            else:
+                self.set_option_from_string(keystr, valstr)
         for add in A:
             keystr, valstr = add.split('=', 1)
             keystr = self.canonicalize_keystring(keystr)
+            if keystr in self.augments:
+                raise MesonException(f'Tried to add augment to option {keystr}, which already has an augment. Set it with -D instead.')
             self.augments[keystr] = valstr
         for delete in U:
             delete = self.canonicalize_keystring(delete)
             if delete in self.augments:
                 del self.augments[delete]
 
+    def set_subproject_options(self, subproject, spcall_default_options, project_default_options):
+        for o in itertools.chain(spcall_default_options, project_default_options):
+            keystr, valstr = o.split('=', 1)
+            keystr = f'{subproject}:{keystr}'
+            if keystr not in self.augments:
+                self.augments[keystr] = valstr
