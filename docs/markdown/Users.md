@@ -52,7 +52,7 @@ topic](https://github.com/topics/meson).
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
  - [GameMode](https://github.com/FeralInteractive/gamemode), a daemon/lib combo for Linux that allows games to request a set of optimisations be temporarily applied to the host OS
  - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
- - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (experimental replacing autoconf)
+ - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (master branch)
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
  - [Glorytun](https://github.com/angt/glorytun), a multipath UDP tunnel
  - [GNOME Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a GNOME hypervisor
