@@ -652,7 +652,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
 
-        self.set_option_overrides(self.parse_overrides(kwargs))
+        self.raw_overrides = self.parse_overrides(kwargs)
 
     def is_compiler_option_hack(self, key):
         # FIXME this method must be deleted when OptionsView goes away.
@@ -1260,8 +1260,8 @@ class BuildTarget(Target):
         k = OptionKey(option)
         if kwargs.get(arg) is not None:
             val = T.cast('bool', kwargs[arg])
-        elif k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore.get_value(k)
+        elif self.environment.coredata.optstore.has_option(k.name, k.subproject):
+            val = self.environment.coredata.optstore.get_value_for(k.name, k.subproject)
         else:
             val = False
 
