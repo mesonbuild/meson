@@ -509,13 +509,17 @@ class OptionStore:
         build = len(self.build_options) if self.build_options else 0
         return basic + build
 
+    def has_option(self, name, subproject, for_build=False):
+        cname = self.form_canonical_keystring(name, subproject, for_build)
+        return cname in self.options
+
     def set_option(self, name, subproject, new_value):
         cname = self.form_canonical_keystring(name)
-        self.set_option_from_string(cname, new_value)
+        return self.set_option_from_string(cname, new_value)
 
     def set_option_from_string(self, keystr, new_value):
         m = re.fullmatch(OPTNAME_REGEX, keystr) # Merely for validation
-        self.options[keystr].set_value(new_value)
+        return self.options[keystr].set_value(new_value)
 
     def parts_to_canonical_keystring(self, parts):
         return self.form_canonical_keystring(parts.name, parts.subproject, parts.for_build)
@@ -543,6 +547,7 @@ class OptionStore:
         return self.form_canonical_keystring(parts.name, parts.subproject, parts.for_build)
 
     def add_system_option(self, name, value_object):
+        assert isinstance(name, str)
         cname = self.form_canonical_keystring(name)
         # FIXME; transfer the old value for combos etc.
         if cname not in self.options:
