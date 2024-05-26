@@ -1251,8 +1251,13 @@ class BuildTarget(Target):
         k = OptionKey(option)
         if kwargs.get(arg) is not None:
             val = T.cast('bool', kwargs[arg])
+<<<<<<< HEAD
         elif k in self.environment.coredata.optstore:
             val = self.environment.coredata.optstore.get_value(k)
+=======
+        elif self.environment.coredata.optstore.has_option(k.name, k.subproject):
+            val = self.environment.coredata.optstore.get_value_for(k.name, k.subproject)
+>>>>>>> 9097b283a (Hook up new option store to the old code. Can compile simple projects.)
         else:
             val = False
 
