@@ -106,6 +106,9 @@ if sys.version_info >= (3, 2):
 if is_pypy:
     limited_api_suffix = suffix
 
+# Whether we're targeting a free-threaded CPython interpreter
+is_freethreaded = bool(variables.get('Py_GIL_DISABLED', False))
+
 print(json.dumps({
   'variables': variables,
   'paths': paths,
@@ -118,4 +121,5 @@ print(json.dumps({
   'link_libpython': links_against_libpython(),
   'suffix': suffix,
   'limited_api_suffix': limited_api_suffix,
+  'is_freethreaded': is_freethreaded,
 }))
