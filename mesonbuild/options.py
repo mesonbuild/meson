@@ -484,6 +484,8 @@ OPTNAME_AND_VALUE_REGEX = OPTNAME_REGEX + r'=(?P<value>.*)'
 OPTNAME_SPLITTER = re.compile(OPTNAME_REGEX)
 OPTNAME_AND_VALUE_SPLITTER = re.compile(OPTNAME_AND_VALUE_REGEX)
 
+BAD_VALUE = 'Qwert Zuiopü'
+
 class OptionParts:
     def __init__(self, name, subproject=None, for_build=False):
         self.name = name
@@ -497,6 +499,11 @@ class OptionParts:
         if isinstance(other, OptionParts):
             return self.name == other.name and self.subproject == other.subproject and self.for_build == other.for_build
 
+    def copy_with(self, *, name=BAD_VALUE, subproject=BAD_VALUE, for_build=BAD_VALUE):
+        return OptionParts(name if name != BAD_VALUE else self.name,
+                           subproject if subproject != BAD_VALUE else self.subproject, # None is a valid value so it can'the default value in method declaration.
+                           for_build if for_build != BAD_VALUE else self.for_build)
+
 class OptionStore:
     def __init__(self):
         self.options = {}
@@ -509,26 +516,24 @@ class OptionStore:
         build = len(self.build_options) if self.build_options else 0
         return basic + build
 
-    def has_option(self, name, subproject, for_build=False):
-        cname = self.form_canonical_keystring(name, subproject, for_build)
-        return cname in self.options
+    def has_option(self, optparts):
+        assert isinstance(optparts, OptionParts)
+        return optparts in self.options
 
-    def set_option(self, name, subproject, new_value):
-        cname = self.form_canonical_keystring(name)
-        return self.set_option_from_string(cname, new_value)
+    def set_option(self, optparts, new_value):
+        assert isinstance(optparts, OptionParts)
+        return self.options[optparts].set_value(new_value)
 
     def set_option_from_string(self, keystr, new_value):
-        m = re.fullmatch(OPTNAME_REGEX, keystr) # Merely for validation
-        return self.options[keystr].set_value(new_value)
+        o = self.split_keystring(keystr)
+        return self.options[o].set_value(new_value)
 
-    def parts_to_canonical_keystring(self, parts):
-        return self.form_canonical_keystring(parts.name, parts.subproject, parts.for_build)
-
-    def form_canonical_keystring(self, name, subproject=None, for_build=None):
-        strname = name
-        if subproject is not None:
-            strname = f'{subproject}:{strname}'
-        if for_build:
+    def form_canonical_keystring(self, optparts):
+        assert isinstance(optparts, OptionParts)
+        strname = optparts.name
+        if optparts.subproject is not None:
+            strname = f'{optparts.subproject}:{strname}'
+        if optparts.for_build:
             strname = 'build.' + strname
         return strname
 
@@ -544,59 +549,63 @@ class OptionStore:
 
     def canonicalize_keystring(self, keystr):
         parts = self.split_keystring(keystr)
-        return self.form_canonical_keystring(parts.name, parts.subproject, parts.for_build)
+        return self.form_canonical_keystring(parts)
 
     def add_system_option(self, name, value_object):
         assert isinstance(name, str)
-        cname = self.form_canonical_keystring(name)
+        k = OptionParts(name)
         # FIXME; transfer the old value for combos etc.
-        if cname not in self.options:
-            self.options[cname] = value_object
+        if k not in self.options:
+            self.options[k] = value_object
 
     def add_project_option(self, name, subproject, value_object):
-        cname = self.form_canonical_keystring(name, subproject)
-        self.options[cname] = value_object
-        self.project_options.add(cname)
+        assert isinstance(name, str)
+        k = OptionParts(name, subproject)
+        self.options[k] = value_object
+        self.project_options.add(k)
 
-    def get_value_object_for(self, name, subproject=None):
-        cname = self.form_canonical_keystring(name, subproject)
-        potential = self.options.get(cname, None)
+    def get_value_object_for(self, optioninfo, subproject=None):
+        assert isinstance(optioninfo, OptionParts)
+        potential = self.options.get(optioninfo, None)
         if potential is None:
-            top_cname = self.form_canonical_keystring(name)
-            return self.options[top_cname]
+            top_option = optioninfo.copy_with(subproject=None)
+            return self.options[top_option]
         if potential.yielding:
-            top_cname = self.form_canonical_keystring(name, '')
-            return self.options.get(top_cname, potential)
+            top_option = optioninfo.copy_with(subproject='')
+            return self.options.get(top_option, potential)
         return potential
 
-    def get_value_for(self, name, subproject=None):
-        vobject = self.get_value_object_for(name, subproject)
-        cname = self.form_canonical_keystring(name, subproject)
-        if cname in self.augments:
-            return vobject.validate_value(self.augments[cname])
+    def get_value_for(self, optioninfo):
+        assert isinstance(optioninfo, OptionParts)
+        vobject = self.get_value_object_for(optioninfo)
+        if optioninfo in self.augments:
+            return vobject.validate_value(self.augments[optioninfo])
         return vobject.value
 
     def set_from_configure_command(self, D, A, U):
         for setval in D:
             keystr, valstr = setval.split('=', 1)
-            if keystr in self.augments:
-                self.augments[keystr] = valstr
+            key = self.split_keystring(keystr)
+            if key in self.augments:
+                self.augments[key] = valstr
             else:
                 self.set_option_from_string(keystr, valstr)
         for add in A:
             keystr, valstr = add.split('=', 1)
-            keystr = self.canonicalize_keystring(keystr)
-            if keystr in self.augments:
+            key = self.split_keystring(keystr)
+            if key in self.augments:
                 raise MesonException(f'Tried to add augment to option {keystr}, which already has an augment. Set it with -D instead.')
-            self.augments[keystr] = valstr
+            self.augments[key] = valstr
         for delete in U:
-            delete = self.canonicalize_keystring(delete)
+            delete = self.split_keystring(delete)
             if delete in self.augments:
                 del self.augments[delete]
 
     def set_subproject_options(self, subproject, spcall_default_options, project_default_options):
         for o in itertools.chain(spcall_default_options, project_default_options):
             keystr, valstr = o.split('=', 1)
-            keystr = f'{subproject}:{keystr}'
-            if keystr not in self.augments:
-                self.augments[keystr] = valstr
+            key = self.split_keystring(keystr)
+            assert key.subproject is None
+            key.subproject = subproject
+            if key not in self.augments:
+                self.augments[key] = valstr
