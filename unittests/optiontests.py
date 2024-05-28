@@ -20,6 +20,18 @@ class OptionTests(unittest.TestCase):
         optstore.set_option(k, new_value)
         self.assertEqual(optstore.get_value_for(k), new_value)
 
+    def test_toplevel_project(self):
+        optstore = OptionStore()
+        name = 'someoption'
+        default_value = 'somevalue'
+        new_value = 'new_value'
+        k = OptionParts(name)
+        vo = UserStringOption(k, 'An option of some sort', default_value)
+        optstore.add_system_option(k.name, vo)
+        self.assertEqual(optstore.get_value_for(k), default_value)
+        optstore.set_from_top_level_project_call([f'someoption={new_value}'])
+        self.assertEqual(optstore.get_value_for(k), new_value)
+
     def test_parsing(self):
         optstore = OptionStore()
         s1 = optstore.split_keystring('sub:optname')
@@ -172,13 +184,13 @@ class OptionTests(unittest.TestCase):
                              ['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
                              default_value)
         optstore.add_system_option(name, co)
-        optstore.set_subproject_options(subproject, [f'cpp_std={override_value}'], [f'cpp_std={unused_value}'])
+        optstore.set_from_subproject_call(subproject, [f'cpp_std={override_value}'], [f'cpp_std={unused_value}'])
         k = OptionParts(name)
         sub_k = k.copy_with(subproject=subproject)
         self.assertEqual(optstore.get_value_for(k), default_value)
         self.assertEqual(optstore.get_value_for(sub_k), override_value)
 
         # Trying again should change nothing
-        optstore.set_subproject_options(subproject, [f'cpp_std={unused_value}'], [f'cpp_std={unused_value}'])
+        optstore.set_from_subproject_call(subproject, [f'cpp_std={unused_value}'], [f'cpp_std={unused_value}'])
         self.assertEqual(optstore.get_value_for(k), default_value)
         self.assertEqual(optstore.get_value_for(sub_k), override_value)

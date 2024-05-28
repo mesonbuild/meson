@@ -208,7 +208,7 @@ class Project(TypedDict):
 
     version: T.Optional[FileOrString]
     meson_version: T.Optional[str]
-    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    default_options: T.List[str]]
     license: T.List[str]
     subproject_dir: str
 

@@ -499,6 +499,17 @@ class OptionParts:
         if isinstance(other, OptionParts):
             return self.name == other.name and self.subproject == other.subproject and self.for_build == other.for_build
 
+    def form_canonical_keystring(self):
+        strname = self.name
+        if self.subproject is not None:
+            strname = f'{self.subproject}:{strname}'
+        if self.for_build:
+            strname = 'build.' + strname
+        return strname
+
+    def __repr__(self):
+        return self.form_canonical_keystring()
+
     def copy_with(self, *, name=BAD_VALUE, subproject=BAD_VALUE, for_build=BAD_VALUE):
         return OptionParts(name if name != BAD_VALUE else self.name,
                            subproject if subproject != BAD_VALUE else self.subproject, # None is a valid value so it can'the default value in method declaration.
@@ -535,12 +546,7 @@ class OptionStore:
 
     def form_canonical_keystring(self, optparts):
         assert isinstance(optparts, OptionParts)
-        strname = optparts.name
-        if optparts.subproject is not None:
-            strname = f'{optparts.subproject}:{strname}'
-        if optparts.for_build:
-            strname = 'build.' + strname
-        return strname
+        return optparts.form_canonical_keystring()
 
     def split_keystring(self, option_str):
         m = re.fullmatch(OPTNAME_SPLITTER, option_str)
@@ -606,7 +612,15 @@ class OptionStore:
             if delete in self.augments:
                 del self.augments[delete]
 
-    def set_subproject_options(self, subproject, spcall_default_options, project_default_options):
+    def set_from_top_level_project_call(self, project_default_options):
+        for p in project_default_options:
+            keystr, valstr = p.split('=', 1)
+            key = self.split_keystring(keystr)
+            assert key.subproject is None
+            if key in self.options:
+                self.set_option(key, valstr)
+
+    def set_from_subproject_call(self, subproject, spcall_default_options, project_default_options):
         for o in itertools.chain(spcall_default_options, project_default_options):
             keystr, valstr = o.split('=', 1)
             key = self.split_keystring(keystr)
