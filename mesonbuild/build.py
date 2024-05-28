@@ -18,6 +18,7 @@ from . import coredata
 from . import dependencies
 from . import mlog
 from . import programs
+from . import options
 from .mesonlib import (
     HoldableObject, SecondLevelHolder,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
@@ -529,10 +530,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
                    for k, v in overrides.items()}
         else:
             ovr = {}
-<<<<<<< HEAD
-        self.options = coredata.OptionsView(self.environment.coredata.optstore, self.subproject, ovr)
-=======
->>>>>>> 772e9033d (Refactor code to use per-target option methods.)
         # XXX: this should happen in the interpreter
         if has_path_sep(self.name):
             # Fix failing test 53 when this becomes an error.
@@ -647,29 +644,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
 
-<<<<<<< HEAD
-        self.set_option_overrides(self.parse_overrides(kwargs))
-
-    def set_option_overrides(self, option_overrides: T.Dict[OptionKey, str]) -> None:
-        self.options.overrides = {}
-        for k, v in option_overrides.items():
-            if k.lang:
-                self.options.overrides[k.evolve(machine=self.for_machine)] = v
-            else:
-                self.options.overrides[k] = v
-
-    def get_options(self) -> coredata.OptionsView:
-        return self.options
-
-    def get_option(self, key: 'OptionKey') -> T.Union[str, int, bool]:
-        # We don't actually have wrapmode here to do an assert, so just do a
-        # cast, we know what's in coredata anyway.
-        # TODO: if it's possible to annotate get_option or validate_option_value
-        # in the future we might be able to remove the cast here
-        return T.cast('T.Union[str, int, bool]', self.options.get_value(key))
-=======
         self.raw_overrides = self.parse_overrides(kwargs)
->>>>>>> 772e9033d (Refactor code to use per-target option methods.)
 
     def get_override(self, name, fallback):
         if isinstance(name, str):
@@ -1248,16 +1223,13 @@ class BuildTarget(Target):
             mlog.warning(f"Use the '{arg}' kwarg instead of passing '-f{arg}' manually to {self.name!r}")
             return True
 
-        k = OptionKey(option)
+        k = options.OptionParts(option)
         if kwargs.get(arg) is not None:
             val = T.cast('bool', kwargs[arg])
-<<<<<<< HEAD
-        elif k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore.get_value(k)
-=======
         elif self.environment.coredata.optstore.has_option(k.name, k.subproject):
             val = self.environment.coredata.optstore.get_value_for(k.name, k.subproject)
->>>>>>> 9097b283a (Hook up new option store to the old code. Can compile simple projects.)
+        elif self.environment.coredata.optstore.has_option(k):
+            val = self.environment.coredata.optstore.get_value_for(k)
         else:
             val = False
 

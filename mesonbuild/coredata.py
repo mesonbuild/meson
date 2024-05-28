@@ -437,7 +437,7 @@ class CoreData:
                 ''))
 
     def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool]:
-        return self.optstore.get_value_for(key.name, key.subproject)
+        return self.optstore.get_value_for(options.OptionParts(key.name, key.subproject, key.is_cross()))
 
     def get_option_object_for_target(self, target: BuildTarget, key: T.Union[str, OptionKey]) -> 'UserOption[T.Any]':
         return self.get_option_for_subproject(key, target.subproject)
@@ -461,23 +461,15 @@ class CoreData:
     def get_option_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> UserOption[T.Any]:
         if isinstance(key, str):
             key = OptionKey(key, subproject=subproject)
-        option_object = self.get_option_object_for_subproject(key, subproject)
-        return self.compute_value_for_subproject_option(option_object, key.name, subproject)
+        return self.optstore.get_value_for(OptionParts(key.name, key.subproject, key.is_cross()))
 
     def get_option_object_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> T.Union[T.List[str], str, int, bool, WrapMode]:
         if key.lang is not None:
             keyname = f'{key.lang}_{key.name}'
         else:
             keyname = key.name
-        if not key.is_project():
-            opt = self.optstore.get_value_object_for(keyname, key.subproject)
-            if opt is None or opt.yielding:
-                opt = self.optstore.get_value_object_for(keyname, '')
-        else:
-            opt = self.optstore.get_value_object_for(keyname, key.subproject)
-            if opt.yielding and self.optstore.has_option(keyname, ''):
-                opt = self.optstore.get_value_object_for(keyname, '')
-        return opt
+        assert(key.subproject == subproject)
+        return self.optstore.get_value_object_for(options.OptionParts(keyname, subproject))
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
@@ -485,11 +477,12 @@ class CoreData:
             if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
             else:
-                prefix = self.optstore.get_value_for('prefix')
+                prefix = self.optstore.get_value_for(options.OptionParts('prefix'))
                 value = self.sanitize_dir_option_value(prefix, key, value)
 
         try:
-            opt = self.optstore.get_value_object_for(key.name)
+            tmpkey = options.OptionParts(key.name, key.subproject, key.is_cross())
+            opt = self.optstore.get_value_object_for(tmpkey)
         except KeyError:
             raise MesonException(f'Tried to set unknown builtin option {str(key)}')
 
@@ -602,11 +595,11 @@ class CoreData:
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        return T.cast('T.List[str]', self.optstore.get_value_for(f'{lang}_args')) # FIXME machine=for_machine
+        return T.cast('T.List[str]', self.optstore.get_value_for(options.OptionParts(f'{lang}_args'))) # FIXME machine=for_machine
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        return T.cast('T.List[str]', self.optstore.get_value_for(f'{lang}_link_args')) # FIXME machine=for_machine
+        return T.cast('T.List[str]', self.optstore.get_value_for(options.OptionParts(f'{lang}_link_args'))) # FIXME machine=for_machine
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
         for key, value in project_options.items():
@@ -677,9 +670,10 @@ class CoreData:
 
         unknown_options: T.List[OptionKey] = []
         for k, v in opts_to_set.items():
+            o_key = options.OptionParts(k.name)
             if k == pfk:
                 continue
-            elif self.optstore.has_option(k.name, None):
+            elif self.optstore.has_option(o_key):
                 dirty |= self.set_option(k, v, first_invocation)
             elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
                 empty = k.name
@@ -824,7 +818,8 @@ class CoreData:
                 skey = key.evolve(subproject=subproject)
             else:
                 skey = key
-            if not self.optstore.has_option(skey.name, None):
+            skey = options.convert_oldkey(key)
+            if not self.optstore.has_option(skey):
                 self.optstore.add_system_option(skey.name, copy.deepcopy(compilers.base_options[key]))
                 if skey in env.options:
                     self.optstore[skey].set_value(env.options[skey])
