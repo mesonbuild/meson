@@ -516,7 +516,11 @@ class OptionParts:
                            for_build if for_build != BAD_VALUE else self.for_build)
 
 def convert_oldkey(optkey): # Delete after transition to new keys is done.
-    return OptionParts(optkey.name,
+    if optkey.lang:
+        name = f'{optkey.lang}_{optkey.name}'
+    else:
+        name = optkey.name
+    return OptionParts(name,
                        optkey.subproject,
                        optkey.is_cross())
 
