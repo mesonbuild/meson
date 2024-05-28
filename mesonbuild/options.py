@@ -504,6 +504,11 @@ class OptionParts:
                            subproject if subproject != BAD_VALUE else self.subproject, # None is a valid value so it can'the default value in method declaration.
                            for_build if for_build != BAD_VALUE else self.for_build)
 
+def convert_oldkey(optkey): # Delete after transition to new keys is done.
+    return OptionParts(optkey.name,
+                       optkey.subproject,
+                       optkey.is_cross())
+
 class OptionStore:
     def __init__(self):
         self.options = {}
@@ -564,7 +569,7 @@ class OptionStore:
         self.options[k] = value_object
         self.project_options.add(k)
 
-    def get_value_object_for(self, optioninfo, subproject=None):
+    def get_value_object_for(self, optioninfo):
         assert isinstance(optioninfo, OptionParts)
         potential = self.options.get(optioninfo, None)
         if potential is None:
