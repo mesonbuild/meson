@@ -83,6 +83,41 @@ To set values, use the \-D command line argument like this.
 
 .B meson configure \-Dopt1=value1 \-Dopt2=value2
 
+.SH The dist command
+
+.B meson dist
+generates a release archive.
+
+.B meson dist [
+.I options
+.B ]
+
+.SS "options:"
+.TP
+\fB\-h, \-\-help\fR
+show this help message and exit
+
+.TP
+\fB\-C WD\fR
+directory to cd into before running
+
+.TP
+\fB\-\-allow-dirty\fR
+Allow even when repository contains uncommitted changes.
+
+.TP
+\fB\-\-formats FORMATS\fR
+Comma separated list of archive types to create.  Supports xztar
+(default), gztar, and zip.
+
+.TP
+\fB\-\-include\-subprojects\fR
+Include source code of subprojects that have been used for the build.
+
+.TP
+\fB\-\-no\-tests\fR
+Do not build and test generated packages.
+
 .SH The introspect command
 
 Meson introspect is a command designed to make it simple to  integrate with
