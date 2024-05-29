@@ -363,6 +363,49 @@ show available versions of the specified project
 \fBstatus\fR
 show installed and available versions of currently used subprojects
 
+.SH The subprojects command
+
+.B meson subprojects
+is used to manage subprojects.
+
+.B meson subprojects [
+.I options
+.B ] [
+.I command
+.B ]
+
+.SS "options:"
+.TP
+\fB\-h, \-\-help\fR
+show this help message and exit
+
+.SS "commands:"
+.TP
+\fBupdate\fR
+Update all subprojects from wrap files
+
+.TP
+\fBcheckout\fR
+Checkout a branch (git only)
+
+.TP
+\fBdownload\fR
+Ensure subprojects are fetched, even if not in use. Already downloaded
+subprojects are not modified. This can be used to pre-fetch all
+subprojects and avoid downloads during configure.
+
+.TP
+\fBforeach\fR
+Execute a command in each subproject directory.
+
+.TP
+\fBpurge\fR
+Remove all wrap-based subproject artifacts
+
+.TP
+\fBpackagefiles\fR
+Manage the packagefiles overlay
+
 .SH EXIT STATUS
 
 .TP
