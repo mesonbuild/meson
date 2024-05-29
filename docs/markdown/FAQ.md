@@ -695,3 +695,16 @@ directory. It glob ignores ```"*"```, since all generated files should not be
 checked into git.
 
 Users of older versions of Meson may need to set up ignore files themselves.
+
+## How to add preprocessor defines to a target?
+
+Just add `-DFOO` to `c_args` or `cpp_args`. This works for all known compilers.
+
+```meson
+mylib = library('mylib', 'mysource.c', c_args: ['-DFOO'])
+```
+
+Even though [MSVC documentation](https://learn.microsoft.com/en-us/cpp/build/reference/d-preprocessor-definitions)
+uses `/D` for preprocessor defines, its [command-line syntax](https://learn.microsoft.com/en-us/cpp/build/reference/compiler-command-line-syntax)
+accepts `-` instead of `/`.
+It's not necessary to treat preprocessor defines specially in Meson ([GH-6269](https://github.com/mesonbuild/meson/issues/6269#issuecomment-560003922)).
