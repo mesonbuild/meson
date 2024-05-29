@@ -200,6 +200,68 @@ print all unit tests
 \fB\-\-help\fR
 print command line help
 
+.SH The init command
+
+.B meson init
+creates a new project
+
+.B meson init [
+.I options
+.B ] [
+.I sourcefile...
+.B ]
+
+.SS "positional arguments:"
+.TP
+sourcefile...
+source files. default: all recognized files in current directory
+
+.SS "options:"
+.TP
+\fB\-h, \-\-help\fR
+show this help message and exit
+
+.TP
+\fB\-C WD\fR
+directory to cd into before running
+
+.TP
+\fB\-n NAME, \-\-name NAME\fR
+project name. default: name of current directory
+
+.TP
+\fB\-e EXECUTABLE, \-\-executable EXECUTABLE\fR
+executable name. default: project name
+
+.TP
+\fB\-d DEPS, \-\-deps DEPS\fR
+dependencies, comma-separated
+
+.TP
+\fB\-l {c,cpp,cs,cuda,d,fortran,java,objc,objcpp,rust,vala}, \
+\-\-language {c,cpp,cs,cuda,d,fortran,java,objc,objcpp,rust,vala}\fR
+project language. default: autodetected based on source files
+
+.TP
+\fB\-b, \-\-build
+build after generation
+
+.TP
+\fB\-\-builddir BUILDDIR\fR
+directory for build
+
+.TP
+\fB\-f, \-\-force\fR
+force overwrite of existing files and directories.
+
+.TP
+\fB\-\-type {executable,library}\fR
+project type. default: executable based project
+
+.TP
+\fB\-\-version VERSION\fR
+project version. default: 0.1
+
 .SH The test command
 
 .B meson test
