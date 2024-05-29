@@ -3,7 +3,10 @@
 # code:
 #   https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#examples
 
-project('device linking', ['cpp', 'cuda'], version : '1.0.0')
+project('device linking', ['cpp'], version : '1.0.0')
+
+# test that optional initialization of cuda works to disable thin archives
+add_languages('cuda')
 
 nvcc = meson.get_compiler('cuda')
 cuda = import('unstable-cuda')
