@@ -502,13 +502,12 @@ class NinjaBackend(backends.Backend):
         # hence we disable them if 'cuda' is enabled globally. See also
         # - https://github.com/mesonbuild/meson/pull/9453
         # - https://github.com/mesonbuild/meson/issues/9479#issuecomment-953485040
-        self._allow_thin_archives = PerMachine[bool](
-            'cuda' not in self.environment.coredata.compilers.build,
-            'cuda' not in self.environment.coredata.compilers.host) if self.environment else PerMachine[bool](True, True)
-        if not self._allow_thin_archives.build:
-            mlog.debug('cuda enabled globally, disabling thin archives for build machine, since nvcc/nvlink cannot handle thin archives natively')
-        if not self._allow_thin_archives.host:
-            mlog.debug('cuda enabled globally, disabling thin archives for host machine, since nvcc/nvlink cannot handle thin archives natively')
+        self.allow_thin_archives = PerMachine[bool](True, True)
+        if self.environment:
+            for for_machine in MachineChoice:
+                if 'cuda' in self.environment.coredata.compilers[for_machine]:
+                    mlog.debug('cuda enabled globally, disabling thin archives for {}, since nvcc/nvlink cannot handle thin archives natively'.format(for_machine))
+                    self.allow_thin_archives[for_machine] = False
 
     def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilename: str) -> NinjaBuildElement:
         '''
@@ -3268,7 +3267,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
         elif isinstance(target, build.StaticLibrary):
-            produce_thin_archive = self._allow_thin_archives[target.for_machine] and not target.should_install()
+            produce_thin_archive = self.allow_thin_archives[target.for_machine] and not target.should_install()
             commands += linker.get_std_link_args(self.environment, produce_thin_archive)
         else:
             raise RuntimeError('Unknown build target type.')

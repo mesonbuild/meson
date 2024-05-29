@@ -1531,6 +1531,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                         continue
                     else:
                         raise
+                if lang == 'cuda' and hasattr(self.backend, 'allow_thin_archives'):
+                    # see NinjaBackend.__init__() why we need to disable thin archives for cuda
+                    mlog.debug('added cuda as language, disabling thin archives for {}, since nvcc/nvlink cannot handle thin archives natively'.format(for_machine))
+                    self.backend.allow_thin_archives[for_machine] = False
             else:
                 # update new values from commandline, if it applies
                 self.coredata.process_compiler_options(lang, comp, self.environment, self.subproject)
