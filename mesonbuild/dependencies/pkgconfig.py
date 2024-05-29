@@ -255,8 +255,8 @@ class PkgConfigCLI(PkgConfigInterface):
 
     def _get_env(self, uninstalled: bool = False) -> EnvironmentVariables:
         env = EnvironmentVariables()
-        key = OptionKey('pkg_config_path', machine=self.for_machine)
-        extra_paths: T.List[str] = self.env.coredata.optstore.get_value(key)[:]
+        key = OptionKey('pkg_config_path')
+        extra_paths: T.List[str] = self.env.coredata.optstore.get_value_for(key)[:]
         if uninstalled:
             bpath = self.env.get_build_dir()
             if bpath is not None:
