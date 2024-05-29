@@ -118,6 +118,58 @@ Include source code of subprojects that have been used for the build.
 \fB\-\-no\-tests\fR
 Do not build and test generated packages.
 
+.SH The install command
+
+.B meson install
+installs the project.
+
+.B meson install [
+.I options
+.B ]
+
+.SS "options:"
+
+.TP
+\fB\-h, \-\-help\fR
+show this help message and exit
+
+.TP
+\fB\-C WD\fR
+directory to cd into before running
+
+.TP
+\fB\-\-no-rebuild\fR
+Do not rebuild before installing.
+
+.TP
+\fB\-\-only\-changed\fR
+Only overwrite files that are older than the copied file.
+
+.TP
+\fB\-\-quiet\fR
+Do not print every file that was installed.
+
+.TP
+\fB\-\-destdir DESTDIR\fR
+Sets or overrides DESTDIR environment.  (Since 0.57.0)
+
+.TP
+\fB\-\-dry\-run, \-n\fR
+Doesn't actually install, but print logs. (Since 0.57.0)
+
+.TP
+\fB\-\-skip\-subprojects [SKIP_SUBPROJECTS]\fR
+Do not install files from given subprojects. (Since 0.58.0)
+
+.TP
+\fB\-\-tags TAGS\fR
+Install only targets having one of the given tags. (Since 0.60.0)
+
+.TP
+\fB\-\-strip\fR
+Strip targets even if strip option was not set during
+configure. (Since 0.62.0)
+
 .SH The introspect command
 
 Meson introspect is a command designed to make it simple to  integrate with
