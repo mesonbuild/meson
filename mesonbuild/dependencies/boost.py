@@ -653,9 +653,19 @@ class BoostDependency(SystemDependency):
         try:
             boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
             if boost_pc.found():
-                boost_root = boost_pc.get_variable(pkgconfig='prefix')
-                if boost_root:
-                    roots += [Path(boost_root)]
+                boost_lib_dir = boost_pc.get_variable(pkgconfig='libdir')
+                boost_inc_dir = boost_pc.get_variable(pkgconfig='includedir')
+                if boost_lib_dir and boost_inc_dir:
+                    mlog.debug('Trying to find boost with:')
+                    mlog.debug(f'  - boost_includedir = {Path(boost_inc_dir)}')
+                    mlog.debug(f'  - boost_librarydir = {Path(boost_lib_dir)}')
+
+                    self.detect_split_root(Path(boost_inc_dir), Path(boost_lib_dir))
+                    return
+                else:
+                    boost_root = boost_pc.get_variable(pkgconfig='prefix')
+                    if boost_root:
+                        roots += [Path(boost_root)]
         except DependencyException:
             pass
 
