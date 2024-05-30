@@ -1106,7 +1106,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.environment.first_invocation:
             self.coredata.init_backend_options(backend_name)
 
-        options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
+        options = {k: v for k, v in self.environment.options.items() if k.startswith('backend_')}
         self.coredata.set_options(options)
 
     @typed_pos_args('project', str, varargs=str)
@@ -1166,7 +1166,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.project_default_options = kwargs['default_options']
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
             if self.subproject == '':
-                self.coredata.optstore.set_from_top_level_project_call(self.project_default_options)
+                self.coredata.optstore.set_from_top_level_project_call(self.project_default_options, self.user_defined_options.cmd_line_options)
             else:
                 sp_override_options = []
                 self.coredata.optstore.set_from_subproject_call(self.subproject, sp_override_options, self.project_default_options)
