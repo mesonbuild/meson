@@ -549,6 +549,65 @@ path (Since 1.1.0)
 \fB\-\-dump-format {sh,export,vscode}\fR
 Format used with --dump (Since 1.1.0)
 
+.SH The env2mfile command
+
+.B meson env2mfile
+converts the current environment to a cross or native file.
+
+.B meson env2mfile [
+.I options
+.B ]
+
+.SS "options:"
+
+.TP
+\fB\-h, \-\-help\fR
+show this help message and exit
+
+.TP
+\fB\-\-debarch DEBARCH\fR
+The dpkg architecture to generate.
+
+.TP
+\fB\-\-gccsuffix GCCSUFFIX\fR
+A particular gcc version suffix if necessary.
+
+.TP
+\fB\-o OUTFILE\fR
+The output file.
+
+.TP
+\fB\-\-cross\fR
+Generate a cross compilation file.
+
+.TP
+\fB\-\-native\fR
+Generate a native compilation file.
+
+.TP
+\fB\-\-system SYSTEM\fR
+Define system for cross compilation.
+
+.TP
+\fB\-\-subsystem SUBSYSTEM\fR
+Define subsystem for cross compilation.
+
+.TP
+\fB\-\-kernel KERNEL\fR
+Define kernel for cross compilation.
+
+.TP
+\fB\-\-cpu CPU\fR
+Define cpu for cross compilation.
+
+.TP
+\fB\-\-cpu-family CPU_FAMILY\fR
+Define cpu family for cross compilation.
+
+.TP
+\fB\-\-endian {big,little}\fR
+Define endianness for cross compilation.
+
 .SH EXIT STATUS
 
 .TP
