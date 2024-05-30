@@ -509,6 +509,46 @@ Arguments to pass to `msbuild` (applied only on `vs` backend).
 \fB\-\-xcode\-args XCODE_ARGS\fR
 Arguments to pass to `xcodebuild` (applied only on `xcode` backend).
 
+.SH The devenv command
+
+.B meson devenv
+runs commands in the developer environment.
+
+.B meson devenv [
+.I options
+.B ] [
+.I command
+.B ]
+
+.SS "positional arguments:"
+
+.TP
+\fBcommand\fR
+Command to run in developer environment (default: interactive shell)
+
+.SS "options:"
+
+.TP
+\fB\-h, \-\-help\fR
+show this help message and exit
+
+.TP
+\fB\-C BUILDDIR\fR
+Path to build directory
+
+.TP
+\fB\-\-workdir WORKDIR, \-w WORKDIR\fR
+Directory to cd into before running (default: builddir, Since 1.0.0)
+
+.TP
+\fB\-\-dump [DUMP]\fR
+Only print required environment (Since 0.62.0) Takes an optional file
+path (Since 1.1.0)
+
+.TP
+\fB\-\-dump-format {sh,export,vscode}\fR
+Format used with --dump (Since 1.1.0)
+
 .SH EXIT STATUS
 
 .TP
