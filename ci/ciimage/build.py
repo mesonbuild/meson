@@ -80,11 +80,6 @@ class Builder(BuilderBase):
             fi
         '''
 
-        if self.data_dir.name == 'gentoo':
-            out_data += '''
-                source /etc/profile
-            '''
-
         out_file.write_text(out_data, encoding='utf-8')
 
         # make it executable

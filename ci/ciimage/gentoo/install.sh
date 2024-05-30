@@ -156,3 +156,5 @@ rm /usr/lib/python/EXTERNALLY-MANAGED
 python3 -m ensurepip
 install_python_packages
 python3 -m pip install "${base_python_pkgs[@]}"
+
+echo "source /etc/profile" >> /ci/env_vars.sh
