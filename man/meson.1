@@ -406,6 +406,53 @@ Remove all wrap-based subproject artifacts
 \fBpackagefiles\fR
 Manage the packagefiles overlay
 
+.SH The rewrite command
+
+.B meson rewrite
+modifies the project definition.
+ 
+.B meson rewrite [
+.I options
+.B ] [
+.I command
+.B ]
+
+.SS "options:"
+
+.TP
+\fB\-h, \-\-help\fR
+show this help message and exit
+
+.TP
+\fB\-s SRCDIR, \-\-sourcedir SRCDIR\fR
+Path to source directory.
+
+.TP
+\fB\-V, \-\-verbose\fR
+Enable verbose output
+
+.TP
+\fB\-S, \-\-skip\-errors\fR
+Skip errors instead of aborting
+
+.SS "commands:"
+
+.TP
+\fBtarget (tgt)\fR
+Modify a target
+
+.TP
+\fBkwargs\fR
+Modify keyword arguments
+
+.TP
+\fBdefault-options (def)\fR
+Modify the project default options
+
+.TP
+\fBcommand (cmd)\fR
+Execute a JSON array of commands
+
 .SH EXIT STATUS
 
 .TP
