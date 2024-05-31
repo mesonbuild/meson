@@ -361,6 +361,14 @@ class NvidiaHPC_CCompiler(PGICompiler, CCompiler):
                            info, linker=linker, full_version=full_version)
         PGICompiler.__init__(self)
 
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = CCompiler.get_options(self)
+        cppstd_choices = ['c89', 'c90', 'c99', 'c11', 'c17', 'c18']
+        std_opt = opts[self.form_compileropt_key('std')]
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
+        std_opt.set_versions(cppstd_choices, gnu=True)
+        return opts
+
 
 class ElbrusCCompiler(ElbrusCompiler, CCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
