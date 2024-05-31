@@ -591,11 +591,16 @@ class OptionStore:
         return potential
 
     def get_value_for(self, optioninfo):
+        return self.get_value_object_and_value_for(optioninfo)[1]
+
+    def get_value_object_and_value_for(self, optioninfo):
         assert isinstance(optioninfo, OptionParts)
         vobject = self.get_value_object_for(optioninfo)
         if optioninfo in self.augments:
-            return vobject.validate_value(self.augments[optioninfo])
-        return vobject.value
+            computed_value = vobject.validate_value(self.augments[optioninfo])
+        else:
+            computed_value = vobject.value
+        return (vobject, computed_value)
 
     def set_from_configure_command(self, D, A, U):
         for setval in D:
@@ -617,11 +622,11 @@ class OptionStore:
                 del self.augments[delete]
 
     def optlist2optdict(self, optlist):
-            optdict = {}
-            for p in optlist:
-                 k, v = p.split('=', 1)
-                 optdict[k] = v
-            project_default_options = optdict
+        optdict = {}
+        for p in optlist:
+             k, v = p.split('=', 1)
+             optdict[k] = v
+        return optdict
         
 
     def set_from_top_level_project_call(self, project_default_options, cmd_line_options):
