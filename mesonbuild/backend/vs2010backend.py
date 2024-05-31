@@ -627,6 +627,8 @@ class Vs2010Backend(backends.Backend):
             target_platform = self.platform
 
         multi_config_buildtype_list = coredata.get_genvs_default_buildtype_list() if self.gen_lite else [self.buildtype]
+        if "debug" not in multi_config_buildtype_list:
+            multi_config_buildtype_list += ["debug"]
         for buildtype in multi_config_buildtype_list:
             prjconf = ET.SubElement(confitems, 'ProjectConfiguration',
                                     {'Include': buildtype + '|' + target_platform})
