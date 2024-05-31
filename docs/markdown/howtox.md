@@ -211,18 +211,18 @@ test failures.
 
 ## Use Clang static analyzer
 
-Install scan-build program, then do this:
+Install scan-build program, then do this according to the [scan-build website](https://clang-analyzer.llvm.org/scan-build.html):
 
 ```console
 $ meson setup builddir
-$ ninja -C builddir scan-build
+$ scan-build ninja -C builddir
 ```
 
 You can use the `SCANBUILD` environment variable to choose the
 scan-build executable.
 
 ```console
-$ SCANBUILD=<your exe> ninja -C builddir scan-build
+$ SCANBUILD=<your exe> scan-build ninja -C builddir
 ```
 
 You can use it for passing arguments to scan-build program by
@@ -236,7 +236,7 @@ scan-build -v --status-bugs "$@"
 And then pass it through the variable (remember to use absolute path):
 
 ```console
-$ SCANBUILD=$(pwd)/my-scan-build.sh ninja -C builddir scan-build
+$ SCANBUILD=$(pwd)/my-scan-build.sh scan-build ninja -C builddir
 ```
 
 ## Use profile guided optimization
