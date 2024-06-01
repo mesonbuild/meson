@@ -185,7 +185,7 @@ class _StdCPPLibMixin(CompilerMixinBase):
 
     def language_stdlib_provider(self, env: Environment) -> str:
         # https://stackoverflow.com/a/31658120
-        header = 'version' if self.has_header('<version>', '', env) else 'ciso646'
+        header = 'version' if self.has_header('version', '', env)[0] else 'ciso646'
         is_libcxx = self.has_header_symbol(header, '_LIBCPP_VERSION', '', env)[0]
         lib = 'c++' if is_libcxx else 'stdc++'
         return lib
