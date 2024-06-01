@@ -1,7 +1,7 @@
 name: environment
 returns: env
 since: 0.35.0
-description: Returns an empty [[@env]] object.
+description: Returns an [[@env]] object capturing the current environment.
 
 arg_flattening: false
 
