@@ -516,7 +516,7 @@ class Environment:
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
 
-    def __init__(self, source_dir: str, build_dir: str, options: coredata.SharedCMDOptions) -> None:
+    def __init__(self, source_dir: str, build_dir: str, options: coredata.SharedCMDOptions, reconfigure: bool = False) -> None:
         self.source_dir = source_dir
         self.build_dir = build_dir
         # Do not try to create build directories when build_dir is none.
@@ -626,7 +626,7 @@ class Environment:
         self.options.update(options.cmd_line_options)
 
         # Take default value from env if not set in cross/native files or command line.
-        self._set_default_options_from_env()
+        self._set_default_options_from_env(force=reconfigure)
         self._set_default_binaries_from_env()
         self._set_default_properties_from_env()
 
@@ -700,7 +700,7 @@ class Environment:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
                     self.options[key.evolve(subproject=subproject)] = v
 
-    def _set_default_options_from_env(self) -> None:
+    def _set_default_options_from_env(self, force: bool = False) -> None:
         opts: T.List[T.Tuple[str, str]] = (
             [(v, f'{k}_args') for k, v in compilers.compilers.CFLAGS_MAPPING.items()] +
             [
@@ -736,7 +736,7 @@ class Environment:
                 # reconfiguring it gets ignored.
                 # FIXME: We should remember if we took the value from env to warn
                 # if it changes on future invocations.
-                if self.first_invocation:
+                if self.first_invocation or force:
                     if keyname == 'ldflags':
                         key = OptionKey('link_args', machine=for_machine, lang='c')  # needs a language to initialize properly
                         for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:

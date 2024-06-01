@@ -177,7 +177,7 @@ class MesonApp:
 
     # See class Backend's 'generate' for comments on capture args and returned dictionary.
     def generate(self, capture: bool = False, vslite_ctx: T.Optional[dict] = None) -> T.Optional[dict]:
-        env = environment.Environment(self.source_dir, self.build_dir, self.options)
+        env = environment.Environment(self.source_dir, self.build_dir, self.options, reconfigure=self.options.reconfigure)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
