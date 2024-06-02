@@ -546,7 +546,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.optstore.get_value('buildtype')
+        value = self.optstore.get_value_for('buildtype')
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -565,8 +565,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.optstore.get_value('optimization')
-        actual_debug = self.optstore.get_value('debug')
+        actual_opt = self.optstore.get_value_for('optimization')
+        actual_debug = self.optstore.get_value_for('debug')
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -730,9 +730,9 @@ class CoreData:
                 raise MesonException(f'Option {keystr} can not be set per subproject.')
             if keystr in self.sp_option_overrides:
                 raise MesonException(f'Override {keystr} already exists.')
-            key = OptionKey.from_string(keystr)
-            original_key = key.evolve(subproject='')
-            if original_key not in self.optstore:
+            key = self.optstore.split_keystring(keystr)
+            original_key = key.copy_with(subproject=None)
+            if not self.optstore.has_option(original_key):
                 raise MesonException('Tried to override a nonexisting key.')
             self.sp_option_overrides[keystr] = valstr
             dirty = True
