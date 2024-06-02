@@ -580,6 +580,7 @@ _meson-test() {
     quiet
     timeout-multiplier
     setup
+    max-lines
     test-args
   )
 
