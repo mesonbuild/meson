@@ -274,6 +274,14 @@ other useful information as the environmental variables. This is
 useful, for example, when you run the tests on Travis-CI, Jenkins and
 the like.
 
+By default, the output from tests will be limited to the last 100 lines. The
+maximum number of lines to show can be configured with the `--max-lines` option
+*(added 1.5.0)*:
+
+```console
+$ meson test --max-lines=1000 testname
+```
+
 **Timeout**
 
 In the test case options, the `timeout` option is specified in a number of seconds.

@@ -161,6 +161,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Which test setup to use.')
     parser.add_argument('--test-args', default=[], type=split_args,
                         help='Arguments to pass to the specified test(s) or all tests')
+    parser.add_argument('--max-lines', default=100, dest='max_lines', type=int,
+                        help='Maximum number of lines to show from a long test log. Since 1.5.0.')
     parser.add_argument('args', nargs='*',
                         help='Optional list of test names to run. "testname" to run all tests with that name, '
                         '"subprojname:testname" to specifically run "testname" from "subprojname", '
@@ -510,7 +512,8 @@ class ConsoleLogger(TestLogger):
     HLINE = "\u2015"
     RTRI = "\u25B6 "
 
-    def __init__(self) -> None:
+    def __init__(self, max_lines: int) -> None:
+        self.max_lines = max_lines
         self.running_tests: OrderedSet['TestRun'] = OrderedSet()
         self.progress_test: T.Optional['TestRun'] = None
         self.progress_task: T.Optional[asyncio.Future] = None
@@ -652,10 +655,10 @@ class ConsoleLogger(TestLogger):
             return log
 
         lines = log.splitlines()
-        if len(lines) < 100:
+        if len(lines) < self.max_lines:
             return log
         else:
-            return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
+            return str(mlog.bold(f'Listing only the last {self.max_lines} lines from a long log.\n')) + '\n'.join(lines[-self.max_lines:])
 
     def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         if not result.verbose:
@@ -1591,7 +1594,7 @@ class TestHarness:
         self.name_max_len = 0
         self.is_run = False
         self.loggers: T.List[TestLogger] = []
-        self.console_logger = ConsoleLogger()
+        self.console_logger = ConsoleLogger(options.max_lines)
         self.loggers.append(self.console_logger)
         self.need_console = False
         self.ninja: T.List[str] = None

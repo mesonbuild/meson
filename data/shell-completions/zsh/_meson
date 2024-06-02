@@ -196,6 +196,7 @@ local -a meson_commands=(
   '(--quiet -q)'{'--quiet','-q'}'[produce less output to the terminal]'
   '(--timeout-multiplier -t)'{'--timeout-multiplier','-t'}'[a multiplier for test timeouts]:Python floating-point number: '
   '--setup[which test setup to use]:test setup: '
+  '--max-lines[Maximum number of lines to show from a long test log]:Python integer number: '
   '--test-args[arguments to pass to the tests]: : '
   '*:Meson tests:__meson_test_names'
   )
