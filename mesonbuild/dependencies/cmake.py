@@ -520,6 +520,7 @@ class CMakeDependency(ExternalDependency):
         # recognise arguments we should pass directly to the linker
         incDirs = []
         compileOptions = []
+        linkOptions = []
         libraries = []
 
         for i, required in modules:
@@ -541,19 +542,22 @@ class CMakeDependency(ExternalDependency):
                                                )
             incDirs += rtgt.include_directories
             compileOptions += rtgt.public_compile_opts
-            libraries += rtgt.libraries + rtgt.link_flags
+            linkOptions += rtgt.link_flags
+            libraries += rtgt.libraries
 
         # Make sure all elements in the lists are unique and sorted
         incDirs = sorted(set(incDirs))
         compileOptions = sorted(set(compileOptions))
-        libraries = sorted(set(libraries))
+        linkOptions = sorted(set(linkOptions))
+        # Do not change order of libraries, do not remove duplicates ('-framework')
 
         mlog.debug(f'Include Dirs:         {incDirs}')
         mlog.debug(f'Compiler Options:     {compileOptions}')
+        mlog.debug(f'Linker Options:       {linkOptions}')
         mlog.debug(f'Libraries:            {libraries}')
 
         self.compile_args = compileOptions + [f'-I{x}' for x in incDirs]
-        self.link_args = libraries
+        self.link_args = linkOptions + libraries
 
     def _get_build_dir(self) -> Path:
         build_dir = Path(self.cmake_root_dir) / f'cmake_{self.name}'
