@@ -217,6 +217,7 @@
       "mesonbuild.linkers",
       "mesonbuild.linkers.base",
       "mesonbuild.linkers.detect",
+      "mesonbuild.machinefile",
       "mesonbuild.mesonlib",
       "mesonbuild.mesonmain",
       "mesonbuild.mintro",

@@ -59,7 +59,7 @@ class MachineFileStoreTests(TestCase):
 
     def test_loading(self):
         store = machinefile.MachineFileStore([cross_dir / 'ubuntu-armhf.txt'], [], str(cross_dir))
-        self.assertTrue(True)
+        self.assertIsNotNone(store)
 
 class NativeFileTests(BasePlatformTests):
 
