@@ -25,6 +25,7 @@ import mesonbuild.dependencies.factory
 import mesonbuild.envconfig
 import mesonbuild.environment
 import mesonbuild.coredata
+import mesonbuild.machinefile
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
     BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
@@ -60,6 +61,8 @@ from run_tests import (
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
+
+UNIT_MACHINEFILE_DIR = Path(__file__).parent / 'machinefiles'
 
 @contextmanager
 def temp_filename():
@@ -4111,40 +4114,19 @@ class AllPlatformTests(BasePlatformTests):
         self._check_coverage_files()
 
     def test_cross_file_constants(self):
-        with temp_filename() as crossfile1, temp_filename() as crossfile2:
-            with open(crossfile1, 'w', encoding='utf-8') as f:
-                f.write(textwrap.dedent(
-                    '''
-                    [constants]
-                    compiler = 'gcc'
-                    '''))
-            with open(crossfile2, 'w', encoding='utf-8') as f:
-                f.write(textwrap.dedent(
-                    '''
-                    [constants]
-                    toolchain = '/toolchain/'
-                    common_flags = ['--sysroot=' + toolchain / 'sysroot']
-
-                    [properties]
-                    c_args = common_flags + ['-DSOMETHING']
-                    cpp_args = c_args + ['-DSOMETHING_ELSE']
-                    rel_to_src = '@GLOBAL_SOURCE_ROOT@' / 'tool'
-                    rel_to_file = '@DIRNAME@' / 'tool'
-                    no_escaping = '@@DIRNAME@@' / 'tool'
-
-                    [binaries]
-                    c = toolchain / compiler
-                    '''))
-
-            values = mesonbuild.coredata.parse_machine_files([crossfile1, crossfile2], self.builddir)
-            self.assertEqual(values['binaries']['c'], '/toolchain/gcc')
-            self.assertEqual(values['properties']['c_args'],
-                             ['--sysroot=/toolchain/sysroot', '-DSOMETHING'])
-            self.assertEqual(values['properties']['cpp_args'],
-                             ['--sysroot=/toolchain/sysroot', '-DSOMETHING', '-DSOMETHING_ELSE'])
-            self.assertEqual(values['properties']['rel_to_src'], os.path.join(self.builddir, 'tool'))
-            self.assertEqual(values['properties']['rel_to_file'], os.path.join(os.path.dirname(crossfile2), 'tool'))
-            self.assertEqual(values['properties']['no_escaping'], os.path.join(f'@{os.path.dirname(crossfile2)}@', 'tool'))
+        crossfile1 = UNIT_MACHINEFILE_DIR / 'constant1.txt'
+        crossfile2 = UNIT_MACHINEFILE_DIR / 'constant2.txt'
+        values = mesonbuild.machinefile.parse_machine_files([crossfile1,
+                                                             crossfile2],
+                                                             self.builddir)
+        self.assertEqual(values['binaries']['c'], '/toolchain/gcc')
+        self.assertEqual(values['properties']['c_args'],
+                         ['--sysroot=/toolchain/sysroot', '-DSOMETHING'])
+        self.assertEqual(values['properties']['cpp_args'],
+                         ['--sysroot=/toolchain/sysroot', '-DSOMETHING', '-DSOMETHING_ELSE'])
+        self.assertEqual(values['properties']['rel_to_src'], os.path.join(self.builddir, 'tool'))
+        self.assertEqual(values['properties']['rel_to_file'], os.path.join(os.path.dirname(crossfile2), 'tool'))
+        self.assertEqual(values['properties']['no_escaping'], os.path.join(f'@{os.path.dirname(crossfile2)}@', 'tool'))
 
     @skipIf(is_windows(), 'Directory cleanup fails for some reason')
     def test_wrap_git(self):
