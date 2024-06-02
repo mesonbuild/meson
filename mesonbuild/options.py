@@ -499,6 +499,11 @@ class OptionParts:
         if isinstance(other, OptionParts):
             return self.name == other.name and self.subproject == other.subproject and self.for_build == other.for_build
 
+    def __lt__(self, other):
+        if not isinstance(other, OptionParts):
+            return NotImplemented
+        return self.name < other.name
+
     def form_canonical_keystring(self):
         strname = self.name
         if self.subproject is not None:
@@ -547,6 +552,9 @@ class OptionStore:
 
     def set_option_from_string(self, keystr, new_value):
         o = self.split_keystring(keystr)
+        if o in self.options:
+            return self.options[o].set_value(new_value)
+        o = o.copy_with(subproject='')
         return self.options[o].set_value(new_value)
 
     def form_canonical_keystring(self, optparts):
@@ -614,6 +622,9 @@ class OptionStore:
         return (vobject, computed_value)
 
     def set_from_configure_command(self, D, A, U):
+        D = [] if D is None else D
+        A = [] if A is None else A
+        U = [] if U is None else U
         for setval in D:
             keystr, valstr = setval.split('=', 1)
             key = self.split_keystring(keystr)
@@ -631,6 +642,7 @@ class OptionStore:
             delete = self.split_keystring(delete)
             if delete in self.augments:
                 del self.augments[delete]
+        return True
 
     def optlist2optdict(self, optlist):
         optdict = {}
@@ -638,6 +650,9 @@ class OptionStore:
              k, v = p.split('=', 1)
              optdict[k] = v
         return optdict
+
+    def is_project_option(self, k):
+        return k not in self.project_options
 
     def set_from_top_level_project_call(self, project_default_options, cmd_line_options, native_file_options):
         if isinstance(project_default_options, str):
