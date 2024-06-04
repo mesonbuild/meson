@@ -1,0 +1,13 @@
+[constants]
+toolchain = '/toolchain/'
+common_flags = ['--sysroot=' + toolchain / 'sysroot']
+
+[properties]
+c_args = common_flags + ['-DSOMETHING']
+cpp_args = c_args + ['-DSOMETHING_ELSE']
+rel_to_src = '@GLOBAL_SOURCE_ROOT@' / 'tool'
+rel_to_file = '@DIRNAME@' / 'tool'
+no_escaping = '@@DIRNAME@@' / 'tool'
+
+[binaries]
+c = toolchain / compiler
