@@ -834,6 +834,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return ["-Wl,-cache_path_lto," + path]
 
+    def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
+        return self._apply_prefix('-export_dynamic')
+
 
 class LLVMLD64DynamicLinker(AppleDynamicLinker):
 

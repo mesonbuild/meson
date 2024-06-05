@@ -1143,11 +1143,15 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             try:
                 if info.is_windows() or info.is_cygwin():
                     objfile = os.path.basename(f)[:-1] + 'obj'
+                    extra_args = [f]
+                    if is_cross:
+                        extra_args.append(f'-mtriple={info.cpu}-windows')
+
                     linker = guess_win_linker(env,
                                               exelist,
                                               cls, full_version, for_machine,
                                               use_linker_prefix=True, invoked_directly=False,
-                                              extra_args=[f])
+                                              extra_args=extra_args)
                 else:
                     # LDC writes an object file to the current working directory.
                     # Clean it up.
@@ -1161,7 +1165,8 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
 
             return cls(
                 exelist, version, for_machine, info, arch,
-                full_version=full_version, linker=linker, version_output=out)
+                full_version=full_version, linker=linker,
+                is_cross=is_cross, version_output=out)
         elif 'gdc' in out:
             cls = d.GnuDCompiler
             linker = guess_nix_linker(env, exelist, cls, version, for_machine)

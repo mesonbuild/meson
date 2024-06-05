@@ -77,9 +77,23 @@ class ClangCompiler(GnuLikeCompiler):
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # Clang is different than GCC, it will return True when a symbol isn't
-        # defined in a header. Specifically this seems to have something to do
-        # with functions that may be in a header on some systems, but not all of
-        # them. `strlcat` specifically with can trigger this.
+        # defined in a header. Specifically this is caused by a functionality
+        # both GCC and clang have: for some "well known" functions, arbitrarily
+        # chosen, they provide fixit suggestions for the header you should try
+        # including.
+        #
+        # - With GCC, this is a note appended to the prexisting diagnostic
+        #   "error: undeclared identifier"
+        #
+        # - With clang, the error is converted to a c89'ish implicit function
+        #   declaration instead, which can be disabled with -Wno-error and on
+        #   clang < 16, simply passes compilation by default.
+        #
+        # One example of a clang fixit suggestion is for `strlcat`, which
+        # triggers this.
+        #
+        # This was reported in 2017 and promptly fixed. Just kidding!
+        # https://github.com/llvm/llvm-project/issues/33905
         myargs: T.List[str] = ['-Werror=implicit-function-declaration']
         if mode is CompileCheckMode.COMPILE:
             myargs.extend(['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'])

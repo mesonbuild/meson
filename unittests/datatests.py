@@ -14,6 +14,7 @@ import mesonbuild.dependencies.factory
 import mesonbuild.envconfig
 import mesonbuild.environment
 import mesonbuild.coredata
+import mesonbuild.options
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter
 from mesonbuild.ast import AstInterpreter
@@ -139,8 +140,8 @@ class DataTests(unittest.TestCase):
             found_entries |= options
 
         self.assertEqual(found_entries, {
-            *(str(k.evolve(module=None)) for k in mesonbuild.coredata.BUILTIN_OPTIONS),
-            *(str(k.evolve(module=None)) for k in mesonbuild.coredata.BUILTIN_OPTIONS_PER_MACHINE),
+            *(str(k.evolve(module=None)) for k in mesonbuild.options.BUILTIN_OPTIONS),
+            *(str(k.evolve(module=None)) for k in mesonbuild.options.BUILTIN_OPTIONS_PER_MACHINE),
         })
 
         # Check that `buildtype` table inside `Core options` matches how

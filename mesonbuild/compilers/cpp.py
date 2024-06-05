@@ -8,7 +8,7 @@ import functools
 import os.path
 import typing as T
 
-from .. import coredata
+from .. import options
 from .. import mlog
 from ..mesonlib import MesonException, version_compare, OptionKey
 
@@ -174,7 +174,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         opts = super().get_options()
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
-            key: coredata.UserStdOption('C++', _ALL_STDS),
+            key: options.UserStdOption('C++', _ALL_STDS),
         })
         return opts
 
@@ -242,16 +242,16 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
         key = OptionKey('key', machine=self.for_machine, lang=self.language)
         self.update_options(
             opts,
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                key.evolve('eh'),
                                'C++ exception handling type.',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
-            self.create_option(coredata.UserBooleanOption,
+            self.create_option(options.UserBooleanOption,
                                key.evolve('rtti'),
                                'Enable RTTI',
                                True),
-            self.create_option(coredata.UserBooleanOption,
+            self.create_option(options.UserBooleanOption,
                                key.evolve('debugstl'),
                                'STL debug mode',
                                False),
@@ -264,12 +264,12 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
         if version_compare(self.version, self._CPP26_VERSION):
             cppstd_choices.append('c++26')
         std_opt = opts[key.evolve('std')]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(cppstd_choices, gnu=True)
         if self.info.is_windows() or self.info.is_cygwin():
             self.update_options(
                 opts,
-                self.create_option(coredata.UserArrayOption,
+                self.create_option(options.UserArrayOption,
                                    key.evolve('winlibs'),
                                    'Standard Win libraries to link against',
                                    gnu_winlibs),
@@ -394,14 +394,14 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         self.update_options(
             opts,
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                key.evolve('eh'),
                                'C++ exception handling type.',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
         )
         std_opt = opts[key]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c++98', 'c++03', 'c++11', 'c++14', 'c++17'], gnu=True)
         return opts
 
@@ -443,16 +443,16 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
         opts = CPPCompiler.get_options(self)
         self.update_options(
             opts,
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                key.evolve('eh'),
                                'C++ exception handling type.',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
-            self.create_option(coredata.UserBooleanOption,
+            self.create_option(options.UserBooleanOption,
                                key.evolve('rtti'),
                                'Enable RTTI',
                                True),
-            self.create_option(coredata.UserBooleanOption,
+            self.create_option(options.UserBooleanOption,
                                key.evolve('debugstl'),
                                'STL debug mode',
                                False),
@@ -466,12 +466,12 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
         if version_compare(self.version, '>=14.0.0'):
             cppstd_choices.append('c++26')
         std_opt = opts[key]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(cppstd_choices, gnu=True)
         if self.info.is_windows() or self.info.is_cygwin():
             self.update_options(
                 opts,
-                self.create_option(coredata.UserArrayOption,
+                self.create_option(options.UserArrayOption,
                                    key.evolve('winlibs'),
                                    'Standard Win libraries to link against',
                                    gnu_winlibs),
@@ -583,18 +583,18 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         self.update_options(
             opts,
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                key.evolve('eh'),
                                'C++ exception handling type.',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
-            self.create_option(coredata.UserBooleanOption,
+            self.create_option(options.UserBooleanOption,
                                key.evolve('debugstl'),
                                'STL debug mode',
                                False),
         )
         std_opt = opts[key]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(cpp_stds, gnu=True)
         return opts
 
@@ -662,22 +662,22 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         self.update_options(
             opts,
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                key.evolve('eh'),
                                'C++ exception handling type.',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
-            self.create_option(coredata.UserBooleanOption,
+            self.create_option(options.UserBooleanOption,
                                key.evolve('rtti'),
                                'Enable RTTI',
                                True),
-            self.create_option(coredata.UserBooleanOption,
+            self.create_option(options.UserBooleanOption,
                                key.evolve('debugstl'),
                                'STL debug mode',
                                False),
         )
         std_opt = opts[key]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(c_stds + g_stds)
         return opts
 
@@ -735,22 +735,22 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         key = OptionKey('std', machine=self.for_machine, lang=self.language)
         self.update_options(
             opts,
-            self.create_option(coredata.UserComboOption,
+            self.create_option(options.UserComboOption,
                                key.evolve('eh'),
                                'C++ exception handling type.',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
-            self.create_option(coredata.UserBooleanOption,
+            self.create_option(options.UserBooleanOption,
                                key.evolve('rtti'),
                                'Enable RTTI',
                                True),
-            self.create_option(coredata.UserArrayOption,
+            self.create_option(options.UserArrayOption,
                                key.evolve('winlibs'),
                                'Windows libs to link against.',
                                msvc_winlibs),
         )
         std_opt = opts[key]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(cpp_stds)
         return opts
 
@@ -913,7 +913,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c++03', 'c++11'])
         return opts
 
@@ -974,7 +974,7 @@ class TICPPCompiler(TICompiler, CPPCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CPPCompiler.get_options(self)
         std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
-        assert isinstance(std_opt, coredata.UserStdOption), 'for mypy'
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c++03'])
         return opts
 

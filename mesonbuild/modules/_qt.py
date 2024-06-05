@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 from . import ModuleReturnValue, ExtensionModule
 from .. import build
-from .. import coredata
+from .. import options
 from .. import mlog
 from ..dependencies import find_external_dependency, Dependency, ExternalLibrary, InternalDependency
 from ..mesonlib import MesonException, File, version_compare, Popen_safe
@@ -256,7 +256,7 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.has_tools',
-        KwargInfo('required', (bool, coredata.UserFeatureOption), default=False),
+        KwargInfo('required', (bool, options.UserFeatureOption), default=False),
         KwargInfo('method', str, default='auto'),
     )
     def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:

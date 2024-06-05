@@ -81,6 +81,18 @@ class DarwinTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_apple_lto_export_dynamic(self):
+        '''
+        Tests that -Wl,-export_dynamic is correctly added, when export_dynamic: true is set.
+        On macOS, this is relevant for LTO builds only.
+        '''
+        testdir = os.path.join(self.common_test_dir, '148 shared module resolving symbol in executable')
+        # Ensure that it builds even with LTO enabled
+        env = {'CFLAGS': '-flto'}
+        self.init(testdir, override_envvars=env)
+        self.build()
+        self.run_tests()
+
     def _get_darwin_versions(self, fname):
         fname = os.path.join(self.builddir, fname)
         out = subprocess.check_output(['otool', '-L', fname], universal_newlines=True)

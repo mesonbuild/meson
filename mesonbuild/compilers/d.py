@@ -443,10 +443,18 @@ class DCompiler(Compiler):
         output_name = os.path.join(work_dir, 'dtest')
         with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write('''void main() { }''')
-        pc = subprocess.Popen(self.exelist + self.get_output_args(output_name) + self._get_target_arch_args() + [source_name], cwd=work_dir)
+
+        compile_cmdlist = self.exelist + self.get_output_args(output_name) + self._get_target_arch_args() + [source_name]
+
+        # If cross-compiling, we can't run the sanity check, only compile it.
+        if environment.need_exe_wrapper(self.for_machine) and not environment.has_exe_wrapper():
+            compile_cmdlist += self.get_compile_only_args()
+
+        pc = subprocess.Popen(compile_cmdlist, cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('D compiler %s cannot compile programs.' % self.name_string())
+
         if environment.need_exe_wrapper(self.for_machine):
             if not environment.has_exe_wrapper():
                 # Can't check if the binaries run so we have to assume they do
@@ -545,7 +553,9 @@ class DCompiler(Compiler):
         # LDC2 on Windows targets to current OS architecture, but
         # it should follow the target specified by the MSVC toolchain.
         if self.info.is_windows():
-            if self.arch == 'x86_64':
+            if self.is_cross:
+                return [f'-mtriple={self.arch}-windows-msvc']
+            elif self.arch == 'x86_64':
                 return ['-m64']
             return ['-m32']
         return []

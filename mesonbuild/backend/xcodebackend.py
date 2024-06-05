@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import functools, uuid, os, operator
+import functools, uuid, os, operator, re
 import typing as T
 
 from . import backends
@@ -58,6 +58,35 @@ OPT2XCODEOPT = {'plain': None,
                 }
 BOOL2XCODEBOOL = {True: 'YES', False: 'NO'}
 LINKABLE_EXTENSIONS = {'.o', '.a', '.obj', '.so', '.dylib'}
+XCODEVERSIONS = {'1500': ('Xcode 15.0', 60),
+                 '1400': ('Xcode 14.0', 56),
+                 '1300': ('Xcode 13.0', 55),
+                 '1200': ('Xcode 12.0', 54),
+                 '1140': ('Xcode 11.4', 53),
+                 '1100': ('Xcode 11.0', 52),
+                 '1000': ('Xcode 10.0', 51),
+                 '930': ('Xcode 9.3', 50),
+                 '800': ('Xcode 8.0', 48),
+                 '630': ('Xcode 6.3', 47),
+                 '320': ('Xcode 3.2', 46),
+                 '310': ('Xcode 3.1', 45)
+                 }
+
+def autodetect_xcode_version() -> T.Tuple[str, int]:
+    try:
+        pc, stdout, stderr = mesonlib.Popen_safe(['xcodebuild', '-version'])
+    except FileNotFoundError:
+        raise MesonException('Could not detect Xcode. Please install it if you wish to use the Xcode backend.')
+    if pc.returncode != 0:
+        raise MesonException(f'An error occurred while detecting Xcode: {stderr}')
+    version = int(''.join(re.search(r'\d*\.\d*\.*\d*', stdout).group(0).split('.')))
+    # If the version number does not have two decimal points, pretend it does.
+    if stdout.count('.') < 2:
+        version *= 10
+    for v, r in XCODEVERSIONS.items():
+        if int(v) <= version:
+            return r
+    raise MesonException('Your Xcode installation is too old and is not supported.')
 
 class FileTreeEntry:
 
@@ -203,6 +232,7 @@ class XCodeBackend(backends.Backend):
         self.arch = self.build.environment.machines.host.cpu
         if self.arch == 'aarch64':
             self.arch = 'arm64'
+        self.xcodeversion, self.objversion = autodetect_xcode_version()
         # In Xcode files are not accessed via their file names, but rather every one of them
         # gets an unique id. More precisely they get one unique id per target they are used
         # in. If you generate only one id per file and use them, compilation will work but the
@@ -266,7 +296,8 @@ class XCodeBackend(backends.Backend):
         self.build_targets = self.build.get_build_targets()
         self.custom_targets = self.build.get_custom_targets()
         self.generate_filemap()
-        self.generate_buildstylemap()
+        if self.objversion < 50:
+            self.generate_buildstylemap()
         self.generate_build_phase_map()
         self.generate_build_configuration_map()
         self.generate_build_configurationlist_map()
@@ -298,9 +329,10 @@ class XCodeBackend(backends.Backend):
         self.generate_pbx_build_rule(objects_dict)
         objects_dict.add_comment(PbxComment('End PBXBuildRule section'))
         objects_dict.add_comment(PbxComment('Begin PBXBuildStyle section'))
-        self.generate_pbx_build_style(objects_dict)
-        objects_dict.add_comment(PbxComment('End PBXBuildStyle section'))
-        objects_dict.add_comment(PbxComment('Begin PBXContainerItemProxy section'))
+        if self.objversion < 50:
+            self.generate_pbx_build_style(objects_dict)
+            objects_dict.add_comment(PbxComment('End PBXBuildStyle section'))
+            objects_dict.add_comment(PbxComment('Begin PBXContainerItemProxy section'))
         self.generate_pbx_container_item_proxy(objects_dict)
         objects_dict.add_comment(PbxComment('End PBXContainerItemProxy section'))
         objects_dict.add_comment(PbxComment('Begin PBXFileReference section'))
@@ -728,8 +760,8 @@ class XCodeBackend(backends.Backend):
             odict.add_item('isa', 'PBXBuildFile')
             odict.add_item('fileRef', ref_id)
 
+    # This is skipped if Xcode 9 or above is installed, as PBXBuildStyle was removed on that version.
     def generate_pbx_build_style(self, objects_dict: PbxDict) -> None:
-        # FIXME: Xcode 9 and later does not uses PBXBuildStyle and it gets removed. Maybe we can remove this part.
         for name, idval in self.buildstylemap.items():
             styledict = PbxDict()
             objects_dict.add_item(idval, styledict, name)
@@ -1237,11 +1269,12 @@ class XCodeBackend(backends.Backend):
         attr_dict.add_item('BuildIndependentTargetsInParallel', 'YES')
         project_dict.add_item('buildConfigurationList', self.project_conflist, f'Build configuration list for PBXProject "{self.build.project_name}"')
         project_dict.add_item('buildSettings', PbxDict())
-        style_arr = PbxArray()
-        project_dict.add_item('buildStyles', style_arr)
-        for name, idval in self.buildstylemap.items():
-            style_arr.add_item(idval, name)
-        project_dict.add_item('compatibilityVersion', '"Xcode 3.2"')
+        if self.objversion < 50:
+            style_arr = PbxArray()
+            project_dict.add_item('buildStyles', style_arr)
+            for name, idval in self.buildstylemap.items():
+                style_arr.add_item(idval, name)
+        project_dict.add_item('compatibilityVersion', f'"{self.xcodeversion}"')
         project_dict.add_item('hasScannedForEncodings', 0)
         project_dict.add_item('mainGroup', self.maingroup_id)
         project_dict.add_item('projectDirPath', '"' + self.environment.get_source_dir() + '"')
@@ -1840,7 +1873,7 @@ class XCodeBackend(backends.Backend):
     def generate_prefix(self, pbxdict: PbxDict) -> PbxDict:
         pbxdict.add_item('archiveVersion', '1')
         pbxdict.add_item('classes', PbxDict())
-        pbxdict.add_item('objectVersion', '46')
+        pbxdict.add_item('objectVersion', self.objversion)
         objects_dict = PbxDict()
         pbxdict.add_item('objects', objects_dict)
 
