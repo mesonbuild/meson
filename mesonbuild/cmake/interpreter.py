@@ -19,6 +19,7 @@ from .traceparser import CMakeTraceParser
 from .tracetargets import resolve_cmake_trace_targets
 from .. import mlog, mesonlib
 from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible, OptionKey
+from ..environment import detect_ninja
 from ..mesondata import DataFile
 from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from ..programs import ExternalProgram
@@ -848,6 +849,14 @@ class CMakeInterpreter:
         else:
             mlog.debug('CMake build type set from the meson build type')
             cmake_args += [f'-DCMAKE_BUILD_TYPE={self.build_type}']
+
+        # CMAKE_MAKE_PROGRAM cannot be reliably set from the toolchain
+        # It belongs in the generator (or the cache)
+        if self.backend_name == 'ninja':
+            ninja = detect_ninja()
+            if ninja is None or len(ninja) > 1:
+                raise CMakeException(f'CMake requires an exeucutable name for ninja, got {ninja}')
+            cmake_args += [f'-DCMAKE_MAKE_PROGRAM={ninja[0]}']
 
         trace_args = self.trace.trace_args()
         cmcmp_args = [f'-DCMAKE_POLICY_WARNING_{x}=OFF' for x in DISABLE_POLICY_WARNINGS]
