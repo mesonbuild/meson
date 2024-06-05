@@ -62,6 +62,7 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         preserve_paths: bool
+        output_json: bool
 
     class PreprocessKwArgs(TypedDict):
 
@@ -76,6 +77,7 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         method: str
+        output_json: bool
         preserve_paths: bool
 
     class HasToolKwArgs(kwargs.ExtractRequired):
@@ -107,6 +109,7 @@ class QtBaseModule(ExtensionModule):
     _tools_detected = False
     _rcc_supports_depfiles = False
     _moc_supports_depfiles = False
+    _moc_supports_json = False
 
     def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
@@ -184,6 +187,7 @@ class QtBaseModule(ExtensionModule):
             self.compilers_detect(state, qt)
             if version_compare(qt.version, '>=5.15.0'):
                 self._moc_supports_depfiles = True
+                self._moc_supports_json = True
             else:
                 mlog.warning('moc dependencies will not work properly until you move to Qt >= 5.15', fatal=False)
             if version_compare(qt.version, '>=5.14.0'):
@@ -445,6 +449,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
+        KwargInfo('output_json', bool, default=False, since='1.6.0'),
     )
     def compile_moc(self, state: ModuleState, args: T.Tuple, kwargs: MocCompilerKwArgs) -> ModuleReturnValue:
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['headers']):
@@ -477,20 +482,28 @@ class QtBaseModule(ExtensionModule):
 
         output: T.List[build.GeneratedList] = []
 
+        do_output_json : bool = self._moc_supports_json and kwargs['output_json']
         # depfile arguments (defaults to <output-name>.d)
         DEPFILE_ARGS: T.List[str] = ['--output-dep-file'] if self._moc_supports_depfiles else []
+        JSON_ARGS: T.List[str] = ['--output-json'] if do_output_json  else []
 
-        arguments = kwargs['extra_args'] + DEPFILE_ARGS + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
+        arguments = kwargs['extra_args'] + DEPFILE_ARGS + JSON_ARGS + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT0@']
         preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
         if kwargs['headers']:
+            header_gen_output: T.List[str] = ['moc_@BASENAME@.cpp']
+            if do_output_json:
+                header_gen_output.append('moc_@BASENAME@.cpp.json')
             moc_gen = build.Generator(
-                self.tools['moc'], arguments, ['moc_@BASENAME@.cpp'],
+                self.tools['moc'], arguments, header_gen_output,
                 depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
             output.append(moc_gen.process_files(kwargs['headers'], state, preserve_path_from))
         if kwargs['sources']:
+            source_gen_output: T.List[str] = ['@BASENAME@.moc']
+            if do_output_json:
+                source_gen_output.append('@BASENAME@.moc.json')
             moc_gen = build.Generator(
-                self.tools['moc'], arguments, ['@BASENAME@.moc'],
+                self.tools['moc'], arguments, source_gen_output,
                 depfile='@BASENAME@.moc.d',
                 name=f'Qt{self.qt_version} moc source')
             output.append(moc_gen.process_files(kwargs['sources'], state, preserve_path_from))
@@ -512,6 +525,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
+        KwargInfo('output_json', bool, default=False, since='1.6.0'),
     )
     def preprocess(self, state: ModuleState, args: T.List[T.Union[str, File]], kwargs: PreprocessKwArgs) -> ModuleReturnValue:
         _sources = args[1:]
@@ -553,6 +567,7 @@ class QtBaseModule(ExtensionModule):
                 'dependencies': kwargs['dependencies'],
                 'method': method,
                 'preserve_paths': kwargs['preserve_paths'],
+                'output_json': kwargs['output_json']
             }
             sources.extend(self._compile_moc_impl(state, moc_kwargs))
 
