@@ -173,6 +173,8 @@ class RustCompiler(Compiler):
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject=None) -> T.List[str]:
         args = []
         key = self.form_langopt_key('std')
+        if target is not None:
+            key = key.copy_with(subproject=target.subproject)
         if target:
             std = env.coredata.get_option_for_target(target, key)
         else:
