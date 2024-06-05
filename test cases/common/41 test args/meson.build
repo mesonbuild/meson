@@ -33,3 +33,15 @@ testfilect = custom_target('testfile',
                            build_by_default : true,
                            command : [copy, '@INPUT@', '@OUTPUT@'])
 test('custom target arg', tester, args : testfilect, env : env_array)
+
+# https://github.com/mesonbuild/meson/issues/12327
+env = environment()
+env.append('PATH', 'something')
+
+bash = find_program('bash')
+
+custompathtgt = custom_target('testpathappend',
+                              output : 'nothing.txt',
+                              build_always : true,
+                              command : [bash, '-c', 'env'],
+                              env : env)
