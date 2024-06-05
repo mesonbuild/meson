@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import typing as T
 
-from .. import coredata
 from .. import options
 from ..options import OptionKey
 
@@ -15,6 +14,7 @@ from .mixins.gnu import GnuCompiler, gnu_common_warning_args, gnu_objc_warning_a
 from .mixins.clang import ClangCompiler
 
 if T.TYPE_CHECKING:
+    from .. import coredata
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker

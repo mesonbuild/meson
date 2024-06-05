@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
 import re
 import typing as T
 from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
@@ -19,6 +18,7 @@ from .ast.visitor import FullAstVisitor
 from .environment import build_filename
 
 if T.TYPE_CHECKING:
+    import argparse
     from typing_extensions import Literal
 
 

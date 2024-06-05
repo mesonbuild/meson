@@ -12,7 +12,6 @@ import typing as T
 from dataclasses import dataclass
 from functools import lru_cache
 
-from .. import coredata
 from .. import mlog
 from .. import mesonlib
 from .. import options
@@ -27,7 +26,7 @@ from ..options import OptionKey
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
-    from typing import Any
+    from .. import coredata
     from ..build import BuildTarget, DFeatures
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
@@ -1360,7 +1359,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       env: 'Environment') -> 'dict[OptionKey, options.UserOption[Any]]':
+                       env: 'Environment') -> dict[OptionKey, options.UserOption[T.Any]]:
     """Retrieve options that apply to all compilers for a given language."""
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey(f'{lang}_args', machine=for_machine)
@@ -1390,6 +1389,6 @@ def get_global_options(lang: str,
         # autotools compatibility.
         largs.extend_value(comp_options)
 
-    opts: 'dict[OptionKey, options.UserOption[Any]]' = {argkey: cargs, largkey: largs}
+    opts: dict[OptionKey, options.UserOption[T.Any]] = {argkey: cargs, largkey: largs}
 
     return opts

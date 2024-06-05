@@ -27,12 +27,12 @@ from .options import OptionKey
 from .machinefile import CmdLineFileParser
 
 import ast
-import argparse
 import enum
 import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
+    import argparse
     from typing_extensions import Protocol
     from typing import Any
 

@@ -8,7 +8,6 @@ from __future__ import annotations
 import os.path
 import typing as T
 
-from ... import coredata
 from ... import options
 from ... import mesonlib
 from ...options import OptionKey
@@ -16,6 +15,7 @@ from ...mesonlib import LibType
 from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
+    from ... import coredata
     from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...dependencies import Dependency
