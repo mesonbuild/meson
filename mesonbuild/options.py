@@ -521,6 +521,8 @@ class OptionParts:
                            for_build if for_build != BAD_VALUE else self.for_build)
 
 def convert_oldkey(optkey): # Delete after transition to new keys is done.
+    if isinstance(optkey, OptionParts):
+        return optkey
     if optkey.lang:
         name = f'{optkey.lang}_{optkey.name}'
     else:
