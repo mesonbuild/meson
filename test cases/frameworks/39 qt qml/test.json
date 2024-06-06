@@ -1,0 +1,22 @@
+{
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "config-tool" },
+        { "val": "qmake" },
+        { "val": "pkg-config" }
+      ]
+    }
+  },
+  "installed": [
+    {"type": "file", "file": "usr/qml/My/Module1/QmlSingleton.qml"},
+    {"type": "file", "file": "usr/qml/My/Module1/qmldir"},
+    {"type": "file", "file": "usr/qml/My/Module1/Basic.qml"},
+    {"type": "file", "file": "usr/qml/My/Module1/Internal.qml"},
+    {"type": "file", "file": "usr/qml/My/Module1/Thing.qml"},
+    {"type": "file", "file": "usr/qml/My/Module1/My_Module1.qmltypes"},
+    {"type": "file", "file": "usr/qml/My/Module5/qmldir"},
+    {"type": "file", "file": "usr/qml/My/Module5/My_Module5.qmltypes"}
+  ],
+  "expect_skip_on_jobname": ["cygwin", "msys2", "azure", "bionic", "macos"]
+}

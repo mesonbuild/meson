@@ -1,0 +1,4 @@
+module My.Module4
+prefer :/qt/qml/My/Module4/
+BasicAliased 1.0 Basic.qml
+Thing 1.0 Thing.qml
