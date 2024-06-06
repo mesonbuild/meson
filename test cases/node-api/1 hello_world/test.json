@@ -1,4 +1,12 @@
 {
+  "env": {
+    "npm_config_enable_enabled": "true",
+    "npm_config_disable_disabled": "true",
+    "npm_config_string": "string",
+    "npm_config_choice": "a",
+    "npm_config_lib": "enabled",
+    "npm_config_array": "a,b,c"
+  },
   "installed": [
     {"type": "js_module_main", "file": "usr/hello_world"},
     {"type": "js_module_ext", "file": "usr/hello_world"}

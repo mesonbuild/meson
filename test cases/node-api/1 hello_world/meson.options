@@ -1,0 +1,8 @@
+option('enabled', type: 'boolean', value: false)
+option('disabled', type: 'boolean', value: true)
+option('default_false', type: 'boolean', value: false)
+option('default_true', type: 'boolean', value: true)
+option('string', type: 'string', value: '')
+option('choice', type: 'combo', choices: ['a', 'b', 'c'])
+option('lib', type: 'feature')
+option('array', type: 'array')

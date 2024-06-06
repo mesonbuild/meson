@@ -23,6 +23,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
     from ..interpreter.kwargs import SharedModule as SharedModuleKw, FuncTest as FuncTestKw
+    from .. import options
     from typing import Any
     from typing_extensions import TypedDict
 
@@ -109,6 +110,7 @@ class NapiModule(ExtensionModule):
             'extension_module': self.extension_module_method,
             'test': self.test_method,
         })
+        self.parse_npm_options()
 
     def parse_node_json_output(self, code: str) -> Any:
         result: Any = None
@@ -255,6 +257,28 @@ class NapiModule(ExtensionModule):
         js_lib: str = self.emnapi_package['js_library']
         return Path(js_lib)
 
+    def parse_npm_options(self) -> None:
+        for key in self.interpreter.environment.coredata.options.keys():
+            opt = self.interpreter.environment.coredata.options[key]
+            env_name = key.name if key.lang is None else f'{key.lang}_{key.name}'
+            if isinstance(opt.value, str):
+                if 'npm_config_' + env_name in os.environ:
+                    opt.set_value(os.environ['npm_config_' + env_name])
+            if isinstance(opt.value, bool):
+                npm_enable = 'npm_config_enable_' + env_name in os.environ
+                npm_disable = 'npm_config_disable_' + env_name in os.environ
+                if npm_enable and npm_disable:
+                    l = list(os.environ.keys())
+                    mlog.warning(f'Found both --enable-{env_name} and --disable-{env_name}, last one wins')
+                    opt.set_value(l.index('npm_config_enable_' + env_name) > l.index('npm_config_disable_' + env_name))
+                elif npm_enable:
+                    opt.set_value(True)
+                elif npm_disable:
+                    opt.set_value(False)
+            if isinstance(opt.value, list):
+                if 'npm_config_' + env_name in os.environ:
+                    T.cast('options.UserArrayOption', opt).extend_value(os.environ['npm_config_' + env_name])
+
     @permittedKwargs(mod_kwargs)
     @typed_pos_args('node-api.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     # TODO: For some strange reason, install_dir requires allow_unknown=True
@@ -316,8 +340,8 @@ class NapiModule(ExtensionModule):
 
         return self.interpreter.build_target(state.current_node, args, kwargs, SharedModule)
 
-    @typed_pos_args('node_api_extension.test', str, (str, mesonlib.File), (SharedModule, mesonlib.File))
-    @typed_kwargs('node_api_extenstion.test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
+    @typed_pos_args('node_api.test', str, (str, mesonlib.File), (SharedModule, mesonlib.File))
+    @typed_kwargs('node_api.test', *TEST_KWS, KwargInfo('is_parallel', bool, default=True))
     def test_method(self, state: 'ModuleState',
                     args: T.Tuple[
                         str,
