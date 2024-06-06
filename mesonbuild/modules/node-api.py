@@ -78,6 +78,11 @@ swig_cpp_defaults = {
     'msvc': ['/wo6246', '/wo28182'],
     'emscripten': swig_cpp_defaults_clang
 }
+# These are options that have special (and incompatible) meaning in both npm and meson
+# Keep them apart
+npm_config_blacklist = [
+    'prefix'
+]
 
 if T.TYPE_CHECKING:
     class ExtensionModuleKw(SharedModuleKw):
@@ -259,6 +264,8 @@ class NapiModule(ExtensionModule):
 
     def parse_npm_options(self) -> None:
         for key in self.interpreter.environment.coredata.options.keys():
+            if key.name in npm_config_blacklist:
+                continue
             opt = self.interpreter.environment.coredata.options[key]
             env_name = key.name if key.lang is None else f'{key.lang}_{key.name}'
             if isinstance(opt.value, str):

@@ -5,7 +5,8 @@
     "npm_config_string": "string",
     "npm_config_choice": "a",
     "npm_config_lib": "enabled",
-    "npm_config_array": "a,b,c"
+    "npm_config_array": "a,b,c",
+    "npm_config_prefix": "y:/bad_prefix"
   },
   "installed": [
     {"type": "js_module_main", "file": "usr/hello_world"},
