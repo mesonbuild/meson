@@ -143,6 +143,8 @@ test('test5', executable('prog5', 'prog5.c'))
 conf6 = configuration_data()
 conf6.set('var1', 'foo')
 conf6.set('var2', 'bar')
+conf6.set('var3', 'baz')
+conf6.set('var4', 'qux')
 configure_file(
   input : 'config6.h.in',
   output : '@BASENAME@',
