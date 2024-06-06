@@ -6,7 +6,7 @@ project('qt4, qt5, and qt6 build test', 'cpp',
 subdir('mocdep')
 
 qt5_modules = ['Widgets']
-qt6_modules = ['Widgets']
+qt6_modules = ['Widgets', 'Qml']
 foreach qt : ['qt4', 'qt5', 'qt6']
   qt_modules = ['Core', 'Gui']
   if qt == 'qt5'
@@ -164,6 +164,24 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     if qt == 'qt5'
       subdir('subfolder')
     endif
+
+    if qt == 'qt6'
+        qmlmodule = qtmodule.qml_module(
+            'qmlmodule',
+            'Foo.Bar',
+            '1.0',
+            qml_sources: files('QmlStuff.qml', 'QmlOtherStuff.qml'),
+            qml_singletons: files('QmlSingleton.qml'),
+            imports: ['QtQuick/2.0', 'QtQuick.Templates'],
+            resources_prefix: '/qt/qml',
+            moc_headers: files('QmlCppExposed.hpp', 'QmlCppOtherExposed.hpp'),
+            dependencies: [qtdep],
+        )
+        qmlplugin = executable(qt + '_qmlmodule',
+                          sources : ['QmlMain.cpp', qmlmodule],
+                          dependencies : qtdep)
+    endif
+
 
     # Check we can apply a version constraint
     accept_versions = ['>=@0@'.format(qtdep.version()), '<@0@'.format(qtdep.version()[0].to_int() + 1)]
