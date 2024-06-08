@@ -21,7 +21,7 @@ from .mixins.pgi import PGICompiler
 
 from mesonbuild.mesonlib import (
     version_compare, MesonException,
-    LibType, OptionKey,
+    LibType,
 )
 
 if T.TYPE_CHECKING:
@@ -115,7 +115,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         return self.update_options(
             super().get_options(),
             self.create_option(options.UserComboOption,
-                               OptionKey('std', machine=self.for_machine, lang=self.language),
+                               self.form_langopt_key('std'),
                                'Fortran language standard to use',
                                ['none'],
                                'none'),
@@ -147,13 +147,13 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
             fortran_stds += ['f2008']
         if version_compare(self.version, '>=8.0.0'):
             fortran_stds += ['f2018']
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         opts[key].choices = ['none'] + fortran_stds
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key]
         if std.value != 'none':
             args.append('-std=' + std.value)
@@ -205,7 +205,7 @@ class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['f95', 'f2003', 'f2008', 'gnu', 'legacy', 'f2008ts']
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         opts[key].choices = ['none'] + fortran_stds
         return opts
 
@@ -284,13 +284,13 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         opts[key].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key]
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         if std.value != 'none':
@@ -339,13 +339,13 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         opts[key].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key]
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         if std.value != 'none':
