@@ -25,6 +25,7 @@ from .mesonlib import (
 from . import mlog
 
 import typing as T
+from typing import ItemsView
 
 DEFAULT_YIELDING = False
 
@@ -473,8 +474,42 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('purelibdir', module='python'): {},
 }
 
-
 class OptionStore:
     def __init__(self):
-        # This class will hold all options for a given build directory
-        self.dummy = None
+        self.d: T.Dict['OptionKey', 'UserOption[T.Any]'] = {}
+
+    def __len__(self):
+        return len(self.d)
+
+    def __setitem__(self, key, value):
+        self.d[key] = value
+
+    def __getitem__(self, key):
+        return self.d[key]
+
+    def __delitem__(self, key):
+        del self.d[key]
+
+    def __contains__(self, key):
+        return key in self.d
+
+    def __repr__(self):
+        return repr(self.d)
+
+    def keys(self):
+        return self.d.keys()
+
+    def values(self):
+        return self.d.values()
+
+    def items(self) -> ItemsView['OptionKey', 'USerOption[T.Any]']:
+        return self.d.items()
+
+    def update(self, *args, **kwargs):
+        return self.d.update(*args, **kwargs)
+
+    def setdefault(self, k, o):
+        return self.d.setdefault(k, o)
+
+    def get(self, *args, **kwargs)-> UserOption:
+        return self.d.get(*args, **kwargs)

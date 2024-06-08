@@ -58,7 +58,7 @@ if T.TYPE_CHECKING:
 
     OptionDictType = T.Union[T.Dict[str, 'options.UserOption[T.Any]'], 'OptionsView']
     MutableKeyedOptionDictType = T.Dict['OptionKey', 'options.UserOption[T.Any]']
-    KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, 'OptionsView']
+    KeyedOptionDictType = T.Union['options.OptionStore', MutableKeyedOptionDictType, 'OptionsView']
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
@@ -241,7 +241,7 @@ _V = T.TypeVar('_V')
 
 class CoreData:
 
-    def __init__(self, options: SharedCMDOptions, scratch_dir: str, meson_command: T.List[str]):
+    def __init__(self, cmd_options: SharedCMDOptions, scratch_dir: str, meson_command: T.List[str]):
         self.lang_guids = {
             'default': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
             'c': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
@@ -255,8 +255,8 @@ class CoreData:
         self.meson_command = meson_command
         self.target_guids = {}
         self.version = version
-        self.options: 'MutableKeyedOptionDictType' = {}
-        self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
+        self.options = options.OptionStore()
+        self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
 
         # Stores the (name, hash) of the options file, The name will be either
@@ -282,18 +282,18 @@ class CoreData:
         self.cmake_cache: PerMachine[CMakeStateCache] = PerMachine(CMakeStateCache(), CMakeStateCache())
 
         # Only to print a warning if it changes between Meson invocations.
-        self.config_files = self.__load_config_files(options, scratch_dir, 'native')
+        self.config_files = self.__load_config_files(cmd_options, scratch_dir, 'native')
         self.builtin_options_libdir_cross_fixup()
         self.init_builtins('')
 
     @staticmethod
-    def __load_config_files(options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
+    def __load_config_files(cmd_options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
         # Need to try and make the passed filenames absolute because when the
         # files are parsed later we'll have chdir()d.
         if ftype == 'cross':
-            filenames = options.cross_file
+            filenames = cmd_options.cross_file
         else:
-            filenames = options.native_file
+            filenames = cmd_options.native_file
 
         if not filenames:
             return []
