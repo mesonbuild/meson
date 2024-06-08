@@ -205,7 +205,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
                 new_link_args = mesonlib.extract_as_list(kwargs, 'link_args')
 
-                is_debug = self.interpreter.environment.coredata.options[OptionKey('debug')].value
+                is_debug = self.interpreter.environment.coredata.optstore[OptionKey('debug')].value
                 if is_debug:
                     new_link_args.append(python_windows_debug_link_exception)
                 else:

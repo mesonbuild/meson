@@ -90,7 +90,7 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
         super().__init__(option, interpreter)
         if option and option.is_auto():
             # TODO: we need to cast here because options is not a TypedDict
-            auto = T.cast('options.UserFeatureOption', self.env.coredata.options[OptionKey('auto_features')])
+            auto = T.cast('options.UserFeatureOption', self.env.coredata.optstore[OptionKey('auto_features')])
             self.held_object = copy.copy(auto)
             self.held_object.name = option.name
         self.methods.update({'enabled': self.enabled_method,

@@ -533,7 +533,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
                    for k, v in overrides.items()}
         else:
             ovr = {}
-        self.options = coredata.OptionsView(self.environment.coredata.options, self.subproject, ovr)
+        self.options = coredata.OptionsView(self.environment.coredata.optstore, self.subproject, ovr)
         # XXX: this should happen in the interpreter
         if has_path_sep(self.name):
             # Fix failing test 53 when this becomes an error.
@@ -1242,8 +1242,8 @@ class BuildTarget(Target):
         k = OptionKey(option)
         if kwargs.get(arg) is not None:
             val = T.cast('bool', kwargs[arg])
-        elif k in self.environment.coredata.options:
-            val = self.environment.coredata.options[k].value
+        elif k in self.environment.coredata.optstore:
+            val = self.environment.coredata.optstore[k].value
         else:
             val = False
 
@@ -1930,8 +1930,8 @@ class Executable(BuildTarget):
             compilers: T.Dict[str, 'Compiler'],
             kwargs):
         key = OptionKey('b_pie')
-        if 'pie' not in kwargs and key in environment.coredata.options:
-            kwargs['pie'] = environment.coredata.options[key].value
+        if 'pie' not in kwargs and key in environment.coredata.optstore:
+            kwargs['pie'] = environment.coredata.optstore[key].value
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'

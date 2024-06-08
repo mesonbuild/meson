@@ -291,7 +291,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     dir_options: 'cdata.MutableKeyedOptionDictType' = {}
     test_options: 'cdata.MutableKeyedOptionDictType' = {}
     core_options: 'cdata.MutableKeyedOptionDictType' = {}
-    for k, v in coredata.options.items():
+    for k, v in coredata.optstore.items():
         if k in dir_option_names:
             dir_options[k] = v
         elif k in test_option_names:
@@ -326,14 +326,14 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
             optlist.append(optdict)
 
     add_keys(core_options, 'core')
-    add_keys({k: v for k, v in coredata.options.items() if k.is_backend()}, 'backend')
-    add_keys({k: v for k, v in coredata.options.items() if k.is_base()}, 'base')
+    add_keys({k: v for k, v in coredata.optstore.items() if k.is_backend()}, 'backend')
+    add_keys({k: v for k, v in coredata.optstore.items() if k.is_base()}, 'base')
     add_keys(
-        {k: v for k, v in sorted(coredata.options.items(), key=lambda i: i[0].machine) if k.is_compiler()},
+        {k: v for k, v in sorted(coredata.optstore.items(), key=lambda i: i[0].machine) if k.is_compiler()},
         'compiler',
     )
     add_keys(dir_options, 'directory')
-    add_keys({k: v for k, v in coredata.options.items() if k.is_project()}, 'user')
+    add_keys({k: v for k, v in coredata.optstore.items() if k.is_project()}, 'user')
     add_keys(test_options, 'test')
     return optlist
 

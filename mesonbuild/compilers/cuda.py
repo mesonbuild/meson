@@ -549,7 +549,7 @@ class CudaCompiler(Compiler):
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self.get_ccbin_args(env.coredata.options)
+        flags += self.get_ccbin_args(env.coredata.optstore)
 
         # If cross-compiling, we can't run the sanity check, only compile it.
         if env.need_exe_wrapper(self.for_machine) and not env.has_exe_wrapper():
