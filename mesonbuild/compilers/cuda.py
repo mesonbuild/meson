@@ -13,7 +13,7 @@ from .. import options
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException, Popen_safe,
-    is_windows, LibType, OptionKey, version_compare,
+    is_windows, LibType, version_compare,
 )
 from .compilers import Compiler
 
@@ -645,12 +645,12 @@ class CudaCompiler(Compiler):
         return self.update_options(
             super().get_options(),
             self.create_option(options.UserComboOption,
-                               OptionKey('std', machine=self.for_machine, lang=self.language),
+                               self.form_langopt_key('std'),
                                'C++ language standard to use with CUDA',
                                cpp_stds,
                                'none'),
             self.create_option(options.UserStringOption,
-                               OptionKey('ccbindir', machine=self.for_machine, lang=self.language),
+                               self.form_langopt_key('ccbindir'),
                                'CUDA non-default toolchain directory to use (-ccbin)',
                                ''),
         )
@@ -663,7 +663,7 @@ class CudaCompiler(Compiler):
         # We must strip the -std option from the host compiler option set, as NVCC has
         # its own -std flag that may not agree with the host compiler's.
         host_options = {key: options.get(key, opt) for key, opt in self.host_compiler.get_options().items()}
-        std_key = OptionKey('std', machine=self.for_machine, lang=self.host_compiler.language)
+        std_key = self.form_langopt_key('std')
         overrides = {std_key: 'none'}
         return coredata.OptionsView(host_options, overrides=overrides)
 
@@ -673,7 +673,7 @@ class CudaCompiler(Compiler):
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
-            key = OptionKey('std', machine=self.for_machine, lang=self.language)
+            key = self.form_langopt_key('std')
             std = options[key]
             if std.value != 'none':
                 args.append('--std=' + std.value)
@@ -793,7 +793,7 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(super().get_dependency_link_args(dep), _Phase.LINKER)
 
     def get_ccbin_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('ccbindir')
         ccbindir = options[key].value
         if isinstance(ccbindir, str) and ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
