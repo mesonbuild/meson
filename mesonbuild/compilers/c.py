@@ -8,7 +8,7 @@ import typing as T
 
 from .. import options
 from .. import mlog
-from ..mesonlib import MesonException, version_compare, OptionKey
+from ..mesonlib import MesonException, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
@@ -94,7 +94,7 @@ class CCompiler(CLikeCompiler, Compiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         opts.update({
             key: options.UserStdOption('C', _ALL_STDS),
         })
@@ -127,7 +127,8 @@ class _ClangCStds(CompilerMixinBase):
             stds += ['c2x']
         if version_compare(self.version, self._C23_VERSION):
             stds += ['c23']
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True)
         return opts
@@ -155,7 +156,7 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
             self.update_options(
                 opts,
                 self.create_option(options.UserArrayOption,
-                                   OptionKey('winlibs', machine=self.for_machine, lang=self.language),
+                                   self.form_langopt_key('winlibs'),
                                    'Standard Win libraries to link against',
                                    gnu_winlibs),
             )
@@ -163,7 +164,8 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std = options[key]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
@@ -171,7 +173,8 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typedict mypy can't understand this.
-            libs = options[OptionKey('winlibs', machine=self.for_machine, lang=self.language)].value.copy()
+            key = self.form_langopt_key('winlibs')
+            libs = options[key].value.copy()
             assert isinstance(libs, list)
             for l in libs:
                 assert isinstance(l, str)
@@ -246,14 +249,16 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c90', 'c99', 'c11'], gnu=True)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std = options[key]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
@@ -296,7 +301,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
             stds += ['c2x']
         if version_compare(self.version, self._C23_VERSION):
             stds += ['c23']
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True)
@@ -312,7 +317,8 @@ class GnuCCompiler(GnuCompiler, CCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', lang=self.language, machine=self.for_machine)]
+        key = self.form_langopt_key('std')
+        std = options[key]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
@@ -320,7 +326,8 @@ class GnuCCompiler(GnuCompiler, CCompiler):
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typeddict mypy can't figure this out
-            libs: T.List[str] = options[OptionKey('winlibs', lang=self.language, machine=self.for_machine)].value.copy()
+            key = self.form_langopt_key('winlibs')
+            libs: T.List[str] = options[key].value.copy()
             assert isinstance(libs, list)
             for l in libs:
                 assert isinstance(l, str)
@@ -376,7 +383,8 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
             stds += ['c90', 'c1x', 'gnu90', 'gnu1x', 'iso9899:2011']
         if version_compare(self.version, '>=1.26.00'):
             stds += ['c17', 'c18', 'iso9899:2017', 'iso9899:2018', 'gnu17', 'gnu18']
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds)
         return opts
@@ -415,14 +423,16 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         stds = ['c89', 'c99']
         if version_compare(self.version, '>=16.0.0'):
             stds += ['c11']
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std = options[key]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
@@ -442,7 +452,7 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
             super().get_options(),
             self.create_option(
                 options.UserArrayOption,
-                OptionKey('winlibs', machine=self.for_machine, lang=self.language),
+                self.form_langopt_key('winlibs'),
                 'Windows libs to link against.',
                 msvc_winlibs,
             ),
@@ -450,7 +460,7 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         # need a TypeDict to make this work
-        key = OptionKey('winlibs', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('winlibs')
         libs = options[key].value.copy()
         assert isinstance(libs, list)
         for l in libs:
@@ -479,14 +489,16 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
             stds += ['c11']
         if version_compare(self.version, self._C17_VERSION):
             stds += ['c17', 'c18']
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(stds, gnu=True, gnu_deprecated=True)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std = options[key]
         # As of MVSC 16.8, /std:c11 and /std:c17 are the only valid C standard options.
         if std.value in {'c11'}:
             args.append('/std:c11')
@@ -506,7 +518,7 @@ class ClangClCCompiler(_ClangCStds, ClangClCompiler, VisualStudioLikeCCompilerMi
         ClangClCompiler.__init__(self, target)
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key].value
         if std != "none":
             return [f'/clang:-std={std}']
@@ -528,14 +540,15 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key]
         if std.value == 'c89':
             mlog.log("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.", once=True)
@@ -561,14 +574,15 @@ class ArmCCompiler(ArmCompiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key]
         if std.value != 'none':
             args.append('--' + std.value)
@@ -590,7 +604,8 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99'])
         return opts
@@ -600,7 +615,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key]
         if std.value == 'c89':
             args.append('-lang=c')
@@ -637,7 +652,8 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99'], gnu=True)
         return opts
@@ -647,7 +663,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key]
         if std.value != 'none':
             args.append('-ansi')
@@ -682,7 +698,8 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99'])
         return opts
@@ -719,7 +736,8 @@ class TICCompiler(TICompiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        std_opt = opts[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
@@ -729,7 +747,7 @@ class TICCompiler(TICompiler, CCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        key = self.form_langopt_key('std')
         std = options[key]
         if std.value != 'none':
             args.append('--' + std.value)
@@ -759,12 +777,14 @@ class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
         c_stds = ['c99']
-        opts[OptionKey('std', machine=self.for_machine, lang=self.language)].choices = ['none'] + c_stds
+        key = self.form_langopt_key('std')
+        opts[key].choices = ['none'] + c_stds
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std = options[key]
         if std.value != 'none':
             args.append('-lang')
             args.append(std.value)
@@ -787,12 +807,14 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = CCompiler.get_options(self)
         c_stds = ['c99']
-        opts[OptionKey('std', machine=self.for_machine, lang=self.language)].choices = ['none'] + c_stds
+        key = self.form_langopt_key('std')
+        opts[key].choices = ['none'] + c_stds
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        key = self.form_langopt_key('std')
+        std = options[key]
         if std.value != 'none':
             args.append('-lang ' + std.value)
         return args
