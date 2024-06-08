@@ -962,7 +962,7 @@ class Backend:
     def target_uses_pch(self, target: build.BuildTarget) -> bool:
         try:
             return T.cast('bool', target.get_option(OptionKey('b_pch')))
-        except KeyError:
+        except (KeyError, AttributeError):
             return False
 
     @staticmethod

@@ -664,7 +664,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_option(self, key: 'OptionKey') -> T.Union[str, int, bool]:
         # TODO: if it's possible to annotate get_option or validate_option_value
         # in the future we might be able to remove the cast here
-        return T.cast('T.Union[str, int, bool]', self.options[key].value)
+        return T.cast('T.Union[str, int, bool]', self.options.get_value(key))
 
     @staticmethod
     def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
@@ -1243,7 +1243,7 @@ class BuildTarget(Target):
         if kwargs.get(arg) is not None:
             val = T.cast('bool', kwargs[arg])
         elif k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore[k].value
+            val = self.environment.coredata.optstore.get_value(k)
         else:
             val = False
 
@@ -1931,7 +1931,7 @@ class Executable(BuildTarget):
             kwargs):
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.optstore:
-            kwargs['pie'] = environment.coredata.optstore[key].value
+            kwargs['pie'] = environment.coredata.optstore.get_value(key)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'

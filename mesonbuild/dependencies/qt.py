@@ -298,7 +298,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         # compiler supports it.
         is_debug = self.env.coredata.get_option(mesonlib.OptionKey('buildtype')) == 'debug'
         if mesonlib.OptionKey('b_vscrt') in self.env.coredata.optstore:
-            if self.env.coredata.optstore[mesonlib.OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
+            if self.env.coredata.optstore.get_value('b_vscrt') in {'mdd', 'mtd'}:
                 is_debug = True
         modules_lib_suffix = _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], is_debug)
 
