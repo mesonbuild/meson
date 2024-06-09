@@ -301,8 +301,6 @@ class ConverterTarget:
                     # corresponding custom target is run.2
                     self.generated_raw += [Path(j)]
                     temp += [j]
-                elif j in BLACKLIST_COMPILER_FLAGS:
-                    pass
                 else:
                     temp += [j]
 
