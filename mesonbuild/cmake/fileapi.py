@@ -141,7 +141,7 @@ class CMakeFileAPI:
             link_libs = []
             for i in tgt.get('link', {}).get('commandFragments', []):
                 if i['role'] == 'flags':
-                    link_flags += [i['fragment']]
+                    link_flags = [i['fragment']]
                 elif i['role'] == 'libraries':
                     link_libs += [i['fragment']]
                 elif i['role'] == 'libraryPath':
