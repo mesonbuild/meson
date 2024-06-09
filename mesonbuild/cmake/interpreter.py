@@ -87,6 +87,9 @@ TARGET_TYPE_MAP: T.Mapping[str, str] = {
 
 SKIP_TARGETS: T.Collection[str] = ['UTILITY']
 
+# TODO: This is a bad solution to the problem that the CMake fileAPI does not make it clear
+# which flags are linker flags and which are compiler flags - which means that some manual filtering is needed
+# https://gitlab.kitware.com/cmake/cmake/-/issues/26040
 BLACKLIST_COMPILER_FLAGS: T.Collection[str] = [
     '-Wall', '-Wextra', '-Weverything', '-Werror', '-Wpedantic', '-pedantic', '-w',
     '/W1', '/W2', '/W3', '/W4', '/Wall', '/WX', '/w',
@@ -101,8 +104,9 @@ BLACKLIST_LINK_FLAGS: T.Collection[str] = [
     '/incremental',
 ]
 
+# Older versions of CMake set -MT instead of /MT
 BLACKLIST_CLANG_CL_LINK_FLAGS: T.Collection[str] = [
-    '/GR', '/EHsc', '/MDd', '/Zi', '/RTC1',
+    '/GR', '/EHsc', '/MDd', '/MD', '-MDd', '-MD', '/MTd', '/MT', '-MTd', '-MT', '/Zi', '/RTC1',
 ]
 
 BLACKLIST_LINK_LIBS: T.Collection[str] = [
