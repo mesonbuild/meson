@@ -12,6 +12,15 @@ authors:
 This module provides support for finding and building extensions against
 python installations, be they python 2 or 3.
 
+If you want to build and package Python extension modules using tools
+compatible with [PEP-517](https://peps.python.org/pep-0517/), check out
+[meson-python](https://mesonbuild.com/meson-python/index.html).
+
+If you are building Python extension modules against a Python interpreter
+located in a venv or Conda environment, you probably want to set
+`python.install_venv=auto`;
+see [Python module options](Builtin-options.md#python-module) for details.
+
 *Added 0.46.0*
 
 ## Functions

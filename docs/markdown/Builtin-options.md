@@ -408,7 +408,8 @@ interpreter directly, even if it is a venv. Setting to `venv` will instead use
 the paths for the virtualenv the python found installation comes from (or fail
 if it is not a virtualenv).  Setting to `auto` will check if the found
 installation is a virtualenv, and use `venv` or `system` as appropriate (but
-never `prefix`). This option is mutually exclusive with the `platlibdir`/`purelibdir`.
+never `prefix`). Note that Conda environments are treated as `system`.
+This option is mutually exclusive with the `platlibdir`/`purelibdir`.
 
 For backwards compatibility purposes, the default `install_env` is `prefix`.
 
