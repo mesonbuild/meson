@@ -27,11 +27,11 @@ from .. import coredata, options
 
 if T.TYPE_CHECKING:
     from types import ModuleType
+    from typing import Any
 
     from . import manifest
     from .. import mparser
     from ..environment import Environment
-    from ..coredata import KeyedOptionDictType
 
 # tomllib is present in python 3.11, before that it is a pypi module called tomli,
 # we try to import tomllib, then tomli,
@@ -700,7 +700,7 @@ def _create_lib(cargo: Manifest, build: builder.Builder, crate_type: manifest.CR
     ]
 
 
-def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode, KeyedOptionDictType]:
+def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.CodeBlockNode,  dict[OptionKey, options.UserOption[Any]]]:
     # subp_name should be in the form "foo-0.1-rs"
     package_name = subp_name.rsplit('-', 2)[0]
     manifests = _load_manifests(os.path.join(env.source_dir, subdir))

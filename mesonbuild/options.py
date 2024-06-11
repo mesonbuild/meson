@@ -481,7 +481,7 @@ class OptionStore:
     def __len__(self):
         return len(self.d)
 
-    def ensure_key(self,key: T.Union[OptionKey, str]) -> OptionKey:
+    def ensure_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
         if isinstance(key, str):
             return OptionKey(key)
         return key
@@ -492,7 +492,7 @@ class OptionStore:
     def get_value(self, key: T.Union[OptionKey, str]) -> 'T.Any':
         return self.get_value_object(key).value
 
-    def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any'):
+    def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
         key = self.ensure_key(key)
         self.d[key] = valobj
 
@@ -501,14 +501,13 @@ class OptionStore:
         self.d[key] = valobj
 
     def set_value(self, key: T.Union[OptionKey, str], new_value: 'T.Any') -> bool:
-        key  = self.ensure_key(key)
+        key = self.ensure_key(key)
         return self.d[key].set_value(new_value)
 
     # FIXME, this should be removed.or renamed to "change_type_of_existing_object" or something like that
     def set_value_object(self, key: T.Union[OptionKey, str], new_object: 'UserOption[T.Any]') -> bool:
-        key  = self.ensure_key(key)
+        key = self.ensure_key(key)
         self.d[key] = new_object
-
 
     def remove(self, key):
         del self.d[key]
@@ -526,7 +525,7 @@ class OptionStore:
     def values(self):
         return self.d.values()
 
-    def items(self) -> ItemsView['OptionKey', 'USerOption[T.Any]']:
+    def items(self) -> ItemsView['OptionKey', 'UserOption[T.Any]']:
         return self.d.items()
 
     def update(self, *args, **kwargs):
@@ -535,5 +534,5 @@ class OptionStore:
     def setdefault(self, k, o):
         return self.d.setdefault(k, o)
 
-    def get(self, *args, **kwargs)-> UserOption:
+    def get(self, *args, **kwargs) -> UserOption:
         return self.d.get(*args, **kwargs)

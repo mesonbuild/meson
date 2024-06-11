@@ -665,6 +665,7 @@ class CudaCompiler(Compiler):
         host_options = {key: master_options.get(key, opt) for key, opt in self.host_compiler.get_options().items()}
         std_key = OptionKey('std', machine=self.for_machine, lang=self.host_compiler.language)
         overrides = {std_key: 'none'}
+        # To shut up mypy.
         return coredata.OptionsView(host_options, overrides=overrides)
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:

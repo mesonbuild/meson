@@ -810,7 +810,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
             # copy the members because the option proxy doesn't support it.
             options = copy.deepcopy(options)
             if options.get_value(key) == 'vc++11':
-                options.set_value(key,'vc++14')
+                options.set_value(key, 'vc++14')
             else:
                 options.set_value(key,  'c++14')
         return super().get_option_compile_args(options)
