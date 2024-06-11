@@ -608,6 +608,53 @@ Define cpu family for cross compilation.
 \fB\-\-endian {big,little}\fR
 Define endianness for cross compilation.
 
+.SH The format command
+
+.B meson format
+formats a meson source file.
+
+.B meson format [
+.I options
+.B ] [
+.I sources...
+.B ]
+
+.SS "positional arguments:"
+
+.TP
+\fBsources...\fR
+meson source files
+
+.SS "options:"
+
+.TP
+\fB-h, --help\fR
+show this help message and exit
+
+.TP
+\fB-q, --check-only\fR
+exit with 1 if files would be modified by meson format
+
+.TP
+\fB-i, --inplace\fR
+format files in-place
+
+.TP
+\fB-r, --recursive\fR
+recurse subdirs (requires --check-only or --inplace option)
+
+.TP
+\fB-c meson.format, --configuration meson.format\fR
+read configuration from meson.format
+
+.TP
+\fB-e, --editor-config\fR
+try to read configuration from .editorconfig
+
+.TP
+\fB-o OUTPUT, --output OUTPUT\fR
+output file (implies having exactly one input)
+
 .SH EXIT STATUS
 
 .TP
