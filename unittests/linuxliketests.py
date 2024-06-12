@@ -36,6 +36,7 @@ from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI, PkgConfigInterface
+from mesonbuild.programs import NonExistingExternalProgram
 import mesonbuild.modules.pkgconfig
 
 PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
@@ -316,6 +317,19 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
         self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
+
+    def test_qt5dependency_no_lrelease(self):
+        '''
+        Test that qt5 detection with qmake works. This can't be an ordinary
+        test case because it involves setting the environment.
+        '''
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        def _no_lrelease(self, prog, *args, **kwargs):
+            if 'lrelease' in prog:
+                return NonExistingExternalProgram(prog)
+            return self._interpreter.find_program_impl(prog, *args, **kwargs)
+        with mock.patch.object(mesonbuild.modules.ModuleState, 'find_program', _no_lrelease):
+            self.init(testdir, inprocess=True, extra_args=['-Dmethod=qmake', '-Dexpect_lrelease=false'])
 
     def test_qt5dependency_qmake_detection(self):
         '''

@@ -156,6 +156,9 @@ This method takes the following keyword arguments:
   `true` or an enabled [`feature`](Build-options.md#features) and some tools are
   missing Meson will abort.
 - `method` string: The method to use to detect Qt, see [[dependency]]
+- `tools`: string[]: *Since 1.6.0*. List of tools to check. Testable tools
+  are `moc`, `uic`, `rcc` and `lrelease`. By default `tools` is set to `['moc',
+  'uic', 'rcc', 'lrelease']`
 
 ## Dependencies
 
