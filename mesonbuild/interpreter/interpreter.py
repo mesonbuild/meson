@@ -1211,21 +1211,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             self.project_default_options = kwargs['default_options']
 
-        # Do not set default_options on reconfigure otherwise it would override
-        # values previously set from command line. That means that changing
-        # default_options in a project will trigger a reconfigure but won't
-        # have any effect.
-        #
         # If this is the first invocation we always need to initialize
         # builtins, if this is a subproject that is new in a re-invocation we
         # need to initialize builtins for that
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
-            default_options = self.project_default_options.copy()
-            default_options.update(self.default_project_options)
             self.coredata.init_builtins(self.subproject)
             self.coredata.initialized_subprojects.add(self.subproject)
-        else:
-            default_options = {}
+
+        # Apply the default_options. We do this even on reconfigure, which means
+        # changing the default_options will also update the configured option, if
+        # it was not overridden on the command line.
+        default_options = self.project_default_options.copy()
+        default_options.update(self.default_project_options)
         self.coredata.set_default_options(default_options, self.subproject, self.environment)
 
         if not self.is_subproject():
