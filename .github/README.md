@@ -336,6 +336,8 @@ PkgConfigDeps
 pkgconf/2.1.0
 ```
 
+Add the `conan` prepare step to the build:
+
 ```json
 {
   ...
@@ -362,6 +364,17 @@ There are a few new `xpm` elements here:
  * we are using the built-in LiquidJS templating engine that allows to expand variables from the `properties` section
  * we are using path separators that vary by OS with the `path.sep` constant
  * and we are using a special command that varies by OS as selected by the built-in `os.platform` constant
+
+Finally, to link with this new dependency, import it in your `meson.build` and add it to the module:
+
+```python
+zlib_dep = dependency('zlib', method: 'pkg-config')
+addon = napi.extension_module(
+  'my_addon',
+  [ 'src/my_source.cc' ],
+  dependencies: [ zlib_dep ]
+  )
+```
 
 #### `conan` + WASM
 
