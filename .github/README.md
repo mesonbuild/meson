@@ -79,7 +79,7 @@ npx xpm install @mmomtchev/meson-xpack
 * [Add a `CMake`-based subproject](#add-a-cmake-based-subproject)
 * [Add build options](#add-build-options)
 * [Add `conan`](#add-conan)
-* [`conan` + `meson` + `CMake`](#conan--meson--cmake-interaction)
+* [`conan` + `CMake` + WASM interaction (a `hadron` with everything, please)](#conan--cmake--wasm-interaction-a-hadron-with-everything-please)
 * [Advanced `node-api` options](#advanced-node-api-options)
 * [Advanced `xpm`, `meson` and `conan` options](#advanced-xpm-meson-and-conan-options)
 
@@ -430,9 +430,9 @@ Check [`magickwand.js`](https://github.com/mmomtchev/magickwand.js) for a [`cona
 
 It is recommended that real-world projects lock their dependencies - this is the `conan` equivalent of a `package-lock.json` - check [SWIG Node-API Example Project (`hadron`)](https://github.com/mmomtchev/hadron-swig-napi-example-project.git) for an example for `npx xpm lock --config native` action that creates a `conan` lock file.
 
-## `conan` + `meson` + `CMake` interaction
+## `conan` + `CMake` + WASM interaction (a `hadron` with everything, please)
 
-There are a few items that you need to be aware when using `conan` + `meson` + `CMake`.
+There are a few items that you need to be aware when using `conan` + `meson` + `CMake` + `emscripten`.
 
 First of all, you need to pass the `conan`-generated toolchain to the `meson` `cmake` module in a native or cross file:
 
@@ -442,7 +442,26 @@ First of all, you need to pass the `conan`-generated toolchain to the `meson` `c
 cmake_toolchain_file = '@GLOBAL_BUILD_ROOT@' / 'conan_toolchain.cmake'
 ```
 
-Then you should know that both `meson` and `conan` will pass their options to `CMake` - make sure that those are the same. For example, do not make a monothreaded build on one side and a multithreaded build on the other - as `emscripten` cannot link monothreaded and multithreaded code.
+Then you should know that both `meson` and `conan` will pass their options to `CMake` - make sure that there are no conflicts. For example, do not make a monothreaded build on one side and a multithreaded build on the other one - as `emscripten` cannot link monothreaded and multithreaded code.
+
+Also when using `conan` + `CMake` + WASM, the `emscripten` toolchain should be part of the `conan` toolchain which will pass it to `meson` which will pass it to `cmake`, here is the `conan` profile to use:
+
+```ini
+[buildenv]
+CC={{ os.getenv("EMCC") or "emcc" }}
+CXX={{ os.getenv("EMCXX") or "em++" }}
+
+[settings]
+os=Emscripten
+arch=wasm
+compiler=clang
+compiler.libcxx=libc++
+compiler.version=17
+
+# This section is needed for conan + CMake + WASM
+[conf]
+tools.cmake.cmaketoolchain:user_toolchain=['{{ os.getenv("EMSDK") }}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake']
+```
 
 [`magickwand.js`](https://github.com/mmomtchev/magickwand.js) is an example of a complex project that uses `conan` + `meson` + `CMake` + `emscripten`.
 
