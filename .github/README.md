@@ -350,7 +350,7 @@ pkgconf/2.1.0
     "build": "{{ properties.commandConanBuildEnv[os.platform] }} meson compile -C build -v",
     "prepare": [
       "conan install . -of build",
-      "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . --native-file build/conan_meson_native.ini"
+      "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . --native-file build{{ path.sep }}conan_meson_native.ini"
     ]
   }
   ...
@@ -360,7 +360,8 @@ pkgconf/2.1.0
 There are a few new `xpm` elements here:
  * we are using command arrays that allow to run multiple commands per action
  * we are using the built-in LiquidJS templating engine that allows to expand variables from the `properties` section
- * and we are using a special command declined by OS
+ * we are using path separators that vary by OS with the `path.sep` constant
+ * and we are using a special command that varies by OS as selected by the built-in `os.platform` constant
 
 #### `conan` + WASM
 
@@ -400,7 +401,7 @@ This is how your WASM build action should look like:
   "actions": {
     "prepare": [
       "conan install . -of build -pr:h=emscripten-wasm32.profile --build=missing",
-      "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . --cross-file build/conan_meson_cross.ini"
+      "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . --cross-file build{{ path.sep }}conan_meson_cross.ini"
     ]
   }
 }
