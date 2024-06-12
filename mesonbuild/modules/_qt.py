@@ -27,6 +27,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import kwargs
     from ..mesonlib import FileOrString
     from ..programs import ExternalProgram
+    from typing_extensions import Literal
 
     QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
 
@@ -80,6 +81,7 @@ if T.TYPE_CHECKING:
     class HasToolKwArgs(kwargs.ExtractRequired):
 
         method: str
+        tools: T.List[Literal['moc', 'uic', 'rcc', 'lrelease']]
 
     class CompileTranslationsKwArgs(TypedDict):
 
@@ -91,10 +93,21 @@ if T.TYPE_CHECKING:
         rcc_extra_arguments: T.List[str]
         ts_files: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
 
+def _list_in_set_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
+    """Check that the choice given was one of the given set."""
+    def inner(checklist: T.List[str]) -> T.Optional[str]:
+        invalid = set(checklist).difference(choices)
+        if invalid:
+            return f"invalid selections {', '.join(sorted(invalid))}, valid elements are {', '.join(sorted(choices))}."
+        return None
+
+    return inner
+
 class QtBaseModule(ExtensionModule):
     _tools_detected = False
     _rcc_supports_depfiles = False
     _moc_supports_depfiles = False
+    _set_of_qt_tools = {'moc', 'uic', 'rcc', 'lrelease'}
 
     def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
@@ -102,10 +115,7 @@ class QtBaseModule(ExtensionModule):
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
         self.tools: T.Dict[str, T.Union[ExternalProgram, build.Executable]] = {
-            'moc': NonExistingExternalProgram('moc'),
-            'uic': NonExistingExternalProgram('uic'),
-            'rcc': NonExistingExternalProgram('rcc'),
-            'lrelease': NonExistingExternalProgram('lrelease'),
+            tool: NonExistingExternalProgram(tool) for tool in self._set_of_qt_tools
         }
         self.methods.update({
             'has_tools': self.has_tools,
@@ -258,6 +268,10 @@ class QtBaseModule(ExtensionModule):
         'qt.has_tools',
         KwargInfo('required', (bool, options.UserFeatureOption), default=False),
         KwargInfo('method', str, default='auto'),
+        KwargInfo('tools', ContainerTypeInfo(list, str), listify=True,
+                  default=['moc', 'uic', 'rcc', 'lrelease'],
+                  validator=_list_in_set_validator(_set_of_qt_tools),
+                  since='1.6.0'),
     )
     def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:
         method = kwargs.get('method', 'auto')
@@ -269,8 +283,9 @@ class QtBaseModule(ExtensionModule):
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
         self._detect_tools(state, method, required=False)
-        for tool in self.tools.values():
-            if not tool.found():
+        for tool in kwargs['tools']:
+            assert tool in self._set_of_qt_tools, f'tools must be in {self._set_of_qt_tools}'
+            if not self.tools[tool].found():
                 if required:
                     raise MesonException('Qt tools not found')
                 return False
