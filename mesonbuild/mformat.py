@@ -458,10 +458,10 @@ class TrimWhitespaces(FullAstVisitor):
         super().visit_IfClauseNode(node)
         self.move_whitespaces(node.endif, node)
 
+        for if_node in node.ifs:
+            if_node.whitespaces.value += node.condition_level * self.config.indent_by
         if isinstance(node.elseblock, mparser.ElseNode):
             node.elseblock.whitespaces.value += node.condition_level * self.config.indent_by
-        else:
-            node.ifs[-1].whitespaces.value += node.condition_level * self.config.indent_by
 
     def visit_IfNode(self, node: mparser.IfNode) -> None:
         super().visit_IfNode(node)
