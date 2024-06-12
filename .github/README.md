@@ -1,20 +1,63 @@
 # `hadron` composite build system for C++/JavaScript Node-API modules
 
-This is the core of the `hadron` build system for dual-environment Node.js/Browser C++/JavaScript Node-API modules
+This is the core of the `hadron` build system for dual-environment Node.js/Browser C++/JavaScript Node-API modules.
 
 It consists of:
   * This modified `meson` core that includes:
-    - A `node-api` module that greatly simplifies building dual-platform (native code in Node.js and WASM in the browser) C and C++ projects
+    - A `node-api` module that greatly simplifies building dual-environment (native code in Node.js and WASM in the browser) C and C++ projects
     - Improved `CMake` compatibility with:
         * Support for `conan` `CMake` config files
         * Support for `$CONFIG` generator expressions
         * Support for `install_data(FILES ...)`
         * Several bugfixes related to handling the target dependencies
-  * [`xpm`](https://xpack.github.io/xpm/) as build orchestrator and build software package manager
+  * [`xpm`](https://xpack.github.io/xpm/) as build orchestrator and build tools software package manager
   * [`conan`](https://conan.io) as C/C++ package manager
-  * [xPacks](https://xpack.github.io/) as standalone build packages
+  * [xPacks](https://xpack.github.io/) as standalone build tools packages
 
-It is meant to be the preferred build system for [SWIG-JSE](https://github.com/mmomtchev/swig)-generated projects.
+It is meant to be the preferred build system for [SWIG JSE](https://github.com/mmomtchev/swig)-generated projects.
+
+# Comparison vs `node-gyp`
+
+| Description | `node-gyp` | `hadron` = `meson` + `conan` + `xpm` |
+| --- | --- | --- |
+| Overview  | The official Node.js and Node.js native addon build system from the Node.js core team, inherited and adapted from the early days of V8 / Chromium  | A new experimental build system from the SWIG JSE author that follows the `meson` design principles |
+| Status | Very mature | Very young project |
+| Platforms with native builds | All platforms supported by Node.js  | Linux, Windows and macOS |
+| WASM builds | Hackish, see `swig-napi-example-project` and `magickwand.js@1.1` for solutions | Out of the box |
+| Node.js APIs | All APIs, including the now obsolete raw V8 and NAN and the current Node-API | Only Node-API |
+| Integration with other builds systems for external dependencies | Very hackish, see `magickwand.js@1.1` for solutions, the only good solution is to recreate the build system of all dependencies around `node-gyp` | Out of the box support for `meson`, `CMake` and `autotools` |
+| `conan` integration | Very hackish, see `magickwand.js@1.0` | Out of the box |
+| Build configurations through `npm install` CLI options | Yes | Yes |
+| Distributing prebuilt binaries | Yes, multiple options, including `@mapbox/node-pre-gyp`, `prebuild-install` and `prebuildify` | Only `prebuild-install` at the moment |
+| Requirements for the target host when installing from source | Node.js, Python and a working C++17 build environment | Only Node.js  when using `xpack-dev-tools`, a working C++17 build environment otherwise |
+| Makefile language | Obscure and obsolete (`gyp`) | Modern and supported (`meson`)
+
+When choosing a build system, if your project:
+
+ * targets only Node.js/native and has no dependencies
+
+    → stay on `node-gyp`
+
+ * meant to be distributed only as binaries compiled in a controlled environment
+
+    → stay on `node-gyp`
+
+ * has a dual-environment native/WASM setup
+
+    → `node-gyp` will work for you, but `hadron` has some advantages
+
+ * has dependencies with different build systems (`meson`, `CMake`, `autotools`)
+
+    → `hadron` is the much better choice
+
+ * uses `conan`
+
+    → `hadron` is the much better choice
+
+ * everything else at once - or must support compilation on all end-users' machines without any assumptions about the installed software
+
+    → `hadron` is the only choice
+
 
 # Installation
 
@@ -34,6 +77,7 @@ npx xpm install @mmomtchev/meson-xpack
 * [Add WASM](#add-wasm)
 * [Add async support](#add-async-support)
 * [Add a `CMake`-based subproject](#add-a-cmake-based-subproject)
+* [Add build options](#add-build-options)
 * [Add `conan`](#add-conan)
 * [`conan` + `meson` + `CMake`](#conan--meson--cmake-interaction)
 * [Advanced `node-api` options](#advanced-node-api-options)
@@ -234,12 +278,36 @@ npx xpm install @xpack-dev-tools/cmake
 
 #### `CMake` + WASM
 
-You will need to pass the `emscripten` `CMake` toolchain to `meson` in the cross file:
+You will need to pass the `emscripten` `CMake` toolchain to `meson` in the cross file.
 
 `emscripten-wasm32.ini`:
 ```ini
 [properties]
 cmake_toolchain_file = '/<path_to_emsdk>/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake'
+```
+
+## Add build options
+
+If the project includes conditional compilation options, these can be transformed to `meson` build options.
+
+Create a `meson.options` file:
+
+```
+option('async', type : 'boolean', value : true)
+```
+
+This `meson` option, `true` by default, can be activated by using `-Dasync=false`. It will also be set by the `import('node-api')` statement if `npm_config_enable_async` or `npm_config_disable_async` are found in the environment. This means that your user could type:
+
+```shell
+npm install your-module --disable-async
+```
+
+and this option will get passed to the meson build automatically where its value can be retrieved by using:
+
+```python
+if get_option('async')
+   ...
+endif
 ```
 
 ## Add `conan`
@@ -250,7 +318,7 @@ cmake_toolchain_file = '/<path_to_emsdk>/upstream/emscripten/cmake/Modules/Platf
 npx xpm install @mmomtchev/conan-xpack
 ```
 
-Then create your `conanfile.txt` and add a `conan` step in the `xpm` build:
+Then create your `conanfile.txt` and add a `conan` step in the `xpm` build.
 
 `conanfile.txt` with `zlib`:
 ```ini
@@ -339,6 +407,14 @@ This is how your WASM build action should look like:
 ```
 
 [SWIG Node-API Example Project (`hadron`)](https://github.com/mmomtchev/hadron-swig-napi-example-project.git) uses the second option, it expects `emsdk` to be installed and activated in the environment.
+
+#### `conan` + build options
+
+Check [`magickwand.js`](https://github.com/mmomtchev/magickwand.js) for a [`conanfile.py`](https://github.com/mmomtchev/magickwand.js/blob/meson/conanfile.py) that reads `npm install` options.
+
+#### `conan` locking
+
+It is recommended that real-world projects lock their dependencies - this is the `conan` equivalent of a `package-lock.json` - check [SWIG Node-API Example Project (`hadron`)](https://github.com/mmomtchev/hadron-swig-napi-example-project.git) for an example for `npx xpm lock --config native` action that creates a `conan` lock file.
 
 ## `conan` + `meson` + `CMake` interaction
 
