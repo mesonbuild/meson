@@ -80,6 +80,7 @@ if T.TYPE_CHECKING:
     class HasToolKwArgs(kwargs.ExtractRequired):
 
         method: str
+        tools: T.List[str]
 
     class CompileTranslationsKwArgs(TypedDict):
 
@@ -90,6 +91,16 @@ if T.TYPE_CHECKING:
         qresource: T.Optional[str]
         rcc_extra_arguments: T.List[str]
         ts_files: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+
+def _list_in_set_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
+    """Check that the choice given was one of the given set."""
+    def inner(checklist: T.List[str]) -> T.Optional[str]:
+        for check in checklist:
+            if check not in choices:
+                return f"must be one of {', '.join(sorted(choices))}, not {check}"
+        return None
+
+    return inner
 
 class QtBaseModule(ExtensionModule):
     _tools_detected = False
@@ -258,6 +269,10 @@ class QtBaseModule(ExtensionModule):
         'qt.has_tools',
         KwargInfo('required', (bool, options.UserFeatureOption), default=False),
         KwargInfo('method', str, default='auto'),
+        KwargInfo('tools', ContainerTypeInfo(list, str), listify=True,
+                  default=['moc', 'uic', 'rcc', 'lrelease'],
+                  validator=QtBaseModule._list_in_set_validator({'moc', 'uic', 'rcc', 'lrelease'}),
+                  since='1.5.0'),
     )
     def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:
         method = kwargs.get('method', 'auto')
@@ -269,8 +284,9 @@ class QtBaseModule(ExtensionModule):
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
         self._detect_tools(state, method, required=False)
-        for tool in self.tools.values():
-            if not tool.found():
+        for tool in kwargs['tools']:
+            assert tool in self.tools, 'tools must be in {moc, uic, rcc, lrelease}'
+            if not self.tools[tool].found():
                 if required:
                     raise MesonException('Qt tools not found')
                 return False
