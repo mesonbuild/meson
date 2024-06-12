@@ -81,7 +81,7 @@ addon = napi.extension_module(
   'my_addon',
   # The sources
   [ 'src/my_source.cc' ]
-  )
+)
 ```
 
 ## Setup the build actions
@@ -114,7 +114,7 @@ Your new addon should be waiting for you in `build/my_addon.node`.
 
 In order to build to WASM, `emscripten` must be installed and activated in the environment.
 
-Crate a `meson` cross-file, the bare minimum is:
+Create a `meson` cross-file, the bare minimum is:
 
 ```ini
 [binaries]
@@ -130,7 +130,7 @@ cpu = 'wasm32'
 endian = 'little'
 ```
 
-Then, the project will have to be modified to include build configurations:
+Then, the project `package.json` will have to be modified to include build configurations:
 
 ```json
 {
@@ -150,11 +150,11 @@ Then, the project will have to be modified to include build configurations:
         }
       }
     }
-    ..
+  ...
 }
 ```
 
-The `build` step is common to both configuration, but from now on, when calling `prepare`, the configuration will have to be specified:
+The `build` step is common to both configurations, but from now on, when calling `prepare`, the configuration will have to be specified:
 
 ```shell
 npx xpm run prepare --config wasm
@@ -184,7 +184,147 @@ In this case the resulting WASM will require [`COOP`/`COEP`](https://web.dev/art
 
 Node.js always has async support and including the `thread` dependency is a no-op when building to native.
 
-## Advanced options
+## Add a `CMake`-based subproject
+
+`meson` has native support for `CMake`-based subprojects through its `cmake` module:
+
+```python
+cmake = import('cmake')
+cmake_opts = cmake.subproject_options()
+cmake_opts.add_cmake_defines([
+  # You can pass your CMake options here, CMAKE_BUILD_TYPE is automatic
+  # from the meson build type
+  {'BUILD_SHARED_LIBS': false},
+  {'BUILD_UTILITIES': not meson.is_cross_build()},
+  # Always pass this for a Node.js addon
+  {'CMAKE_POSITION_INDEPENDENT_CODE': true}
+])
+# This will retrieve the CMakeLibrary::CMakeTarget target
+my_cmake_library = cmake.subproject('CMakeLibrary', options: cmake_opts)
+my_cmake_dep = my_cmake_library.dependency('CMakeTarget')
+# Link with CMakeLibrary::CMakeTarget
+addon = napi.extension_module(
+  'my_addon',
+  [ 'src/my_source.cc' ],
+  dependencies: [ my_cmake_dep ]
+  )
+```
+
+You will also need to install the `CMake` xPack:
+
+```shell
+npx xpm install @xpack-dev-tools/cmake
+```
+
+#### `CMake` + WASM
+
+You will need to pass the `emscripten` `CMake` toolchain to `meson` in the cross file:
+
+`emscripten-wasm32.ini`:
+```ini
+[properties]
+cmake_toolchain_file = '/<path_to_emsdk>/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake'
+```
+
+## Add `conan`
+
+`hadron` supports `conan` out of the box. Simply add the `conan` xPack:
+
+```shell
+npx xpm install @mmomtchev/conan-xpack
+```
+
+Then create your `conanfile.txt` and add a `conan` step in the `xpm` build:
+
+`conanfile.txt` with `zlib`:
+```ini
+[requires]
+zlib/[>=1.2.0]
+
+[generators]
+# This is the conan + meson interaction
+# as described in their own documentation
+MesonToolchain
+PkgConfigDeps
+
+[tool_requires]
+# Because of Windows
+pkgconf/2.1.0
+```
+
+```json
+...
+"properties": {
+  "commandConanBuildEnv": {
+    "win32": "build\\conanbuild.bat && ",
+    "linux": ". build/conanbuild.sh && ",
+    "darwin": ". build/conanbuild.sh && "
+  },
+  "argConan": "--native-file build/conan_meson_native.ini"
+},
+"actions": {
+  "build": "{{ properties.commandConanBuildEnv[os.platform] }} meson compile -C build -v",
+  "prepare": [
+    "conan install . -of build",
+    "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . {{ properties.argConan }}"
+  ]
+}
+...
+```
+
+There are a few new `xpm` elements here:
+ * we are using command arrays that allow to run multiple commands per action
+ * we are using the built-in LiquidJS templating engine that allows to expand variables from the `properties` section
+ * and we are using a special command declined by OS
+
+#### `conan` + WASM
+
+When using `conan` and WASM, you have two options:
+
+ * get `emsdk` from `conan`, in which case `conan` will do everything for you, but you will be stuck with their version:
+
+    `conanfile.txt`:
+    ```
+    [tool_requires]
+    emsdk/3.1.50
+    ```
+
+ * install `emsdk` yourself and create a `conan` build profile:
+`emscripten-wasm32.profile`:
+    ```ini
+    [buildenv]
+    CC={{ os.getenv("EMCC") or "emcc" }}
+    CXX={{ os.getenv("EMCXX") or "em++" }}
+
+    [settings]
+    os=Emscripten
+    arch=wasm
+    compiler=clang
+    compiler.libcxx=libc++
+    compiler.version=17
+    ```
+
+In both cases `conan` will create your cross file for `meson`, and you won't need another WASM cross file.
+
+[SWIG Node-API Example Project (`hadron`)](https://github.com/mmomtchev/hadron-swig-napi-example-project.git) uses the second option, it expects `emsdk` to be installed and activated in the environment.
+
+## `conan` + `meson` + `CMake` interaction
+
+There are a few items that you need to be aware when using `conan` + `meson` + `CMake`.
+
+First of all, you need to pass the `conan`-generated toolchain to the `meson` `cmake` module in a native or cross file:
+
+`conan.ini`, to be passed to `meson`:
+```
+[properties]
+cmake_toolchain_file = '@GLOBAL_BUILD_ROOT@' / 'conan_toolchain.cmake'
+```
+
+Then you should know that both `meson` and `conan` will pass their options to `CMake` - make sure that those are the same. For example, do not make a shared debug build on one side and a static release build on the other.
+
+[`magickwand.js`](https://github.com/mmomtchev/magickwand.js) is an example of a complex project that uses `conan` + `meson` + `CMake` + `emscripten`.
+
+## Advanced `node-api` options
 
 The module supports a number of Node-API specific options (these are the default values):
 
@@ -206,6 +346,27 @@ addon = napi.extension_module(
 * `stack`: (*applies only to WASM*) the maximum stack size, WASM cannot grow its stack
 * `swig`: disables a number of warnings on the four major supported compilers (`gcc`, `clang`, `MSVC` and `emscripten`) triggered by the generated C++ code by SWIG
 * `environments`: (*applies only to WASM*) determines the list of supported environments by the `emscripten` WASM loader, in particular, omitting `node` will produce a loader that does not work in Node.js, but can be bundled cleanly and without any extra configuration with most bundlers such as `webpack`
+
+## Advanced `xpm`, `meson` and `conan` options
+
+Your further source of information should be their respective manuals.
+
+`xpm` and `conan` are used completely unmodified. The xPacks allow you to use them seamlessly on all operating systems and without destroying any existing Python, `conan` or `meson` installations. This means that if you need access to their CLI options, you have to launch them through `xpm`.
+
+Add a new action in your `package.json`:
+```json
+"actions": {
+  "meson": "meson"
+}
+```
+
+Then in order to modify the build configuration, launch:
+
+```shell
+npx xpm run meson -- configure build/
+```
+
+The `meson` core is modified from the original. It contains the new `node-api` module and a large number of improvements to the `conan` and `CMake` integration - something that does not work very well out of the box. Still, all of its manual still applies.
 
 # Why fork `meson`
 
