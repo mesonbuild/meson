@@ -27,6 +27,18 @@ npx xpm install @mmomtchev/meson-xpack
 
 # Tutorial
 
+* [Project setup](#project-setup)
+* [Create `meson.build`](#create-mesonbuild)
+* [Setup the build actions](#setup-the-build-actions)
+* [Build for the first time](#build-for-the-first-time)
+* [Add WASM](#add-wasm)
+* [Add async support](#add-async-support)
+* [Add a `CMake`-based subproject](#add-a-cmake-based-subproject)
+* [Add `conan`](#add-conan)
+* [`conan` + `meson` + `CMake`](#conan--meson--cmake-interaction)
+* [Advanced `node-api` options](#advanced-node-api-options)
+* [Advanced `xpm`, `meson` and `conan` options](#advanced-xpm-meson-and-conan-options)
+
 The best way to start a new `hadron` project is by cloning the [SWIG Node-API Example Project (`hadron`)](https://github.com/mmomtchev/hadron-swig-napi-example-project.git) - it is a full project template that includes every basic feature and uses SWIG to generate the code.
 
 This tutorial will guide you step by step through all the features, giving you a better understanding of each element.
@@ -54,7 +66,7 @@ Install the `meson` and `ninja` xPacks:
 xpm install @mmomtchev/meson-xpack @xpack-dev-tools/ninja-build
 ```
 
-## Create the `meson.build` makefile
+## Create `meson.build`
 
 ```python
 project(
