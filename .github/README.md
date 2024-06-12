@@ -259,14 +259,13 @@ pkgconf/2.1.0
     "win32": "build\\conanbuild.bat && ",
     "linux": ". build/conanbuild.sh && ",
     "darwin": ". build/conanbuild.sh && "
-  },
-  "argConan": "--native-file build/conan_meson_native.ini"
+  }
 },
 "actions": {
   "build": "{{ properties.commandConanBuildEnv[os.platform] }} meson compile -C build -v",
   "prepare": [
     "conan install . -of build",
-    "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . {{ properties.argConan }}"
+    "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . --native-file build/conan_meson_native.ini"
   ]
 }
 ...
@@ -289,22 +288,37 @@ When using `conan` and WASM, you have two options:
     emsdk/3.1.50
     ```
 
- * install `emsdk` yourself and create a `conan` build profile:
+ * install `emsdk` yourself
+
+In both cases you will need a `conan` build profile:
 `emscripten-wasm32.profile`:
-    ```ini
-    [buildenv]
-    CC={{ os.getenv("EMCC") or "emcc" }}
-    CXX={{ os.getenv("EMCXX") or "em++" }}
+```ini
+[buildenv]
+CC={{ os.getenv("EMCC") or "emcc" }}
+CXX={{ os.getenv("EMCXX") or "em++" }}
 
-    [settings]
-    os=Emscripten
-    arch=wasm
-    compiler=clang
-    compiler.libcxx=libc++
-    compiler.version=17
-    ```
+[settings]
+os=Emscripten
+arch=wasm
+compiler=clang
+compiler.libcxx=libc++
+compiler.version=17
+```
 
-In both cases `conan` will create your cross file for `meson`, and you won't need another WASM cross file.
+`conan` will create your cross file for `meson`, and you won't need another WASM cross file.
+
+This is how your WASM build action should look like:
+
+```json
+"wasm": {
+  "actions": {
+    "prepare": [
+      "conan install . -of build -pr:h=emscripten-wasm32.profile --build=missing",
+      "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . --cross-file build/conan_meson_cross.ini"
+    ]
+  }
+}
+```
 
 [SWIG Node-API Example Project (`hadron`)](https://github.com/mmomtchev/hadron-swig-napi-example-project.git) uses the second option, it expects `emsdk` to be installed and activated in the environment.
 
@@ -320,7 +334,7 @@ First of all, you need to pass the `conan`-generated toolchain to the `meson` `c
 cmake_toolchain_file = '@GLOBAL_BUILD_ROOT@' / 'conan_toolchain.cmake'
 ```
 
-Then you should know that both `meson` and `conan` will pass their options to `CMake` - make sure that those are the same. For example, do not make a shared debug build on one side and a static release build on the other.
+Then you should know that both `meson` and `conan` will pass their options to `CMake` - make sure that those are the same. For example, do not make a monothreaded build on one side and a multithreaded build on the other - as `emscripten` cannot link monothreaded and multithreaded code.
 
 [`magickwand.js`](https://github.com/mmomtchev/magickwand.js) is an example of a complex project that uses `conan` + `meson` + `CMake` + `emscripten`.
 
@@ -366,7 +380,7 @@ Then in order to modify the build configuration, launch:
 npx xpm run meson -- configure build/
 ```
 
-The `meson` core is modified from the original. It contains the new `node-api` module and a large number of improvements to the `conan` and `CMake` integration - something that does not work very well out of the box. Still, all of its manual still applies.
+The `meson` core is modified from the original. It contains the new `node-api` module and a large number of improvements to the `conan` and `CMake` integration - something that does not work very well out of the box. Still, its manual remains completely valid.
 
 # Why fork `meson`
 
