@@ -69,5 +69,9 @@ if meson.project_version().version_compare('>1.2')
                 ],
             }
         endforeach
+    elif 42 in d
+        d += {'foo': 43}
+    else  # ensure else is correctly indented (issue #13316)
+        k = 'k'
     endif
 endif
