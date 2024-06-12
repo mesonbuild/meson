@@ -1,68 +1,120 @@
-# `meson` (`hadron` variant)
+# `hadron` composite build system for C++/JavaScript Node-API modules
 
-This is a fork of `meson` project with a focus on Node-API modules.
+This is the core of the `hadron` build system for dual-environment Node.js/Browser C++/JavaScript Node-API modules
 
-It includes:
- * A `node-api` module that greatly simplifies building dual-platform (native code in Node.js and WASM in the browser) C and C++ projects
- * Improved `CMake` compatibility with:
-    * Support for `conan` `CMake` config files
-    * Support for `$CONFIG` generator expressions
-    * Support for `install_data(FILES ...)`
-    * Several bugfixes related to handling the target dependencies
+It consists of:
+  * This modified `meson` core that includes:
+    - A `node-api` module that greatly simplifies building dual-platform (native code in Node.js and WASM in the browser) C and C++ projects
+    - Improved `CMake` compatibility with:
+        * Support for `conan` `CMake` config files
+        * Support for `$CONFIG` generator expressions
+        * Support for `install_data(FILES ...)`
+        * Several bugfixes related to handling the target dependencies
+  * [`xpm`](https://xpack.github.io/xpm/) as build orchestrator and build software package manager
+  * [`conan`](https://conan.io) as C/C++ package manager
+  * [xPacks](https://xpack.github.io/) as standalone build packages
 
-It is meant to be the preferred build system for [SWIG-JSE](https://github.com/mmomtchev/swig) generated projects.
+It is meant to be the preferred build system for [SWIG-JSE](https://github.com/mmomtchev/swig)-generated projects.
 
 # Installation
 
-There is still no official release, currently the only way to install it is from git:
+The modified `meson` core is a xPack:
 
 ```shell
-pip install git+https://github.com/mmomtchev/meson@main
+npm install xpm
+npx xpm install @mmomtchev/meson-xpack
 ```
 
-# Usage
+# Tutorial
 
-A quickstart by example:
+The best way to start a new `hadron` project is by cloning the [SWIG Node-API Example Project (`hadron`)](https://github.com/mmomtchev/hadron-swig-napi-example-project.git) - it is a full project template that includes every basic feature and uses SWIG to generate the code.
+
+This tutorial will guide you step by step through all the features, giving you a better understanding of each element.
+
+## Project setup
+
+Write some C/C++ code and use SWIG to generate Node-API compatible bindings or manually write the glue code yourself - this part is beyond the scope of this tutorial.
+
+Initialize a new `npm` project, install `xpm` and initialize the `xpm` extension:
+
+```shell
+npm init
+npm install xpm
+npx xpm init
+```
+
+Install `node-addon-api` (if using C++):
+```shell
+npm install --save-dev node-addon-api
+```
+
+Install the `meson` and `ninja` xPacks:
+
+```shell
+xpm install @mmomtchev/meson-xpack @xpack-dev-tools/ninja-build
+```
+
+## Create the `meson.build` makefile
 
 ```python
 project(
-  'Hello World for meson',
-  # Not mandatory, but this is the default when using node-gyp
-  # (in meson, the default is buildtype=debug)
-  default_options: ['buildtype=release'],
-  ['c', 'cpp']
+  'My Project',
+  ['cpp'],
+  default_options: [
+    # Not mandatory, but this is the default when using node-gyp
+    # (in meson, the default is buildtype=debug)
+    'buildtype=release',
+    # Highly recommended if you are shipping binaries for Windows
+    # and want to avoid your users the Windows DLL hell and random crashes
+    'b_vscrt=static_from_buildtype'
+  ]
 )
 
-# Simply include the module
+# Simply include the module, this step will also parse all
+# npm_config_ options into meson options
 napi = import('node-api')
 
 # Use napi.extension_module() instead of
 # shared_module() with the same arguments
 addon = napi.extension_module(
   # The name of the addon
-  'example_addon',
+  'my_addon',
   # The sources
-  [ 'src/example_main.cc' ],
-  # Will install to the location specified by -Dprefix=...
-  # (usually ./lib/binding/{platform}-{arch})
-  install: true
+  [ 'src/my_source.cc' ]
   )
-
-# There is a very basic built-in test runner
-# It will receive the path to the addon in NODE_PATH and
-# the name of the shared object in NODE_ADDON
-if host_machine.system() == 'emscripten'
-  napi.test('example_test', 'test-wasm.mjs', addon)
-else
-  napi.test('example_test', 'test-native.cjs', addon)
-endif
 ```
 
-The project must have a root `package.json` and `node` must be installed and available in the `PATH`.
+## Setup the build actions
 
-The default build is the native build.
+Add to `package.json` which should already have an empty `xpack.actions` element:
 
-In order to build to WASM, `emscripten` must be installed and activated in the environment. The bare minimum for the `meson` `cross-file` is:
+```json
+{
+  ...
+  "xpack": {
+    "actions": {
+      "prepare": "meson setup build .",
+      "build": "meson compile -C build -v"
+    }
+  }
+  ...
+}
+```
+
+## Build for the first time
+
+```shell
+npx xpm run prepare
+npx xpm run build
+```
+
+Your new addon should be waiting for you in `build/my_addon.node`.
+
+## Add WASM
+
+In order to build to WASM, `emscripten` must be installed and activated in the environment.
+
+Crate a `meson` cross-file, the bare minimum is:
 
 ```ini
 [binaries]
@@ -78,22 +130,56 @@ cpu = 'wasm32'
 endian = 'little'
 ```
 
-Pass this file with `--cross-file wasm.txt` when configuring the project.
+Then, the project will have to be modified to include build configurations:
 
-If building C++ with `node-addon-api`, it must be installed and available with a `require('node-addon-api')`.
+```json
+{
+  ...
+    "actions": {
+      "build": "meson compile -C build -v"
+    },
+    "buildConfigurations": {
+      "native": {
+        "actions": {
+          "prepare": "meson setup build ."
+        }
+      },
+      "wasm": {
+        "actions": {
+          "prepare": "meson setup build . --cross-file emscripten-wasm32.ini"
+        }
+      }
+    }
+    ..
+}
+```
 
-If building to WASM, `emnapi` must be installed and available with a `require('emnapi')` and `C` must be enabled as language.
+The `build` step is common to both configuration, but from now on, when calling `prepare`, the configuration will have to be specified:
+
+```shell
+npx xpm run prepare --config wasm
+npx xpm run build
+```
+
+Finally, install `emnapi`, add `c` as language in `project()` in `meson.build`, and launch your first WASM build:
+
+```shell
+npm install --save-dev emnapi
+npm install @emnapi/runtime
+```
+
+## Add async support
 
 If building to WASM with async support, multi-threading must be explicitly enabled:
 ```python
 thread_dep = dependency('threads')
 addon = napi.extension_module(
-  'example_addon',
-  [ 'src/example_main.cc' ],
-  dependencies: [ thread_dep ],
-  install: true
+  'my_addon',
+  [ 'src/my_source.cc' ],
+  dependencies: [ thread_dep ]
   )
 ```
+
 In this case the resulting WASM will require [`COOP`/`COEP`](https://web.dev/articles/coop-coep) when loaded in a browser.
 
 Node.js always has async support and including the `thread` dependency is a no-op when building to native.
@@ -104,8 +190,8 @@ The module supports a number of Node-API specific options (these are the default
 
 ```python
 addon = napi.extension_module(
-  'example_addon',
-  [ 'src/example_main.cc' ],
+  'my_addon',
+  [ 'src/my_source.cc' ],
   node_api_options: {
     'async_pool':       4,
     'es6':              true,
