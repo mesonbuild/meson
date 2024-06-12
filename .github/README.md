@@ -55,7 +55,9 @@ npm install xpm
 npx xpm init
 ```
 
-Install `node-addon-api` (if using C++):
+If using C++, install `node-addon-api`:
+
+*(omit all `--save-dev` if you plan to be able to build on the end-user's machine when installing)*
 ```shell
 npm install --save-dev node-addon-api
 ```
@@ -147,21 +149,21 @@ Then, the project `package.json` will have to be modified to include build confi
 ```json
 {
   ...
-    "actions": {
-      "build": "meson compile -C build -v"
+  "actions": {
+    "build": "meson compile -C build -v"
+  },
+  "buildConfigurations": {
+    "native": {
+      "actions": {
+        "prepare": "meson setup build ."
+      }
     },
-    "buildConfigurations": {
-      "native": {
-        "actions": {
-          "prepare": "meson setup build ."
-        }
-      },
-      "wasm": {
-        "actions": {
-          "prepare": "meson setup build . --cross-file emscripten-wasm32.ini"
-        }
+    "wasm": {
+      "actions": {
+        "prepare": "meson setup build . --cross-file emscripten-wasm32.ini"
       }
     }
+  }
   ...
 }
 ```
@@ -174,6 +176,8 @@ npx xpm run build
 ```
 
 Finally, install `emnapi`, add `c` as language in `project()` in `meson.build`, and launch your first WASM build:
+
+*(omit all `--save-dev` if you plan to be able to build on the end-user's machine when installing)*
 
 ```shell
 npm install --save-dev emnapi
@@ -265,22 +269,24 @@ pkgconf/2.1.0
 ```
 
 ```json
-...
-"properties": {
-  "commandConanBuildEnv": {
-    "win32": "build\\conanbuild.bat && ",
-    "linux": ". build/conanbuild.sh && ",
-    "darwin": ". build/conanbuild.sh && "
+{
+  ...
+  "properties": {
+    "commandConanBuildEnv": {
+      "win32": "build\\conanbuild.bat && ",
+      "linux": ". build/conanbuild.sh && ",
+      "darwin": ". build/conanbuild.sh && "
+    }
+  },
+  "actions": {
+    "build": "{{ properties.commandConanBuildEnv[os.platform] }} meson compile -C build -v",
+    "prepare": [
+      "conan install . -of build",
+      "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . --native-file build/conan_meson_native.ini"
+    ]
   }
-},
-"actions": {
-  "build": "{{ properties.commandConanBuildEnv[os.platform] }} meson compile -C build -v",
-  "prepare": [
-    "conan install . -of build",
-    "{{ properties.commandConanBuildEnv[os.platform] }} meson setup build . --native-file build/conan_meson_native.ini"
-  ]
+  ...
 }
-...
 ```
 
 There are a few new `xpm` elements here:
