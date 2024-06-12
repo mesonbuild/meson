@@ -434,6 +434,8 @@ It is recommended that real-world projects lock their dependencies - this is the
 
 There are a few items that you need to be aware when using `conan` + `meson` + `CMake` + `emscripten`.
 
+#### `conan` + `CMake`
+
 First of all, you need to pass the `conan`-generated toolchain to the `meson` `cmake` module in a native or cross file:
 
 `conan.ini`, to be passed to `meson`:
@@ -441,6 +443,8 @@ First of all, you need to pass the `conan`-generated toolchain to the `meson` `c
 [properties]
 cmake_toolchain_file = '@GLOBAL_BUILD_ROOT@' / 'conan_toolchain.cmake'
 ```
+
+#### `conan` + `CMake` + WASM
 
 Then you should know that both `meson` and `conan` will pass their options to `CMake` - make sure that there are no conflicts. For example, do not make a monothreaded build on one side and a multithreaded build on the other one - as `emscripten` cannot link monothreaded and multithreaded code.
 
@@ -463,7 +467,25 @@ compiler.version=17
 tools.cmake.cmaketoolchain:user_toolchain=['{{ os.getenv("EMSDK") }}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake']
 ```
 
+#### `CMake` project that requires `conan` dependencies
+
+In this case `conan` should produce both `PkgConfigDeps` for `meson` and `CMakeDeps` to be consumed by the `CMake` project. As `conan` works best using the system default make (GNU `make`, `MSBuild.exe` or XCode) and `meson` always uses `ninja`, this requires some special configuration that is not possible in a `conanfile.txt` and must be in a `conanfile.py`.
+
 [`magickwand.js`](https://github.com/mmomtchev/magickwand.js) is an example of a complex project that uses `conan` + `meson` + `CMake` + `emscripten`.
+
+This is the relevant section of `conanfile.py`:
+
+```python
+from conan.tools.cmake import CMakeToolchain, CMakeDeps
+generators = [ 'MesonToolchain', 'CMakeDeps' ]
+
+    def generate(self):
+        tc = CMakeToolchain(self)
+        tc.blocks.remove("generic_system")
+        tc.generate()
+```
+
+This is a custom `conan` generator that omits part of the generated `CMake` toolchain, allowing `hadron` to use its own `ninja` from its own xPack, while `conan` uses its own defaults - GNU `make`, `MSBuild.exe` and XCode.
 
 ## Advanced `node-api` options
 
