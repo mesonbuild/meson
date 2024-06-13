@@ -870,11 +870,12 @@ class CLikeCompiler(Compiler):
         if extra_args is None:
             extra_args = []
         # Create code that accesses all members
-        members = ''.join(f'foo.{member};\n' for member in membernames)
+        members = ''.join(f'(void) ( foo.{member} );\n' for member in membernames)
         t = f'''{prefix}
         void bar(void) {{
             {typename} foo;
             {members}
+            (void) foo;
         }}'''
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)
@@ -884,7 +885,7 @@ class CLikeCompiler(Compiler):
                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         t = f'''{prefix}
         void bar(void) {{
-            sizeof({typename});
+            (void) sizeof({typename});
         }}'''
         return self.compiles(t, env, extra_args=extra_args,
                              dependencies=dependencies)
