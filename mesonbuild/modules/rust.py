@@ -231,7 +231,7 @@ class RustModule(ExtensionModule):
             # bindgen always uses clang, so it's safe to hardcode -I here
             clang_args.extend([f'-I{x}' for x in i.to_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])
-        if are_asserts_disabled(state.environment.coredata.options):
+        if are_asserts_disabled(state.environment.coredata.optstore):
             clang_args.append('-DNDEBUG')
 
         for de in kwargs['dependencies']:

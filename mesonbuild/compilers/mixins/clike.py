@@ -26,7 +26,7 @@ from ... import arglist
 from ... import mesonlib
 from ... import mlog
 from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
-from ...mesonlib import LibType, OptionKey
+from ...mesonlib import LibType
 from .. import compilers
 from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
@@ -376,8 +376,8 @@ class CLikeCompiler(Compiler):
             # linking with static libraries since MSVC won't select a CRT for
             # us in that case and will error out asking us to pick one.
             try:
-                crt_val = env.coredata.options[OptionKey('b_vscrt')].value
-                buildtype = env.coredata.options[OptionKey('buildtype')].value
+                crt_val = env.coredata.optstore.get_value('b_vscrt')
+                buildtype = env.coredata.optstore.get_value('buildtype')
                 cargs += self.get_crt_compile_args(crt_val, buildtype)
             except (KeyError, AttributeError):
                 pass

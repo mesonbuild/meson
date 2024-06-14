@@ -233,8 +233,8 @@ class _PythonDependencyBase(_Base):
                     # `debugoptimized` buildtype may not set debug=True currently, see gh-11645
                     is_debug_build = debug or buildtype == 'debug'
                     vscrt_debug = False
-                    if mesonlib.OptionKey('b_vscrt') in self.env.coredata.options:
-                        vscrt = self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value
+                    if mesonlib.OptionKey('b_vscrt') in self.env.coredata.optstore:
+                        vscrt = self.env.coredata.optstore.get_value('b_vscrt')
                         if vscrt in {'mdd', 'mtd', 'from_buildtype', 'static_from_buildtype'}:
                             vscrt_debug = True
                     if is_debug_build and vscrt_debug and not self.variables.get('Py_DEBUG'):

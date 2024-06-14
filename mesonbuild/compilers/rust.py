@@ -173,9 +173,9 @@ class RustCompiler(Compiler):
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
         key = self.form_langopt_key('std')
-        std = options[key]
-        if std.value != 'none':
-            args.append('--edition=' + std.value)
+        std = options.get_value(key)
+        if std != 'none':
+            args.append('--edition=' + std)
         return args
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:

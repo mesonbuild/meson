@@ -273,9 +273,9 @@ class MesonApp:
 
             # collect warnings about unsupported build configurations; must be done after full arg processing
             # by Interpreter() init, but this is most visible at the end
-            if env.coredata.options[mesonlib.OptionKey('backend')].value == 'xcode':
+            if env.coredata.optstore.get_value('backend') == 'xcode':
                 mlog.warning('xcode backend is currently unmaintained, patches welcome')
-            if env.coredata.options[mesonlib.OptionKey('layout')].value == 'flat':
+            if env.coredata.optstore.get_value('layout') == 'flat':
                 mlog.warning('-Dlayout=flat is unsupported and probably broken. It was a failed experiment at '
                              'making Windows build artifacts runnable while uninstalled, due to PATH considerations, '
                              'but was untested by CI and anyways breaks reasonable use of conflicting targets in different subdirs. '

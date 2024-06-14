@@ -532,7 +532,7 @@ class ConverterTarget:
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> 'ImmutableListProtocol[str]':
         try:
-            res = self.env.coredata.options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices
+            res = self.env.coredata.optstore.get_value_object(OptionKey('std', machine=MachineChoice.BUILD, lang=lang)).choices
         except KeyError:
             return []
 

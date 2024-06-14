@@ -25,6 +25,7 @@ from .mesonlib import (
 from . import mlog
 
 import typing as T
+from typing import ItemsView
 
 DEFAULT_YIELDING = False
 
@@ -473,8 +474,65 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('purelibdir', module='python'): {},
 }
 
-
 class OptionStore:
     def __init__(self):
-        # This class will hold all options for a given build directory
-        self.dummy = None
+        self.d: T.Dict['OptionKey', 'UserOption[T.Any]'] = {}
+
+    def __len__(self):
+        return len(self.d)
+
+    def ensure_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
+        if isinstance(key, str):
+            return OptionKey(key)
+        return key
+
+    def get_value_object(self, key: T.Union[OptionKey, str]) -> 'UserOption[T.Any]':
+        return self.d[self.ensure_key(key)]
+
+    def get_value(self, key: T.Union[OptionKey, str]) -> 'T.Any':
+        return self.get_value_object(key).value
+
+    def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+        key = self.ensure_key(key)
+        self.d[key] = valobj
+
+    def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+        key = self.ensure_key(key)
+        self.d[key] = valobj
+
+    def set_value(self, key: T.Union[OptionKey, str], new_value: 'T.Any') -> bool:
+        key = self.ensure_key(key)
+        return self.d[key].set_value(new_value)
+
+    # FIXME, this should be removed.or renamed to "change_type_of_existing_object" or something like that
+    def set_value_object(self, key: T.Union[OptionKey, str], new_object: 'UserOption[T.Any]') -> bool:
+        key = self.ensure_key(key)
+        self.d[key] = new_object
+
+    def remove(self, key):
+        del self.d[key]
+
+    def __contains__(self, key):
+        key = self.ensure_key(key)
+        return key in self.d
+
+    def __repr__(self):
+        return repr(self.d)
+
+    def keys(self):
+        return self.d.keys()
+
+    def values(self):
+        return self.d.values()
+
+    def items(self) -> ItemsView['OptionKey', 'UserOption[T.Any]']:
+        return self.d.items()
+
+    def update(self, *args, **kwargs):
+        return self.d.update(*args, **kwargs)
+
+    def setdefault(self, k, o):
+        return self.d.setdefault(k, o)
+
+    def get(self, *args, **kwargs) -> UserOption:
+        return self.d.get(*args, **kwargs)

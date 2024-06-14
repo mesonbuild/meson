@@ -182,7 +182,7 @@ class IntrospectionInterpreter(AstInterpreter):
                 if self.subproject:
                     options = {}
                     for k in comp.get_options():
-                        v = copy.copy(self.coredata.options[k])
+                        v = copy.copy(self.coredata.optstore.get_value_object(k))
                         k = k.evolve(subproject=self.subproject)
                         options[k] = v
                     self.coredata.add_compiler_options(options, lang, for_machine, self.environment, self.subproject)
