@@ -45,7 +45,8 @@ if is_windows():
     defaults['c'] = ['icl', 'cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
     # There is currently no pgc++ for Windows, only for  Mac and Linux.
     defaults['cpp'] = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
-    defaults['fortran'] = ['ifort', 'gfortran', 'flang', 'pgfortran', 'g95']
+    # the binary flang-new will be renamed to flang in the foreseeable future
+    defaults['fortran'] = ['ifort', 'gfortran', 'flang-new', 'flang', 'pgfortran', 'g95']
     defaults['objc'] = ['clang-cl', 'gcc']
     defaults['objcpp'] = ['clang-cl', 'g++']
     defaults['cs'] = ['csc', 'mcs']
@@ -60,7 +61,8 @@ else:
         defaults['cpp'] = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc', 'icpx']
         defaults['objc'] = ['clang', 'gcc']
         defaults['objcpp'] = ['clang++', 'g++']
-    defaults['fortran'] = ['gfortran', 'flang', 'nvfortran', 'pgfortran', 'ifort', 'ifx', 'g95']
+    # the binary flang-new will be renamed to flang in the foreseeable future
+    defaults['fortran'] = ['gfortran', 'flang-new', 'flang', 'nvfortran', 'pgfortran', 'ifort', 'ifx', 'g95']
     defaults['cs'] = ['mcs', 'csc']
 defaults['d'] = ['ldc2', 'ldc', 'gdc', 'dmd']
 defaults['java'] = ['javac']
@@ -659,6 +661,13 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
     info = env.machines[for_machine]
     cls: T.Type[FortranCompiler]
     for compiler in compilers:
+        # capture help text for possible fallback
+        try:
+            _, help_out, _ = Popen_safe_logged(compiler + ['--help'], msg='Detecting compiler via')
+        except OSError as e:
+            popen_exceptions[join_args(compiler + ['--help'])] = e
+            help_out = ''
+
         for arg in ['--version', '-V']:
             try:
                 p, out, err = Popen_safe_logged(compiler + [arg], msg='Detecting compiler via')
@@ -776,8 +785,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                     compiler, version, for_machine, is_cross, info,
                     full_version=full_version, linker=linker)
 
-            if 'flang' in out or 'clang' in out:
-                cls = fortran.FlangFortranCompiler
+            def _get_linker_try_windows(cls: T.Type['Compiler']) -> T.Optional['DynamicLinker']:
                 linker = None
                 if 'windows' in out or env.machines[for_machine].is_windows():
                     # If we're in a MINGW context this actually will use a gnu
@@ -793,6 +801,18 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 if linker is None:
                     linker = guess_nix_linker(env, compiler, cls,
                                               version, for_machine)
+                return linker
+
+            if 'flang-new' in out or 'flang LLVM compiler' in help_out:
+                cls = fortran.LlvmFlangFortranCompiler
+                linker = _get_linker_try_windows(cls)
+                return cls(
+                    compiler, version, for_machine, is_cross, info,
+                    full_version=full_version, linker=linker)
+
+            if 'flang' in out or 'clang' in out:
+                cls = fortran.ClassicFlangFortranCompiler
+                linker = _get_linker_try_windows(cls)
                 return cls(
                     compiler, version, for_machine, is_cross, info,
                     full_version=full_version, linker=linker)

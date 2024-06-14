@@ -150,8 +150,8 @@ Subsets of project tests can be selected with
 time when only a certain part of Meson is being tested.
 For example, a useful and easy contribution to Meson is making
 sure the full set of compilers is supported. One could for example test
-various Fortran compilers by setting `FC=ifort` or `FC=flang` or similar
-with `./run_project_test.py --only fortran`.
+various Fortran compilers by setting `FC=ifort`, `FC=flang` or
+`FC=flang-new` or similar with `./run_project_test.py --only fortran`.
 Some families of tests require a particular backend to run.
 For example, all the CUDA project tests run and pass on Windows via
 `./run_project_tests.py --only cuda --backend ninja`
