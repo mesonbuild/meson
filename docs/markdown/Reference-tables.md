@@ -15,7 +15,8 @@ These are return values of the `get_id` (Compiler family) and
 | clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
 | dmd       | D lang reference compiler        |                 |
 | emscripten| Emscripten WASM compiler         |                 |
-| flang     | Flang Fortran compiler           |                 |
+| flang     | Flang Fortran compiler (LLVM-based) |              |
+| flang     | Classic Flang Fortran compiler   |                 |
 | g95       | The G95 Fortran compiler         |                 |
 | gcc       | The GNU Compiler Collection      | gcc             |
 | intel     | Intel compiler (Linux and Mac)   | gcc             |

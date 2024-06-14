@@ -430,7 +430,60 @@ class NvidiaHPC_FortranCompiler(PGICompiler, FortranCompiler):
                           'everything': default_warn_args + ['-Mdclchk']}
 
 
-class FlangFortranCompiler(ClangCompiler, FortranCompiler):
+class LlvmFlangFortranCompiler(ClangCompiler, FortranCompiler):
+
+    id = 'llvm-flang'
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        FortranCompiler.__init__(self, exelist, version, for_machine,
+                                 is_cross, info, linker=linker,
+                                 full_version=full_version)
+        ClangCompiler.__init__(self, {})
+        default_warn_args = ['-Wall']
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
+                          '2': default_warn_args,
+                          '3': default_warn_args,
+                          'everything': default_warn_args}
+
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
+        # clang's -fdiagnostics-color=... isn't known by flang (as of v18)
+        return []
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return []
+
+    # llvm-flang doesn't support -module (even though classic flang did), see
+    # https://github.com/llvm/llvm-project/issues/66969
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
+        return ['-module-dir', path]
+
+    def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
+        # flang doesn't support symbol visibility flag yet, see
+        # https://github.com/llvm/llvm-project/issues/92459
+        return []
+
+    def language_stdlib_only_link_flags(self, env: 'Environment') -> T.List[str]:
+        # We need to apply the search prefix here, as these link arguments may
+        # be passed to a different compiler with a different set of default
+        # search paths, such as when using Clang for C/C++ and gfortran for
+        # fortran,
+        # XXX: Untested....
+        search_dirs: T.List[str] = []
+        for d in self.get_compiler_dirs(env, 'libraries'):
+            search_dirs.append(f'-L{d}')
+        # does not automatically link to Fortran_main anymore after
+        # https://github.com/llvm/llvm-project/commit/9d6837d595719904720e5ff68ec1f1a2665bdc2f
+        # note that this changed again in flang 19 with
+        # https://github.com/llvm/llvm-project/commit/8d5386669ed63548daf1bee415596582d6d78d7d;
+        # it seems flang 18 doesn't work if something accidentally includes a program unit, see
+        # https://github.com/llvm/llvm-project/issues/92496
+        return search_dirs + ['-lFortranRuntime', '-lFortranDecimal']
+
+
+class ClassicFlangFortranCompiler(ClangCompiler, FortranCompiler):
 
     id = 'flang'
 
@@ -460,7 +513,7 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
             search_dirs.append(f'-L{d}')
         return search_dirs + ['-lflang', '-lpgmath']
 
-class ArmLtdFlangFortranCompiler(FlangFortranCompiler):
+class ArmLtdFlangFortranCompiler(ClassicFlangFortranCompiler):
 
     id = 'armltdflang'
 
