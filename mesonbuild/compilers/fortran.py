@@ -59,8 +59,8 @@ class FortranCompiler(CLikeCompiler, Compiler):
         return cargs, largs
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
-        source_name = 'sanitycheckf.f90'
-        code = 'program main; print *, "Fortran compilation is working."; end program\n'
+        source_name = 'sanitycheckf.f'
+        code = '      PROGRAM MAIN\n      PRINT *, "Fortran compilation is working."\n      END\n'
         return self._sanity_check_impl(work_dir, environment, source_name, code)
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
