@@ -751,13 +751,16 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
                 # This is project's package, or one of its workspace members.
                 pass
             elif source == 'registry+https://github.com/rust-lang/crates.io-index':
+                checksum = package.get('checksum')
+                if checksum is None:
+                    checksum = cargolock['metadata'][f'checksum {name} {version} ({source})']
                 url = f'https://crates.io/api/v1/crates/{name}/{version}/download'
                 directory = f'{name}-{version}'
                 wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'file', {
                     'directory': directory,
                     'source_url': url,
                     'source_filename': f'{directory}.tar.gz',
-                    'source_hash': package['checksum'],
+                    'source_hash': checksum,
                     'method': 'cargo',
                 }))
             elif source.startswith('git+'):
