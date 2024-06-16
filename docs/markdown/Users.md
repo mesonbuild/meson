@@ -168,7 +168,7 @@ format files
  - [ThorVG](https://www.thorvg.org/), vector-based scenes and animations library
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
- - [Fossil Logic Standard](https://github.com/fossil-lib), a collection frameworks in C/C++, Objective-C and Objective-C++.
+ - [Fossil Logic](https://github.com/fossillogic), Fossil Logic is a cutting-edge software development company specializing in C/C++, Python, programming, Android development using Kotlin, and SQL solutions.
  - [UFJF-MLTK](https://github.com/mateus558/UFJF-Machine-Learning-Toolkit), A C++ cross-platform framework for machine learning algorithms development and testing
  - [Vala Language Server](https://github.com/benwaffle/vala-language-server), code intelligence engine for the Vala and Genie programming languages
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
