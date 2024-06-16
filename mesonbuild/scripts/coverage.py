@@ -33,11 +33,6 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
     else:
         lcov_config = []
 
-    if lcov_exe and mesonlib.version_compare(lcov_version, '>=2.0'):
-        lcov_exe_rc_branch_coverage = ['--rc', 'branch_coverage=1']
-    else:
-        lcov_exe_rc_branch_coverage = ['--rc', 'lcov_branch_coverage=1']
-
     gcovr_config = ['-e', re.escape(subproject_root)]
 
     # gcovr >= 4.2 requires a different syntax for out of source builds
@@ -122,27 +117,23 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    '--directory', build_root,
                                    '--capture',
                                    '--output-file', run_tracefile,
-                                   '--no-checksum',
-                                   *lcov_exe_rc_branch_coverage] +
+                                   '--no-checksum'] +
                                   lcov_config +
                                   gcov_tool_args)
             # Join initial and test results.
             subprocess.check_call([lcov_exe,
                                    '-a', initial_tracefile,
                                    '-a', run_tracefile,
-                                   *lcov_exe_rc_branch_coverage,
                                    '-o', raw_tracefile] + lcov_config)
             # Remove all directories outside the source_root from the covinfo
             subprocess.check_call([lcov_exe,
                                    '--extract', raw_tracefile,
                                    os.path.join(source_root, '*'),
-                                   *lcov_exe_rc_branch_coverage,
                                    '--output-file', covinfo] + lcov_config)
             # Remove all directories inside subproject dir
             subprocess.check_call([lcov_exe,
                                    '--remove', covinfo,
                                    *lcov_subpoject_exclude,
-                                   *lcov_exe_rc_branch_coverage,
                                    '--ignore-errors', 'unused',
                                    '--output-file', covinfo] + lcov_config)
             subprocess.check_call([genhtml_exe,
