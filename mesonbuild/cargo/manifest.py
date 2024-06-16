@@ -242,3 +242,4 @@ class CargoLock(TypedDict, total=False):
 
     version: str
     package: T.List[CargoLockPackage]
+    metadata: T.Dict[str, str]
