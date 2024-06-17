@@ -1294,15 +1294,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.subproject_dir = self.subproject_dir
 
         # Load wrap files from this (sub)project.
-        wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
-        if not self.is_subproject() or wrap_mode != WrapMode.nopromote:
-            subdir = os.path.join(self.subdir, spdirname)
-            r = wrap.Resolver(self.environment.get_source_dir(), subdir, self.subproject, wrap_mode)
-            if self.is_subproject():
-                assert self.environment.wrap_resolver is not None, 'for mypy'
-                self.environment.wrap_resolver.merge_wraps(r)
-            else:
-                self.environment.wrap_resolver = r
+        subprojects_dir = os.path.join(self.subdir, spdirname)
+        if not self.is_subproject():
+            wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
+            self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
+        else:
+            assert self.environment.wrap_resolver is not None, 'for mypy'
+            self.environment.wrap_resolver.load_and_merge(subprojects_dir, self.subproject)
 
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))

@@ -33,6 +33,7 @@ if T.TYPE_CHECKING:
     from . import manifest
     from .. import mparser
     from ..environment import Environment
+    from ..interpreterbase import SubProject
 
 # tomllib is present in python 3.11, before that it is a pypi module called tomli,
 # we try to import tomllib, then tomli,
@@ -458,6 +459,8 @@ class Interpreter:
             return pkg, True
         meson_depname = _dependency_name(package_name, api)
         subdir, _ = self.environment.wrap_resolver.resolve(meson_depname)
+        subprojects_dir = os.path.join(subdir, 'subprojects')
+        self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', meson_depname))
         manifest = self._load_manifest(subdir)
         pkg = PackageState(manifest)
         self.packages[key] = pkg
