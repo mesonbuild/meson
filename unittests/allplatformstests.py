@@ -3718,10 +3718,6 @@ class AllPlatformTests(BasePlatformTests):
                 integer: 1
                 boolean: true
 
-            subsub undefined
-
-                Something: Some value
-
             My Project 1.0
 
               Configuration
@@ -3753,7 +3749,6 @@ class AllPlatformTests(BasePlatformTests):
               Subprojects
                 sub            : YES
                 sub2           : NO Problem encountered: This subproject failed
-                subsub         : YES (from sub2)
 
               User defined options
                 backend        : ''' + self.backend_name + '''

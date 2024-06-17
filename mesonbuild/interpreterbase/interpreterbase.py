@@ -40,6 +40,7 @@ import textwrap
 if T.TYPE_CHECKING:
     from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
     from ..interpreter import Interpreter
+    from .state import State
 
     HolderMapType = T.Dict[
         T.Union[
@@ -67,27 +68,25 @@ class InvalidCodeOnVoid(InvalidCode):
 
 
 class InterpreterBase:
-    def __init__(self, source_root: str, subdir: str, subproject: 'SubProject'):
-        self.source_root = source_root
+
+    state: State
+
+    def __init__(self) -> None:
         self.funcs: FunctionType = {}
         self.builtin: T.Dict[str, InterpreterObject] = {}
         # Holder maps store a mapping from an HoldableObject to a class ObjectHolder
         self.holder_map: HolderMapType = {}
         self.bound_holder_map: HolderMapType = {}
-        self.subdir = subdir
-        self.root_subdir = subdir
-        self.subproject = subproject
-        self.variables: T.Dict[str, InterpreterObject] = {}
-        self.argument_depth = 0
-        self.current_lineno = -1
-        # Current node set during a function call. This can be used as location
-        # when printing a warning message during a method call.
-        self.current_node: mparser.BaseNode = None
-        # This is set to `version_string` when this statement is evaluated:
-        # meson.version().compare_version(version_string)
-        # If it was part of a if-clause, it is used to temporally override the
-        # current meson version target within that if-block.
-        self.tmp_meson_version: T.Optional[str] = None
+
+    @property
+    def subproject(self) -> SubProject:
+        # Needed to implement interface
+        return self.state.local.subproject
+
+    @property
+    def current_node(self) -> mparser.BaseNode:
+        # Needed to implement interface
+        return self.state.local.current_node
 
     def handle_meson_version_from_ast(self, strict: bool = True) -> None:
         # do nothing in an AST interpreter
@@ -102,7 +101,7 @@ class InterpreterBase:
             raise InvalidCode.from_node(f'Build file failed to parse as unicode: {e}', node=node)
 
     def load_root_meson_file(self) -> None:
-        mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
+        mesonfile = os.path.join(self.state.world.source_root, self.state.local.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments(f'Missing Meson file in {mesonfile}')
         code = self.read_buildfile(mesonfile, mesonfile)
@@ -110,14 +109,14 @@ class InterpreterBase:
             raise InvalidCode('Builder file is empty.')
         assert isinstance(code, str)
         try:
-            self.ast = mparser.Parser(code, mesonfile).parse()
+            self.state.local.ast = mparser.Parser(code, mesonfile).parse()
             self.handle_meson_version_from_ast()
         except mparser.ParseException as me:
             me.file = mesonfile
             if me.ast:
                 # try to detect parser errors from new syntax added by future
                 # meson versions, and just tell the user to update meson
-                self.ast = me.ast
+                self.state.local.ast = me.ast
                 self.handle_meson_version_from_ast()
             raise me
 
@@ -126,7 +125,7 @@ class InterpreterBase:
         Parses project() and initializes languages, compilers etc. Do this
         early because we need this before we parse the rest of the AST.
         """
-        self.evaluate_codeblock(self.ast, end=1)
+        self.evaluate_codeblock(self.state.local.ast, end=1)
 
     def sanity_check_ast(self) -> None:
         def _is_project(ast: mparser.CodeBlockNode) -> object:
@@ -137,8 +136,8 @@ class InterpreterBase:
             first = ast.lines[0]
             return isinstance(first, mparser.FunctionNode) and first.func_name.value == 'project'
 
-        if not _is_project(self.ast):
-            p = pathlib.Path(self.source_root).resolve()
+        if not _is_project(self.state.local.ast):
+            p = pathlib.Path(self.state.world.source_root).resolve()
             found = p
             for parent in p.parents:
                 if (parent / 'meson.build').is_file():
@@ -166,7 +165,7 @@ class InterpreterBase:
         # Evaluate everything after the first line, which is project() because
         # we already parsed that in self.parse_project()
         try:
-            self.evaluate_codeblock(self.ast, start=1)
+            self.evaluate_codeblock(self.state.local.ast, start=1)
         except SubdirDoneRequest:
             pass
 
@@ -183,20 +182,19 @@ class InterpreterBase:
         while i < len(statements):
             cur = statements[i]
             try:
-                self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
             except Exception as e:
                 if getattr(e, 'lineno', None) is None:
                     # We are doing the equivalent to setattr here and mypy does not like it
-                    # NOTE: self.current_node is continually updated during processing
-                    e.lineno = self.current_node.lineno                                               # type: ignore
-                    e.colno = self.current_node.colno                                                 # type: ignore
-                    e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)  # type: ignore
+                    # NOTE: self.state.local.current_node is continually updated during processing
+                    e.lineno = self.state.local.current_node.lineno                                               # type: ignore
+                    e.colno = self.state.local.current_node.colno                                                 # type: ignore
+                    e.file = os.path.join(self.state.world.source_root, self.state.local.subdir, environment.build_filename)  # type: ignore
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
     def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
-        self.current_node = cur
+        self.state.local.current_node = cur
         if isinstance(cur, mparser.FunctionNode):
             return self.function_call(cur)
         elif isinstance(cur, mparser.PlusAssignmentNode):
@@ -288,9 +286,9 @@ class InterpreterBase:
     def evaluate_if(self, node: mparser.IfClauseNode) -> T.Optional[Disabler]:
         assert isinstance(node, mparser.IfClauseNode)
         for i in node.ifs:
-            # Reset self.tmp_meson_version to know if it gets set during this
+            # Reset self.state.world.tmp_meson_version to know if it gets set during this
             # statement evaluation.
-            self.tmp_meson_version = None
+            self.state.world.tmp_meson_version = None
             result = self.evaluate_statement(i.condition)
             if result is None:
                 raise InvalidCodeOnVoid('if')
@@ -303,8 +301,8 @@ class InterpreterBase:
                 raise InvalidCode(f'If clause {result!r} does not evaluate to true or false.')
             if res:
                 prev_meson_version = mesonlib.project_meson_versions[self.subproject]
-                if self.tmp_meson_version:
-                    mesonlib.project_meson_versions[self.subproject] = self.tmp_meson_version
+                if self.state.world.tmp_meson_version:
+                    mesonlib.project_meson_versions[self.subproject] = self.state.world.tmp_meson_version
                 try:
                     self.evaluate_codeblock(i.block)
                 finally:
@@ -440,9 +438,9 @@ class InterpreterBase:
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:
-                val = _unholder(self.variables[var])
+                val = _unholder(self.get_variable(var))
                 if isinstance(val, (list, dict)):
-                    FeatureNew.single_use('List or dictionary in f-string', '1.3.0', self.subproject, location=self.current_node)
+                    FeatureNew.single_use('List or dictionary in f-string', '1.3.0', self.subproject, location=self.state.local.current_node)
                 try:
                     return stringifyUserArguments(val, self.subproject)
                 except InvalidArguments as e:
@@ -524,7 +522,7 @@ class InterpreterBase:
                 func_args = flatten(posargs)
             if not getattr(func, 'no-second-level-holder-flattening', False):
                 func_args, kwargs = resolve_second_level_holders(func_args, kwargs)
-            self.current_node = node
+            self.state.local.current_node = node
             res = func(node, func_args, kwargs)
             return self._holderify(res) if res is not None else None
         else:
@@ -553,7 +551,7 @@ class InterpreterBase:
                 self.validate_extraction(obj.held_object)
             elif not isinstance(obj, Disabler):
                 raise InvalidArguments(f'Invalid operation "extract_objects" on {object_display_name} of type {type(obj).__name__}')
-        obj.current_node = self.current_node = node
+        obj.current_node = self.state.local.current_node = node
         res = obj.method_call(method_name, args, kwargs)
         return self._holderify(res) if res is not None else None
 
@@ -596,7 +594,7 @@ class InterpreterBase:
         assert isinstance(args, mparser.ArgumentNode)
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
-        self.argument_depth += 1
+        self.state.local.argument_depth += 1
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
         if any(x is None for x in reduced_pos):
             raise InvalidArguments('At least one value in the arguments is void.')
@@ -607,11 +605,11 @@ class InterpreterBase:
             reduced_val = self.evaluate_statement(val)
             if reduced_val is None:
                 raise InvalidArguments(f'Value of key {reduced_key} is void.')
-            self.current_node = key
+            self.state.local.current_node = key
             if duplicate_key_error and reduced_key in reduced_kw:
                 raise InvalidArguments(duplicate_key_error.format(reduced_key))
             reduced_kw[reduced_key] = reduced_val
-        self.argument_depth -= 1
+        self.state.local.argument_depth -= 1
         final_kw = self.expand_default_kwargs(reduced_kw)
         return reduced_pos, final_kw
 
@@ -631,7 +629,7 @@ class InterpreterBase:
 
     def assignment(self, node: mparser.AssignmentNode) -> None:
         assert isinstance(node, mparser.AssignmentNode)
-        if self.argument_depth != 0:
+        if self.state.local.argument_depth != 0:
             raise InvalidArguments(textwrap.dedent('''\
                 Tried to assign values inside an argument list.
                 To specify a keyword argument, use : instead of =.
@@ -643,9 +641,9 @@ class InterpreterBase:
         # For mutable objects we need to make a copy on assignment
         if isinstance(value, MutableInterpreterObject):
             value = copy.deepcopy(value)
-        self.set_variable(var_name, value)
+        self.set_variable(var_name, value, scope=node.scope)
 
-    def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, holderify: bool = False) -> None:
+    def set_variable(self, varname: str, variable: T.Union[TYPE_var, InterpreterObject], *, scope: mparser.Scope = mparser.Scope.GLOBAL, holderify: bool = False) -> None:
         if variable is None:
             raise InvalidCode('Can not assign void to variable.')
         if holderify:
@@ -660,13 +658,19 @@ class InterpreterBase:
             raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
             raise InvalidCode(f'Tried to overwrite internal variable "{varname}"')
-        self.variables[varname] = variable
+
+        if scope is mparser.Scope.LOCAL or varname in self.state.local.local_variables[self.state.local.subdir]:
+            self.state.local.local_variables[self.state.local.subdir][varname] = variable
+        else:
+            self.state.local.variables[varname] = variable
 
     def get_variable(self, varname: str) -> InterpreterObject:
         if varname in self.builtin:
             return self.builtin[varname]
-        if varname in self.variables:
-            return self.variables[varname]
+        if varname in self.state.local.local_variables[self.state.local.subdir]:
+            return self.state.local.local_variables[self.state.local.subdir][varname]
+        if varname in self.state.local.variables:
+            return self.state.local.variables[varname]
         raise InvalidCode(f'Unknown variable "{varname}".')
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:

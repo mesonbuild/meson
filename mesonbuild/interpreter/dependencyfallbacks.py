@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2021-2024 The Meson Developers
+# Copyright © 2021-2024 Intel Corporation
+
 from __future__ import annotations
 
 from .interpreterobjects import extract_required_kwarg
@@ -13,8 +17,8 @@ from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
 import typing as T
 if T.TYPE_CHECKING:
     from .interpreter import Interpreter
-    from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
-    from .interpreterobjects import SubprojectHolder
+    from ..interpreterbase import TYPE_nkwargs, TYPE_nvar, TYPE_var
+    from .interpreterobjects import SubprojectState
 
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
@@ -24,9 +28,10 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
         self.coredata = interpreter.coredata
-        self.build = interpreter.build
+        self.build = interpreter.state.world.build
         self.environment = interpreter.environment
         self.wrap_resolver = interpreter.environment.wrap_resolver
+
         self.allow_fallback = allow_fallback
         self.subproject_name: T.Optional[str] = None
         self.subproject_varname: T.Optional[str] = None
@@ -130,8 +135,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.interpreter.do_subproject(subp_name, func_kwargs)
         return self._get_subproject_dep(subp_name, varname, kwargs)
 
-    def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectHolder]:
-        sub = self.interpreter.subprojects.get(subp_name)
+    def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectState]:
+        sub = self.interpreter.state.world.subprojects.get(subp_name)
         if sub and sub.found():
             return sub
         return None
@@ -245,11 +250,10 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             return cached_dep
         return None
 
-    def _get_subproject_variable(self, subproject: SubprojectHolder, varname: str) -> T.Optional[Dependency]:
-        try:
-            var_dep = subproject.get_variable_method([varname], {})
-        except InvalidArguments:
-            var_dep = None
+    def _get_subproject_variable(self, subproject: SubprojectState, varname: str) -> T.Optional[Dependency]:
+        var_dep: T.Optional[TYPE_var] = None
+        if subproject.found():
+            var_dep = subproject.get_variable(varname)
         if not isinstance(var_dep, Dependency):
             mlog.warning(f'Variable {varname!r} in the subproject {subproject.subdir!r} is',
                          'not found' if var_dep is None else 'not a dependency object')
@@ -360,7 +364,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                     identifier = dependencies.get_dep_identifier(name, kwargs)
                     if identifier not in self.build.dependency_overrides[for_machine]:
                         self.build.dependency_overrides[for_machine][identifier] = \
-                            build.DependencyOverride(dep, self.interpreter.current_node, explicit=False)
+                            build.DependencyOverride(dep, self.interpreter.state.local.current_node, explicit=False)
                 return dep
             elif required and (dep or i == last):
                 # This was the last candidate or the dependency has been cached

@@ -53,9 +53,9 @@ class IntrospectionInterpreter(AstInterpreter):
                  cross_file: T.Optional[str] = None,
                  subproject: SubProject = SubProject(''),
                  subproject_dir: str = 'subprojects',
-                 env: T.Optional[environment.Environment] = None):
+                 env: T.Optional[environment.Environment] = None) -> None:
         visitors = visitors if visitors is not None else []
-        super().__init__(source_root, subdir, subproject, visitors=visitors)
+        super().__init__(source_root, subdir, subproject, visitors=visitors, subproject_dir=subproject_dir)
 
         options = IntrospectionHelper(cross_file)
         self.cross_file = cross_file
@@ -63,7 +63,6 @@ class IntrospectionInterpreter(AstInterpreter):
             self.environment = environment.Environment(source_root, None, options)
         else:
             self.environment = env
-        self.subproject_dir = subproject_dir
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
@@ -101,9 +100,9 @@ class IntrospectionInterpreter(AstInterpreter):
             proj_vers = 'undefined'
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
 
-        optfile = os.path.join(self.source_root, self.subdir, 'meson.options')
+        optfile = os.path.join(self.state.world.source_root, self.state.local.subdir, 'meson.options')
         if not os.path.exists(optfile):
-            optfile = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+            optfile = os.path.join(self.state.world.source_root, self.state.local.subdir, 'meson_options.txt')
         if os.path.exists(optfile):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(optfile)
@@ -112,18 +111,18 @@ class IntrospectionInterpreter(AstInterpreter):
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
-        self.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
-        self.default_options.update(self.project_default_options)
+        self.state.local.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
+        self.default_options.update(self.state.local.project_default_options)
         self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
             if isinstance(spdirname, StringNode):
                 assert isinstance(spdirname.value, str)
-                self.subproject_dir = spdirname.value
+                self.state.world.subproject_dir = spdirname.value
         if not self.is_subproject():
             self.project_data['subprojects'] = []
-            subprojects_dir = os.path.join(self.source_root, self.subproject_dir)
+            subprojects_dir = os.path.join(self.state.world.source_root, self.state.world.subproject_dir)
             if os.path.isdir(subprojects_dir):
                 for i in os.listdir(subprojects_dir):
                     if os.path.isdir(os.path.join(subprojects_dir, i)):
@@ -137,10 +136,10 @@ class IntrospectionInterpreter(AstInterpreter):
         self._add_languages(proj_langs, True, MachineChoice.BUILD)
 
     def do_subproject(self, dirname: SubProject) -> None:
-        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.state.world.subproject_dir)
         subpr = os.path.join(subproject_dir_abs, dirname)
         try:
-            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.subproject_dir, env=self.environment, visitors=self.visitors)
+            subi = IntrospectionInterpreter(subpr, '', self.backend, cross_file=self.cross_file, subproject=dirname, subproject_dir=self.state.world.subproject_dir, env=self.environment, visitors=self.visitors)
             subi.analyze()
             subi.project_data['name'] = dirname
             self.project_data['subprojects'] += [subi.project_data]
@@ -272,7 +271,7 @@ class IntrospectionInterpreter(AstInterpreter):
         empty_sources: T.List[T.Any] = []
         # Passing the unresolved sources list causes errors
         kwargs_reduced['_allow_no_sources'] = True
-        target = targetclass(name, self.subdir, self.subproject, for_machine, empty_sources, None, objects,
+        target = targetclass(name, self.state.local.subdir, self.subproject, for_machine, empty_sources, None, objects,
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
@@ -280,8 +279,8 @@ class IntrospectionInterpreter(AstInterpreter):
             'name': target.get_basename(),
             'id': target.get_id(),
             'type': target.get_typename(),
-            'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
-            'subdir': self.subdir,
+            'defined_in': os.path.normpath(os.path.join(self.state.world.source_root, self.state.local.subdir, environment.build_filename)),
+            'subdir': self.state.local.subdir,
             'build_by_default': target.build_by_default,
             'installed': target.should_install(),
             'outputs': target.get_outputs(),
@@ -359,9 +358,9 @@ class IntrospectionInterpreter(AstInterpreter):
            This is faster than self.parse_project() which also initialize options
            and also calls parse_project() on every subproject.
         '''
-        if not self.ast.lines:
+        if not self.state.local.ast.lines:
             return None
-        project = self.ast.lines[0]
+        project = self.state.local.ast.lines[0]
         # first line is always project()
         if not isinstance(project, FunctionNode):
             return None

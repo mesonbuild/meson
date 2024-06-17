@@ -371,7 +371,7 @@ class PythonModule(ExtensionModule):
         })
 
     def _get_install_scripts(self) -> T.List[mesonlib.ExecutableSerialisation]:
-        backend = self.interpreter.backend
+        backend = self.interpreter.state.world.backend
         ret = []
         optlevel = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('bytecompile', module='python'))
         if optlevel == -1:

@@ -11,7 +11,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
 
 from .. import build, mesonlib, mlog, dependencies
 from ..cmake import TargetOptions, cmake_defines_to_args
-from ..interpreter import SubprojectHolder
+from ..interpreter.interpreterobjects import SubprojectState
 from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, NoneType, in_set_validator
 from ..interpreterbase import (
     FeatureNew,
@@ -94,8 +94,8 @@ endmacro()
 '''
 
 class CMakeSubproject(ModuleObject):
-    def __init__(self, subp: SubprojectHolder):
-        assert isinstance(subp, SubprojectHolder)
+    def __init__(self, subp: SubprojectState):
+        assert isinstance(subp, SubprojectState)
         assert subp.cm_interpreter is not None
         super().__init__()
         self.subp = subp
@@ -125,9 +125,13 @@ class CMakeSubproject(ModuleObject):
         return res
 
     @noKwargs
-    @stringArgs
-    def get_variable(self, state: ModuleState, args: T.List[str], kwargs: TYPE_kwargs) -> TYPE_var:
-        return self.subp.get_variable_method(args, kwargs)
+    @typed_pos_args('CMakeSubproject.get_variable', str, optargs=[str])
+    def get_variable(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> TYPE_var:
+        key, fallback = args
+        res = self.subp.get_variable(key, fallback)
+        if res is None:
+            raise InvalidArguments(f'Requested variable "{key}" not found.')
+        return res
 
     @FeatureNewKwargs('dependency', '0.56.0', ['include_type'])
     @permittedKwargs({'include_type'})
@@ -393,10 +397,10 @@ class CmakeModule(ExtensionModule):
         conf.used = True
 
         conffile = os.path.normpath(inputfile.relative_name())
-        self.interpreter.build_def_files.add(conffile)
+        self.interpreter.state.world.build_def_files.add(conffile)
 
         res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, install_dir, None, state.subproject)
-        self.interpreter.build.data.append(res)
+        self.interpreter.state.world.build.data.append(res)
 
         return res
 
@@ -415,7 +419,7 @@ class CmakeModule(ExtensionModule):
             deprecated_message='Use options instead',
         ),
     )
-    def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs_: Subproject) -> T.Union[SubprojectHolder, CMakeSubproject]:
+    def subproject(self, state: ModuleState, args: T.Tuple[str], kwargs_: Subproject) -> T.Union[SubprojectState, CMakeSubproject]:
         if kwargs_['cmake_options'] and kwargs_['options'] is not None:
             raise InterpreterException('"options" cannot be used together with "cmake_options"')
         dirname = args[0]

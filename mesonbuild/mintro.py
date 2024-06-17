@@ -102,7 +102,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
 def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
     printer = AstJSONPrinter()
-    intr.ast.accept(printer)
+    intr.state.local.ast.accept(printer)
     return printer.result
 
 def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
@@ -172,7 +172,7 @@ def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
 
 def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
     tlist: T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]] = []
-    root_dir = Path(intr.source_root)
+    root_dir = Path(intr.state.world.source_root)
 
     def nodes_to_paths(node_list: T.List[BaseNode]) -> T.List[Path]:
         res: T.List[Path] = []
@@ -417,7 +417,7 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
         if d.found():
             result[d.name] = _create_result(d)
 
-    for varname, holder in backend.interpreter.variables.items():
+    for varname, holder in backend.interpreter.state.local.variables.items():
         if isinstance(holder, ObjectHolder):
             d = holder.held_object
             if isinstance(d, Dependency) and d.found():
@@ -487,17 +487,17 @@ def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.D
     return result
 
 def list_projinfo_from_source(intr: IntrospectionInterpreter) -> T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]:
-    sourcedir = intr.source_root
+    sourcedir = intr.state.world.source_root
     files = find_buildsystem_files_list(sourcedir)
     files = [os.path.normpath(x) for x in files]
 
     for i in intr.project_data['subprojects']:
-        basedir = os.path.join(intr.subproject_dir, i['name'])
+        basedir = os.path.join(intr.state.world.subproject_dir, i['name'])
         i['buildsystem_files'] = [x for x in files if x.startswith(basedir)]
         files = [x for x in files if not x.startswith(basedir)]
 
     intr.project_data['buildsystem_files'] = files
-    intr.project_data['subproject_dir'] = intr.subproject_dir
+    intr.project_data['subproject_dir'] = intr.state.world.subproject_dir
     return intr.project_data
 
 def print_results(options: argparse.Namespace, results: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.Any]]]], indent: T.Optional[int]) -> int:

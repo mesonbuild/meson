@@ -5,6 +5,7 @@
 # or an interpreter-based tool.
 from __future__ import annotations
 
+import dataclasses
 import os
 import sys
 import typing as T
@@ -21,6 +22,7 @@ from ..interpreterbase import (
     Disabler,
     default_resolve_key,
 )
+from ..interpreterbase.state import State as _State, LocalState, GlobalState as _GlobalState
 
 from ..interpreter import (
     StringHolder,
@@ -85,11 +87,27 @@ _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
 
 
+@dataclasses.dataclass
+class GlobalState(_GlobalState):
+
+    subproject_dir: str
+
+
+class State(_State):
+
+    local: LocalState
+    world: GlobalState
+
+
 class AstInterpreter(InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
-        super().__init__(source_root, subdir, subproject)
+
+    state: State
+
+    def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None,
+                 subproject_dir: str = 'subprojects'):
+        self.state = State(LocalState(subproject, subdir), GlobalState(source_root, subproject_dir))
+        super().__init__()
         self.visitors = visitors if visitors is not None else []
-        self.processed_buildfiles: T.Set[str] = set()
         self.assignments: T.Dict[str, BaseNode] = {}
         self.assign_vals: T.Dict[str, T.Any] = {}
         self.reverse_assignment: T.Dict[str, BaseNode] = {}
@@ -166,7 +184,7 @@ class AstInterpreter(InterpreterBase):
     def load_root_meson_file(self) -> None:
         super().load_root_meson_file()
         for i in self.visitors:
-            self.ast.accept(i)
+            self.state.local.ast.accept(i)
 
     def func_subdir(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         args = self.flatten_args(args)
@@ -174,17 +192,17 @@ class AstInterpreter(InterpreterBase):
             sys.stderr.write(f'Unable to evaluate subdir({args}) in AstInterpreter --> Skipping\n')
             return
 
-        prev_subdir = self.subdir
+        prev_subdir = self.state.local.subdir
         subdir = os.path.join(prev_subdir, args[0])
-        absdir = os.path.join(self.source_root, subdir)
+        absdir = os.path.join(self.state.world.source_root, subdir)
         buildfilename = os.path.join(subdir, environment.build_filename)
-        absname = os.path.join(self.source_root, buildfilename)
+        absname = os.path.join(self.state.world.source_root, buildfilename)
         symlinkless_dir = os.path.realpath(absdir)
         build_file = os.path.join(symlinkless_dir, 'meson.build')
-        if build_file in self.processed_buildfiles:
+        if build_file in self.state.local.processed_buildfiles:
             sys.stderr.write('Trying to enter {} which has already been visited --> Skipping\n'.format(args[0]))
             return
-        self.processed_buildfiles.add(build_file)
+        self.state.local.processed_buildfiles.add(build_file)
 
         if not os.path.isfile(absname):
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
@@ -196,11 +214,11 @@ class AstInterpreter(InterpreterBase):
             me.file = absname
             raise me
 
-        self.subdir = subdir
+        self.state.local.subdir = subdir
         for i in self.visitors:
             codeblock.accept(i)
         self.evaluate_codeblock(codeblock)
-        self.subdir = prev_subdir
+        self.state.local.subdir = prev_subdir
 
     def method_call(self, node: BaseNode) -> bool:
         return True
@@ -234,11 +252,11 @@ class AstInterpreter(InterpreterBase):
             return '__AST_UNKNOWN__'
         arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)
         assert not arguments
-        self.argument_depth += 1
+        self.state.local.argument_depth += 1
         for key, value in kwargs.items():
             if isinstance(key, BaseNode):
                 self.evaluate_statement(key)
-        self.argument_depth -= 1
+        self.state.local.argument_depth -= 1
         return {}
 
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
