@@ -134,9 +134,10 @@ def osx_syms(libfilename: str, outfilename: str) -> None:
             match = i
             break
     result = [arr[match + 2], arr[match + 5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
-    # Get a list of all symbols exported
-    output = call_tool('nm', ['--extern-only', '--defined-only',
-                              '--format=posix', libfilename])
+    # Get a list of all symbols exported.  `nm -g -U -P` is equivalent to, and more portable than,
+    # `nm --extern-only --defined-only --format=posix`; cctools-port only understands the one-character form,
+    # as does `nm` on very old macOS versions, (see meson#11131). `llvm-nm` understands both forms.
+    output = call_tool('nm', ['-g', '-U', '-P', libfilename])
     if not output:
         dummy_syms(outfilename)
         return
