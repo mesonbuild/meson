@@ -1263,12 +1263,16 @@ class Backend:
 
             t_env = copy.deepcopy(t.env)
             if not machine.is_windows() and not machine.is_cygwin() and not machine.is_darwin():
-                ld_lib_path: T.Set[str] = set()
+                ld_lib_path_libs: T.Set[build.SharedLibrary] = set()
                 for d in depends:
                     if isinstance(d, build.BuildTarget):
                         for l in d.get_all_link_deps():
                             if isinstance(l, build.SharedLibrary):
-                                ld_lib_path.add(os.path.join(self.environment.get_build_dir(), l.get_subdir()))
+                                ld_lib_path_libs.add(l)
+
+                env_build_dir = self.environment.get_build_dir()
+                ld_lib_path: T.Set[str] = set(os.path.join(env_build_dir, l.get_subdir()) for l in ld_lib_path_libs)
+
                 if ld_lib_path:
                     t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
 
