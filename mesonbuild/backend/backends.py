@@ -1176,24 +1176,30 @@ class Backend:
         links to and return them so they can be used in unit
         tests.
         """
-        result: T.Set[str] = set()
-        prospectives: T.Set[build.BuildTargetTypes] = set()
+        result: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
+        prospectives: mesonlib.OrderedSet[build.BuildTargetTypes] = mesonlib.OrderedSet()
+
         if isinstance(target, build.BuildTarget):
             prospectives.update(target.get_transitive_link_deps())
-            # External deps
-            result.update(self.extract_dll_paths(target))
 
         for bdep in extra_bdeps:
             prospectives.add(bdep)
             if isinstance(bdep, build.BuildTarget):
                 prospectives.update(bdep.get_transitive_link_deps())
+
         # Internal deps
         for ld in prospectives:
             dirseg = os.path.join(self.environment.get_build_dir(), self.get_target_dir(ld))
             result.add(dirseg)
+
+        # External deps
+        if isinstance(target, build.BuildTarget):
+            result.update(self.extract_dll_paths(target))
+
         if (isinstance(target, build.BuildTarget) and
                 not self.environment.machines.matches_build_machine(target.for_machine)):
             result.update(self.get_mingw_extra_paths(target))
+
         return list(result)
 
     def write_benchmark_file(self, datafile: T.BinaryIO) -> None:
