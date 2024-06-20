@@ -79,11 +79,41 @@ class DubDependency(ExternalDependency):
         elif dub_buildtype == 'minsize':
             dub_buildtype = 'release'
 
+        # Determining DUB configuration and sub-dependencies configuration (override-config)
+        dub_config = ''
+        dub_override_config = []
+
+        def add_config(cfg: str) -> bool:
+            nonlocal dub_config
+            if '/' in cfg:
+                dub_override_config.append(cfg)
+            else:
+                if dub_config:
+                    mlog.error('can\'t specify twice the DUB configuration')
+                    return False
+                dub_config = cfg
+            return True
+
+        if 'configuration' in kwargs:
+            if isinstance(kwargs['configuration'], str):
+                add_config(kwargs['configuration'])
+            elif isinstance(kwargs['configuration'], list):
+                for cfg in kwargs['configuration']:
+                    if not add_config(cfg):
+                        return
+            else:
+                mlog.error('type error for DUB configuration')
+
         # Ask dub for the package
         describe_cmd = [
             'describe', main_pack_spec, '--arch=' + dub_arch,
             '--build=' + dub_buildtype, '--compiler=' + self.compiler.get_exelist()[-1]
         ]
+        if dub_config:
+            describe_cmd.append('--config='+dub_config)
+        for cfg in dub_override_config:
+            describe_cmd.append('--override-config='+cfg)
+
         ret, res, err = self._call_dubbin(describe_cmd)
 
         if ret != 0:
@@ -102,6 +132,10 @@ class DubDependency(ExternalDependency):
                 '--arch=' + dub_arch, '--compiler=' + self.compiler.get_exelist()[-1],
                 '--build=' + dub_buildtype
             ]
+            if dub_config:
+                cmd.append('--config='+dub_config)
+            for cfg in dub_override_config:
+                cmd.append('--override-config='+cfg)
             return join_args(cmd)
 
         dub_comp_id = self.compiler.get_id().replace('llvm', 'ldc').replace('gcc', 'gdc')
