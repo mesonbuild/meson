@@ -342,7 +342,7 @@ To then generate a typelib file use a custom target with the
 ```meson
 g_ir_compiler = find_program('g-ir-compiler')
 custom_target('foo typelib', command: [g_ir_compiler, '--output', '@OUTPUT@', '@INPUT@'],
-              input: meson.current_build_dir() / 'Foo-1.0.gir',
+              input: foo_lib.get_gir(),  # For Meson < 1.4 support: meson.current_build_dir() / 'Foo-1.0.gir',
               output: 'Foo-1.0.typelib',
               depends: foo_lib,
               install: true,
