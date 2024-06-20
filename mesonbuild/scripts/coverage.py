@@ -161,7 +161,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                 os.mkdir(htmloutdir)
             subprocess.check_call(gcovr_base_cmd + gcovr_config +
                                   ['--html',
-                                   '--html-details',
+                                   '--html-nested',
                                    '--print-summary',
                                    '-o', os.path.join(htmloutdir, 'index.html'),
                                    ] + gcov_exe_args)
