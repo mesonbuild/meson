@@ -102,12 +102,19 @@ kwargs:
     since: 0.52.0
     description: |
       Specifies the required version, see
-      [[dependency]] for argument format. The version of the program
+      [[dependency]] for argument format. By default, the version of the program
       is determined by running `program_name --version` command. If stdout is empty
       it fallbacks to stderr. If the output contains more text than simply a version
       number, only the first occurrence of numbers separated by dots is kept.
       If the output is more complicated than that, the version checking will have to
       be done manually using [[run_command]].
+
+  version_argument:
+    type: str
+    since: 1.5.0
+    description: |
+      Specifies the argument to pass when trying to find the version of the program.
+      If this is unspecified, `program_name --version` will be used.
 
   dirs:
     type: list[str]

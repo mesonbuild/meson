@@ -1642,12 +1642,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                           required: bool = True, silent: bool = True,
                           wanted: T.Union[str, T.List[str]] = '',
                           search_dirs: T.Optional[T.List[str]] = None,
+                          version_arg: T.Optional[str] = '',
                           version_func: T.Optional[ProgramVersionFunc] = None
                           ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
-        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, wanted, version_func, extra_info)
+        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, wanted, version_arg, version_func, extra_info)
         if progobj is None or not self.check_program_version(progobj, wanted, version_func, extra_info):
             progobj = self.notfound_program(args)
 
@@ -1672,6 +1673,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        required: bool,
                        search_dirs: T.List[str],
                        wanted: T.Union[str, T.List[str]],
+                       version_arg: T.Optional[str],
                        version_func: T.Optional[ProgramVersionFunc],
                        extra_info: T.List[mlog.TV_Loggable]
                        ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
@@ -1697,6 +1699,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = prog if prog.found() else None
 
+        if isinstance(progobj, ExternalProgram) and version_arg:
+            progobj.version_arg = version_arg
         if progobj and not self.check_program_version(progobj, wanted, version_func, extra_info):
             progobj = None
 
@@ -1756,6 +1760,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         REQUIRED_KW,
         KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
+        KwargInfo('version_argument', str, default='', since='1.5.0'),
         DEFAULT_OPTIONS.evolve(since='1.3.0')
     )
     @disablerIfNotFound
@@ -1770,7 +1775,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         search_dirs = extract_search_dirs(kwargs)
         default_options = kwargs['default_options']
         return self.find_program_impl(args[0], kwargs['native'], default_options=default_options, required=required,
-                                      silent=False, wanted=kwargs['version'],
+                                      silent=False, wanted=kwargs['version'], version_arg=kwargs['version_argument'],
                                       search_dirs=search_dirs)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()

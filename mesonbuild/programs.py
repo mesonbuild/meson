@@ -36,6 +36,7 @@ class ExternalProgram(mesonlib.HoldableObject):
         self.name = name
         self.path: T.Optional[str] = None
         self.cached_version: T.Optional[str] = None
+        self.version_arg = '--version'
         if command is not None:
             self.command = mesonlib.listify(command)
             if mesonlib.is_windows():
@@ -93,9 +94,9 @@ class ExternalProgram(mesonlib.HoldableObject):
 
     def get_version(self, interpreter: T.Optional['Interpreter'] = None) -> str:
         if not self.cached_version:
-            raw_cmd = self.get_command() + ['--version']
+            raw_cmd = self.get_command() + [self.version_arg]
             if interpreter:
-                res = interpreter.run_command_impl((self, ['--version']),
+                res = interpreter.run_command_impl((self, [self.version_arg]),
                                                    {'capture': True,
                                                     'check': True,
                                                     'env': mesonlib.EnvironmentVariables()},
