@@ -627,7 +627,7 @@ class Backend:
         # It's also overridden for a few conditions that can't be handled
         # inside a command line
 
-        can_use_env = not force_serialize
+        can_use_env = env.can_use_env and not force_serialize
         force_serialize = force_serialize or bool(reasons)
 
         if capture:

@@ -64,6 +64,7 @@ class EnvironmentVariables(HoldableObject):
         # The set of all env vars we have operations for. Only used for self.has_name()
         self.varnames: T.Set[str] = set()
         self.unset_vars: T.Set[str] = set()
+        self.can_use_env = True
 
         if values:
             init_func = getattr(self, init_method)
@@ -95,7 +96,9 @@ class EnvironmentVariables(HoldableObject):
             self.envvars.append((method, name, values, separator))
             if name in self.unset_vars:
                 self.unset_vars.remove(name)
-        self.unset_vars.update(other.unset_vars)
+        if other.unset_vars:
+            self.can_use_env = False
+            self.unset_vars.update(other.unset_vars)
 
     def set(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
         if name in self.unset_vars:
@@ -104,17 +107,20 @@ class EnvironmentVariables(HoldableObject):
         self.envvars.append((self._set, name, values, separator))
 
     def unset(self, name: str) -> None:
+        self.can_use_env = False
         if name in self.varnames:
             raise MesonException(f'You cannot unset the {name!r} variable because it is already set')
         self.unset_vars.add(name)
 
     def append(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
+        self.can_use_env = False
         if name in self.unset_vars:
             raise MesonException(f'You cannot append to unset variable {name!r}')
         self.varnames.add(name)
         self.envvars.append((self._append, name, values, separator))
 
     def prepend(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
+        self.can_use_env = False
         if name in self.unset_vars:
             raise MesonException(f'You cannot prepend to unset variable {name!r}')
         self.varnames.add(name)
