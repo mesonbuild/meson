@@ -137,9 +137,9 @@ def resolve_cmake_trace_targets(target_name: str,
         elif 'IMPORTED_IMPLIB' in tgt.properties:
             res.libraries += [x for x in tgt.properties['IMPORTED_IMPLIB'] if x]
         elif f'IMPORTED_LOCATION_{cfg}' in tgt.properties:
-            res.libraries += [x for x in tgt.properties[f'IMPORTED_LOCATION_{cfg}'] if x]
+            targets += [x for x in tgt.properties[f'IMPORTED_LOCATION_{cfg}'] if x]
         elif 'IMPORTED_LOCATION' in tgt.properties:
-            res.libraries += [x for x in tgt.properties['IMPORTED_LOCATION'] if x]
+            targets += [x for x in tgt.properties['IMPORTED_LOCATION'] if x]
 
         if 'LINK_LIBRARIES' in tgt.properties:
             targets += [x for x in tgt.properties['LINK_LIBRARIES'] if x]
