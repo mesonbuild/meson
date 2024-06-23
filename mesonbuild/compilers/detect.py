@@ -1333,7 +1333,7 @@ def _get_gnu_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str, s
     """
     Get the list of GCC pre-processor defines
     """
-    from .mixins.gnu import _LANG_MAP as gnu_LANG_MAP
+    from .mixins.gnu import gnu_lang_map
 
     def _try_obtain_compiler_defines(args: T.List[str]) -> str:
         mlog.debug(f'Running command: {join_args(args)}')
@@ -1355,7 +1355,7 @@ def _get_gnu_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str, s
 
         # We might not have a match for Fortran, so fallback to detection
         # based on the driver.
-        lang = gnu_LANG_MAP[lang]
+        lang = gnu_lang_map[lang]
 
         # The compiler may not infer the target language based on the driver name
         # so first, try with '-cpp -x lang', then fallback without given it's less
@@ -1386,7 +1386,7 @@ def _get_clang_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str,
     """
     Get the list of Clang pre-processor defines
     """
-    from .mixins.clang import _LANG_MAP as clang_LANG_MAP
+    from .mixins.clang import clang_lang_map
 
     def _try_obtain_compiler_defines(args: T.List[str]) -> str:
         mlog.debug(f'Running command: {join_args(args)}')
@@ -1407,7 +1407,7 @@ def _get_clang_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str,
 
         # We might not have a match for Fortran, so fallback to detection
         # based on the driver.
-        lang = clang_LANG_MAP[lang]
+        lang = clang_lang_map[lang]
 
         # The compiler may not infer the target language based on the driver name
         # so first, try with '-cpp -x lang', then fallback without given it's less

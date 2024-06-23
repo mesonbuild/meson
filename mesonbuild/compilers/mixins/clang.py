@@ -36,7 +36,7 @@ clang_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Oz'],
 }
 
-_LANG_MAP = {
+clang_lang_map = {
     'c': 'c',
     'cpp': 'c++',
     'objc': 'objective-c',
