@@ -113,6 +113,8 @@ if T.TYPE_CHECKING:
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..programs import OverrideProgram
+    from ..linkers.linkers import StaticLinker
+    from ..coredata import KeyedOptionDictType
     from .type_checking import SourcesVarargsType
 
     # Input source types passed to Targets
@@ -128,6 +130,34 @@ if T.TYPE_CHECKING:
 
     ProgramVersionFunc = T.Callable[[T.Union[ExternalProgram, build.Executable, OverrideProgram]], str]
 
+
+def _validate_tools(comp_and_linker: compilers.Compiler, static_linker: StaticLinker,
+                    options: 'KeyedOptionDictType') -> None:
+    # If the user's enabled LTO ('b_lto') then we see new incompatibilities between
+    # compiler + lib + linker tools which may have previously been compatible.
+    # Cases of previously compatible tools being incompatible with LTO are -
+    # - clang-cl (llvm) + lib/link (msvc)
+    # - clang/clang++ (llvm) + ar/ld.bfd (gnu) ... but ONLY if the gnu binutils
+    #   were not built with plugin support or a suitable LTO plugin is unavailable.
+    #
+    # For the 1st scenario, under the Visual Studio native tools env, if not
+    # explicitly selected by the user, meson trys to quietly go and guess at static
+    # lib/linker tools and can choose the incompatible 'lib' or 'link' tools.  We
+    # can do a tool ID combination check as a simple courtesy to the user.
+    #
+    # For the 2nd scenario, whether the user can support LTO with their 'ar' or
+    # 'bfd' tools is dependent on their gnu binutils plugin situation, which may be
+    # ubiquitous in either configuration (supporting or not supporting suitable
+    # plugins).  That requires more than simple tool ID checks, so we won't do that
+    # here.
+    lto_opt = OptionKey('b_lto')
+    if lto_opt in options and options[lto_opt].value:
+        if comp_and_linker.needs_static_linker() and static_linker.id == 'lib':
+            raise MesonException(f'LTO is incompatible with static linker \'{static_linker.id}\'. '
+                                 'Try \'llvm-lib\'.')
+        if comp_and_linker.linker and comp_and_linker.linker.id == 'link':  # E.g. csharp/'csc' has no linker
+            raise MesonException(f'LTO is incompatible with dynamic linker \'{comp_and_linker.linker.id}\'. '
+                                 'Try \'lld-link\'.')
 
 def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
     if isinstance(value, list):
@@ -1559,6 +1589,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
             self.compilers[for_machine][lang] = comp
+            _validate_tools(comp, self.build.static_linker[comp.for_machine], self.coredata.options)
 
         return success
 

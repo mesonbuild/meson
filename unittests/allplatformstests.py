@@ -1345,8 +1345,6 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        if detect_c_compiler(env, MachineChoice.HOST).get_id() == 'clang' and is_windows():
-            raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args='-Db_lto=true')
         self.build()
@@ -1359,9 +1357,6 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         extra_args: T.List[str] = []
-        if cc.get_id() == 'clang':
-            if is_windows():
-                raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'] + extra_args)
         self.build()
@@ -1384,23 +1379,31 @@ class AllPlatformTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
-        if cc.get_id() != 'clang':
-            raise SkipTest('Only clang currently supports thinLTO')
+        if cc.get_id() not in {'clang', 'clang-cl'}:
+            raise SkipTest('Only clang/clang-cl currently support thinLTO')
         if cc.linker.id not in {'ld.lld', 'ld.gold', 'ld64', 'lld-link'}:
             raise SkipTest('thinLTO requires ld.lld, ld.gold, ld64, or lld-link')
-        elif is_windows():
-            raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_mode=thin', '-Db_lto_threads=8', '-Dc_args=-Werror=unused-command-line-argument'])
         self.build()
         self.run_tests()
 
-        expected = set(cc.get_lto_compile_args(threads=8, mode='thin'))
+        expected_compile = set(cc.get_lto_compile_args(threads=8, mode='thin'))
+        expected_link = set(cc.get_lto_link_args(threads=8, mode='thin'))
+        # Some platforms don't actually need any lto-specific link options. I.e. for lld-link -
+        # "When using lld-link, the -flto option need only be added to the compile step"
+        # In which case, duplicating the compile lto options for the linker args just produces
+        # unnecessary warnings, so we expect the compile options (but not necessarily the link
+        # options) to be non-empty.
+        self.assertTrue(expected_compile, f'No LTO compile args added for "{cc.id}" compiler')
         targets = self.introspect('--targets')
-        # This assumes all of the targets support lto
+        # This assumes all of the targets use either compile or link lto args.
         for t in targets:
             for src in t['target_sources']:
-                self.assertTrue(expected.issubset(set(src['parameters'])), f'Incorrect values for {t["name"]}')
+                if 'compiler' in src:
+                    self.assertTrue(expected_compile.issubset(set(src['parameters'])), f'Compile params for {t["name"]} missing expected LTO options')
+                elif 'linker' in src:
+                    self.assertTrue(expected_link.issubset(set(src['parameters'])), f'Link params for {t["name"]} missing expected LTO options')
 
     def test_dist_git(self):
         if not shutil.which('git'):

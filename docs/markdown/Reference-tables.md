@@ -387,6 +387,9 @@ machine](#Environment-variables-per-machine) section for details.
 *The old environment variables are still supported, but are deprecated
 and will be removed in a future version of Meson.
 
+Where appropriate for the language, the library archiver (or static linker)
+can be specified with the `AR` environment variable.
+
 *changed in 1.3.0* Paths with spaces were split unconditionally to extract
 components such as the [path to Ccache](Feature-autodetection.md#ccache),
 intrinsic compiler flags like `-m32` or `--target`, etc. This broke passing

@@ -88,6 +88,11 @@ jobs:
             mingw-w64-${{ matrix.MSYS2_ARCH }}-objfw
             mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.TOOLCHAIN }}
 
+      - name: Conditional lld install
+        run: |
+          pacman -S --noconfirm mingw-w64-${{ matrix.MSYS2_ARCH }}-lld
+        if: ${{ matrix.COMPILER == 'clang' }}
+
       - name: Install dependencies
         run: |
           python3 -m pip --disable-pip-version-check install gcovr pefile pytest pytest-subtests pytest-xdist coverage
@@ -116,9 +121,14 @@ jobs:
 
           if [[ '${{ matrix.COMPILER }}' == 'clang' ]]; then
             export CC=clang
+            export CC_LD=lld
             export CXX=clang++
+            export CXX_LD=lld
             export OBJC=clang
+            export OBJC_LD=lld
             export OBJCXX=clang++
+            export OBJCXX_LD=lld
+            export AR=llvm-ar
           fi
 
           if [[ "${{ matrix.MSYS2_CURSES }}" != "" ]]; then

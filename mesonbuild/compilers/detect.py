@@ -206,7 +206,13 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
         if "xilib: executing 'lib'" in err:
             return linkers.IntelVisualStudioLinker(linker, getattr(compiler, 'machine', None))
         if '/OUT:' in out.upper() or '/OUT:' in err.upper():
-            return linkers.VisualStudioLinker(linker, getattr(compiler, 'machine', None))
+            # It is using the VS-style linker/archiver syntax but it's important to
+            # distinguish between 'lib' and 'llvm-lib', which have incompatibilities
+            # (notably, when using LTO).
+            if 'LLVM' in out:
+                return linkers.LlvmVisualStudioLinker(linker, getattr(compiler, 'machine', None))
+            else:
+                return linkers.VisualStudioLinker(linker, getattr(compiler, 'machine', None))
         if 'ar-Error-Unknown switch: --version' in err:
             return linkers.PGIStaticLinker(linker)
         if p.returncode == 0 and 'armar' in linker_name:
@@ -239,7 +245,10 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             else:
                 return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker)
         if p.returncode == 0:
-            return linkers.ArLinker(compiler.for_machine, linker)
+            if 'LLVM' in out:
+                return linkers.LlvmArLinker(compiler.for_machine, linker)
+            else:
+                return linkers.ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
             return linkers.AppleArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('Usage'): # AIX

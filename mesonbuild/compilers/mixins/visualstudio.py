@@ -27,6 +27,12 @@ else:
     # do). This gives up DRYer type checking, with no runtime impact
     Compiler = object
 
+clangcl_color_args: T.Dict[str, T.List[str]] = {
+    'auto': ['-fcolor-diagnostics'],
+    'always': ['-fcolor-diagnostics'],
+    'never': ['-fno-color-diagnostics'],
+}
+
 vs32_instruction_set_args: T.Dict[str, T.Optional[T.List[str]]] = {
     'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
     'sse': ['/arch:SSE'],
@@ -110,7 +116,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     INVOKES_LINKER = False
 
     def __init__(self, target: str):
-        self.base_options = {mesonlib.OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like
+        self.base_options = {mesonlib.OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add pgo and the like
         self.target = target
         self.is_64 = ('x64' in target) or ('x86_64' in target)
         # do some canonicalization of target machine
@@ -438,6 +444,10 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     def __init__(self, target: str):
         super().__init__(target)
+        self.base_options.update(
+            {mesonlib.OptionKey('b_lto'), mesonlib.OptionKey('b_lto_threads'),
+             mesonlib.OptionKey('b_lto_mode'), mesonlib.OptionKey('b_thinlto_cache'),
+             mesonlib.OptionKey('b_thinlto_cache_dir'), mesonlib.OptionKey('b_colorout')})
 
         # Assembly
         self.can_compile_suffixes.add('s')
@@ -483,3 +493,46 @@ class ClangClCompiler(VisualStudioLikeCompiler):
             return converted
         else:
             return dep.get_compile_args()
+
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
+        return clangcl_color_args[colortype][:]
+
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        if not mesonlib.version_compare(self.version, '>=15.0.1'):
+            # Feel free to update this version check if you know an older version also works.
+            raise mesonlib.MesonException(
+                "Meson's support for clang-cl LTO has only been tested since clang-cl >= 15.0.1.")
+        args: T.List[str] = []
+        if mode == 'thin':
+            args.append(f'-flto={mode}')
+        else:
+            assert mode == 'default', 'someone forgot to wire something up'
+            args.append('-flto')
+
+        # clang-cl (at least up to v 15.0.1) lists no option equivalent to clang's
+        # '-flto-jobs=[numthreads]'.  'lld-link' has the option '/opt:lldltojobs=N', which I
+        # don't think is exactly the same.
+        # FIXME:  Perhaps we can simply use '/clang:flto-jobs=[numthreads]'
+        # FIXME:  Should meson's 'b_lto_threads=N' option be driving both the compiler's -
+        #   -flto-jobs=N (for clang),  /clang:flto-jobs=N (for clang-cl)
+        # and the linker's -
+        #   --thinlto-jobs=N (for ld.lld),  /opt:lldltojobs=N (for lld-link)
+        # options?
+
+        return args
+
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        # "When using lld-link, the -flto option need only be added to the compile step" -
+        # https://clang.llvm.org/docs/ThinLTO.html
+        # Alternatively, if we're using 'ld.lld', there are a lot of lto-related tuning
+        # options but none is currently necessary for basic lto.
+
+        assert self.linker.id in {'ld.lld', 'lld-link'}, f'_validate_tool_combination should ensure we use ld.lld or lld-link, not {self.linker.id}'
+        args: T.List[str] = []
+        if mode == 'thin' and thinlto_cache_dir is not None:
+            # We check for ThinLTO linker support above in get_lto_compile_args, and all of them support
+            # get_thinlto_cache_args as well
+            args.extend(self.linker.get_thinlto_cache_args(thinlto_cache_dir))
+
+        return args
