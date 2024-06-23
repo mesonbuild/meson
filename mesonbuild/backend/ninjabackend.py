@@ -864,11 +864,8 @@ class NinjaBackend(backends.Backend):
             tgt[lnk_hash] = lnk_block
 
     def generate_target(self, target):
-        try:
-            if isinstance(target, build.BuildTarget):
-                os.makedirs(self.get_target_private_dir_abs(target))
-        except FileExistsError:
-            pass
+        if isinstance(target, build.BuildTarget):
+            os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target)
         if isinstance(target, build.RunTarget):

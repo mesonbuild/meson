@@ -1578,9 +1578,9 @@ class Backend:
                     dfilename = os.path.join(outdir, target.depfile)
                     i = i.replace('@DEPFILE@', dfilename)
                 if '@PRIVATE_DIR@' in i:
-                    if target.absolute_paths:
-                        pdir = self.get_target_private_dir_abs(target)
-                    else:
+                    pdir = self.get_target_private_dir_abs(target)
+                    os.makedirs(pdir, exist_ok=True)
+                    if not target.absolute_paths:
                         pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
             else:
