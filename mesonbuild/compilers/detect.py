@@ -1331,7 +1331,7 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 
 def _get_gnu_compiler_defines(compiler: T.List[str]) -> T.Dict[str, str]:
     """
-    Detect GNU compiler platform type (Apple, MinGW, Unix)
+    Get the list of GCC pre-processor defines
     """
     # Arguments to output compiler pre-processor defines to stdout
     # gcc, g++, and gfortran all support these arguments
@@ -1339,7 +1339,7 @@ def _get_gnu_compiler_defines(compiler: T.List[str]) -> T.Dict[str, str]:
     mlog.debug(f'Running command: {join_args(args)}')
     p, output, error = Popen_safe(args, write='', stdin=subprocess.PIPE)
     if p.returncode != 0:
-        raise EnvironmentException('Unable to detect GNU compiler type:\n'
+        raise EnvironmentException('Unable to detect gcc pre-processor defines:\n'
                                    f'Compiler stdout:\n{output}\n-----\n'
                                    f'Compiler stderr:\n{error}\n-----\n')
     # Parse several lines of the type:
