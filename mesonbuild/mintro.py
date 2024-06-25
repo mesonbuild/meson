@@ -332,12 +332,12 @@ def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, 
 def list_deps(coredata: cdata.CoreData, builddata: build.Build, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, T.List[str]]]]:
     result: T.Dict[str, T.Dict[str, T.Union[str, T.List[str]]]] = {}
 
-    def _src_to_str(src_file: T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.StructuredSources]) -> T.List[str]:
+    def _src_to_str(src_file: T.Union[mesonlib.FileOrString, build.GeneratedTypes, build.BuildTarget, build.StructuredSources]) -> T.List[str]:
         if isinstance(src_file, str):
             return [src_file]
         if isinstance(src_file, mesonlib.File):
             return [src_file.absolute_path(backend.source_dir, backend.build_dir)]
-        if isinstance(src_file, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)):
+        if isinstance(src_file, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList, build.BuildTarget)):
             return src_file.get_outputs()
         if isinstance(src_file, build.StructuredSources):
             return [f for s in src_file.as_list() for f in _src_to_str(s)]

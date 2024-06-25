@@ -14,25 +14,24 @@ javamod = import('java')
 cc = meson.get_compiler('c')
 java = find_program('java')
 
-jni_dep = dependency('jni', version : '>=1.8', modules: ['jvm', 'awt'])
+jni_dep = dependency('jni', modules: ['jvm', 'awt'])
+if jni_dep.version().version_compare('< 9')
+  error('MESON_SKIP_TEST: this test requires Java 9')
+endif
 
 # Assert that the header can actually be found with the dependency.
 cc.has_header('jni.h', dependencies: [jni_dep], required: true)
 # Assert that the platform-specific include directory is included in the compiler arguments.
 cc.has_header('jni_md.h', dependencies: [jni_dep], required: true)
 
-# generate native headers
 subdir('src')
-subdir('lib')
 
 test(
   'jnitest',
   java,
   args: [
-    '-Djava.library.path=@0@'.format(fs.parent(jnijava.full_path())),
     '-jar',
     jnijar,
   ],
   protocol : 'exitcode',
-  depends : [jnijava],
 )

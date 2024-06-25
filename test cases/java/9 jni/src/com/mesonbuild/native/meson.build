@@ -1,4 +1,4 @@
-sources = [
+native_sources = [
   files(
     'native.c',
     'com_mesonbuild_JniTest.c',
@@ -8,11 +8,7 @@ sources = [
 
 jnijava = shared_module(
   'jnijava',
-  sources,
+  native_sources,
   dependencies : [jni_dep],
   include_directories : [native_header_includes]
-)
-
-jnijava_dep = declare_dependency(
-  link_with : jnijava
 )
