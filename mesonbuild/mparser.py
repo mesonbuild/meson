@@ -377,7 +377,7 @@ class ArgumentNode(BaseNode):
         return self.order_error
 
     def __len__(self) -> int:
-        return self.num_args() # Fixme
+        return self.num_args() + self.num_kwargs()
 
 @dataclass(unsafe_hash=True)
 class ArrayNode(BaseNode):
