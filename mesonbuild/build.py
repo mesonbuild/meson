@@ -2,7 +2,7 @@
 # Copyright 2012-2017 The Meson development team
 
 from __future__ import annotations
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, deque, OrderedDict
 from dataclasses import dataclass, field, InitVar
 from functools import lru_cache
 import abc
@@ -1067,18 +1067,22 @@ class BuildTarget(Target):
         return ExtractedObjects(self, self.sources, self.generated, self.objects,
                                 recursive, pch=True)
 
+    def get_toplevel_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
+        return self.link_targets
+
     def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.get_transitive_link_deps()
 
     @lru_cache(maxsize=None)
     def get_transitive_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         result: T.Set[Target] = []
-        stack: T.List[Target] = [self]
+        stack: T.Deque[Target] = deque()
+        stack.appendleft(self)
         while stack:
-            for i in stack.pop().link_targets:
+            for i in stack.pop().get_toplevel_link_deps():
                 if i not in result:
                     result.append(i)
-                    stack.insert(0, i)
+                    stack.appendleft(i)
         return list(result)
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
@@ -2392,6 +2396,9 @@ class SharedLibrary(BuildTarget):
         """
         return self.debug_filename
 
+    def get_toplevel_link_deps(self):
+        return [self] + self.link_targets
+
     def get_all_link_deps(self):
         return [self] + self.get_transitive_link_deps()
 
@@ -2712,6 +2719,9 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         return OrderedSet()
 
+    def get_toplevel_link_deps(self):
+        return []
+
     def get_all_link_deps(self):
         return []
 
@@ -2960,6 +2970,9 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
 
     def get_id(self) -> str:
         return self.target.get_id()
+
+    def get_toplevel_link_deps(self):
+        return self.target.get_toplevel_link_deps()
 
     def get_all_link_deps(self):
         return self.target.get_all_link_deps()
