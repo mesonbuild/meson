@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from glob import glob
 from pathlib import Path
 from mesonbuild.environment import Environment, detect_ninja
-from mesonbuild.mesonlib import (MesonException, RealPathAction, get_meson_command, quiet_git,
+from mesonbuild.mesonlib import (GIT, MesonException, RealPathAction, get_meson_command, quiet_git,
                                  windows_proof_rmtree, setup_vsenv, OptionKey)
 from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
@@ -364,7 +364,11 @@ def run(options: argparse.Namespace) -> int:
             return 1
         cls = HgDist
     else:
-        print('Dist currently only works with Git or Mercurial repos')
+        msg = 'Dist currently only works with Git or Mercurial repos'
+        if GIT:
+            print(msg)
+        else:
+            print('Git program not found, could not check detect a git repository. ' + msg)
         return 1
 
     project = cls(dist_name, src_root, bld_root, b.dist_scripts, subprojects, options)
