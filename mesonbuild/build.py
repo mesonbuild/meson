@@ -1068,7 +1068,7 @@ class BuildTarget(Target):
                                 recursive, pch=True)
 
     def get_toplevel_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
-        return self.link_whole_targets
+        return self.link_targets
 
     def get_all_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
         return self.get_transitive_link_deps()
@@ -1080,7 +1080,7 @@ class BuildTarget(Target):
         stack.appendleft(self)
         while stack:
             for i in stack.pop().get_toplevel_link_deps():
-                if i.links_dynamically() and i not in result:
+                if i not in result:
                     result.add(i)
                     stack.appendleft(i)
         return list(result)
@@ -2397,7 +2397,7 @@ class SharedLibrary(BuildTarget):
         return self.debug_filename
 
     def get_toplevel_link_deps(self):
-        return [self] + self.link_whole_targets
+        return [self] + self.link_targets
 
     def get_all_link_deps(self):
         return [self] + self.get_transitive_link_deps()
