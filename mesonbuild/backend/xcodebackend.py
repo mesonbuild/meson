@@ -154,7 +154,7 @@ class PbxDictItem:
     def quote_value(self, value: str) -> str:
         quoted = f'"{value}"'
 
-        if len(value) == 0:
+        if not value:
             return quoted
 
         if set(' +@').isdisjoint(value) or value[0] == '"':
