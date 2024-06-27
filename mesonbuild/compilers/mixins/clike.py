@@ -104,7 +104,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
                     bad_idx_list += [i, i + 1]
                 elif each.startswith('-isystem=') and self._cached_realpath(each[9:]) in real_default_dirs:
                     bad_idx_list += [i]
-                elif self._cached_realpath(each[8:]) in real_default_dirs:
+                elif len(each)>8 and self._cached_realpath(each[8:]) in real_default_dirs:
                     bad_idx_list += [i]
             for i in reversed(bad_idx_list):
                 new.pop(i)
