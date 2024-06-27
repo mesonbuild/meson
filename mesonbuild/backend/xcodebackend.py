@@ -138,7 +138,11 @@ class PbxComment:
 class PbxDictItem:
     def __init__(self, key: str, value: T.Union[PbxArray, PbxDict, str, int], comment: str = ''):
         self.key = key
-        self.value = value
+        if isinstance(value, str):
+            self.value = self.quote_value(value)
+        else:
+            self.value = value
+
         if comment:
             if '/*' in comment:
                 self.comment = comment
@@ -146,6 +150,17 @@ class PbxDictItem:
                 self.comment = f'/* {comment} */'
         else:
             self.comment = comment
+
+    def quote_value(self, value: str) -> str:
+        quoted = f'"{value}"'
+
+        if len(value) == 0:
+            return quoted
+
+        if set(' +@').isdisjoint(value) or value[0] == '"':
+            return value
+
+        return quoted
 
 class PbxDict:
     def __init__(self) -> None:
@@ -826,7 +841,7 @@ class XCodeBackend(backends.Backend):
             proxy_dict.add_item('containerPortal', self.project_uid, 'Project object')
             proxy_dict.add_item('proxyType', '1')
             proxy_dict.add_item('remoteGlobalIDString', self.native_targets[t])
-            proxy_dict.add_item('remoteInfo', '"' + t + '"')
+            proxy_dict.add_item('remoteInfo', t)
 
     def generate_pbx_file_reference(self, objects_dict: PbxDict) -> None:
         for tname, t in self.build_targets.items():
@@ -859,17 +874,17 @@ class XCodeBackend(backends.Backend):
                 path = s
                 objects_dict.add_item(idval, src_dict, fullpath)
                 src_dict.add_item('isa', 'PBXFileReference')
-                src_dict.add_item('explicitFileType', '"' + xcodetype + '"')
+                src_dict.add_item('explicitFileType', xcodetype)
                 src_dict.add_item('fileEncoding', '4')
                 if in_build_dir:
-                    src_dict.add_item('name', '"' + name + '"')
+                    src_dict.add_item('name', name)
                     # This makes no sense. This should say path instead of name
                     # but then the path gets added twice.
-                    src_dict.add_item('path', '"' + name + '"')
+                    src_dict.add_item('path', name)
                     src_dict.add_item('sourceTree', 'BUILD_ROOT')
                 else:
-                    src_dict.add_item('name', '"' + name + '"')
-                    src_dict.add_item('path', '"' + path + '"')
+                    src_dict.add_item('name', name)
+                    src_dict.add_item('path', path)
                     src_dict.add_item('sourceTree', 'SOURCE_ROOT')
 
             generator_id = 0
@@ -886,7 +901,7 @@ class XCodeBackend(backends.Backend):
                     xcodetype = self.get_xcodetype(o)
                     rel_name = mesonlib.relpath(o, self.environment.get_source_dir())
                     odict.add_item('isa', 'PBXFileReference')
-                    odict.add_item('explicitFileType', '"' + xcodetype + '"')
+                    odict.add_item('explicitFileType', xcodetype)
                     odict.add_item('fileEncoding', '4')
                     odict.add_item('name', f'"{name}"')
                     odict.add_item('path', f'"{rel_name}"')
@@ -910,7 +925,7 @@ class XCodeBackend(backends.Backend):
                 name = os.path.basename(o)
                 objects_dict.add_item(idval, o_dict, fullpath)
                 o_dict.add_item('isa', 'PBXFileReference')
-                o_dict.add_item('explicitFileType', '"' + self.get_xcodetype(o) + '"')
+                o_dict.add_item('explicitFileType', self.get_xcodetype(o))
                 o_dict.add_item('fileEncoding', '4')
                 o_dict.add_item('name', f'"{name}"')
                 o_dict.add_item('path', f'"{rel_name}"')
@@ -929,9 +944,9 @@ class XCodeBackend(backends.Backend):
                 path = e
                 objects_dict.add_item(idval, e_dict, fullpath)
                 e_dict.add_item('isa', 'PBXFileReference')
-                e_dict.add_item('explicitFileType', '"' + xcodetype + '"')
-                e_dict.add_item('name', '"' + name + '"')
-                e_dict.add_item('path', '"' + path + '"')
+                e_dict.add_item('explicitFileType', xcodetype)
+                e_dict.add_item('name', name)
+                e_dict.add_item('path', path)
                 e_dict.add_item('sourceTree', 'SOURCE_ROOT')
         for tname, idval in self.target_filemap.items():
             target_dict = PbxDict()
@@ -949,11 +964,8 @@ class XCodeBackend(backends.Backend):
                 typestr = self.get_xcodetype(fname)
                 path = '"%s"' % t.get_filename()
             target_dict.add_item('isa', 'PBXFileReference')
-            target_dict.add_item('explicitFileType', '"' + typestr + '"')
-            if ' ' in path and path[0] != '"':
-                target_dict.add_item('path', f'"{path}"')
-            else:
-                target_dict.add_item('path', path)
+            target_dict.add_item('explicitFileType', typestr)
+            target_dict.add_item('path', path)
             target_dict.add_item('refType', reftype)
             target_dict.add_item('sourceTree', 'BUILT_PRODUCTS_DIR')
 
@@ -971,7 +983,7 @@ class XCodeBackend(backends.Backend):
                 custom_dict = PbxDict()
                 typestr = self.get_xcodetype(s)
                 custom_dict.add_item('isa', 'PBXFileReference')
-                custom_dict.add_item('explicitFileType', '"' + typestr + '"')
+                custom_dict.add_item('explicitFileType', typestr)
                 custom_dict.add_item('name', f'"{s}"')
                 custom_dict.add_item('path', f'"{s}"')
                 custom_dict.add_item('refType', 0)
@@ -981,7 +993,7 @@ class XCodeBackend(backends.Backend):
                 custom_dict = PbxDict()
                 typestr = self.get_xcodetype(o)
                 custom_dict.add_item('isa', 'PBXFileReference')
-                custom_dict.add_item('explicitFileType', '"' + typestr + '"')
+                custom_dict.add_item('explicitFileType', typestr)
                 custom_dict.add_item('name', o)
                 custom_dict.add_item('path', f'"{os.path.join(self.src_to_build, o)}"')
                 custom_dict.add_item('refType', 0)
@@ -993,7 +1005,7 @@ class XCodeBackend(backends.Backend):
             buildfile_dict = PbxDict()
             typestr = self.get_xcodetype(buildfile)
             buildfile_dict.add_item('isa', 'PBXFileReference')
-            buildfile_dict.add_item('explicitFileType', '"' + typestr + '"')
+            buildfile_dict.add_item('explicitFileType', typestr)
             buildfile_dict.add_item('name', f'"{basename}"')
             buildfile_dict.add_item('path', f'"{buildfile}"')
             buildfile_dict.add_item('refType', 0)
@@ -1277,8 +1289,8 @@ class XCodeBackend(backends.Backend):
         project_dict.add_item('compatibilityVersion', f'"{self.xcodeversion}"')
         project_dict.add_item('hasScannedForEncodings', 0)
         project_dict.add_item('mainGroup', self.maingroup_id)
-        project_dict.add_item('projectDirPath', '"' + self.environment.get_source_dir() + '"')
-        project_dict.add_item('projectRoot', '""')
+        project_dict.add_item('projectDirPath', self.environment.get_source_dir())
+        project_dict.add_item('projectRoot', '')
         targets_arr = PbxArray()
         project_dict.add_item('targets', targets_arr)
         targets_arr.add_item(self.all_id, 'ALL_BUILD')
@@ -1429,7 +1441,7 @@ class XCodeBackend(backends.Backend):
                 else:
                     q.append(c)
             quoted_cmds.append(' '.join(q))
-        cmdstr = '"' + ' && '.join(quoted_cmds) + '"'
+        cmdstr = ' && '.join(quoted_cmds)
         gen_dict.add_item('shellScript', cmdstr)
         gen_dict.add_item('showEnvVarsInLog', 0)
 
@@ -1799,7 +1811,7 @@ class XCodeBackend(backends.Backend):
                     if ' ' in a or "'" in a:
                         a = r'\"' + a + r'\"'
                     quoted_args.append(a)
-                settings_dict.add_item(f'OTHER_{langname}FLAGS', '"' + ' '.join(quoted_args) + '"')
+                settings_dict.add_item(f'OTHER_{langname}FLAGS', ' '.join(quoted_args))
 
     def generate_xc_configurationList(self, objects_dict: PbxDict) -> None:
         # FIXME: sort items
