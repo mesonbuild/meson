@@ -1075,13 +1075,13 @@ class BuildTarget(Target):
 
     @lru_cache(maxsize=None)
     def get_transitive_link_deps(self) -> ImmutableListProtocol[BuildTargetTypes]:
-        result: T.Set[Target] = []
+        result: OrderedSet[Target] = OrderedSet()
         stack: T.Deque[Target] = deque()
         stack.appendleft(self)
         while stack:
             for i in stack.pop().get_toplevel_link_deps():
                 if i not in result:
-                    result.append(i)
+                    result.add(i)
                     stack.appendleft(i)
         return list(result)
 
