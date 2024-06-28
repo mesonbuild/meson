@@ -98,7 +98,7 @@ def tar_strip1(files: T.List[tarfile.TarInfo]) -> T.Generator[tarfile.TarInfo, N
 
 class NapiModule(ExtensionModule):
 
-    INFO = ModuleInfo('node-api', '2.0.0')
+    INFO = ModuleInfo('node-api', '1.5.0')
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
