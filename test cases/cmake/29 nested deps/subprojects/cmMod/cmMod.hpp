@@ -1,11 +1,7 @@
+#include "cmMod_internal.hpp"
 #include <string>
 
-class cmModClass {
-private:
-  std::string str;
-
+class cmModClass : public cmModInternalClass {
 public:
-  cmModClass(std::string foo);
-
-  std::string getStr() const;
+  using cmModInternalClass::cmModInternalClass;
 };

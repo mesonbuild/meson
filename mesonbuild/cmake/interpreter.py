@@ -1203,7 +1203,7 @@ class CMakeInterpreter:
             # declare_dependency kwargs
             dep_kwargs: TYPE_mixed_kwargs = {
                 'link_args': tgt.link_flags + tgt.link_libraries,
-                'link_with': id_node(tgt_var),
+                'link_with': [id_node(tgt_var)] + link_with,
                 'compile_args': tgt.public_compile_opts,
                 'include_directories': id_node(inc_var),
             }
