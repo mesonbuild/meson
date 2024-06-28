@@ -248,6 +248,8 @@ class ConverterTarget:
         self.compile_opts: T.Dict[str, T.List[str]] = {}
         self.public_compile_opts: T.List[str] = []
         self.pie = False
+        self.install_rpath: T.Optional[str] = None
+        self.build_rpath: T.Optional[str] = None
 
         # Project default override options (c_std, cpp_std, etc.)
         self.override_options: T.List[str] = []
@@ -358,6 +360,8 @@ class ConverterTarget:
             self.public_compile_opts += rtgt.public_compile_opts
             self.link_libraries += rtgt.libraries
             self.link_with += rtgt.link_with
+            self.install_rpath = rtgt.install_rpath
+            self.build_rpath = rtgt.build_rpath
 
         elif self.type.upper() not in ['EXECUTABLE', 'OBJECT_LIBRARY']:
             mlog.warning('CMake: Target', mlog.bold(self.cmake_name), 'not found in CMake trace. This can lead to build errors')
@@ -1189,6 +1193,10 @@ class CMakeInterpreter:
             # Only set if installed and only override if it is set
             if install_tgt and tgt.install_dir:
                 tgt_kwargs['install_dir'] = tgt.install_dir
+            if tgt.install_rpath:
+                tgt_kwargs['install_rpath'] = tgt.install_rpath
+            if tgt.build_rpath:
+                tgt_kwargs['build_rpath'] = tgt.build_rpath
 
             # Handle compiler args
             for key, val in tgt.compile_opts.items():

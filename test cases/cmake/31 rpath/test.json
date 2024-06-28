@@ -1,0 +1,7 @@
+{
+  "installed": [
+    {"type": "exe", "file": "usr/bin/main"},
+    {"type": "shared_lib", "file": "usr/lib/cmModLib__"},
+    {"type": "shared_lib", "file": "usr/private/cmModLibInternal"}
+  ]
+}

@@ -46,6 +46,8 @@ class ResolvedTarget:
         self.public_compile_opts: T.List[str] = []
         self.libraries:           T.List[str] = []
         self.link_with:           T.List[ConverterTarget] = []
+        self.install_rpath:       T.Optional[str] = None
+        self.build_rpath:         T.Optional[str] = None
 
 # CMake library specs (when not referring to a CMake target) can be
 # files or library names, prefixed w/ -l or w/o
@@ -145,6 +147,10 @@ def resolve_cmake_trace_targets(target_name: str,
             res.link_flags += [(f'-L{x}' if not x.startswith('-') else x) for x in tgt.properties['LINK_DIRECTORIES'] if x]
         if 'INTERFACE_LINK_DIRECTORIES' in tgt.properties:
             res.link_flags += [(f'-L{x}' if not x.startswith('-') else x) for x in tgt.properties['INTERFACE_LINK_DIRECTORIES'] if x]
+        if 'INSTALL_RPATH' in tgt.properties:
+            res.install_rpath = ':'.join(tgt.properties['INSTALL_RPATH'])
+        if 'BUILD_RPATH' in tgt.properties:
+            res.build_rpath = ':'.join(tgt.properties['BUILD_RPATH'])
 
         targets += get_config_declined_property(tgt, 'IMPORTED_LINK_DEPENDENT_LIBRARIES', trace)
 
