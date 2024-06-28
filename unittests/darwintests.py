@@ -100,6 +100,12 @@ class DarwinTests(BasePlatformTests):
         self.assertIsNotNone(m, msg=out)
         return m.groups()
 
+    def _get_darwin_rpaths(self, fname: str) -> T.List[str]:
+        out = subprocess.check_output(['otool', '-l', fname], universal_newlines=True)
+        pattern = re.compile(r'path (.*) \(offset \d+\)')
+        rpaths = pattern.findall(out)
+        return rpaths
+
     @skipIfNoPkgconfig
     def test_library_versioning(self):
         '''
@@ -154,3 +160,15 @@ class DarwinTests(BasePlatformTests):
         from mesonbuild.mesonlib import darwin_get_object_archs
         archs = darwin_get_object_archs('/bin/cat')
         self.assertEqual(archs, ['x86_64', 'aarch64'])
+
+    def test_darwin_meson_rpaths_removed_on_install(self):
+        testdir = os.path.join(self.darwin_test_dir, '1 rpath removal on install')
+        self.init(testdir)
+        self.build()
+        # Meson-created RPATHs are usually only valid in the build directory
+        rpaths = self._get_darwin_rpaths(os.path.join(self.builddir, 'libbar.dylib'))
+        self.assertListEqual(rpaths, ['@loader_path/foo'])
+        self.install()
+        # Those RPATHs are no longer valid and should not be present after installation
+        rpaths = self._get_darwin_rpaths(os.path.join(self.installdir, 'usr/lib/libbar.dylib'))
+        self.assertListEqual(rpaths, [])
