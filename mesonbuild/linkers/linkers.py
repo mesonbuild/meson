@@ -819,17 +819,19 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         if not rpath_paths and not install_rpath and not build_rpath:
             return ([], set())
         args: T.List[str] = []
+        rpath_dirs_to_remove: T.Set[bytes] = set()
         # @loader_path is the equivalent of $ORIGIN on macOS
         # https://stackoverflow.com/q/26280738
         origin_placeholder = '@loader_path'
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
         if build_rpath != '':
-            all_paths.add(build_rpath)
+            all_paths.update(build_rpath.split(':'))
         for rp in all_paths:
+            rpath_dirs_to_remove.add(rp.encode('utf8'))
             args.extend(self._apply_prefix('-rpath,' + rp))
 
-        return (args, set())
+        return (args, rpath_dirs_to_remove)
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return ["-Wl,-cache_path_lto," + path]
