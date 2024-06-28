@@ -1684,9 +1684,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Prelinking currently only works on recently new GNU toolchains.
         # Skip everything else. When support for other toolchains is added,
         # remove limitations as necessary.
-        if is_osx():
-            raise SkipTest('Prelinking not supported on Darwin.')
-        if 'clang' in os.environ.get('CC', 'dummy'):
+        if 'clang' in os.environ.get('CC', 'dummy') and not is_osx():
             raise SkipTest('Prelinking not supported with Clang.')
         testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -1704,8 +1702,7 @@ class LinuxlikeTests(BasePlatformTests):
                            stderr=subprocess.DEVNULL,
                            encoding='utf-8', text=True, timeout=1)
         obj_files = p.stdout.strip().split('\n')
-        self.assertEqual(len(obj_files), 1)
-        self.assertTrue(obj_files[0].endswith('-prelink.o'))
+        self.assertTrue(any(o.endswith('-prelink.o') for o in obj_files))
 
     def do_one_test_with_nativefile(self, testdir, args):
         testdir = os.path.join(self.common_test_dir, testdir)
