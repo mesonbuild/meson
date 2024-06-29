@@ -2403,10 +2403,6 @@ class OptionKey:
         """This method will be removed once we can delete OptionsView."""
         return self.type is OptionType.PROJECT
 
-    def is_base(self) -> bool:
-        """Convenience method to check if this is a base option."""
-        return self.type is OptionType.BASE
-
 
 def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL], suggest_reconfigure: bool = True) -> _PL:
     load_fail_msg = f'{object_name} file {filename!r} is corrupted.'
