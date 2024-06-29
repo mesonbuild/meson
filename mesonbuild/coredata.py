@@ -584,7 +584,7 @@ class CoreData:
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
         for key, value in project_options.items():
-            if not key.is_project():
+            if not self.optstore.is_project_option(key):
                 continue
             if key not in self.optstore:
                 self.optstore.add_project_option(key, value)
@@ -608,7 +608,7 @@ class CoreData:
 
         # Find any extranious keys for this project and remove them
         for key in self.optstore.keys() - project_options.keys():
-            if key.is_project() and key.subproject == subproject:
+            if self.optstore.is_project_option(key) and key.subproject == subproject:
                 self.optstore.remove(key)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
@@ -906,7 +906,7 @@ class OptionsView(abc.Mapping):
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
-        if not key.is_project():
+        if not key.is_project_hack_for_optionsview():
             opt = self.original_options.get(key)
             if opt is None or opt.yielding:
                 key2 = key.as_root()

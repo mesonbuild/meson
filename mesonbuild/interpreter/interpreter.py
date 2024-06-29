@@ -1051,7 +1051,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def get_option_internal(self, optname: str) -> options.UserOption:
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
 
-        if not key.is_project():
+        if not self.environment.coredata.optstore.is_project_option(key):
             for opts in [self.coredata.optstore, compilers.base_options]:
                 v = opts.get(key)
                 if v is None or v.yielding:
@@ -1198,7 +1198,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 # We want fast  not cryptographically secure, this is just to
                 # see if the option file has changed
                 self.coredata.options_files[self.subproject] = (option_file, hashlib.sha1(f.read()).hexdigest())
-            oi = optinterpreter.OptionInterpreter(self.subproject)
+            oi = optinterpreter.OptionInterpreter(self.environment.coredata.optstore, self.subproject)
             oi.process(option_file)
             self.coredata.update_project_options(oi.options, self.subproject)
             self.add_build_def_file(option_file)

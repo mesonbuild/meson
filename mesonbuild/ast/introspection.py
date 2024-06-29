@@ -105,7 +105,7 @@ class IntrospectionInterpreter(AstInterpreter):
         if not os.path.exists(optfile):
             optfile = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         if os.path.exists(optfile):
-            oi = optinterpreter.OptionInterpreter(self.subproject)
+            oi = optinterpreter.OptionInterpreter(self.coredata.optstore, self.subproject)
             oi.process(optfile)
             assert isinstance(proj_name, str), 'for mypy'
             self.coredata.update_project_options(oi.options, T.cast('SubProject', proj_name))
