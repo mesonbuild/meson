@@ -8,6 +8,7 @@ import argparse
 from .mesonlib import (
     HoldableObject,
     OptionKey,
+    OptionType,
     default_prefix,
     default_datadir,
     default_includedir,
@@ -536,3 +537,10 @@ class OptionStore:
 
     def get(self, *args, **kwargs) -> UserOption:
         return self.d.get(*args, **kwargs)
+
+    def is_project_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a project option."""
+        return key.type is OptionType.PROJECT
+
+    def is_reserved_name(self, key: OptionKey) -> bool:
+        return not self.is_project_option(key)

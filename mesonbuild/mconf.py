@@ -92,7 +92,7 @@ class Conf:
                     with open(opfile, 'rb') as f:
                         ophash = hashlib.sha1(f.read()).hexdigest()
                         if ophash != conf_options[1]:
-                            oi = OptionInterpreter(sub)
+                            oi = OptionInterpreter(self.coredata.optstore, sub)
                             oi.process(opfile)
                             self.coredata.update_project_options(oi.options, sub)
                             self.coredata.options_files[sub] = (opfile, ophash)
@@ -101,7 +101,7 @@ class Conf:
                     if not os.path.exists(opfile):
                         opfile = os.path.join(self.source_dir, 'meson_options.txt')
                     if os.path.exists(opfile):
-                        oi = OptionInterpreter(sub)
+                        oi = OptionInterpreter(self.coredata.optstore, sub)
                         oi.process(opfile)
                         self.coredata.update_project_options(oi.options, sub)
                         with open(opfile, 'rb') as f:
@@ -284,7 +284,7 @@ class Conf:
         build_core_options = self.split_options_per_subproject({k: v for k, v in core_options.items() if k.machine is MachineChoice.BUILD})
         host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if k.is_compiler() and k.machine is MachineChoice.HOST})
         build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if k.is_compiler() and k.machine is MachineChoice.BUILD})
-        project_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if k.is_project()})
+        project_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_project_option(k)})
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
         self.add_section('Main project options')

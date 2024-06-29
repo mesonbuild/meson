@@ -335,7 +335,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
         'compiler',
     )
     add_keys(dir_options, 'directory')
-    add_keys({k: v for k, v in coredata.optstore.items() if k.is_project()}, 'user')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
     add_keys(test_options, 'test')
     return optlist
 
