@@ -453,7 +453,7 @@ class CoreData:
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
-        if key.is_builtin():
+        if self.optstore.is_builtin_option(key):
             if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
             else:
@@ -694,7 +694,7 @@ class CoreData:
             # Always test this using the HOST machine, as many builtin options
             # are not valid for the BUILD machine, but the yielding value does
             # not differ between them even when they are valid for both.
-            if subproject and k.is_builtin() and self.optstore.get_value_object(k.evolve(subproject='', machine=MachineChoice.HOST)).yielding:
+            if subproject and self.optstore.is_builtin_option(k) and self.optstore.get_value_object(k.evolve(subproject='', machine=MachineChoice.HOST)).yielding:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.

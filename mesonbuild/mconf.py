@@ -277,7 +277,7 @@ class Conf:
                 if self.build and k.module not in self.build.modules:
                     continue
                 module_options[k.module][k] = v
-            elif k.is_builtin():
+            elif self.coredata.optstore.is_builtin_option(k):
                 core_options[k] = v
 
         host_core_options = self.split_options_per_subproject({k: v for k, v in core_options.items() if k.machine is MachineChoice.HOST})
