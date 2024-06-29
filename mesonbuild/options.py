@@ -556,3 +556,7 @@ class OptionStore:
     def is_backend_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a backend option."""
         return key.type is OptionType.BACKEND
+
+    def is_compiler_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a compiler option."""
+        return key.type is OptionType.COMPILER
