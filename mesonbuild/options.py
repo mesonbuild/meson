@@ -548,3 +548,7 @@ class OptionStore:
     def is_base_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a base option."""
         return key.type is OptionType.BASE
+
+    def is_backend_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a backend option."""
+        return key.type is OptionType.BACKEND
