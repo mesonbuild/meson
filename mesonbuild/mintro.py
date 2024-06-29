@@ -331,7 +331,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_backend_option(k)}, 'backend')
     add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_base_option(k)}, 'base')
     add_keys(
-        {k: v for k, v in sorted(coredata.optstore.items(), key=lambda i: i[0].machine) if k.is_compiler()},
+        {k: v for k, v in sorted(coredata.optstore.items(), key=lambda i: i[0].machine) if coredata.optstore.is_compiler_option(k)},
         'compiler',
     )
     add_keys(dir_options, 'directory')

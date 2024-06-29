@@ -282,8 +282,8 @@ class Conf:
 
         host_core_options = self.split_options_per_subproject({k: v for k, v in core_options.items() if k.machine is MachineChoice.HOST})
         build_core_options = self.split_options_per_subproject({k: v for k, v in core_options.items() if k.machine is MachineChoice.BUILD})
-        host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if k.is_compiler() and k.machine is MachineChoice.HOST})
-        build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if k.is_compiler() and k.machine is MachineChoice.BUILD})
+        host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_compiler_option(k) and k.machine is MachineChoice.HOST})
+        build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_compiler_option(k) and k.machine is MachineChoice.BUILD})
         project_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_project_option(k)})
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
