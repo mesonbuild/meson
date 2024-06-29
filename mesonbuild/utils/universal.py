@@ -2387,10 +2387,6 @@ class OptionKey:
         """Convenience method for key.evolve(machine=MachineChoice.HOST)."""
         return self.evolve(machine=MachineChoice.HOST)
 
-    def is_builtin(self) -> bool:
-        """Convenience method to check if this is a builtin option."""
-        return self.type is OptionType.BUILTIN
-
     def is_compiler(self) -> bool:
         """Convenience method to check if this is a builtin option."""
         return self.type is OptionType.COMPILER
