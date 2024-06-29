@@ -544,3 +544,7 @@ class OptionStore:
 
     def is_reserved_name(self, key: OptionKey) -> bool:
         return not self.is_project_option(key)
+
+    def is_base_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a base option."""
+        return key.type is OptionType.BASE
