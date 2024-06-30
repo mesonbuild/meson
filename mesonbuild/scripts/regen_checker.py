@@ -8,7 +8,7 @@ import pickle, subprocess
 import typing as T
 from ..coredata import CoreData
 from ..backend.backends import RegenInfo
-from ..mesonlib import OptionKey
+from ..options import OptionKey
 
 # This could also be used for XCode.
 

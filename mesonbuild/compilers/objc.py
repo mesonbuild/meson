@@ -7,7 +7,7 @@ import typing as T
 
 from .. import coredata
 from .. import options
-from ..mesonlib import OptionKey
+from ..options import OptionKey
 
 from .compilers import Compiler
 from .mixins.clike import CLikeCompiler

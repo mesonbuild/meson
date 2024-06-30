@@ -20,7 +20,8 @@ from . import mesonlib
 from . import mintro
 from . import mlog
 from .ast import AstIDGenerator, IntrospectionInterpreter
-from .mesonlib import MachineChoice, OptionKey
+from .mesonlib import MachineChoice
+from .options import OptionKey
 from .optinterpreter import OptionInterpreter
 
 if T.TYPE_CHECKING:

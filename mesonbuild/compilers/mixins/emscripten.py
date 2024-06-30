@@ -11,7 +11,7 @@ import typing as T
 from ... import coredata
 from ... import options
 from ... import mesonlib
-from ...mesonlib import OptionKey
+from ...options import OptionKey
 from ...mesonlib import LibType
 from mesonbuild.compilers.compilers import CompileCheckMode
 

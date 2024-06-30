@@ -17,9 +17,10 @@ CmdLineFileParser = machinefile.CmdLineFileParser
 
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
-    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey,
+    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg,
     search_version, MesonBugException
 )
+from .options import OptionKey
 from . import mlog
 from .programs import ExternalProgram
 

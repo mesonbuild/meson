@@ -11,9 +11,10 @@ from contextlib import contextmanager
 
 from mesonbuild.compilers import detect_c_compiler, compiler_from_language
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, is_cygwin, EnvironmentException, OptionKey, MachineChoice,
+    MachineChoice, is_osx, is_cygwin, EnvironmentException, MachineChoice,
     OrderedSet
 )
+from mesonbuild.options import OptionKey
 from run_tests import get_fake_env
 
 

@@ -8,7 +8,7 @@ import functools
 import os
 import typing as T
 
-from ..mesonlib import OptionKey
+from ..options import OptionKey
 from .base import DependencyMethods
 from .cmake import CMakeDependency
 from .detect import packages

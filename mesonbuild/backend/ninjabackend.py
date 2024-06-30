@@ -31,7 +31,8 @@ from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
+from ..mesonlib import get_compiler_for_source, has_path_sep
+from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
 

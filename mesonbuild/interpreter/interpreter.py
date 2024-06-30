@@ -19,8 +19,9 @@ from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
-                        FileMode, MachineChoice, OptionKey, listify,
+                        FileMode, MachineChoice, listify,
                         extract_as_list, has_path_sep, path_is_in_root, PerMachine)
+from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile

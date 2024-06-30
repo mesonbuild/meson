@@ -10,7 +10,8 @@ import re
 import os
 
 from .. import mlog
-from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows, OptionKey
+from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows
+from ..options import OptionKey
 from ..programs import find_external_program, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:

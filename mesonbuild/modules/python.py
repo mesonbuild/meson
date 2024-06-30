@@ -22,7 +22,8 @@ from ..interpreterbase import (
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
-from ..mesonlib import MachineChoice, OptionKey
+from ..mesonlib import MachineChoice
+from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -112,7 +113,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
         _ExternalProgramHolder.__init__(self, python, interpreter)
         info = python.info
-        prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
+        prefix = self.interpreter.environment.coredata.get_option(OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'
         self.variables = info['variables']
         self.suffix = info['suffix']
@@ -373,7 +374,7 @@ class PythonModule(ExtensionModule):
     def _get_install_scripts(self) -> T.List[mesonlib.ExecutableSerialisation]:
         backend = self.interpreter.backend
         ret = []
-        optlevel = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('bytecompile', module='python'))
+        optlevel = self.interpreter.environment.coredata.get_option(OptionKey('bytecompile', module='python'))
         if optlevel == -1:
             return ret
         if not any(PythonExternalProgram.run_bytecompile.values()):

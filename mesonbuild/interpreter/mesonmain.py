@@ -11,7 +11,8 @@ from .. import dependencies
 from .. import build
 from .. import mlog, coredata
 
-from ..mesonlib import MachineChoice, OptionKey
+from ..mesonlib import MachineChoice
+from ..options import OptionKey
 from ..programs import OverrideProgram, ExternalProgram
 from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,

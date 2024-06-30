@@ -19,8 +19,10 @@ from .. import options
 from ..mesonlib import (
     HoldableObject,
     EnvironmentException, MesonException,
-    Popen_safe_logged, LibType, TemporaryDirectoryWinProof, OptionKey,
+    Popen_safe_logged, LibType, TemporaryDirectoryWinProof,
 )
+
+from ..options import OptionKey
 
 from ..arglist import CompilerArgs
 

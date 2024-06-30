@@ -23,7 +23,8 @@ from glob import glob
 from pathlib import Path
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.mesonlib import (MesonException, RealPathAction, get_meson_command, quiet_git,
-                                 windows_proof_rmtree, setup_vsenv, OptionKey)
+                                 windows_proof_rmtree, setup_vsenv)
+from .options import OptionKey
 from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build, coredata

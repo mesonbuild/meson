@@ -31,6 +31,7 @@ from ..interpreterbase.decorators import typed_pos_args
 from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
+from ..options import OptionKey
 from ..programs import OverrideProgram
 from ..scripts.gettext import read_linguas
 
@@ -516,7 +517,7 @@ class GnomeModule(ExtensionModule):
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
 
-        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
+        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(OptionKey('includedir'))
         assert isinstance(install_dir, str), 'for mypy'
         target_h = GResourceHeaderTarget(
             f'{target_name}_h',
@@ -905,7 +906,7 @@ class GnomeModule(ExtensionModule):
                 cflags += state.global_args[lang]
             if state.project_args.get(lang):
                 cflags += state.project_args[lang]
-            if mesonlib.OptionKey('b_sanitize') in compiler.base_options:
+            if OptionKey('b_sanitize') in compiler.base_options:
                 sanitize = state.environment.coredata.optstore.get_value('b_sanitize')
                 cflags += compiler.sanitizer_compile_args(sanitize)
                 sanitize = sanitize.split(',')
@@ -1642,7 +1643,7 @@ class GnomeModule(ExtensionModule):
 
         targets = []
         install_header = kwargs['install_header']
-        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
+        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(OptionKey('includedir'))
         assert isinstance(install_dir, str), 'for mypy'
 
         output = namebase + '.c'
@@ -1954,7 +1955,7 @@ class GnomeModule(ExtensionModule):
             ) -> build.CustomTarget:
         real_cmd: T.List[T.Union[str, 'ToolType']] = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)
-        _install_dir = install_dir or state.environment.coredata.get_option(mesonlib.OptionKey('includedir'))
+        _install_dir = install_dir or state.environment.coredata.get_option(OptionKey('includedir'))
         assert isinstance(_install_dir, str), 'for mypy'
 
         return CustomTarget(
@@ -2166,7 +2167,7 @@ class GnomeModule(ExtensionModule):
                 cmd.append(gir_file)
 
         vapi_output = library + '.vapi'
-        datadir = state.environment.coredata.get_option(mesonlib.OptionKey('datadir'))
+        datadir = state.environment.coredata.get_option(OptionKey('datadir'))
         assert isinstance(datadir, str), 'for mypy'
         install_dir = kwargs['install_dir'] or os.path.join(datadir, 'vala', 'vapi')
 
