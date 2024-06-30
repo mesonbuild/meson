@@ -18,9 +18,11 @@ from .mesonlib import (
     MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    OptionKey, OptionType, stringlistify,
+    stringlistify,
     pickle_load
 )
+
+from .options import OptionKey, OptionType
 
 from .machinefile import CmdLineFileParser
 

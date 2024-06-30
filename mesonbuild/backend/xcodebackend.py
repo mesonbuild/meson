@@ -11,7 +11,8 @@ from .. import build
 from .. import mesonlib
 from .. import mlog
 from ..arglist import CompilerArgs
-from ..mesonlib import MesonBugException, MesonException, OptionKey
+from ..mesonlib import MesonBugException, MesonException
+from ..options import OptionKey
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget

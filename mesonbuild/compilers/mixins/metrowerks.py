@@ -8,7 +8,8 @@ from __future__ import annotations
 import os
 import typing as T
 
-from ...mesonlib import EnvironmentException, OptionKey
+from ...mesonlib import EnvironmentException
+from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...envconfig import MachineInfo

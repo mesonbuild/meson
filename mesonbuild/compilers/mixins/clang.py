@@ -12,7 +12,7 @@ import typing as T
 from ... import mesonlib
 from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
     MoldDynamicLinker, MSVCDynamicLinker
-from ...mesonlib import OptionKey
+from ...options import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 

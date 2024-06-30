@@ -18,7 +18,8 @@ from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser
 from .tracetargets import resolve_cmake_trace_targets
 from .. import mlog, mesonlib
-from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible, OptionKey
+from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible
+from ..options import OptionKey
 from ..mesondata import DataFile
 from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from ..programs import ExternalProgram

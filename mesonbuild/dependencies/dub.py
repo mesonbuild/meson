@@ -5,7 +5,8 @@ from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from .pkgconfig import PkgConfigDependency
-from ..mesonlib import (Popen_safe, OptionKey, join_args, version_compare)
+from ..mesonlib import (Popen_safe, join_args, version_compare)
+from ..options import OptionKey
 from ..programs import ExternalProgram
 from .. import mlog
 import re

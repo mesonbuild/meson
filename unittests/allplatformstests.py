@@ -31,9 +31,10 @@ from mesonbuild.mesonlib import (
     BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
-    MesonException, EnvironmentException, OptionKey,
+    MesonException, EnvironmentException,
     windows_proof_rm
 )
+from mesonbuild.options import OptionKey
 from mesonbuild.programs import ExternalProgram
 
 from mesonbuild.compilers.mixins.clang import ClangCompiler

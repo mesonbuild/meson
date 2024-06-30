@@ -25,7 +25,7 @@ from .backend import backends
 from .dependencies import Dependency
 from . import environment
 from .interpreterbase import ObjectHolder
-from .mesonlib import OptionKey
+from .options import OptionKey
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
 
 if T.TYPE_CHECKING:

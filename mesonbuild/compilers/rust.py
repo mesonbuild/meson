@@ -10,7 +10,8 @@ import re
 import typing as T
 
 from .. import options
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged
+from ..options import OptionKey
 from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:

@@ -27,8 +27,10 @@ from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet,
-    ExecutableSerialisation, classify_unity_sources, OptionKey
+    ExecutableSerialisation, classify_unity_sources,
 )
+from ..options import OptionKey
+
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
@@ -1677,7 +1679,7 @@ class Backend:
         bindir = Path(prefix, self.environment.get_bindir())
         libdir = Path(prefix, self.environment.get_libdir())
         incdir = Path(prefix, self.environment.get_includedir())
-        _ldir = self.environment.coredata.get_option(mesonlib.OptionKey('localedir'))
+        _ldir = self.environment.coredata.get_option(OptionKey('localedir'))
         assert isinstance(_ldir, str), 'for mypy'
         localedir = Path(prefix, _ldir)
         dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)

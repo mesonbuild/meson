@@ -23,7 +23,8 @@ import typing as T
 
 from . import builder
 from . import version
-from ..mesonlib import MesonException, Popen_safe, OptionKey
+from ..mesonlib import MesonException, Popen_safe
+from ..options import OptionKey
 from .. import coredata, options, mlog
 from ..wrap.wrap import PackageDefinition
 

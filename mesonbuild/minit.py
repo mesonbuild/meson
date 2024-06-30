@@ -20,6 +20,7 @@ from mesonbuild.coredata import FORBIDDEN_TARGET_NAMES
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.mesontemplates import create_meson_build
 from mesonbuild.templates.samplefactory import sample_generator
+from mesonbuild.options import OptionKey
 
 if T.TYPE_CHECKING:
     import argparse
@@ -192,7 +193,7 @@ def run(options: Arguments) -> int:
             raise SystemExit
 
         b = build.load(options.builddir)
-        need_vsenv = T.cast('bool', b.environment.coredata.get_option(mesonlib.OptionKey('vsenv')))
+        need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
         vsenv_active = mesonlib.setup_vsenv(need_vsenv)
         if vsenv_active:
             mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')

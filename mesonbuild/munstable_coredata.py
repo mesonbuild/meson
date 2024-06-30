@@ -5,7 +5,8 @@ from __future__ import annotations
 
 
 from . import coredata as cdata
-from .mesonlib import MachineChoice, OptionKey
+from .mesonlib import MachineChoice
+from .options import OptionKey
 
 import os.path
 import pprint

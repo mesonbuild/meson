@@ -13,7 +13,8 @@ import re
 
 from .gnu import GnuLikeCompiler
 from .gnu import gnu_optimization_args
-from ...mesonlib import Popen_safe, OptionKey
+from ...mesonlib import Popen_safe
+from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...environment import Environment

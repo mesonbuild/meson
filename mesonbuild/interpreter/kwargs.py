@@ -13,7 +13,8 @@ from .. import build
 from .. import options
 from ..compilers import Compiler
 from ..dependencies.base import Dependency
-from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString, OptionKey
+from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString
+from ..options import OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType

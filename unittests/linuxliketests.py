@@ -25,8 +25,9 @@ import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
     MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
     is_sunos, windows_proof_rmtree, version_compare, is_linux,
-    OptionKey, EnvironmentException
+    EnvironmentException
 )
+from mesonbuild.options import OptionKey
 from mesonbuild.compilers import (
     detect_c_compiler, detect_cpp_compiler, compiler_from_language,
 )

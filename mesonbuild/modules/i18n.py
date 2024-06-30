@@ -10,6 +10,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import build
 from .. import mesonlib
+from ..options import OptionKey
 from .. import mlog
 from ..interpreter.type_checking import CT_BUILD_BY_DEFAULT, CT_INPUT_KW, INSTALL_TAG_KW, OUTPUT_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, in_set_validator
 from ..interpreterbase import FeatureNew, InvalidArguments
@@ -277,7 +278,7 @@ class I18nModule(ExtensionModule):
         targets.append(pottarget)
 
         install = kwargs['install']
-        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(mesonlib.OptionKey('localedir'))
+        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(OptionKey('localedir'))
         assert isinstance(install_dir, str), 'for mypy'
         if not languages:
             languages = read_linguas(path.join(state.environment.source_dir, state.subdir))
