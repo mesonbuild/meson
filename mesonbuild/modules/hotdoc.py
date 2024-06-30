@@ -20,6 +20,7 @@ from ..interpreter.interpreterobjects import _CustomTargetHolder
 from ..interpreter.type_checking import NoneType
 from ..mesonlib import File, MesonException
 from ..programs import ExternalProgram
+from ..options import OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
@@ -330,7 +331,7 @@ class HotdocTargetBuilder:
         for path in self.include_paths:
             self.cmd.extend(['--include-path', path])
 
-        if self.state.environment.coredata.get_option(mesonlib.OptionKey('werror', subproject=self.state.subproject)):
+        if self.state.environment.coredata.get_option(OptionKey('werror', subproject=self.state.subproject)):
             self.cmd.append('--fatal-warnings')
         self.generate_hotdoc_config()
 

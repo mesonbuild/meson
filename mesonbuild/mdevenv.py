@@ -9,8 +9,9 @@ import typing as T
 
 from pathlib import Path
 from . import build, minstall
-from .mesonlib import (EnvironmentVariables, MesonException, is_windows, setup_vsenv, OptionKey,
+from .mesonlib import (EnvironmentVariables, MesonException, is_windows, setup_vsenv,
                        get_wine_shortpath, MachineChoice, relpath)
+from .options import OptionKey
 from . import mlog
 
 

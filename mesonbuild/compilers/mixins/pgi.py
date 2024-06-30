@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 
 from ..compilers import clike_debug_args, clike_optimization_args
-from ...mesonlib import OptionKey
+from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...environment import Environment

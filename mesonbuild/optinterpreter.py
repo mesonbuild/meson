@@ -9,6 +9,7 @@ import typing as T
 from . import coredata
 from . import options
 from . import mesonlib
+from .options import OptionKey
 from . import mparser
 from . import mlog
 from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, typed_kwargs, ContainerTypeInfo, KwargInfo
@@ -190,7 +191,7 @@ class OptionInterpreter:
         opt_name = args[0]
         if optname_regex.search(opt_name) is not None:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
-        key = mesonlib.OptionKey.from_string(opt_name).evolve(subproject=self.subproject)
+        key = OptionKey.from_string(opt_name).evolve(subproject=self.subproject)
         if self.optionstore.is_reserved_name(key):
             raise OptionException('Option name %s is reserved.' % opt_name)
 

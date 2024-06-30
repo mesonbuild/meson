@@ -35,7 +35,8 @@ from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja, detect_machine_info
 from mesonbuild.coredata import version as meson_version
 from mesonbuild.options import backendlist
-from mesonbuild.mesonlib import OptionKey, setup_vsenv
+from mesonbuild.mesonlib import setup_vsenv
+from mesonbuild.options import OptionKey
 
 if T.TYPE_CHECKING:
     from mesonbuild.coredata import SharedCMDOptions

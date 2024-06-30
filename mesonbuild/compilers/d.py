@@ -12,8 +12,9 @@ from .. import mesonlib
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
-    EnvironmentException, version_compare, OptionKey, is_windows
+    EnvironmentException, version_compare, is_windows
 )
+from ..options import OptionKey
 
 from . import compilers
 from .compilers import (

@@ -8,6 +8,7 @@ import dataclasses
 import typing as T
 
 from .. import build, mesonlib
+from ..options import OptionKey
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
 from ..mesonlib import relpath, HoldableObject, MachineChoice
@@ -134,13 +135,13 @@ class ModuleState:
                    machine: MachineChoice = MachineChoice.HOST,
                    lang: T.Optional[str] = None,
                    module: T.Optional[str] = None) -> T.Union[T.List[str], str, int, bool]:
-        return self.environment.coredata.get_option(mesonlib.OptionKey(name, subproject, machine, lang, module))
+        return self.environment.coredata.get_option(OptionKey(name, subproject, machine, lang, module))
 
     def is_user_defined_option(self, name: str, subproject: str = '',
                                machine: MachineChoice = MachineChoice.HOST,
                                lang: T.Optional[str] = None,
                                module: T.Optional[str] = None) -> bool:
-        key = mesonlib.OptionKey(name, subproject, machine, lang, module)
+        key = OptionKey(name, subproject, machine, lang, module)
         return key in self._interpreter.user_defined_options.cmd_line_options
 
     def process_include_dirs(self, dirs: T.Iterable[T.Union[str, IncludeDirs]]) -> T.Iterable[IncludeDirs]:

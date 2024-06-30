@@ -14,8 +14,8 @@ from enum import Enum
 
 from .. import mlog, mesonlib
 from ..compilers import clib_langs
-from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, OptionKey
-from ..mesonlib import version_compare_many
+from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, version_compare_many
+from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
