@@ -11,7 +11,7 @@ from .. import mlog
 import re
 import os
 import json
-import typing as T
+import typing_extensions as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
