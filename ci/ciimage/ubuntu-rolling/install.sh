@@ -27,6 +27,7 @@ pkgs=(
   bindgen
   itstool
   openjdk-11-jre
+  jq
 )
 
 sed -i '/^Types: deb/s/deb/deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
@@ -57,6 +58,29 @@ wget -O - https://sh.rustup.rs | sh -s -- -y --profile minimal --component clipp
 source "$HOME/.cargo/env"
 rustup target add x86_64-pc-windows-gnu
 rustup target add arm-unknown-linux-gnueabihf
+
+# Zig
+# Use the GitHub API to get the latest release information
+LATEST_RELEASE=$(wget -qO- "https://api.github.com/repos/ziglang/zig/releases/latest")
+ZIGVER=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+ZIG_BASE="zig-linux-x86_64-$ZIGVER"
+wget "https://ziglang.org/download/$ZIGVER/$ZIG_BASE.tar.xz"
+tar xf "$ZIG_BASE.tar.xz"
+rm -rf "$ZIG_BASE.tar.xz"
+cd "$ZIG_BASE"
+
+# As mentioned in the Zig readme, the binary and files under lib can be copied
+# https://github.com/ziglang/zig?tab=readme-ov-file#installation
+mv zig /usr/bin
+mv lib /usr/lib/zig
+
+# Copy the LICENSE
+mkdir -p /usr/share/doc/zig
+cp LICENSE /usr/share/doc/zig
+
+# Remove what's left of the directory
+cd ..
+rm -rf "$ZIG_BASE"
 
 # cleanup
 apt-get -y clean
