@@ -1153,9 +1153,8 @@ class NinjaBackend(backends.Backend):
                 self.generate_target(t)
 
     def custom_target_generator_inputs(self, target):
-        for s in target.sources:
-            if isinstance(s, build.GeneratedList):
-                self.generate_genlist_for_target(s, target)
+        for s in target.get_generated_sources():
+            self.generate_genlist_for_target(s, target)
 
     def unwrap_dep_list(self, target):
         deps = []
@@ -1184,7 +1183,10 @@ class NinjaBackend(backends.Backend):
         for d in target.extra_depends:
             # Add a dependency on all the outputs of this target
             for output in d.get_outputs():
-                elem.add_dep(os.path.join(self.get_target_dir(d), output))
+                if isinstance(d, GeneratedList):
+                    elem.add_dep(os.path.join(self.get_target_private_dir(target), output))
+                else:
+                    elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
         cmd, reason = self.as_meson_exe_cmdline(target.command[0], cmd[1:],
                                                 extra_bdeps=target.get_transitive_build_target_deps(),
@@ -2594,7 +2596,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         exe = generator.get_exe()
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
-        extra_dependencies = self.get_target_depend_files(genlist)
+        extra_dependencies = self.get_target_depend_files(genlist) # FIXME, function does not accept GeneratedList
         for i, curfile in enumerate(infilelist):
             if len(generator.outputs) == 1:
                 sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])

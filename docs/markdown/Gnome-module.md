@@ -25,7 +25,7 @@ with anything else.
     gnome.compile_resources(id: string, input_file: string | File,
                             build_by_default: bool = false,
                             c_name: string | None = None,
-                            dependencies: [](File, CustomTarget, CustomTargetIndex) = [],
+                            dependencies: [](File, CustomTarget, CustomTargetIndex, GeneratedList) = [],
                             export: bool = false,
                             extra_args: []string = [],
                             gresource_bundle: bool = false,
@@ -45,7 +45,7 @@ generated target.
 
 * `c_name`: passed to the resource compiler as an argument after
   `--c-name`
-* `dependencies`: extra targets to depend upon for building
+* `dependencies`: extra targets to depend upon for building (*Since 1.3.2*) accepts generated lists as well
 * `export`: (*Added 0.37.0*) if true, export the symbols of the
   generated sources
 * `extra_args`: extra command line arguments to pass to the resource
