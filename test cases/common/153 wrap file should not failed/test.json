@@ -1,0 +1,3 @@
+{
+    "cleanup": ["subprojects/foo-1.0-patchfile"]
+}
