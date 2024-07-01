@@ -1454,7 +1454,9 @@ class XCodeBackend(backends.Backend):
                         file_arr.add_item(self.custom_target_output_buildfile[o],
                                           os.path.join(self.environment.get_build_dir(), o))
                 elif isinstance(gt, build.CustomTargetIndex):
+                    output_dir = self.get_custom_target_output_dir(gt)
                     for o in gt.get_outputs():
+                        o = os.path.join(output_dir, o)
                         file_arr.add_item(self.custom_target_output_buildfile[o],
                                           os.path.join(self.environment.get_build_dir(), o))
                 elif isinstance(gt, build.GeneratedList):
