@@ -285,7 +285,16 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
              options.get_value('buildtype') in {'release', 'plain'}))
 
 
-def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
+def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment', privatedir: str) -> T.List[str]:
+    """Get common compiler arguments for all units of a single language in a
+    Target.
+
+    :param options: A Mapping with all options
+    :param compiler: The Compiler to create arguments for
+    :param env: The Environment object
+    :param privatedir: The Target's private directory
+    :return: A list of string arguments
+    """
     args: T.List[str] = []
     try:
         if options.get_value(OptionKey('b_lto')):
@@ -334,7 +343,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     return args
 
 def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
-                       is_shared_module: bool, build_dir: str) -> T.List[str]:
+                       is_shared_module: bool, build_dir: str, privatedir: str) -> T.List[str]:
     args: T.List[str] = []
     try:
         if options.get_value('b_lto'):

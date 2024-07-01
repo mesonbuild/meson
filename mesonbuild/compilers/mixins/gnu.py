@@ -625,5 +625,5 @@ class GnuCompiler(GnuLikeCompiler):
             return ['-fuse-ld=mold']
         return super().use_linker_args(linker, version)
 
-    def get_profile_use_args(self) -> T.List[str]:
-        return super().get_profile_use_args() + ['-fprofile-correction']
+    def get_profile_use_args(self, priv_dir: str) -> T.List[str]:
+        return super().get_profile_use_args(priv_dir) + ['-fprofile-correction']
