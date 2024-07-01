@@ -19,8 +19,9 @@ from .. import mlog
 from .. import compilers
 from .. import mesonlib
 from ..mesonlib import (
-    File, MesonBugException, MesonException, replace_if_different, OptionKey, version_compare, MachineChoice
+    File, MesonBugException, MesonException, replace_if_different, version_compare, MachineChoice
 )
+from ..options import OptionKey
 from ..environment import Environment, build_filename
 from .. import coredata
 

@@ -15,6 +15,7 @@ from ... import arglist
 from ... import mesonlib
 from ... import mlog
 from mesonbuild.compilers.compilers import CompileCheckMode
+from ...options import OptionKey
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -110,7 +111,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     INVOKES_LINKER = False
 
     def __init__(self, target: str):
-        self.base_options = {mesonlib.OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like
+        self.base_options = {OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like
         self.target = target
         self.is_64 = ('x64' in target) or ('x86_64' in target)
         # do some canonicalization of target machine
@@ -125,7 +126,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         else:
             self.machine = target
         if mesonlib.version_compare(self.version, '>=19.28.29910'): # VS 16.9.0 includes cl 19.28.29910
-            self.base_options.add(mesonlib.OptionKey('b_sanitize'))
+            self.base_options.add(OptionKey('b_sanitize'))
         assert self.linker is not None
         self.linker.machine = self.machine
 

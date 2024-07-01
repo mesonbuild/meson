@@ -35,8 +35,9 @@ from . import environment
 from . import mlog
 from .coredata import MesonVersionMismatchException, major_versions_differ
 from .coredata import version as coredata_version
-from .mesonlib import (MesonException, OptionKey, OrderedSet, RealPathAction,
+from .mesonlib import (MesonException, OrderedSet, RealPathAction,
                        get_wine_shortpath, join_args, split_args, setup_vsenv)
+from .options import OptionKey
 from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
 from .backend.backends import TestProtocol, TestSerialisation

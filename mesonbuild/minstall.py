@@ -18,7 +18,8 @@ import re
 from . import build, environment
 from .backend.backends import InstallData
 from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       is_aix, setup_vsenv, pickle_load, is_osx, OptionKey)
+                       is_aix, setup_vsenv, pickle_load, is_osx)
+from .options import OptionKey
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:

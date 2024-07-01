@@ -19,8 +19,9 @@ from .. import envconfig
 from ..wrap import wrap, WrapMode
 from .. import mesonlib
 from ..mesonlib import (EnvironmentVariables, ExecutableSerialisation, MesonBugException, MesonException, HoldableObject,
-                        FileMode, MachineChoice, OptionKey, listify,
+                        FileMode, MachineChoice, listify,
                         extract_as_list, has_path_sep, path_is_in_root, PerMachine)
+from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency
 from ..depfile import DepFile
@@ -1051,7 +1052,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def get_option_internal(self, optname: str) -> options.UserOption:
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
 
-        if not key.is_project():
+        if not self.environment.coredata.optstore.is_project_option(key):
             for opts in [self.coredata.optstore, compilers.base_options]:
                 v = opts.get(key)
                 if v is None or v.yielding:
@@ -1148,7 +1149,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if self.environment.first_invocation:
             self.coredata.init_backend_options(backend_name)
 
-        options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
+        options = {k: v for k, v in self.environment.options.items() if self.environment.coredata.optstore.is_backend_option(k)}
         self.coredata.set_options(options)
 
     @typed_pos_args('project', str, varargs=str)
@@ -1198,7 +1199,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 # We want fast  not cryptographically secure, this is just to
                 # see if the option file has changed
                 self.coredata.options_files[self.subproject] = (option_file, hashlib.sha1(f.read()).hexdigest())
-            oi = optinterpreter.OptionInterpreter(self.subproject)
+            oi = optinterpreter.OptionInterpreter(self.environment.coredata.optstore, self.subproject)
             oi.process(option_file)
             self.coredata.update_project_options(oi.options, self.subproject)
             self.add_build_def_file(option_file)

@@ -13,8 +13,9 @@ from .. import options
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException, Popen_safe,
-    is_windows, LibType, version_compare, OptionKey
+    is_windows, LibType, version_compare
 )
+from ..options import OptionKey
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:

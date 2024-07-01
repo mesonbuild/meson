@@ -25,7 +25,7 @@ from .backend import backends
 from .dependencies import Dependency
 from . import environment
 from .interpreterbase import ObjectHolder
-from .mesonlib import OptionKey
+from .options import OptionKey
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
 
 if T.TYPE_CHECKING:
@@ -298,7 +298,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
             dir_options[k] = v
         elif k in test_option_names:
             test_options[k] = v
-        elif k.is_builtin():
+        elif coredata.optstore.is_builtin_option(k):
             core_options[k] = v
             if not v.yielding:
                 for s in subprojects:
@@ -328,14 +328,14 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
             optlist.append(optdict)
 
     add_keys(core_options, 'core')
-    add_keys({k: v for k, v in coredata.optstore.items() if k.is_backend()}, 'backend')
-    add_keys({k: v for k, v in coredata.optstore.items() if k.is_base()}, 'base')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_backend_option(k)}, 'backend')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_base_option(k)}, 'base')
     add_keys(
-        {k: v for k, v in sorted(coredata.optstore.items(), key=lambda i: i[0].machine) if k.is_compiler()},
+        {k: v for k, v in sorted(coredata.optstore.items(), key=lambda i: i[0].machine) if coredata.optstore.is_compiler_option(k)},
         'compiler',
     )
     add_keys(dir_options, 'directory')
-    add_keys({k: v for k, v in coredata.optstore.items() if k.is_project()}, 'user')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
     add_keys(test_options, 'test')
     return optlist
 

@@ -22,7 +22,7 @@ from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
                                FeatureNew, FeatureNewKwargs, disablerIfNotFound,
                                InterpreterException)
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
-from ..mesonlib import OptionKey
+from ..options import OptionKey
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
 from .type_checking import REQUIRED_KW, in_set_validator, NoneType
 

@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from ..mesonlib import MesonException, OptionKey
+from ..mesonlib import MesonException
+from ..options import OptionKey
 from .. import mlog
 from pathlib import Path
 import typing as T

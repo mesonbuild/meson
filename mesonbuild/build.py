@@ -23,9 +23,11 @@ from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
-    OptionKey, PerMachineDefaultable,
+    PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load,
 )
+from .options import OptionKey
+
 from .compilers import (
     is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
     is_known_suffix, detect_static_linker

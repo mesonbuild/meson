@@ -5,7 +5,8 @@ from .. import mlog
 from .. import dependencies
 from .. import build
 from ..wrap import WrapMode
-from ..mesonlib import OptionKey, extract_as_list, stringlistify, version_compare_many, listify
+from ..mesonlib import extract_as_list, stringlistify, version_compare_many, listify
+from ..options import OptionKey
 from ..dependencies import Dependency, DependencyException, NotFoundDependency
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
                                InterpreterException, InvalidArguments)

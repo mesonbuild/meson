@@ -15,7 +15,8 @@ from ..options import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
-                        OptionKey, EnvironmentVariables)
+                        EnvironmentVariables)
+from ..options import OptionKey
 from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`

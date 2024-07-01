@@ -11,6 +11,7 @@ import typing as T
 
 from . import build, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .mesonlib import MesonException
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -320,10 +321,10 @@ def run_genvslite_setup(options: CMDOptions) -> None:
     # invoke the appropriate 'meson compile ...' build commands upon the normal visual studio build/rebuild/clean actions, instead of using
     # the native VS/msbuild system.
     builddir_prefix = options.builddir
-    genvsliteval = options.cmd_line_options.pop(mesonlib.OptionKey('genvslite'))
+    genvsliteval = options.cmd_line_options.pop(OptionKey('genvslite'))
     # The command line may specify a '--backend' option, which doesn't make sense in conjunction with
     # '--genvslite', where we always want to use a ninja back end -
-    k_backend = mesonlib.OptionKey('backend')
+    k_backend = OptionKey('backend')
     if k_backend in options.cmd_line_options.keys():
         if options.cmd_line_options[k_backend] != 'ninja':
             raise MesonException('Explicitly specifying a backend option with \'genvslite\' is not necessary '
@@ -336,12 +337,12 @@ def run_genvslite_setup(options: CMDOptions) -> None:
 
     for buildtypestr in buildtypes_list:
         options.builddir = f'{builddir_prefix}_{buildtypestr}' # E.g. builddir_release
-        options.cmd_line_options[mesonlib.OptionKey('buildtype')] = buildtypestr
+        options.cmd_line_options[OptionKey('buildtype')] = buildtypestr
         app = MesonApp(options)
         vslite_ctx[buildtypestr] = app.generate(capture=True)
     #Now for generating the 'lite' solution and project files, which will use these builds we've just set up, above.
     options.builddir = f'{builddir_prefix}_vs'
-    options.cmd_line_options[mesonlib.OptionKey('genvslite')] = genvsliteval
+    options.cmd_line_options[OptionKey('genvslite')] = genvsliteval
     app = MesonApp(options)
     app.generate(capture=False, vslite_ctx=vslite_ctx)
 
@@ -357,7 +358,7 @@ def run(options: T.Union[CMDOptions, T.List[str]]) -> int:
     # lie
     options.pager = False
 
-    if mesonlib.OptionKey('genvslite') in options.cmd_line_options.keys():
+    if OptionKey('genvslite') in options.cmd_line_options.keys():
         run_genvslite_setup(options)
     else:
         app = MesonApp(options)
