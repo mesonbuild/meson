@@ -3072,12 +3072,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_full_deps(target, element, header_deps)
         for d in extra_deps:
             element.add_dep(d)
-        for d in order_deps:
-            if isinstance(d, File):
-                d = d.rel_to_builddir(self.build_to_src)
-            elif not self.has_dir_part(d):
-                d = os.path.join(self.get_target_private_dir(target), d)
-            element.add_orderdep(d)
+        self.add_order_deps(target, element, order_deps)
         element.add_dep(pch_dep)
         for i in self.get_fortran_orderdeps(target, compiler):
             element.add_orderdep(i)
@@ -3130,6 +3125,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_dep_scan_file_for(self, target: build.BuildTarget) -> str:
         return os.path.join(self.get_target_private_dir(target), 'depscan.dd')
 
+    def _add_deps(self, target: build.BuildTarget, deps: T.Sequence[mesonlib.FileOrString],
+                  adder: T.Callable[[str], None]) -> None:
+        if isinstance(deps, str):
+            deps = [deps]
+        for d in deps:
+            if isinstance(d, File):
+                d = d.rel_to_builddir(self.build_to_src)
+            elif not self.has_dir_part(d):
+                d = os.path.join(self.get_target_private_dir(target), d)
+            adder(d)
+
     def add_full_deps(self, target: build.BuildTarget, ninja_element: NinjaBuildElement,
                       deps: T.Sequence[mesonlib.FileOrString]) -> None:
         """Add multiple full dependencies.
@@ -3138,14 +3144,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         :param ninja_element: The Ninja build Element being modified
         :param deps: The dependencies being added
         """
-        if isinstance(deps, str):
-            deps = [deps]
-        for d in deps:
-            if isinstance(d, File):
-                d = d.rel_to_builddir(self.build_to_src)
-            elif not self.has_dir_part(d):
-                d = os.path.join(self.get_target_private_dir(target), d)
-            ninja_element.add_dep(d)
+        self._add_deps(target, deps, ninja_element.add_dep)
+
+    def add_order_deps(self, target: build.BuildTarget, ninja_element: NinjaBuildElement,
+                       deps: T.Sequence[mesonlib.FileOrString]) -> None:
+        """Add multiple order-only dependencies.
+
+        :param target: The Target which the sources come from
+        :param ninja_element: The Ninja build Element being modified
+        :param deps: The dependencies being added
+        """
+        self._add_deps(target, deps, ninja_element.add_orderdep)
 
     def has_dir_part(self, fname: FileOrString) -> bool:
         # FIXME FIXME: The usage of this is a terrible and unreliable hack
@@ -3212,7 +3221,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         dep = os.path.splitext(dst)[0] + '.' + compiler.get_depfile_suffix()
         return commands, dep, dst, []  # mwcc compilers do not create an object file during pch generation.
 
-    def generate_pch(self, target, header_deps=None):
+    def generate_pch(self, target: build.BuildTarget, header_deps: T.Optional[T.Sequence[mesonlib.FileOrString]] = None) -> T.List[str]:
         header_deps = header_deps if header_deps is not None else []
         pch_objects = []
         for lang in ['c', 'cpp']:
