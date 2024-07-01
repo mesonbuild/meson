@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from mesonbuild import environment, mesonlib
 
-import argparse, re, sys, os, subprocess, pathlib, stat
+import argparse, re, sys, os, subprocess, pathlib, stat, shutil
 import typing as T
 
 def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool,
@@ -17,7 +17,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
         gcovr_exe = None
     else:
         gcovr_exe, gcovr_version = environment.detect_gcovr(gcovr_exe)
-    if llvm_cov_exe == '' or not mesonlib.exe_exists([llvm_cov_exe, '--version']):
+    if llvm_cov_exe == '' or shutil.which(llvm_cov_exe) is None:
         llvm_cov_exe = None
 
     lcov_exe, lcov_version, genhtml_exe = environment.detect_lcov_genhtml()
