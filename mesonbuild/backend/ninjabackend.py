@@ -3059,7 +3059,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             commands.extend(extra_args)
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
-        self.add_header_deps(target, element, header_deps)
+        self.add_full_deps(target, element, header_deps)
         for d in extra_deps:
             element.add_dep(d)
         for d in order_deps:
@@ -3120,8 +3120,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_dep_scan_file_for(self, target: build.BuildTarget) -> str:
         return os.path.join(self.get_target_private_dir(target), 'depscan.dd')
 
-    def add_header_deps(self, target, ninja_element, header_deps):
-        for d in header_deps:
+    def add_full_deps(self, target: build.BuildTarget, ninja_element: NinjaBuildElement,
+                      deps: T.Sequence[mesonlib.FileOrString]) -> None:
+        """Add multiple full dependencies.
+
+        :param target: The Target which the sources come from
+        :param ninja_element: The Ninja build Element being modified
+        :param deps: The dependencies being added
+        """
+        if isinstance(deps, str):
+            deps = [deps]
+        for d in deps:
             if isinstance(d, File):
                 d = d.rel_to_builddir(self.build_to_src)
             elif not self.has_dir_part(d):
@@ -3224,7 +3233,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem = NinjaBuildElement(self.all_outputs, objs + [dst], rulename, src)
             if extradep is not None:
                 elem.add_dep(extradep)
-            self.add_header_deps(target, elem, header_deps)
+            self.add_full_deps(target, elem, header_deps)
             elem.add_item('ARGS', commands)
             elem.add_item('DEPFILE', dep)
             self.add_build(elem)
