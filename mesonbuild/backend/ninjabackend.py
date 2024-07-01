@@ -2947,14 +2947,24 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             src_type_to_args[src_type_str] = commands.to_native()
         return src_type_to_args
 
-    def generate_single_compile(self, target: build.BuildTarget, src,
-                                is_generated: bool = False, header_deps=None,
+    def generate_single_compile(self, target: build.BuildTarget,
+                                src: mesonlib.FileOrString,
+                                is_generated: bool = False,
+                                header_deps: T.Optional[T.Sequence[mesonlib.FileOrString]] = None,
                                 order_deps: T.Optional[T.List['mesonlib.FileOrString']] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
                                 unity_sources: T.Optional[T.List[mesonlib.FileOrString]] = None,
                                 ) -> T.Tuple[str, str]:
-        """
-        Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
+        """Compiles C/C++, ObjC/ObjC++, Fortran, and D sources.
+
+        :param target: The target which the source belongs to
+        :param src: The source to be compiled
+        :param is_generated: Whether this source is generated or static, defaults to False
+        :param header_deps: order only dependencies, defaults to None
+        :param order_deps: dependencies which cause a full rebuild, defaults to None
+        :param extra_args: extra arguments just for this compilation unit, defaults to None
+        :param unity_sources: the sources that were combined into this unity, defaults to None
+        :return: A tuple with the object file that will be created and the source that was compiled
         """
         header_deps = header_deps if header_deps is not None else []
         order_deps = order_deps if order_deps is not None else []
