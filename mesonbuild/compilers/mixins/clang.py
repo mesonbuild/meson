@@ -202,3 +202,10 @@ class ClangCompiler(GnuLikeCompiler):
                 raise mesonlib.MesonException('clang support for LTO threads requires clang >=4.0')
             args.append(f'-flto-jobs={threads}')
         return args
+
+    def get_profile_generate_args(self, pgo_dir: str) -> T.List[str]:
+        return [f'-fprofile-generate={pgo_dir}']
+
+    def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
+        mf = self.get_profile_merged_file(pgo_dir)
+        return [f'-fprofile-use={mf}']
