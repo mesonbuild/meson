@@ -1345,6 +1345,7 @@ class NinjaBackend(backends.Backend):
         self.generate_static_link_rules()
         self.generate_dynamic_link_rules()
         self.add_rule_comment(NinjaComment('Other rules'))
+        self.generate_pgo_rules()
         # Ninja errors out if you have deps = gcc but no depfile, so we must
         # have two rules for custom commands.
         self.add_rule(NinjaRule('CUSTOM_COMMAND', ['$COMMAND'], [], '$DESC',
@@ -2555,6 +2556,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         description = 'Module scanner.'
         rule = NinjaRule(rulename, command, args, description)
         self.add_rule(rule)
+
+    def generate_pgo_rules(self) -> None:
+        rulename = 'PGO_MERGE_LLVM'
+        if rulename in self.ruledict:
+            # This command is the same for host and build machine
+            return
+        self.add_rule(
+            NinjaRule(rulename, ['llvm-profdata', 'merge'],
+                      [NinjaCommandArg('-output=$out', Quoting.none), '$in'],
+                      'LLVM PGO data accumulator'))
 
     def generate_compile_rules(self):
         for for_machine in MachineChoice:
