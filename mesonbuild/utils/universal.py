@@ -1788,7 +1788,7 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
     return values
 
 
-def _make_tree_writable(topdir: str) -> None:
+def _make_tree_writable(topdir: T.Union[str, Path]) -> None:
     # Ensure all files and directories under topdir are writable
     # (and readable) by owner.
     for d, _, files in os.walk(topdir):
@@ -1799,7 +1799,7 @@ def _make_tree_writable(topdir: str) -> None:
                 os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)
 
 
-def windows_proof_rmtree(f: str) -> None:
+def windows_proof_rmtree(f:  T.Union[str, Path]) -> None:
     # On Windows if anyone is holding a file open you can't
     # delete it. As an example an anti virus scanner might
     # be scanning files you are trying to delete. The only
@@ -1826,7 +1826,7 @@ def windows_proof_rmtree(f: str) -> None:
     shutil.rmtree(f)
 
 
-def windows_proof_rm(fpath: str) -> None:
+def windows_proof_rm(fpath: T.Union[str, Path]) -> None:
     """Like windows_proof_rmtree, but for a single file."""
     if os.path.isfile(fpath):
         os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)

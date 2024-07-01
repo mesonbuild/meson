@@ -178,6 +178,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "cleanup": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }
