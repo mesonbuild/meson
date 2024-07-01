@@ -1011,6 +1011,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         raise EnvironmentException(
             '%s does not support get_profile_use_args ' % self.get_id())
 
+    def get_profile_merged_file(self, private_dir: str) -> str:
+        return os.path.join(private_dir, 'merged.profdata')
+
     def remove_linkerlike_args(self, args: T.List[str]) -> T.List[str]:
         rm_exact = ('-headerpad_max_install_names',)
         rm_prefixes = ('-Wl,', '-L',)
