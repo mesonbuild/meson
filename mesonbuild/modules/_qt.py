@@ -8,6 +8,7 @@ import os
 import shutil
 import typing as T
 import xml.etree.ElementTree as ET
+import re
 
 from . import ModuleReturnValue, ExtensionModule
 from .. import build
@@ -61,6 +62,7 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         preserve_paths: bool
+        output_json: bool
 
     class PreprocessKwArgs(TypedDict):
 
@@ -75,11 +77,13 @@ if T.TYPE_CHECKING:
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         method: str
+        output_json: bool
         preserve_paths: bool
 
     class HasToolKwArgs(kwargs.ExtractRequired):
 
         method: str
+        tools: T.List[str]
 
     class CompileTranslationsKwArgs(TypedDict):
 
@@ -91,10 +95,101 @@ if T.TYPE_CHECKING:
         rcc_extra_arguments: T.List[str]
         ts_files: T.List[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
 
+    class GenQrcKwArgs(TypedDict):
+
+        sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex]]
+        prefix: str
+        output: str
+
+    class GenQmldirKwArgs(TypedDict):
+
+        module_name: str
+        module_version: str
+        module_prefix: str
+        qml_sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex]]
+        qml_singletons: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex]]
+        qml_internals: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex]]
+        designer_supported: bool
+        imports: T.List[str]
+        optional_imports: T.List[str]
+        default_imports: T.List[str]
+        depends_imports: T.List[str]
+        output: str
+
+    class GenQmlCachegenKwArgs(TypedDict):
+
+        target_name: str
+        qml_sources: T.Sequence[T.Union[FileOrString, build.CustomTarget]]
+        qml_qrc: T.Union[FileOrString, build.CustomTarget]
+        extra_args: T.List[str]
+        module_prefix: str
+        method: str
+
+    class GenQmlTypeRegistrarKwArgs(TypedDict):
+
+        target_name: str
+        import_name: str
+        major_version: str
+        minor_version: str
+        namespace: str
+        typeinfo: str
+        generate_qmltype: bool
+        module_path_outdir: str
+        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]]
+        extra_args: T.List[str]
+        method: str
+
+    class MocJsonCollectKwArgs(TypedDict):
+
+        target_name: str
+        moc_json: T.Sequence[build.GeneratedList]
+        method: str
+
+    class QmlModuleKwArgs(TypedDict):
+
+        qml_sources: T.Sequence[T.Union[File, str, build.CustomTarget]]
+        qml_singletons: T.Sequence[T.Union[File, str, build.CustomTarget]]
+        qml_internals: T.Sequence[T.Union[File, str, build.CustomTarget]]
+        resources_prefix: str
+        output_directory: str
+        moc_sources: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        moc_headers: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
+        include_directories: T.List[T.Union[str, build.IncludeDirs]]
+        imports: T.List[str]
+        optional_imports: T.List[str]
+        default_imports: T.List[str]
+        depends_imports: T.List[str]
+        designer_supported: bool
+        namespace: str
+        typeinfo: str
+        moc_extra_args: T.List[str]
+        qmlcachegen_extra_args: T.List[str]
+        qmltyperegistrar_extra_args: T.List[str]
+        generate_qmldir: bool
+        generate_qmltype: bool
+        create_plugin_target: bool
+        generate_plugin_source: bool
+        cachegen: bool
+        dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
+        method: str
+        preserve_paths: bool
+
+def _list_in_set_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
+    """Check that the choice given was one of the given set."""
+    def inner(checklist: T.List[str]) -> T.Optional[str]:
+        for check in checklist:
+            if check not in choices:
+                return f"must be one of {', '.join(sorted(choices))}, not {check}"
+        return None
+
+    return inner
+
 class QtBaseModule(ExtensionModule):
     _tools_detected = False
     _rcc_supports_depfiles = False
     _moc_supports_depfiles = False
+    _moc_supports_json = False
+    _support_qml_module = False
 
     def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
@@ -106,6 +201,8 @@ class QtBaseModule(ExtensionModule):
             'uic': NonExistingExternalProgram('uic'),
             'rcc': NonExistingExternalProgram('rcc'),
             'lrelease': NonExistingExternalProgram('lrelease'),
+            'qmlcachegen': NonExistingExternalProgram('qmlcachegen'),
+            'qmltyperegistrar': NonExistingExternalProgram('qmltyperegistrar'),
         }
         self.methods.update({
             'has_tools': self.has_tools,
@@ -114,6 +211,7 @@ class QtBaseModule(ExtensionModule):
             'compile_resources': self.compile_resources,
             'compile_ui': self.compile_ui,
             'compile_moc': self.compile_moc,
+            'qml_module': self.qml_module,
         })
 
     def compilers_detect(self, state: 'ModuleState', qt_dep: 'QtDependencyType') -> None:
@@ -170,8 +268,12 @@ class QtBaseModule(ExtensionModule):
         if qt.found():
             # Get all tools and then make sure that they are the right version
             self.compilers_detect(state, qt)
+            if version_compare(qt.version, '>=6.0.0'):
+                #5.1x supports qmlcachegen and other tools to some extend, but arguments/build process marginally differs
+                self._support_qml_module = True
             if version_compare(qt.version, '>=5.15.0'):
                 self._moc_supports_depfiles = True
+                self._moc_supports_json = True
             else:
                 mlog.warning('moc dependencies will not work properly until you move to Qt >= 5.15', fatal=False)
             if version_compare(qt.version, '>=5.14.0'):
@@ -258,6 +360,10 @@ class QtBaseModule(ExtensionModule):
         'qt.has_tools',
         KwargInfo('required', (bool, options.UserFeatureOption), default=False),
         KwargInfo('method', str, default='auto'),
+        KwargInfo('tools', ContainerTypeInfo(list, str), listify=True,
+                  default=['moc', 'uic', 'rcc', 'lrelease'],
+                  validator=_list_in_set_validator({'moc', 'uic', 'rcc', 'lrelease', 'qmlcachegen', 'qmltyperegistrar'}),
+                  since='1.5.0'),
     )
     def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:
         method = kwargs.get('method', 'auto')
@@ -269,8 +375,9 @@ class QtBaseModule(ExtensionModule):
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
         self._detect_tools(state, method, required=False)
-        for tool in self.tools.values():
-            if not tool.found():
+        for tool in kwargs['tools']:
+            assert tool in self.tools, 'tools must be in {moc, uic, rcc, lrelease, qmlcachegen, qmltyperegistrar}'
+            if not self.tools[tool].found():
                 if required:
                     raise MesonException('Qt tools not found')
                 return False
@@ -428,6 +535,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
+        KwargInfo('output_json', bool, default=False, since='1.5.0'),
     )
     def compile_moc(self, state: ModuleState, args: T.Tuple, kwargs: MocCompilerKwArgs) -> ModuleReturnValue:
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in kwargs['headers']):
@@ -460,20 +568,28 @@ class QtBaseModule(ExtensionModule):
 
         output: T.List[build.GeneratedList] = []
 
+        do_output_json: bool = self._moc_supports_json and kwargs['output_json']
         # depfile arguments (defaults to <output-name>.d)
         DEPFILE_ARGS: T.List[str] = ['--output-dep-file'] if self._moc_supports_depfiles else []
+        JSON_ARGS: T.List[str] = ['--output-json'] if do_output_json else []
 
-        arguments = kwargs['extra_args'] + DEPFILE_ARGS + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
+        arguments = kwargs['extra_args'] + DEPFILE_ARGS + JSON_ARGS + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT0@']
         preserve_path_from = os.path.join(state.source_root, state.subdir) if kwargs['preserve_paths'] else None
         if kwargs['headers']:
+            header_gen_output: T.List[str] = ['moc_@BASENAME@.cpp']
+            if do_output_json:
+                header_gen_output.append('moc_@BASENAME@.cpp.json')
             moc_gen = build.Generator(
-                self.tools['moc'], arguments, ['moc_@BASENAME@.cpp'],
+                self.tools['moc'], arguments, header_gen_output,
                 depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
             output.append(moc_gen.process_files(kwargs['headers'], state, preserve_path_from))
         if kwargs['sources']:
+            source_gen_output: T.List[str] = ['@BASENAME@.moc']
+            if do_output_json:
+                source_gen_output.append('@BASENAME@.moc.json')
             moc_gen = build.Generator(
-                self.tools['moc'], arguments, ['@BASENAME@.moc'],
+                self.tools['moc'], arguments, source_gen_output,
                 depfile='@BASENAME@.moc.d',
                 name=f'Qt{self.qt_version} moc source')
             output.append(moc_gen.process_files(kwargs['sources'], state, preserve_path_from))
@@ -495,6 +611,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
+        KwargInfo('output_json', bool, default=False, since='1.5.0'),
     )
     def preprocess(self, state: ModuleState, args: T.List[T.Union[str, File]], kwargs: PreprocessKwArgs) -> ModuleReturnValue:
         _sources = args[1:]
@@ -536,6 +653,7 @@ class QtBaseModule(ExtensionModule):
                 'dependencies': kwargs['dependencies'],
                 'method': method,
                 'preserve_paths': kwargs['preserve_paths'],
+                'output_json': kwargs['output_json']
             }
             sources.extend(self._compile_moc_impl(state, moc_kwargs))
 
@@ -616,3 +734,364 @@ class QtBaseModule(ExtensionModule):
             return ModuleReturnValue(results.return_value[0], [results.new_objects, translations])
         else:
             return ModuleReturnValue(translations, [translations])
+
+    def _source_abs_path(self, state: 'ModuleState', source: T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex]) -> str:
+        if isinstance(source, str):
+            return os.path.join(state.environment.source_dir, state.subdir, source)
+        elif isinstance(source, File):
+            return source.absolute_path(state.environment.source_dir, state.environment.build_dir)
+        elif isinstance(source, (build.CustomTarget, build.CustomTargetIndex)):
+            output: str = source.get_filename()
+            return os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(source), output)
+        else:
+            assert False, "unreachable"
+
+    def _gen_qrc(self, state: 'ModuleState', kwargs: 'GenQrcKwArgs') -> File:
+        rcc = ET.Element("RCC")
+        qresource = ET.SubElement(rcc, 'qresource', prefix='/' + kwargs['prefix'])
+        for s in kwargs['sources']:
+            sourcepath: str = self._source_abs_path(state, s)
+            basename: str = os.path.basename(sourcepath)
+            filenode = ET.SubElement(qresource, 'file', alias=basename)
+            filenode.text = os.path.abspath(sourcepath)
+
+        tree = ET.ElementTree(rcc)
+        tree.write(kwargs['output'])
+        return File.from_built_file(state.subdir, kwargs['output'])
+
+    def _gen_qmldir(self, state: 'ModuleState', kwargs: 'GenQmldirKwArgs') -> File:
+        module_name: str = kwargs['module_name']
+        module_version: str = kwargs['module_version']
+        module_prefix: str = kwargs['module_prefix']
+        designer_supported: bool = kwargs['designer_supported']
+
+        #Foo.Bar/1.0 foo.bar/auto foo.bar
+        import_re = re.compile('^([a-zA-Z]+(\\.[a-zA-Z]+)*)(\\/((\\d+(\\.\\d+)*)|auto))?$')
+
+        with open(kwargs['output'], 'w', encoding='utf-8') as fd:
+
+            def __gen_import(import_type: str, importlist: T.Sequence[str]) -> None:
+                for import_string in importlist:
+                    match = import_re.match(import_string)
+                    if not match:
+                        raise MesonException(f'invalid syntax for qml import {import_string}')
+                    module: str = match.group(1)
+                    version: str = match.group(4) or ''
+                    fd.write(f'{import_type} {module} {version}\n')
+
+            def __gen_declaration(qualifier: str, importlist: T.Sequence[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex]]) -> None:
+                for s in importlist:
+                    sourcepath: str = self._source_abs_path(state, s)
+                    basename: str = os.path.basename(sourcepath)
+                    classname: str = basename.rsplit('.', maxsplit=1)[0]
+
+                    if not any(basename.endswith(ext) for ext in ['.qml', '.js', '.mjs']):
+                        raise MesonException(f'unexpected file type declared in qml sources {s}')
+
+                    if len(classname) == 0 or '.' in classname or classname[0].islower():
+                        raise MesonException(f'{basename} is not a valid QML file name')
+                    fd.write(f'{qualifier}{classname} {module_version} {basename}\n')
+
+            fd.write(f'module {module_name}\n')
+            fd.write(f'prefer :/{module_prefix}/\n')
+
+            __gen_import('import', kwargs['imports'])
+            __gen_import('optional import', kwargs['optional_imports'])
+            __gen_import('default import', kwargs['default_imports'])
+            __gen_import('depends', kwargs['depends_imports'])
+            __gen_declaration('', kwargs['qml_sources'])
+            __gen_declaration('singleton ', kwargs['qml_singletons'])
+            __gen_declaration('internal ', kwargs['qml_internals'])
+
+            if designer_supported:
+                fd.write('designersupported\n')
+        return File.from_built_file(state.subdir, kwargs['output'])
+
+    def _moc_json_collect(self, state: 'ModuleState', kwargs: 'MocJsonCollectKwArgs') -> build.CustomTarget:
+        self._detect_tools(state, kwargs['method'])
+        if not self.tools['moc'].found():
+            raise MesonException('qt.qml_module: ' +
+                                 self.tools['moc'].name + ' not found')
+
+        target_name: str = kwargs['target_name']
+        moc_json: T.Sequence[build.GeneratedList] = kwargs['moc_json']
+
+        #there may be a better way :-/
+        input_args: T.List[str] = []
+        input_counter = 0
+        for g in moc_json:
+            for fname in g.get_outputs():
+                if fname.endswith(".json"):
+                    input_args.append(f'@INPUT{input_counter}@')
+                input_counter += 1
+
+        return build.CustomTarget(
+            f'moc_collect_json_{target_name}',
+            state.subdir,
+            state.subproject,
+            state.environment,
+            self.tools['moc'].get_command() + ['--collect-json', '-o', '@OUTPUT@'] + input_args,
+            moc_json,
+            [f'{target_name}_json_collect.json'],
+            description=f'Collecting json type information for {target_name}',
+        )
+
+    def _gen_qml_cachegen(self, state: 'ModuleState', kwargs: 'GenQmlCachegenKwArgs') -> T.List[T.Union[build.CustomTarget, build.GeneratedList]]:
+        self._detect_tools(state, kwargs['method'])
+        if not self.tools['qmlcachegen'].found():
+            raise MesonException('qt.qml_module: ' +
+                                 self.tools['qmlcachegen'].name + ' not found')
+
+        output: T.List[T.Union[build.CustomTarget, build.GeneratedList]] = []
+
+        target_name: str = kwargs['target_name']
+        qml_qrc_abspath: str = self._source_abs_path(state, kwargs['qml_qrc'])
+
+        cache_gen = build.Generator(
+            self.tools['qmlcachegen'],
+            ['-o', '@OUTPUT@'] + ['--resource', qml_qrc_abspath] + kwargs['extra_args'] + ['@INPUT@'],
+            ['@BASENAME@.cpp'],
+            name=f'Qml cache generation for {target_name}')
+        output.append(cache_gen.process_files(kwargs['qml_sources'], state))
+
+        cachegen_inputs: T.List[str] = []
+        for s in kwargs['qml_sources']:
+            source_abs_path = self._source_abs_path(state, s)
+            source_basename = os.path.basename(source_abs_path)
+            ressource_path = os.path.join("/", kwargs['module_prefix'], source_basename)
+            cachegen_inputs.append(ressource_path)
+
+        cacheloader_target = build.CustomTarget(
+            f'cacheloader_{target_name}',
+            state.subdir,
+            state.subproject,
+            state.environment,
+            self.tools['qmlcachegen'].get_command() + ['-o', '@OUTPUT@'] + ['--resource-name', f'qmlcache_{target_name}'] + kwargs['extra_args'] + ['--resource=@INPUT@'] + cachegen_inputs,
+            [qml_qrc_abspath],
+            #output name format matters here
+            [f'{target_name}_qmlcache_loader.cpp'],
+            description=f'Qml cache loader for {target_name}',
+        )
+        output.append(cacheloader_target)
+        return output
+
+    def _qml_type_registrar(self, state: 'ModuleState', kwargs: 'GenQmlTypeRegistrarKwArgs') -> build.CustomTarget:
+        self._detect_tools(state, kwargs['method'])
+        if not self.tools['qmltyperegistrar'].found():
+            raise MesonException('qt.qml_module: ' +
+                                 self.tools['qmltyperegistrar'].name + ' not found')
+
+        import_name: str = kwargs['import_name']
+        major_version: str = kwargs['major_version']
+        minor_version: str = kwargs['minor_version']
+        namespace: str = kwargs['namespace']
+        typeinfo: str = kwargs['typeinfo']
+        target_name: str = kwargs['target_name']
+        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]] = kwargs['collected_json']
+        module_path_outdir: str = kwargs['module_path_outdir']
+
+        inputs: T.Sequence[T.Union[FileOrString, build.CustomTarget]] = [collected_json] if collected_json else []
+        outputs: T.List[str] = [f'{target_name}_qmltyperegistrations.cpp']
+
+        cmd = self.tools['qmltyperegistrar'].get_command() + [
+            '--import-name', import_name,
+            '--major-version', major_version,
+            '--minor-version', minor_version,
+            '-o', '@OUTPUT0@',
+        ]
+
+        cmd.extend(kwargs['extra_args'])
+
+        if namespace != '':
+            cmd.extend(['--namespace', namespace])
+
+        if kwargs['generate_qmltype']:
+            cmd.extend(['--generate-qmltypes', '@OUTPUT1@'])
+            if typeinfo == '':
+                outputs.append(f'{module_path_outdir}/{target_name}.qmltypes')
+            else:
+                outputs.append(f'{module_path_outdir}/{typeinfo}')
+
+        if collected_json:
+            cmd.append('@INPUT@')
+
+        return build.CustomTarget(
+            f'typeregistrar_{target_name}',
+            state.subdir,
+            state.subproject,
+            state.environment,
+            cmd,
+            inputs,
+            outputs,
+            description=f'Qml type registration for {target_name}',
+        )
+
+    @FeatureNew('qt.qml_module', '1.0')
+    @typed_kwargs(
+        'qt.qml_module',
+        #qml sources
+        KwargInfo('qml_sources', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo('qml_singletons', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo('qml_internals', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo('resources_prefix', str, default='qt/qml'),
+        KwargInfo('output_directory', str, default=''),
+
+        #qmldir generation
+        KwargInfo('imports', ContainerTypeInfo(list, (str)), default=[]),
+        KwargInfo('optional_imports', ContainerTypeInfo(list, (str)), default=[]),
+        KwargInfo('default_imports', ContainerTypeInfo(list, (str)), default=[]),
+        #match DEPENDENCIES argument from CMake, but dependencies keyword is already taken
+        KwargInfo('depends_imports', ContainerTypeInfo(list, (str)), default=[]),
+        KwargInfo('designer_supported', bool, default=False),
+
+        #for type registration, same arguments as moc
+        KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo('moc_sources', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
+        KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
+        KwargInfo('namespace', str, default=''),
+        KwargInfo('typeinfo', str, default=''),
+
+        KwargInfo('moc_extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('qmlcachegen_extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('qmltyperegistrar_extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+
+        KwargInfo('generate_qmldir', bool, default=True),
+        KwargInfo('generate_qmltype', bool, default=True),
+        KwargInfo('create_plugin_target', bool, default=True),
+        KwargInfo('generate_plugin_source', bool, default=True),
+        KwargInfo('cachegen', bool, default=True),
+
+        KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
+        KwargInfo('method', str, default='auto'),
+        KwargInfo('preserve_paths', bool, default=False),
+    )
+    def qml_module(self, state: ModuleState, args: T.Tuple[str, str, str], kwargs: 'QmlModuleKwArgs') -> ModuleReturnValue:
+
+        self._detect_tools(state, kwargs['method'])
+        if not self._support_qml_module:
+            raise MesonException('qt.qml_module is not suppported for this version of Qt')
+
+        #Major.Minor(.Patch)
+        version_re = re.compile('^(\\d+)\\.(\\d+)(\\.(\\d+))?$')
+        output: T.List[T.Union[build.CustomTarget, build.GeneratedList]] = []
+
+        target_name: str = args[0]
+        module_name: str = args[1]
+        module_version: str = args[2]
+
+        module_version_match = version_re.match(module_version)
+        if not module_version_match:
+            raise MesonException(f'qml module version should be in the form Major.Minor, got {module_version}')
+        module_version_major: str = module_version_match.group(1)
+        module_version_minor: str = module_version_match.group(2)
+        #qt ignores .patch version
+
+        module_prefix_list: T.List[str] = module_name.split('.')
+        module_prefix: str = os.path.join(*module_prefix_list)
+        module_prefix_full: str = os.path.join(*(kwargs['resources_prefix'].split('/') + module_prefix_list))
+        module_path_outdir: str = os.path.join(state.environment.build_dir, kwargs['output_directory'] if kwargs['output_directory'] != '' else module_prefix)
+        os.makedirs(module_path_outdir, exist_ok=True)
+
+        qml_qresource_abs: str = os.path.join(module_path_outdir, 'qml.qrc')
+        qrc_resouces: T.List[T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]] = []
+        all_qml_files: T.Sequence[T.Union[FileOrString, build.CustomTarget]] = list(kwargs['qml_sources']) + list(kwargs['qml_singletons']) + list(kwargs['qml_internals'])
+
+        qml_qrc_kwargs: GenQrcKwArgs = {
+            'output': qml_qresource_abs,
+            'sources': all_qml_files,
+            'prefix': module_prefix_full,
+        }
+        qml_qrc = self._gen_qrc(state, qml_qrc_kwargs)
+        if not kwargs['cachegen']:
+            qrc_resouces.append(qml_qrc)
+        else:
+            cachegen_kwargs: GenQmlCachegenKwArgs = {
+                'target_name': target_name,
+                'qml_qrc': qml_qrc,
+                'qml_sources': all_qml_files,
+                'module_prefix': module_prefix_full,
+                'extra_args': kwargs['qmlcachegen_extra_args'],
+                'method': kwargs['method'],
+            }
+            output.extend(self._gen_qml_cachegen(state, cachegen_kwargs))
+
+        if kwargs['generate_qmldir']:
+            qmldir_abs = os.path.join(module_path_outdir, 'qmldir')
+            qmldir_qresource_abs = os.path.join(module_path_outdir, 'qmldir.qrc')
+
+            #FIXME: we should probably copy the qml sources in the module
+            #destination to make them usable by qt linter and other tools
+
+            qmldir_kwargs: GenQmldirKwArgs = {
+                'output': qmldir_abs,
+                'module_name': module_name,
+                'module_version': module_version,
+                'qml_sources': kwargs['qml_sources'],
+                'qml_singletons': kwargs['qml_singletons'],
+                'qml_internals': kwargs['qml_internals'],
+                'imports': kwargs['imports'],
+                'optional_imports': kwargs['optional_imports'],
+                'default_imports': kwargs['default_imports'],
+                'depends_imports': kwargs['depends_imports'],
+                'designer_supported': kwargs['designer_supported'],
+                'module_prefix': module_prefix_full,
+            }
+            self._gen_qmldir(state, qmldir_kwargs)
+
+            qmldir_qrc_kwargs: GenQrcKwArgs = {
+                'output': qmldir_qresource_abs,
+                'sources': [File.from_built_file(state.subdir, qmldir_abs)],
+                'prefix': module_prefix_full,
+            }
+            qrc_resouces.append(self._gen_qrc(state, qmldir_qrc_kwargs))
+
+        compile_resource_kwargs: ResourceCompilerKwArgs = {
+            'name': module_name,
+            'sources': qrc_resouces,
+            'extra_args': [],
+            'method': kwargs['method'],
+        }
+        output.extend(self._compile_resources_impl(state, compile_resource_kwargs))
+
+        collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]] = None
+        if kwargs['moc_sources'] or kwargs['moc_headers']:
+            compile_moc_kwargs: MocCompilerKwArgs = {
+                'sources': kwargs['moc_sources'],
+                'headers': kwargs['moc_headers'],
+                'extra_args': kwargs['moc_extra_args'],
+                'method': kwargs['method'],
+                'include_directories': kwargs['include_directories'],
+                'dependencies': kwargs['dependencies'],
+                'preserve_paths': kwargs['preserve_paths'],
+                'output_json': True,
+            }
+            moc_output = self._compile_moc_impl(state, compile_moc_kwargs)
+            output.extend(moc_output)
+
+            moc_collect_json_kwargs: MocJsonCollectKwArgs = {
+                'target_name': target_name,
+                'moc_json': moc_output,
+                'method': kwargs['method'],
+            }
+            collected_json = self._moc_json_collect(state, moc_collect_json_kwargs)
+            output.append(collected_json)
+
+        #cmake NO_GENERATE_QMLTYPE disable the whole type registration, not just the .qmltype generation
+        if kwargs['generate_qmltype']:
+            qmltyperegistrar_kwargs: GenQmlTypeRegistrarKwArgs = {
+                'target_name': target_name,
+                'import_name': module_name,
+                'module_path_outdir': module_path_outdir,
+                'major_version': module_version_major,
+                'minor_version': module_version_minor,
+                'collected_json': collected_json,
+                'namespace': kwargs['namespace'],
+                'generate_qmltype': True,
+                'extra_args': kwargs['qmltyperegistrar_extra_args'],
+                'typeinfo': kwargs['typeinfo'],
+                'method': kwargs['method'],
+            }
+            type_registrar_output = self._qml_type_registrar(state, qmltyperegistrar_kwargs)
+            output.append(type_registrar_output)
+
+        return ModuleReturnValue(output, [output])
