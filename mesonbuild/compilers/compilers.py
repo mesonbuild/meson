@@ -313,10 +313,11 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
         pass
     try:
         pgo_val = options.get_value(OptionKey('b_pgo'))
+        pgo_dir = os.path.join(privatedir, 'pgo')
         if pgo_val == 'generate':
-            args.extend(compiler.get_profile_generate_args())
+            args.extend(compiler.get_profile_generate_args(pgo_dir))
         elif pgo_val == 'use':
-            args.extend(compiler.get_profile_use_args())
+            args.extend(compiler.get_profile_use_args(pgo_dir))
     except (KeyError, AttributeError):
         pass
     try:
@@ -367,10 +368,11 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
         pass
     try:
         pgo_val = options.get_value('b_pgo')
+        pgo_dir = os.path.join(privatedir, 'pgo')
         if pgo_val == 'generate':
-            args.extend(linker.get_profile_generate_args())
+            args.extend(linker.get_profile_generate_args(pgo_dir))
         elif pgo_val == 'use':
-            args.extend(linker.get_profile_use_args())
+            args.extend(linker.get_profile_use_args(pgo_dir))
     except (KeyError, AttributeError):
         pass
     try:
@@ -989,11 +991,23 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return 'other'
 
-    def get_profile_generate_args(self) -> T.List[str]:
+    def get_profile_generate_args(self, pgo_dir: str) -> T.List[str]:
+        """Create arguments for generating PGO data
+
+        :param pgo_dir: A directory which may be used to output implementation files
+        :raises EnvironmentException: If the compiler does not implement PGO
+        :return: A string list of arguments to generate PGO
+        """
         raise EnvironmentException(
             '%s does not support get_profile_generate_args ' % self.get_id())
 
-    def get_profile_use_args(self) -> T.List[str]:
+    def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
+        """Create arguments for using PGO data.
+
+        :param pgo_dir: A directory which may be used to read and write implementation files
+        :raises EnvironmentException: If the compiler does not implement PGO
+        :return: A list of string argumetns for using PGO
+        """
         raise EnvironmentException(
             '%s does not support get_profile_use_args ' % self.get_id())
 

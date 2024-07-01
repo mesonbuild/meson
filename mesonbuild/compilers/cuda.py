@@ -801,11 +801,11 @@ class CudaCompiler(Compiler):
         else:
             return []
 
-    def get_profile_generate_args(self) -> T.List[str]:
-        return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_generate_args()]
+    def get_profile_generate_args(self, pgo_dir: str) -> T.List[str]:
+        return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_generate_args(pgo_dir)]
 
-    def get_profile_use_args(self) -> T.List[str]:
-        return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_use_args()]
+    def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
+        return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_use_args(pgo_dir)]
 
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         return self.host_compiler.get_assert_args(disable, env)

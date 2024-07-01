@@ -423,10 +423,10 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_argument_syntax(self) -> str:
         return 'gcc'
 
-    def get_profile_generate_args(self) -> T.List[str]:
+    def get_profile_generate_args(self, pgo_dir: str) -> T.List[str]:
         return ['-fprofile-generate']
 
-    def get_profile_use_args(self) -> T.List[str]:
+    def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
         return ['-fprofile-use']
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
@@ -625,5 +625,5 @@ class GnuCompiler(GnuLikeCompiler):
             return ['-fuse-ld=mold']
         return super().use_linker_args(linker, version)
 
-    def get_profile_use_args(self, priv_dir: str) -> T.List[str]:
-        return super().get_profile_use_args(priv_dir) + ['-fprofile-correction']
+    def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
+        return super().get_profile_use_args(pgo_dir) + ['-fprofile-correction']
