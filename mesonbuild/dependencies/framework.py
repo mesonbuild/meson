@@ -47,6 +47,7 @@ class ExtraFrameworkDependency(ExternalDependency):
             framework_path = self._get_framework_path(p, name)
             if framework_path is None:
                 continue
+            framework_name = framework_path.stem
             # We want to prefer the specified paths (in order) over the system
             # paths since these are "extra" frameworks.
             # For example, Python2's framework is in /System/Library/Frameworks and
@@ -54,11 +55,15 @@ class ExtraFrameworkDependency(ExternalDependency):
             # Python.framework. We need to know for sure that the framework was
             # found in the path we expect.
             allow_system = p in self.system_framework_paths
-            args = self.clib_compiler.find_framework(name, self.env, [p], allow_system)
+            args = self.clib_compiler.find_framework(framework_name, self.env, [p], allow_system)
             if args is None:
                 continue
             self.link_args = args
             self.framework_path = framework_path.as_posix()
+            # The search is done case-insensitively, so the found name may differ
+            # from the one that was requested. Setting the name ensures the correct
+            # one is used when linking on case-sensitive filesystems.
+            self.name = framework_name
             self.compile_args = ['-F' + self.framework_path]
             # We need to also add -I includes to the framework because all
             # cross-platform projects such as OpenGL, Python, Qt, GStreamer,
@@ -74,7 +79,7 @@ class ExtraFrameworkDependency(ExternalDependency):
         p = Path(path)
         lname = name.lower()
         for d in p.glob('*.framework/'):
-            if lname == d.name.rsplit('.', 1)[0].lower():
+            if lname == d.stem.lower():
                 return d
         return None
 
