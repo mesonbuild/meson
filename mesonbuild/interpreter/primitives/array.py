@@ -2,6 +2,7 @@
 # Copyright 2021 The Meson development team
 from __future__ import annotations
 
+import itertools
 import typing as T
 
 from ...interpreterbase import (
@@ -33,6 +34,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
             'contains': self.contains_method,
             'length': self.length_method,
             'get': self.get_method,
+            'unique': self.unique_method,
         })
 
         self.trivial_operators.update({
@@ -90,6 +92,15 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
                 raise InvalidArguments(f'Array index {index} is out of bounds for array of size {len(self.held_object)}.')
             return args[1]
         return self.held_object[index]
+
+    @FeatureNew('array.unique', '1.5.0')
+    @noArgsFlattening
+    @typed_pos_args('array.unique', varargs=list)
+    @noKwargs
+    def unique_method(self, args: T.Tuple[T.List[list]], kwargs: TYPE_kwargs) -> list:
+        # Use dict instead of set to ensure we preserve items order,
+        # since dict are insertion-ordered since Python 3.7
+        return list(dict.fromkeys(itertools.chain(self.held_object, *args[0])))
 
     @typed_operator(MesonOperator.PLUS, object)
     def op_plus(self, other: TYPE_var) -> T.List[TYPE_var]:
