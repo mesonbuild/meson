@@ -2,7 +2,7 @@ project('test format string')
 
 # Test all supported types in message(), format(), f-string.
 foreach t : [get_option('opt'), 42, true, false, 'str', ['list'], {'dict': 'value'}]
-  message(t, '@0@'.format(t), f'@t@', [t], {'key': t})
+  message(t, '@0@'.format(t), f'@t@', '@t@'.format(), [t], {'key': t})
 endforeach
 
 # Deprecated but should work with str.format().

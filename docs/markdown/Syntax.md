@@ -207,6 +207,18 @@ res = template.format('text', 1, true)
 As can be seen, the formatting works by replacing placeholders of type
 `@number@` with the corresponding argument.
 
+*(Added 1.5.0)*
+
+Next to positional arguments, non-positional identity-expressions
+will be formatted as well.
+
+```meson
+a = 1
+template = 'string: @0@, number: @a@'
+res = template.format('text')
+# res now has value 'string: text, number: 1'
+```
+
 #### Format strings
 *(Added 0.58)*
 
