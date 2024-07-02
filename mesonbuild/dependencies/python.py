@@ -218,6 +218,8 @@ class _PythonDependencyBase(_Base):
             if self.static:
                 libpath = Path('libs') / f'libpython{vernum}.a'
             else:
+                if limited_api:
+                    vernum = vernum[0]
                 comp = self.get_compiler()
                 if comp.id == "gcc":
                     if imp_lower == 'pypy' and verdot == '3.8':
@@ -228,8 +230,6 @@ class _PythonDependencyBase(_Base):
                     else:
                         libpath = Path(f'python{vernum}.dll')
                 else:
-                    if limited_api:
-                        vernum = vernum[0]
                     if self.is_freethreaded:
                         libpath = Path('libs') / f'python{vernum}t.lib'
                     else:
