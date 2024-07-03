@@ -29,6 +29,9 @@ on:
 permissions:
   contents: read
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
 jobs:
   arch:
     name: ${{ matrix.cfg.name }}

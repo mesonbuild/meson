@@ -49,13 +49,6 @@ class ResolvedTarget:
         self.install_rpath:       T.Optional[str] = None
         self.build_rpath:         T.Optional[str] = None
 
-# CMake library specs (when not referring to a CMake target) can be
-# files or library names, prefixed w/ -l or w/o
-def resolve_cmake_lib(lib: str) -> str:
-    if lib.startswith('-') or '/' in lib or '\\' in lib:
-        return lib
-    return f'-l{lib}'
-
 def resolve_cmake_trace_targets(target_name: str,
                                 trace: 'CMakeTraceParser',
                                 env: 'Environment',
@@ -69,6 +62,49 @@ def resolve_cmake_trace_targets(target_name: str,
     reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-l?pthread)$')
     reg_is_maybe_bare_lib = re.compile(r'^[a-zA-Z0-9_]+$')
 
+    # CMake library specs (when not referring to a CMake target) can be
+    # files or library names, prefixed w/ -l or w/o
+    def resolve_cmake_lib(lib: str) -> T.List[str]:
+        curr_path = Path(lib)
+        if reg_is_lib.match(lib):
+            return [lib]
+        elif curr_path.is_absolute() and curr_path.exists():
+            if any(x.endswith('.framework') for x in curr_path.parts):
+                # Frameworks detected by CMake are passed as absolute paths
+                # Split into -F/path/to/ and -framework name
+                path_to_framework = []
+                # Try to slice off the `Versions/X/name.tbd`
+                for x in curr_path.parts:
+                    path_to_framework.append(x)
+                    if x.endswith('.framework'):
+                        break
+                curr_path = Path(*path_to_framework)
+                framework_path = curr_path.parent
+                framework_name = curr_path.stem
+                return [f'-F{framework_path}', '-framework', framework_name]
+            else:
+                return [lib]
+        elif reg_is_maybe_bare_lib.match(lib) and clib_compiler:
+            # CMake library dependencies can be passed as bare library names,
+            # CMake brute-forces a combination of prefix/suffix combinations to find the
+            # right library. Assume any bare argument passed which is not also a CMake
+            # target must be a system library we should try to link against.
+            flib = clib_compiler.find_library(lib, env, [])
+            if flib is not None:
+                return flib
+            else:
+                not_found_warning(lib)
+        elif curr_path.is_absolute() or lib.startswith('-'):
+            return [lib]
+
+        return [f'-l{lib}']
+
+    def resolve_all_cmake_libs(libs: T.List[str]) -> T.List[str]:
+        r: T.List[str] = []
+        for l in libs:
+            r += resolve_cmake_lib(l)
+        return r
+
     processed_targets: T.List[str] = []
     while len(targets) > 0:
         curr = targets.pop(0)
@@ -78,37 +114,7 @@ def resolve_cmake_trace_targets(target_name: str,
             continue
 
         if curr not in trace.targets:
-            curr_path = Path(curr)
-            if reg_is_lib.match(curr):
-                res.libraries += [curr]
-            elif curr_path.is_absolute() and curr_path.exists():
-                if any(x.endswith('.framework') for x in curr_path.parts):
-                    # Frameworks detected by CMake are passed as absolute paths
-                    # Split into -F/path/to/ and -framework name
-                    path_to_framework = []
-                    # Try to slice off the `Versions/X/name.tbd`
-                    for x in curr_path.parts:
-                        path_to_framework.append(x)
-                        if x.endswith('.framework'):
-                            break
-                    curr_path = Path(*path_to_framework)
-                    framework_path = curr_path.parent
-                    framework_name = curr_path.stem
-                    res.libraries += [f'-F{framework_path}', '-framework', framework_name]
-                else:
-                    res.libraries += [curr]
-            elif reg_is_maybe_bare_lib.match(curr) and clib_compiler:
-                # CMake library dependencies can be passed as bare library names,
-                # CMake brute-forces a combination of prefix/suffix combinations to find the
-                # right library. Assume any bare argument passed which is not also a CMake
-                # target must be a system library we should try to link against.
-                flib = clib_compiler.find_library(curr, env, [])
-                if flib is not None:
-                    res.libraries += flib
-                else:
-                    not_found_warning(curr)
-            else:
-                not_found_warning(curr)
+            res.libraries += resolve_cmake_lib(curr)
             continue
 
         tgt = trace.targets[curr]
@@ -127,10 +133,8 @@ def resolve_cmake_trace_targets(target_name: str,
             res.public_compile_opts += [x for x in tgt.properties['INTERFACE_COMPILE_OPTIONS'] if x]
 
         if tgt.imported:
-            targets += [x for x in get_config_declined_property(tgt, 'IMPORTED_IMPLIB', trace) if x and x in trace.targets]
-            targets += [x for x in get_config_declined_property(tgt, 'IMPORTED_LOCATION', trace) if x and x in trace.targets]
-            res.libraries += [x for x in get_config_declined_property(tgt, 'IMPORTED_IMPLIB', trace) if x and x not in trace.targets]
-            res.libraries += [x for x in get_config_declined_property(tgt, 'IMPORTED_LOCATION', trace) if x and x not in trace.targets]
+            res.libraries += resolve_all_cmake_libs(get_config_declined_property(tgt, 'IMPORTED_IMPLIB', trace))
+            res.libraries += resolve_all_cmake_libs(get_config_declined_property(tgt, 'IMPORTED_LOCATION', trace))
         elif tgt.target:
             # FIXME: mesonbuild/cmake/interpreter.py#363: probably belongs here
             # now that the ConverterTarget and the CMakeTraceTarget are linked
@@ -141,10 +145,10 @@ def resolve_cmake_trace_targets(target_name: str,
 
         if 'LINK_LIBRARIES' in tgt.properties:
             targets += [x for x in tgt.properties['LINK_LIBRARIES'] if x and x in trace.targets]
-            res.libraries += [resolve_cmake_lib(x) for x in tgt.properties['LINK_LIBRARIES'] if x and x not in trace.targets]
+            res.libraries += resolve_all_cmake_libs([x for x in tgt.properties['LINK_LIBRARIES'] if x and x not in trace.targets])
         if 'INTERFACE_LINK_LIBRARIES' in tgt.properties:
             targets += [x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x and x in trace.targets]
-            res.libraries += [resolve_cmake_lib(x) for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x and x not in trace.targets]
+            res.libraries += resolve_all_cmake_libs([x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x and x not in trace.targets])
         if 'LINK_DIRECTORIES' in tgt.properties:
             res.link_flags += [(f'-L{x}' if not x.startswith('-') else x) for x in tgt.properties['LINK_DIRECTORIES'] if x]
         if 'INTERFACE_LINK_DIRECTORIES' in tgt.properties:
