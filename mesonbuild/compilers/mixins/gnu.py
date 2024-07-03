@@ -309,7 +309,7 @@ gnu_objc_warning_args: T.Dict[str, T.List[str]] = {
     ],
 }
 
-_LANG_MAP = {
+gnu_lang_map = {
     'c': 'c',
     'cpp': 'c++',
     'objc': 'objective-c',
@@ -318,9 +318,9 @@ _LANG_MAP = {
 
 @functools.lru_cache(maxsize=None)
 def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'ImmutableListProtocol[str]':
-    if lang not in _LANG_MAP:
+    if lang not in gnu_lang_map:
         return []
-    lang = _LANG_MAP[lang]
+    lang = gnu_lang_map[lang]
     env = os.environ.copy()
     env["LC_ALL"] = 'C'
     cmd = list(compiler) + [f'-x{lang}', '-E', '-v', '-']
@@ -402,7 +402,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return gnulike_default_include_dirs(tuple(self.get_exelist(ccache=False)), self.language).copy()
 
     @abc.abstractmethod
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         pass
 
     def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
@@ -534,7 +534,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # We want to allow preprocessing files with any extension, such as
         # foo.c.in. In that case we need to tell GCC/CLANG to treat them as
         # assembly file.
-        lang = _LANG_MAP.get(self.language, 'assembler-with-cpp')
+        lang = gnu_lang_map.get(self.language, 'assembler-with-cpp')
         return self.get_preprocess_only_args() + [f'-x{lang}']
 
 
@@ -585,7 +585,7 @@ class GnuCompiler(GnuLikeCompiler):
     def get_pch_suffix(self) -> str:
         return 'gch'
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-fopenmp']
 
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str,

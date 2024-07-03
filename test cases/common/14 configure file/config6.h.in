@@ -1,19 +1,40 @@
 /* No escape */
 #define MESSAGE1 "@var1@"
 
-/* Single escape means no replace */
-#define MESSAGE2 "\@var1@"
+/* Escaped whole variable */
+#define MESSAGE2 "\\@var1\\@"
 
 /* Replace pairs of escapes before '@' or '\@' with escape characters
  * (note we have to double number of pairs due to C string escaping)
  */
 #define MESSAGE3 "\\\\@var1@"
 
-/* Pairs of escapes and then single escape to avoid replace */
-#define MESSAGE4 "\\\\\@var1@"
+/* Pairs of escapes and then an escaped variable */
+#define MESSAGE4 "\\\\\@var1\@"
 
-/* Check escaped variable does not overlap following variable */
-#define MESSAGE5 "\@var1@var2@"
+/* We don't gobble \@ prefixing some text */
+#define MESSAGE5 "\\\\@var1"
 
-/* Check escape character outside variables */
-#define MESSAGE6 "\\ @ \@ \\\\@ \\\\\@"
+/* Check escape character outside variables
+                  \  @    \@ */
+#define MESSAGE6 "\\ @ \\\\@"
+
+/* Catch any edge cases */
+
+/* no substitution - not a variable */
+#define MESSAGE7 "@var1"
+
+/* Escaped variable followed by another variable */
+#define MESSAGE8 "\\\\@var1@var2@"
+
+/* Variable followed by another variable */
+#define MESSAGE9 "@var1@var2@"
+
+/* Variable followed by another variable and escaped */
+#define MESSAGE10 "@var1@var2\\\\@"
+
+/* Lots of substitutions in a row*/
+#define MESSAGE11 "@var1@@var2@@var3@@var4@"
+
+/* This should never happen in the real world, right? */
+#define MESSAGE12 "@var1@var2\\\\@var3@var4\\\\@"

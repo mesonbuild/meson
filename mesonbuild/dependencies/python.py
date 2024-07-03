@@ -29,6 +29,7 @@ if T.TYPE_CHECKING:
         install_paths: T.Dict[str, str]
         is_pypy: bool
         is_venv: bool
+        is_freethreaded: bool
         link_libpython: bool
         sysconfig_paths: T.Dict[str, str]
         paths: T.Dict[str, str]
@@ -82,6 +83,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             self.command = ext_prog.command
             self.path = ext_prog.path
             self.cached_version = None
+            self.version_arg = '--version'
 
         # We want strong key values, so we always populate this with bogus data.
         # Otherwise to make the type checkers happy we'd have to do .get() for
@@ -91,6 +93,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             'install_paths': {},
             'is_pypy': False,
             'is_venv': False,
+            'is_freethreaded': False,
             'link_libpython': False,
             'sysconfig_paths': {},
             'paths': {},
@@ -146,6 +149,7 @@ class _PythonDependencyBase(_Base):
         self.variables = python_holder.info['variables']
         self.paths = python_holder.info['paths']
         self.is_pypy = python_holder.info['is_pypy']
+        self.is_freethreaded = python_holder.info['is_freethreaded']
         # The "-embed" version of python.pc / python-config was introduced in 3.8,
         # and distutils extension linking was changed to be considered a non embed
         # usage. Before then, this dependency always uses the embed=True handling
@@ -161,6 +165,143 @@ class _PythonDependencyBase(_Base):
         else:
             self.major_version = 2
 
+        # pyconfig.h is shared between regular and free-threaded builds in the
+        # Windows installer from python.org, and hence does not define
+        # Py_GIL_DISABLED correctly. So do it here:
+        if mesonlib.is_windows() and self.is_freethreaded:
+            self.compile_args += ['-DPy_GIL_DISABLED']
+
+    def find_libpy(self, environment: 'Environment') -> None:
+        if self.is_pypy:
+            if self.major_version == 3:
+                libname = 'pypy3-c'
+            else:
+                libname = 'pypy-c'
+            libdir = os.path.join(self.variables.get('base'), 'bin')
+            libdirs = [libdir]
+        else:
+            libname = f'python{self.version}'
+            if 'DEBUG_EXT' in self.variables:
+                libname += self.variables['DEBUG_EXT']
+            if 'ABIFLAGS' in self.variables:
+                libname += self.variables['ABIFLAGS']
+            libdirs = []
+
+        largs = self.clib_compiler.find_library(libname, environment, libdirs)
+        if largs is not None:
+            self.link_args = largs
+            self.is_found = True
+
+    def get_windows_python_arch(self) -> str:
+        if self.platform.startswith('mingw'):
+            if 'x86_64' in self.platform:
+                return 'x86_64'
+            elif 'i686' in self.platform:
+                return 'x86'
+            elif 'aarch64' in self.platform:
+                return 'aarch64'
+            else:
+                raise DependencyException(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
+        elif self.platform == 'win32':
+            return 'x86'
+        elif self.platform in {'win64', 'win-amd64'}:
+            return 'x86_64'
+        elif self.platform in {'win-arm64'}:
+            return 'aarch64'
+        raise DependencyException('Unknown Windows Python platform {self.platform!r}')
+
+    def get_windows_link_args(self, limited_api: bool) -> T.Optional[T.List[str]]:
+        if self.platform.startswith('win'):
+            vernum = self.variables.get('py_version_nodot')
+            verdot = self.variables.get('py_version_short')
+            imp_lower = self.variables.get('implementation_lower', 'python')
+            if self.static:
+                libpath = Path('libs') / f'libpython{vernum}.a'
+            else:
+                if limited_api:
+                    vernum = vernum[0]
+                comp = self.get_compiler()
+                if comp.id == "gcc":
+                    if imp_lower == 'pypy' and verdot == '3.8':
+                        # The naming changed between 3.8 and 3.9
+                        libpath = Path('libpypy3-c.dll')
+                    elif imp_lower == 'pypy':
+                        libpath = Path(f'libpypy{verdot}-c.dll')
+                    else:
+                        libpath = Path(f'python{vernum}.dll')
+                else:
+                    if self.is_freethreaded:
+                        libpath = Path('libs') / f'python{vernum}t.lib'
+                    else:
+                        libpath = Path('libs') / f'python{vernum}.lib'
+                    # For a debug build, pyconfig.h may force linking with
+                    # pythonX_d.lib (see meson#10776). This cannot be avoided
+                    # and won't work unless we also have a debug build of
+                    # Python itself (except with pybind11, which has an ugly
+                    # hack to work around this) - so emit a warning to explain
+                    # the cause of the expected link error.
+                    buildtype = self.env.coredata.get_option(mesonlib.OptionKey('buildtype'))
+                    assert isinstance(buildtype, str)
+                    debug = self.env.coredata.get_option(mesonlib.OptionKey('debug'))
+                    # `debugoptimized` buildtype may not set debug=True currently, see gh-11645
+                    is_debug_build = debug or buildtype == 'debug'
+                    vscrt_debug = False
+                    if mesonlib.OptionKey('b_vscrt') in self.env.coredata.optstore:
+                        vscrt = self.env.coredata.optstore.get_value('b_vscrt')
+                        if vscrt in {'mdd', 'mtd', 'from_buildtype', 'static_from_buildtype'}:
+                            vscrt_debug = True
+                    if is_debug_build and vscrt_debug and not self.variables.get('Py_DEBUG'):
+                        mlog.warning(textwrap.dedent('''\
+                            Using a debug build type with MSVC or an MSVC-compatible compiler
+                            when the Python interpreter is not also a debug build will almost
+                            certainly result in a failed build. Prefer using a release build
+                            type or a debug Python interpreter.
+                            '''))
+            # base_prefix to allow for virtualenvs.
+            lib = Path(self.variables.get('base_prefix')) / libpath
+        elif self.platform.startswith('mingw'):
+            if self.static:
+                if limited_api:
+                    libname = self.variables.get('ABI3DLLLIBRARY')
+                else:
+                    libname = self.variables.get('LIBRARY')
+            else:
+                if limited_api:
+                    libname = self.variables.get('ABI3LDLIBRARY')
+                else:
+                    libname = self.variables.get('LDLIBRARY')
+            lib = Path(self.variables.get('LIBDIR')) / libname
+        else:
+            raise mesonlib.MesonBugException(
+                'On a Windows path, but the OS doesn\'t appear to be Windows or MinGW.')
+        if not lib.exists():
+            mlog.log('Could not find Python3 library {!r}'.format(str(lib)))
+            return None
+        return [str(lib)]
+
+    def find_libpy_windows(self, env: 'Environment', limited_api: bool = False) -> None:
+        '''
+        Find python3 libraries on Windows and also verify that the arch matches
+        what we are building for.
+        '''
+        try:
+            pyarch = self.get_windows_python_arch()
+        except DependencyException as e:
+            mlog.log(str(e))
+            self.is_found = False
+            return
+        arch = detect_cpu_family(env.coredata.compilers.host)
+        if arch != pyarch:
+            mlog.log('Need', mlog.bold(self.name), f'for {arch}, but found {pyarch}')
+            self.is_found = False
+            return
+        # This can fail if the library is not found
+        largs = self.get_windows_link_args(limited_api)
+        if largs is None:
+            self.is_found = False
+            return
+        self.link_args = largs
+        self.is_found = True
 
 class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
@@ -223,129 +364,6 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
 
         if not self.clib_compiler.has_header('Python.h', '', environment, extra_args=self.compile_args)[0]:
             self.is_found = False
-
-    def find_libpy(self, environment: 'Environment') -> None:
-        if self.is_pypy:
-            if self.major_version == 3:
-                libname = 'pypy3-c'
-            else:
-                libname = 'pypy-c'
-            libdir = os.path.join(self.variables.get('base'), 'bin')
-            libdirs = [libdir]
-        else:
-            libname = f'python{self.version}'
-            if 'DEBUG_EXT' in self.variables:
-                libname += self.variables['DEBUG_EXT']
-            if 'ABIFLAGS' in self.variables:
-                libname += self.variables['ABIFLAGS']
-            libdirs = []
-
-        largs = self.clib_compiler.find_library(libname, environment, libdirs)
-        if largs is not None:
-            self.link_args = largs
-            self.is_found = True
-
-    def get_windows_python_arch(self) -> str:
-        if self.platform.startswith('mingw'):
-            if 'x86_64' in self.platform:
-                return 'x86_64'
-            elif 'i686' in self.platform:
-                return 'x86'
-            elif 'aarch64' in self.platform:
-                return 'aarch64'
-            else:
-                raise DependencyException(f'MinGW Python built with unknown platform {self.platform!r}, please file a bug')
-        elif self.platform == 'win32':
-            return 'x86'
-        elif self.platform in {'win64', 'win-amd64'}:
-            return 'x86_64'
-        elif self.platform in {'win-arm64'}:
-            return 'aarch64'
-        raise DependencyException('Unknown Windows Python platform {self.platform!r}')
-
-    def get_windows_link_args(self, limited_api: bool) -> T.Optional[T.List[str]]:
-        if self.platform.startswith('win'):
-            vernum = self.variables.get('py_version_nodot')
-            verdot = self.variables.get('py_version_short')
-            imp_lower = self.variables.get('implementation_lower', 'python')
-            if self.static:
-                libpath = Path('libs') / f'libpython{vernum}.a'
-            else:
-                comp = self.get_compiler()
-                if comp.id == "gcc":
-                    if imp_lower == 'pypy' and verdot == '3.8':
-                        # The naming changed between 3.8 and 3.9
-                        libpath = Path('libpypy3-c.dll')
-                    elif imp_lower == 'pypy':
-                        libpath = Path(f'libpypy{verdot}-c.dll')
-                    else:
-                        libpath = Path(f'python{vernum}.dll')
-                else:
-                    if limited_api:
-                        vernum = vernum[0]
-                    libpath = Path('libs') / f'python{vernum}.lib'
-                    # For a debug build, pyconfig.h may force linking with
-                    # pythonX_d.lib (see meson#10776). This cannot be avoided
-                    # and won't work unless we also have a debug build of
-                    # Python itself (except with pybind11, which has an ugly
-                    # hack to work around this) - so emit a warning to explain
-                    # the cause of the expected link error.
-                    buildtype = self.env.coredata.get_option(mesonlib.OptionKey('buildtype'))
-                    assert isinstance(buildtype, str)
-                    debug = self.env.coredata.get_option(mesonlib.OptionKey('debug'))
-                    # `debugoptimized` buildtype may not set debug=True currently, see gh-11645
-                    is_debug_build = debug or buildtype == 'debug'
-                    vscrt_debug = False
-                    if mesonlib.OptionKey('b_vscrt') in self.env.coredata.options:
-                        vscrt = self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value
-                        if vscrt in {'mdd', 'mtd', 'from_buildtype', 'static_from_buildtype'}:
-                            vscrt_debug = True
-                    if is_debug_build and vscrt_debug and not self.variables.get('Py_DEBUG'):
-                        mlog.warning(textwrap.dedent('''\
-                            Using a debug build type with MSVC or an MSVC-compatible compiler
-                            when the Python interpreter is not also a debug build will almost
-                            certainly result in a failed build. Prefer using a release build
-                            type or a debug Python interpreter.
-                            '''))
-            # base_prefix to allow for virtualenvs.
-            lib = Path(self.variables.get('base_prefix')) / libpath
-        elif self.platform.startswith('mingw'):
-            if self.static:
-                libname = self.variables.get('LIBRARY')
-            else:
-                libname = self.variables.get('LDLIBRARY')
-            lib = Path(self.variables.get('LIBDIR')) / libname
-        else:
-            raise mesonlib.MesonBugException(
-                'On a Windows path, but the OS doesn\'t appear to be Windows or MinGW.')
-        if not lib.exists():
-            mlog.log('Could not find Python3 library {!r}'.format(str(lib)))
-            return None
-        return [str(lib)]
-
-    def find_libpy_windows(self, env: 'Environment', limited_api: bool = False) -> None:
-        '''
-        Find python3 libraries on Windows and also verify that the arch matches
-        what we are building for.
-        '''
-        try:
-            pyarch = self.get_windows_python_arch()
-        except DependencyException as e:
-            mlog.log(str(e))
-            self.is_found = False
-            return
-        arch = detect_cpu_family(env.coredata.compilers.host)
-        if arch != pyarch:
-            mlog.log('Need', mlog.bold(self.name), f'for {arch}, but found {pyarch}')
-            self.is_found = False
-            return
-        # This can fail if the library is not found
-        largs = self.get_windows_link_args(limited_api)
-        if largs is None:
-            self.is_found = False
-            return
-        self.link_args = largs
-        self.is_found = True
 
     @staticmethod
     def log_tried() -> str:

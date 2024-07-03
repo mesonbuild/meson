@@ -1013,7 +1013,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
-            prefix = self.coredata.options[OptionKey('prefix')].value
+            prefix = self.coredata.optstore.get_value('prefix')
 
             from ..modules.cmake import CMakeSubprojectOptions
             options = kwargs.get('options') or CMakeSubprojectOptions()
@@ -1052,7 +1052,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
 
         if not key.is_project():
-            for opts in [self.coredata.options, compilers.base_options]:
+            for opts in [self.coredata.optstore, compilers.base_options]:
                 v = opts.get(key)
                 if v is None or v.yielding:
                     v = opts.get(key.as_root())
@@ -1061,9 +1061,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                     return v
 
         try:
-            opt = self.coredata.options[key]
-            if opt.yielding and key.subproject and key.as_root() in self.coredata.options:
-                popt = self.coredata.options[key.as_root()]
+            opt = self.coredata.optstore.get_value_object(key)
+            if opt.yielding and key.subproject and key.as_root() in self.coredata.optstore:
+                popt = self.coredata.optstore.get_value_object(key.as_root())
                 if type(opt) is type(popt):
                     opt = popt
                 else:
@@ -1554,7 +1554,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if self.subproject:
                 options = {}
                 for k in comp.get_options():
-                    v = copy.copy(self.coredata.options[k])
+                    v = copy.copy(self.coredata.optstore.get_value_object(k))
                     k = k.evolve(subproject=self.subproject)
                     options[k] = v
                 self.coredata.add_compiler_options(options, lang, for_machine, self.environment, self.subproject)
@@ -1653,12 +1653,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                           required: bool = True, silent: bool = True,
                           wanted: T.Union[str, T.List[str]] = '',
                           search_dirs: T.Optional[T.List[str]] = None,
+                          version_arg: T.Optional[str] = '',
                           version_func: T.Optional[ProgramVersionFunc] = None
                           ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:
         args = mesonlib.listify(args)
 
         extra_info: T.List[mlog.TV_Loggable] = []
-        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, wanted, version_func, extra_info)
+        progobj = self.program_lookup(args, for_machine, default_options, required, search_dirs, wanted, version_arg, version_func, extra_info)
         if progobj is None or not self.check_program_version(progobj, wanted, version_func, extra_info):
             progobj = self.notfound_program(args)
 
@@ -1683,6 +1684,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                        required: bool,
                        search_dirs: T.List[str],
                        wanted: T.Union[str, T.List[str]],
+                       version_arg: T.Optional[str],
                        version_func: T.Optional[ProgramVersionFunc],
                        extra_info: T.List[mlog.TV_Loggable]
                        ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
@@ -1708,6 +1710,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = prog if prog.found() else None
 
+        if isinstance(progobj, ExternalProgram) and version_arg:
+            progobj.version_arg = version_arg
         if progobj and not self.check_program_version(progobj, wanted, version_func, extra_info):
             progobj = None
 
@@ -1767,6 +1771,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         REQUIRED_KW,
         KwargInfo('dirs', ContainerTypeInfo(list, str), default=[], listify=True, since='0.53.0'),
         KwargInfo('version', ContainerTypeInfo(list, str), default=[], listify=True, since='0.52.0'),
+        KwargInfo('version_argument', str, default='', since='1.5.0'),
         DEFAULT_OPTIONS.evolve(since='1.3.0')
     )
     @disablerIfNotFound
@@ -1781,7 +1786,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         search_dirs = extract_search_dirs(kwargs)
         default_options = kwargs['default_options']
         return self.find_program_impl(args[0], kwargs['native'], default_options=default_options, required=required,
-                                      silent=False, wanted=kwargs['version'],
+                                      silent=False, wanted=kwargs['version'], version_arg=kwargs['version_argument'],
                                       search_dirs=search_dirs)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
@@ -3052,13 +3057,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                 break
 
     def check_clang_asan_lundef(self) -> None:
-        if OptionKey('b_lundef') not in self.coredata.options:
+        if OptionKey('b_lundef') not in self.coredata.optstore:
             return
-        if OptionKey('b_sanitize') not in self.coredata.options:
+        if OptionKey('b_sanitize') not in self.coredata.optstore:
             return
-        if (self.coredata.options[OptionKey('b_lundef')].value and
-                self.coredata.options[OptionKey('b_sanitize')].value != 'none'):
-            value = self.coredata.options[OptionKey('b_sanitize')].value
+        if (self.coredata.optstore.get_value('b_lundef') and
+                self.coredata.optstore.get_value('b_sanitize') != 'none'):
+            value = self.coredata.optstore.get_value('b_sanitize')
             mlog.warning(textwrap.dedent(f'''\
                     Trying to use {value} sanitizer on Clang with b_lundef.
                     This will probably not work.
@@ -3432,7 +3437,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             if kwargs['implib']:
                 if kwargs['export_dynamic'] is False:
-                    FeatureDeprecated.single_use('implib overrides explict export_dynamic off', '1.3.0', self.subprojct,
+                    FeatureDeprecated.single_use('implib overrides explict export_dynamic off', '1.3.0', self.subproject,
                                                  'Do not set ths if want export_dynamic disabled if implib is enabled',
                                                  location=node)
                 kwargs['export_dynamic'] = True

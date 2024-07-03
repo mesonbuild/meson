@@ -163,11 +163,12 @@ class NapiModule(ExtensionModule):
         if opts['es6']:
             link_args.extend(['-sMODULARIZE', '-sEXPORT_ES6=1', f'-sEXPORT_NAME={name}'])
         # emscripten cannot link code compiled with -pthread with code compiled without it
-        c_thread_count: int = self.interpreter.environment.coredata.options[mesonlib.OptionKey('thread_count', lang='c')].value
+        build_opts = self.interpreter.environment.coredata.optstore
+        c_thread_count: int = build_opts.get_value(mesonlib.OptionKey('thread_count', lang='c'))
         cpp_thread_count: int = 0
         if 'cpp' in self.interpreter.environment.coredata.compilers.host:
-            cpp_thread_count = self.interpreter.environment.coredata.options[mesonlib.OptionKey('thread_count', lang='cpp')].value
-            exceptions = self.interpreter.environment.coredata.options[mesonlib.OptionKey('eh', lang='cpp')].value != 'none'
+            cpp_thread_count = build_opts.get_value(mesonlib.OptionKey('thread_count', lang='cpp'))
+            exceptions = build_opts.get_value(mesonlib.OptionKey('eh', lang='cpp')) != 'none'
             if exceptions:
                 cpp_args.append('-sNO_DISABLE_EXCEPTION_CATCHING')
                 link_args.append('-sNO_DISABLE_EXCEPTION_CATCHING')
@@ -266,10 +267,11 @@ class NapiModule(ExtensionModule):
         return Path(js_lib)
 
     def parse_npm_options(self) -> None:
-        for key in self.interpreter.environment.coredata.options.keys():
+        build_opts = self.interpreter.environment.coredata.optstore
+        for key in build_opts.keys():
             if key.name in npm_config_blacklist:
                 continue
-            opt = self.interpreter.environment.coredata.options[key]
+            opt = build_opts.get_value_object(key)
             env_name = key.name if key.lang is None else f'{key.lang}_{key.name}'
             if isinstance(opt.value, str):
                 if 'npm_config_' + env_name in os.environ:

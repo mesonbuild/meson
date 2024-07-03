@@ -1,5 +1,6 @@
 __all__ = [
-    'interpret'
+    'interpret',
+    'load_wraps',
 ]
 
-from .interpreter import interpret
+from .interpreter import interpret, load_wraps

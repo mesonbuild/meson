@@ -163,9 +163,9 @@ class DataTests(unittest.TestCase):
             else:
                 raise RuntimeError(f'Invalid debug value {debug!r} in row:\n{m.group()}')
             env.coredata.set_option(OptionKey('buildtype'), buildtype)
-            self.assertEqual(env.coredata.options[OptionKey('buildtype')].value, buildtype)
-            self.assertEqual(env.coredata.options[OptionKey('optimization')].value, opt)
-            self.assertEqual(env.coredata.options[OptionKey('debug')].value, debug)
+            self.assertEqual(env.coredata.optstore.get_value('buildtype'), buildtype)
+            self.assertEqual(env.coredata.optstore.get_value('optimization'), opt)
+            self.assertEqual(env.coredata.optstore.get_value('debug'), debug)
 
     def test_cpu_families_documented(self):
         with open("docs/markdown/Reference-tables.md", encoding='utf-8') as f:

@@ -1124,7 +1124,7 @@ class LinuxlikeTests(BasePlatformTests):
         # option, adding the meson-uninstalled directory to it.
         PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
 
-        pkg_config_path = env.coredata.options[OptionKey('pkg_config_path')].value
+        pkg_config_path = env.coredata.optstore.get_value('pkg_config_path')
         self.assertEqual(pkg_config_path, [pkg_dir])
 
     @skipIfNoPkgconfig

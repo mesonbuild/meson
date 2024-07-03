@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -84,10 +84,10 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
-        std = options[OptionKey('std', lang=self.language, machine=self.for_machine)]
-        if std.value != 'none':
-            args.append('-std=' + std.value)
+        std = options.get_value(OptionKey('std', lang=self.language, machine=self.for_machine))
+        if std != 'none':
+            args.append('-std=' + std)
         return args
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-fopenmp']

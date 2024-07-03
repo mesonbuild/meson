@@ -406,7 +406,7 @@ def fix_darwin(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: str, f
         return
     new_rpaths: OrderedSet[str] = OrderedSet()
     if new_rpath:
-        new_rpaths.update(new_rpath)
+        new_rpaths.update(new_rpath.split(':'))
     # filter out build-only rpath entries, like in
     # fix_rpathtype_entry
     remove_rpaths = [x.decode('utf8') for x in rpath_dirs_to_remove]

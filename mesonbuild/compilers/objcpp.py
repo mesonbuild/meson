@@ -92,9 +92,9 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
 
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang='cpp')]
-        if std.value != 'none':
-            args.append('-std=' + std.value)
+        std = options.get_value(OptionKey('std', machine=self.for_machine, lang='cpp'))
+        if std != 'none':
+            args.append('-std=' + std)
         return args
 
 

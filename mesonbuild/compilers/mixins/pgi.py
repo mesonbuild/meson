@@ -51,7 +51,7 @@ class PGICompiler(Compiler):
             return ['-fPIC']
         return []
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['-mp']
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:

@@ -6,7 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 import typing as T
-from configparser import ConfigParser, MissingSectionHeaderError
+from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
 from copy import deepcopy
 from dataclasses import dataclass, field, fields, asdict
 from pathlib import Path
@@ -458,10 +458,10 @@ class TrimWhitespaces(FullAstVisitor):
         super().visit_IfClauseNode(node)
         self.move_whitespaces(node.endif, node)
 
+        for if_node in node.ifs:
+            if_node.whitespaces.value += node.condition_level * self.config.indent_by
         if isinstance(node.elseblock, mparser.ElseNode):
             node.elseblock.whitespaces.value += node.condition_level * self.config.indent_by
-        else:
-            node.ifs[-1].whitespaces.value += node.condition_level * self.config.indent_by
 
     def visit_IfNode(self, node: mparser.IfNode) -> None:
         super().visit_IfNode(node)
@@ -626,6 +626,7 @@ class ArgumentFormatter(FullAstVisitor):
             if need_comma and not has_trailing_comma:
                 comma = mparser.SymbolNode(mparser.Token('comma', node.filename, 0, 0, 0, (0, 0), ','))
                 comma.condition_level = node.condition_level
+                comma.whitespaces = mparser.WhitespaceNode(mparser.Token('whitespace', node.filename, 0, 0, 0, (0, 0), ''))
                 node.commas.append(comma)
             elif has_trailing_comma and not need_comma:
                 node.commas.pop(-1)
@@ -743,7 +744,7 @@ class ComputeLineLengths(FullAstVisitor):
         self.exit_node(node)
 
     def split_if_needed(self, node: mparser.ArgumentNode) -> None:
-        if not node.is_multiline and self.length > self.config.max_line_length:
+        if len(node) and not node.is_multiline and self.length > self.config.max_line_length:
             arg = self.argument_stack[self.level] if len(self.argument_stack) > self.level else node
             if not arg.is_multiline:
                 arg.is_multiline = True
@@ -829,7 +830,10 @@ class Formatter:
         config = FormatterConfig()
         if configuration_file:
             cp = DefaultConfigParser()
-            cp.read_default(configuration_file)
+            try:
+                cp.read_default(configuration_file)
+            except ParsingError as e:
+                raise MesonException(f'Unable to parse configuration file "{configuration_file}":\n{e}') from e
 
             for f in fields(config):
                 getter = f.metadata['getter']

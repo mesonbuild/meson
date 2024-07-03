@@ -470,11 +470,11 @@ class Rewriter:
 
         cdata = self.interpreter.coredata
         options = {
-            **{str(k): v for k, v in cdata.options.items()},
-            **{str(k): v for k, v in cdata.options.items()},
-            **{str(k): v for k, v in cdata.options.items()},
-            **{str(k): v for k, v in cdata.options.items()},
-            **{str(k): v for k, v in cdata.options.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
         }
 
         for key, val in sorted(cmd['options'].items()):

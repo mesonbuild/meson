@@ -36,6 +36,13 @@ clang_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Oz'],
 }
 
+clang_lang_map = {
+    'c': 'c',
+    'cpp': 'c++',
+    'objc': 'objective-c',
+    'objcpp': 'objective-c++',
+}
+
 class ClangCompiler(GnuLikeCompiler):
 
     id = 'clang'
@@ -116,7 +123,7 @@ class ClangCompiler(GnuLikeCompiler):
         return super().has_function(funcname, prefix, env, extra_args=extra_args,
                                     dependencies=dependencies)
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=3.8.0'):
             return ['-fopenmp']
         elif mesonlib.version_compare(self.version, '>=3.7.0'):

@@ -16,9 +16,6 @@ endif
 if cc.get_id() == 'clang' and host_machine.system() == 'windows'
   error('MESON_SKIP_TEST Windows clang does not support OpenMP.')
 endif
-if host_machine.system() == 'darwin'
-  error('MESON_SKIP_TEST macOS does not support OpenMP.')
-endif
 
 openmp = dependency('openmp')
 env = environment()

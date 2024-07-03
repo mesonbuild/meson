@@ -625,7 +625,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
-            env.coredata.options[OptionKey('link_args', lang='c')] = FakeCompilerOptions()
+            env.coredata.optstore.set_value_object(OptionKey('link_args', lang='c'), FakeCompilerOptions())
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()

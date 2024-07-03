@@ -179,7 +179,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             else:
                 trials = default_linkers
         elif compiler.id == 'intel-cl' and compiler.language == 'c': # why not cpp? Is this a bug?
-            # Intel has it's own linker that acts like microsoft's lib
+            # Intel has its own linker that acts like microsoft's lib
             trials = [['xilib']]
         elif is_windows() and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
             trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
@@ -340,7 +340,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             guess_gcc_or_lcc = None
 
         if guess_gcc_or_lcc:
-            defines = _get_gnu_compiler_defines(compiler)
+            defines = _get_gnu_compiler_defines(compiler, lang)
             if not defines:
                 popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
@@ -449,7 +449,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         if 'clang' in out or 'Clang' in out:
             linker = None
 
-            defines = _get_clang_compiler_defines(compiler)
+            defines = _get_clang_compiler_defines(compiler, lang)
 
             # Even if the for_machine is darwin, we could be using vanilla
             # clang.
@@ -676,7 +676,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
                 guess_gcc_or_lcc = 'lcc'
 
             if guess_gcc_or_lcc:
-                defines = _get_gnu_compiler_defines(compiler)
+                defines = _get_gnu_compiler_defines(compiler, 'fortran')
                 if not defines:
                     popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                     continue
@@ -843,7 +843,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
             continue
         version = search_version(out)
         if 'Free Software Foundation' in out:
-            defines = _get_gnu_compiler_defines(compiler)
+            defines = _get_gnu_compiler_defines(compiler, lang)
             if not defines:
                 popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
@@ -855,7 +855,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
                 defines, linker=linker)
         if 'clang' in out:
             linker = None
-            defines = _get_clang_compiler_defines(compiler)
+            defines = _get_clang_compiler_defines(compiler, lang)
             if not defines:
                 popen_exceptions[join_args(compiler)] = 'no pre-processor defines'
                 continue
@@ -1329,19 +1329,43 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 # GNU/Clang defines and version
 # =============================
 
-def _get_gnu_compiler_defines(compiler: T.List[str]) -> T.Dict[str, str]:
+def _get_gnu_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str, str]:
     """
-    Detect GNU compiler platform type (Apple, MinGW, Unix)
+    Get the list of GCC pre-processor defines
     """
+    from .mixins.gnu import gnu_lang_map
+
+    def _try_obtain_compiler_defines(args: T.List[str]) -> str:
+        mlog.debug(f'Running command: {join_args(args)}')
+        p, output, error = Popen_safe(compiler + args, write='', stdin=subprocess.PIPE)
+        if p.returncode != 0:
+            raise EnvironmentException('Unable to get gcc pre-processor defines:\n'
+                                       f'Compiler stdout:\n{output}\n-----\n'
+                                       f'Compiler stderr:\n{error}\n-----\n')
+        return output
+
     # Arguments to output compiler pre-processor defines to stdout
     # gcc, g++, and gfortran all support these arguments
-    args = compiler + ['-E', '-dM', '-']
-    mlog.debug(f'Running command: {join_args(args)}')
-    p, output, error = Popen_safe(args, write='', stdin=subprocess.PIPE)
-    if p.returncode != 0:
-        raise EnvironmentException('Unable to detect GNU compiler type:\n'
-                                   f'Compiler stdout:\n{output}\n-----\n'
-                                   f'Compiler stderr:\n{error}\n-----\n')
+    baseline_test_args = ['-E', '-dM', '-']
+    try:
+        # We assume that when _get_gnu_compiler_defines is called, it's
+        # close enough to a GCCish compiler so we reuse the _LANG_MAP
+        # from the GCC mixin. This isn't a dangerous assumption because
+        # we fallback if the detection fails anyway.
+
+        # We might not have a match for Fortran, so fallback to detection
+        # based on the driver.
+        lang = gnu_lang_map[lang]
+
+        # The compiler may not infer the target language based on the driver name
+        # so first, try with '-cpp -x lang', then fallback without given it's less
+        # portable. We try with '-cpp' as GCC needs it for Fortran at least, and
+        # it seems to do no harm.
+        output = _try_obtain_compiler_defines(['-cpp', '-x', lang] + baseline_test_args)
+    except (EnvironmentException, KeyError):
+        mlog.debug(f'pre-processor extraction using -cpp -x {lang} failed, falling back w/o lang')
+        output = _try_obtain_compiler_defines(baseline_test_args)
+
     # Parse several lines of the type:
     # `#define ___SOME_DEF some_value`
     # and extract `___SOME_DEF`
@@ -1358,17 +1382,42 @@ def _get_gnu_compiler_defines(compiler: T.List[str]) -> T.Dict[str, str]:
             defines[rest[0]] = rest[1]
     return defines
 
-def _get_clang_compiler_defines(compiler: T.List[str]) -> T.Dict[str, str]:
+def _get_clang_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str, str]:
     """
     Get the list of Clang pre-processor defines
     """
-    args = compiler + ['-E', '-dM', '-']
-    mlog.debug(f'Running command: {join_args(args)}')
-    p, output, error = Popen_safe(args, write='', stdin=subprocess.PIPE)
-    if p.returncode != 0:
-        raise EnvironmentException('Unable to get clang pre-processor defines:\n'
-                                   f'Compiler stdout:\n{output}\n-----\n'
-                                   f'Compiler stderr:\n{error}\n-----\n')
+    from .mixins.clang import clang_lang_map
+
+    def _try_obtain_compiler_defines(args: T.List[str]) -> str:
+        mlog.debug(f'Running command: {join_args(args)}')
+        p, output, error = Popen_safe(compiler + args, write='', stdin=subprocess.PIPE)
+        if p.returncode != 0:
+            raise EnvironmentException('Unable to get clang pre-processor defines:\n'
+                                       f'Compiler stdout:\n{output}\n-----\n'
+                                       f'Compiler stderr:\n{error}\n-----\n')
+        return output
+
+    # Arguments to output compiler pre-processor defines to stdout
+    baseline_test_args = ['-E', '-dM', '-']
+    try:
+        # We assume that when _get_clang_compiler_defines is called, it's
+        # close enough to a Clangish compiler so we reuse the _LANG_MAP
+        # from the Clang mixin. This isn't a dangerous assumption because
+        # we fallback if the detection fails anyway.
+
+        # We might not have a match for Fortran, so fallback to detection
+        # based on the driver.
+        lang = clang_lang_map[lang]
+
+        # The compiler may not infer the target language based on the driver name
+        # so first, try with '-cpp -x lang', then fallback without given it's less
+        # portable. We try with '-cpp' as GCC needs it for Fortran at least, and
+        # it seems to do no harm.
+        output = _try_obtain_compiler_defines(['-cpp', '-x', lang] + baseline_test_args)
+    except (EnvironmentException, KeyError):
+        mlog.debug(f'pre-processor extraction using -cpp -x {lang} failed, falling back w/o lang')
+        output = _try_obtain_compiler_defines(baseline_test_args)
+
     defines: T.Dict[str, str] = {}
     for line in output.split('\n'):
         if not line:

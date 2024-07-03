@@ -78,6 +78,7 @@ class BasePlatformTests(TestCase):
         self.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
         self.objc_test_dir = os.path.join(src_root, 'test cases/objc')
         self.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
+        self.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
 
         # Misc stuff
         self.orig_env = os.environ.copy()
