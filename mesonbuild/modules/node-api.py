@@ -203,19 +203,22 @@ class NapiModule(ExtensionModule):
             raise mesonlib.MesonException(f'Unsupported platform: {sys.platform}')
 
     def download_item(self, url: str, dest: Path) -> None:
-        remote = urllib.request.urlopen(url)
-        if url.endswith('.tar.gz'):
-            if not os.path.exists(dest):
-                mlog.log(f'Downloading {url} to {dest}')
-                with tarfile.open(fileobj=io.BytesIO(remote.read()), mode='r:gz') as input:
-                    input.extractall(path=dest, members=tar_strip1(input.getmembers()))
-        else:
-            filename = urllib.parse.urlparse(url)
-            file = Path(dest, os.path.basename(filename.path))
-            if not os.path.exists(file):
-                mlog.log(f'Downloading {url} to {str(file)}')
-                with file.open('wb') as output:
-                    output.write(remote.read())
+        try:
+            remote = urllib.request.urlopen(url)
+            if url.endswith('.tar.gz'):
+                if not os.path.exists(dest):
+                    mlog.log(f'Downloading {url} to {dest}')
+                    with tarfile.open(fileobj=io.BytesIO(remote.read()), mode='r:gz') as input:
+                        input.extractall(path=dest, members=tar_strip1(input.getmembers()))
+            else:
+                filename = urllib.parse.urlparse(url)
+                file = Path(dest, os.path.basename(filename.path))
+                if not os.path.exists(file):
+                    mlog.log(f'Downloading {url} to {str(file)}')
+                    with file.open('wb') as output:
+                        output.write(remote.read())
+        except Exception as e:
+            raise mesonlib.MesonException(f'Failed downloading from {url}: {str(e)}')
 
     def download_headers(self) -> None:
         if 'headersUrl' in self.node_process['release']:
