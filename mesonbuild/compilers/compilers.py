@@ -43,7 +43,7 @@ if T.TYPE_CHECKING:
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in detect.py."""
 
-header_suffixes = {'h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di'}
+header_suffixes = {'h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'tpp', 'moc', 'vapi', 'di'}
 obj_suffixes = {'o', 'obj', 'res'}
 # To the emscripten compiler, .js files are libraries
 lib_suffixes = {'a', 'lib', 'dll', 'dll.a', 'dylib', 'so', 'js'}
@@ -52,7 +52,7 @@ lib_suffixes = {'a', 'lib', 'dll', 'dll.a', 'dylib', 'so', 'js'}
 # First suffix is the language's default.
 lang_suffixes = {
     'c': ('c',),
-    'cpp': ('cpp', 'cppm', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx', 'C', 'H'),
+    'cpp': ('cpp', 'cppm', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'tpp', 'hxx', 'ino', 'ixx', 'C', 'H'),
     'cuda': ('cu',),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
