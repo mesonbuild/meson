@@ -1,14 +1,10 @@
 name: cfg_data
 long_name: Configuration data object
 description: |
-  This object encapsulates configuration values to be used for generating
-  configuration files. A more in-depth description can be found in the
-  [the configuration page](Configuration.md).
-
-  This object becomes immutable after first use. This means that
-  calling set() or merge_from() will cause an error if this object has
-  already been used in any function arguments. However, assignment creates a
-  mutable copy.
+  This object encapsulates
+  configuration values to be used for generating configuration files. A
+  more in-depth description can be found in the [the configuration wiki
+  page](Configuration.md).
 
 methods:
 - name: set
