@@ -75,7 +75,7 @@ class NasmCompiler(Compiler):
     def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         outargs: T.List[str] = []
         for arg in args:
-            if arg == '-pthread':
+            if arg in {'-mms-bitfields', '-pthread'}:
                 continue
             outargs.append(arg)
         return outargs
