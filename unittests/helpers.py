@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2024 Intel Corporation
+
+from __future__ import annotations
 import subprocess
 import os
 import shutil
@@ -17,20 +21,25 @@ from mesonbuild.mesonlib import (
 from mesonbuild.options import OptionKey
 from run_tests import get_fake_env
 
+if T.TYPE_CHECKING:
+    from typing_extensions import ParamSpec
 
-def is_ci():
-    if os.environ.get('MESON_CI_JOBNAME') not in {None, 'thirdparty'}:
-        return True
-    return False
+    P = ParamSpec('P')
+    R = T.TypeVar('R')
 
-def skip_if_not_base_option(feature):
+
+def is_ci() -> bool:
+    return os.environ.get('MESON_CI_JOBNAME', 'thirdparty') != 'thirdparty'
+
+
+def skip_if_not_base_option(feature: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
     """Skip tests if The compiler does not support a given base option.
 
     for example, ICC doesn't currently support b_sanitize.
     """
-    def actual(f):
+    def actual(f: T.Callable[P, R]) -> T.Callable[P, R]:
         @functools.wraps(f)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             env = get_fake_env()
             cc = detect_c_compiler(env, MachineChoice.HOST)
             key = OptionKey(feature)
@@ -41,7 +50,8 @@ def skip_if_not_base_option(feature):
         return wrapped
     return actual
 
-def skipIfNoPkgconfig(f):
+
+def skipIfNoPkgconfig(f: T.Callable[P, R]) -> T.Callable[P, R]:
     '''
     Skip this test if no pkg-config is found, unless we're on CI.
     This allows users to run our test suite without having
@@ -51,19 +61,20 @@ def skipIfNoPkgconfig(f):
     Note: Yes, we provide pkg-config even while running Windows CI
     '''
     @functools.wraps(f)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
         if not is_ci() and shutil.which('pkg-config') is None:
             raise unittest.SkipTest('pkg-config not found')
         return f(*args, **kwargs)
     return wrapped
 
-def skipIfNoPkgconfigDep(depname):
+
+def skipIfNoPkgconfigDep(depname: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
     '''
     Skip this test if the given pkg-config dep is not found, unless we're on CI.
     '''
-    def wrapper(func):
+    def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
         @functools.wraps(func)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             if not is_ci() and shutil.which('pkg-config') is None:
                 raise unittest.SkipTest('pkg-config not found')
             if not is_ci() and subprocess.call(['pkg-config', '--exists', depname]) != 0:
@@ -72,7 +83,8 @@ def skipIfNoPkgconfigDep(depname):
         return wrapped
     return wrapper
 
-def skip_if_no_cmake(f):
+
+def skip_if_no_cmake(f: T.Callable[P, R]) -> T.Callable[P, R]:
     '''
     Skip this test if no cmake is found, unless we're on CI.
     This allows users to run our test suite without having
@@ -80,16 +92,17 @@ def skip_if_no_cmake(f):
     silently skip the test because of misconfiguration.
     '''
     @functools.wraps(f)
-    def wrapped(*args, **kwargs):
+    def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
         if not is_ci() and shutil.which('cmake') is None:
             raise unittest.SkipTest('cmake not found')
         return f(*args, **kwargs)
     return wrapped
 
-def skip_if_not_language(lang: str):
-    def wrapper(func):
+
+def skip_if_not_language(lang: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
+    def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
         @functools.wraps(func)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             try:
                 compiler_from_language(get_fake_env(), lang, MachineChoice.HOST)
             except EnvironmentException:
@@ -98,13 +111,14 @@ def skip_if_not_language(lang: str):
         return wrapped
     return wrapper
 
-def skip_if_env_set(key):
+
+def skip_if_env_set(key: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
     '''
     Skip a test if a particular env is set, except when running under CI
     '''
-    def wrapper(func):
+    def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
         @functools.wraps(func)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             old = None
             if key in os.environ:
                 if not is_ci():
@@ -118,32 +132,34 @@ def skip_if_env_set(key):
         return wrapped
     return wrapper
 
-def skipIfNoExecutable(exename):
+
+def skipIfNoExecutable(exename: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
     '''
     Skip this test if the given executable is not found.
     '''
-    def wrapper(func):
+    def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
         @functools.wraps(func)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             if shutil.which(exename) is None:
                 raise unittest.SkipTest(exename + ' not found')
             return func(*args, **kwargs)
         return wrapped
     return wrapper
 
-def is_tarball():
-    if not os.path.isdir('docs'):
-        return True
-    return False
+
+def is_tarball() -> bool:
+    return not os.path.isdir('docs')
+
 
 @contextmanager
-def chdir(path: str):
+def chdir(path: str) -> T.Iterator[None]:
     curdir = os.getcwd()
     os.chdir(path)
     try:
         yield
     finally:
         os.chdir(curdir)
+
 
 def get_dynamic_section_entry(fname: str, entry: str) -> T.Optional[str]:
     if is_cygwin() or is_osx():
@@ -162,8 +178,10 @@ def get_dynamic_section_entry(fname: str, entry: str) -> T.Optional[str]:
             return str(m.group(1))
     return None # The file did not contain the specified entry.
 
+
 def get_soname(fname: str) -> T.Optional[str]:
     return get_dynamic_section_entry(fname, 'soname')
+
 
 def get_rpath(fname: str) -> T.Optional[str]:
     raw = get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
@@ -178,11 +196,12 @@ def get_rpath(fname: str) -> T.Optional[str]:
         return None
     return final
 
+
 def get_classpath(fname: str) -> T.Optional[str]:
     with zipfile.ZipFile(fname) as zip:
         with zip.open('META-INF/MANIFEST.MF') as member:
             contents = member.read().decode().strip()
-    lines = []
+    lines: T.List[str] = []
     for line in contents.splitlines():
         if line.startswith(' '):
             # continuation line
@@ -193,6 +212,7 @@ def get_classpath(fname: str) -> T.Optional[str]:
         k.lower(): v.strip() for k, v in [l.split(':', 1) for l in lines]
     }
     return manifest.get('class-path')
+
 
 def get_path_without_cmd(cmd: str, path: str) -> str:
     pathsep = os.pathsep
@@ -206,10 +226,11 @@ def get_path_without_cmd(cmd: str, path: str) -> str:
         path = pathsep.join([str(p) for p in paths])
     return path
 
-def xfail_if_jobname(name: str):
+
+def xfail_if_jobname(name: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]]:
     if os.environ.get('MESON_CI_JOBNAME') == name:
         return unittest.expectedFailure
 
-    def wrapper(func):
+    def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
         return func
     return wrapper
