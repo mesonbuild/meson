@@ -1910,7 +1910,7 @@ class NinjaBackend(backends.Backend):
         args = rustc.compiler_args()
         # Compiler args for compiling this target
         args += compilers.get_base_compile_args(
-            base_proxy, rustc, self.environment, self.get_target_private_dir_abs(target))
+            base_proxy, rustc, self.environment, self.get_target_private_dir_abs(target), target)
         self.generate_generator_list_rules(target)
 
         # dependencies need to cause a relink, they're not just for ordering
@@ -2800,7 +2800,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands = compiler.compiler_args()
         # Compiler args for compiling this target
         commands += compilers.get_base_compile_args(
-            base_proxy, compiler, self.environment, self.get_target_private_dir_abs(target))
+            base_proxy, compiler, self.environment, self.get_target_private_dir_abs(target), target)
         if isinstance(src, File):
             if src.is_built:
                 src_filename = os.path.join(src.subdir, src.fname)
@@ -2866,7 +2866,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # options passed on the command-line, in default_options, etc.
         # These have the lowest priority.
         commands += compilers.get_base_compile_args(
-            base_proxy, compiler, self.environment, self.get_target_private_dir_abs(target))
+            base_proxy, compiler, self.environment, self.get_target_private_dir_abs(target), target)
         return commands
 
     @lru_cache(maxsize=None)
@@ -3468,7 +3468,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             commands += compilers.get_base_link_args(
                 target.get_options(), linker, isinstance(target, build.SharedModule),
-                self.environment.get_build_dir(), self.get_target_private_dir(target))
+                self.environment.get_build_dir(), self.get_target_private_dir(target), target)
         # Add -nostdlib if needed; can't be overridden
         commands += self.get_no_stdlib_link_args(target, linker)
         # Add things like /NOLOGO; usually can't be overridden

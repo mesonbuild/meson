@@ -21,6 +21,7 @@ from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
+    from ...build import BuildTarget
     from ...environment import Environment
     from ..compilers import Compiler
 else:
@@ -428,6 +429,9 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
         return ['-fprofile-use']
+
+    def should_pgo_target(self, target: BuildTarget) -> bool:
+        return True
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):

@@ -807,5 +807,8 @@ class CudaCompiler(Compiler):
     def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
         return ['-Xcompiler=' + x for x in self.host_compiler.get_profile_use_args(pgo_dir)]
 
+    def should_pgo_target(self, target: BuildTarget) -> bool:
+        return self.host_compiler.should_pgo_target(target)
+
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         return self.host_compiler.get_assert_args(disable, env)

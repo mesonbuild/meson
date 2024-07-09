@@ -184,6 +184,8 @@
       "mesonbuild.compilers",
       "mesonbuild.compilers.compilers",
       "mesonbuild.compilers.detect",
+      "mesonbuild.compilers.mixins",
+      "mesonbuild.compilers.mixins.llvm",
       "mesonbuild.coredata",
       "mesonbuild.dependencies",
       "mesonbuild.dependencies.base",
@@ -239,6 +241,6 @@
       "mesonbuild.wrap",
       "mesonbuild.wrap.wrap"
     ],
-    "count": 69
+    "count": 72
   }
 }

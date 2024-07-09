@@ -15,6 +15,7 @@ from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDyn
 from ...mesonlib import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
+from .llvm import LLVMCompilerMixin
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -43,7 +44,7 @@ clang_lang_map = {
     'objcpp': 'objective-c++',
 }
 
-class ClangCompiler(GnuLikeCompiler):
+class ClangCompiler(LLVMCompilerMixin, GnuLikeCompiler):
 
     id = 'clang'
 
