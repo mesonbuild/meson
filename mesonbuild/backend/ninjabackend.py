@@ -26,6 +26,7 @@ from .. import mlog
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import Compiler
+from ..compilers.mixins.llvm import LLVMCompilerMixin
 from ..linkers import ArLikeLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
@@ -1072,6 +1073,12 @@ class NinjaBackend(backends.Backend):
         else:
             final_obj_list = obj_list
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
+
+        # When using clang or clang-cl with pgo == 'use', it is necessary to
+        # merge the raw profile data into the final form the compiler is going
+        # to consume
+        self._generate_llvm_pgo_merge(linker, target, elem)
+
         self.generate_dependency_scan_target(target, compiled_sources, source2object, generated_source_files, fortran_order_deps)
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
@@ -1080,6 +1087,16 @@ class NinjaBackend(backends.Backend):
             if target.aix_so_archive:
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
+
+    def _generate_llvm_pgo_merge(self, linker: Compiler, target: build.BuildTarget, elem: NinjaBuildElement) -> None:
+        if isinstance(target, build.StaticLibrary):
+            return
+        if isinstance(linker, LLVMCompilerMixin) and target.get_options()[OptionKey('b_pgo')].value == 'use':
+            pgo_dir = os.path.join(self.get_target_private_dir_abs(target), 'pgo')
+            out = linker.get_profile_merged_file(pgo_dir)
+            pgo = NinjaBuildElement(self.all_outputs, [out], 'PGO_MERGE_LLVM', [pgo_dir])
+            self.add_build(pgo)
+            elem.add_dep(out)
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
         if mesonlib.version_compare(self.ninja_version, '<1.10.0'):
