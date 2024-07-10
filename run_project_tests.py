@@ -278,6 +278,7 @@ class TestDef:
         self.stdout: T.List[T.Dict[str, str]] = []
         self.skip_category = skip_category
         self.skip_expected = False
+        self.cleanup: T.List[str] = []
 
         # Always print a stack trace for Meson exceptions
         self.env['MESON_FORCE_BACKTRACE'] = '1'
@@ -844,6 +845,8 @@ def load_test_json(t: TestDef, stdout_mandatory: bool, skip_category: bool = Fal
 
     (t.skip, t.skip_expected) = _skip_keys(test_def)
 
+    cleanup = test_def.get('cleanup', [])
+
     # Skip tests if the tool requirements are not met
     if 'tools' in test_def:
         assert isinstance(test_def['tools'], dict)
@@ -859,6 +862,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool, skip_category: bool = Fal
         t.installed_files = installed
         t.do_not_set_opts = do_not_set_opts
         t.stdout = stdout
+        t.cleanup = cleanup
         return [t]
 
     new_opt_list: T.List[T.List[T.Tuple[str, str, bool, bool]]]
@@ -928,6 +932,8 @@ def load_test_json(t: TestDef, stdout_mandatory: bool, skip_category: bool = Fal
         test.do_not_set_opts = do_not_set_opts
         test.stdout = stdout
         test.skip_expected = skip_expected or t.skip_expected
+        test.cleanup = cleanup
+
         all_tests.append(test)
 
     return all_tests
@@ -1393,6 +1399,13 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         else:
             f.update_log(TestStatus.OK)
             passing_tests += 1
+            for cleanup_path in t.cleanup:
+                assert not os.path.isabs(cleanup_path)
+                abspath = t.path / cleanup_path
+                if abspath.is_file():
+                    mesonlib.windows_proof_rm(abspath)
+                else:
+                    mesonlib.windows_proof_rmtree(abspath)
         conf_time += result.conftime
         build_time += result.buildtime
         test_time += result.testtime
@@ -1550,7 +1563,7 @@ def print_tool_versions() -> None:
     print()
 
 tmpdir = list(Path('.').glob('test cases/**/*install functions and follow symlinks'))
-assert(len(tmpdir) == 1)
+assert len(tmpdir) == 1
 symlink_test_dir = tmpdir[0]
 symlink_file1 = symlink_test_dir / 'foo/link1'
 symlink_file2 = symlink_test_dir / 'foo/link2.h'
