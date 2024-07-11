@@ -879,7 +879,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
 def detect_java_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from .java import JavaCompiler
+    from .javac import JavaCompiler
     exelist = env.lookup_binary_entry(for_machine, 'java')
     info = env.machines[for_machine]
     if exelist is None:
