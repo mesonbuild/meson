@@ -278,7 +278,7 @@ class CLikeCompiler(Compiler):
         mode = CompileCheckMode.LINK
         if self.is_cross:
             binname += '_cross'
-            if environment.need_exe_wrapper(self.for_machine) and not environment.has_exe_wrapper():
+            if not environment.has_exe_wrapper():
                 # Linking cross built C/C++ apps is painful. You can't really
                 # tell if you should use -nostdlib or not and for example
                 # on OSX the compiler binary is the same but you need
@@ -308,7 +308,7 @@ class CLikeCompiler(Compiler):
         if pc.returncode != 0:
             raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
         # Run sanity check
-        if environment.need_exe_wrapper(self.for_machine):
+        if self.is_cross:
             if not environment.has_exe_wrapper():
                 # Can't check if the binaries run so we have to assume they do
                 return

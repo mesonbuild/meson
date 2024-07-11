@@ -553,7 +553,7 @@ class CudaCompiler(Compiler):
         flags += self.get_ccbin_args(env.coredata.optstore)
 
         # If cross-compiling, we can't run the sanity check, only compile it.
-        if env.need_exe_wrapper(self.for_machine) and not env.has_exe_wrapper():
+        if self.is_cross and not env.has_exe_wrapper():
             # Linking cross built apps is painful. You can't really
             # tell if you should use -nostdlib or not and for example
             # on OSX the compiler binary is the same but you need
@@ -575,7 +575,7 @@ class CudaCompiler(Compiler):
             raise EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
 
         # Run sanity check (if possible)
-        if env.need_exe_wrapper(self.for_machine):
+        if self.is_cross:
             if not env.has_exe_wrapper():
                 return
             else:

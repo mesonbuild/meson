@@ -570,7 +570,8 @@ class Backend:
         else:
             extra_paths = []
 
-        if self.environment.need_exe_wrapper(exe_for_machine):
+        is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
+        if is_cross_built and self.environment.need_exe_wrapper():
             if not self.environment.has_exe_wrapper():
                 msg = 'An exe_wrapper is needed but was not found. Please define one ' \
                       'in cross file and check the command and/or add it to PATH.'
