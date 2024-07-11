@@ -18,9 +18,8 @@ import mesonbuild.options
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter
 from mesonbuild.ast import AstInterpreter
-from mesonbuild.mesonlib import (
-    MachineChoice, OptionKey
-)
+from mesonbuild.mesonlib import MachineChoice
+from mesonbuild.options import OptionKey
 from mesonbuild.compilers import (
     detect_c_compiler, detect_cpp_compiler
 )

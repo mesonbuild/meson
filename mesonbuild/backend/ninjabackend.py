@@ -31,7 +31,8 @@ from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
+from ..mesonlib import get_compiler_for_source, has_path_sep
+from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
 
@@ -3603,7 +3604,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_user_option_args(self):
         cmds = []
         for k, v in self.environment.coredata.optstore.items():
-            if k.is_project():
+            if self.environment.coredata.optstore.is_project_option(k):
                 cmds.append('-D' + str(k) + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
         # The order of these arguments must be the same between runs of Meson
         # to ensure reproducible output. The order we pass them shouldn't

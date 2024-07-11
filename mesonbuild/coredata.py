@@ -18,9 +18,11 @@ from .mesonlib import (
     MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    OptionKey, OptionType, stringlistify,
+    stringlistify,
     pickle_load
 )
+
+from .options import OptionKey, OptionType
 
 from .machinefile import CmdLineFileParser
 
@@ -72,7 +74,7 @@ if T.TYPE_CHECKING:
 #
 # Pip requires that RCs are named like this: '0.1.0.rc1'
 # But the corresponding Git tag needs to be '0.1.0rc1'
-version = '1.5.0.rc2'
+version = '1.5.99'
 
 # The next stable version when we are in dev. This is used to allow projects to
 # require meson version >=1.2.0 when using 1.1.99. FeatureNew won't warn when
@@ -453,7 +455,7 @@ class CoreData:
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
-        if key.is_builtin():
+        if self.optstore.is_builtin_option(key):
             if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
             else:
@@ -584,7 +586,7 @@ class CoreData:
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
         for key, value in project_options.items():
-            if not key.is_project():
+            if not self.optstore.is_project_option(key):
                 continue
             if key not in self.optstore:
                 self.optstore.add_project_option(key, value)
@@ -608,7 +610,7 @@ class CoreData:
 
         # Find any extranious keys for this project and remove them
         for key in self.optstore.keys() - project_options.keys():
-            if key.is_project() and key.subproject == subproject:
+            if self.optstore.is_project_option(key) and key.subproject == subproject:
                 self.optstore.remove(key)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
@@ -694,7 +696,7 @@ class CoreData:
             # Always test this using the HOST machine, as many builtin options
             # are not valid for the BUILD machine, but the yielding value does
             # not differ between them even when they are valid for both.
-            if subproject and k.is_builtin() and self.optstore.get_value_object(k.evolve(subproject='', machine=MachineChoice.HOST)).yielding:
+            if subproject and self.optstore.is_builtin_option(k) and self.optstore.get_value_object(k.evolve(subproject='', machine=MachineChoice.HOST)).yielding:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
@@ -906,7 +908,7 @@ class OptionsView(abc.Mapping):
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
-        if not key.is_project():
+        if not key.is_project_hack_for_optionsview():
             opt = self.original_options.get(key)
             if opt is None or opt.yielding:
                 key2 = key.as_root()

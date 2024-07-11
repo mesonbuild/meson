@@ -310,9 +310,15 @@ cdata = configuration_data({
   'A_UNDEFINED' : false,
 })
 
+# merging a confdata into another one should not mark the first as immutable
+cdata_test = configuration_data()
+cdata_test.merge_from(cdata)
+cdata.set_quoted('A_PATH', '/random/path')
+
 configure_file(output : 'config9a.h',
   configuration : cdata,
 )
+
 
 configure_file(output : 'config9b.h',
   configuration : {

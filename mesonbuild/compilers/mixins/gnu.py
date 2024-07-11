@@ -16,7 +16,7 @@ import typing as T
 
 from ... import mesonlib
 from ... import mlog
-from ...mesonlib import OptionKey
+from ...options import OptionKey
 from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:

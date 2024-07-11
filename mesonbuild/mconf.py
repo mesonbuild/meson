@@ -20,7 +20,8 @@ from . import mesonlib
 from . import mintro
 from . import mlog
 from .ast import AstIDGenerator, IntrospectionInterpreter
-from .mesonlib import MachineChoice, OptionKey
+from .mesonlib import MachineChoice
+from .options import OptionKey
 from .optinterpreter import OptionInterpreter
 
 if T.TYPE_CHECKING:
@@ -92,7 +93,7 @@ class Conf:
                     with open(opfile, 'rb') as f:
                         ophash = hashlib.sha1(f.read()).hexdigest()
                         if ophash != conf_options[1]:
-                            oi = OptionInterpreter(sub)
+                            oi = OptionInterpreter(self.coredata.optstore, sub)
                             oi.process(opfile)
                             self.coredata.update_project_options(oi.options, sub)
                             self.coredata.options_files[sub] = (opfile, ophash)
@@ -101,7 +102,7 @@ class Conf:
                     if not os.path.exists(opfile):
                         opfile = os.path.join(self.source_dir, 'meson_options.txt')
                     if os.path.exists(opfile):
-                        oi = OptionInterpreter(sub)
+                        oi = OptionInterpreter(self.coredata.optstore, sub)
                         oi.process(opfile)
                         self.coredata.update_project_options(oi.options, sub)
                         with open(opfile, 'rb') as f:
@@ -277,22 +278,22 @@ class Conf:
                 if self.build and k.module not in self.build.modules:
                     continue
                 module_options[k.module][k] = v
-            elif k.is_builtin():
+            elif self.coredata.optstore.is_builtin_option(k):
                 core_options[k] = v
 
         host_core_options = self.split_options_per_subproject({k: v for k, v in core_options.items() if k.machine is MachineChoice.HOST})
         build_core_options = self.split_options_per_subproject({k: v for k, v in core_options.items() if k.machine is MachineChoice.BUILD})
-        host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if k.is_compiler() and k.machine is MachineChoice.HOST})
-        build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if k.is_compiler() and k.machine is MachineChoice.BUILD})
-        project_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if k.is_project()})
+        host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_compiler_option(k) and k.machine is MachineChoice.HOST})
+        build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_compiler_option(k) and k.machine is MachineChoice.BUILD})
+        project_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_project_option(k)})
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
         self.add_section('Main project options')
         self.print_options('Core options', host_core_options[''])
         if show_build_options:
             self.print_options('', build_core_options[''])
-        self.print_options('Backend options', {k: v for k, v in self.coredata.optstore.items() if k.is_backend()})
-        self.print_options('Base options', {k: v for k, v in self.coredata.optstore.items() if k.is_base()})
+        self.print_options('Backend options', {k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_backend_option(k)})
+        self.print_options('Base options', {k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_base_option(k)})
         self.print_options('Compiler options', host_compiler_options.get('', {}))
         if show_build_options:
             self.print_options('', build_compiler_options.get('', {}))

@@ -5,6 +5,24 @@ short-description: Working with Rust in Meson
 
 # Using Rust with Meson
 
+## Avoid using `extern crate`
+
+Meson can't track dependency information for crates linked by rustc as
+a result of `extern crate` statements in Rust source code.  If your
+crate dependencies are properly expressed in Meson, there should be no
+need for `extern crate` statements in your Rust code.
+
+An example of the problems with `extern crate` is that if you delete a
+crate from a Meson build file, other crates that depend on that crate
+using `extern crate` might continue linking with the leftover rlib of
+the deleted crate rather than failing to build, until the build
+directory is cleaned.
+
+This limitation could be resolved in future with rustc improvements,
+for example if the [`-Z
+binary-dep-depinfo`](https://github.com/rust-lang/rust/issues/63012)
+feature is stabilized.
+
 ## Mixing Rust and non-Rust sources
 
 Meson currently does not support creating a single target with Rust and non Rust
