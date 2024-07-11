@@ -87,7 +87,7 @@ class RustCompiler(Compiler):
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
         self._native_static_libs(work_dir, source_name)
-        if environment.need_exe_wrapper(self.for_machine):
+        if self.is_cross:
             if not environment.has_exe_wrapper():
                 # Can't check if the binaries run so we have to assume they do
                 return
