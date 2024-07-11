@@ -5,7 +5,6 @@ from collections import OrderedDict
 from itertools import chain
 from functools import total_ordering
 import argparse
-import enum
 
 from .mesonlib import (
     HoldableObject,
@@ -38,32 +37,6 @@ backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 
 genvslitelist = ['vs2022']
 buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
 
-
-class OptionType(enum.IntEnum):
-
-    """Enum used to specify what kind of argument a thing is."""
-
-    BUILTIN = 0
-    BACKEND = 1
-    BASE = 2
-    COMPILER = 3
-    PROJECT = 4
-
-def _classify_argument(key: 'OptionKey') -> OptionType:
-    """Classify arguments into groups so we know which dict to assign them to."""
-
-    if key.name.startswith('b_'):
-        return OptionType.BASE
-    elif key.lang is not None:
-        return OptionType.COMPILER
-    elif key.name in _BUILTIN_NAMES or key.module:
-        return OptionType.BUILTIN
-    elif key.name.startswith('backend_'):
-        assert key.machine is MachineChoice.HOST, str(key)
-        return OptionType.BACKEND
-    else:
-        assert key.machine is MachineChoice.HOST, str(key)
-        return OptionType.PROJECT
 
 # This is copied from coredata. There is no way to share this, because this
 # is used in the OptionKey constructor, and the coredata lists are
@@ -117,21 +90,19 @@ class OptionKey:
     internally easier to reason about and produce.
     """
 
-    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', 'type', 'module']
+    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', 'module']
 
     name: str
     subproject: str
     machine: MachineChoice
     lang: T.Optional[str]
     _hash: int
-    type: OptionType
     module: T.Optional[str]
 
     def __init__(self, name: str, subproject: str = '',
                  machine: MachineChoice = MachineChoice.HOST,
                  lang: T.Optional[str] = None,
-                 module: T.Optional[str] = None,
-                 _type: T.Optional[OptionType] = None):
+                 module: T.Optional[str] = None):
         # the _type option to the constructor is kinda private. We want to be
         # able tos ave the state and avoid the lookup function when
         # pickling/unpickling, but we need to be able to calculate it when
@@ -142,9 +113,6 @@ class OptionKey:
         object.__setattr__(self, 'lang', lang)
         object.__setattr__(self, 'module', module)
         object.__setattr__(self, '_hash', hash((name, subproject, machine, lang, module)))
-        if _type is None:
-            _type = _classify_argument(self)
-        object.__setattr__(self, 'type', _type)
 
     def __setattr__(self, key: str, value: T.Any) -> None:
         raise AttributeError('OptionKey instances do not support mutation.')
@@ -155,7 +123,6 @@ class OptionKey:
             'subproject': self.subproject,
             'machine': self.machine,
             'lang': self.lang,
-            '_type': self.type,
             'module': self.module,
         }
 
@@ -173,8 +140,8 @@ class OptionKey:
     def __hash__(self) -> int:
         return self._hash
 
-    def _to_tuple(self) -> T.Tuple[str, OptionType, str, str, MachineChoice, str]:
-        return (self.subproject, self.type, self.lang or '', self.module or '', self.machine, self.name)
+    def _to_tuple(self) -> T.Tuple[str, str, str, MachineChoice, str]:
+        return (self.subproject, self.lang or '', self.module or '', self.machine, self.name)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
@@ -199,7 +166,7 @@ class OptionKey:
         return out
 
     def __repr__(self) -> str:
-        return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r}, {self.lang!r}, {self.module!r}, {self.type!r})'
+        return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r}, {self.lang!r}, {self.module!r})'
 
     @classmethod
     def from_string(cls, raw: str) -> 'OptionKey':
@@ -269,7 +236,8 @@ class OptionKey:
 
     def is_project_hack_for_optionsview(self) -> bool:
         """This method will be removed once we can delete OptionsView."""
-        return self.type is OptionType.PROJECT
+        import sys
+        sys.exit('FATAL internal error. This should not make it into an actual release. File a bug.')
 
 
 class UserOption(T.Generic[_T], HoldableObject):
@@ -712,6 +680,7 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
 class OptionStore:
     def __init__(self):
         self.d: T.Dict['OptionKey', 'UserOption[T.Any]'] = {}
+        self.project_options = set()
 
     def __len__(self):
         return len(self.d)
@@ -734,6 +703,7 @@ class OptionStore:
     def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
         key = self.ensure_key(key)
         self.d[key] = valobj
+        self.project_options.add(key)
 
     def set_value(self, key: T.Union[OptionKey, str], new_value: 'T.Any') -> bool:
         key = self.ensure_key(key)
@@ -774,23 +744,39 @@ class OptionStore:
 
     def is_project_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a project option."""
-        return key.type is OptionType.PROJECT
+        return key in self.project_options
 
     def is_reserved_name(self, key: OptionKey) -> bool:
-        return not self.is_project_option(key)
+        if key.name in _BUILTIN_NAMES:
+            return True
+        # FIXME, this hack is needed until the lang field is removed from OptionKey.
+        if key.lang is not None:
+            return True
+        if '_' not in key.name:
+            return False
+        prefix = key.name.split('_')[0]
+        # Pylint seems to think that it is faster to build a set object
+        # and all related work just to test whether a string has one of two
+        # values. It is not, thank you very much.
+        if prefix in ('b', 'backend'): # pylint: disable=R6201
+            return True
+        from .compilers import all_languages
+        if prefix in all_languages:
+            return True
+        return False
 
     def is_builtin_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a builtin option."""
-        return key.type is OptionType.BUILTIN
+        return key.name in _BUILTIN_NAMES or key.module
 
     def is_base_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a base option."""
-        return key.type is OptionType.BASE
+        return key.name.startswith('b_')
 
     def is_backend_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a backend option."""
-        return key.type is OptionType.BACKEND
+        return key.name.startswith('backend_')
 
     def is_compiler_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a compiler option."""
-        return key.type is OptionType.COMPILER
+        return key.lang is not None

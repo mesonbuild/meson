@@ -22,7 +22,7 @@ from .mesonlib import (
     pickle_load
 )
 
-from .options import OptionKey, OptionType
+from .options import OptionKey
 
 from .machinefile import CmdLineFileParser
 
@@ -586,8 +586,6 @@ class CoreData:
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
         for key, value in project_options.items():
-            if not self.optstore.is_project_option(key):
-                continue
             if key not in self.optstore:
                 self.optstore.add_project_option(key, value)
                 continue
@@ -654,7 +652,7 @@ class CoreData:
                 continue
             elif k in self.optstore:
                 dirty |= self.set_option(k, v, first_invocation)
-            elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
+            elif k.machine != MachineChoice.BUILD and not self.optstore.is_compiler_option(k):
                 unknown_options.append(k)
         if unknown_options:
             unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
@@ -700,9 +698,9 @@ class CoreData:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
-            if k.type in {OptionType.COMPILER, OptionType.BACKEND}:
+            if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
                 continue
-            if k.type == OptionType.BASE and k.as_root() in base_options:
+            if self.optstore.is_base_option(k) and k.as_root() in base_options:
                 # set_options will report unknown base options
                 continue
             options[k] = v
@@ -908,7 +906,17 @@ class OptionsView(abc.Mapping):
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
-        if not key.is_project_hack_for_optionsview():
+        if not isinstance(self.original_options, options.OptionStore):
+            # This is only used by CUDA currently.
+            # This entire class gets removed when option refactor
+            # is finished.
+            if '_' in key.name or key.lang is not None:
+                is_project_option = False
+            else:
+                sys.exit(f'FAIL {key}.')
+        else:
+            is_project_option = self.original_options.is_project_option(key)
+        if not is_project_option:
             opt = self.original_options.get(key)
             if opt is None or opt.yielding:
                 key2 = key.as_root()
