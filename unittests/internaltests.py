@@ -34,7 +34,7 @@ from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException,
 )
-from mesonbuild.options import OptionKey, OptionType
+from mesonbuild.options import OptionKey
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
@@ -1704,16 +1704,16 @@ class InternalTests(unittest.TestCase):
 
     def test_option_key_from_string(self) -> None:
         cases = [
-            ('c_args', OptionKey('args', lang='c', _type=OptionType.COMPILER)),
-            ('build.cpp_args', OptionKey('args', machine=MachineChoice.BUILD, lang='cpp', _type=OptionType.COMPILER)),
-            ('prefix', OptionKey('prefix', _type=OptionType.BUILTIN)),
-            ('made_up', OptionKey('made_up', _type=OptionType.PROJECT)),
+            ('c_args', OptionKey('args', lang='c')),
+            ('build.cpp_args', OptionKey('args', machine=MachineChoice.BUILD, lang='cpp')),
+            ('prefix', OptionKey('prefix')),
+            ('made_up', OptionKey('made_up')),
 
             # TODO: the from_String method should be splitting the prefix off of
             # these, as we have the type already, but it doesn't. For now have a
             # test so that we don't change the behavior un-intentionally
-            ('b_lto', OptionKey('b_lto', _type=OptionType.BASE)),
-            ('backend_startup_project', OptionKey('backend_startup_project', _type=OptionType.BACKEND)),
+            ('b_lto', OptionKey('b_lto')),
+            ('backend_startup_project', OptionKey('backend_startup_project')),
         ]
 
         for raw, expected in cases:
