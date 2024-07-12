@@ -70,12 +70,12 @@ class CythonCompiler(Compiler):
         return self.update_options(
             super().get_options(),
             self.create_option(options.UserComboOption,
-                               self.form_langopt_key('version'),
+                               self.form_compileropt_key('version'),
                                'Python version to target',
                                ['2', '3'],
                                '3'),
             self.create_option(options.UserComboOption,
-                               self.form_langopt_key('language'),
+                               self.form_compileropt_key('language'),
                                'Output C or C++ files',
                                ['c', 'cpp'],
                                'c'),
@@ -83,10 +83,10 @@ class CythonCompiler(Compiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
-        key = self.form_langopt_key('version')
+        key = self.form_compileropt_key('version')
         version = options.get_value(key)
         args.append(f'-{version}')
-        key = self.form_langopt_key('language')
+        key = self.form_compileropt_key('language')
         lang = options.get_value(key)
         if lang == 'cpp':
             args.append('--cplus')

@@ -1354,7 +1354,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         raise EnvironmentException(f'{self.get_id()} does not support preprocessor')
 
-    def form_langopt_key(self, basename: str) -> OptionKey:
+    def form_compileropt_key(self, basename: str) -> OptionKey:
         return OptionKey(basename, machine=self.for_machine, lang=self.language)
 
 def get_global_options(lang: str,
