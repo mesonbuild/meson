@@ -646,12 +646,12 @@ class CudaCompiler(Compiler):
         return self.update_options(
             super().get_options(),
             self.create_option(options.UserComboOption,
-                               self.form_langopt_key('std'),
+                               self.form_compileropt_key('std'),
                                'C++ language standard to use with CUDA',
                                cpp_stds,
                                'none'),
             self.create_option(options.UserStringOption,
-                               self.form_langopt_key('ccbindir'),
+                               self.form_compileropt_key('ccbindir'),
                                'CUDA non-default toolchain directory to use (-ccbin)',
                                ''),
         )
@@ -675,7 +675,7 @@ class CudaCompiler(Compiler):
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
-            key = self.form_langopt_key('std')
+            key = self.form_compileropt_key('std')
             std = options.get_value(key)
             if std != 'none':
                 args.append('--std=' + std)
@@ -795,7 +795,7 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(super().get_dependency_link_args(dep), _Phase.LINKER)
 
     def get_ccbin_args(self, ccoptions: 'KeyedOptionDictType') -> T.List[str]:
-        key = self.form_langopt_key('ccbindir')
+        key = self.form_compileropt_key('ccbindir')
         ccbindir = ccoptions.get_value(key)
         if isinstance(ccbindir, str) and ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]

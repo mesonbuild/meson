@@ -160,7 +160,7 @@ class RustCompiler(Compiler):
 
     def get_options(self) -> MutableKeyedOptionDictType:
         return dict((self.create_option(options.UserComboOption,
-                                        self.form_langopt_key('std'),
+                                        self.form_compileropt_key('std'),
                                         'Rust edition to use',
                                         ['none', '2015', '2018', '2021'],
                                         'none'),))
@@ -173,7 +173,7 @@ class RustCompiler(Compiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        key = self.form_langopt_key('std')
+        key = self.form_compileropt_key('std')
         std = options.get_value(key)
         if std != 'none':
             args.append('--edition=' + std)
