@@ -90,18 +90,16 @@ class OptionKey:
     internally easier to reason about and produce.
     """
 
-    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', 'module']
+    __slots__ = ['name', 'subproject', 'machine', '_hash', 'module']
 
     name: str
     subproject: str
     machine: MachineChoice
-    lang: T.Optional[str]
     _hash: int
     module: T.Optional[str]
 
     def __init__(self, name: str, subproject: str = '',
                  machine: MachineChoice = MachineChoice.HOST,
-                 lang: T.Optional[str] = None,
                  module: T.Optional[str] = None):
         # the _type option to the constructor is kinda private. We want to be
         # able tos ave the state and avoid the lookup function when
@@ -110,9 +108,8 @@ class OptionKey:
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
-        object.__setattr__(self, 'lang', lang)
         object.__setattr__(self, 'module', module)
-        object.__setattr__(self, '_hash', hash((name, subproject, machine, lang, module)))
+        object.__setattr__(self, '_hash', hash((name, subproject, machine, module)))
 
     def __setattr__(self, key: str, value: T.Any) -> None:
         raise AttributeError('OptionKey instances do not support mutation.')
@@ -122,7 +119,6 @@ class OptionKey:
             'name': self.name,
             'subproject': self.subproject,
             'machine': self.machine,
-            'lang': self.lang,
             'module': self.module,
         }
 
@@ -141,7 +137,7 @@ class OptionKey:
         return self._hash
 
     def _to_tuple(self) -> T.Tuple[str, str, str, MachineChoice, str]:
-        return (self.subproject, self.lang or '', self.module or '', self.machine, self.name)
+        return (self.subproject, self.module or '', self.machine, self.name)
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
@@ -155,8 +151,6 @@ class OptionKey:
 
     def __str__(self) -> str:
         out = self.name
-        if self.lang:
-            out = f'{self.lang}_{out}'
         if self.machine is MachineChoice.BUILD:
             out = f'build.{out}'
         if self.module:
@@ -166,7 +160,7 @@ class OptionKey:
         return out
 
     def __repr__(self) -> str:
-        return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r}, {self.lang!r}, {self.module!r})'
+        return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r}, {self.module!r})'
 
     @classmethod
     def from_string(cls, raw: str) -> 'OptionKey':
@@ -191,18 +185,14 @@ class OptionKey:
         except ValueError:
             raw3 = raw2
 
-        from .compilers import all_languages
-        if any(raw3.startswith(f'{l}_') for l in all_languages):
-            lang, opt = raw3.split('_', 1)
-        else:
-            lang, opt = None, raw3
+        opt = raw3
         assert ':' not in opt
         assert '.' not in opt
 
-        return cls(opt, subproject, for_machine, lang, module)
+        return cls(opt, subproject, for_machine, module)
 
     def evolve(self, name: T.Optional[str] = None, subproject: T.Optional[str] = None,
-               machine: T.Optional[MachineChoice] = None, lang: T.Optional[str] = '',
+               machine: T.Optional[MachineChoice] = None,
                module: T.Optional[str] = '') -> 'OptionKey':
         """Create a new copy of this key, but with altered members.
 
@@ -218,7 +208,6 @@ class OptionKey:
             name if name is not None else self.name,
             subproject if subproject is not None else self.subproject,
             machine if machine is not None else self.machine,
-            lang if lang != '' else self.lang,
             module if module != '' else self.module
         )
 
@@ -681,6 +670,10 @@ class OptionStore:
     def __init__(self):
         self.d: T.Dict['OptionKey', 'UserOption[T.Any]'] = {}
         self.project_options = set()
+        self.all_languages = set()
+        from .compilers import all_languages
+        for lang in all_languages:
+            self.all_languages.add(lang)
 
     def __len__(self):
         return len(self.d)
@@ -698,7 +691,14 @@ class OptionStore:
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
         key = self.ensure_key(key)
+        assert isinstance(valobj, UserOption)
         self.d[key] = valobj
+
+    def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+        key = self.ensure_key(key)
+        if not key.name.startswith(language + '_'):
+            raise MesonException(f'Internal error: all compiler option names must start with language prefix. ({key.name} vs {language}_)')
+        self.add_system_option(key, valobj)
 
     def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
         key = self.ensure_key(key)
@@ -733,6 +733,7 @@ class OptionStore:
     def items(self) -> ItemsView['OptionKey', 'UserOption[T.Any]']:
         return self.d.items()
 
+    # FIXME: this method must be deleted and users moved to use "add_xxx_option"s instead.
     def update(self, *args, **kwargs):
         return self.d.update(*args, **kwargs)
 
@@ -749,9 +750,6 @@ class OptionStore:
     def is_reserved_name(self, key: OptionKey) -> bool:
         if key.name in _BUILTIN_NAMES:
             return True
-        # FIXME, this hack is needed until the lang field is removed from OptionKey.
-        if key.lang is not None:
-            return True
         if '_' not in key.name:
             return False
         prefix = key.name.split('_')[0]
@@ -760,8 +758,7 @@ class OptionStore:
         # values. It is not, thank you very much.
         if prefix in ('b', 'backend'): # pylint: disable=R6201
             return True
-        from .compilers import all_languages
-        if prefix in all_languages:
+        if prefix in self.all_languages:
             return True
         return False
 
@@ -779,4 +776,11 @@ class OptionStore:
 
     def is_compiler_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a compiler option."""
-        return key.lang is not None
+
+        # FIXME, duplicate of is_reserved_name above. Should maybe store a cache instead.
+        if '_' not in key.name:
+            return False
+        prefix = key.name.split('_')[0]
+        if prefix in self.all_languages:
+            return True
+        return False

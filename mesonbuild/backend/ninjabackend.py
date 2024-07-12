@@ -1091,7 +1091,7 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        cppversion = target.get_option(OptionKey('std', machine=target.for_machine, lang='cpp'))
+        cppversion = target.get_option(OptionKey('cpp_std', machine=target.for_machine))
         if cppversion not in ('latest', 'c++latest', 'vc++latest'):
             return False
         if not mesonlib.current_vs_supports_modules():
@@ -1783,7 +1783,7 @@ class NinjaBackend(backends.Backend):
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
 
-        ext = target.get_option(OptionKey('language', machine=target.for_machine, lang='cython'))
+        ext = target.get_option(OptionKey('cython_language', machine=target.for_machine))
 
         pyx_sources = []  # Keep track of sources we're adding to build
 

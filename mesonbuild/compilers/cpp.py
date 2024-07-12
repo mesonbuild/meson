@@ -475,7 +475,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
             self.update_options(
                 opts,
                 self.create_option(options.UserArrayOption,
-                                   key.evolve('winlibs'),
+                                   key.evolve('cpp_winlibs'),
                                    'Standard Win libraries to link against',
                                    gnu_winlibs),
             )
@@ -483,17 +483,21 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
-        key = self.form_compileropt_key('std')
-        std = options.get_value(key)
+        stdkey = self.form_compileropt_key('std')
+        ehkey = self.form_compileropt_key('eh')
+        rttikey = self.form_compileropt_key('rtti')
+        debugstlkey = self.form_compileropt_key('debugstl')
+
+        std = options.get_value(stdkey)
         if std != 'none':
             args.append(self._find_best_cpp_std(std))
 
-        non_msvc_eh_options(options.get_value(key.evolve('eh')), args)
+        non_msvc_eh_options(options.get_value(ehkey), args)
 
-        if not options.get_value(key.evolve('rtti')):
+        if not options.get_value(rttikey):
             args.append('-fno-rtti')
 
-        if options.get_value(key.evolve('debugstl')):
+        if options.get_value(debugstlkey):
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
