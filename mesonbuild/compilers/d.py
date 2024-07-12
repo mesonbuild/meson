@@ -447,7 +447,7 @@ class DCompiler(Compiler):
         compile_cmdlist = self.exelist + self.get_output_args(output_name) + self._get_target_arch_args() + [source_name]
 
         # If cross-compiling, we can't run the sanity check, only compile it.
-        if environment.need_exe_wrapper(self.for_machine) and not environment.has_exe_wrapper():
+        if self.is_cross and not environment.has_exe_wrapper():
             compile_cmdlist += self.get_compile_only_args()
 
         pc = subprocess.Popen(compile_cmdlist, cwd=work_dir)
