@@ -510,6 +510,7 @@ def machine_info_can_run(machine_info: MachineInfo):
     if machine_info.system != detect_system():
         return False
     true_build_cpu_family = detect_cpu_family({})
+    assert machine_info.cpu_family is not None, 'called on incomplete machine_info'
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
         ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
