@@ -1355,7 +1355,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         raise EnvironmentException(f'{self.get_id()} does not support preprocessor')
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
-        return OptionKey(basename, machine=self.for_machine, lang=self.language)
+        return OptionKey(f'{self.language}_{basename}', machine=self.for_machine)
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
@@ -1363,9 +1363,9 @@ def get_global_options(lang: str,
                        env: 'Environment') -> 'dict[OptionKey, options.UserOption[Any]]':
     """Retrieve options that apply to all compilers for a given language."""
     description = f'Extra arguments passed to the {lang}'
-    argkey = OptionKey('args', lang=lang, machine=for_machine)
-    largkey = argkey.evolve('link_args')
-    envkey = argkey.evolve('env_args')
+    argkey = OptionKey(f'{lang}_args', machine=for_machine)
+    largkey = argkey.evolve(f'{lang}_link_args')
+    envkey = argkey.evolve(f'{lang}_env_args')
 
     comp_key = argkey if argkey in env.options else envkey
 

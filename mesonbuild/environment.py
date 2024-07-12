@@ -743,14 +743,12 @@ class Environment:
                 # if it changes on future invocations.
                 if self.first_invocation:
                     if keyname == 'ldflags':
-                        key = OptionKey('link_args', machine=for_machine, lang='c')  # needs a language to initialize properly
                         for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
-                            key = key.evolve(lang=lang)
+                            key = OptionKey(name=f'{lang}_link_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     elif keyname == 'cppflags':
-                        key = OptionKey('env_args', machine=for_machine, lang='c')
                         for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
-                            key = key.evolve(lang=lang)
+                            key = OptionKey(f'{lang}_env_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
@@ -770,7 +768,8 @@ class Environment:
                             # We still use the original key as the base here, as
                             # we want to inherit the machine and the compiler
                             # language
-                            key = key.evolve('env_args')
+                            lang = key.name.split('_', 1)[0]
+                            key = key.evolve(f'{lang}_env_args')
                         env_opts[key].extend(p_list)
 
         # Only store options that are not already in self.options,

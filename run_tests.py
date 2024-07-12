@@ -153,7 +153,7 @@ def get_fake_env(sdir: str = '', bdir: T.Optional[str] = None, prefix: str = '',
     if opts is None:
         opts = get_fake_options(prefix)
     env = Environment(sdir, bdir, opts)
-    env.coredata.optstore.set_value_object(OptionKey('args', lang='c'),  FakeCompilerOptions())
+    env.coredata.optstore.set_value_object(OptionKey('c_args'),  FakeCompilerOptions())
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
     # Invalidate cache when using a different Environment object.
     clear_meson_configure_class_caches()

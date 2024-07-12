@@ -269,7 +269,7 @@ class RustModule(ExtensionModule):
                 raise InterpreterException(f'Unknown file type extension for: {name}')
 
         # We only want include directories and defines, other things may not be valid
-        cargs = state.get_option('args', state.subproject, lang=language)
+        cargs = state.get_option(f'{language}_args', state.subproject)
         assert isinstance(cargs, list), 'for mypy'
         for a in itertools.chain(state.global_args.get(language, []), state.project_args.get(language, []), cargs):
             if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
@@ -280,7 +280,7 @@ class RustModule(ExtensionModule):
 
         # Add the C++ standard to the clang arguments. Attempt to translate VS
         # extension versions into the nearest standard version
-        std = state.get_option('std', lang=language)
+        std = state.get_option(f'{language}_std')
         assert isinstance(std, str), 'for mypy'
         if std.startswith('vc++'):
             if std.endswith('latest'):

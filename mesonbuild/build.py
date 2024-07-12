@@ -652,10 +652,20 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
 
         self.set_option_overrides(self.parse_overrides(kwargs))
 
+    def is_compiler_option_hack(self, key):
+        # FIXME this method must be deleted when OptionsView goes away.
+        # At that point the build target only stores the original string.
+        # The decision on how to use those pieces of data is done elsewhere.
+        from .compilers import all_languages
+        if '_' not in key.name:
+            return False
+        prefix = key.name.split('_')[0]
+        return prefix in all_languages
+
     def set_option_overrides(self, option_overrides: T.Dict[OptionKey, str]) -> None:
         self.options.overrides = {}
         for k, v in option_overrides.items():
-            if k.lang:
+            if self.is_compiler_option_hack(k):
                 self.options.overrides[k.evolve(machine=self.for_machine)] = v
             else:
                 self.options.overrides[k] = v
@@ -1002,7 +1012,7 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            key = OptionKey('language', machine=self.for_machine, lang='cython')
+            key = OptionKey('cython_language', machine=self.for_machine)
             value = self.get_option(key)
 
             try:

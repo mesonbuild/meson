@@ -626,7 +626,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
-            env.coredata.optstore.set_value_object(OptionKey('link_args', lang='c'), FakeCompilerOptions())
+            env.coredata.optstore.set_value_object(OptionKey('c_link_args'), FakeCompilerOptions())
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -1704,8 +1704,8 @@ class InternalTests(unittest.TestCase):
 
     def test_option_key_from_string(self) -> None:
         cases = [
-            ('c_args', OptionKey('args', lang='c')),
-            ('build.cpp_args', OptionKey('args', machine=MachineChoice.BUILD, lang='cpp')),
+            ('c_args', OptionKey('c_args')),
+            ('build.cpp_args', OptionKey('cpp_args', machine=MachineChoice.BUILD)),
             ('prefix', OptionKey('prefix')),
             ('made_up', OptionKey('made_up')),
 

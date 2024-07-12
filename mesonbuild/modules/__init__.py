@@ -133,15 +133,14 @@ class ModuleState:
 
     def get_option(self, name: str, subproject: str = '',
                    machine: MachineChoice = MachineChoice.HOST,
-                   lang: T.Optional[str] = None,
                    module: T.Optional[str] = None) -> T.Union[T.List[str], str, int, bool]:
-        return self.environment.coredata.get_option(OptionKey(name, subproject, machine, lang, module))
+        return self.environment.coredata.get_option(OptionKey(name, subproject, machine, module))
 
     def is_user_defined_option(self, name: str, subproject: str = '',
                                machine: MachineChoice = MachineChoice.HOST,
                                lang: T.Optional[str] = None,
                                module: T.Optional[str] = None) -> bool:
-        key = OptionKey(name, subproject, machine, lang, module)
+        key = OptionKey(name, subproject, machine, module)
         return key in self._interpreter.user_defined_options.cmd_line_options
 
     def process_include_dirs(self, dirs: T.Iterable[T.Union[str, IncludeDirs]]) -> T.Iterable[IncludeDirs]:

@@ -568,20 +568,19 @@ class CoreData:
 
         return dirty
 
-    @staticmethod
-    def is_per_machine_option(optname: OptionKey) -> bool:
+    def is_per_machine_option(self, optname: OptionKey) -> bool:
         if optname.as_host() in options.BUILTIN_OPTIONS_PER_MACHINE:
             return True
-        return optname.lang is not None
+        return self.optstore.is_compiler_option(optname)
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        key = OptionKey('args', machine=for_machine, lang=lang)
+        key = OptionKey(f'{lang}_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        key = OptionKey('link_args', machine=for_machine, lang=lang)
+        key = OptionKey(f'{lang}_link_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
@@ -732,7 +731,8 @@ class CoreData:
         # These options are all new at this point, because the compiler is
         # responsible for adding its own options, thus calling
         # `self.optstore.update()`` is perfectly safe.
-        self.optstore.update(compilers.get_global_options(lang, comp, for_machine, env))
+        for gopt_key, gopt_valobj in compilers.get_global_options(lang, comp, for_machine, env).items():
+            self.optstore.add_compiler_option(lang, gopt_key, gopt_valobj)
 
     def process_compiler_options(self, lang: str, comp: Compiler, env: Environment, subproject: str) -> None:
         from . import compilers
@@ -924,7 +924,7 @@ class OptionsView(abc.Mapping):
                 # to hold overrides.
                 if isinstance(self.original_options, options.OptionStore):
                     if key2 not in self.original_options:
-                        raise KeyError
+                        raise KeyError(f'{key} {key2}')
                     opt = self.original_options.get_value_object(key2)
                 else:
                     opt = self.original_options[key2]
