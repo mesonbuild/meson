@@ -223,6 +223,7 @@ class ConverterTarget:
         self.install_dir: T.Optional[Path] = None
         self.link_libraries = target.link_libraries
         self.link_flags = target.link_flags + target.link_lang_flags
+        self.public_link_flags: T.List[str] = []
         self.depends_raw: T.List[str] = []
         self.depends: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
 
@@ -347,6 +348,7 @@ class ConverterTarget:
             rtgt = resolve_cmake_trace_targets(self.cmake_name, trace, self.env)
             self.includes += [Path(x) for x in rtgt.include_directories]
             self.link_flags += rtgt.link_flags
+            self.public_link_flags += rtgt.public_link_flags
             self.public_compile_opts += rtgt.public_compile_opts
             self.link_libraries += rtgt.libraries
 
@@ -1167,11 +1169,17 @@ class CMakeInterpreter:
 
             # declare_dependency kwargs
             dep_kwargs: TYPE_mixed_kwargs = {
-                'link_args': tgt.link_flags + tgt.link_libraries,
                 'link_with': id_node(tgt_var),
                 'compile_args': tgt.public_compile_opts,
                 'include_directories': id_node(inc_var),
             }
+
+            # Static libraries need all link options and transient dependencies, but other
+            # libraries should only use the link flags from INTERFACE_LINK_OPTIONS.
+            if tgt_func == 'static_library':
+                dep_kwargs['link_args'] = tgt.link_flags + tgt.link_libraries
+            else:
+                dep_kwargs['link_args'] = tgt.public_link_flags
 
             if dependencies:
                 generated += dependencies

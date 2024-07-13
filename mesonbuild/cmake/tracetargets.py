@@ -42,6 +42,7 @@ class ResolvedTarget:
     def __init__(self) -> None:
         self.include_directories: T.List[str] = []
         self.link_flags:          T.List[str] = []
+        self.public_link_flags:   T.List[str] = []
         self.public_compile_opts: T.List[str] = []
         self.libraries:           T.List[str] = []
 
@@ -111,7 +112,8 @@ def resolve_cmake_trace_targets(target_name: str,
             res.include_directories += [x for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
 
         if 'INTERFACE_LINK_OPTIONS' in tgt.properties:
-            res.link_flags += [x for x in tgt.properties['INTERFACE_LINK_OPTIONS'] if x]
+            res.public_link_flags += [x for x in tgt.properties['INTERFACE_LINK_OPTIONS'] if x]
+            res.link_flags += res.public_link_flags
 
         if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properties:
             res.public_compile_opts += ['-D' + re.sub('^-D', '', x) for x in tgt.properties['INTERFACE_COMPILE_DEFINITIONS'] if x]
