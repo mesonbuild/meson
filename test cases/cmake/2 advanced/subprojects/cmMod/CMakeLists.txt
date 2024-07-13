@@ -17,6 +17,13 @@ generate_export_header(cmModLib)
 
 set_target_properties(cmModLib PROPERTIES VERSION 1.0.1)
 
+include(CheckLinkerFlag)
+check_linker_flag(CXX "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/vers.map" HAS_VER_SCRIPT)
+if(HAS_VER_SCRIPT)
+  target_link_options(cmModLib PRIVATE
+    "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/vers.map")
+endif()
+
 add_executable(testEXE main.cpp "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 
 target_link_libraries(cmModLib       ZLIB::ZLIB)
