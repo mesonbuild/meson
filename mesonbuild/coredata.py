@@ -422,7 +422,11 @@ class CoreData:
             value = opts_map.get_value(key.as_root())
         else:
             value = None
-        opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
+        if key.has_module_prefix():
+            modulename = key.get_module_prefix()
+            opts_map.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
+        else:
+            opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
