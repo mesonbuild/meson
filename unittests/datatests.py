@@ -139,8 +139,8 @@ class DataTests(unittest.TestCase):
             found_entries |= options
 
         self.assertEqual(found_entries, {
-            *(str(k.evolve(module=None)) for k in mesonbuild.options.BUILTIN_OPTIONS),
-            *(str(k.evolve(module=None)) for k in mesonbuild.options.BUILTIN_OPTIONS_PER_MACHINE),
+            *(str(k.without_module_prefix()) for k in mesonbuild.options.BUILTIN_OPTIONS),
+            *(str(k.without_module_prefix()) for k in mesonbuild.options.BUILTIN_OPTIONS_PER_MACHINE),
         })
 
         # Check that `buildtype` table inside `Core options` matches how

@@ -272,12 +272,13 @@ class Conf:
                 dir_options[k] = v
             elif k in test_option_names:
                 test_options[k] = v
-            elif k.module:
+            elif k.has_module_prefix():
                 # Ignore module options if we did not use that module during
                 # configuration.
-                if self.build and k.module not in self.build.modules:
+                modname = k.get_module_prefix()
+                if self.build and modname not in self.build.modules:
                     continue
-                module_options[k.module][k] = v
+                module_options[modname][k] = v
             elif self.coredata.optstore.is_builtin_option(k):
                 core_options[k] = v
 
