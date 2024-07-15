@@ -1,9 +1,5 @@
 project('subproject isolation', ['c', 'cpp'])
 
-if not find_program('cmake', required: false).found()
-  error('MESON_SKIP_TEST CMake is not installed')
-endif
-
 incdir = meson.source_root() / 'incDir'
 
 cm = import('cmake')

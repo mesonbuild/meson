@@ -3,10 +3,6 @@
 project('user CMake find_package module using cmake_module_path', ['c', 'cpp'],
   meson_version: '>= 0.55.0')
 
-if not find_program('cmake', required: false).found()
-  error('MESON_SKIP_TEST cmake binary not available.')
-endif
-
 # NOTE: can't request Python3 via dependency('Python3', method: 'cmake')
 #  Meson intercepts and wants "method: auto"
 
