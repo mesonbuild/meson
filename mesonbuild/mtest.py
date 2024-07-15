@@ -1194,7 +1194,7 @@ async def read_decode(reader: asyncio.StreamReader,
             except asyncio.LimitOverrunError as e:
                 line_bytes = await reader.readexactly(e.consumed)
             if line_bytes:
-                line = decode(line_bytes)
+                line = decode(line_bytes).replace('\r\n', '\n')
                 stdo_lines.append(line)
                 if console_mode is ConsoleUser.STDOUT:
                     print(line, end='', flush=True)
