@@ -524,11 +524,13 @@ addon = napi.extension_module(
   'my_addon',
   [ 'src/my_source.cc' ],
   node_api_options: {
-    'async_pool':       4,
-    'es6':              true,
-    'stack':            '2MB',
-    'swig':             false,
-    'environments':     [ 'node', 'web', 'webview', 'worker' ]
+    'async_pool':               4,
+    'es6':                      True,
+    'stack':                    '2MB',
+    'swig':                     False,
+    'environments':             ['node', 'web', 'webview', 'worker'],
+    'exported_functions':       ['_malloc', '_free', '_napi_register_wasm_v1', '_node_api_module_get_api_version_v1']',
+    'exported_runtime_methods': ['emnapiInit']
   })
 ```
 
@@ -537,6 +539,8 @@ addon = napi.extension_module(
 * `stack`: (*applies only to WASM*) the maximum stack size, WASM cannot grow its stack
 * `swig`: disables a number of warnings on the four major supported compilers (`gcc`, `clang`, `MSVC` and `emscripten`) triggered by the generated C++ code by SWIG
 * `environments`: (*applies only to WASM*) determines the list of supported environments by the `emscripten` WASM loader, in particular, omitting `node` will produce a loader that does not work in Node.js, but can be bundled cleanly and without any extra configuration with most bundlers such as `webpack`
+* `exported_functions`: (*applies only to WASM*) allows to modify the default list of exported functions to the WASM code
+* `exported_runtime_methods`: (*applies only to WASM*) allows to modify the default list of WASM functions exported to JavaScript, typically the `FS` namespace can be added here to export the built-in filesystem API to JavaScript
 
 ## Advanced `xpm`, `meson` and `conan` options
 
