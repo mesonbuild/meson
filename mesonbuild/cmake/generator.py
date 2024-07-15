@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from .. import mesonlib
 from .. import mlog
-from ..mesonlib import OptionKey
 from .common import get_config_declined_property
 import typing as T
 
@@ -121,7 +120,7 @@ def parse_generator_expressions(
 
         # Configurations (Debug, Release...)
         # CMake is case-insensitive
-        'CONFIG': lambda x: '1' if x.upper() == T.cast('str', trace.env.coredata.get_option(OptionKey('buildtype'))).upper() else '0'
+        'CONFIG': lambda x: '1' if x.upper() == T.cast('str', trace.env.coredata.get_option(mesonlib.OptionKey('buildtype'))).upper() else '0'
     }
 
     # Recursively evaluate generator expressions
