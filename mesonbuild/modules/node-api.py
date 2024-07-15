@@ -12,6 +12,7 @@ import typing as T
 from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from .. import mlog
+from ..options import OptionKey
 from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
 from ..programs import ExternalProgram
 from ..interpreter.type_checking import SHARED_MOD_KWS, TEST_KWS
@@ -164,11 +165,11 @@ class NapiModule(ExtensionModule):
             link_args.extend(['-sMODULARIZE', '-sEXPORT_ES6=1', f'-sEXPORT_NAME={name}'])
         # emscripten cannot link code compiled with -pthread with code compiled without it
         build_opts = self.interpreter.environment.coredata.optstore
-        c_thread_count: int = build_opts.get_value(mesonlib.OptionKey('thread_count', lang='c'))
+        c_thread_count: int = build_opts.get_value(OptionKey('thread_count', lang='c'))
         cpp_thread_count: int = 0
         if 'cpp' in self.interpreter.environment.coredata.compilers.host:
-            cpp_thread_count = build_opts.get_value(mesonlib.OptionKey('thread_count', lang='cpp'))
-            exceptions = build_opts.get_value(mesonlib.OptionKey('eh', lang='cpp')) != 'none'
+            cpp_thread_count = build_opts.get_value(OptionKey('thread_count', lang='cpp'))
+            exceptions = build_opts.get_value(OptionKey('eh', lang='cpp')) != 'none'
             if exceptions:
                 cpp_args.append('-sNO_DISABLE_EXCEPTION_CATCHING')
                 link_args.append('-sNO_DISABLE_EXCEPTION_CATCHING')
@@ -342,7 +343,7 @@ class NapiModule(ExtensionModule):
             kwargs.setdefault('include_directories', []).extend([str(node_addon_api_dir)])
             kwargs.setdefault('override_options', {})
             # The default C++ standard when using node-addon-api should be C++17
-            cpp_std_key = mesonlib.OptionKey('std', lang='cpp')
+            cpp_std_key = OptionKey('std', lang='cpp')
             if cpp_std_key not in kwargs['override_options']:
                 kwargs['override_options'][cpp_std_key] = 'c++17'
 
