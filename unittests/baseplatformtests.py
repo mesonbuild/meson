@@ -52,7 +52,7 @@ class BasePlatformTests(TestCase):
         src_root = str(PurePath(__file__).parents[1])
         self.src_root = src_root
         # Get the backend
-        self.backend_name = os.environ['MESON_UNIT_TEST_BACKEND']
+        self.backend_name = os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja')
         backend_type = 'vs' if self.backend_name.startswith('vs') else self.backend_name
         self.backend = getattr(Backend, backend_type)
         self.meson_args = ['--backend=' + self.backend_name]
