@@ -42,6 +42,7 @@ from run_tests import (
 # e.g. for assertXXX helpers.
 __unittest = True
 
+@mock.patch.dict(os.environ)
 class BasePlatformTests(TestCase):
     prefix = '/usr'
     libdir = 'lib'
@@ -81,7 +82,6 @@ class BasePlatformTests(TestCase):
         self.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
 
         # Misc stuff
-        self.orig_env = os.environ.copy()
         if self.backend is Backend.ninja:
             self.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
         else:
@@ -147,8 +147,6 @@ class BasePlatformTests(TestCase):
                 windows_proof_rmtree(path)
             except FileNotFoundError:
                 pass
-        os.environ.clear()
-        os.environ.update(self.orig_env)
         super().tearDown()
 
     def _run(self, command, *, workdir=None, override_envvars: T.Optional[T.Mapping[str, str]] = None, stderr=True):
