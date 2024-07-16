@@ -91,7 +91,6 @@ class BasePlatformTests(TestCase):
         os.environ['COLUMNS'] = '80'
         os.environ['PYTHONIOENCODING'] = 'utf8'
 
-        self.builddirs = []
         self.new_builddir()
 
     def change_builddir(self, newdir):
@@ -101,7 +100,10 @@ class BasePlatformTests(TestCase):
         self.installdir = os.path.join(self.builddir, 'install')
         self.distdir = os.path.join(self.builddir, 'meson-dist')
         self.mtest_command = self.meson_command + ['test', '-C', self.builddir]
-        self.builddirs.append(self.builddir)
+        if os.path.islink(newdir):
+            self.addCleanup(os.unlink, self.builddir)
+        else:
+            self.addCleanup(windows_proof_rmtree, self.builddir)
 
     def new_builddir(self):
         # Keep builddirs inside the source tree so that virus scanners
@@ -140,14 +142,6 @@ class BasePlatformTests(TestCase):
         log = self._get_meson_log()
         if log:
             print(log)
-
-    def tearDown(self):
-        for path in self.builddirs:
-            try:
-                windows_proof_rmtree(path)
-            except FileNotFoundError:
-                pass
-        super().tearDown()
 
     def _run(self, command, *, workdir=None, override_envvars: T.Optional[T.Mapping[str, str]] = None, stderr=True):
         '''
