@@ -281,7 +281,6 @@ class LinuxlikeTests(BasePlatformTests):
 
         symdir = f'{self.builddir}-symlink'
         os.symlink(self.builddir, symdir)
-        self.addCleanup(os.unlink, symdir)
         self.change_builddir(symdir)
 
         self.init(testdir)
