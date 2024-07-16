@@ -77,7 +77,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
                 f.write(code)
                 return f.name
-        
+
         fname = write_file("option('intminmax', type: 'integer', value: 10, min: 0, max: 5)")
         self.assertRaisesRegex(MesonException, 'Value 10 for option "intminmax" is more than maximum value 5.',
                                interp.process, fname)
@@ -85,7 +85,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['one', 'four'])")
         self.assertRaisesRegex(MesonException, 'Value "four" for option "array" is not in allowed choices: "one, two, three"',
                                interp.process, fname)
-        
+
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['four', 'five', 'six'])")
         self.assertRaisesRegex(MesonException, 'Values "four, five, six" for option "array" are not in allowed choices: "one, two, three"',
                                interp.process, fname)
@@ -187,7 +187,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         # Using parent as builddir should fail
         with self.subTest('parent directory'):
-            self.builddir = os.path.dirname(self.builddir)
+            self.builddir = self.common_test_dir
             with self.assertRaises(subprocess.CalledProcessError) as cm:
                 self.init(testdir)
             self.assertIn('cannot be a parent of source directory', cm.exception.stdout)
@@ -330,7 +330,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             ('a.txt', '{a,b,c}.txt', True),
             ('a.txt', '*.{txt,tex,cpp}', True),
             ('a.hpp', '*.{txt,tex,cpp}', False),
-            
+
             ('a1.txt', 'a{0..9}.txt', True),
             ('a001.txt', 'a{0..9}.txt', True),
             ('a-1.txt', 'a{-10..10}.txt', True),
