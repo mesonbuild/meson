@@ -47,50 +47,53 @@ class BasePlatformTests(TestCase):
     prefix = '/usr'
     libdir = 'lib'
 
-    def setUp(self):
-        super().setUp()
-        self.maxDiff = None
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.maxDiff = None
         src_root = str(PurePath(__file__).parents[1])
-        self.src_root = src_root
+        cls.src_root = src_root
         # Get the backend
-        self.backend_name = os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja')
-        backend_type = 'vs' if self.backend_name.startswith('vs') else self.backend_name
-        self.backend = getattr(Backend, backend_type)
-        self.meson_args = ['--backend=' + self.backend_name]
-        self.meson_native_files = []
-        self.meson_cross_files = []
-        self.meson_command = python_command + [get_meson_script()]
-        self.setup_command = self.meson_command + ['setup'] + self.meson_args
-        self.mconf_command = self.meson_command + ['configure']
-        self.mintro_command = self.meson_command + ['introspect']
-        self.wrap_command = self.meson_command + ['wrap']
-        self.rewrite_command = self.meson_command + ['rewrite']
+        cls.backend_name = os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja')
+        backend_type = 'vs' if cls.backend_name.startswith('vs') else cls.backend_name
+        cls.backend = getattr(Backend, backend_type)
+        cls.meson_args = ['--backend=' + cls.backend_name]
+        cls.meson_command = python_command + [get_meson_script()]
+        cls.setup_command = cls.meson_command + ['setup'] + cls.meson_args
+        cls.mconf_command = cls.meson_command + ['configure']
+        cls.mintro_command = cls.meson_command + ['introspect']
+        cls.wrap_command = cls.meson_command + ['wrap']
+        cls.rewrite_command = cls.meson_command + ['rewrite']
         # Backend-specific build commands
-        self.build_command, self.clean_command, self.test_command, self.install_command, \
-            self.uninstall_command = get_backend_commands(self.backend)
+        cls.build_command, cls.clean_command, cls.test_command, cls.install_command, \
+            cls.uninstall_command = get_backend_commands(cls.backend)
         # Test directories
-        self.common_test_dir = os.path.join(src_root, 'test cases/common')
-        self.python_test_dir = os.path.join(src_root, 'test cases/python')
-        self.rust_test_dir = os.path.join(src_root, 'test cases/rust')
-        self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
-        self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
-        self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
-        self.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
-        self.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
-        self.objc_test_dir = os.path.join(src_root, 'test cases/objc')
-        self.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
-        self.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
+        cls.common_test_dir = os.path.join(src_root, 'test cases/common')
+        cls.python_test_dir = os.path.join(src_root, 'test cases/python')
+        cls.rust_test_dir = os.path.join(src_root, 'test cases/rust')
+        cls.vala_test_dir = os.path.join(src_root, 'test cases/vala')
+        cls.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
+        cls.unit_test_dir = os.path.join(src_root, 'test cases/unit')
+        cls.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
+        cls.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
+        cls.objc_test_dir = os.path.join(src_root, 'test cases/objc')
+        cls.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
+        cls.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
 
         # Misc stuff
-        if self.backend is Backend.ninja:
-            self.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
+        if cls.backend is Backend.ninja:
+            cls.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
         else:
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
-            self.no_rebuild_stdout = [f'UNKNOWN BACKEND {self.backend.name!r}']
+            cls.no_rebuild_stdout = [f'UNKNOWN BACKEND {cls.backend.name!r}']
         os.environ['COLUMNS'] = '80'
         os.environ['PYTHONIOENCODING'] = 'utf8'
 
+    def setUp(self):
+        super().setUp()
+        self.meson_native_files = []
+        self.meson_cross_files = []
         self.new_builddir()
 
     def change_builddir(self, newdir):
