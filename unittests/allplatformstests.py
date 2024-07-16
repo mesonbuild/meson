@@ -1463,23 +1463,14 @@ class AllPlatformTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise SkipTest('Dist is only supported with Ninja')
 
-        try:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                project_dir = os.path.join(tmpdir, 'a')
-                shutil.copytree(os.path.join(self.unit_test_dir, '35 dist script'),
-                                project_dir)
-                git_init(project_dir)
-                self.init(project_dir)
-                self.build('dist')
+        project_dir = self.copy_srcdir(os.path.join(self.unit_test_dir, '35 dist script'))
+        git_init(project_dir)
+        self.init(project_dir)
+        self.build('dist')
 
-                self.new_builddir()
-                self.init(project_dir, extra_args=['-Dsub:broken_dist_script=false'])
-                self._run(self.meson_command + ['dist', '--include-subprojects'], workdir=self.builddir)
-        except PermissionError:
-            # When run under Windows CI, something (virus scanner?)
-            # holds on to the git files so cleaning up the dir
-            # fails sometimes.
-            pass
+        self.new_builddir()
+        self.init(project_dir, extra_args=['-Dsub:broken_dist_script=false'])
+        self._run(self.meson_command + ['dist', '--include-subprojects'], workdir=self.builddir)
 
     def create_dummy_subproject(self, project_dir, name):
         path = os.path.join(project_dir, 'subprojects', name)

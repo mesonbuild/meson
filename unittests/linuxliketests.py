@@ -1043,11 +1043,7 @@ class LinuxlikeTests(BasePlatformTests):
         Test that valac outputs generated C files in the expected location when
         the builddir is a subdir of the source tree.
         '''
-        testdir = os.path.join(self.vala_test_dir, '8 generated sources')
-        newdir = os.path.join(self.builddir, 'srctree')
-        shutil.copytree(testdir, newdir)
-        testdir = newdir
-        # New builddir
+        testdir = self.copy_srcdir(os.path.join(self.vala_test_dir, '8 generated sources'))
         builddir = os.path.join(testdir, 'subdir/_build')
         os.makedirs(builddir, exist_ok=True)
         self.change_builddir(builddir)
