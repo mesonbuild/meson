@@ -9,7 +9,7 @@ import textwrap
 import os
 import shutil
 import hashlib
-from unittest import mock, skipUnless, SkipTest
+from unittest import mock, skipIf, skipUnless, SkipTest
 from glob import glob
 from pathlib import Path
 import typing as T
@@ -85,7 +85,7 @@ def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[
         return version_compare(compiler.version, apple_minver)
     return version_compare(compiler.version, minver)
 
-@skipUnless(not is_windows(), "requires something Unix-like")
+@skipIf(is_windows(), "requires something Unix-like")
 class LinuxlikeTests(BasePlatformTests):
     '''
     Tests that should run on Linux, macOS, and *BSD
