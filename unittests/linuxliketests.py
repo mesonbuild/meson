@@ -585,13 +585,22 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'user@exe/user-unity.c'))
         self.build()
 
+    def _build_in_tmpdir_if_cygwin(self) -> None:
+        # Running this in the source directory causes random test failures,
+        # so always put it in the the tempdir
+        # https://github.com/mesonbuild/meson/pull/5546#issuecomment-509666523
+        if is_cygwin():
+            builddir = tempfile.mkdtemp()
+            self.addCleanup(windows_proof_rmtree, builddir)
+            self.change_builddir(builddir)
+
     def test_installed_modes(self):
         '''
         Test that files installed by these tests have the correct permissions.
         Can't be an ordinary test because our installed_files.txt is very basic.
         '''
-        if is_cygwin():
-            self.new_builddir_in_tempdir()
+        self._build_in_tmpdir_if_cygwin()
+
         # Test file modes
         testdir = os.path.join(self.common_test_dir, '12 data')
         self.init(testdir)
@@ -644,8 +653,8 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that files are installed with correct permissions using install_mode.
         '''
-        if is_cygwin():
-            self.new_builddir_in_tempdir()
+        self._build_in_tmpdir_if_cygwin()
+
         testdir = os.path.join(self.common_test_dir, '190 install_mode')
         self.init(testdir)
         self.build()
@@ -684,8 +693,8 @@ class LinuxlikeTests(BasePlatformTests):
         install umask of 022, regardless of the umask at time the worktree
         was checked out or the build was executed.
         '''
-        if is_cygwin():
-            self.new_builddir_in_tempdir()
+        self._build_in_tmpdir_if_cygwin()
+
         # Copy source tree to a temporary directory and change permissions
         # there to simulate a checkout with umask 002.
         orig_testdir = os.path.join(self.unit_test_dir, '26 install umask')
