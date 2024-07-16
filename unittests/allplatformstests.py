@@ -1692,6 +1692,7 @@ class AllPlatformTests(BasePlatformTests):
             cmd += ['/nologo', '/Fo' + objectfile, '/c', source] + extra_args
         else:
             cmd += ['-c', source, '-o', objectfile] + extra_args
+        self.addCleanup(windows_proof_rm, objectfile)
         subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def test_prebuilt_object(self):
@@ -1700,12 +1701,9 @@ class AllPlatformTests(BasePlatformTests):
         source = os.path.join(tdir, 'source.c')
         objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
         self.pbcompile(compiler, source, objectfile)
-        try:
-            self.init(tdir)
-            self.build()
-            self.run_tests()
-        finally:
-            os.unlink(objectfile)
+        self.init(tdir)
+        self.build()
+        self.run_tests()
 
     def build_static_lib(self, compiler, linker, source, objectfile, outfile, extra_args=None):
         if extra_args is None:
@@ -1716,10 +1714,8 @@ class AllPlatformTests(BasePlatformTests):
         link_cmd += linker.get_output_args(outfile)
         link_cmd += [objectfile]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
-        try:
-            subprocess.check_call(link_cmd)
-        finally:
-            os.unlink(objectfile)
+        self.addCleanup(windows_proof_rm, outfile)
+        subprocess.check_call(link_cmd)
 
     def test_prebuilt_static_lib(self):
         (cc, stlinker, object_suffix, _) = self.detect_prebuild_env()
@@ -1729,12 +1725,9 @@ class AllPlatformTests(BasePlatformTests):
         stlibfile = os.path.join(tdir, 'libdir/libbest.a')
         self.build_static_lib(cc, stlinker, source, objectfile, stlibfile)
         # Run the test
-        try:
-            self.init(tdir)
-            self.build()
-            self.run_tests()
-        finally:
-            os.unlink(stlibfile)
+        self.init(tdir)
+        self.build()
+        self.run_tests()
 
     def build_shared_lib(self, compiler, source, objectfile, outfile, impfile, extra_args=None):
         if extra_args is None:
@@ -1750,10 +1743,10 @@ class AllPlatformTests(BasePlatformTests):
             if not is_osx():
                 link_cmd += ['-Wl,-soname=' + os.path.basename(outfile)]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
-        try:
-            subprocess.check_call(link_cmd)
-        finally:
-            os.unlink(objectfile)
+        self.addCleanup(windows_proof_rm, outfile)
+        if compiler.get_argument_syntax() == 'msvc':
+            self.addCleanup(windows_proof_rm, impfile)
+        subprocess.check_call(link_cmd)
 
     def test_prebuilt_shared_lib(self):
         (cc, _, object_suffix, shared_suffix) = self.detect_prebuild_env()
@@ -1777,8 +1770,6 @@ class AllPlatformTests(BasePlatformTests):
                     if os.path.splitext(fname)[1] not in {'.c', '.h'}:
                         os.unlink(fname)
             self.addCleanup(cleanup)
-        else:
-            self.addCleanup(os.unlink, shlibfile)
 
         # Run the test
         self.init(tdir)
@@ -1992,8 +1983,6 @@ class AllPlatformTests(BasePlatformTests):
             self.build()
             self.run_tests()
         finally:
-            os.unlink(stlibfile)
-            os.unlink(shlibfile)
             if is_windows():
                 # Clean up all the garbage MSVC writes in the
                 # source tree.
