@@ -102,12 +102,18 @@ class BasePlatformTests(TestCase):
         self.meson_cross_files = []
         self.new_builddir()
 
+    @property
+    def privatedir(self) -> str:
+        return os.path.join(self.builddir, 'meson-private')
+
+    @property
+    def distdir(self) -> str:
+        return os.path.join(self.builddir, 'meson-dist')
+
     def change_builddir(self, newdir):
         self.builddir = newdir
-        self.privatedir = os.path.join(self.builddir, 'meson-private')
         self.logdir = os.path.join(self.builddir, 'meson-logs')
         self.installdir = os.path.join(self.builddir, 'install')
-        self.distdir = os.path.join(self.builddir, 'meson-dist')
         self.mtest_command = self.meson_command + ['test', '-C', self.builddir]
         if os.path.islink(newdir):
             self.addCleanup(os.unlink, self.builddir)
@@ -199,7 +205,6 @@ class BasePlatformTests(TestCase):
                 args += ['--native-file', f]
             for f in self.meson_cross_files:
                 args += ['--cross-file', f]
-        self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
                 returncode, out, err = run_configure_inprocess(['setup'] + self.meson_args + args + extra_args + build_and_src_dir_args, override_envvars)
