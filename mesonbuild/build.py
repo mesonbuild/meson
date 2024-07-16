@@ -1280,10 +1280,10 @@ class BuildTarget(Target):
             if t not in result:
                 result.add(t)
                 if isinstance(t, StaticLibrary):
-                    t.get_dependencies_recurse(result)
+                    t.get_dependencies_recurse(result, include_proc_macros = self.uses_rust())
         return result
 
-    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True) -> None:
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True, include_proc_macros: bool = False) -> None:
         # self is always a static library because we don't need to pull dependencies
         # of shared libraries. If self is installed (not internal) it already
         # include objects extracted from all its internal dependencies so we can
@@ -1292,14 +1292,14 @@ class BuildTarget(Target):
         for t in self.link_targets:
             if t in result:
                 continue
-            if t.rust_crate_type == 'proc-macro':
+            if not include_proc_macros and t.rust_crate_type == 'proc-macro':
                 continue
             if include_internals or not t.is_internal():
                 result.add(t)
             if isinstance(t, StaticLibrary):
-                t.get_dependencies_recurse(result, include_internals)
+                t.get_dependencies_recurse(result, include_internals, include_proc_macros)
         for t in self.link_whole_targets:
-            t.get_dependencies_recurse(result, include_internals)
+            t.get_dependencies_recurse(result, include_internals, include_proc_macros)
 
     def get_source_subdir(self):
         return self.subdir
