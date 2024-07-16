@@ -88,11 +88,11 @@ class BasePlatformTests(TestCase):
 
         # Misc stuff
         if cls.backend is Backend.ninja:
-            cls.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
+            cls.no_rebuild_stdout = {'ninja: no work to do.', 'samu: nothing to do'}
         else:
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
-            cls.no_rebuild_stdout = [f'UNKNOWN BACKEND {cls.backend.name!r}']
+            cls.no_rebuild_stdout = {f'UNKNOWN BACKEND {cls.backend.name!r}'}
         os.environ['COLUMNS'] = '80'
         os.environ['PYTHONIOENCODING'] = 'utf8'
 
