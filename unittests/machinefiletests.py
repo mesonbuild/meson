@@ -27,7 +27,8 @@ import mesonbuild.modules.gnome
 from mesonbuild import machinefile
 
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_haiku, is_sunos
+    MachineChoice, is_windows, is_osx, is_cygwin, is_haiku, is_sunos,
+    windows_proof_rmtree, windows_proof_rm
 )
 from mesonbuild.compilers import (
     detect_swift_compiler, compiler_from_language
@@ -521,6 +522,8 @@ class NativeFileTests(BasePlatformTests):
         testcase = os.path.join(self.common_test_dir, '98 subproject subdir')
         config = self.helper_create_native_file({'built-in options': {'default_library': 'both', 'c_args': ['-Dfoo']}, 'sub:built-in options': {'default_library': 'static'}})
 
+        self.addCleanup(windows_proof_rmtree, os.path.join(testcase, 'subprojects/subsubsub-1.0'))
+        self.addCleanup(windows_proof_rm, os.path.join(testcase, 'subprojects/subsubsub.wrap'))
         self.init(testcase, extra_args=['--native-file', config])
         configuration = self.introspect('--buildoptions')
         found = 0

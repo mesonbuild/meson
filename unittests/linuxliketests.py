@@ -24,7 +24,7 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
     MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
-    is_sunos, windows_proof_rmtree, version_compare, is_linux,
+    is_sunos, windows_proof_rm, windows_proof_rmtree, version_compare, is_linux,
     EnvironmentException
 )
 from mesonbuild.options import OptionKey
@@ -1644,13 +1644,13 @@ class LinuxlikeTests(BasePlatformTests):
             """.format(source_filename, source_hash, patch_filename, patch_hash))
         with open(wrap_filename, 'w', encoding='utf-8') as f:
             f.write(wrap)
+        self.addCleanup(windows_proof_rm, wrap_filename)
+        self.addCleanup(windows_proof_rmtree, os.path.join(testdir, 'subprojects', 'packagecache'))
+        self.addCleanup(windows_proof_rmtree, os.path.join(testdir, 'subprojects', 'foo'))
         self.init(testdir)
         self.build()
         self.run_tests()
 
-        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'packagecache'))
-        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'foo'))
-        os.unlink(wrap_filename)
 
     def test_no_rpath_for_static(self):
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')
