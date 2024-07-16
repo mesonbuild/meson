@@ -1527,26 +1527,26 @@ class AllPlatformTests(BasePlatformTests):
             self.assertPathDoesNotExist(zip_checksumfile)
             # update a source file timestamp; dist should succeed anyway
             os.utime(distexe_c)
+            self.addCleanup(windows_proof_rm, bz_distfile)
+            self.addCleanup(windows_proof_rm, bz_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'bztar'],
                       workdir=self.builddir)
             self.assertPathExists(bz_distfile)
             self.assertPathExists(bz_checksumfile)
+            self.addCleanup(windows_proof_rm, gz_distfile)
+            self.addCleanup(windows_proof_rm, gz_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'gztar'],
                       workdir=self.builddir)
             self.assertPathExists(gz_distfile)
             self.assertPathExists(gz_checksumfile)
+            self.addCleanup(windows_proof_rm, zip_distfile)
+            self.addCleanup(windows_proof_rm, zip_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'zip'],
                       workdir=self.builddir)
             self.assertPathExists(zip_distfile)
             self.assertPathExists(zip_checksumfile)
-            os.remove(xz_distfile)
-            os.remove(xz_checksumfile)
-            os.remove(bz_distfile)
-            os.remove(bz_checksumfile)
-            os.remove(gz_distfile)
-            os.remove(gz_checksumfile)
-            os.remove(zip_distfile)
-            os.remove(zip_checksumfile)
+            self.addCleanup(windows_proof_rm, xz_distfile)
+            self.addCleanup(windows_proof_rm, xz_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'xztar,bztar,gztar,zip'],
                       workdir=self.builddir)
             self.assertPathExists(xz_distfile)
@@ -1590,6 +1590,8 @@ class AllPlatformTests(BasePlatformTests):
                 subproject_dir = os.path.join(project_dir, 'subprojects', 'samerepo')
                 self.new_builddir()
                 self.init(subproject_dir)
+                self.addCleanup(windows_proof_rm, xz_distfile)
+                self.addCleanup(windows_proof_rm, xz_checksumfile)
                 self.build('dist')
                 xz_distfile = os.path.join(self.distdir, 'samerepo-1.0.tar.xz')
                 xz_checksumfile = xz_distfile + '.sha256sum'
@@ -2175,8 +2177,8 @@ class AllPlatformTests(BasePlatformTests):
 
         # Test that old options are changed to the new defaults if they are not valid
         real_options = str(testdir / 'meson_options.txt')
-        self.addCleanup(os.unlink, real_options)
 
+        self.addCleanup(windows_proof_rm, real_options)
         shutil.copy(options1, real_options)
         self.init(str(testdir))
         self.mac_ci_delay()
@@ -2994,6 +2996,8 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_introspect_projectinfo_subprojects(self):
         testdir = os.path.join(self.common_test_dir, '98 subproject subdir')
+        self.addCleanup(windows_proof_rmtree, os.path.join(testdir, 'subprojects/subsubsub-1.0'))
+        self.addCleanup(windows_proof_rm, os.path.join(testdir, 'subprojects/subsubsub.wrap'))
         self.init(testdir)
         res = self.introspect('--projectinfo')
         expected = {
@@ -4908,6 +4912,7 @@ class AllPlatformTests(BasePlatformTests):
         symlinked_subproject = os.path.join(testdir, 'subprojects', 'symlinked_subproject')
         if not os.path.exists(subproject_dir):
             os.mkdir(subproject_dir)
+        self.addCleanup(windows_proof_rmtree, subproject_dir)
         try:
             os.symlink(subproject, symlinked_subproject)
         except OSError:

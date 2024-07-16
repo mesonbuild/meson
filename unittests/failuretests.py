@@ -268,15 +268,13 @@ class FailureTests(BasePlatformTests):
         '''
         tdir = os.path.join(self.unit_test_dir, '20 subproj dep variables')
         stray_file = os.path.join(tdir, 'subprojects/subsubproject.wrap')
-        if os.path.exists(stray_file):
-            windows_proof_rm(stray_file)
+        self.addCleanup(windows_proof_rm, stray_file)
         out = self.init(tdir, inprocess=True)
         self.assertRegex(out, r"Neither a subproject directory nor a .*nosubproj.wrap.* file was found")
         self.assertRegex(out, r'Function does not take positional arguments.')
         self.assertRegex(out, r'Dependency .*somenotfounddep.* from subproject .*subprojects/somesubproj.* found: .*NO.*')
         self.assertRegex(out, r'Dependency .*zlibproxy.* from subproject .*subprojects.*somesubproj.* found: .*YES.*')
         self.assertRegex(out, r'Missing key .*source_filename.* in subsubproject.wrap')
-        windows_proof_rm(stray_file)
 
     def test_exception_exit_status(self):
         '''
