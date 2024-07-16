@@ -186,43 +186,50 @@ class PlatformAgnosticTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
 
         # Using parent as builddir should fail
-        self.builddir = os.path.dirname(self.builddir)
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testdir)
-        self.assertIn('cannot be a parent of source directory', cm.exception.stdout)
+        with self.subTest('parent directory'):
+            self.builddir = os.path.dirname(self.builddir)
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.init(testdir)
+            self.assertIn('cannot be a parent of source directory', cm.exception.stdout)
 
         # Reconfigure of empty builddir should work
-        self.new_builddir()
-        self.init(testdir, extra_args=['--reconfigure'])
+        with self.subTest('reconfigure empty build dir'):
+            self.new_builddir()
+            self.init(testdir, extra_args=['--reconfigure'])
 
         # Reconfigure of not empty builddir should work
-        self.new_builddir()
-        Path(self.builddir, 'dummy').touch()
-        self.init(testdir, extra_args=['--reconfigure'])
+        with self.subTest('Reconfigure with non-empty build dir'):
+            self.new_builddir()
+            Path(self.builddir, 'dummy').touch()
+            self.init(testdir, extra_args=['--reconfigure'])
 
         # Setup a valid builddir should update options but not reconfigure
-        self.assertEqual(self.getconf('buildtype'), 'debug')
-        o = self.init(testdir, extra_args=['-Dbuildtype=release'])
-        self.assertIn('Directory already configured', o)
-        self.assertNotIn('The Meson build system', o)
-        self.assertEqual(self.getconf('buildtype'), 'release')
+        with self.subTest('update without reconfigure'):
+            self.assertEqual(self.getconf('buildtype'), 'debug')
+            o = self.init(testdir, extra_args=['-Dbuildtype=release'])
+            self.assertIn('Directory already configured', o)
+            self.assertNotIn('The Meson build system', o)
+            self.assertEqual(self.getconf('buildtype'), 'release')
 
         # Wipe of empty builddir should work
-        self.new_builddir()
-        self.init(testdir, extra_args=['--wipe'])
+        with self.subTest('wipe empty builddir'):
+            self.new_builddir()
+            self.init(testdir, extra_args=['--wipe'])
 
         # Wipe of partial builddir should work
-        self.new_builddir()
-        Path(self.builddir, 'meson-private').mkdir()
-        Path(self.builddir, 'dummy').touch()
-        self.init(testdir, extra_args=['--wipe'])
+        with self.subTest('wipe partial builddir'):
+            self.new_builddir()
+            Path(self.builddir, 'meson-private').mkdir()
+            Path(self.builddir, 'dummy').touch()
+            self.init(testdir, extra_args=['--wipe'])
 
         # Wipe of not empty builddir should fail
-        self.new_builddir()
-        Path(self.builddir, 'dummy').touch()
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testdir, extra_args=['--wipe'])
-        self.assertIn('Directory is not empty', cm.exception.stdout)
+        with self.subTest('wipe not empty builddir'):
+            self.new_builddir()
+            Path(self.builddir, 'dummy').touch()
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.init(testdir, extra_args=['--wipe'])
+            self.assertIn('Directory is not empty', cm.exception.stdout)
 
     def test_scripts_loaded_modules(self):
         '''
