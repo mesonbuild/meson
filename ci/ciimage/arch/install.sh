@@ -29,9 +29,16 @@ PACMAN_OPTS='--needed --noprogressbar --noconfirm'
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # Patch config files
+pacman -Syu $PACMAN_OPTS ed
 sed -i 's/#Color/Color/g'                            /etc/pacman.conf
 sed -i 's,#MAKEFLAGS="-j2",MAKEFLAGS="-j$(nproc)",g' /etc/makepkg.conf
 sed -i "s,PKGEXT='.pkg.tar.zst',PKGEXT='.pkg.tar',g" /etc/makepkg.conf
+ed /etc/makepkg.conf<<EOF
+/^OPTIONS=/
+s/debug/!debug/
+w
+q
+EOF
 
 # Install packages
 pacman -Syu $PACMAN_OPTS "${pkgs[@]}"
