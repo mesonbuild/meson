@@ -13,8 +13,7 @@ mkdir $GENDIR
 cp -r .git $GENDIR
 cd $GENDIR
 git reset --hard
-#python3 setup.py sdist bdist
-python3 setup.py sdist
+python3 setup.py sdist bdist_wheel
 cp dist/* ../dist
 cd ..
 rm -rf $GENDIR
