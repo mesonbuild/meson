@@ -641,7 +641,7 @@ class ClangSystemDependency(SystemDependency):
                 self.is_found = True
                 return
 
-            mlog.debug(f'Could not find Clang in {search}, because of version mismatch, '
+            mlog.debug(f'Could not use Clang in {search}, because of version mismatch, '
                        f'required {", ".join(self.version_reqs)}, version: {version}')
 
     def log_details(self) -> str:
