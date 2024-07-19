@@ -479,8 +479,11 @@ class GnomeModule(ExtensionModule):
             else:
                 raise MesonException('Compiling GResources into code is only supported in C and C++ projects')
 
-        if kwargs['install'] and not gresource:
-            raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
+        if kwargs['install']:
+            if not gresource:
+                raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
+            elif not kwargs['install_dir']:
+                raise MesonException('gnome.compile_resources: "install_dir" keyword argument must be set when "install" is true.')
 
         install_header = kwargs['install_header']
         if install_header and gresource:
