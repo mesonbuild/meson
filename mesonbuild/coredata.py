@@ -451,10 +451,9 @@ class CoreData:
     def get_option_for_target(self, target: BuildTarget, key: T.Union[str, OptionKey]) -> T.Union[T.List[str], str, int, bool, WrapMode]:
         if isinstance(key, str):
             assert ':' not in key
-            oldkey = OptionKey(key, target.subproject)
+            newkey = OptionKey(key, target.subproject)
         else:
-            oldkey = key
-        newkey = options.convert_oldkey(oldkey)
+            newkey = key
         assert newkey.subproject is not None
         (option_object, value) = self.optstore.get_value_object_and_value_for(newkey)
         override = target.get_override(newkey.name, None)
@@ -801,7 +800,7 @@ class CoreData:
                     # FIXME, add augment
                     #self.optstore[k] = o  # override compiler option on reconfigure
                     pass
-            self.optstore.add_system_option(f'{k.lang}_{k.name}', o)
+            self.optstore.add_compiler_option(lang, f'{k.name}', o)
 
 #            if subproject:
 #                sk = k.evolve(subproject=subproject)
@@ -832,7 +831,7 @@ class CoreData:
                 skey = key.evolve(subproject=subproject)
             else:
                 skey = key
-            if not self.optstore.has_option(skey.name, None):
+            if skey not in self.optstore:
                 self.optstore.add_system_option(skey.name, copy.deepcopy(compilers.base_options[key]))
                 if skey in env.options:
                     self.optstore[skey].set_value(env.options[skey])
