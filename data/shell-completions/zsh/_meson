@@ -370,7 +370,7 @@ _arguments \
   )
 
   if (( CURRENT == 2 )); then
-    _describe -t commands "Meson subproject subcommands" commands
+    _describe -t commands "Meson subprojects subcommands" commands
   else
     local curcontext="$curcontext"
     cmd="${${commands[(r)$words[2]:*]%%:*}}"
@@ -381,7 +381,7 @@ _arguments \
         _meson-subprojects-$cmd
       fi
     else
-      _message "unknown meson subproject command: $words[2]"
+      _message "unknown meson subprojects command: $words[2]"
     fi
   fi
 
@@ -392,7 +392,7 @@ _arguments \
   local -a specs=(
     "$__meson_cd"
     '--clean[Clean the build directory]'
-    '(-j --jobs)'{'-j','--jobs'}'=[the number fo work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
+    '(-j --jobs)'{'-j','--jobs'}'=[the number of work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
     '(-l --load-average)'{'-l','--load-average'}'=[the system load average to try to maintain (if supported)]:_guard "[0-9]#" "load average"'
     '(-v --verbose)'{'-v','--verbose'}'[Show more output]'
     '--ninja-args=[Arguments to pass to ninja (only when using ninja)]'
