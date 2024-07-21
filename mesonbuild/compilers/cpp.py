@@ -618,8 +618,8 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         args: T.List[str] = []
         key = self.form_langopt_key('std')
         std = options.get_value(key)
-        if std.value != 'none':
-            args.append(self._find_best_cpp_std(std.value))
+        if std != 'none':
+            args.append(self._find_best_cpp_std(std))
 
         key = self.form_langopt_key('eh')
         non_msvc_eh_options(options.get_value(key), args)
@@ -695,7 +695,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
                 'c++03': 'c++98',
                 'gnu++03': 'gnu++98'
             }
-            args.append('-std=' + remap_cpp03.get(std.value, std))
+            args.append('-std=' + remap_cpp03.get(std, std))
         if options.get_value(key.evolve('eh')) == 'none':
             args.append('-fno-exceptions')
         if not options.get_value(key.evolve('rtti')):
