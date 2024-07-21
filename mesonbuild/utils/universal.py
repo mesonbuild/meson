@@ -680,9 +680,6 @@ def is_qnx() -> bool:
 def is_aix() -> bool:
     return platform.system().lower() == 'aix'
 
-def exe_exists(exe: str) -> bool:
-    return shutil.which(exe) is not None
-
 @lru_cache(maxsize=None)
 def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     '''
