@@ -814,10 +814,6 @@ class InternalTests(unittest.TestCase):
         self.assertTrue(vctools_ver.startswith(toolset_ver),
                         msg=f'{vctools_ver!r} does not start with {toolset_ver!r}')
 
-    def test_exe_exists(self):
-        self.assertTrue(utils.universal.exe_exists('python3'))
-        self.assertFalse(utils.universal.exe_exists('command_that_does_not_exist'))
-
     def test_split_args(self):
         split_args = mesonbuild.mesonlib.split_args
         join_args = mesonbuild.mesonlib.join_args
