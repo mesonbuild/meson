@@ -149,6 +149,9 @@ def find_coverage_tools(coredata: coredata.CoreData) -> T.Tuple[T.Optional[str],
     gcovr_exe, gcovr_version = detect_gcovr()
 
     llvm_cov_exe = detect_llvm_cov(compute_llvm_suffix(coredata))
+    # Some platforms may provide versioned clang but only non-versioned llvm utils
+    if llvm_cov_exe is None:
+        llvm_cov_exe = detect_llvm_cov('')
 
     lcov_exe, lcov_version, genhtml_exe = detect_lcov_genhtml()
 
