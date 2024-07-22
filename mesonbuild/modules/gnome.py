@@ -90,7 +90,7 @@ if T.TYPE_CHECKING:
         env: EnvironmentVariables
         export_packages: T.List[str]
         extra_args: T.List[str]
-        fatal_warnings: bool
+        fatal_warnings: T.Optional[bool]
         header: T.List[str]
         identifier_prefix: T.List[str]
         include_directories: T.List[T.Union[build.IncludeDirs, str]]
@@ -1145,7 +1145,7 @@ class GnomeModule(ExtensionModule):
         KwargInfo('dependencies', ContainerTypeInfo(list, Dependency), default=[], listify=True),
         KwargInfo('doc_format', (str, NoneType), since='1.8.0'),
         KwargInfo('export_packages', ContainerTypeInfo(list, str), default=[], listify=True),
-        KwargInfo('fatal_warnings', bool, default=False, since='0.55.0'),
+        KwargInfo('fatal_warnings', (bool, NoneType), default=None, since='0.55.0'),
         KwargInfo('header', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('identifier_prefix', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('include_directories', ContainerTypeInfo(list, (str, build.IncludeDirs)), default=[], listify=True),
@@ -1262,7 +1262,11 @@ class GnomeModule(ExtensionModule):
         if '--warn-error' in scan_command:
             FeatureDeprecated.single_use('gnome.generate_gir argument --warn-error', '0.55.0',
                                          state.subproject, 'Use "fatal_warnings" keyword argument', state.current_node)
-        if kwargs['fatal_warnings']:
+        fatal_warnings = kwargs['fatal_warnings']
+        if fatal_warnings is None:
+            fatal_warnings = state.environment.coredata.optstore.get_value_for(
+                OptionKey('werror', machine=MachineChoice.BUILD, subproject=state.subproject))
+        if fatal_warnings:
             scan_command.append('--warn-error')
 
         generated_files: list[build.GeneratedTypes] = []
