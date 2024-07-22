@@ -122,6 +122,9 @@ There are several keyword arguments. Many of these map directly to the
 * `symbol_prefix`: the symbol prefix for the gir object, e.g. `gtk`,
   (*Since 0.43.0*) an ordered list of multiple prefixes is allowed
 * `fatal_warnings`: *Since 0.55.0* turn scanner warnings into fatal errors.
+  If not set, *(Since 1.13.0)* Meson falls back to the value of the `werror`
+  option to determine whether to turn this on automatically. Explicitly
+  passing `true` or `false` always takes precedence over `werror`.
 
 Returns an array of two elements which are: `[gir_target,
 typelib_target]`
