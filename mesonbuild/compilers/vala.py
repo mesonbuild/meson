@@ -111,8 +111,8 @@ class ValaCompiler(Compiler):
                 msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
                 raise EnvironmentException(msg)
 
-    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
+    def find_library_from_cache(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
+                                libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Tuple[T.Optional[T.List[str]], bool]:
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if
@@ -125,14 +125,14 @@ class ValaCompiler(Compiler):
             args += vapi_args
             with self.cached_compile(code, env.coredata, extra_args=args, mode=CompileCheckMode.COMPILE) as p:
                 if p.returncode == 0:
-                    return vapi_args
+                    return vapi_args, p.cached
         # Not found? Try to find the vapi file itself.
         for d in extra_dirs:
             vapi = os.path.join(d, libname + '.vapi')
             if os.path.isfile(vapi):
-                return [vapi]
+                return [vapi], False
         mlog.debug(f'Searched {extra_dirs!r} and {libname!r} wasn\'t found')
-        return None
+        return None, False
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []

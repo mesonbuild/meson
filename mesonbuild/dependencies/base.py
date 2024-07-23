@@ -455,7 +455,7 @@ class NotFoundDependency(Dependency):
 
 class ExternalLibrary(ExternalDependency):
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
-                 language: str, silent: bool = False) -> None:
+                 language: str) -> None:
         super().__init__(DependencyTypeName('library'), environment, {}, language=language)
         self.name = name
         self.language = language
@@ -463,11 +463,6 @@ class ExternalLibrary(ExternalDependency):
         if link_args:
             self.is_found = True
             self.link_args = link_args
-        if not silent:
-            if self.is_found:
-                mlog.log('Library', mlog.bold(name), 'found:', mlog.green('YES'))
-            else:
-                mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         '''

@@ -100,10 +100,11 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
         return filename
 
-    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
+    def find_library_from_cache(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
+                                libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Tuple[T.Optional[T.List[str]], bool]:
         code = 'stop; end program'
-        return self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
+        p = self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
+        return p.linkargs, p.cached
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self._has_multi_arguments(args, env, 'stop; end program')

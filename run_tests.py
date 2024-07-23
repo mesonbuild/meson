@@ -292,7 +292,6 @@ def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str]:
     return returncode, out.getvalue()
 
 def clear_meson_configure_class_caches() -> None:
-    CCompiler.find_library_cache.clear()
     CCompiler.find_framework_cache.clear()
     PkgConfigInterface.class_impl.assign(False, False)
     mesonlib.project_meson_versions.clear()
