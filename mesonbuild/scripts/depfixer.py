@@ -386,7 +386,7 @@ def get_darwin_rpaths(fname: str) -> OrderedSet[str]:
     # Need to deduplicate rpaths, as macOS's install_name_tool
     # is *very* allergic to duplicate -delete_rpath arguments
     # when calling depfixer on installation.
-    result = OrderedSet()
+    result: OrderedSet[str] = OrderedSet()
     current_cmd = 'FOOBAR'
     for line in out.split('\n'):
         line = line.strip()
