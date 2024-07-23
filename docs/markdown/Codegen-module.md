@@ -56,3 +56,46 @@ headers = [l1[1], l1[2]]  # [header, table]
 l2 = codegen.lex('lexer.l', table : '@BASENAME@.tab.h')
 table = l2[1]
 ```
+
+### find_yacc()
+
+```meson
+codegen.find_yacc(implementations : ['bison', 'win_bison'])
+```
+
+This function provides fine grained controls over which implementation(s) and version(s) of the parser generator to use.
+
+Accepts the following keyword arguments:
+
+ - `implementations`: a string array of acceptable implementations to use. May include: `yacc`, `byacc`, or `bison`.
+ - `yacc_version`: a string array of version constraints to apply to the `yacc` binary
+ - `byacc_version`: a string array of version constraints to apply to the `byacc` binary
+ - `bison_version`: a string array of version constraints to apply to the `bison` binary
+ - `win_bison_version`: a string array of version constraints to apply to the `win_bison` binary
+
+### yacc()
+
+```meson
+codegen.yacc('parser.y')
+```
+
+This function wraps bison, yacc, byacc, and win_bison (on Windows), and attempts to abstract away the differences between them
+
+This requires an input file, which may be a string, File, or generated source. It additionally takes the following options keyword arguments:
+
+- `version`: Version constraints on the lexer
+- `args`: An array of extra arguments to pass the lexer
+- `plainname`: If set to true then `@PLAINNAME@` will be used as the source base, otherwise `@BASENAME@`.
+- `source`: the name of the source output. If this is unset Meson will use `{base}.{ext}` with an extension of `cpp` if the input has an extension of `.yy` or `c` otherwise, with base being determined by the `plainname` argument.
+- `header`: the name of the source output. If this is unset Meson will use `{base}.{ext}` with an extension of `hpp` if the input has an extension of `.yy` or `h` otherwise, with base being determined by the `plainname` argument.
+- `locations`: The name of the locations file, if one is generated. Due to the way yacc works this must be duplicated in the file and in the command.
+
+The outputs will be in the form `source header [locations]`, which means those can be accessed by indexing the output of the `yacc` call:
+
+```meson
+p1 = codegen.yacc('parser.y', header : '@BASENAME@.h', locations : 'locations.h')
+headers = [p1[1], p1[2]]  # [header, locations]
+
+p2 = codegen.yacc('parser.yy', locations : 'locations.hpp')
+locations = p2[1]
+```
