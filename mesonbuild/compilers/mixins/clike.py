@@ -278,7 +278,7 @@ class CLikeCompiler(Compiler):
         mode = CompileCheckMode.LINK
         if self.is_cross:
             binname += '_cross'
-            if environment.need_exe_wrapper(self.for_machine) and not environment.has_exe_wrapper():
+            if not environment.has_exe_wrapper():
                 # Linking cross built C/C++ apps is painful. You can't really
                 # tell if you should use -nostdlib or not and for example
                 # on OSX the compiler binary is the same but you need
@@ -308,7 +308,7 @@ class CLikeCompiler(Compiler):
         if pc.returncode != 0:
             raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
         # Run sanity check
-        if environment.need_exe_wrapper(self.for_machine):
+        if self.is_cross:
             if not environment.has_exe_wrapper():
                 # Can't check if the binaries run so we have to assume they do
                 return
@@ -1268,8 +1268,10 @@ class CLikeCompiler(Compiler):
         for arg in args:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
             # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
-            # check the equivalent enable flag too "-Wforgotten-towel"
-            if arg.startswith('-Wno-'):
+            # check the equivalent enable flag too "-Wforgotten-towel".
+            # Make an exception for -Wno-attributes=x as -Wattributes=x is invalid
+            # for GCC at least.
+            if arg.startswith('-Wno-') and not arg.startswith('-Wno-attributes='):
                 new_args.append('-W' + arg[5:])
             if arg.startswith('-Wl,'):
                 mlog.warning(f'{arg} looks like a linker argument, '

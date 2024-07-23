@@ -486,7 +486,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Check that all the listed -std=xxx options for this compiler work just fine when used
         # https://en.wikipedia.org/wiki/Xcode#Latest_versions
         # https://www.gnu.org/software/gcc/projects/cxx-status.html
-        key = OptionKey('std', lang=compiler.language)
+        key = OptionKey(f'{compiler.language}_std')
         for v in compiler.get_options()[key].choices:
             # we do it like this to handle gnu++17,c++17 and gnu17,c17 cleanly
             # thus, C++ first

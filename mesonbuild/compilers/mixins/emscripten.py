@@ -55,7 +55,7 @@ class EmscriptenMixin(Compiler):
 
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         args = ['-pthread']
-        count: int = env.coredata.optstore.get_value(OptionKey('thread_count', lang=self.language, machine=self.for_machine))
+        count: int = env.coredata.optstore.get_value(OptionKey(f'{self.language}_thread_count', machine=self.for_machine))
         if count:
             args.append(f'-sPTHREAD_POOL_SIZE={count}')
         return args
@@ -78,7 +78,7 @@ class EmscriptenMixin(Compiler):
             super().get_options(),
             self.create_option(
                 options.UserIntegerOption,
-                OptionKey('thread_count', machine=self.for_machine, lang=self.language),
+                OptionKey(f'{self.language}_thread_count', machine=self.for_machine),
                 'Number of threads to use in web assembly, set to 0 to disable',
                 (0, None, 4),  # Default was picked at random
             ),

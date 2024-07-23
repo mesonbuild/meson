@@ -11,7 +11,7 @@ addon = napi.extension_module(
   'hello_world',
   [ 'hello_world.cc' ],
   install: true,
-  node_api_options: { 'environments': ['node']}
+  node_api_options: { 'environments': ['node'], 'exported_runtime_methods': ['emnapiInit', 'FS'] }
   )
 
 if host_machine.system() == 'emscripten'

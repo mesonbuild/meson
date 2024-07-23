@@ -2725,11 +2725,11 @@ class AllPlatformTests(BasePlatformTests):
         # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('args', lang='c')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
+        self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('args', lang='c')), ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['foo bar', 'one', 'two'])
         self.wipe()
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
@@ -2748,7 +2748,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.optstore.get_value('bindir'), 'bar')
             self.assertEqual(obj.optstore.get_value('buildtype'), 'release')
             self.assertEqual(obj.optstore.get_value('b_sanitize'), 'thread')
-            self.assertEqual(obj.optstore.get_value(OptionKey('args', lang='c')), ['-Dbar'])
+            self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
@@ -2757,7 +2757,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.optstore.get_value('bindir'), 'foo')
             self.assertEqual(obj.optstore.get_value('buildtype'), 'plain')
             self.assertEqual(obj.optstore.get_value('b_sanitize'), 'address')
-            self.assertEqual(obj.optstore.get_value(OptionKey('args', lang='c')), ['-Dfoo'])
+            self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not
@@ -3758,9 +3758,9 @@ class AllPlatformTests(BasePlatformTests):
 
               User defined options
                 backend        : ''' + self.backend_name + '''
+                enabled_opt    : enabled
                 libdir         : lib
                 prefix         : /usr
-                enabled_opt    : enabled
                 python         : ''' + sys.executable + '''
             ''')
         expected_lines = expected.split('\n')[1:]

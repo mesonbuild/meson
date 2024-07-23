@@ -10,5 +10,8 @@
     {
       "line": "    ['CMMesonTESTf1::evil_non_standard_target']"
     }
-  ]
+  ],
+  "tools": {
+    "cmake": ">=3.11"
+  }
 }

@@ -82,7 +82,7 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
         return self.update_options(
             super().get_options(),
             self.create_option(options.UserComboOption,
-                               OptionKey('std', machine=self.for_machine, lang='cpp'),
+                               OptionKey('cpp_std', machine=self.for_machine),
                                'C++ language standard to use',
                                ['none', 'c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++2b',
                                 'gnu++98', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++20',
@@ -92,7 +92,7 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
 
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options.get_value(OptionKey('std', machine=self.for_machine, lang='cpp'))
+        std = options.get_value(OptionKey('cpp_std', machine=self.for_machine))
         if std != 'none':
             args.append('-std=' + std)
         return args

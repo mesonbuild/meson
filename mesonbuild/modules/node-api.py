@@ -31,11 +31,13 @@ if T.TYPE_CHECKING:
     SourcesVarargsType = T.List[T.Union[str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget]]
 
     class NodeAPIOptions(TypedDict):
-        async_pool:     int
-        es6:            bool
-        stack:          str
-        swig:           bool
-        environments:   T.List[str]
+        async_pool:                 int
+        es6:                        bool
+        stack:                      str
+        swig:                       bool
+        environments:               T.List[str]
+        exported_functions:         T.List[str]
+        exported_runtime_methods:   T.List[str]
 
 name_prefix = ''
 name_suffix_native = 'node'
@@ -50,11 +52,13 @@ _MOD_KWARGS = [k for k in SHARED_MOD_KWS if k.name not in {'name_prefix', 'name_
 
 # These are the defauls
 node_api_defaults: 'NodeAPIOptions' = {
-    'async_pool':       4,
-    'es6':              True,
-    'stack':            '2MB',
-    'swig':             False,
-    'environments':     ['node', 'web', 'webview', 'worker']
+    'async_pool':               4,
+    'es6':                      True,
+    'stack':                    '2MB',
+    'swig':                     False,
+    'environments':             ['node', 'web', 'webview', 'worker'],
+    'exported_functions':       ['_malloc', '_free', '_napi_register_wasm_v1', '_node_api_module_get_api_version_v1'],
+    'exported_runtime_methods': ['emnapiInit']
 }
 _NODE_API_OPTS_KW = KwargInfo('node_api_options', dict, default=node_api_defaults)
 
@@ -158,18 +162,21 @@ class NapiModule(ExtensionModule):
         c_args = []
         cpp_args = self.construct_swig_options(opts)
         link_args = ['-Wno-emcc', '-Wno-pthreads-mem-growth', '-sALLOW_MEMORY_GROWTH=1',
-                     '-sEXPORTED_FUNCTIONS=["_malloc","_free","_napi_register_wasm_v1","_node_api_module_get_api_version_v1"]',
                      '--bind', f'-sSTACK_SIZE={opts["stack"]}']
-
+        exported_functions = ','.join([f'"{f}"' for f in opts['exported_functions']])
+        exported_runtime_methods = ','.join([f'"{f}"' for f in opts['exported_runtime_methods']])
+        link_args.append(f'-sEXPORTED_FUNCTIONS=[{exported_functions}]')
+        link_args.append(f'-sEXPORTED_RUNTIME_METHODS=[{exported_runtime_methods}]')
         if opts['es6']:
             link_args.extend(['-sMODULARIZE', '-sEXPORT_ES6=1', f'-sEXPORT_NAME={name}'])
+
         # emscripten cannot link code compiled with -pthread with code compiled without it
         build_opts = self.interpreter.environment.coredata.optstore
-        c_thread_count: int = build_opts.get_value(OptionKey('thread_count', lang='c'))
+        c_thread_count: int = build_opts.get_value(OptionKey('c_thread_count'))
         cpp_thread_count: int = 0
         if 'cpp' in self.interpreter.environment.coredata.compilers.host:
-            cpp_thread_count = build_opts.get_value(OptionKey('thread_count', lang='cpp'))
-            exceptions = build_opts.get_value(OptionKey('eh', lang='cpp')) != 'none'
+            cpp_thread_count = build_opts.get_value(OptionKey('cpp_thread_count'))
+            exceptions = build_opts.get_value(OptionKey('cpp_eh')) != 'none'
             if exceptions:
                 cpp_args.append('-sNO_DISABLE_EXCEPTION_CATCHING')
                 link_args.append('-sNO_DISABLE_EXCEPTION_CATCHING')
@@ -273,24 +280,23 @@ class NapiModule(ExtensionModule):
             if key.name in npm_config_blacklist:
                 continue
             opt = build_opts.get_value_object(key)
-            env_name = key.name if key.lang is None else f'{key.lang}_{key.name}'
             if isinstance(opt.value, str):
-                if 'npm_config_' + env_name in os.environ:
-                    opt.set_value(os.environ['npm_config_' + env_name])
+                if 'npm_config_' + key.name in os.environ:
+                    opt.set_value(os.environ['npm_config_' + key.name])
             if isinstance(opt.value, bool):
-                npm_enable = 'npm_config_enable_' + env_name in os.environ
-                npm_disable = 'npm_config_disable_' + env_name in os.environ
+                npm_enable = 'npm_config_enable_' + key.name in os.environ
+                npm_disable = 'npm_config_disable_' + key.name in os.environ
                 if npm_enable and npm_disable:
                     l = list(os.environ.keys())
-                    mlog.warning(f'Found both --enable-{env_name} and --disable-{env_name}, last one wins')
-                    opt.set_value(l.index('npm_config_enable_' + env_name) > l.index('npm_config_disable_' + env_name))
+                    mlog.warning(f'Found both --enable-{key.name} and --disable-{key.name}, last one wins')
+                    opt.set_value(l.index('npm_config_enable_' + key.name) > l.index('npm_config_disable_' + key.name))
                 elif npm_enable:
                     opt.set_value(True)
                 elif npm_disable:
                     opt.set_value(False)
             if isinstance(opt.value, list):
-                if 'npm_config_' + env_name in os.environ:
-                    T.cast('options.UserArrayOption', opt).extend_value(os.environ['npm_config_' + env_name])
+                if 'npm_config_' + key.name in os.environ:
+                    T.cast('options.UserArrayOption', opt).extend_value(os.environ['npm_config_' + key.name])
 
     @permittedKwargs(mod_kwargs)
     @typed_pos_args('node-api.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
@@ -343,7 +349,7 @@ class NapiModule(ExtensionModule):
             kwargs.setdefault('include_directories', []).extend([str(node_addon_api_dir)])
             kwargs.setdefault('override_options', {})
             # The default C++ standard when using node-addon-api should be C++17
-            cpp_std_key = OptionKey('std', lang='cpp')
+            cpp_std_key = OptionKey('cpp_std')
             if cpp_std_key not in kwargs['override_options']:
                 kwargs['override_options'][cpp_std_key] = 'c++17'
 

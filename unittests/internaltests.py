@@ -34,7 +34,7 @@ from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
     is_cygwin, is_openbsd, search_version, MesonException,
 )
-from mesonbuild.options import OptionKey, OptionType
+from mesonbuild.options import OptionKey
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
@@ -626,7 +626,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
-            env.coredata.optstore.set_value_object(OptionKey('link_args', lang='c'), FakeCompilerOptions())
+            env.coredata.optstore.set_value_object(OptionKey('c_link_args'), FakeCompilerOptions())
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -813,10 +813,6 @@ class InternalTests(unittest.TestCase):
             vctools_ver = (Path(os.environ['VCINSTALLDIR']) / 'Auxiliary' / 'Build' / 'Microsoft.VCToolsVersion.default.txt').read_text(encoding='utf-8')
         self.assertTrue(vctools_ver.startswith(toolset_ver),
                         msg=f'{vctools_ver!r} does not start with {toolset_ver!r}')
-
-    def test_exe_exists(self):
-        self.assertTrue(utils.universal.exe_exists('python3'))
-        self.assertFalse(utils.universal.exe_exists('command_that_does_not_exist'))
 
     def test_split_args(self):
         split_args = mesonbuild.mesonlib.split_args
@@ -1704,16 +1700,16 @@ class InternalTests(unittest.TestCase):
 
     def test_option_key_from_string(self) -> None:
         cases = [
-            ('c_args', OptionKey('args', lang='c', _type=OptionType.COMPILER)),
-            ('build.cpp_args', OptionKey('args', machine=MachineChoice.BUILD, lang='cpp', _type=OptionType.COMPILER)),
-            ('prefix', OptionKey('prefix', _type=OptionType.BUILTIN)),
-            ('made_up', OptionKey('made_up', _type=OptionType.PROJECT)),
+            ('c_args', OptionKey('c_args')),
+            ('build.cpp_args', OptionKey('cpp_args', machine=MachineChoice.BUILD)),
+            ('prefix', OptionKey('prefix')),
+            ('made_up', OptionKey('made_up')),
 
             # TODO: the from_String method should be splitting the prefix off of
             # these, as we have the type already, but it doesn't. For now have a
             # test so that we don't change the behavior un-intentionally
-            ('b_lto', OptionKey('b_lto', _type=OptionType.BASE)),
-            ('backend_startup_project', OptionKey('backend_startup_project', _type=OptionType.BACKEND)),
+            ('b_lto', OptionKey('b_lto')),
+            ('backend_startup_project', OptionKey('backend_startup_project')),
         ]
 
         for raw, expected in cases:

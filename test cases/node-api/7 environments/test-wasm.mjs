@@ -14,7 +14,13 @@ import(path.resolve(env.NODE_PATH, env.NODE_ADDON))
       throw new Error('This is not a Node.js-exclusive loader');
     return r();
   })
-  .then((r) => r.emnapiInit({ context: emnapi.getDefaultContext() }))
+  .then((r) => {
+    const module = r.emnapiInit({ context: emnapi.getDefaultContext() });
+    assert.isObject(r.FS);
+    assert.isFunction(r.FS.open);
+    assert.isFunction(r.FS.mkdir);
+    return module;
+  })
   .then((addon) => {
     assert.strictEqual(addon.HelloWorld(), 'world');
   });

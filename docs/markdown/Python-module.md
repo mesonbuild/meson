@@ -121,6 +121,8 @@ Additionally, the following diverge from [[shared_module]]'s default behavior:
 - `gnu_symbol_visibility`: if unset, it will default to `'hidden'` on versions
   of Python that support this (the python headers define `PyMODINIT_FUNC` has
   default visibility).
+  
+Note that Cython support uses `extension_module`, see [the reference for Cython](Cython.md).
 
 *since 0.63.0* `extension_module` automatically adds a dependency to the library
 if one is not explicitly provided. To support older versions, the user may need to

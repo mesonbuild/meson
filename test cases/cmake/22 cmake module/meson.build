@@ -4,11 +4,6 @@ if build_machine.system() == 'cygwin'
   error('MESON_SKIP_TEST CMake is broken on Cygwin.')
 endif
 
-cmake_bin = find_program('cmake', required: false)
-if not cmake_bin.found()
-  error('MESON_SKIP_TEST CMake not installed.')
-endif
-
 cc = meson.get_compiler('c')
 if cc.get_id() == 'clang-cl' and meson.backend() == 'ninja' and build_machine.system() == 'windows'
     error('MESON_SKIP_TEST CMake installation nor operational for vs2017 clangclx64ninja')

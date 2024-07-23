@@ -652,10 +652,20 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
 
         self.set_option_overrides(self.parse_overrides(kwargs))
 
+    def is_compiler_option_hack(self, key):
+        # FIXME this method must be deleted when OptionsView goes away.
+        # At that point the build target only stores the original string.
+        # The decision on how to use those pieces of data is done elsewhere.
+        from .compilers import all_languages
+        if '_' not in key.name:
+            return False
+        prefix = key.name.split('_')[0]
+        return prefix in all_languages
+
     def set_option_overrides(self, option_overrides: T.Dict[OptionKey, str]) -> None:
         self.options.overrides = {}
         for k, v in option_overrides.items():
-            if k.lang:
+            if self.is_compiler_option_hack(k):
                 self.options.overrides[k.evolve(machine=self.for_machine)] = v
             else:
                 self.options.overrides[k] = v
@@ -1002,7 +1012,7 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            key = OptionKey('language', machine=self.for_machine, lang='cython')
+            key = OptionKey('cython_language', machine=self.for_machine)
             value = self.get_option(key)
 
             try:
@@ -1282,10 +1292,10 @@ class BuildTarget(Target):
             if t not in result:
                 result.add(t)
                 if isinstance(t, StaticLibrary):
-                    t.get_dependencies_recurse(result)
+                    t.get_dependencies_recurse(result, include_proc_macros = self.uses_rust())
         return result
 
-    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True) -> None:
+    def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True, include_proc_macros: bool = False) -> None:
         # self is always a static library because we don't need to pull dependencies
         # of shared libraries. If self is installed (not internal) it already
         # include objects extracted from all its internal dependencies so we can
@@ -1294,14 +1304,14 @@ class BuildTarget(Target):
         for t in self.link_targets:
             if t in result:
                 continue
-            if t.rust_crate_type == 'proc-macro':
+            if not include_proc_macros and t.rust_crate_type == 'proc-macro':
                 continue
             if include_internals or not t.is_internal():
                 result.add(t)
             if isinstance(t, StaticLibrary):
-                t.get_dependencies_recurse(result, include_internals)
+                t.get_dependencies_recurse(result, include_internals, include_proc_macros)
         for t in self.link_whole_targets:
-            t.get_dependencies_recurse(result, include_internals)
+            t.get_dependencies_recurse(result, include_internals, include_proc_macros)
 
     def get_source_subdir(self):
         return self.subdir

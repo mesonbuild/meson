@@ -15,7 +15,7 @@ endif
 cc_id = meson.get_compiler('c').get_id()
 compiler_specific_args = []
 if cc_id == 'gcc'
-  compiler_specific_args = ['-mtls-dialect=gnu2']
+  compiler_specific_args = ['-fipa-pta']
 elif cc_id == 'msvc'
   compiler_specific_args = ['/fp:fast']
 endif
