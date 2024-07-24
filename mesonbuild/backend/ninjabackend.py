@@ -1245,7 +1245,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         self.processed_targets.add(target.get_id())
 
-    def generate_coverage_command(self, elem, outputs: T.List[str], gcovr_exe: T.Optional[str], llvm_cov_exe: T.Optional[str]):
+    def generate_coverage_command(self, elem: NinjaBuildElement, outputs: T.List[str], gcovr_exe: T.Optional[str], llvm_cov_exe: T.Optional[str]):
         targets = self.build.get_targets().values()
         use_llvm_cov = False
         exe_args = []
