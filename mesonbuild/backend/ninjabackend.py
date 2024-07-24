@@ -305,6 +305,9 @@ class NinjaRule:
         return estimate
 
 class NinjaBuildElement:
+
+    rule: NinjaRule
+
     def __init__(self, all_outputs: T.Set[str], outfilenames, rulename, infilenames, implicit_outs=None):
         self.implicit_outfilenames = implicit_outs or []
         if isinstance(outfilenames, str):
