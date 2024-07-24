@@ -339,7 +339,7 @@ class NinjaBuildElement:
         else:
             self.orderdeps.add(dep)
 
-    def add_item(self, name: str, elems: T.Union[str, T.List[str, CompilerArgs]]) -> None:
+    def add_item(self, name: str, elems: T.Union[str, T.List[str], CompilerArgs]) -> None:
         # Always convert from GCC-style argument naming to the naming used by the
         # current compiler. Also filter system include paths, deduplicate, etc.
         if isinstance(elems, CompilerArgs):
