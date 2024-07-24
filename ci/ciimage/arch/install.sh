@@ -41,6 +41,9 @@ useradd -m $AUR_USER
 echo "${AUR_USER}:" | chpasswd -e
 echo "$AUR_USER      ALL = NOPASSWD: ALL" >> /etc/sudoers
 
+# fix installing packages from source, attempting to install debug info
+sed -i '/OPTIONS/{s|debug|!debug|}' /etc/makepkg.conf
+
 # Install yay
 su $AUR_USER -c 'cd; git clone https://aur.archlinux.org/yay.git'
 su $AUR_USER -c 'cd; cd yay; makepkg'
