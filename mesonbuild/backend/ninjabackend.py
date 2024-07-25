@@ -291,7 +291,7 @@ class NinjaRule:
         estimate = len(command)
         for m in re.finditer(r'(\${\w+}|\$\w+)?[^$]*', command):
             if m.start(1) != -1:
-                estimate -= m.end(1) - m.start(1) + 1
+                estimate -= m.end(1) - m.start(1)
                 chunk = m.group(1)
                 if chunk[1] == '{':
                     chunk = chunk[2:-1]
