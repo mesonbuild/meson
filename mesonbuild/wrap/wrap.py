@@ -76,9 +76,9 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
     if has_ssl:
         try:
             return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urllib.parse.urlunparse(url), timeout=REQ_TIMEOUT))
-        except urllib.error.URLError as excp:
+        except OSError as excp:
             msg = f'WrapDB connection failed to {urlstring} with error {excp}.'
-            if isinstance(excp.reason, ssl.SSLCertVerificationError):
+            if isinstance(excp, urllib.error.URLError) and isinstance(excp.reason, ssl.SSLCertVerificationError):
                 if allow_insecure:
                     mlog.warning(f'{msg}\n\n    Proceeding without authentication.')
                 else:
@@ -95,7 +95,7 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
     nossl_url = url._replace(scheme='http')
     try:
         return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urllib.parse.urlunparse(nossl_url), timeout=REQ_TIMEOUT))
-    except urllib.error.URLError as excp:
+    except OSError as excp:
         raise WrapException(f'WrapDB connection failed to {urlstring} with error {excp}')
 
 def get_releases_data(allow_insecure: bool) -> bytes:
@@ -704,7 +704,7 @@ class Resolver:
             try:
                 req = urllib.request.Request(urlstring, headers=headers)
                 resp = urllib.request.urlopen(req, timeout=REQ_TIMEOUT)
-            except urllib.error.URLError as e:
+            except OSError as e:
                 mlog.log(str(e))
                 raise WrapException(f'could not get {urlstring} is the internet available?')
         with contextlib.closing(resp) as resp, tmpfile as tmpfile:
