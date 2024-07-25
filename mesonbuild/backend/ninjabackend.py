@@ -98,10 +98,11 @@ def get_rsp_threshold() -> int:
         # and that has a limit of 8k.
         limit = 8192
     else:
-        # On Linux, ninja always passes the commandline as a single
-        # big string to /bin/sh, and the kernel limits the size of a
-        # single argument; see MAX_ARG_STRLEN
-        limit = 131072
+        # Unix-like OSes usualy have very large command line limits, (On Linux,
+        # for example, this is limited by the kernel's MAX_ARG_STRLEN). However,
+        # some programs place much lower limits, notably Wine which enforces a
+        # 32k limit like Windows. Therefore, we limit the command line to 32k.
+        limit = 32768
     # Be conservative
     limit = limit // 2
     return int(os.environ.get('MESON_RSP_THRESHOLD', limit))
