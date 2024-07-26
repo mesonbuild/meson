@@ -31,7 +31,7 @@ jobs:
   unittests-appleclang:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
@@ -81,7 +81,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     # Avoid picking up an older version of LLVM that does not work.
     - run: brew update
     # github actions overwrites brew's python. Force it to reassert itself, by running in a separate step.
@@ -132,7 +132,7 @@ jobs:
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
