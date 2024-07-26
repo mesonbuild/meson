@@ -54,6 +54,7 @@ jobs:
       MESON_CI_JOBNAME: linux-${{ matrix.cfg.id }}-gcc
 
     steps:
+      # Need v3 because of bionic
     - uses: actions/checkout@v3
     - name: Run tests
       # All environment variables are stored inside the docker image in /ci/env_vars.sh
@@ -80,7 +81,7 @@ jobs:
       MESON_CI_JOBNAME_UPDATE: linux-arch-gcc-pypy
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Run tests
       run: |
         source /ci/env_vars.sh
@@ -134,7 +135,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run tests
         shell: bash

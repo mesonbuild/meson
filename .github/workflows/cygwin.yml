@@ -49,7 +49,7 @@ jobs:
 
       - run: git config --global core.autocrlf input
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: cygwin/cygwin-install-action@master
         with:

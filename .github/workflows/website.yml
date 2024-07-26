@@ -32,7 +32,7 @@ jobs:
       HAS_SSH_KEY: ${{ secrets.WEBSITE_PRIV_KEY != '' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/cache/restore@v3
         id: restore-cache

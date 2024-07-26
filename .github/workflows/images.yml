@@ -45,6 +45,7 @@ jobs:
           - { name: Ubuntu Bionic,    id: bionic   }
           - { name: Ubuntu Rolling,   id: ubuntu-rolling  }
     steps:
+        # Need v3 because of bionic
       - uses: actions/checkout@v3
 
       # Login to dockerhub
