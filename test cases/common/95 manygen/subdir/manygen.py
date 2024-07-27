@@ -21,7 +21,7 @@ if not os.path.isdir(outdir):
 if compiler_type == 'msvc':
     libsuffix = '.lib'
     is_vs = True
-    if any(['clang-cl' in c for c in compiler]):
+    if any('clang-cl' in c for c in compiler):
         linker = 'llvm-lib'
     else:
         linker = 'lib'

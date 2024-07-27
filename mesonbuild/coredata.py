@@ -359,7 +359,7 @@ class CoreData:
         prefix = os.path.expanduser(prefix)
         if not os.path.isabs(prefix):
             raise MesonException(f'prefix value {prefix!r} must be an absolute path')
-        if prefix.endswith('/') or prefix.endswith('\\'):
+        if prefix.endswith(('/', '\\')):
             # On Windows we need to preserve the trailing slash if the
             # string is of type 'C:\' because 'C:' is not an absolute path.
             if len(prefix) == 3 and prefix[1] == ':':

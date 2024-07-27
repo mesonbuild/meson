@@ -235,7 +235,7 @@ class CMakeDependency(ExternalDependency):
         try:
             return tuple((x, str(x).lower()) for x in os.listdir(path))
         except OSError:
-            return tuple()
+            return ()
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -300,9 +300,9 @@ class CMakeDependency(ExternalDependency):
         # Check PATH
         system_env: T.List[str] = []
         for i in os.environ.get('PATH', '').split(os.pathsep):
-            if i.endswith('/bin') or i.endswith('\\bin'):
+            if i.endswith(('/bin', '\\bin')):
                 i = i[:-4]
-            if i.endswith('/sbin') or i.endswith('\\sbin'):
+            if i.endswith(('/sbin', '\\sbin')):
                 i = i[:-5]
             system_env += [i]
 

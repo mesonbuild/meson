@@ -72,7 +72,7 @@ def generate_lib(outfile, private_dir, compiler_array):
     c_file = private_dir / 'flob.c'
     c_file.write_text(contents)
     for i in compiler_array:
-        if (i.endswith('cl') or i.endswith('cl.exe')) and 'clang-cl' not in i:
+        if i.endswith(('cl', 'cl.exe')) and 'clang-cl' not in i:
             return generate_lib_msvc(outfile, c_file, private_dir, compiler_array)
     return generate_lib_gnulike(outfile, c_file, private_dir, compiler_array)
 

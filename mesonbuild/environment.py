@@ -345,7 +345,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     elif trial.startswith('aarch64'):
         # This can be `aarch64_be`
         trial = 'aarch64'
-    elif trial.startswith('arm') or trial.startswith('earm'):
+    elif trial.startswith(('arm', 'earm')):
         trial = 'arm'
     elif trial.startswith(('powerpc64', 'ppc64')):
         trial = 'ppc64'
@@ -409,7 +409,7 @@ def detect_cpu(compilers: CompilersDict) -> str:
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__i386__'):
             trial = 'i686' # All 64 bit cpus have at least this level of x86 support.
-    elif trial.startswith('aarch64') or trial.startswith('arm64'):
+    elif trial.startswith(('aarch64', 'arm64')):
         # Same check as above for cpu_family
         if any_compiler_has_define(compilers, '__arm__'):
             trial = 'arm'

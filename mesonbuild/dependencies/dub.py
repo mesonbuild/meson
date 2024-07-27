@@ -256,7 +256,7 @@ class DubDependency(ExternalDependency):
 
         for file in bs['sourceFiles']:
             # sourceFiles may contain static libraries
-            if file.endswith('.lib') or file.endswith('.a'):
+            if file.endswith(('.lib', '.a')):
                 self.link_args.append(file)
 
         for flag in bs['lflags']:

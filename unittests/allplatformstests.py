@@ -568,9 +568,7 @@ class AllPlatformTests(BasePlatformTests):
     def read_install_logs(self):
         # Find logged files and directories
         with Path(self.builddir, 'meson-logs', 'install-log.txt').open(encoding='utf-8') as f:
-            return list(map(lambda l: Path(l.strip()),
-                              filter(lambda l: not l.startswith('#'),
-                                     f.readlines())))
+            return [Path(l.strip()) for l in f.readlines() if not l.startswith('#')]
 
     def test_install_log_content(self):
         '''
@@ -3403,7 +3401,7 @@ class AllPlatformTests(BasePlatformTests):
         # Check buildsystem_files
         bs_files = ['meson.build', 'meson_options.txt', 'sharedlib/meson.build', 'staticlib/meson.build']
         bs_files = [os.path.join(testdir, x) for x in bs_files]
-        self.assertPathListEqual(list(sorted(res['buildsystem_files'])), list(sorted(bs_files)))
+        self.assertPathListEqual(sorted(res['buildsystem_files']), sorted(bs_files))
 
         # Check dependencies
         dependencies_to_find = ['threads']
@@ -3943,8 +3941,8 @@ class AllPlatformTests(BasePlatformTests):
         ## Get command sections
 
         section_pattern = re.compile(r'^### (.+)$', re.MULTILINE)
-        md_command_section_matches = [i for i in section_pattern.finditer(md)]
-        md_command_sections = dict()
+        md_command_section_matches = list(section_pattern.finditer(md))
+        md_command_sections = {}
         for i, s in enumerate(md_command_section_matches):
             section_end = len(md) if i == len(md_command_section_matches) - 1 else md_command_section_matches[i + 1].start()
             md_command_sections[s.group(1)] = (s.start(), section_end)
@@ -4324,7 +4322,7 @@ class AllPlatformTests(BasePlatformTests):
         def check_installed_files(extra_args, expected):
             args = ['install', '--destdir', self.installdir] + extra_args
             self._run(self.meson_command + args, workdir=self.builddir)
-            all_files = [p for p in Path(self.installdir).rglob('*')]
+            all_files = list(Path(self.installdir).rglob('*'))
             self.assertEqual(sorted(expected), sorted(all_files))
             windows_proof_rmtree(self.installdir)
 

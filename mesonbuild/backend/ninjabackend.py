@@ -1470,7 +1470,7 @@ class NinjaBackend(backends.Backend):
             rel_sourcefile = os.path.join(self.build_to_src, target.subdir, r)
             if r.endswith('.resources'):
                 a = '-resource:' + rel_sourcefile
-            elif r.endswith('.txt') or r.endswith('.resx'):
+            elif r.endswith(('.txt', '.resx')):
                 ofilebase = os.path.splitext(os.path.basename(r))[0] + '.resources'
                 ofilename = os.path.join(self.get_target_private_dir(target), ofilebase)
                 elem = NinjaBuildElement(self.all_outputs, ofilename, "CUSTOM_COMMAND", rel_sourcefile)

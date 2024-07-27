@@ -1194,7 +1194,7 @@ class XCodeBackend(backends.Backend):
 
     def generate_project_tree(self) -> FileTreeEntry:
         tree_info = FileTreeEntry()
-        for tname, t in self.build_targets.items():
+        for t in self.build_targets.values():
             self.add_target_to_tree(tree_info, t)
         return tree_info
 
@@ -1658,7 +1658,7 @@ class XCodeBackend(backends.Backend):
                     outputs = self.generator_outputs[target_name, generator_id]
                     generator_id += 1
                     for o_abs in outputs:
-                        if o_abs.endswith('.o') or o_abs.endswith('.obj'):
+                        if o_abs.endswith(('.o', '.obj')):
                             ldargs += [r'\"' + o_abs + r'\"']
                 else:
                     if isinstance(o, build.CustomTarget):
@@ -1750,7 +1750,7 @@ class XCodeBackend(backends.Backend):
                 # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
                 pchs = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
                 # Make sure to use headers (other backends require implementation files like *.c *.cpp, etc; these should not be used here)
-                pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
+                pchs = [pch for pch in pchs if pch.endswith(('.h', '.hh', 'hpp'))]
                 if pchs:
                     if len(pchs) > 1:
                         mlog.warning(f'Unsupported Xcode configuration: More than 1 precompiled header found "{pchs!s}". Target "{target.name}" might not compile correctly.')

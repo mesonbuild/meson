@@ -301,7 +301,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                 if suffix in link_flags_with_arg:
                     link_expect_arg = True
 
-                if suffix.startswith('-') or suffix.startswith('@'):
+                if suffix.startswith(('-', '@')):
                     # this is not search path
                     dcargs.append(arg)
                     continue
@@ -312,7 +312,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                     continue
 
                 # Make sure static library files are passed properly to the linker.
-                if arg.endswith('.a') or arg.endswith('.lib'):
+                if arg.endswith(('.a', '.lib')):
                     if len(suffix) > 0 and not suffix.startswith('-'):
                         dcargs.append('-L=' + suffix)
                         continue

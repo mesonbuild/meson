@@ -859,7 +859,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # TODO: There's isn't really any reason for this to be a context manager
 
         # Calculate the key
-        textra_args: T.Tuple[str, ...] = tuple(extra_args) if extra_args is not None else tuple()
+        textra_args: T.Tuple[str, ...] = tuple(extra_args) if extra_args is not None else ()
         key: coredata.CompilerCheckCacheKey = (tuple(self.exelist), self.version, code, textra_args, mode)
 
         # Check if not cached, and generate, otherwise get from the cache

@@ -1274,7 +1274,7 @@ class Backend:
                                 ld_lib_path_libs.add(l)
 
                 env_build_dir = self.environment.get_build_dir()
-                ld_lib_path: T.Set[str] = set(os.path.join(env_build_dir, l.get_subdir()) for l in ld_lib_path_libs)
+                ld_lib_path: T.Set[str] = {os.path.join(env_build_dir, l.get_subdir()) for l in ld_lib_path_libs}
 
                 if ld_lib_path:
                     t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')

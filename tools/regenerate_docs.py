@@ -103,7 +103,7 @@ def get_commands_data(root_dir: Path) -> T.Dict[str, T.Any]:
     commands = get_commands(output)
     commands.remove('help')
 
-    cmd_data = dict()
+    cmd_data = {}
 
     for cmd in commands:
         cmd_output = _get_meson_output(root_dir, [cmd, '--help'])

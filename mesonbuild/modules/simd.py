@@ -71,7 +71,7 @@ class SimdModule(ExtensionModule):
         if 'sources' in kwargs:
             raise mesonlib.MesonException('SIMD module does not support the "sources" keyword')
 
-        local_kwargs = set((*ISETS, 'compiler'))
+        local_kwargs = {*ISETS, 'compiler'}
         static_lib_kwargs = T.cast('kwtypes.StaticLibrary', {k: v for k, v in kwargs.items() if k not in local_kwargs})
 
         prefix = args[0]

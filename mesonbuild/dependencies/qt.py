@@ -208,7 +208,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
             debug_lib_name = self.qtpkgname + 'Core' + _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], True)
             is_debug = False
             for arg in self.get_link_args():
-                if arg == f'-l{debug_lib_name}' or arg.endswith(f'{debug_lib_name}.lib') or arg.endswith(f'{debug_lib_name}.a'):
+                if arg == f'-l{debug_lib_name}' or arg.endswith((f'{debug_lib_name}.lib', f'{debug_lib_name}.a')):
                     is_debug = True
                     break
             libdir = self.get_variable(pkgconfig='libdir')
