@@ -12,7 +12,7 @@ import sys
 from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict, abc
-from dataclasses import dataclass
+import dataclasses
 
 from .mesonlib import (
     MesonBugException,
@@ -895,7 +895,7 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
             args.cmd_line_options[key] = value
             delattr(args, name)
 
-@dataclass
+@dataclasses.dataclass
 class OptionsView(abc.Mapping):
     '''A view on an options dictionary for a given subproject and with overrides.
     '''
@@ -904,7 +904,7 @@ class OptionsView(abc.Mapping):
     # python 3.8 or typing_extensions
     original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, UserOption[Any]]']
     subproject: T.Optional[str] = None
-    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None
+    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = dataclasses.field(default_factory=dict)
 
     def __getitem__(self, key: OptionKey) -> options.UserOption:
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().

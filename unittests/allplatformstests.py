@@ -1337,6 +1337,7 @@ class AllPlatformTests(BasePlatformTests):
         self.utime(os.path.join(testdir, 'srcgen.py'))
         self.assertRebuiltTarget('basic')
 
+    @skipIf(is_ci() and is_cygwin(), 'A GCC update on 2024-07-21 has broken LTO and is being investigated')
     def test_static_library_lto(self):
         '''
         Test that static libraries can be built with LTO and linked to
@@ -1353,6 +1354,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    @skipIf(is_ci() and is_cygwin(), 'A GCC update on 2024-07-21 has broken LTO and is being investigated')
     @skip_if_not_base_option('b_lto_threads')
     def test_lto_threads(self):
         testdir = os.path.join(self.common_test_dir, '6 linkshared')

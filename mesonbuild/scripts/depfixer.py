@@ -379,11 +379,14 @@ def fix_elf(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optiona
             # note: e.get_rpath() and e.get_runpath() may be useful
             e.fix_rpath(fname, rpath_dirs_to_remove, new_rpath)
 
-def get_darwin_rpaths(fname: str) -> T.List[str]:
+def get_darwin_rpaths(fname: str) -> OrderedSet[str]:
     p, out, _ = Popen_safe(['otool', '-l', fname], stderr=subprocess.DEVNULL)
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, p.args, out)
-    result = []
+    # Need to deduplicate rpaths, as macOS's install_name_tool
+    # is *very* allergic to duplicate -delete_rpath arguments
+    # when calling depfixer on installation.
+    result: OrderedSet[str] = OrderedSet()
     current_cmd = 'FOOBAR'
     for line in out.split('\n'):
         line = line.strip()
@@ -394,7 +397,7 @@ def get_darwin_rpaths(fname: str) -> T.List[str]:
             current_cmd = value
         if key == 'path' and current_cmd == 'LC_RPATH':
             rp = value.split('(', 1)[0].strip()
-            result.append(rp)
+            result.add(rp)
     return result
 
 def fix_darwin(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: str, final_path: str, install_name_mappings: T.Dict[str, str]) -> None:
