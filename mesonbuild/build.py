@@ -654,41 +654,11 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
 
         self.raw_overrides = self.parse_overrides(kwargs)
 
-    def is_compiler_option_hack(self, key):
-        # FIXME this method must be deleted when OptionsView goes away.
-        # At that point the build target only stores the original string.
-        # The decision on how to use those pieces of data is done elsewhere.
-        from .compilers import all_languages
-        if '_' not in key.name:
-            return False
-        prefix = key.name.split('_')[0]
-        return prefix in all_languages
-
-    def set_option_overrides(self, option_overrides: T.Dict[OptionKey, str]) -> None:
-        self.options.overrides = {}
-        for k, v in option_overrides.items():
-            if self.is_compiler_option_hack(k):
-                self.options.overrides[k.evolve(machine=self.for_machine)] = v
-            else:
-                self.options.overrides[k] = v
-
-    def get_options(self) -> coredata.OptionsView:
-        return self.options
-
-    def get_option(self, key: OptionKey) -> ElementaryOptionValues:
-        return self.options.get_value(key)
-
-    def get_override(self, name, fallback):
-        if isinstance(name, str):
-            name = OptionKey(name)
-        # FIXME. A target object should store overrides in the original string form.
-        # We need to refactor to make feasible.
-        if name in self.raw_overrides:
-            return str(self.raw_overrides.get(name, fallback))
-        return fallback
+    def get_override(self, name: str) -> T.Optional[str]:
+        return self.raw_overrides.get(name, None)
 
     @staticmethod
-    def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
+    def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[str, str]:
         opts = kwargs.get('override_options', [])
 
         # In this case we have an already parsed and ready to go dictionary
@@ -696,15 +666,13 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         if isinstance(opts, dict):
             return T.cast('T.Dict[OptionKey, str]', opts)
 
-        result: T.Dict[OptionKey, str] = {}
+        result: T.Dict[str, str] = {}
         overrides = stringlistify(opts)
         for o in overrides:
             if '=' not in o:
                 raise InvalidArguments('Overrides must be of form "key=value"')
             k, v = o.split('=', 1)
-            key = OptionKey.from_string(k.strip())
-            v = v.strip()
-            result[key] = v
+            result[k] = v
         return result
 
     def is_linkable_target(self) -> bool:
