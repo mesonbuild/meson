@@ -364,14 +364,14 @@ class BasePlatformTests(TestCase):
         if isinstance(args, str):
             args = [args]
         out = subprocess.check_output(self.mintro_command + args + [self.builddir],
-                                      universal_newlines=True)
+                                      encoding='utf-8', universal_newlines=True)
         return json.loads(out)
 
     def introspect_directory(self, directory, args):
         if isinstance(args, str):
             args = [args]
         out = subprocess.check_output(self.mintro_command + args + [directory],
-                                      universal_newlines=True)
+                                      encoding='utf-8', universal_newlines=True)
         try:
             obj = json.loads(out)
         except Exception as e:

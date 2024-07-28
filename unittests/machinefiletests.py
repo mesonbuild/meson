@@ -50,7 +50,7 @@ def is_real_gnu_compiler(path):
     '''
     if not path:
         return False
-    out = subprocess.check_output([path, '--version'], universal_newlines=True, stderr=subprocess.STDOUT)
+    out = subprocess.check_output([path, '--version'], encoding='utf-8', universal_newlines=True, stderr=subprocess.STDOUT)
     return 'Free Software Foundation' in out
 
 cross_dir = Path(__file__).parent.parent / 'cross'

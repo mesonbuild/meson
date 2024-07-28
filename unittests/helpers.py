@@ -167,7 +167,7 @@ def get_dynamic_section_entry(fname: str, entry: str) -> T.Optional[str]:
 
     try:
         raw_out = subprocess.check_output(['readelf', '-d', fname],
-                                          universal_newlines=True)
+                                          encoding='utf-8', universal_newlines=True)
     except FileNotFoundError:
         # FIXME: Try using depfixer.py:Elf() as a fallback
         raise unittest.SkipTest('readelf not found')

@@ -1703,7 +1703,7 @@ class LinuxlikeTests(BasePlatformTests):
         p = subprocess.run([ar, 't', outlib],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL,
-                           text=True, timeout=1)
+                           encoding='utf-8', text=True, timeout=1)
         obj_files = p.stdout.strip().split('\n')
         self.assertEqual(len(obj_files), 1)
         self.assertTrue(obj_files[0].endswith('-prelink.o'))
