@@ -29,9 +29,9 @@
 local curcontext="$curcontext" state line
 local -i ret
 
-local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2015,2017}}})"
+local __meson_backends="(ninja "${(j. .)${:-vs{,2010,2015,2017,2019,2022}}}" xcode none)"
 local __meson_build_types="(plain debug debugoptimized minsize release)"
-local __meson_wrap_modes="(WrapMode.{default,nofallback,nodownload,forcefallback})"
+local __meson_wrap_modes="(default nofallback nodownload forcefallback nopromote)"
 local __meson_dist_formats=("xztar" "bztar" "gztar" "zip")
 local __meson_cd='-C[change into this directory before running]:target dir:_directories'
 local -a __meson_common=(
@@ -81,6 +81,11 @@ local -a meson_commands=(
 'wrap:manage source dependencies'
 'subprojects:manage subprojects'
 'compile:Build the project'
+'rewrite:Modify the project definition'
+'devenv:Run commands in developer environment'
+'env2mfile:Convert current environment to a cross or native file'
+'format:Format meson source file'
+'help:Print help of a subcommand'
 )
 
 (( $+functions[__meson_is_build_dir] )) || __meson_is_build_dir() {
@@ -370,7 +375,7 @@ _arguments \
   )
 
   if (( CURRENT == 2 )); then
-    _describe -t commands "Meson subproject subcommands" commands
+    _describe -t commands "Meson subprojects subcommands" commands
   else
     local curcontext="$curcontext"
     cmd="${${commands[(r)$words[2]:*]%%:*}}"
@@ -381,7 +386,7 @@ _arguments \
         _meson-subprojects-$cmd
       fi
     else
-      _message "unknown meson subproject command: $words[2]"
+      _message "unknown meson subprojects command: $words[2]"
     fi
   fi
 
@@ -392,11 +397,103 @@ _arguments \
   local -a specs=(
     "$__meson_cd"
     '--clean[Clean the build directory]'
-    '(-j --jobs)'{'-j','--jobs'}'=[the number fo work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
+    '(-j --jobs)'{'-j','--jobs'}'=[the number of work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
     '(-l --load-average)'{'-l','--load-average'}'=[the system load average to try to maintain (if supported)]:_guard "[0-9]#" "load average"'
     '(-v --verbose)'{'-v','--verbose'}'[Show more output]'
     '--ninja-args=[Arguments to pass to ninja (only when using ninja)]'
     '--vs-args=[Arguments to pass to vs (only when using msbuild)]'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+# TODO: implement rewrite sub-commands properly
+(( $+functions[_meson-rewrite-target] )) || _meson-rewrite-target() {
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+}
+
+(( $+functions[_meson-rewrite-kwargs] )) || _meson-rewrite-kwargs() {
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+}
+
+(( $+functions[_meson-rewrite-default-options] )) || _meson-rewrite-default-options() {
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+}
+
+(( $+functions[_meson-rewrite-command] )) || _meson-rewrite-command() {
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+}
+
+(( $+functions[_meson-rewrite] )) || _meson-rewrite() {
+  local -a commands=(
+    'target:Modify a target'
+    'kwargs:Modify keyword arguments'
+    'default-options:Modify the project default options'
+    'command:Execute a JSON array of commands'
+  )
+
+  if (( CURRENT == 2 )); then
+    _describe -t commands "Meson rewrite subcommands" commands
+  else
+    local curcontext="$curcontext"
+    cmd="${${commands[(r)$words[2]:*]%%:*}}"
+    if [[ $cmd == status ]]; then
+      _message "no options"
+    else
+      _meson-rewrite-$cmd
+    fi
+  fi
+
+}
+
+(( $+functions[_meson-devenv] )) || _meson-devenv() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "$__meson_cd"
+    '--clean=[Clean the build directory]'
+    '(-w workdir)'{'-w','--workdir'}'=[Directory to cd into before running (default: builddir, Since 1.0.0)]:target dir:_directories'
+    '--dump=[Only print required environment (Since 0.62.0) Takes an optional file path (Since 1.1.0)]:dump path:_files'
+    '--dump-format=[Format used with --dump (Since 1.1.0)]:format:(sh export vscode)'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-env2mfile] )) || _meson-env2mfile() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '--debarch=[The dpkg architecture to generate.]'
+    '--gccsuffix=[A particular gcc version suffix if necessary.]'
+    '-o=[The output file.]:file:_files'
+    '--cross=[Generate a cross compilation file.]'
+    '--native=[Generate a native compilation file.]'
+    '--system=[Define system for cross compilation.]'
+    '--subsystem=[Define subsystem for cross compilation.]'
+    '--kernel=[Define kernel for cross compilation.]'
+    '--cpu=[Define cpu for cross compilation.]'
+    '--cpu-family=[Define cpu family for cross compilation.]'
+    '--endian=[Define endianness for cross compilation.]:endianness:(big little)'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-format] )) || _meson-format() {
+  local curcontext="$curcontext"
+  local -a specs=(
+  '(-q --check-only)'{'-q','--check-only'}'=[exit with 1 if files would be modified by meson format]'
+  '(-i --inplace)'{'-i','--inplace'}'=[format files in-place]'
+  '(-r --recursive)'{'-r','--recursive'}'=[recurse subdirs (requires --check-only or --inplace option)]'
+  '(-c --configuration)'{'-c','--configuration'}'=[read configuration from meson.format]'
+  '(-e --editor-config)'{'-e','--editor-config'}'=[try to read configuration from .editorconfig]'
+  '(-o --output)'{'-o','--output'}'=[output file (implies having exactly one input)]'
   )
 _arguments \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \

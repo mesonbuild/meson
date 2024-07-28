@@ -13,8 +13,9 @@ from .. import options
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException, Popen_safe,
-    is_windows, LibType, version_compare, OptionKey
+    is_windows, LibType, version_compare
 )
+from ..options import OptionKey
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
@@ -552,7 +553,7 @@ class CudaCompiler(Compiler):
         flags += self.get_ccbin_args(env.coredata.optstore)
 
         # If cross-compiling, we can't run the sanity check, only compile it.
-        if env.need_exe_wrapper(self.for_machine) and not env.has_exe_wrapper():
+        if self.is_cross and not env.has_exe_wrapper():
             # Linking cross built apps is painful. You can't really
             # tell if you should use -nostdlib or not and for example
             # on OSX the compiler binary is the same but you need
@@ -574,7 +575,7 @@ class CudaCompiler(Compiler):
             raise EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
 
         # Run sanity check (if possible)
-        if env.need_exe_wrapper(self.for_machine):
+        if self.is_cross:
             if not env.has_exe_wrapper():
                 return
             else:
@@ -645,12 +646,12 @@ class CudaCompiler(Compiler):
         return self.update_options(
             super().get_options(),
             self.create_option(options.UserComboOption,
-                               self.form_langopt_key('std'),
+                               self.form_compileropt_key('std'),
                                'C++ language standard to use with CUDA',
                                cpp_stds,
                                'none'),
             self.create_option(options.UserStringOption,
-                               self.form_langopt_key('ccbindir'),
+                               self.form_compileropt_key('ccbindir'),
                                'CUDA non-default toolchain directory to use (-ccbin)',
                                ''),
         )
@@ -663,7 +664,7 @@ class CudaCompiler(Compiler):
         # We must strip the -std option from the host compiler option set, as NVCC has
         # its own -std flag that may not agree with the host compiler's.
         host_options = {key: master_options.get(key, opt) for key, opt in self.host_compiler.get_options().items()}
-        std_key = OptionKey('std', machine=self.for_machine, lang=self.host_compiler.language)
+        std_key = OptionKey(f'{self.host_compiler.language}_std', machine=self.for_machine)
         overrides = {std_key: 'none'}
         # To shut up mypy.
         return coredata.OptionsView(host_options, overrides=overrides)
@@ -674,7 +675,7 @@ class CudaCompiler(Compiler):
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
-            key = self.form_langopt_key('std')
+            key = self.form_compileropt_key('std')
             std = options.get_value(key)
             if std != 'none':
                 args.append('--std=' + std)
@@ -794,7 +795,7 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(super().get_dependency_link_args(dep), _Phase.LINKER)
 
     def get_ccbin_args(self, ccoptions: 'KeyedOptionDictType') -> T.List[str]:
-        key = self.form_langopt_key('ccbindir')
+        key = self.form_compileropt_key('ccbindir')
         ccbindir = ccoptions.get_value(key)
         if isinstance(ccbindir, str) and ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]

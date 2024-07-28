@@ -27,8 +27,10 @@ from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet,
-    ExecutableSerialisation, classify_unity_sources, OptionKey
+    ExecutableSerialisation, classify_unity_sources,
 )
+from ..options import OptionKey
+
 
 if T.TYPE_CHECKING:
     from .._typing import ImmutableListProtocol
@@ -568,7 +570,8 @@ class Backend:
         else:
             extra_paths = []
 
-        if self.environment.need_exe_wrapper(exe_for_machine):
+        is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
+        if is_cross_built and self.environment.need_exe_wrapper():
             if not self.environment.has_exe_wrapper():
                 msg = 'An exe_wrapper is needed but was not found. Please define one ' \
                       'in cross file and check the command and/or add it to PATH.'
@@ -1169,7 +1172,7 @@ class Backend:
 
     def determine_windows_extra_paths(
             self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, programs.ExternalProgram, mesonlib.File, str],
-            extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget]]) -> T.List[str]:
+            extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
         We must determine all locations of DLLs that this exe
@@ -1229,7 +1232,7 @@ class Backend:
             exe_wrapper = self.environment.get_exe_wrapper()
             machine = self.environment.machines[exe.for_machine]
             if machine.is_windows() or machine.is_cygwin():
-                extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget]] = []
+                extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = list(exe.get_transitive_build_target_deps())
                 extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
@@ -1426,7 +1429,7 @@ class Backend:
                     continue
                 result[arg.get_id()] = arg
             for dep in t.depends:
-                assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
+                assert isinstance(dep, (build.CustomTarget, build.BuildTarget, build.CustomTargetIndex))
                 result[dep.get_id()] = dep
         return result
 
@@ -1677,7 +1680,7 @@ class Backend:
         bindir = Path(prefix, self.environment.get_bindir())
         libdir = Path(prefix, self.environment.get_libdir())
         incdir = Path(prefix, self.environment.get_includedir())
-        _ldir = self.environment.coredata.get_option(mesonlib.OptionKey('localedir'))
+        _ldir = self.environment.coredata.get_option(OptionKey('localedir'))
         assert isinstance(_ldir, str), 'for mypy'
         localedir = Path(prefix, _ldir)
         dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)

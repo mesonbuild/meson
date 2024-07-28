@@ -12,15 +12,17 @@ import sys
 from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict, abc
-from dataclasses import dataclass
+import dataclasses
 
 from .mesonlib import (
     MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    OptionKey, OptionType, stringlistify,
+    stringlistify,
     pickle_load
 )
+
+from .options import OptionKey
 
 from .machinefile import CmdLineFileParser
 
@@ -72,7 +74,7 @@ if T.TYPE_CHECKING:
 #
 # Pip requires that RCs are named like this: '0.1.0.rc1'
 # But the corresponding Git tag needs to be '0.1.0rc1'
-version = '1.5.0'
+version = '1.5.1'
 
 # The next stable version when we are in dev. This is used to allow projects to
 # require meson version >=1.2.0 when using 1.1.99. FeatureNew won't warn when
@@ -420,7 +422,11 @@ class CoreData:
             value = opts_map.get_value(key.as_root())
         else:
             value = None
-        opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
+        if key.has_module_prefix():
+            modulename = key.get_module_prefix()
+            opts_map.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
+        else:
+            opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
@@ -453,7 +459,7 @@ class CoreData:
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
-        if key.is_builtin():
+        if self.optstore.is_builtin_option(key):
             if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
             else:
@@ -566,26 +572,23 @@ class CoreData:
 
         return dirty
 
-    @staticmethod
-    def is_per_machine_option(optname: OptionKey) -> bool:
+    def is_per_machine_option(self, optname: OptionKey) -> bool:
         if optname.as_host() in options.BUILTIN_OPTIONS_PER_MACHINE:
             return True
-        return optname.lang is not None
+        return self.optstore.is_compiler_option(optname)
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        key = OptionKey('args', machine=for_machine, lang=lang)
+        key = OptionKey(f'{lang}_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        key = OptionKey('link_args', machine=for_machine, lang=lang)
+        key = OptionKey(f'{lang}_link_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
         for key, value in project_options.items():
-            if not key.is_project():
-                continue
             if key not in self.optstore:
                 self.optstore.add_project_option(key, value)
                 continue
@@ -608,7 +611,7 @@ class CoreData:
 
         # Find any extranious keys for this project and remove them
         for key in self.optstore.keys() - project_options.keys():
-            if key.is_project() and key.subproject == subproject:
+            if self.optstore.is_project_option(key) and key.subproject == subproject:
                 self.optstore.remove(key)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
@@ -652,7 +655,7 @@ class CoreData:
                 continue
             elif k in self.optstore:
                 dirty |= self.set_option(k, v, first_invocation)
-            elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
+            elif k.machine != MachineChoice.BUILD and not self.optstore.is_compiler_option(k):
                 unknown_options.append(k)
         if unknown_options:
             unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
@@ -694,13 +697,13 @@ class CoreData:
             # Always test this using the HOST machine, as many builtin options
             # are not valid for the BUILD machine, but the yielding value does
             # not differ between them even when they are valid for both.
-            if subproject and k.is_builtin() and self.optstore.get_value_object(k.evolve(subproject='', machine=MachineChoice.HOST)).yielding:
+            if subproject and self.optstore.is_builtin_option(k) and self.optstore.get_value_object(k.evolve(subproject='', machine=MachineChoice.HOST)).yielding:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
-            if k.type in {OptionType.COMPILER, OptionType.BACKEND}:
+            if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
                 continue
-            if k.type == OptionType.BASE and k.as_root() in base_options:
+            if self.optstore.is_base_option(k) and k.as_root() in base_options:
                 # set_options will report unknown base options
                 continue
             options[k] = v
@@ -732,7 +735,8 @@ class CoreData:
         # These options are all new at this point, because the compiler is
         # responsible for adding its own options, thus calling
         # `self.optstore.update()`` is perfectly safe.
-        self.optstore.update(compilers.get_global_options(lang, comp, for_machine, env))
+        for gopt_key, gopt_valobj in compilers.get_global_options(lang, comp, for_machine, env).items():
+            self.optstore.add_compiler_option(lang, gopt_key, gopt_valobj)
 
     def process_compiler_options(self, lang: str, comp: Compiler, env: Environment, subproject: str) -> None:
         from . import compilers
@@ -891,7 +895,7 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
             args.cmd_line_options[key] = value
             delattr(args, name)
 
-@dataclass
+@dataclasses.dataclass
 class OptionsView(abc.Mapping):
     '''A view on an options dictionary for a given subproject and with overrides.
     '''
@@ -900,13 +904,23 @@ class OptionsView(abc.Mapping):
     # python 3.8 or typing_extensions
     original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, UserOption[Any]]']
     subproject: T.Optional[str] = None
-    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None
+    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = dataclasses.field(default_factory=dict)
 
     def __getitem__(self, key: OptionKey) -> options.UserOption:
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
-        if not key.is_project():
+        if not isinstance(self.original_options, options.OptionStore):
+            # This is only used by CUDA currently.
+            # This entire class gets removed when option refactor
+            # is finished.
+            if '_' in key.name or key.lang is not None:
+                is_project_option = False
+            else:
+                sys.exit(f'FAIL {key}.')
+        else:
+            is_project_option = self.original_options.is_project_option(key)
+        if not is_project_option:
             opt = self.original_options.get(key)
             if opt is None or opt.yielding:
                 key2 = key.as_root()
@@ -914,7 +928,7 @@ class OptionsView(abc.Mapping):
                 # to hold overrides.
                 if isinstance(self.original_options, options.OptionStore):
                     if key2 not in self.original_options:
-                        raise KeyError
+                        raise KeyError(f'{key} {key2}')
                     opt = self.original_options.get_value_object(key2)
                 else:
                     opt = self.original_options[key2]

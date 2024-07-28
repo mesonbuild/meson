@@ -1,7 +1,7 @@
 {
     "stdout": [
         {
-            "line": "test cases/failing/119 cmake subproject error/meson.build:8:14: ERROR: Failed to configure the CMake subproject: Fancy error message"
+            "line": "test cases/failing/119 cmake subproject error/meson.build:4:14: ERROR: Failed to configure the CMake subproject: Fancy error message"
         }
     ],
     "tools": {

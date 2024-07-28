@@ -13,7 +13,7 @@ list(APPEND TMP_PATHS_LIST ${CMAKE_SYSTEM_APPBUNDLE_PATH})
 
 set(LIB_ARCH_LIST)
 if(CMAKE_LIBRARY_ARCHITECTURE_REGEX)
-  file(GLOB implicit_dirs RELATIVE /lib /lib/*-linux-gnu* )
+  file(GLOB implicit_dirs RELATIVE /lib /lib/*-gnu* )
   foreach(dir ${implicit_dirs})
     if("${dir}" MATCHES "${CMAKE_LIBRARY_ARCHITECTURE_REGEX}")
       list(APPEND LIB_ARCH_LIST "${dir}")

@@ -31,9 +31,10 @@ from mesonbuild.mesonlib import (
     BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
     is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
     relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
-    MesonException, EnvironmentException, OptionKey,
+    MesonException, EnvironmentException,
     windows_proof_rm
 )
+from mesonbuild.options import OptionKey
 from mesonbuild.programs import ExternalProgram
 
 from mesonbuild.compilers.mixins.clang import ClangCompiler
@@ -1336,6 +1337,7 @@ class AllPlatformTests(BasePlatformTests):
         self.utime(os.path.join(testdir, 'srcgen.py'))
         self.assertRebuiltTarget('basic')
 
+    @skipIf(is_ci() and is_cygwin(), 'A GCC update on 2024-07-21 has broken LTO and is being investigated')
     def test_static_library_lto(self):
         '''
         Test that static libraries can be built with LTO and linked to
@@ -1352,6 +1354,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    @skipIf(is_ci() and is_cygwin(), 'A GCC update on 2024-07-21 has broken LTO and is being investigated')
     @skip_if_not_base_option('b_lto_threads')
     def test_lto_threads(self):
         testdir = os.path.join(self.common_test_dir, '6 linkshared')
@@ -2724,11 +2727,11 @@ class AllPlatformTests(BasePlatformTests):
         # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('args', lang='c')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
+        self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('args', lang='c')), ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['foo bar', 'one', 'two'])
         self.wipe()
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
@@ -2747,7 +2750,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.optstore.get_value('bindir'), 'bar')
             self.assertEqual(obj.optstore.get_value('buildtype'), 'release')
             self.assertEqual(obj.optstore.get_value('b_sanitize'), 'thread')
-            self.assertEqual(obj.optstore.get_value(OptionKey('args', lang='c')), ['-Dbar'])
+            self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
@@ -2756,7 +2759,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.optstore.get_value('bindir'), 'foo')
             self.assertEqual(obj.optstore.get_value('buildtype'), 'plain')
             self.assertEqual(obj.optstore.get_value('b_sanitize'), 'address')
-            self.assertEqual(obj.optstore.get_value(OptionKey('args', lang='c')), ['-Dfoo'])
+            self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not
@@ -3757,9 +3760,9 @@ class AllPlatformTests(BasePlatformTests):
 
               User defined options
                 backend        : ''' + self.backend_name + '''
+                enabled_opt    : enabled
                 libdir         : lib
                 prefix         : /usr
-                enabled_opt    : enabled
                 python         : ''' + sys.executable + '''
             ''')
         expected_lines = expected.split('\n')[1:]

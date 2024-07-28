@@ -23,7 +23,8 @@ from glob import glob
 from pathlib import Path
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.mesonlib import (MesonException, RealPathAction, get_meson_command, quiet_git,
-                                 windows_proof_rmtree, setup_vsenv, OptionKey)
+                                 windows_proof_rmtree, setup_vsenv)
+from .options import OptionKey
 from mesonbuild.msetup import add_arguments as msetup_argparse
 from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build, coredata
@@ -140,7 +141,9 @@ class GitDist(Dist):
 
     def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in git'''
-        subprocess.check_call(['git', '-C', self.src_root, 'update-index', '-q', '--refresh'])
+        # Optimistically call update-index, and disregard its return value. It could be read-only,
+        # and only the output of diff-index matters.
+        subprocess.call(['git', '-C', self.src_root, 'update-index', '-q', '--refresh'])
         ret = subprocess.call(['git', '-C', self.src_root, 'diff-index', '--quiet', 'HEAD'])
         return ret == 1
 

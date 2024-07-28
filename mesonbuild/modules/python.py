@@ -22,7 +22,8 @@ from ..interpreterbase import (
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
-from ..mesonlib import MachineChoice, OptionKey
+from ..mesonlib import MachineChoice
+from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -82,13 +83,13 @@ class PythonExternalProgram(BasicPythonExternalProgram):
         if not state:
             # This happens only from run_project_tests.py
             return rel_path
-        value = T.cast('str', state.get_option(f'{key}dir', module='python'))
+        value = T.cast('str', state.get_option(f'python.{key}dir'))
         if value:
-            if state.is_user_defined_option('install_env', module='python'):
+            if state.is_user_defined_option('python.install_env'):
                 raise mesonlib.MesonException(f'python.{key}dir and python.install_env are mutually exclusive')
             return value
 
-        install_env = state.get_option('install_env', module='python')
+        install_env = state.get_option('python.install_env')
         if install_env == 'auto':
             install_env = 'venv' if self.info['is_venv'] else 'system'
 
@@ -112,7 +113,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
         _ExternalProgramHolder.__init__(self, python, interpreter)
         info = python.info
-        prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
+        prefix = self.interpreter.environment.coredata.get_option(OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'
         self.variables = info['variables']
         self.suffix = info['suffix']
@@ -168,7 +169,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
                                   self.current_node)
 
         limited_api_version = kwargs.pop('limited_api')
-        allow_limited_api = self.interpreter.environment.coredata.get_option(OptionKey('allow_limited_api', module='python'))
+        allow_limited_api = self.interpreter.environment.coredata.get_option(OptionKey('python.allow_limited_api'))
         if limited_api_version != '' and allow_limited_api:
 
             target_suffix = self.limited_api_suffix
@@ -373,7 +374,7 @@ class PythonModule(ExtensionModule):
     def _get_install_scripts(self) -> T.List[mesonlib.ExecutableSerialisation]:
         backend = self.interpreter.backend
         ret = []
-        optlevel = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('bytecompile', module='python'))
+        optlevel = self.interpreter.environment.coredata.get_option(OptionKey('python.bytecompile'))
         if optlevel == -1:
             return ret
         if not any(PythonExternalProgram.run_bytecompile.values()):

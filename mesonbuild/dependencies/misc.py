@@ -17,6 +17,7 @@ from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory, factory_methods
 from .pkgconfig import PkgConfigDependency
+from ..options import OptionKey
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -541,7 +542,7 @@ def shaderc_factory(env: 'Environment',
         shared_libs = ['shaderc']
         static_libs = ['shaderc_combined', 'shaderc_static']
 
-        if kwargs.get('static', env.coredata.get_option(mesonlib.OptionKey('prefer_static'))):
+        if kwargs.get('static', env.coredata.get_option(OptionKey('prefer_static'))):
             c = [functools.partial(PkgConfigDependency, name, env, kwargs)
                  for name in static_libs + shared_libs]
         else:

@@ -12,6 +12,7 @@ import typing as T
 from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from .. import mlog
+from ..options import OptionKey
 from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
 from ..programs import ExternalProgram
 from ..interpreter.type_checking import SHARED_MOD_KWS, TEST_KWS
@@ -171,11 +172,11 @@ class NapiModule(ExtensionModule):
 
         # emscripten cannot link code compiled with -pthread with code compiled without it
         build_opts = self.interpreter.environment.coredata.optstore
-        c_thread_count: int = build_opts.get_value(mesonlib.OptionKey('thread_count', lang='c'))
+        c_thread_count: int = build_opts.get_value(OptionKey('c_thread_count'))
         cpp_thread_count: int = 0
         if 'cpp' in self.interpreter.environment.coredata.compilers.host:
-            cpp_thread_count = build_opts.get_value(mesonlib.OptionKey('thread_count', lang='cpp'))
-            exceptions = build_opts.get_value(mesonlib.OptionKey('eh', lang='cpp')) != 'none'
+            cpp_thread_count = build_opts.get_value(OptionKey('cpp_thread_count'))
+            exceptions = build_opts.get_value(OptionKey('cpp_eh')) != 'none'
             if exceptions:
                 cpp_args.append('-sNO_DISABLE_EXCEPTION_CATCHING')
                 link_args.append('-sNO_DISABLE_EXCEPTION_CATCHING')
@@ -279,24 +280,23 @@ class NapiModule(ExtensionModule):
             if key.name in npm_config_blacklist:
                 continue
             opt = build_opts.get_value_object(key)
-            env_name = key.name if key.lang is None else f'{key.lang}_{key.name}'
             if isinstance(opt.value, str):
-                if 'npm_config_' + env_name in os.environ:
-                    opt.set_value(os.environ['npm_config_' + env_name])
+                if 'npm_config_' + key.name in os.environ:
+                    opt.set_value(os.environ['npm_config_' + key.name])
             if isinstance(opt.value, bool):
-                npm_enable = 'npm_config_enable_' + env_name in os.environ
-                npm_disable = 'npm_config_disable_' + env_name in os.environ
+                npm_enable = 'npm_config_enable_' + key.name in os.environ
+                npm_disable = 'npm_config_disable_' + key.name in os.environ
                 if npm_enable and npm_disable:
                     l = list(os.environ.keys())
-                    mlog.warning(f'Found both --enable-{env_name} and --disable-{env_name}, last one wins')
-                    opt.set_value(l.index('npm_config_enable_' + env_name) > l.index('npm_config_disable_' + env_name))
+                    mlog.warning(f'Found both --enable-{key.name} and --disable-{key.name}, last one wins')
+                    opt.set_value(l.index('npm_config_enable_' + key.name) > l.index('npm_config_disable_' + key.name))
                 elif npm_enable:
                     opt.set_value(True)
                 elif npm_disable:
                     opt.set_value(False)
             if isinstance(opt.value, list):
-                if 'npm_config_' + env_name in os.environ:
-                    T.cast('options.UserArrayOption', opt).extend_value(os.environ['npm_config_' + env_name])
+                if 'npm_config_' + key.name in os.environ:
+                    T.cast('options.UserArrayOption', opt).extend_value(os.environ['npm_config_' + key.name])
 
     @permittedKwargs(mod_kwargs)
     @typed_pos_args('node-api.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
@@ -349,7 +349,7 @@ class NapiModule(ExtensionModule):
             kwargs.setdefault('include_directories', []).extend([str(node_addon_api_dir)])
             kwargs.setdefault('override_options', {})
             # The default C++ standard when using node-addon-api should be C++17
-            cpp_std_key = mesonlib.OptionKey('std', lang='cpp')
+            cpp_std_key = OptionKey('cpp_std')
             if cpp_std_key not in kwargs['override_options']:
                 kwargs['override_options'][cpp_std_key] = 'c++17'
 

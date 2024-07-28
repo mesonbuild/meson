@@ -17,9 +17,10 @@ CmdLineFileParser = machinefile.CmdLineFileParser
 
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
-    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey,
+    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg,
     search_version, MesonBugException
 )
+from .options import OptionKey
 from . import mlog
 from .programs import ExternalProgram
 
@@ -109,13 +110,13 @@ def detect_llvm_cov(suffix: T.Optional[str] = None):
             tool = 'llvm-cov'
         else:
             tool = f'llvm-cov-{suffix}'
-        if mesonlib.exe_exists([tool, '--version']):
+        if shutil.which(tool) is not None:
             return tool
     else:
         # Otherwise guess in the dark
         tools = get_llvm_tool_names('llvm-cov')
         for tool in tools:
-            if mesonlib.exe_exists([tool, '--version']):
+            if shutil.which(tool):
                 return tool
     return None
 
@@ -139,7 +140,7 @@ def compute_llvm_suffix(coredata: coredata.CoreData):
 
 def detect_lcov_genhtml(lcov_exe: str = 'lcov', genhtml_exe: str = 'genhtml'):
     lcov_exe, lcov_version = detect_lcov(lcov_exe)
-    if not mesonlib.exe_exists([genhtml_exe, '--version']):
+    if shutil.which(genhtml_exe) is None:
         genhtml_exe = None
 
     return lcov_exe, lcov_version, genhtml_exe
@@ -148,12 +149,15 @@ def find_coverage_tools(coredata: coredata.CoreData) -> T.Tuple[T.Optional[str],
     gcovr_exe, gcovr_version = detect_gcovr()
 
     llvm_cov_exe = detect_llvm_cov(compute_llvm_suffix(coredata))
+    # Some platforms may provide versioned clang but only non-versioned llvm utils
+    if llvm_cov_exe is None:
+        llvm_cov_exe = detect_llvm_cov('')
 
     lcov_exe, lcov_version, genhtml_exe = detect_lcov_genhtml()
 
     return gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe
 
-def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.List[str]:
+def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.Optional[T.List[str]]:
     r = detect_ninja_command_and_version(version, log)
     return r[0] if r else None
 
@@ -509,11 +513,11 @@ def machine_info_can_run(machine_info: MachineInfo):
     if machine_info.system != detect_system():
         return False
     true_build_cpu_family = detect_cpu_family({})
+    assert machine_info.cpu_family is not None, 'called on incomplete machine_info'
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
         ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
-        ((true_build_cpu_family == 'mips64') and (machine_info.cpu_family == 'mips')) or \
-        ((true_build_cpu_family == 'aarch64') and (machine_info.cpu_family == 'arm'))
+        ((true_build_cpu_family == 'mips64') and (machine_info.cpu_family == 'mips'))
 
 class Environment:
     private_dir = 'meson-private'
@@ -742,14 +746,12 @@ class Environment:
                 # if it changes on future invocations.
                 if self.first_invocation:
                     if keyname == 'ldflags':
-                        key = OptionKey('link_args', machine=for_machine, lang='c')  # needs a language to initialize properly
                         for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
-                            key = key.evolve(lang=lang)
+                            key = OptionKey(name=f'{lang}_link_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     elif keyname == 'cppflags':
-                        key = OptionKey('env_args', machine=for_machine, lang='c')
                         for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
-                            key = key.evolve(lang=lang)
+                            key = OptionKey(f'{lang}_env_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
@@ -769,7 +771,8 @@ class Environment:
                             # We still use the original key as the base here, as
                             # we want to inherit the machine and the compiler
                             # language
-                            key = key.evolve('env_args')
+                            lang = key.name.split('_', 1)[0]
+                            key = key.evolve(f'{lang}_env_args')
                         env_opts[key].extend(p_list)
 
         # Only store options that are not already in self.options,

@@ -85,6 +85,7 @@ additional = [
     'tools',
     'docs/genrefman.py',
     'docs/refman',
+    'unittests/helpers.py',
 ]
 
 if os.name == 'posix':

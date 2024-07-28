@@ -31,7 +31,8 @@ from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
+from ..mesonlib import get_compiler_for_source, has_path_sep
+from ..options import OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments
 
@@ -98,10 +99,11 @@ def get_rsp_threshold() -> int:
         # and that has a limit of 8k.
         limit = 8192
     else:
-        # On Linux, ninja always passes the commandline as a single
-        # big string to /bin/sh, and the kernel limits the size of a
-        # single argument; see MAX_ARG_STRLEN
-        limit = 131072
+        # Unix-like OSes usualy have very large command line limits, (On Linux,
+        # for example, this is limited by the kernel's MAX_ARG_STRLEN). However,
+        # some programs place much lower limits, notably Wine which enforces a
+        # 32k limit like Windows. Therefore, we limit the command line to 32k.
+        limit = 32768
     # Be conservative
     limit = limit // 2
     return int(os.environ.get('MESON_RSP_THRESHOLD', limit))
@@ -291,7 +293,7 @@ class NinjaRule:
         estimate = len(command)
         for m in re.finditer(r'(\${\w+}|\$\w+)?[^$]*', command):
             if m.start(1) != -1:
-                estimate -= m.end(1) - m.start(1) + 1
+                estimate -= m.end(1) - m.start(1)
                 chunk = m.group(1)
                 if chunk[1] == '{':
                     chunk = chunk[2:-1]
@@ -1090,7 +1092,7 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        cppversion = target.get_option(OptionKey('std', machine=target.for_machine, lang='cpp'))
+        cppversion = target.get_option(OptionKey('cpp_std', machine=target.for_machine))
         if cppversion not in ('latest', 'c++latest', 'vc++latest'):
             return False
         if not mesonlib.current_vs_supports_modules():
@@ -1782,7 +1784,7 @@ class NinjaBackend(backends.Backend):
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
 
-        ext = target.get_option(OptionKey('language', machine=target.for_machine, lang='cython'))
+        ext = target.get_option(OptionKey('cython_language', machine=target.for_machine))
 
         pyx_sources = []  # Keep track of sources we're adding to build
 
@@ -3603,7 +3605,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_user_option_args(self):
         cmds = []
         for k, v in self.environment.coredata.optstore.items():
-            if k.is_project():
+            if self.environment.coredata.optstore.is_project_option(k):
                 cmds.append('-D' + str(k) + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
         # The order of these arguments must be the same between runs of Meson
         # to ensure reproducible output. The order we pass them shouldn't

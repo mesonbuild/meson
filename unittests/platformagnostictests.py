@@ -18,6 +18,7 @@ from .helpers import is_ci
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command
 from mesonbuild.mformat import match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
+from mesonbuild.options import OptionStore
 from run_tests import Backend
 
 @skipIf(is_ci() and not is_linux(), "Run only on fast platforms")
@@ -35,7 +36,8 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.init(testdir, workdir=testdir)
 
     def test_invalid_option_names(self):
-        interp = OptionInterpreter('')
+        store = OptionStore()
+        interp = OptionInterpreter(store, '')
 
         def write_file(code: str):
             with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
@@ -68,7 +70,8 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_option_validation(self):
         """Test cases that are not catch by the optinterpreter itself."""
-        interp = OptionInterpreter('')
+        store = OptionStore()
+        interp = OptionInterpreter(store, '')
 
         def write_file(code: str):
             with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:

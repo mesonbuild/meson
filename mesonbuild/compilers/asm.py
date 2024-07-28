@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 import typing as T
 
-from ..mesonlib import EnvironmentException, OptionKey, get_meson_command
+from ..mesonlib import EnvironmentException, get_meson_command
+from ..options import OptionKey
 from .compilers import Compiler
 from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
 

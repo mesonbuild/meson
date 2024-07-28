@@ -3,11 +3,11 @@
 
 from collections import OrderedDict
 from itertools import chain
+from functools import total_ordering
 import argparse
 
 from .mesonlib import (
     HoldableObject,
-    OptionKey,
     default_prefix,
     default_datadir,
     default_includedir,
@@ -20,6 +20,7 @@ from .mesonlib import (
     default_sysconfdir,
     MesonException,
     listify_array_value,
+    MachineChoice,
 )
 
 from . import mlog
@@ -35,6 +36,202 @@ _T = T.TypeVar('_T')
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
 genvslitelist = ['vs2022']
 buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
+
+
+# This is copied from coredata. There is no way to share this, because this
+# is used in the OptionKey constructor, and the coredata lists are
+# OptionKeys...
+_BUILTIN_NAMES = {
+    'prefix',
+    'bindir',
+    'datadir',
+    'includedir',
+    'infodir',
+    'libdir',
+    'licensedir',
+    'libexecdir',
+    'localedir',
+    'localstatedir',
+    'mandir',
+    'sbindir',
+    'sharedstatedir',
+    'sysconfdir',
+    'auto_features',
+    'backend',
+    'buildtype',
+    'debug',
+    'default_library',
+    'errorlogs',
+    'genvslite',
+    'install_umask',
+    'layout',
+    'optimization',
+    'prefer_static',
+    'stdsplit',
+    'strip',
+    'unity',
+    'unity_size',
+    'warning_level',
+    'werror',
+    'wrap_mode',
+    'force_fallback_for',
+    'pkg_config_path',
+    'cmake_prefix_path',
+    'vsenv',
+}
+
+@total_ordering
+class OptionKey:
+
+    """Represents an option key in the various option dictionaries.
+
+    This provides a flexible, powerful way to map option names from their
+    external form (things like subproject:build.option) to something that
+    internally easier to reason about and produce.
+    """
+
+    __slots__ = ['name', 'subproject', 'machine', '_hash']
+
+    name: str
+    subproject: str
+    machine: MachineChoice
+    _hash: int
+
+    def __init__(self, name: str, subproject: str = '',
+                 machine: MachineChoice = MachineChoice.HOST):
+        # the _type option to the constructor is kinda private. We want to be
+        # able tos ave the state and avoid the lookup function when
+        # pickling/unpickling, but we need to be able to calculate it when
+        # constructing a new OptionKey
+        object.__setattr__(self, 'name', name)
+        object.__setattr__(self, 'subproject', subproject)
+        object.__setattr__(self, 'machine', machine)
+        object.__setattr__(self, '_hash', hash((name, subproject, machine)))
+
+    def __setattr__(self, key: str, value: T.Any) -> None:
+        raise AttributeError('OptionKey instances do not support mutation.')
+
+    def __getstate__(self) -> T.Dict[str, T.Any]:
+        return {
+            'name': self.name,
+            'subproject': self.subproject,
+            'machine': self.machine,
+        }
+
+    def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
+        """De-serialize the state of a pickle.
+
+        This is very clever. __init__ is not a constructor, it's an
+        initializer, therefore it's safe to call more than once. We create a
+        state in the custom __getstate__ method, which is valid to pass
+        splatted to the initializer.
+        """
+        # Mypy doesn't like this, because it's so clever.
+        self.__init__(**state)  # type: ignore
+
+    def __hash__(self) -> int:
+        return self._hash
+
+    def _to_tuple(self) -> T.Tuple[str, str, str, MachineChoice, str]:
+        return (self.subproject, self.machine, self.name)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return self._to_tuple() == other._to_tuple()
+        return NotImplemented
+
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return self._to_tuple() < other._to_tuple()
+        return NotImplemented
+
+    def __str__(self) -> str:
+        out = self.name
+        if self.machine is MachineChoice.BUILD:
+            out = f'build.{out}'
+        if self.subproject:
+            out = f'{self.subproject}:{out}'
+        return out
+
+    def __repr__(self) -> str:
+        return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r})'
+
+    @classmethod
+    def from_string(cls, raw: str) -> 'OptionKey':
+        """Parse the raw command line format into a three part tuple.
+
+        This takes strings like `mysubproject:build.myoption` and Creates an
+        OptionKey out of them.
+        """
+        try:
+            subproject, raw2 = raw.split(':')
+        except ValueError:
+            subproject, raw2 = '', raw
+
+        for_machine = MachineChoice.HOST
+        try:
+            prefix, raw3 = raw2.split('.')
+            if prefix == 'build':
+                for_machine = MachineChoice.BUILD
+            else:
+                raw3 = raw2
+        except ValueError:
+            raw3 = raw2
+
+        opt = raw3
+        assert ':' not in opt
+        assert opt.count('.') < 2
+
+        return cls(opt, subproject, for_machine)
+
+    def evolve(self, name: T.Optional[str] = None, subproject: T.Optional[str] = None,
+               machine: T.Optional[MachineChoice] = None) -> 'OptionKey':
+        """Create a new copy of this key, but with altered members.
+
+        For example:
+        >>> a = OptionKey('foo', '', MachineChoice.Host)
+        >>> b = OptionKey('foo', 'bar', MachineChoice.Host)
+        >>> b == a.evolve(subproject='bar')
+        True
+        """
+        # We have to be a little clever with lang here, because lang is valid
+        # as None, for non-compiler options
+        return OptionKey(
+            name if name is not None else self.name,
+            subproject if subproject is not None else self.subproject,
+            machine if machine is not None else self.machine,
+        )
+
+    def as_root(self) -> 'OptionKey':
+        """Convenience method for key.evolve(subproject='')."""
+        return self.evolve(subproject='')
+
+    def as_build(self) -> 'OptionKey':
+        """Convenience method for key.evolve(machine=MachineChoice.BUILD)."""
+        return self.evolve(machine=MachineChoice.BUILD)
+
+    def as_host(self) -> 'OptionKey':
+        """Convenience method for key.evolve(machine=MachineChoice.HOST)."""
+        return self.evolve(machine=MachineChoice.HOST)
+
+    def is_project_hack_for_optionsview(self) -> bool:
+        """This method will be removed once we can delete OptionsView."""
+        import sys
+        sys.exit('FATAL internal error. This should not make it into an actual release. File a bug.')
+
+    def has_module_prefix(self) -> bool:
+        return '.' in self.name
+
+    def get_module_prefix(self) -> T.Optional[str]:
+        if self.has_module_prefix():
+            return self.name.split('.', 1)[0]
+        return None
+
+    def without_module_prefix(self) -> 'OptionKey':
+        if self.has_module_prefix():
+            newname = self.name.split('.', 1)[1]
+            return self.evolve(newname)
+        return self
 
 
 class UserOption(T.Generic[_T], HoldableObject):
@@ -441,19 +638,19 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('vsenv'),           BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
 
     # Pkgconfig module
-    (OptionKey('relocatable', module='pkgconfig'),
+    (OptionKey('pkgconfig.relocatable'),
      BuiltinOption(UserBooleanOption, 'Generate pkgconfig files as relocatable', False)),
 
     # Python module
-    (OptionKey('bytecompile', module='python'),
+    (OptionKey('python.bytecompile'),
      BuiltinOption(UserIntegerOption, 'Whether to compile bytecode', (-1, 2, 0))),
-    (OptionKey('install_env', module='python'),
+    (OptionKey('python.install_env'),
      BuiltinOption(UserComboOption, 'Which python environment to install to', 'prefix', choices=['auto', 'prefix', 'system', 'venv'])),
-    (OptionKey('platlibdir', module='python'),
+    (OptionKey('python.platlibdir'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
-    (OptionKey('purelibdir', module='python'),
+    (OptionKey('python.purelibdir'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
-    (OptionKey('allow_limited_api', module='python'),
+    (OptionKey('python.allow_limited_api'),
      BuiltinOption(UserBooleanOption, 'Whether to allow use of the Python Limited API', True)),
 ])
 
@@ -470,13 +667,19 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('sysconfdir'):     {'/usr': '/etc'},
     OptionKey('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
     OptionKey('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
-    OptionKey('platlibdir', module='python'): {},
-    OptionKey('purelibdir', module='python'): {},
+    OptionKey('python.platlibdir'): {},
+    OptionKey('python.purelibdir'): {},
 }
 
 class OptionStore:
     def __init__(self):
         self.d: T.Dict['OptionKey', 'UserOption[T.Any]'] = {}
+        self.project_options = set()
+        self.all_languages = set()
+        self.module_options = set()
+        from .compilers import all_languages
+        for lang in all_languages:
+            self.all_languages.add(lang)
 
     def __len__(self):
         return len(self.d)
@@ -494,11 +697,34 @@ class OptionStore:
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
         key = self.ensure_key(key)
+        if '.' in key.name:
+            raise MesonException(f'Internal error: non-module option has a period in its name {key.name}.')
+        self.add_system_option_internal(key, valobj)
+
+    def add_system_option_internal(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+        key = self.ensure_key(key)
+        assert isinstance(valobj, UserOption)
         self.d[key] = valobj
+
+    def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+        key = self.ensure_key(key)
+        if not key.name.startswith(language + '_'):
+            raise MesonException(f'Internal error: all compiler option names must start with language prefix. ({key.name} vs {language}_)')
+        self.add_system_option(key, valobj)
 
     def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
         key = self.ensure_key(key)
         self.d[key] = valobj
+        self.project_options.add(key)
+
+    def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+        key = self.ensure_key(key)
+        if key.name.startswith('build.'):
+            raise MesonException('FATAL internal error: somebody goofed option handling.')
+        if not key.name.startswith(modulename + '.'):
+            raise MesonException('Internal error: module option name {key.name} does not start with module prefix {modulename}.')
+        self.add_system_option_internal(key, valobj)
+        self.module_options.add(key)
 
     def set_value(self, key: T.Union[OptionKey, str], new_value: 'T.Any') -> bool:
         key = self.ensure_key(key)
@@ -528,6 +754,7 @@ class OptionStore:
     def items(self) -> ItemsView['OptionKey', 'UserOption[T.Any]']:
         return self.d.items()
 
+    # FIXME: this method must be deleted and users moved to use "add_xxx_option"s instead.
     def update(self, *args, **kwargs):
         return self.d.update(*args, **kwargs)
 
@@ -536,3 +763,48 @@ class OptionStore:
 
     def get(self, *args, **kwargs) -> UserOption:
         return self.d.get(*args, **kwargs)
+
+    def is_project_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a project option."""
+        return key in self.project_options
+
+    def is_reserved_name(self, key: OptionKey) -> bool:
+        if key.name in _BUILTIN_NAMES:
+            return True
+        if '_' not in key.name:
+            return False
+        prefix = key.name.split('_')[0]
+        # Pylint seems to think that it is faster to build a set object
+        # and all related work just to test whether a string has one of two
+        # values. It is not, thank you very much.
+        if prefix in ('b', 'backend'): # pylint: disable=R6201
+            return True
+        if prefix in self.all_languages:
+            return True
+        return False
+
+    def is_builtin_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a builtin option."""
+        return key.name in _BUILTIN_NAMES or self.is_module_option(key)
+
+    def is_base_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a base option."""
+        return key.name.startswith('b_')
+
+    def is_backend_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a backend option."""
+        return key.name.startswith('backend_')
+
+    def is_compiler_option(self, key: OptionKey) -> bool:
+        """Convenience method to check if this is a compiler option."""
+
+        # FIXME, duplicate of is_reserved_name above. Should maybe store a cache instead.
+        if '_' not in key.name:
+            return False
+        prefix = key.name.split('_')[0]
+        if prefix in self.all_languages:
+            return True
+        return False
+
+    def is_module_option(self, key: OptionKey) -> bool:
+        return key in self.module_options

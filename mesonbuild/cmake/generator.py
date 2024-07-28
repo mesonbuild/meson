@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from .. import mesonlib
 from .. import mlog
-from ..mesonlib import OptionKey
+from ..options import OptionKey
 from .common import get_config_declined_property
 import typing as T
 
