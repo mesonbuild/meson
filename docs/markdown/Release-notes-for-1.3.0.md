@@ -39,7 +39,7 @@ about its value.
 
 ## [[configure_file]] now has a `macro_name` parameter.
 
-This new paramater, `macro_name` allows C macro-style include guards to be added
+This new parameter, `macro_name` allows C macro-style include guards to be added
 to [[configure_file]]'s output when a template file is not given. This change
 simplifies the creation of configure files that define macros with dynamic names
 and want the C-style include guards.
@@ -89,8 +89,8 @@ you to set the environment in which the generator will process inputs.
 In previous versions of meson, a `meson.build` file like this:
 
 ```
-exectuable('foo', 'main.c')
-exectuable('foo', 'main.c', name_suffix: 'bar')
+executable('foo', 'main.c')
+executable('foo', 'main.c', name_suffix: 'bar')
 ```
 
 would result in a configure error because meson internally used
@@ -288,7 +288,7 @@ We now allow passing arguments like `c_static_args` and `c_shared_args`. This
 allows a [[both_libraries]] to have arguments specific to either the shared or
 static library, as well as common arguments to both.
 
-There is a drawback to this, since Meson now cannot re-use object files between
+There is a drawback to this, since Meson now cannot reuse object files between
 the static and shared targets. This could lead to much higher compilation time
 when using a [[both_libraries]] if there are many sources.
 

@@ -116,7 +116,7 @@ def get_primary_source_lang(target_sources: T.List[File], custom_sources: T.List
 # Returns a dictionary (by [src type][build type]) that contains a tuple of -
 # (pre-processor defines, include paths, additional compiler options)
 # fields to use to fill in the respective intellisense fields of sources that can't simply
-# reference and re-use the shared 'primary' language intellisense fields of the vcxproj.
+# reference and reuse the shared 'primary' language intellisense fields of the vcxproj.
 def get_non_primary_lang_intellisense_fields(vslite_ctx: dict,
                                              target_id: str,
                                              primary_src_lang: str) -> T.Dict[str, T.Dict[str, T.Tuple[str, str, str]]]:
@@ -879,7 +879,7 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(parent_node, 'PreprocessorDefinitions', Condition=condition).text = defs
                 ET.SubElement(parent_node, 'AdditionalIncludeDirectories', Condition=condition).text = paths
                 ET.SubElement(parent_node, 'AdditionalOptions', Condition=condition).text = opts
-        else: # Can't find bespoke nmake defs/dirs/opts fields for this extention, so just reference the project's fields
+        else: # Can't find bespoke nmake defs/dirs/opts fields for this extension, so just reference the project's fields
             ET.SubElement(parent_node, 'PreprocessorDefinitions').text = '$(NMakePreprocessorDefinitions)'
             ET.SubElement(parent_node, 'AdditionalIncludeDirectories').text = '$(NMakeIncludeSearchPath)'
             ET.SubElement(parent_node, 'AdditionalOptions').text = '$(AdditionalOptions)'
@@ -1542,7 +1542,7 @@ class Vs2010Backend(backends.Backend):
     # the solution's configurations.  Similarly, 'ItemGroup' also doesn't support 'Condition'.  So, without knowing
     # a better (simple) alternative, for now, we'll repoint these generated sources (which will be incorrectly
     # pointing to non-existent files under our '[builddir]_vs' directory) to the appropriate location under one of
-    # our buildtype build directores (e.g. '[builddir]_debug').
+    # our buildtype build directories (e.g. '[builddir]_debug').
     # This will at least allow the user to open the files of generated sources listed in the solution explorer,
     # once a build/compile has generated these sources.
     #

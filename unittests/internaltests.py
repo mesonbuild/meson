@@ -176,7 +176,7 @@ class InternalTests(unittest.TestCase):
         # Test that adding to a list with just one old arg works and yields the same array
         a = ['-Ifoo'] + a
         self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-O3', '-O2', '-Wall'])
-        # Test that adding to a list with just one new arg that is not pre-pended works
+        # Test that adding to a list with just one new arg that is not prepended works
         a = ['-Werror'] + a
         self.assertEqual(a, ['-Ibar', '-Ifoo', '-Ibaz', '-I..', '-I.', '-Werror', '-O3', '-O2', '-Wall'])
         # Test that adding to a list with two new args preserves the order

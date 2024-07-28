@@ -3427,8 +3427,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
             if kwargs['implib']:
                 if kwargs['export_dynamic'] is False:
-                    FeatureDeprecated.single_use('implib overrides explict export_dynamic off', '1.3.0', self.subproject,
-                                                 'Do not set ths if want export_dynamic disabled if implib is enabled',
+                    FeatureDeprecated.single_use('implib overrides explicit export_dynamic off', '1.3.0', self.subproject,
+                                                 'Do not set this if want export_dynamic disabled if implib is enabled',
                                                  location=node)
                 kwargs['export_dynamic'] = True
             elif kwargs['export_dynamic']:

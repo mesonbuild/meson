@@ -99,7 +99,7 @@ def get_rsp_threshold() -> int:
         # and that has a limit of 8k.
         limit = 8192
     else:
-        # Unix-like OSes usualy have very large command line limits, (On Linux,
+        # Unix-like OSes usually have very large command line limits, (On Linux,
         # for example, this is limited by the kernel's MAX_ARG_STRLEN). However,
         # some programs place much lower limits, notably Wine which enforces a
         # 32k limit like Windows. Therefore, we limit the command line to 32k.

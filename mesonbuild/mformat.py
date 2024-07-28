@@ -967,7 +967,7 @@ def run(options: argparse.Namespace) -> int:
 # TODO: magic comment to prevent formatting
 # TODO: handle meson.options ?
 # TODO: split long lines on binary operators
-# TODO: align series of assignements
+# TODO: align series of assignments
 # TODO: align comments
 # TODO: move comments on long lines
 

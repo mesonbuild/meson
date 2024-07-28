@@ -420,7 +420,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertEqual(self.getconf('neg_int_opt'), -10)
 
     def test_configure_options_file_deleted(self) -> None:
-        """Deleting all option files should make seting a project option an error."""
+        """Deleting all option files should make setting a project option an error."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
         self.init(testdir)
         os.unlink(os.path.join(testdir, 'meson_options.txt'))
