@@ -219,6 +219,11 @@ class CompilerArgs(T.MutableSequence[str]):
     def _should_prepend(cls, arg: str) -> bool:
         return arg.startswith(cls.prepend_prefixes)
 
+    @classmethod
+    @lru_cache(maxsize=None)
+    def _should_prepend_next(cls, arg: str) -> bool:
+        return arg in cls.prepend_prefixes
+
     def to_native(self, copy: bool = False) -> T.List[str]:
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
@@ -278,6 +283,7 @@ class CompilerArgs(T.MutableSequence[str]):
         tmp_pre: T.Deque[str] = collections.deque()
         if not isinstance(args, collections.abc.Iterable):
             raise TypeError(f'can only concatenate Iterable[str] (not "{args}") to CompilerArgs')
+        prepend_this = False
         for arg in args:
             # If the argument can be de-duped, do it either by removing the
             # previous occurrence of it and adding a new one, or not adding the
@@ -287,10 +293,15 @@ class CompilerArgs(T.MutableSequence[str]):
                 # Argument already exists and adding a new instance is useless
                 if arg in self._container or arg in self.pre or arg in self.post:
                     continue
-            if self._should_prepend(arg):
+            if self._should_prepend_next(arg):
                 tmp_pre.appendleft(arg)
+                prepend_this = True
+            elif self._should_prepend(arg) or prepend_this:
+                tmp_pre.appendleft(arg)
+                prepend_this = False
             else:
                 self.post.append(arg)
+                prepend_this = False
         self.pre.extendleft(tmp_pre)
         #pre and post is going to be merged later before a iter call
         return self

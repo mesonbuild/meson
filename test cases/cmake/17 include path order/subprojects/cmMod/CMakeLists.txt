@@ -27,6 +27,9 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/incK
 )
 
+# Same thing but for system includes
+include_directories(SYSTEM sysA sysB)
+
 add_definitions("-DDO_NOTHING_JUST_A_FLAG=1")
 
 add_library(cmModLib++ SHARED cmMod.cpp)

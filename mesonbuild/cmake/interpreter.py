@@ -357,7 +357,15 @@ class ConverterTarget:
             self.depends_raw = trace.targets[self.cmake_name].depends
 
             rtgt = resolve_cmake_trace_targets(self.cmake_name, trace, self.env)
-            self.includes += [Path(x) for x in rtgt.include_directories]
+            # FIXME: In theory, only IMPORTED and INTERFACE targets need
+            # the ResolvedTarget parsing of the trace file - all other
+            # targets have already their include directories from the fileAPI
+            # We simply aboid adding them twice until the cmake module has
+            # proper support for private and public includes
+            for inc_dir in rtgt.include_directories:
+                inc_path = Path(inc_dir)
+                if inc_path not in self.includes and inc_path not in self.sys_includes:
+                    self.includes.append(inc_path)
             self.link_flags += rtgt.link_flags
             self.public_link_flags += rtgt.public_link_flags
             self.public_compile_opts += rtgt.public_compile_opts
