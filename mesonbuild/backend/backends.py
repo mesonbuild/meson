@@ -2101,6 +2101,4 @@ class Backend:
         else:
             import sys
             sys.exit('Internal error: invalid option type.')
-        if key.name == 'std':
-            pass
         return self.environment.coredata.get_option_for_target(target, key)
