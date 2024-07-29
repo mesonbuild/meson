@@ -211,6 +211,7 @@ class Project(TypedDict):
     meson_version: T.Optional[str]
     default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     license: T.List[str]
+    license_files: T.List[str]
     subproject_dir: str
 
 
