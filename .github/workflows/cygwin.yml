@@ -13,12 +13,14 @@ on:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
+      - "unittests/**"
       - ".github/workflows/cygwin.yml"
       - "run*tests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
+      - "unittests/**"
       - ".github/workflows/cygwin.yml"
       - "run*tests.py"
 
