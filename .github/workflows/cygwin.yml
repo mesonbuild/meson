@@ -69,6 +69,7 @@ jobs:
             libgtk3-devel
             libxml2-devel
             libxslt-devel
+            make
             ninja
             python2-devel
             python3-devel
