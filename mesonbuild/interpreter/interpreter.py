@@ -636,7 +636,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             ext_module = NotFoundExtensionModule(real_modname)
         else:
             ext_module = module.initialize(self)
-            assert isinstance(ext_module, (ExtensionModule, NewExtensionModule))
+            assert isinstance(ext_module, (ExtensionModule, NewExtensionModule)), 'for mypy'
             self.build.modules.append(real_modname)
         if ext_module.INFO.added:
             FeatureNew.single_use(f'module {ext_module.INFO.name}', ext_module.INFO.added, self.subproject, location=node)
@@ -877,6 +877,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
+            assert feature, 'for mypy'
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
@@ -1234,6 +1235,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.active_projectname = proj_name
 
         version = kwargs['version']
+        assert version is not None, 'for mypy'
         if isinstance(version, mesonlib.File):
             FeatureNew.single_use('version from file', '0.57.0', self.subproject, location=node)
             self.add_build_def_file(version)
@@ -1291,6 +1293,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             subdir = os.path.join(self.subdir, spdirname)
             r = wrap.Resolver(self.environment.get_source_dir(), subdir, self.subproject, wrap_mode)
             if self.is_subproject():
+                assert self.environment.wrap_resolver is not None, 'for mypy'
                 self.environment.wrap_resolver.merge_wraps(r)
             else:
                 self.environment.wrap_resolver = r
@@ -1305,7 +1308,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             # vs backend version we need. But after setting default_options in case
             # the project sets vs backend by default.
             backend = self.coredata.get_option(OptionKey('backend'))
+            assert backend is None or isinstance(backend, str), 'for mypy'
             vsenv = self.coredata.get_option(OptionKey('vsenv'))
+            assert isinstance(vsenv, bool), 'for mypy'
             force_vsenv = vsenv or backend.startswith('vs')
             mesonlib.setup_vsenv(force_vsenv)
 
@@ -1324,6 +1329,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         native = kwargs['native']
 
         if disabled:
+            assert feature, 'for mypy'
             for lang in sorted(langs, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
@@ -1725,7 +1731,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     interp = self.subprojects[progobj.subproject].held_object
                 else:
                     interp = self
-                assert isinstance(interp, Interpreter)
+                assert isinstance(interp, Interpreter), 'for mypy'
                 version = interp.project_version
             else:
                 version = progobj.get_version(self)
@@ -1770,6 +1776,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                           ) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
+            assert feature, 'for mypy'
             mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args[0])
 
@@ -1812,7 +1819,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not_found_message:
                 self.message_impl([not_found_message])
             raise
-        assert isinstance(d, Dependency)
+        assert isinstance(d, Dependency), 'for mypy'
         if not d.found() and not_found_message:
             self.message_impl([not_found_message])
         # Ensure the correct include type
