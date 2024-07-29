@@ -223,7 +223,9 @@ class GitDist(Dist):
 class HgDist(Dist):
     def have_dirty_index(self) -> bool:
         '''Check whether there are uncommitted changes in hg'''
-        out = subprocess.check_output(['hg', '-R', self.src_root, 'summary'])
+        env = os.environ.copy()
+        env['LC_ALL'] = 'C'
+        out = subprocess.check_output(['hg', '-R', self.src_root, 'summary'], env=env)
         return b'commit: (clean)' not in out
 
     def create_dist(self, archives: T.List[str]) -> T.List[str]:
