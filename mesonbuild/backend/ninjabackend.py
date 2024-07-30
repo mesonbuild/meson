@@ -3712,7 +3712,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 #Add archive file if shared library in AIX for build all.
                 if isinstance(t, build.SharedLibrary) and t.aix_so_archive:
                     if self.environment.machines[t.for_machine].is_aix():
-                        linker, stdlib_args = self.determine_linker_and_stdlib_args(t)
+                        linker, stdlib_args = t.get_clink_dynamic_linker_and_stdlibs()
                         t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
