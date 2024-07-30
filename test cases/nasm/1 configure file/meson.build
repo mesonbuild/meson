@@ -24,10 +24,16 @@ conf = configuration_data()
 
 conf.set('HELLO', 0)
 
+debug_nasm = []
+if get_option('debug')
+  debug_nasm = ['-g']
+endif
+
 asm_gen = generator(nasm,
   output : '@BASENAME@.o',
   arguments : [
     '-f', asm_format,
+    debug_nasm,
     '-i', meson.current_source_dir() + '/',
     '-i', join_paths(meson.current_source_dir(), ''),
     '-P', join_paths(meson.current_build_dir(), 'config.asm'),
