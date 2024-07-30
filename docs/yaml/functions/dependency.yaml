@@ -169,7 +169,6 @@ kwargs:
 
   static:
     type: bool
-    default: false
     description: |
       Tells the dependency provider to try to get static
       libraries instead of dynamic ones (note that this is not supported
@@ -177,6 +176,9 @@ kwargs:
 
       *Since 0.60.0* it also sets `default_library` option accordingly on the fallback
       subproject if it was not set explicitly in `default_options` keyword argument.
+
+      *Since 0.63.0* when the `prefer_static` option is set to `true` the default
+      value is `true` otherwise the default value is `false`.
 
   version:
     type: list[str] | str
