@@ -46,6 +46,7 @@ if T.TYPE_CHECKING:
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
     from ..mesonlib import FileOrString
+    from .backends import TargetIntrospectionData
 
     CommandArgOrStr = T.List[T.Union['NinjaCommandArg', str]]
     RUST_EDITIONS = Literal['2015', '2018', '2021']
@@ -495,12 +496,12 @@ class NinjaBackend(backends.Backend):
         super().__init__(build, interpreter)
         self.name = 'ninja'
         self.ninja_filename = 'build.ninja'
-        self.fortran_deps = {}
+        self.fortran_deps: T.Dict[str, T.Dict[str, File]] = {}
         self.all_outputs: T.Set[str] = set()
         self.introspection_data = {}
         self.created_llvm_ir_rule = PerMachine(False, False)
         self.rust_crates: T.Dict[str, RustCrate] = {}
-        self.implicit_meson_outs = []
+        self.implicit_meson_outs: T.List[str] = []
         self._uses_dyndeps = False
         # nvcc chokes on thin archives:
         #   nvlink fatal   : Could not open input file 'libfoo.a.p'
@@ -849,14 +850,13 @@ class NinjaBackend(backends.Backend):
         if unity_sources:
             src_block['unity_sources'].extend(compute_path(x) for x in unity_sources)
 
-    def create_target_linker_introspection(self, target: build.Target, linker: T.Union[Compiler, StaticLinker], parameters) -> None:
+    def create_target_linker_introspection(self, target: build.Target, linker: T.Union[Compiler, StaticLinker], parameters: CompilerArgs) -> None:
         tid = target.get_id()
         tgt = self.introspection_data[tid]
         lnk_hash = tuple(parameters)
         lnk_block = tgt.get(lnk_hash, None)
         if lnk_block is None:
-            if isinstance(parameters, CompilerArgs):
-                parameters = parameters.to_native(copy=True)
+            paramlist = parameters.to_native(copy=True)
 
             if isinstance(linker, Compiler):
                 linkers = linker.get_linker_exelist()
@@ -865,7 +865,7 @@ class NinjaBackend(backends.Backend):
 
             lnk_block = {
                 'linker': linkers,
-                'parameters': parameters,
+                'parameters': paramlist,
             }
             tgt[lnk_hash] = lnk_block
 
@@ -3763,7 +3763,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, deps, 'phony', '')
         self.add_build(elem)
 
-    def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
+    def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[TargetIntrospectionData]:
         data = self.introspection_data.get(target_id)
         if not data:
             return super().get_introspection_data(target_id, target)
@@ -3771,7 +3771,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return list(data.values())
 
 
-def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compiler) -> T.List[str]:
+def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps: T.Dict[str, File], compiler: FortranCompiler) -> T.List[str]:
     """
     scan a Fortran file for dependencies. Needs to be distinct from target
     to allow for recursion induced by `include` statements.er
