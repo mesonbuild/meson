@@ -503,6 +503,7 @@ class NinjaBackend(backends.Backend):
         self.rust_crates: T.Dict[str, RustCrate] = {}
         self.implicit_meson_outs: T.List[str] = []
         self._uses_dyndeps = False
+        self._generated_header_cache: T.Dict[str, T.List[FileOrString]] = {}
         # nvcc chokes on thin archives:
         #   nvlink fatal   : Could not open input file 'libfoo.a.p'
         #   nvlink fatal   : elfLink internal error
@@ -738,8 +739,9 @@ class NinjaBackend(backends.Backend):
     # Get all generated headers. Any source file might need them so
     # we need to add an order dependency to them.
     def get_generated_headers(self, target: build.BuildTarget) -> T.List[FileOrString]:
-        if hasattr(target, 'cached_generated_headers'):
-            return target.cached_generated_headers
+        tid = target.get_id()
+        if tid in self._generated_header_cache:
+            return self._generated_header_cache[tid]
         header_deps: T.List[FileOrString] = []
         # XXX: Why don't we add deps to CustomTarget headers here?
         for genlist in target.get_generated_sources():
@@ -757,7 +759,7 @@ class NinjaBackend(backends.Backend):
                 header_deps += self.get_generated_headers(dep)
         if isinstance(target, build.CompileTarget):
             header_deps.extend(target.get_generated_headers())
-        target.cached_generated_headers = header_deps
+        self._generated_header_cache[tid] = header_deps
         return header_deps
 
     def get_target_generated_sources(self, target: build.BuildTarget) -> T.MutableMapping[str, File]:
