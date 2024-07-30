@@ -13,6 +13,7 @@ from .. import options
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged
 from ..options import OptionKey
 from .compilers import Compiler, clike_debug_args
+from .mixins.llvm import LLVMCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
@@ -33,7 +34,7 @@ rust_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-C', 'opt-level=s'],
 }
 
-class RustCompiler(Compiler):
+class RustCompiler(LLVMCompilerMixin, Compiler):
 
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
     language = 'rust'
@@ -65,7 +66,7 @@ class RustCompiler(Compiler):
         super().__init__([], exelist, version, for_machine, info,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
-        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
+        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug', 'b_pgo']})
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
@@ -220,6 +221,13 @@ class RustCompiler(Compiler):
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
+
+    def get_profile_generate_args(self, pgo_dir: str) -> T.List[str]:
+        return ['-C', f'profile-generate={pgo_dir}']
+
+    def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
+        mf = self.get_profile_merged_file(pgo_dir)
+        return ['-C', f'profile-use={mf}']
 
 
 class ClippyRustCompiler(RustCompiler):

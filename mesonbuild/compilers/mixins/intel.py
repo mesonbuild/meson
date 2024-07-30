@@ -99,10 +99,10 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         ]
         return super().get_compiler_check_args(mode) + extra_args
 
-    def get_profile_generate_args(self) -> T.List[str]:
+    def get_profile_generate_args(self, pgo_dir: str) -> T.List[str]:
         return ['-prof-gen=threadsafe']
 
-    def get_profile_use_args(self) -> T.List[str]:
+    def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
         return ['-prof-use']
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:

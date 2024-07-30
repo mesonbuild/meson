@@ -996,7 +996,7 @@ class Vs2010Backend(backends.Backend):
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(
-                    target.get_options(), comp, self.environment)
+                    target.get_options(), comp, self.environment, self.get_target_private_dir_abs(target), target)
                 file_args[l] += comp.get_option_compile_args(
                     target.get_options())
 

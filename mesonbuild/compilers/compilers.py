@@ -287,7 +287,18 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
              options.get_value('buildtype') in {'release', 'plain'}))
 
 
-def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
+def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler',
+                          env: 'Environment', privatedir: str,
+                          target: BuildTarget) -> T.List[str]:
+    """Get common compiler arguments for all units of a single language in a
+    Target.
+
+    :param options: A Mapping with all options
+    :param compiler: The Compiler to create arguments for
+    :param env: The Environment object
+    :param privatedir: The Target's private directory
+    :return: A list of string arguments
+    """
     args: T.List[str] = []
     try:
         if options.get_value(OptionKey('b_lto')):
@@ -304,14 +315,13 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
         args += compiler.sanitizer_compile_args(options.get_value(OptionKey('b_sanitize')))
     except (KeyError, AttributeError):
         pass
-    try:
+    if compiler.should_pgo_target(target):
         pgo_val = options.get_value(OptionKey('b_pgo'))
+        pgo_dir = os.path.join(privatedir, 'pgo')
         if pgo_val == 'generate':
-            args.extend(compiler.get_profile_generate_args())
+            args.extend(compiler.get_profile_generate_args(pgo_dir))
         elif pgo_val == 'use':
-            args.extend(compiler.get_profile_use_args())
-    except (KeyError, AttributeError):
-        pass
+            args.extend(compiler.get_profile_use_args(pgo_dir))
     try:
         if options.get_value(OptionKey('b_coverage')):
             args += compiler.get_coverage_args()
@@ -336,7 +346,8 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     return args
 
 def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
-                       is_shared_module: bool, build_dir: str) -> T.List[str]:
+                       is_shared_module: bool, build_dir: str, privatedir: str,
+                       target: BuildTarget) -> T.List[str]:
     args: T.List[str] = []
     try:
         if options.get_value('b_lto'):
@@ -358,14 +369,13 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
         args += linker.sanitizer_link_args(options.get_value('b_sanitize'))
     except (KeyError, AttributeError):
         pass
-    try:
+    if linker.should_pgo_target(target):
         pgo_val = options.get_value('b_pgo')
+        pgo_dir = os.path.join(privatedir, 'pgo')
         if pgo_val == 'generate':
-            args.extend(linker.get_profile_generate_args())
+            args.extend(linker.get_profile_generate_args(pgo_dir))
         elif pgo_val == 'use':
-            args.extend(linker.get_profile_use_args())
-    except (KeyError, AttributeError):
-        pass
+            args.extend(linker.get_profile_use_args(pgo_dir))
     try:
         if options.get_value('b_coverage'):
             args += linker.get_coverage_link_args()
@@ -982,13 +992,39 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return 'other'
 
-    def get_profile_generate_args(self) -> T.List[str]:
+    def get_profile_generate_args(self, pgo_dir: str) -> T.List[str]:
+        """Create arguments for generating PGO data
+
+        :param pgo_dir: A directory which may be used to output implementation files
+        :raises EnvironmentException: If the compiler does not implement PGO
+        :return: A string list of arguments to generate PGO
+        """
         raise EnvironmentException(
             '%s does not support get_profile_generate_args ' % self.get_id())
 
-    def get_profile_use_args(self) -> T.List[str]:
+    def get_profile_use_args(self, pgo_dir: str) -> T.List[str]:
+        """Create arguments for using PGO data.
+
+        :param pgo_dir: A directory which may be used to read and write implementation files
+        :raises EnvironmentException: If the compiler does not implement PGO
+        :return: A list of string argumetns for using PGO
+        """
         raise EnvironmentException(
             '%s does not support get_profile_use_args ' % self.get_id())
+
+    def should_pgo_target(self, target: BuildTarget) -> bool:
+        """Whether this compiler wants pgo arguments for the given target.
+
+        Notably, LLVM based compilers do not generate pgo information for static
+        libraries, but GCC based ones do.
+
+        :param target: The target to act on
+        :return: True if pgo arguments should be generated, otherwise false.
+        """
+        return False
+
+    def get_profile_merged_file(self, private_dir: str) -> str:
+        return os.path.join(private_dir, 'merged.profdata')
 
     def remove_linkerlike_args(self, args: T.List[str]) -> T.List[str]:
         rm_exact = ('-headerpad_max_install_names',)

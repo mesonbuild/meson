@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
+# Copyright © 2024 Intel Corporation
 
 import subprocess
 import re
@@ -5012,3 +5013,46 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    def test_pgo(self) -> None:
+        env = get_fake_env()
+
+        tests: T.List[T.Tuple[str, str, str]] = [
+            ('C', 'static', os.path.join(self.common_test_dir, '5 linkstatic')),
+            ('C', 'shared', os.path.join(self.common_test_dir, '6 linkshared')),
+            ('Rust', 'static', os.path.join(self.rust_test_dir, '3 staticlib')),
+            ('Rust', 'shared', os.path.join(self.rust_test_dir, '2 sharedlib')),
+        ]
+
+        for lang, name, srcdir in tests:
+            with self.subTest(f'{lang} ({name})'):
+                comp = detect_compiler_for(env, 'c', MachineChoice.HOST, True, '')
+                if not comp:
+                    self.skipTest(f"No compiler found for language: {lang}")
+                if OptionKey('b_pgo') not in comp.base_options:
+                    self.skipTest(f"Compiler for {lang} language does not support pgo")
+
+                self.init(srcdir, extra_args=['-Db_pgo=generate'])
+                self.build()
+                subprocess.run(os.path.join(self.builddir, 'prog'))
+                self.setconf('-Db_pgo=use')
+                self.build()
+
+    def test_pgo_rust_and_c(self) -> None:
+        env = get_fake_env()
+
+        for lang in ['c', 'rust']:
+            comp = detect_compiler_for(env, lang, MachineChoice.HOST, True, '')
+            if not comp:
+                self.skipTest(f"No compiler found for language: {lang}")
+            if OptionKey('b_pgo') not in comp.base_options:
+                self.skipTest(f"Compiler for {lang} language does not support pgo")
+            if (lang == 'c' and comp.id != 'clang') or (lang == 'rust' and not comp.id.startswith('rustc')):
+                self.skipTest('Mixing of Rust and C/C++ is only supported with Clang anr Rustc')
+
+        self.init(os.path.join(self.rust_test_dir, '5 polyglot static'), extra_args=['-Db_pgo=generate'])
+        self.build()
+        subprocess.run(os.path.join(self.builddir, 'prog'))
+        subprocess.run(os.path.join(self.builddir, 'prog2'))
+        self.setconf('-Db_pgo=use')
+        self.build()
