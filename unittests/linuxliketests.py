@@ -1352,7 +1352,7 @@ class LinuxlikeTests(BasePlatformTests):
         #   before v0.28, Libs flags like -Wl will not kept in context order with -l flags.
         #   see https://gitlab.freedesktop.org/pkg-config/pkg-config/-/blob/master/NEWS
         pkgconfigver = subprocess.check_output([PKG_CONFIG, '--version'])
-        if b'0.28' > pkgconfigver:
+        if pkgconfigver < b'0.28':
             raise SkipTest('pkg-config is too old to be correctly done this.')
         self.run_tests()
 

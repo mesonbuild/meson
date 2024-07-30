@@ -164,7 +164,7 @@ class ValaCompiler(Compiler):
                 if a:
                     p = a[0]
                     n = p[max(p.rfind('/'), p.rfind('\\'))+1:]
-                    if not n == d.get_name():
+                    if n != d.get_name():
                         args += ['--pkg=' + d.get_name()] # This is used by gio-2.0 among others.
                     else:
                         args += ['--pkg=' + n]

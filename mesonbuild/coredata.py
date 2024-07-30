@@ -882,7 +882,7 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
     # Merge builtin options set with --option into the dict.
     for key in chain(
             options.BUILTIN_OPTIONS.keys(),
-            (k.as_build() for k in options.BUILTIN_OPTIONS_PER_MACHINE.keys()),
+            (k.as_build() for k in options.BUILTIN_OPTIONS_PER_MACHINE),
             options.BUILTIN_OPTIONS_PER_MACHINE.keys(),
     ):
         name = str(key)

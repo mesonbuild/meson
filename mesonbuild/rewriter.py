@@ -456,7 +456,7 @@ class Rewriter:
             'id': "/",
             'operation': 'remove_regex',
             'kwargs': {
-                'default_options': [f'{x}=.*' for x in cmd['options'].keys()]
+                'default_options': [f'{x}=.*' for x in cmd['options']]
             }
         }
         self.process_kwargs(kwargs_cmd)
@@ -729,7 +729,7 @@ class Rewriter:
                 # Specifying `extra_files` with a list that flattens to empty gives an empty
                 # target['extra_files'] list, account for that.
                 try:
-                    extra_files_key = next(k for k in tgt_function.args.kwargs.keys() if isinstance(k, IdNode) and k.value == 'extra_files')
+                    extra_files_key = next(k for k in tgt_function.args.kwargs if isinstance(k, IdNode) and k.value == 'extra_files')
                     node = tgt_function.args.kwargs[extra_files_key]
                 except StopIteration:
                     # Target has no extra_files kwarg, create one

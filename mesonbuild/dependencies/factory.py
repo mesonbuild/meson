@@ -110,10 +110,7 @@ class DependencyFactory:
         By default this only remove EXTRAFRAMEWORK dependencies for non-mac platforms.
         """
         # Extra frameworks are only valid for macOS and other apple products
-        if (method is DependencyMethods.EXTRAFRAMEWORK and
-                not env.machines[for_machine].is_darwin()):
-            return False
-        return True
+        return not (method is DependencyMethods.EXTRAFRAMEWORK and not env.machines[for_machine].is_darwin())
 
     def __call__(self, env: 'Environment', for_machine: MachineChoice,
                  kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:

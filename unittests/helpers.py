@@ -198,9 +198,8 @@ def get_rpath(fname: str) -> T.Optional[str]:
 
 
 def get_classpath(fname: str) -> T.Optional[str]:
-    with zipfile.ZipFile(fname) as zip:
-        with zip.open('META-INF/MANIFEST.MF') as member:
-            contents = member.read().decode().strip()
+    with zipfile.ZipFile(fname) as zip, zip.open('META-INF/MANIFEST.MF') as member:
+        contents = member.read().decode().strip()
     lines: T.List[str] = []
     for line in contents.splitlines():
         if line.startswith(' '):

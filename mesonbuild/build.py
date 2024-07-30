@@ -2695,9 +2695,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         if output.endswith(('.a', '.dll', '.lib', '.so', '.dylib')):
             return True
         # libfoo.so.X soname
-        if re.search(r'\.so(\.\d+)*$', output):
-            return True
-        return False
+        return bool(re.search('\\.so(\\.\\d+)*$', output))
 
     def is_linkable_target(self) -> bool:
         if len(self.outputs) != 1:

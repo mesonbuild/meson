@@ -102,7 +102,7 @@ class GnuStepDependency(ConfigToolDependency):
                     or f.startswith('-f') \
                     or f.startswith('-I') \
                     or f == '-pthread' \
-                    or (f.startswith('-W') and not f == '-Wall'):
+                    or (f.startswith('-W') and f != '-Wall'):
                 result.append(f)
         return result
 

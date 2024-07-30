@@ -319,6 +319,6 @@ class CMakeFileAPI:
 
         data = json.loads(real_path.read_text(encoding='utf-8'))
         assert isinstance(data, dict)
-        for i in data.keys():
+        for i in data:
             assert isinstance(i, str)
         return data

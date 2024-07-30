@@ -452,9 +452,7 @@ class ConverterTarget:
         def check_flag(flag: str) -> bool:
             if flag.lower() in BLACKLIST_LINK_FLAGS or flag in BLACKLIST_COMPILER_FLAGS or flag in BLACKLIST_CLANG_CL_LINK_FLAGS:
                 return False
-            if flag.startswith('/D'):
-                return False
-            return True
+            return not flag.startswith('/D')
 
         self.link_libraries = [x for x in self.link_libraries if x.lower() not in BLACKLIST_LINK_LIBS]
         self.link_flags = [x for x in self.link_flags if check_flag(x)]

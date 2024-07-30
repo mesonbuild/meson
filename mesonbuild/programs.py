@@ -153,9 +153,8 @@ class ExternalProgram(mesonlib.HoldableObject):
 
     @staticmethod
     def from_entry(name: str, command: T.Union[str, T.List[str]]) -> 'ExternalProgram':
-        if isinstance(command, list):
-            if len(command) == 1:
-                command = command[0]
+        if isinstance(command, list) and len(command) == 1:
+            command = command[0]
         # We cannot do any searching if the command is a list, and we don't
         # need to search if the path is an absolute path.
         if isinstance(command, list) or os.path.isabs(command):

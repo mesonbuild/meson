@@ -66,7 +66,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
 
 def list_projects(options: 'argparse.Namespace') -> None:
     releases = get_releases(options.allow_insecure)
-    for p in releases.keys():
+    for p in releases:
         print(p)
 
 def search(options: 'argparse.Namespace') -> None:

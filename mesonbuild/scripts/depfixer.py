@@ -328,9 +328,8 @@ class Elf(DataSizes):
             # specified by user with build_rpath.
             for rpath_dir in old_rpath.split(b':'):
                 if not (rpath_dir in rpath_dirs_to_remove or
-                        rpath_dir == (b'X' * len(rpath_dir))):
-                    if rpath_dir:
-                        new_rpaths.add(rpath_dir)
+                        rpath_dir == (b'X' * len(rpath_dir))) and rpath_dir:
+                    new_rpaths.add(rpath_dir)
 
         # Prepend user-specified new entries while preserving the ones that came from pkgconfig etc.
         new_rpath = b':'.join(new_rpaths)

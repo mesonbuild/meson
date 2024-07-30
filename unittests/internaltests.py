@@ -990,24 +990,23 @@ class InternalTests(unittest.TestCase):
     def test_dependency_factory_order(self):
         b = mesonbuild.dependencies.base
         F = mesonbuild.dependencies.factory
-        with tempfile.TemporaryDirectory() as tmpdir:
-            with chdir(tmpdir):
-                env = get_fake_env()
-                env.scratch_dir = tmpdir
+        with tempfile.TemporaryDirectory() as tmpdir, chdir(tmpdir):
+            env = get_fake_env()
+            env.scratch_dir = tmpdir
 
-                f = F.DependencyFactory(
-                    'test_dep',
-                    methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE]
-                )
-                actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
-                self.assertListEqual([m.type_name for m in actual], ['pkgconfig', 'cmake'])
+            f = F.DependencyFactory(
+                'test_dep',
+                methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE]
+            )
+            actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
+            self.assertListEqual([m.type_name for m in actual], ['pkgconfig', 'cmake'])
 
-                f = F.DependencyFactory(
-                    'test_dep',
-                    methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG]
-                )
-                actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
-                self.assertListEqual([m.type_name for m in actual], ['cmake', 'pkgconfig'])
+            f = F.DependencyFactory(
+                'test_dep',
+                methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG]
+            )
+            actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
+            self.assertListEqual([m.type_name for m in actual], ['cmake', 'pkgconfig'])
 
     def test_validate_json(self) -> None:
         """Validate the json schema for the test cases."""

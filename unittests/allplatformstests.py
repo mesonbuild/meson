@@ -1362,9 +1362,8 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         extra_args: T.List[str] = []
-        if cc.get_id() == 'clang':
-            if is_windows():
-                raise SkipTest('LTO not (yet) supported by windows clang')
+        if cc.get_id() == 'clang' and is_windows():
+            raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'] + extra_args)
         self.build()
@@ -1426,11 +1425,7 @@ class AllPlatformTests(BasePlatformTests):
             # This check should not be necessary, but
             # CI under macOS passes the above test even
             # though Mercurial is not installed.
-            if subprocess.call(['hg', '--version'],
-                               stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL) != 0:
-                return False
-            return True
+            return subprocess.call(['hg', '--version'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
         except FileNotFoundError:
             return False
 
@@ -3241,7 +3236,7 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertIn(i[0], obj)
                 self.assertIsInstance(obj[i[0]], i[1])
             if strict:
-                for k in obj.keys():
+                for k in obj:
                     found = False
                     for i in key_type_list:
                         if k == i[0]:

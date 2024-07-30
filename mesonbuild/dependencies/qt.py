@@ -76,9 +76,8 @@ def _get_modules_lib_suffix(version: str, info: 'MachineInfo', is_debug: bool) -
             suffix += 'd'
         if version.startswith('4'):
             suffix += '4'
-    if info.is_darwin():
-        if is_debug:
-            suffix += '_debug'
+    if info.is_darwin() and is_debug:
+        suffix += '_debug'
     if mesonlib.version_compare(version, '>= 5.14.0'):
         if info.is_android():
             if info.cpu_family == 'x86':
