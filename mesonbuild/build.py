@@ -721,9 +721,6 @@ class BuildTarget(Target):
         ('cpp', 'cuda'),
     ])
 
-    # This is used by the backend to cache complex computation.
-    cached_generated_headers: T.Optional[T.List[FileOrString]]
-
     def __init__(
             self,
             name: str,
