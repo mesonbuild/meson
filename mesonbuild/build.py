@@ -2133,6 +2133,11 @@ class StaticLibrary(BuildTarget):
             if self.rust_crate_type == 'staticlib':
                 # FIXME: In the case of no-std we should not add those libraries,
                 # but we have no way to know currently.
+
+                # XXX:
+                #  In the case of no-std, we are likely in a bare metal case
+                #  and thus, machine_info kernel should be set to 'none'.
+                #  In that case, native_static_libs list is empty.
                 rustc = self.compilers['rust']
                 d = dependencies.InternalDependency('undefined', [], [],
                                                     rustc.native_static_libs,
