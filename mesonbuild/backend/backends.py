@@ -1261,6 +1261,8 @@ class Backend:
                     cmd_args.append(a)
                 elif isinstance(a, (build.Target, build.CustomTargetIndex)):
                     cmd_args.extend(self.construct_target_rel_paths(a, t.workdir))
+                elif isinstance(a, programs.ExternalProgram):
+                    cmd_args.extend(a.get_command())
                 else:
                     raise MesonException('Bad object in test command.')
 

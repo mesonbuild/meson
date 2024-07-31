@@ -45,3 +45,7 @@ custompathtgt = custom_target('testpathappend',
                               build_always : true,
                               command : [pathtester],
                               env : env)
+
+# https://github.com/mesonbuild/meson/issues/3552
+wrap = find_program('wrap.py')
+test('external program arg', wrap, args : [testerpy, testfile])
