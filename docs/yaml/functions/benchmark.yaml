@@ -28,7 +28,7 @@ posargs:
 
 kwargs:
   args:
-    type: list[str | file | tgt]
+    type: list[str | file | tgt | external_program]
     description: Arguments to pass to the executable
 
   env:
