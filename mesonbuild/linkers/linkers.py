@@ -705,7 +705,9 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         args.extend(self._apply_prefix('-rpath,' + paths))
 
         # TODO: should this actually be "for solaris/sunos"?
-        if mesonlib.is_sunos():
+        # NOTE: Remove the zigcc check once zig support "-rpath-link"
+        # See https://github.com/ziglang/zig/issues/18713
+        if mesonlib.is_sunos() or self.id == 'ld.zigcc':
             return (args, rpath_dirs_to_remove)
 
         # Rpaths to use while linking must be absolute. These are not
