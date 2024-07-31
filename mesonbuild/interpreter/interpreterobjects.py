@@ -753,7 +753,7 @@ class Test(MesonInterpreterObject):
                  exe: T.Union[ExternalProgram, build.Executable, build.CustomTarget, build.CustomTargetIndex],
                  depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
                  is_parallel: bool,
-                 cmd_args: T.List[T.Union[str, mesonlib.File, build.Target]],
+                 cmd_args: T.List[T.Union[str, mesonlib.File, build.Target, ExternalProgram]],
                  env: mesonlib.EnvironmentVariables,
                  should_fail: bool, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int, verbose: bool):

@@ -2268,6 +2268,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                  kwargs: T.Dict[str, T.Any], is_base_test: bool):
         if isinstance(args[1], (build.CustomTarget, build.CustomTargetIndex)):
             FeatureNew.single_use('test with CustomTarget as command', '1.4.0', self.subproject)
+        if any(isinstance(i, ExternalProgram) for i in kwargs['args']):
+            FeatureNew.single_use('test with external_program in args', '1.6.0', self.subproject)
 
         t = self.make_test(node, args, kwargs)
         if is_base_test:
