@@ -16,7 +16,7 @@ from pathlib import Path
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
 from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command
-from mesonbuild.mformat import match_path
+from mesonbuild.mformat import Formatter, match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from mesonbuild.options import OptionStore
 from run_tests import Backend
@@ -336,7 +336,13 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         for filename, pattern, expected in cases:
             self.assertTrue(match_path(filename, pattern) is expected, f'{filename} -> {pattern}')
-
+    
+    def test_format_empty_file(self) -> None:
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        for code in ('', '\n'):
+            formatted = formatter.format(code, Path())
+            self.assertEqual('\n', formatted)
+        
     def test_error_configuring_subdir(self):
         testdir = os.path.join(self.common_test_dir, '152 index customtarget')
         out = self.init(os.path.join(testdir, 'subdir'), allow_fail=True)

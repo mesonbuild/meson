@@ -396,6 +396,8 @@ class TrimWhitespaces(FullAstVisitor):
         if node.lines:
             self.move_whitespaces(node.lines[-1], node)
         else:
+            node.whitespaces.value = node.pre_whitespaces.value + node.whitespaces.value
+            node.pre_whitespaces.value = ''
             node.whitespaces.accept(self)
 
         if node.condition_level == 0 and self.config.insert_final_newline:
