@@ -7,6 +7,12 @@ if not add_languages('objc', required : false)
   error('MESON_SKIP_TEST: No ObjC compiler')
 endif
 
+objc = meson.get_compiler('objc')
+c = meson.get_compiler('c')
+if c.get_argument_syntax() != objc.get_argument_syntax()
+  error('MESON_SKIP_TEST: cmake cannot mix compiler types on Windows')
+endif
+
 cm = import('cmake')
 
 sub_pro = cm.subproject('cmTest')

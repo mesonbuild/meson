@@ -188,6 +188,8 @@ class CMakeToolchain:
             defaults[prefix + 'COMPILER'] = exe_list
             if comp_obj.get_id() == 'clang-cl':
                 defaults['CMAKE_LINKER'] = comp_obj.get_linker_exelist()
+            if lang.startswith('objc') and comp_obj.get_id().startswith('clang'):
+                defaults[f'{prefix}FLAGS'] = ['-D__STDC__=1']
 
         return defaults
 
