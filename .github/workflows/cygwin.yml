@@ -13,12 +13,14 @@ on:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
+      - "unittests/**"
       - ".github/workflows/cygwin.yml"
       - "run*tests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
+      - "unittests/**"
       - ".github/workflows/cygwin.yml"
       - "run*tests.py"
 
@@ -67,6 +69,7 @@ jobs:
             libgtk3-devel
             libxml2-devel
             libxslt-devel
+            make
             ninja
             python2-devel
             python3-devel
