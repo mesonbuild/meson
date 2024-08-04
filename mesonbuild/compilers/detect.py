@@ -47,8 +47,8 @@ if is_windows():
     defaults['cpp'] = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
     # the binary flang-new will be renamed to flang in the foreseeable future
     defaults['fortran'] = ['ifort', 'gfortran', 'flang-new', 'flang', 'pgfortran', 'g95']
-    defaults['objc'] = ['clang-cl', 'gcc']
-    defaults['objcpp'] = ['clang-cl', 'g++']
+    defaults['objc'] = ['clang', 'clang-cl', 'gcc']
+    defaults['objcpp'] = ['clang++', 'clang-cl', 'g++']
     defaults['cs'] = ['csc', 'mcs']
 else:
     if platform.machine().lower() == 'e2k':
