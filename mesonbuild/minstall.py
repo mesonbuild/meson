@@ -442,7 +442,7 @@ class Installer:
                 raise MesonException(f'Destination {link!r} already exists and is not a symlink')
             self.remove(link)
         if not self.printed_symlink_error:
-            self.log(f'Installing symlink pointing to {target} to {link}')
+            self.log(f'Installing symlink: {link} → {target}')
         try:
             self.symlink(target, link, target_is_directory=os.path.isdir(abs_target))
         except (NotImplementedError, OSError):
