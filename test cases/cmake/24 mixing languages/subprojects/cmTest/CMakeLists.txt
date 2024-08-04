@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(cmTest)
+project(cmTest LANGUAGES C OBJC)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 

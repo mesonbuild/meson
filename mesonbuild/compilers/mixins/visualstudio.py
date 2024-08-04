@@ -383,6 +383,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # As a last resort, try search in a compiled binary
         return self._symbols_have_underscore_prefix_searchbin(env)
 
+    def get_pie_args(self) -> T.List[str]:
+        return []
 
 class MSVCCompiler(VisualStudioLikeCompiler):
 

@@ -1326,6 +1326,9 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return self.rsp_syntax
 
+    def get_pie_args(self) -> T.List[str]:
+        return []
+
 
 class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
