@@ -32,15 +32,21 @@ ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
 def decode_match(match: T.Match[str]) -> str:
     return codecs.decode(match.group(0).encode(), 'unicode_escape')
 
+
+if T.TYPE_CHECKING:
+    from typing_extensions import Unpack
+    from .mesonlib import MesonExceptionKeywordArguments
+
+    class ParseExceptionKeywordArguments(MesonExceptionKeywordArguments):
+        line: str
+
 class ParseException(MesonException):
 
     ast: T.Optional[CodeBlockNode] = None
 
-    def __init__(self, text: str, line: str, lineno: int, colno: int) -> None:
+    def __init__(self, text: str, **kwargs: Unpack[ParseExceptionKeywordArguments]) -> None:
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
-        super().__init__(mlog.code_line(text, line, colno))
-        self.lineno = lineno
-        self.colno = colno
+        super().__init__(mlog.code_line(text, kwargs['line'], kwargs.get('colno', 0)), **kwargs)
 
 class BlockParseException(ParseException):
     def __init__(
