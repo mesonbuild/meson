@@ -38,7 +38,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import MesonExceptionKeywordArguments
 
     class ParseExceptionKeywordArguments(MesonExceptionKeywordArguments):
-        line: str
+        pass
 
 class ParseException(MesonException):
 
@@ -778,15 +778,13 @@ class Parser:
             operator = self.create_node(SymbolNode, self.previous)
             value = self.e1()
             if not isinstance(left, IdNode):
-                raise ParseException.from_node('Assignment target must be an id.', node=left,
-                                               line=self.getline())
+                raise ParseException.from_node('Assignment target must be an id.', node=left)
             assert isinstance(left.value, str)
             return self.create_node(AssignmentNode, left, operator, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
-                                     lineno=left.lineno, colno=left.colno,
-                                     line=self.getline())
+                                     lineno=left.lineno, colno=left.colno)
 
             qm_node = self.create_node(SymbolNode, self.previous)
             self.in_ternary = True
@@ -804,7 +802,6 @@ class Parser:
             operator = self.create_node(SymbolNode, self.previous)
             if isinstance(left, EmptyNode):
                 raise ParseException.from_node('Missing left condition for `or\' clause.', node=left,
-                                               line=self.getline(),
                                                error_resolve="Did you forget to escape the previous line?")
             left = self.create_node(OrNode, left, operator, self.e3())
         return left
@@ -815,7 +812,6 @@ class Parser:
             operator = self.create_node(SymbolNode, self.previous)
             if isinstance(left, EmptyNode):
                 raise ParseException.from_node('Missing left condition for `and\' clause.', node=left,
-                                               line=self.getline(),
                                                error_resolve="Did you forget to escape the previous line?")
             left = self.create_node(AndNode, left, operator, self.e4())
         return left
