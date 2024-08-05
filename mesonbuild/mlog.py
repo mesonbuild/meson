@@ -400,12 +400,12 @@ class _Logger:
                 empty_lineno = (lineno_size + 1) * ' '
 
                 # We need to decide how many error markers need to be printed.
-                end_colno = colno + 1
+                end_colno = colno
                 if getattr(e, 'end_colno', None) is not None and lineno == e.end_lineno: # type: ignore
                     end_colno = getattr(e, 'end_colno')
 
                 node_content.append(f' {lineno_str} | {line_content}')
-                node_marker.append(empty_lineno + ' | ' + colno * ' ' + (end_colno - colno) * '^')
+                node_marker.append(empty_lineno + ' | ' + colno * ' ' + max(1, end_colno - colno) * '^')
 
                 error_resolve = getattr(e, 'error_resolve', None)
                 if error_resolve is not None:
