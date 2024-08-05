@@ -227,7 +227,8 @@ class Lexer:
                     yield Token(tid, filename, curline_start, curline, col, bytespan, value)
                     break
             if not matched:
-                raise ParseException('lexer', line=self.getline(line_start), lineno=lineno, colno=col)
+                #TODO: with $ + 15 on a line in meson.build
+                raise ParseException('lexer', lineno=lineno, colno=col)
 
 @dataclass
 class BaseNode:
