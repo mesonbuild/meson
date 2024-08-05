@@ -107,8 +107,9 @@ class Lexer:
     def __init__(self, code: str):
         if code.startswith(codecs.BOM_UTF8.decode('utf-8')):
             line, *_ = code.split('\n', maxsplit=1)
-            raise ParseException(text='Builder file must be encoded in UTF-8 (with no BOM)',
-                                 line=line, lineno=0, colno=0)
+            raise ParseException('Builder file must be encoded in UTF-8 (with no BOM)', line=line,
+                                 lineno=1, end_lineno=1, colno=0, end_colno=1,
+                                 error_resolve="Remove the (invisible) startup BOM character")
 
         self.code = code
         self.keywords = {'true', 'false', 'if', 'else', 'elif',
