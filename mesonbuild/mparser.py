@@ -892,8 +892,7 @@ class Parser:
             self.block_expect('rparen', block_start)
             rpar = self.create_node(SymbolNode, self.previous)
             if not isinstance(left, IdNode):
-                raise ParseException('Function call must be applied to plain id',
-                                     line=self.getline(), lineno=left.lineno, colno=left.colno)
+                raise ParseException.from_node('Function call must be applied to plain id', node=left)
             assert isinstance(left.value, str)
             left = self.create_node(FunctionNode, left, lpar, args, rpar)
         go_again = True
