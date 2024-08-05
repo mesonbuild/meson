@@ -307,7 +307,8 @@ class NumberNode(ElementaryNode[int]):
         self.raw_value = token.value
         self.value = int(token.value, base=0)
         self.bytespan = token.bytespan
-        self.end_colno = token.bytespan[1] - token.bytespan[0] + token.colno
+        if token.bytespan is not None:
+            self.end_colno = token.bytespan[1] - token.bytespan[0] + token.colno
 
 @dataclass(unsafe_hash=True)
 class StringNode(ElementaryNode[str]):
