@@ -400,7 +400,7 @@ class _Logger:
                 empty_lineno = (lineno_size + 1) * ' '
 
                 # We need to decide how many error markers need to be printed.
-                end_colno = len(line_content)
+                end_colno = colno + 1
                 if getattr(e, 'end_colno', None) is not None and lineno == e.end_lineno: # type: ignore
                     end_colno = getattr(e, 'end_colno')
 
