@@ -44,12 +44,9 @@ class ParseException(MesonException):
 
     ast: T.Optional[CodeBlockNode] = None
 
-    def __init__(self, text: str, **kwargs: Unpack[ParseExceptionKeywordArguments]) -> None:
+    def __init__(self, *args: object, **kwargs: Unpack[ParseExceptionKeywordArguments]) -> None:
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
-        line = kwargs.get('line', '')
-        del kwargs['line']
-        super().__init__(mlog.code_line(text, line, kwargs.get('colno', 0)), **kwargs)
-
+        super().__init__(*args, **kwargs)
 
 class BlockParseException(ParseException):
     def __init__(
@@ -697,14 +694,21 @@ comparison_map: T.Mapping[str, COMPARISONS] = {
 
 class Parser:
     def __init__(self, code: str, filename: str):
-        self.lexer = Lexer(code)
-        self.stream = self.lexer.lex(filename)
-        self.current: Token = Token('eof', '', 0, 0, 0, (0, 0), None)
-        self.previous = self.current
-        self.current_ws: T.List[Token] = []
+        try:
+            self.filename = filename
+            self.code = code
+            self.lexer = Lexer(code)
+            self.stream = self.lexer.lex(filename)
+            self.current: Token = Token('eof', '', 0, 0, 0, (0, 0), None)
+            self.previous = self.current
+            self.current_ws: T.List[Token] = []
 
-        self.getsym()
-        self.in_ternary = False
+            self.getsym()
+            self.in_ternary = False
+        except ParseException as e:
+            e.file = filename
+            e.source = code
+            raise e
 
     def create_node(self, node_type: T.Type[BaseNodeT], *args: T.Any, **kwargs: T.Any) -> BaseNodeT:
         node = node_type(*args, **kwargs)
@@ -760,6 +764,8 @@ class Parser:
             self.expect('eof')
         except ParseException as e:
             e.ast = block
+            e.file = self.filename
+            e.source = self.code
             raise
         return block
 
@@ -1115,6 +1121,8 @@ class Parser:
 
         except ParseException as e:
             e.ast = block
+            e.file = self.filename
+            e.source = self.code
             raise
 
         # Remaining whitespaces will not be catched since there are no more nodes
