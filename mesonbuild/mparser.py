@@ -778,14 +778,15 @@ class Parser:
             operator = self.create_node(SymbolNode, self.previous)
             value = self.e1()
             if not isinstance(left, IdNode):
-                raise ParseException('Assignment target must be an id.',
-                                     line=self.getline(), lineno=left.lineno, colno=left.colno)
+                raise ParseException.from_node('Assignment target must be an id.', node=left,
+                                               line=self.getline())
             assert isinstance(left.value, str)
             return self.create_node(AssignmentNode, left, operator, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
-                                     line=self.getline(), lineno=left.lineno, colno=left.colno)
+                                     lineno=left.lineno, colno=left.colno,
+                                     line=self.getline())
 
             qm_node = self.create_node(SymbolNode, self.previous)
             self.in_ternary = True
@@ -802,8 +803,9 @@ class Parser:
         while self.accept('or'):
             operator = self.create_node(SymbolNode, self.previous)
             if isinstance(left, EmptyNode):
-                raise ParseException('Invalid or clause.',
-                                     line=self.getline(), lineno=left.lineno, colno=left.colno)
+                raise ParseException.from_node('Missing left condition for `or\' clause.', node=left,
+                                               line=self.getline(),
+                                               error_resolve="Did you forget to escape the previous line?")
             left = self.create_node(OrNode, left, operator, self.e3())
         return left
 
@@ -812,8 +814,9 @@ class Parser:
         while self.accept('and'):
             operator = self.create_node(SymbolNode, self.previous)
             if isinstance(left, EmptyNode):
-                raise ParseException('Invalid and clause.',
-                                     line=self.getline(), lineno=left.lineno, colno=left.colno)
+                raise ParseException.from_node('Missing left condition for `and\' clause.', node=left,
+                                               line=self.getline(),
+                                               error_resolve="Did you forget to escape the previous line?")
             left = self.create_node(AndNode, left, operator, self.e4())
         return left
 
