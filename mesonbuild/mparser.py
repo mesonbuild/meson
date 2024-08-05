@@ -768,8 +768,10 @@ class Parser:
             operator = self.create_node(SymbolNode, self.previous)
             value = self.e1()
             if not isinstance(left, IdNode):
+                # Example: build.meson: 15 += 10
                 raise ParseException('Plusassignment target must be an id.',
-                                     line=self.getline(), lineno=left.lineno, colno=left.colno)
+                                     line=self.getline(), lineno=left.lineno, colno=left.colno, end_colno=left.end_colno,
+                                     error_resolve="exemple")
             assert isinstance(left.value, str)
             return self.create_node(PlusAssignmentNode, left, operator, value)
         elif self.accept('assign'):
