@@ -55,14 +55,14 @@ class MesonException(Exception):
         self.source = None
 
     @classmethod
-    def from_node(cls, *args: object, node: BaseNode, error_resolve: T.Optional[str] = None) -> MesonException:
+    def from_node(cls, *args: object, node: BaseNode, error_resolve: T.Optional[str] = None, **kwargs: T.Any) -> MesonException:
         """Create a MesonException with location data from a BaseNode
 
         :param node: A BaseNode to set location data from
         :return: A Meson Exception instance
         """
         e = cls(*args, file=node.filename, lineno=node.lineno, end_lineno=node.end_lineno,
-                colno=node.colno, end_colno=node.end_colno, error_resolve=error_resolve)
+                colno=node.colno, end_colno=node.end_colno, error_resolve=error_resolve, **kwargs)
         return e
 
 class MesonBugException(MesonException):

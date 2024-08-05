@@ -38,7 +38,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import MesonExceptionKeywordArguments
 
     class ParseExceptionKeywordArguments(MesonExceptionKeywordArguments):
-        line: str
+        line: T.NotRequired[str]
 
 class ParseException(MesonException):
 
@@ -46,7 +46,10 @@ class ParseException(MesonException):
 
     def __init__(self, text: str, **kwargs: Unpack[ParseExceptionKeywordArguments]) -> None:
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
-        super().__init__(mlog.code_line(text, kwargs['line'], kwargs.get('colno', 0)), **kwargs)
+        line = kwargs.get('line', '')
+        del kwargs['line']
+        super().__init__(mlog.code_line(text, line, kwargs.get('colno', 0)), **kwargs)
+
 
 class BlockParseException(ParseException):
     def __init__(
