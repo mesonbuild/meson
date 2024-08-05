@@ -1,7 +1,13 @@
 {
+  "stdout": [
+    {
+      "line": "test cases/vala/9 gir/meson.build:13: WARNING: Project targets '>= 1.4.0' but uses feature deprecated since '1.4.0': building paths to Vala generated gir files. Use target.get_gir() instead"
+    }
+  ],
   "installed": [
-    {"type": "expr", "platform": "gcc", "file": "usr/lib/?libfoo.so"},
-    {"type": "file", "platform": "cygwin", "file": "usr/lib/libfoo.dll.a"},
-    {"type": "file", "file": "usr/share/gir-1.0/Foo-1.0.gir"}
+    { "type": "shared_lib", "platform": "gcc", "file": "usr/lib/foo" },
+    { "type": "shared_lib", "platform": "msvc", "file": "usr/bin/foo" },
+    { "type": "implib", "file": "usr/lib/foo" },
+    { "type": "file", "file": "usr/share/gir-1.0/Foo-1.0.gir" }
   ]
 }

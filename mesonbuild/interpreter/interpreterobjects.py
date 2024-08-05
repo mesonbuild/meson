@@ -878,6 +878,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
                              'path': self.path_method,
                              'found': self.found_method,
                              'private_dir_include': self.private_dir_include_method,
+                             'get_gir': self.get_gir_method,
                              })
 
     def __repr__(self) -> str:
@@ -958,6 +959,16 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._target_object.name
+
+    @FeatureNew('get_gir', '1.4.0')
+    @noPosargs
+    @noKwargs
+    def get_gir_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
+        obj = self._target_object
+        if not hasattr(obj, 'vala_gir') or obj.vala_gir is None:
+            raise InterpreterException(f'target {obj.name} does not generate GIR')
+        return mesonlib.File.from_built_file(obj.subdir, obj.vala_gir)
+
 
 class ExecutableHolder(BuildTargetHolder[build.Executable]):
     pass

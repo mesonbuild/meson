@@ -15,6 +15,13 @@ compiler = configure_file(input : 'mycompiler.py',
   copy: true)
 
 custom_target('thing2',
-output : 'final2.dat',
-input : cfile,
-command : [py3, compiler, '@INPUT@', '@OUTPUT@'])
+  output : 'final2.dat',
+  input : cfile,
+  command : [py3, compiler, '@INPUT@', '@OUTPUT@'])
+
+custom_target(
+  'thing2-warn',
+  output : 'final2-warn.dat',
+  input : meson.current_build_dir() / 'mycompiler2.py',
+  command : [py3, compiler, '@INPUT@', '@OUTPUT@']
+)

@@ -1,4 +1,13 @@
 {
+  "stdout": [
+    {
+      "line": "test cases/common/49 custom target/meson.build:23: DEPRECATION: Building a string path to a generated file that is part of bindat Use the target directly as as source, or, for custom_targets, index into the output. If you cannot get the desired output for some reason, please file an issue."
+    },
+    {
+      "line": "test cases/common/49 custom target/meson.build:70: WARNING: Attempted to build a path to a file, '.*/non-existant-file', in the build directory which is not a declared output of a target or configure_file. This is likely to lead to race conditions and other intermittant build failures. You should use the outputs of the target creating '.*/non-existant-file'. If you cannot get a reference to the desired output for some reason, please file an issue.",
+      "match": "re"
+    }
+  ],
   "installed": [
     {"type": "file", "file": "usr/subdir/data.dat"}
   ]

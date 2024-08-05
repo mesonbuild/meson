@@ -1,4 +1,4 @@
-project('custom target')
+project('custom target', meson_version : '>= 1.4')
 
 python = find_program('python3', required : false)
 if not python.found()
@@ -18,6 +18,13 @@ command : [python, comp, '--input=@INPUT@', '--output=@OUTPUT@', useless],
 env: {'MY_COMPILER_ENV': 'value'},
 install : true,
 install_dir : 'subdir'
+)
+
+custom_target(
+  'warn',
+  input : meson.current_build_dir() / 'data.dat',
+  output : 'data.copy',
+  command : [python, '-c', 'import shutil, sys; shutil.copyfile(sys.argv[1], sys.argv[2])', '@INPUT@', '@OUTPUT@'],
 )
 
 has_not_changed = false
@@ -58,6 +65,14 @@ input : disabler(),
 command : [python, comp, '--input=@INPUT@', '--output=@OUTPUT@', useless],
 install : true,
 install_dir : 'subdir'
+)
+
+custom_target(
+  'uses-non-existant-input',
+  input : meson.current_build_dir() / 'non-existant-file',
+  output : 'non-existant-output',
+  command : [python, '-c', 'raise RuntimeError("Dont actually try to run this, mkay?")', '@INPUT@', '@OUTPUT@'],
+  build_by_default : false,
 )
 
 assert(is_disabler(mytarget_disabler), 'Disabled custom target is not a disabler.')

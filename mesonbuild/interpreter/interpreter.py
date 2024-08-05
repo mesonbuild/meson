@@ -2078,7 +2078,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             # string in the meantime.
             FeatureNew.single_use('custom_target() with no name argument', '0.60.0', self.subproject, location=node)
             name = ''
-        inputs = self.source_strings_to_files(kwargs['input'], strict=False)
+        inputs = self.source_strings_to_files(self.materialize_generated_sources(kwargs['input']))
         command = kwargs['command']
         if command and isinstance(command[0], str):
             command[0] = self.find_program_impl([command[0]])
@@ -3122,21 +3122,18 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} from a nested subproject.')
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString'], strict: bool = True) -> T.List['mesonlib.File']: ...
-
-    @T.overload
-    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString'], strict: bool = False) -> T.List['mesonlib.FileOrString']: ... # noqa: F811
+    def source_strings_to_files(self, sources: T.List['mesonlib.FileOrString']) -> T.List['mesonlib.File']: ...
 
     @T.overload
     def source_strings_to_files(self, sources: T.List[T.Union[mesonlib.FileOrString, build.GeneratedTypes]]) -> T.List[T.Union[mesonlib.File, build.GeneratedTypes]]: ... # noqa: F811
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: ... # noqa: F811
+    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: ... # noqa: F811
 
     @T.overload
-    def source_strings_to_files(self, sources: T.List[SourcesVarargsType], strict: bool = True) -> T.List['SourceOutputs']: ... # noqa: F811
+    def source_strings_to_files(self, sources: T.List[SourcesVarargsType]) -> T.List['SourceOutputs']: ... # noqa: F811
 
-    def source_strings_to_files(self, sources: T.List['SourceInputs'], strict: bool = True) -> T.List['SourceOutputs']: # noqa: F811
+    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']: # noqa: F811
         """Lower inputs to a list of Targets and Files, replacing any strings.
 
         :param sources: A raw (Meson DSL) list of inputs (targets, files, and
@@ -3150,13 +3147,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         results: T.List['SourceOutputs'] = []
         for s in sources:
             if isinstance(s, str):
-                if not strict and s.startswith(self.environment.get_build_dir()):
-                    results.append(s)
-                    mlog.warning(f'Source item {s!r} cannot be converted to File object, because it is a generated file. '
-                                 'This will become a hard error in the future.', location=self.current_node)
-                else:
-                    self.validate_within_subproject(self.subdir, s)
-                    results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
+                self.validate_within_subproject(self.subdir, s)
+                results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
             elif isinstance(s, mesonlib.File):
                 results.append(s)
             elif isinstance(s, (build.GeneratedList, build.BuildTarget,
@@ -3167,6 +3159,60 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException(f'Source item is {s!r} instead of '
                                            'string or File-type object')
         return results
+
+    def materialize_generated_sources(self, sources: T.Sequence[SourceInputs]) -> T.List[SourceInputs]:
+        """Attempt to materialize Files for generated sources passed as strings.
+
+        This attempts to match a file passed as a string to a Target to the
+        output of a Target or configure_file call, and then create a File, while
+        providing warnings and deprecations.
+
+        We have to do this for backwards compatbility for Vala .gir files, and
+        while we're here we should just do it in general.
+        """
+        if isinstance(sources, str):
+            sources = [sources]
+        res: T.List[SourceInputs] = []
+        for s in sources:
+            if not isinstance(s, str):
+                res.append(s)
+                continue
+            if not s.startswith(self.environment.build_dir):
+                res.append(s)
+                continue
+            # Convert the absolute path into a relative path
+            source = os.path.relpath(s, self.environment.build_dir)
+
+            if source in self.configure_file_outputs:
+                res.append(mesonlib.File.from_built_relative(source))
+                FeatureDeprecated.single_use('building paths to the output of a configure_file', '1.4.0', self.subproject,
+                                             'Use the returned value from configure_file() instead', self.current_node)
+                continue
+
+            subdir, source = os.path.split(source)
+
+            self.validate_within_subproject(self.subdir, source)
+            t = mesonlib.first(self.build.targets.values(), lambda b: subdir == b.subdir and source in b.outputs)
+            if t:
+                res.append(mesonlib.File.from_built_file(subdir, source))
+                if s.endswith('.gir'):
+                    FeatureDeprecated.single_use('building paths to Vala generated gir files', '1.4.0', self.subproject,
+                                                 'Use target.get_gir() instead', self.current_node)
+                else:
+                    mlog.deprecation('Building a string path to a generated file that is part of', t.name,
+                                     'Use the target directly as as source, or, for custom_targets, index into the output.',
+                                     'If you cannot get the desired output for some reason, please file an issue.',
+                                     location=self.current_node)
+                continue
+
+            res.append(mesonlib.File.from_absolute_file(s, built=True))
+            mlog.warning(f'Attempted to build a path to a file, {s!r}, in the build directory which is not',
+                         'a declared output of a target or configure_file. This is likely to lead to',
+                         'race conditions and other intermittant build failures. You should use the outputs',
+                         f'of the target creating {s!r}. If you cannot get a reference to the desired output',
+                         'for some reason, please file an issue.', location=self.current_node)
+
+        return res
 
     @staticmethod
     def validate_forbidden_targets(name: str) -> None:

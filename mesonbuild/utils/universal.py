@@ -405,8 +405,8 @@ class File(HoldableObject):
         return File(True, dirpart, fnamepart)
 
     @staticmethod
-    def from_absolute_file(fname: str) -> 'File':
-        return File(False, '', fname)
+    def from_absolute_file(fname: str, *, built: bool = False) -> 'File':
+        return File(built, '', fname)
 
     @lru_cache(maxsize=None)
     def rel_to_builddir(self, build_to_src: str) -> str:
