@@ -193,7 +193,8 @@ class Lexer:
                         curl_count -= 1
                     elif tid == 'dblquote':
                         raise ParseException('Double quotes are not supported. Use single quotes.',
-                                             line=self.getline(line_start), lineno=lineno, colno=col)
+                                             line=self.getline(line_start), lineno=lineno, colno=col,
+                                             error_resolve='Use simple \' quote instead')
                     elif tid in {'string', 'fstring'}:
                         if value.find("\n") != -1:
                             msg = ("Newline character in a string detected, use ''' (three single quotes) "
