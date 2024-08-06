@@ -266,6 +266,7 @@ class WhitespaceNode(BaseNode):
         super().__init__(token.lineno, token.colno, token.filename)
         self.value = ''
         self.append(token)
+        self.block_indent = False
 
     def append(self, token: Token[str]) -> None:
         self.value += token.value

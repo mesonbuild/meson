@@ -11,7 +11,10 @@ project(
 )
 
 a = [
+    # comment
+    # comment
     1,
+    # comment
     2,
     3,
     [
@@ -36,8 +39,13 @@ a = [
 d = {}
 
 if meson.project_version().version_compare('>1.2')
+    # comment
+    # comment
     if meson.version().version_compare('>1.0')
+        # comment
+        # comment
         foreach i : a
+            # comment
             e = {
                 'a': 'a',
                 'b': 'b',
@@ -69,9 +77,18 @@ if meson.project_version().version_compare('>1.2')
                 ],
             }
         endforeach
+
+        foreach j : a
+            # comment
+            # comment
+            # comment
+        endforeach
     elif 42 in d
         d += {'foo': 43}
     else  # ensure else is correctly indented (issue #13316)
+        # comment
         k = 'k'
+        # comment
+        # comment
     endif
 endif
