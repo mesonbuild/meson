@@ -372,6 +372,8 @@ class TrimWhitespaces(FullAstVisitor):
         if node.args.arguments and not node.args.is_multiline and self.config.space_array:
             self.add_space_after(node.lbracket)
             self.add_space_after(node.args)
+        if not node.args.arguments:
+            self.move_whitespaces(node.lbracket, node.args)
 
     def visit_DictNode(self, node: mparser.DictNode) -> None:
         super().visit_DictNode(node)
@@ -388,6 +390,7 @@ class TrimWhitespaces(FullAstVisitor):
             self.in_block_comments = False
         else:
             node.pre_whitespaces = mparser.WhitespaceNode(mparser.Token('whitespace', node.filename, 0, 0, 0, (0, 0), ''))
+        node.pre_whitespaces.block_indent = True
 
         for i in node.lines:
             i.accept(self)
@@ -398,7 +401,9 @@ class TrimWhitespaces(FullAstVisitor):
         else:
             node.whitespaces.value = node.pre_whitespaces.value + node.whitespaces.value
             node.pre_whitespaces.value = ''
+            self.in_block_comments = True
             node.whitespaces.accept(self)
+            self.in_block_comments = False
 
         if node.condition_level == 0 and self.config.insert_final_newline:
             self.add_nl_after(node, force=True)
@@ -453,6 +458,7 @@ class TrimWhitespaces(FullAstVisitor):
         self.add_space_after(node.colon)
 
         node.block.whitespaces.value += node.condition_level * self.config.indent_by
+        node.block.whitespaces.block_indent = True
 
         self.move_whitespaces(node.endforeach, node)
 
@@ -468,11 +474,19 @@ class TrimWhitespaces(FullAstVisitor):
     def visit_IfNode(self, node: mparser.IfNode) -> None:
         super().visit_IfNode(node)
         self.add_space_after(node.if_)
+        self.in_block_comments = True
         self.move_whitespaces(node.block, node)
+        self.in_block_comments = False
+        node.whitespaces.condition_level = node.condition_level + 1
+        node.whitespaces.block_indent = True
 
     def visit_ElseNode(self, node: mparser.ElseNode) -> None:
         super().visit_ElseNode(node)
+        self.in_block_comments = True
         self.move_whitespaces(node.block, node)
+        self.in_block_comments = False
+        node.whitespaces.condition_level = node.condition_level + 1
+        node.whitespaces.block_indent = True
 
     def visit_TernaryNode(self, node: mparser.TernaryNode) -> None:
         super().visit_TernaryNode(node)
@@ -554,22 +568,28 @@ class ArgumentFormatter(FullAstVisitor):
         self.enter_node(node)
         if node.args.is_multiline:
             self.level += 1
-            self.add_nl_after(node.lbracket, indent=self.level)
+            if node.args.arguments:
+                self.add_nl_after(node.lbracket, indent=self.level)
+        node.lbracket.accept(self)
         self.is_function_arguments = False
         node.args.accept(self)
         if node.args.is_multiline:
             self.level -= 1
+        node.rbracket.accept(self)
         self.exit_node(node)
 
     def visit_DictNode(self, node: mparser.DictNode) -> None:
         self.enter_node(node)
         if node.args.is_multiline:
             self.level += 1
-            self.add_nl_after(node.lcurl, indent=self.level)
+            if node.args.kwargs:
+                self.add_nl_after(node.lcurl, indent=self.level)
+        node.lcurl.accept(self)
         self.is_function_arguments = False
         node.args.accept(self)
         if node.args.is_multiline:
             self.level -= 1
+        node.rcurl.accept(self)
         self.exit_node(node)
 
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
@@ -599,8 +619,8 @@ class ArgumentFormatter(FullAstVisitor):
         lines = node.value.splitlines(keepends=True)
         if lines:
             indent = (node.condition_level + self.level) * self.config.indent_by
-            node.value = lines[0]
-            for line in lines[1:]:
+            node.value = '' if node.block_indent else lines.pop(0)
+            for line in lines:
                 if '#' in line and not line.startswith(indent):
                     node.value += indent
                 node.value += line
@@ -650,7 +670,8 @@ class ArgumentFormatter(FullAstVisitor):
 
             for comma in node.commas[arg_index:-1]:
                 self.add_nl_after(comma, self.level)
-            self.add_nl_after(node, self.level - 1)
+            if node.arguments or node.kwargs:
+                self.add_nl_after(node, self.level - 1)
 
         else:
             if has_trailing_comma and not (node.commas[-1].whitespaces and node.commas[-1].whitespaces.value):

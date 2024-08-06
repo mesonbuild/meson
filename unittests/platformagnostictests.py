@@ -342,6 +342,21 @@ class PlatformAgnosticTests(BasePlatformTests):
         for code in ('', '\n'):
             formatted = formatter.format(code, Path())
             self.assertEqual('\n', formatted)
+    
+    def test_format_indent_comment_in_brackets(self) -> None:
+        """Ensure comments in arrays and dicts are correctly indented"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        code = 'a = [\n    # comment\n]\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+        
+        code = 'a = [\n    # comment\n    1,\n]\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+        code = 'a = {\n    # comment\n}\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
         
     def test_error_configuring_subdir(self):
         testdir = os.path.join(self.common_test_dir, '152 index customtarget')
