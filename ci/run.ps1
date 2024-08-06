@@ -50,7 +50,7 @@ function DownloadFile([String] $Source, [String] $Destination) {
 
 if (($env:backend -eq 'ninja') -and ($env:arch -ne 'arm64')) { $dmd = $true } else { $dmd = $false }
 
-DownloadFile -Source https://github.com/mesonbuild/cidata/releases/download/ci3/ci_data.zip -Destination $env:AGENT_WORKFOLDER\ci_data.zip
+DownloadFile -Source https://github.com/mesonbuild/cidata/releases/download/ci4/ci_data.zip -Destination $env:AGENT_WORKFOLDER\ci_data.zip
 echo "Extracting ci_data.zip"
 Expand-Archive $env:AGENT_WORKFOLDER\ci_data.zip -DestinationPath $env:AGENT_WORKFOLDER\ci_data
 & "$env:AGENT_WORKFOLDER\ci_data\install.ps1" -Arch $env:arch -Compiler $env:compiler -Boost $true -DMD $dmd
@@ -85,6 +85,44 @@ if ($env:backend -eq 'ninja') {
   ninja --version
 } else {
   MSBuild /version
+}
+
+# This mirrors the D logic in cidata/build_win32.sh
+if ($dmd) {
+  if ($Arch -eq "x64") {
+    $dmdArch = "x86_64"
+  } else {
+    $dmdArch = "x86_mscoff"
+  }
+
+  $ScriptDir = Split-Path $script:MyInvocation.MyCommand.Path
+  $env:Path = "$ScriptDir;$env:Path"
+  $dmd_bin  = Join-Path $ScriptDir "dmd2\windows\bin"
+  $env:Path = $env:Path + ";" + $dmd_bin
+
+  $i = 1
+  while ($i -le 5) {
+    # Needed for d/11 dub to use the 'urld' library
+    dub run --yes dub-build-deep -- urld --arch=$dmdArch --compiler=dmd --build=debug
+    if ($LastExitCode -eq 0) {
+      break
+    }
+
+    $i = $i + 1
+    Start-Sleep -Seconds 2
+  }
+
+  $i = 1
+  while ($i -le 5) {
+    # XXX: Sometimes (?) we need this older version when the whole testsuite is run
+    dub run --yes dub-build-deep -- urld@2.1.1 --arch=$dmdArch --compiler=dmd --build=debug
+    if ($LastExitCode -eq 0) {
+      break
+    }
+
+    $i = $i + 1
+    Start-Sleep -Seconds 2
+  }
 }
 
 echo ""
