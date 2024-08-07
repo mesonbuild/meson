@@ -80,6 +80,7 @@ if T.TYPE_CHECKING:
     class HasToolKwArgs(kwargs.ExtractRequired):
 
         method: str
+        skip: T.List[str]
 
     class CompileTranslationsKwArgs(TypedDict):
 
@@ -258,9 +259,11 @@ class QtBaseModule(ExtensionModule):
         'qt.has_tools',
         KwargInfo('required', (bool, options.UserFeatureOption), default=False),
         KwargInfo('method', str, default='auto'),
+        KwargInfo('skip', ContainerTypeInfo(list, str), listify=True, default=[]),
     )
     def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:
         method = kwargs.get('method', 'auto')
+        skip = kwargs.get('skip')
         # We have to cast here because TypedDicts are invariant, even though
         # ExtractRequiredKwArgs is a subset of HasToolKwArgs, type checkers
         # will insist this is wrong
@@ -269,8 +272,8 @@ class QtBaseModule(ExtensionModule):
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
         self._detect_tools(state, method, required=False)
-        for tool in self.tools.values():
-            if not tool.found():
+        for name, tool in self.tools.items():
+            if name not in skip and not tool.found():
                 if required:
                     raise MesonException('Qt tools not found')
                 return False

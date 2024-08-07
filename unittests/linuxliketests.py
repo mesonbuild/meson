@@ -318,6 +318,19 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
 
+    def test_qt5dependency_no_lrelease(self):
+        '''
+        Test that qt5 detection with qmake works. This can't be an ordinary
+        test case because it involves setting the environment.
+        '''
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        def _no_lrelease(self, prog, *args, **kwargs):
+            if 'lrelease' in prog:
+                prog = 'lrelease-not-found'
+            return self._interpreter.find_program_impl(prog, *args, **kwargs)
+        with mock.patch.object(mesonbuild.modules.ModuleState, 'find_program', _no_lrelease):
+            self.init(testdir, inprocess=True, extra_args=['-Dmethod=qmake', '-Dexpect_lrelease=false'])
+
     def test_qt5dependency_qmake_detection(self):
         '''
         Test that qt5 detection with qmake works. This can't be an ordinary
