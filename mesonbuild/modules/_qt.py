@@ -269,6 +269,7 @@ class QtBaseModule(ExtensionModule):
         # will insist this is wrong
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, default=False)
         if disabled:
+            assert feature is not None, "for mypy"
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
         self._detect_tools(state, method, required=False)

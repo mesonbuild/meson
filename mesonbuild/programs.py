@@ -242,7 +242,7 @@ class ExternalProgram(mesonlib.HoldableObject):
                         return [trial_ext]
         return None
 
-    def _search_windows_special_cases(self, name: str, command: str) -> T.List[T.Optional[str]]:
+    def _search_windows_special_cases(self, name: str, command: T.Optional[str]) -> T.List[T.Optional[str]]:
         '''
         Lots of weird Windows quirks:
         1. PATH search for @name returns files with extensions from PATHEXT,
