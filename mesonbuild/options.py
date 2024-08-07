@@ -119,6 +119,8 @@ class OptionKey:
                  machine: MachineChoice = MachineChoice.HOST):
         if not isinstance(machine, MachineChoice):
             raise MesonException(f'Internal error, bad machine type: {machine}')
+        if not isinstance(name, str):
+            raise MesonException(f'Key opane is not a string: {name}')
         # the _type option to the constructor is kinda private. We want to be
         # able to save the state and avoid the lookup function when
         # pickling/unpickling, but we need to be able to calculate it when
@@ -163,6 +165,10 @@ class OptionKey:
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
+            if self.subproject is None:
+                return other.subproject is not None
+            elif other.subproject is None:
+                return False
             return self._to_tuple() < other._to_tuple()
         return NotImplemented
 
