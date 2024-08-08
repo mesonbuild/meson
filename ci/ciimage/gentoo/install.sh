@@ -45,6 +45,7 @@ pkgs_stable=(
   app-admin/sudo
   app-text/doxygen
   sys-devel/bison
+  sys-devel/reflex
   sys-devel/gettext
 
   # TODO: vulkan-validation-layers
