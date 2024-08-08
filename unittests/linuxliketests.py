@@ -9,7 +9,7 @@ import textwrap
 import os
 import shutil
 import hashlib
-from unittest import mock, skipUnless, SkipTest
+from unittest import mock, skipIf, skipUnless, SkipTest
 from glob import glob
 from pathlib import Path
 import typing as T
@@ -24,7 +24,7 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
     MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
-    is_sunos, windows_proof_rmtree, version_compare, is_linux,
+    is_sunos, windows_proof_rm, windows_proof_rmtree, version_compare, is_linux,
     EnvironmentException
 )
 from mesonbuild.options import OptionKey
@@ -84,7 +84,7 @@ def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[
         return version_compare(compiler.version, apple_minver)
     return version_compare(compiler.version, minver)
 
-@skipUnless(not is_windows(), "requires something Unix-like")
+@skipIf(is_windows(), "requires something Unix-like")
 class LinuxlikeTests(BasePlatformTests):
     '''
     Tests that should run on Linux, macOS, and *BSD
@@ -281,7 +281,6 @@ class LinuxlikeTests(BasePlatformTests):
 
         symdir = f'{self.builddir}-symlink'
         os.symlink(self.builddir, symdir)
-        self.addCleanup(os.unlink, symdir)
         self.change_builddir(symdir)
 
         self.init(testdir)
@@ -577,8 +576,14 @@ class LinuxlikeTests(BasePlatformTests):
         Test that files installed by these tests have the correct permissions.
         Can't be an ordinary test because our installed_files.txt is very basic.
         '''
+        # Running this in the source directory causes random test failures,
+        # so always put it in the the tempdir
+        # https://github.com/mesonbuild/meson/pull/5546#issuecomment-509666523
         if is_cygwin():
-            self.new_builddir_in_tempdir()
+            builddir = tempfile.mkdtemp()
+            self.addCleanup(windows_proof_rmtree, builddir)
+            self.change_builddir(builddir)
+
         # Test file modes
         testdir = os.path.join(self.common_test_dir, '12 data')
         self.init(testdir)
@@ -631,8 +636,14 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that files are installed with correct permissions using install_mode.
         '''
+        # Running this in the source directory causes random test failures,
+        # so always put it in the the tempdir
+        # https://github.com/mesonbuild/meson/pull/5546#issuecomment-509666523
         if is_cygwin():
-            self.new_builddir_in_tempdir()
+            builddir = tempfile.mkdtemp()
+            self.addCleanup(windows_proof_rmtree, builddir)
+            self.change_builddir(builddir)
+
         testdir = os.path.join(self.common_test_dir, '190 install_mode')
         self.init(testdir)
         self.build()
@@ -671,8 +682,14 @@ class LinuxlikeTests(BasePlatformTests):
         install umask of 022, regardless of the umask at time the worktree
         was checked out or the build was executed.
         '''
+        # Running this in the source directory causes random test failures,
+        # so always put it in the the tempdir
+        # https://github.com/mesonbuild/meson/pull/5546#issuecomment-509666523
         if is_cygwin():
-            self.new_builddir_in_tempdir()
+            builddir = tempfile.mkdtemp()
+            self.addCleanup(windows_proof_rmtree, builddir)
+            self.change_builddir(builddir)
+
         # Copy source tree to a temporary directory and change permissions
         # there to simulate a checkout with umask 002.
         orig_testdir = os.path.join(self.unit_test_dir, '26 install umask')
@@ -1024,19 +1041,13 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_coverage=true'], default_args=False)
         self.build('reconfigure')
 
+    @skip_if_not_language('vala')
     def test_vala_generated_source_buildir_inside_source_tree(self):
         '''
         Test that valac outputs generated C files in the expected location when
         the builddir is a subdir of the source tree.
         '''
-        if not shutil.which('valac'):
-            raise SkipTest('valac not installed.')
-
-        testdir = os.path.join(self.vala_test_dir, '8 generated sources')
-        newdir = os.path.join(self.builddir, 'srctree')
-        shutil.copytree(testdir, newdir)
-        testdir = newdir
-        # New builddir
+        testdir = self.copy_srcdir(os.path.join(self.vala_test_dir, '8 generated sources'))
         builddir = os.path.join(testdir, 'subdir/_build')
         os.makedirs(builddir, exist_ok=True)
         self.change_builddir(builddir)
@@ -1637,13 +1648,13 @@ class LinuxlikeTests(BasePlatformTests):
             """.format(source_filename, source_hash, patch_filename, patch_hash))
         with open(wrap_filename, 'w', encoding='utf-8') as f:
             f.write(wrap)
+        self.addCleanup(windows_proof_rm, wrap_filename)
+        self.addCleanup(windows_proof_rmtree, os.path.join(testdir, 'subprojects', 'packagecache'))
+        self.addCleanup(windows_proof_rmtree, os.path.join(testdir, 'subprojects', 'foo'))
         self.init(testdir)
         self.build()
         self.run_tests()
 
-        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'packagecache'))
-        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'foo'))
-        os.unlink(wrap_filename)
 
     def test_no_rpath_for_static(self):
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')

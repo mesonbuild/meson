@@ -12,6 +12,7 @@ import typing as T
 import zipfile
 from pathlib import Path
 from contextlib import contextmanager
+from unittest import mock
 
 from mesonbuild.compilers import detect_c_compiler, compiler_from_language
 from mesonbuild.mesonlib import (
@@ -119,16 +120,11 @@ def skip_if_env_set(key: str) -> T.Callable[[T.Callable[P, R]], T.Callable[P, R]
     def wrapper(func: T.Callable[P, R]) -> T.Callable[P, R]:
         @functools.wraps(func)
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
-            old = None
-            if key in os.environ:
-                if not is_ci():
-                    raise unittest.SkipTest(f'Env var {key!r} set, skipping')
-                old = os.environ.pop(key)
-            try:
+            if key in os.environ and not is_ci():
+                raise unittest.SkipTest(f'Env var {key!r} set, skipping')
+            with mock.patch.dict(os.environ):
+                os.environ.pop(key, None)
                 return func(*args, **kwargs)
-            finally:
-                if old is not None:
-                    os.environ[key] = old
         return wrapped
     return wrapper
 
