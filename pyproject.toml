@@ -1,3 +1,8 @@
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.codespell]
+ignore-words-list="alltogether,ans,assertin,ccompiler,convertor,couldn,covert,crate,datas,equired,fo,gir,inout,larg,mapp,pard,shouldbe,thirdparty,usere,wasn,wit,wont"
+quiet-level=3
+skip="*.build,*.po,*ptbr.md"

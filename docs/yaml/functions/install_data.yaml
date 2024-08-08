@@ -13,7 +13,7 @@ varargs:
 warnings:
   - the `install_mode` kwarg ignored integer values between 0.59.0 -- 1.1.0.
   - an omitted `install_dir` kwarg did not work correctly inside of a subproject until 1.3.0.
-  - an omitted `install_dir` kwarg did not work correctly when combined with the `preserve_path` kwarg untill 1.3.0.
+  - an omitted `install_dir` kwarg did not work correctly when combined with the `preserve_path` kwarg until 1.3.0.
 
 kwargs:
   install_dir:

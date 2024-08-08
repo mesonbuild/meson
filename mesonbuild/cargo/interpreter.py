@@ -728,7 +728,7 @@ def interpret(subp_name: str, subdir: str, env: Environment) -> T.Tuple[mparser.
     ast += _create_meson_subdir(cargo, build)
 
     # Libs are always auto-discovered and there's no other way to handle them,
-    # which is unfortunate for reproducability
+    # which is unfortunate for reproducibility
     if os.path.exists(os.path.join(env.source_dir, cargo.subdir, cargo.path, cargo.lib.path)):
         for crate_type in cargo.lib.crate_type:
             ast.extend(_create_lib(cargo, build, crate_type))

@@ -19,7 +19,7 @@ Cargo dependencies names are now in the format `<package_name>-<version>-rs`:
   * `x.y.z` -> 'x'
   * `0.x.y` -> '0.x'
   * `0.0.x` -> '0'
-  It allows to make different dependencies for uncompatible versions of the same
+  It allows to make different dependencies for incompatible versions of the same
   crate.
 - `-rs` suffix is added to distinguish from regular system dependencies, for
   example `gstreamer-1.0` is a system pkg-config dependency and `gstreamer-0.22-rs`

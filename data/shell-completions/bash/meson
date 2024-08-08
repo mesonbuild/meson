@@ -30,7 +30,7 @@ _subprojects() {
     local COMPREPLY=()
     _filedir
     # _filedir for whatever reason can't reason about symlinks, so -d will them.
-    # Filter out wrap files with this expresion.
+    # Filter out wrap files with this expression.
     IFS=$'\n' echo "${COMPREPLY[*]}" | grep -vE '\.wrap$' | xargs
   popd &>/dev/null
 }

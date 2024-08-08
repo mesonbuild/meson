@@ -1135,7 +1135,7 @@ class Backend:
 
         if p.is_file():
             p = p.parent
-        # Heuristic: replace *last* occurence of '/lib'
+        # Heuristic: replace *last* occurrence of '/lib'
         binpath = Path('/bin'.join(p.as_posix().rsplit('/lib', maxsplit=1)))
         for _ in binpath.glob('*.dll'):
             return str(binpath)

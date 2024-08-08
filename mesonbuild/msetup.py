@@ -354,7 +354,7 @@ def run(options: T.Union[CMDOptions, T.List[str]]) -> int:
     coredata.parse_cmd_line_options(options)
 
     # Msetup doesn't actually use this option, but we pass msetup options to
-    # mconf, and it does. We won't actally hit the path that uses it, but don't
+    # mconf, and it does. We won't actually hit the path that uses it, but don't
     # lie
     options.pager = False
 
