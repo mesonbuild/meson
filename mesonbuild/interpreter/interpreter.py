@@ -3485,11 +3485,6 @@ This will become a hard error in the future.''', location=self.current_node)
             if not os.path.isfile(fname):
                 raise InterpreterException(f'Tried to add non-existing source file {s}.')
 
-    # Only permit object extraction from the same subproject
-    def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
-        if self.subproject != buildtarget.subproject:
-            raise InterpreterException('Tried to extract objects from a different subproject.')
-
     def is_subproject(self) -> bool:
         return self.subproject != ''
 
