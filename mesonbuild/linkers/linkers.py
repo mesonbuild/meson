@@ -606,6 +606,9 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         "boot_application": "16",
     }
 
+    def get_accepts_rsp(self) -> bool:
+        return True
+
     def get_pie_args(self) -> T.List[str]:
         return ['-pie']
 
@@ -848,9 +851,6 @@ class LLVMLD64DynamicLinker(AppleDynamicLinker):
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Representation of GNU ld.bfd and ld.gold."""
-
-    def get_accepts_rsp(self) -> bool:
-        return True
 
 
 class GnuGoldDynamicLinker(GnuDynamicLinker):
