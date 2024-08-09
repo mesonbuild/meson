@@ -76,13 +76,33 @@ class RustCompiler(Compiler):
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest')
-        with open(source_name, 'w', encoding='utf-8') as ofile:
-            ofile.write(textwrap.dedent(
-                '''fn main() {
-                }
-                '''))
+        cmdlist = self.exelist.copy()
 
-        cmdlist = self.exelist + ['-o', output_name, source_name]
+        with open(source_name, 'w', encoding='utf-8') as ofile:
+            # If machine kernel is not `none`, try to compile a dummy program.
+            # If 'none', this is likely a `no-std`(i.e. bare metal) project.
+            if self.info.kernel != 'none':
+                ofile.write(textwrap.dedent(
+                    '''fn main() {
+                    }
+                    '''))
+            else:
+                # If rustc linker is gcc, add `-nostartfiles`
+                if 'ld.' in self.linker.id:
+                    cmdlist.extend(['-C', 'link-arg=-nostartfiles'])
+                ofile.write(textwrap.dedent(
+                    '''#![no_std]
+                    #![no_main]
+                    #[no_mangle]
+                    pub fn _start() {
+                    }
+                    #[panic_handler]
+                    fn panic(_info: &core::panic::PanicInfo) -> ! {
+                        loop {}
+                    }
+                    '''))
+
+        cmdlist.extend(['-o', output_name, source_name])
         pc, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
@@ -107,6 +127,10 @@ class RustCompiler(Compiler):
             raise EnvironmentException('Rust compiler cannot compile staticlib.')
         match = re.search('native-static-libs: (.*)$', stde, re.MULTILINE)
         if not match:
+            if self.info.kernel == 'none':
+                # no match and kernel == none (i.e. baremetal) is a valid use case.
+                # return and let native_static_libs list empty
+                return
             raise EnvironmentException('Failed to find native-static-libs in Rust compiler output.')
         # Exclude some well known libraries that we don't need because they
         # are always part of C/C++ linkers. Rustc probably should not print
