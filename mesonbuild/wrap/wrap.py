@@ -354,7 +354,7 @@ class Resolver:
             self.add_wrap(wrap)
 
     def add_wrap(self, wrap: PackageDefinition) -> None:
-        for k in wrap.provided_deps.keys():
+        for k in wrap.provided_deps:
             if k in self.provided_deps:
                 prev_wrap = self.provided_deps[k]
                 m = f'Multiple wrap files provide {k!r} dependency: {wrap.name} and {prev_wrap.name}'

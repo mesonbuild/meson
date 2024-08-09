@@ -581,7 +581,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             machine_choices.append(MachineChoice.BUILD)
         for for_machine in machine_choices:
             props = self.build.environment.properties[for_machine]
-            for l in self.coredata.compilers[for_machine].keys():
+            for l in self.coredata.compilers[for_machine]:
                 try:
                     di = mesonlib.stringlistify(props.get_stdlib(l))
                 except KeyError:
@@ -745,13 +745,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException('Assert failed: ' + message)
 
     def validate_arguments(self, args, argcount, arg_types):
-        if argcount is not None:
-            if argcount != len(args):
-                raise InvalidArguments(f'Expected {argcount} arguments, got {len(args)}.')
+        if argcount is not None and argcount != len(args):
+            raise InvalidArguments(f'Expected {argcount} arguments, got {len(args)}.')
         for actual, wanted in zip(args, arg_types):
-            if wanted is not None:
-                if not isinstance(actual, wanted):
-                    raise InvalidArguments('Incorrect argument type.')
+            if wanted is not None and not isinstance(actual, wanted):
+                raise InvalidArguments('Incorrect argument type.')
 
     # Executables aren't actually accepted, but we allow them here to allow for
     # better error messages when overridden
@@ -1127,7 +1125,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         from ..backend import backends
 
-        if OptionKey('genvslite') in self.user_defined_options.cmd_line_options.keys():
+        if OptionKey('genvslite') in self.user_defined_options.cmd_line_options:
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
             backend_name = self.coredata.get_option(OptionKey('genvslite'))
@@ -3472,7 +3470,7 @@ This will become a hard error in the future.''', location=self.current_node)
             kwargs['d_import_dirs'] = cleaned_items
 
     def add_stdlib_info(self, target):
-        for l in target.compilers.keys():
+        for l in target.compilers:
             dep = self.build.stdlibs[target.for_machine].get(l, None)
             if dep:
                 target.add_deps(dep)

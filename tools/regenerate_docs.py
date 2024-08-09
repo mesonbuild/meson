@@ -117,7 +117,7 @@ def generate_hotdoc_includes(root_dir: Path, output_dir: Path) -> None:
     cmd_data = get_commands_data(root_dir)
 
     for cmd, parsed in cmd_data.items():
-        for typ in parsed.keys():
+        for typ in parsed:
             with open(output_dir / (cmd+'_'+typ+'.inc'), 'w', encoding='utf-8') as f:
                 f.write(parsed[typ])
 

@@ -967,9 +967,7 @@ def have_d_compiler() -> bool:
         # Don't know why. Don't know how to fix. Skip in this case.
         cp = subprocess.run(['dmd', '--version'],
                             capture_output=True)
-        if cp.stdout == b'':
-            return False
-        return True
+        return cp.stdout != b''
     return False
 
 def have_objc_compiler(use_tmp: bool) -> bool:
@@ -998,9 +996,7 @@ def have_working_compiler(lang: str, use_tmp: bool) -> bool:
     return True
 
 def have_java() -> bool:
-    if shutil.which('javac') and shutil.which('java'):
-        return True
-    return False
+    return bool(shutil.which('javac') and shutil.which('java'))
 
 def skip_dont_care(t: TestDef) -> bool:
     # Everything is optional when not running on CI
@@ -1011,10 +1007,7 @@ def skip_dont_care(t: TestDef) -> bool:
     if not t.category.endswith('frameworks'):
         return True
 
-    if mesonlib.is_osx() and '6 gettext' in str(t.path):
-        return True
-
-    return False
+    return mesonlib.is_osx() and '6 gettext' in str(t.path)
 
 def skip_csharp(backend: Backend) -> bool:
     if backend is not Backend.ninja:
@@ -1060,17 +1053,12 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     if backend is not Backend.ninja:
         return True
-    if mesonlib.is_windows():
-        if has_broken_rustc():
-            return True
-    return False
+    return bool(mesonlib.is_windows() and has_broken_rustc())
 
 def should_skip_wayland() -> bool:
     if mesonlib.is_windows() or mesonlib.is_osx():
         return True
-    if not shutil.which('wayland-scanner'):
-        return True
-    return False
+    return not shutil.which('wayland-scanner')
 
 def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
@@ -1142,9 +1130,9 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     assert categories == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests categories'
 
     if only:
-        for key in only.keys():
+        for key in only:
             assert key in categories, f'key `{key}` is not a recognized category'
-        all_tests = [t for t in all_tests if t.category in only.keys()]
+        all_tests = [t for t in all_tests if t.category in only]
 
     gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category], t.skip), t.skip) for t in all_tests]
     return gathered_tests

@@ -72,7 +72,7 @@ python = pymod.find_installation('python3', required: true)
                         self.assertLength(cached, 2)
                     count += 1
         # there are 5 files x 2 installations
-        if py2 and not cc.get_id() == 'msvc':
+        if py2 and cc.get_id() != 'msvc':
             self.assertEqual(count, 10)
         else:
             self.assertEqual(count, 5)

@@ -176,9 +176,8 @@ def _parse(ast: _LEX_STREAM_AH) -> IR:
         ntoken, _ = (None, None)
 
     stream: T.List[_LEX_TOKEN]
-    if token is TokenType.IDENTIFIER:
-        if ntoken is TokenType.EQUAL:
-            return Equal(Identifier(value), _parse(ast))
+    if token is TokenType.IDENTIFIER and ntoken is TokenType.EQUAL:
+        return Equal(Identifier(value), _parse(ast))
     if token is TokenType.STRING:
         return String(value)
     if token is TokenType.EQUAL:

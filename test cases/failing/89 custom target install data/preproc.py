@@ -8,6 +8,5 @@ if len(sys.argv) != 3:
 inf = sys.argv[1]
 outf = sys.argv[2]
 
-with open(outf, 'wb') as o:
-    with open(inf, 'rb') as i:
-        o.write(i.read())
+with open(outf, 'wb') as o, open(inf, 'rb') as i:
+    o.write(i.read())

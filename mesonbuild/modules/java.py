@@ -87,7 +87,7 @@ class JavaModule(NewExtensionModule):
             '@INPUT@',
         ])
 
-        prefix = classes[0] if not package else package
+        prefix = package if package else classes[0]
 
         target = CustomTarget(f'{prefix}-native-headers',
                               state.subdir,

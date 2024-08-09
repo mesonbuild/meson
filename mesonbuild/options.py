@@ -779,9 +779,7 @@ class OptionStore:
         # values. It is not, thank you very much.
         if prefix in ('b', 'backend'): # pylint: disable=R6201
             return True
-        if prefix in self.all_languages:
-            return True
-        return False
+        return prefix in self.all_languages
 
     def is_builtin_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a builtin option."""
@@ -802,9 +800,7 @@ class OptionStore:
         if '_' not in key.name:
             return False
         prefix = key.name.split('_')[0]
-        if prefix in self.all_languages:
-            return True
-        return False
+        return prefix in self.all_languages
 
     def is_module_option(self, key: OptionKey) -> bool:
         return key in self.module_options

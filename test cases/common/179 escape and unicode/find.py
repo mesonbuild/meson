@@ -4,6 +4,5 @@ import os
 import sys
 
 for fh in os.listdir('.'):
-    if os.path.isfile(fh):
-        if fh.endswith('.c'):
-            sys.stdout.write(fh + '\0')
+    if os.path.isfile(fh) and fh.endswith('.c'):
+        sys.stdout.write(fh + '\0')

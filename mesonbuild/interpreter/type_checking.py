@@ -75,7 +75,7 @@ def _install_mode_validator(mode: T.List[T.Union[str, bool, int]]) -> T.Optional
         return 'first component must be a permissions string or False'
 
     if isinstance(perms, str):
-        if not len(perms) == 9:
+        if len(perms) != 9:
             return ('permissions string must be exactly 9 characters in the form rwxr-xr-x,'
                     f' got {len(perms)}')
         for i in [0, 3, 6]:

@@ -40,9 +40,8 @@ class DlangModule(ExtensionModule):
         else:
             self.dubbin = DlangModule.class_dubbin
 
-        if not self.dubbin:
-            if not self.dubbin:
-                raise MesonException('DUB not found.')
+        if not self.dubbin and not self.dubbin:
+            raise MesonException('DUB not found.')
 
     @typed_pos_args('dlang.generate_dub_file', str, str)
     def generate_dub_file(self, state, args, kwargs):

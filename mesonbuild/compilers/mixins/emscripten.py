@@ -78,9 +78,8 @@ class EmscriptenMixin(Compiler):
                      libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
         if not libname.endswith('.js'):
             return super().find_library(libname, env, extra_dirs, libtype, lib_prefix_warning)
-        if os.path.isabs(libname):
-            if os.path.exists(libname):
-                return [libname]
+        if os.path.isabs(libname) and os.path.exists(libname):
+            return [libname]
         if len(extra_dirs) == 0:
             raise mesonlib.EnvironmentException('Looking up Emscripten JS libraries requires either an absolute path or specifying extra_dirs.')
         for d in extra_dirs:

@@ -1904,7 +1904,7 @@ class OrderedSet(T.MutableSet[_T]):
         # Don't print 'OrderedSet("")' for an empty set.
         if self.__container:
             return 'OrderedSet([{}])'.format(
-                ', '.join(repr(e) for e in self.__container.keys()))
+                ', '.join(repr(e) for e in self.__container))
         return 'OrderedSet()'
 
     def __reversed__(self) -> T.Iterator[_T]:

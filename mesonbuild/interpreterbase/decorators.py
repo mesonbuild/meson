@@ -290,9 +290,7 @@ class ContainerTypeInfo:
             return False
         if self.pairs and len(value) % 2 != 0:
             return False
-        if not value and not self.allow_empty:
-            return False
-        return True
+        return bool(value or self.allow_empty)
 
     def check_any(self, value: T.Any) -> bool:
         """Check a value should emit new/deprecated feature.
@@ -506,7 +504,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                         if n in value:
                             warning = f'value "{n}" in list'
                     elif isinstance(value, dict):
-                        if n in value.keys():
+                        if n in value:
                             warning = f'value "{n}" in dict keys'
                     elif n == value:
                         warning = f'value "{n}"'

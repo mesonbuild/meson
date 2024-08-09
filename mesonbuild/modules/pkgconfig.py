@@ -441,7 +441,7 @@ class PkgConfigModule(NewExtensionModule):
                                  pkgroot: T.Optional[str] = None) -> None:
         coredata = state.environment.get_coredata()
         referenced_vars = set()
-        optnames = [x.name for x in BUILTIN_DIR_OPTIONS.keys()]
+        optnames = [x.name for x in BUILTIN_DIR_OPTIONS]
 
         if not dataonly:
             # includedir is always implied, although libdir may not be

@@ -963,7 +963,7 @@ class NinjaBackend(backends.Backend):
         # This will be set as dependencies of all the target's sources. At the
         # same time, also deal with generated sources that need to be compiled.
         generated_source_files: T.List[File] = []
-        for rel_src in generated_sources.keys():
+        for rel_src in generated_sources:
             raw_src = File.from_built_relative(rel_src)
             if self.environment.is_source(rel_src):
                 if is_unity and self.get_target_source_can_unity(target, rel_src):
@@ -1103,9 +1103,7 @@ class NinjaBackend(backends.Backend):
             return False
         if not mesonlib.current_vs_supports_modules():
             return False
-        if mesonlib.version_compare(cpp.version, '<19.28.28617'):
-            return False
-        return True
+        return not mesonlib.version_compare(cpp.version, '<19.28.28617')
 
     def generate_dependency_scan_target(self, target: build.BuildTarget,
                                         compiled_sources: T.List[str],
@@ -1430,7 +1428,7 @@ class NinjaBackend(backends.Backend):
         # Add possible java generated files to src list
         generated_sources = self.get_target_generated_sources(target)
         gen_src_list = []
-        for rel_src in generated_sources.keys():
+        for rel_src in generated_sources:
             raw_src = File.from_built_relative(rel_src)
             if rel_src.endswith('.java'):
                 gen_src_list.append(raw_src)
@@ -1517,7 +1515,7 @@ class NinjaBackend(backends.Backend):
             outputs = [outname_rel]
         generated_sources = self.get_target_generated_sources(target)
         generated_rel_srcs = []
-        for rel_src in generated_sources.keys():
+        for rel_src in generated_sources:
             if rel_src.lower().endswith('.cs'):
                 generated_rel_srcs.append(os.path.normpath(rel_src))
             deps.append(os.path.normpath(rel_src))
@@ -1551,7 +1549,7 @@ class NinjaBackend(backends.Backend):
     def generate_java_compile(self, srcs, target, compiler, args):
         deps = [os.path.join(self.get_target_dir(l), l.get_filename()) for l in target.link_targets]
         generated_sources = self.get_target_generated_sources(target)
-        for rel_src in generated_sources.keys():
+        for rel_src in generated_sources:
             if rel_src.endswith('.java'):
                 deps.append(rel_src)
 
@@ -2936,7 +2934,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         use_pch = self.target_uses_pch(target)
 
-        for src_type_str in target.compilers.keys():
+        for src_type_str in target.compilers:
             compiler = target.compilers[src_type_str]
             commands = self._generate_single_compile_base_args(target, compiler)
 
