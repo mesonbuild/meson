@@ -36,7 +36,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.init(testdir, workdir=testdir)
 
     def test_invalid_option_names(self):
-        store = OptionStore()
+        store = OptionStore(False)
         interp = OptionInterpreter(store, '')
 
         def write_file(code: str):
@@ -70,7 +70,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_option_validation(self):
         """Test cases that are not catch by the optinterpreter itself."""
-        store = OptionStore()
+        store = OptionStore(False)
         interp = OptionInterpreter(store, '')
 
         def write_file(code: str):
@@ -174,13 +174,13 @@ class PlatformAgnosticTests(BasePlatformTests):
             self.setconf('-Dbackend=none')
         self.assertIn("ERROR: Tried modify read only option 'backend'", cm.exception.stdout)
 
-        # Reconfigure with a different backend is not allowed
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testdir, extra_args=['--reconfigure', '--backend=none'])
-        self.assertIn("ERROR: Tried modify read only option 'backend'", cm.exception.stdout)
+        # Check that the new value was not written in the store.
+        self.assertEqual(self.getconf('backend'), 'ninja')
 
         # Wipe with a different backend is allowed
         self.init(testdir, extra_args=['--wipe', '--backend=none'])
+
+        self.assertEqual(self.getconf('backend'), 'none')
 
     def test_validate_dirs(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
@@ -360,8 +360,8 @@ class PlatformAgnosticTests(BasePlatformTests):
         out = self.init(testdir, extra_args=['--reconfigure', '-Db_ndebug=if-release', '-Dsub:b_ndebug=false', '-Dc_std=c99', '-Dsub:c_std=c11'])
         self.assertIn('\nMessage: b_ndebug: if-release\n', out)
         self.assertIn('\nMessage: c_std: c99\n', out)
-        self.assertIn('\nsub| Message: b_ndebug: false\n', out)
-        self.assertIn('\nsub| Message: c_std: c11\n', out)
+        self.assertIn('\nMessage: sub:b_ndebug: false\n', out)
+        self.assertIn('\nMessage: c_std: c11\n', out)
 
     def test_setup_with_unknown_option(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
