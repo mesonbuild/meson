@@ -1387,10 +1387,10 @@ class InternalTests(unittest.TestCase):
             pass
 
         # Should be valid
-        _(None, mock.Mock(), tuple(), dict(input='foo'))
+        _(None, mock.Mock(), (), {'input': 'foo'})
 
         with self.assertRaises(MesonException) as cm:
-            _(None, mock.Mock(), tuple(), dict(input='bar'))
+            _(None, mock.Mock(), (), {'input': 'bar'})
         self.assertEqual(str(cm.exception), "testfunc keyword argument \"input\" invalid!")
 
     def test_typed_kwarg_convertor(self) -> None:
@@ -1401,7 +1401,7 @@ class InternalTests(unittest.TestCase):
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, MachineChoice]) -> None:
             assert isinstance(kwargs['native'], MachineChoice)
 
-        _(None, mock.Mock(), tuple(), dict(native=True))
+        _(None, mock.Mock(), (), {'native': True})
 
     @mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '1.0'})
     def test_typed_kwarg_since_values(self) -> None:

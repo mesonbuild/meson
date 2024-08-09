@@ -21,7 +21,7 @@ class ImageDef:
         data = json.loads(path.read_text(encoding='utf-8'))
 
         assert isinstance(data, dict)
-        assert all([x in data for x in ['base_image', 'env']])
+        assert all(x in data for x in ['base_image', 'env'])
         assert isinstance(data['base_image'], str)
         assert isinstance(data['env'],  dict)
 

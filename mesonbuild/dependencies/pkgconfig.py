@@ -325,7 +325,7 @@ class PkgConfigDependency(ExternalDependency):
             return args.copy()
         converted = []
         for arg in args:
-            pargs: T.Tuple[str, ...] = tuple()
+            pargs: T.Tuple[str, ...] = ()
             # Library search path
             if arg.startswith('-L/'):
                 pargs = PurePath(arg[2:]).parts

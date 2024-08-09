@@ -17,7 +17,7 @@ root: dict
 
 def assert_has_typed_keys(path: str, data: dict, keys: T.Dict[str, T.Any]) -> dict:
     assert set(data.keys()).issuperset(keys.keys()), f'{path}: DIFF: {set(data.keys()).difference(keys.keys())}'
-    res = dict()
+    res = {}
     for key, val in keys.items():
         cur = data.pop(key)
         assert isinstance(cur, val), f'{path}: type({key}: {cur}) != {val}'

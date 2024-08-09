@@ -257,7 +257,7 @@ class CompilerArgs(T.MutableSequence[str]):
         normal_flags = []
         lflags = []
         for i in iterable:
-            if i not in self.always_dedup_args and (i.startswith('-l') or i.startswith('-L')):
+            if i not in self.always_dedup_args and i.startswith(('-l', '-L')):
                 lflags.append(i)
             else:
                 normal_flags.append(i)

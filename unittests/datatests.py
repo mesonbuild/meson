@@ -186,7 +186,7 @@ class DataTests(unittest.TestCase):
         with open("docs/sitemap.txt", encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
-        toc = list(m.group(1) for m in re.finditer(r"^\s*(\w.*)$", md, re.MULTILINE))
+        toc = [m.group(1) for m in re.finditer(r"^\s*(\w.*)$", md, re.MULTILINE)]
         markdownfiles = [f.name for f in Path("docs/markdown").iterdir() if f.is_file() and f.suffix == '.md']
         exceptions = ['_Sidebar.md']
         for f in markdownfiles:

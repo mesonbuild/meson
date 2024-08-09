@@ -76,7 +76,7 @@ class GeneratorMD(GeneratorBase):
     def _gen_filename(self, file_id: str, *, extension: str = 'md') -> str:
         parts = file_id.split('.')
         assert parts[0] == 'root'
-        assert all([x for x in parts])
+        assert all(x for x in parts)
         parts[0] = _ROOT_BASENAME
         parts = [re.sub(r'[0-9]+_', '', x) for x in parts]
         return f'{"_".join(parts)}.{extension}'
@@ -215,7 +215,7 @@ class GeneratorMD(GeneratorBase):
             for kwarg in self.sorted_and_filtered(list(func.kwargs.values())):
                 type_str, type_space, name_str, name_space = prepare(kwarg)
                 required = ' <i>[required]</i> ' if kwarg.required else '            '
-                required = required if any([x.required for x in func.kwargs.values()]) else ''
+                required = required if any(x.required for x in func.kwargs.values()) else ''
                 signature += f'  {name_str}{name_space} : {type_str}{type_space} {required} # {self.brief(kwarg)}\n'
 
             return signature + ')'

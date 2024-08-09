@@ -371,7 +371,7 @@ dot_C_dot_H_warning = """You are using .C or .H files in your project. This is d
          See https://github.com/mesonbuild/meson/pull/8747 for the discussions."""
 class File(HoldableObject):
     def __init__(self, is_built: bool, subdir: str, fname: str):
-        if fname.endswith(".C") or fname.endswith(".H"):
+        if fname.endswith(('.C', '.H')):
             mlog.warning(dot_C_dot_H_warning, once=True)
         self.is_built = is_built
         self.subdir = subdir

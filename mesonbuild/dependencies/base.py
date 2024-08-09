@@ -141,7 +141,7 @@ class Dependency(HoldableObject):
         if self.include_type == 'system':
             converted = []
             for i in self.compile_args:
-                if i.startswith('-I') or i.startswith('/I'):
+                if i.startswith(('-I', '/I')):
                     converted += ['-isystem' + i[2:]]
                 else:
                     converted += [i]

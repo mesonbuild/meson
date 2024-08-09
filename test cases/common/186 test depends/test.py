@@ -7,7 +7,7 @@ import sys
 
 def main():
     print('Looking in:', os.getcwd())
-    not_found = list()
+    not_found = []
     for f in sys.argv[1:]:
         if not os.path.exists(f):
             not_found.append(f)

@@ -196,7 +196,7 @@ class CudaCompiler(Compiler):
         # a temporary host C++ file that includes gcc-style line directives:
         # https://stackoverflow.com/a/31001220
         self.warn_args = {
-            level: self._to_host_flags(list(f for f in flags if f != '-Wpedantic'))
+            level: self._to_host_flags([f for f in flags if f != '-Wpedantic'])
             for level, flags in host_compiler.warn_args.items()
         }
         self.host_werror_args = ['-Xcompiler=' + x for x in self.host_compiler.get_werror_args()]

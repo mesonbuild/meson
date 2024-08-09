@@ -74,7 +74,7 @@ def generate_lib(outfiles, private_dir, compiler_array):
 
         cl_found = False
         for cl_arg in compiler_array:
-            if (cl_arg.endswith('cl') or cl_arg.endswith('cl.exe')) and 'clang-cl' not in cl_arg:
+            if cl_arg.endswith(('cl', 'cl.exe')) and 'clang-cl' not in cl_arg:
                 ret = generate_lib_msvc(outfile, c_file, private_dir, compiler_array)
                 if ret > 0:
                     return ret

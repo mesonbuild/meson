@@ -947,7 +947,7 @@ class Vs2010Backend(backends.Backend):
                 other.append(arg)
             # It's ok if we miss libraries with non-standard extensions here.
             # They will go into the general link arguments.
-            elif arg.endswith('.lib') or arg.endswith('.a'):
+            elif arg.endswith(('.lib', '.a')):
                 # De-dup
                 if arg not in libs:
                     libs.append(arg)
