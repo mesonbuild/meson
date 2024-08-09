@@ -662,13 +662,6 @@ class ConsoleLogger(TestLogger):
             return str(mlog.bold(f'Listing only the last {self.max_lines} lines from a long log.\n')) + '\n'.join(lines[-self.max_lines:])
 
     def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
-        if not result.verbose:
-            cmdline = result.cmdline
-            if not cmdline:
-                print(result.res.get_command_marker() + result.stdo)
-                return
-            print(result.res.get_command_marker() + cmdline)
-
         log = self.shorten_log(harness, result)
         if log:
             print(self.output_start)
