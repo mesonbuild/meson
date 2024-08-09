@@ -51,6 +51,20 @@ dub_fetch dubtestproject
 dub build dubtestproject:test1 --compiler=ldc2
 dub build dubtestproject:test2 --compiler=ldc2
 
+# zig
+
+ZIG_DOWNLOAD_INDEX=$(wget -qO- https://ziglang.org/download/index.json)
+ZIG_VERSION=$(echo "$ZIG_DOWNLOAD_INDEX" | jq -r ". | keys_unsorted | .[1]")
+ZIG_ARCHIVE=$(echo "$ZIG_DOWNLOAD_INDEX" | jq -r ".[\"$ZIG_VERSION\"][\"$(uname -m)-linux\"].tarball")
+ZIG_DIR=$(basename "$ZIG_ARCHIVE" | sed 's/.tar.xz//')
+wget -O zig.tar.xz "$ZIG_ARCHIVE"
+
+tar xf zig.tar.xz
+rm zig.tar.xz
+
+mv "$ZIG_DIR" /opt/zig
+ln -s /opt/zig/zig /usr/bin/zig
+
 # Remove debian version of Rust and install latest with rustup.
 # This is needed to get the cross toolchain as well.
 apt-get -y remove rustc || true

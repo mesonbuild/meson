@@ -705,7 +705,9 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         args.extend(self._apply_prefix('-rpath,' + paths))
 
         # TODO: should this actually be "for solaris/sunos"?
-        if mesonlib.is_sunos():
+        # NOTE: Remove the zigcc check once zig support "-rpath-link"
+        # See https://github.com/ziglang/zig/issues/18713
+        if mesonlib.is_sunos() or self.id == 'ld.zigcc':
             return (args, rpath_dirs_to_remove)
 
         # Rpaths to use while linking must be absolute. These are not
@@ -934,6 +936,13 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
             return self._apply_prefix([f'--subsystem,{value}'])
         else:
             raise mesonlib.MesonBugException(f'win_subsystem: {value} not handled in lld linker. This should not be possible.')
+
+
+class ZigCCDynamicLinker(LLVMDynamicLinker):
+    id = 'ld.zigcc'
+
+    def get_thinlto_cache_args(self, path: str) -> T.List[str]:
+        return []
 
 
 class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):

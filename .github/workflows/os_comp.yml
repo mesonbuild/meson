@@ -120,6 +120,8 @@ jobs:
             MESON_ARGS: '--unity=on'
             CC: 'gcc'
             CXX: 'g++'
+          - CC: 'zig cc'
+            CXX: 'zig c++'
 
     env:
       MESON_CI_JOBNAME_UPDATE: linux-${{ github.job }}-${{ matrix.cfg.CC }}

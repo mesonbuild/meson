@@ -62,6 +62,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | ld.mold    | The fast MOLD linker                        |
 | ld.solaris | Solaris and illumos                         |
 | ld.wasm    | emscripten's wasm-ld linker                 |
+| ld.zigcc   | The Zig linker (C/C++ frontend; GNU-like)   |
 | ld64       | Apple ld64                                  |
 | ld64.lld   | The LLVM linker, with the ld64 interface    |
 | link       | MSVC linker                                 |
