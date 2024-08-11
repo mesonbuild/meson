@@ -1125,7 +1125,8 @@ class TestRunTAP(TestRun):
                                      'This is probably a bug in the test; if they are not TAP syntax, prefix them with a #')
         if all(t.result is TestResult.SKIP for t in self.results):
             # This includes the case where self.results is empty
-            res = TestResult.SKIP
+            if res != TestResult.ERROR:
+                res = TestResult.SKIP
 
         if res and self.res == TestResult.RUNNING:
             self.res = res
