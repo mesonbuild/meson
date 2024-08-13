@@ -728,7 +728,8 @@ class CoreData:
                     # FIXME, add augment
                     #self.optstore[k] = o  # override compiler option on reconfigure
                     pass
-            self.optstore.add_compiler_option(lang, f'{k.name}', o)
+            comp_key = OptionKey(f'{k.name}', None, for_machine)
+            self.optstore.add_compiler_option(lang, comp_key, o)
 
 #            if subproject:
 #                sk = k.evolve(subproject=subproject)
