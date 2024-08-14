@@ -3072,12 +3072,16 @@ class TestSetup:
     env: EnvironmentVariables
     exclude_suites: T.List[str]
 
-def get_sources_string_names(sources, backend):
+
+def get_sources_string_names(sources: T.Sequence[T.Union[str, BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, File, ExtractedObjects]],
+                             backend: Backend) -> T.List[str]:
     '''
     For the specified list of @sources which can be strings, Files, or targets,
     get all the output basenames.
     '''
-    names = []
+    names: T.List[str] = []
+    if isinstance(sources, str):
+        sources = [sources]
     for s in sources:
         if isinstance(s, str):
             names.append(s)
