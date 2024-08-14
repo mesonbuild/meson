@@ -3044,7 +3044,7 @@ class Data(HoldableObject):
     subproject: str
     rename: T.List[str] = None
     install_tag: T.Optional[str] = None
-    data_type: str = None
+    data_type: T.Optional[str] = None
     follow_symlinks: T.Optional[bool] = None
 
     def __post_init__(self) -> None:
