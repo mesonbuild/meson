@@ -34,6 +34,7 @@ if T.TYPE_CHECKING:
     from .options import UserOption
 
     from .interpreter import Interpreter
+    from .interpreterbase import SubProject
     from .mparser import BaseNode
 
 def get_meson_info_file(info_dir: str) -> str:
@@ -471,16 +472,16 @@ def list_machines(builddata: build.Build) -> T.Dict[str, T.Dict[str, T.Union[str
 
 def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]:
     result: T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]] = {
-        'version': builddata.project_version,
+        'version': builddata.project_version or 'unknown',
         'descriptive_name': builddata.project_name,
         'subproject_dir': builddata.subproject_dir,
     }
-    subprojects = []
+    subprojects: T.List[T.Dict[str, str]] = []
     for k, v in builddata.subprojects.items():
         c: T.Dict[str, str] = {
             'name': k,
             'version': v,
-            'descriptive_name': builddata.projects.get(k),
+            'descriptive_name': builddata.projects.get(T.cast('SubProject', k)),
         }
         subprojects.append(c)
     result['subprojects'] = subprojects
