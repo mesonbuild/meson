@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import itertools
 import fnmatch
+import concurrent.futures
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 
 from ..compilers import lang_suffixes
 from ..mesonlib import quiet_git
@@ -46,13 +46,27 @@ def run_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., subpro
     suffixes = {f'.{s}' for s in suffixes}
     futures = []
     returncode = 0
-    with ThreadPoolExecutor() as e:
+    e = concurrent.futures.ThreadPoolExecutor()
+    try:
         for f in itertools.chain(*globs):
             strf = str(f)
             if f.is_dir() or f.suffix not in suffixes or \
                     any(fnmatch.fnmatch(strf, i) for i in ignore):
                 continue
             futures.append(e.submit(fn, f, *args))
-        if futures:
-            returncode = max(x.result().returncode for x in futures)
+        concurrent.futures.wait(
+            futures,
+            return_when=concurrent.futures.FIRST_EXCEPTION
+        )
+    finally:
+        # We try to prevent new subprocesses from being started by canceling
+        # the futures, but this is not water-tight: some may have started
+        # between the wait being interrupted or exited and the futures being
+        # canceled. (A fundamental fix would probably require the ability to
+        # terminate such subprocesses upon cancellation of the future.)
+        for x in futures: # Python >=3.9: e.shutdown(cancel_futures=True)
+            x.cancel()
+        e.shutdown()
+    if futures:
+        returncode = max(x.result().returncode for x in futures)
     return returncode
