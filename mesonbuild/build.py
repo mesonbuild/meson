@@ -277,15 +277,15 @@ class Build:
         self.devenv: T.List[EnvironmentVariables] = []
         self.modules: T.List[str] = []
 
-    def get_build_targets(self):
-        build_targets = OrderedDict()
+    def get_build_targets(self) -> OrderedDict[str, BuildTarget]:
+        build_targets: OrderedDict[str, BuildTarget] = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, BuildTarget):
                 build_targets[name] = t
         return build_targets
 
-    def get_custom_targets(self):
-        custom_targets = OrderedDict()
+    def get_custom_targets(self) -> OrderedDict[str, CustomTarget]:
+        custom_targets: T.OrderedDict[str, CustomTarget] = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, CustomTarget):
                 custom_targets[name] = t
@@ -311,7 +311,7 @@ class Build:
     def get_project(self) -> str:
         return self.projects[T.cast('SubProject', '')]
 
-    def get_subproject_dir(self):
+    def get_subproject_dir(self) -> str:
         return self.subproject_dir
 
     def get_targets(self) -> 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]':
