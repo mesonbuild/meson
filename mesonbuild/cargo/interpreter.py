@@ -55,13 +55,17 @@ else:
     toml2json = shutil.which('toml2json')
 
 
+class TomlImplementationMissing(MesonException):
+    pass
+
+
 def load_toml(filename: str) -> T.Dict[object, object]:
     if tomllib:
         with open(filename, 'rb') as f:
             raw = tomllib.load(f)
     else:
         if toml2json is None:
-            raise MesonException('Could not find an implementation of tomllib, nor toml2json')
+            raise TomlImplementationMissing('Could not find an implementation of tomllib, nor toml2json')
 
         p, out, err = Popen_safe([toml2json, filename])
         if p.returncode != 0:
@@ -742,7 +746,11 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
     wraps: T.List[PackageDefinition] = []
     filename = os.path.join(source_dir, 'Cargo.lock')
     if os.path.exists(filename):
-        cargolock = T.cast('manifest.CargoLock', load_toml(filename))
+        try:
+            cargolock = T.cast('manifest.CargoLock', load_toml(filename))
+        except TomlImplementationMissing as e:
+            mlog.warning('Failed to load Cargo.lock:', str(e), fatal=False)
+            return wraps
         for package in cargolock['package']:
             name = package['name']
             version = package['version']
