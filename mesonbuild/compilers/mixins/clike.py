@@ -98,12 +98,12 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
                     continue
 
                 # Remove the -isystem and the path if the path is a default path
-                if (each == '-isystem' and
-                        i < (len(new) - 1) and
-                        self._cached_realpath(new[i + 1]) in real_default_dirs):
-                    bad_idx_list += [i, i + 1]
-                elif each.startswith('-isystem=') and self._cached_realpath(each[9:]) in real_default_dirs:
-                    bad_idx_list += [i]
+                if each == '-isystem':
+                    if i < (len(new) - 1) and self._cached_realpath(new[i + 1]) in real_default_dirs:
+                        bad_idx_list += [i, i + 1]
+                elif each.startswith('-isystem='):
+                    if self._cached_realpath(each[9:]) in real_default_dirs:
+                        bad_idx_list += [i]
                 elif self._cached_realpath(each[8:]) in real_default_dirs:
                     bad_idx_list += [i]
             for i in reversed(bad_idx_list):
