@@ -1174,7 +1174,9 @@ class OptionStore:
         else:
             others = {}
             for k, v in coll.items():
-                if k == 'prefix':
+                if isinstance(k, OptionKey) and k.name == 'prefix':
+                    prefix = v
+                elif k == 'prefix':
                     prefix = v
                 else:
                     others[k] = v
