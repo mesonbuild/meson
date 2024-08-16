@@ -5,7 +5,7 @@ set -e
 source /ci/common.sh
 
 pkgs=(
-  python3-pip python3 python3-devel
+  python3-pip python3 python3-devel python3-setuptools
   ninja make git autoconf automake patch libjpeg-devel
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-obj-c++ vala rust bison flex curl lcov
   mono-core gtkmm3-devel gtest gmock protobuf-devel wxGTK3-3_2-devel gobject-introspection-devel
