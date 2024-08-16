@@ -39,7 +39,7 @@ chmod +x /ci/env_vars.sh
 source /ci/env_vars.sh
 
 dub_fetch urld
-dub build urld --compiler=dmd
+dub build --deep urld --arch=x86_64 --compiler=dmd --build=debug
 dub_fetch dubtestproject
 dub build dubtestproject:test1 --compiler=dmd
 dub build dubtestproject:test2 --compiler=dmd
