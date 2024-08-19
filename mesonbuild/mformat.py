@@ -338,7 +338,7 @@ class TrimWhitespaces(FullAstVisitor):
         self.enter_node(node)
 
         if self.config.simplify_string_literals:
-            if node.is_multiline and '\n' not in node.value:
+            if node.is_multiline and not any(x in node.value for x in ['\n', "'"]):
                 node.is_multiline = False
                 node.value = node.escape()
 

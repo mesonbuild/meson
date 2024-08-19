@@ -29,6 +29,7 @@ d = {'a': 1, 'b': 2, 'c': 3}
 # string conversion
 '''This is not a multiline'''
 f'This is not a fstring'
+'''This isn't convertible'''
 
 # group arg value
 arguments = ['a', '--opt_a', 'opt_a_value', 'b', 'c', '--opt_d', '--opt_e', 'opt_e_value',
