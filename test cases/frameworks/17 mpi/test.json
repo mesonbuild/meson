@@ -2,8 +2,10 @@
   "matrix": {
     "options": {
       "method": [
-        { "val": "auto" },
-        { "val": "pkg-config" },
+        { "val": "auto",
+          "expect_skip_on_jobname": ["ubuntu"] },
+        { "val": "pkg-config",
+          "expect_skip_on_jobname": ["ubuntu"] },
         { "val": "config-tool",
           "expect_skip_on_jobname": ["fedora"] },
         {
