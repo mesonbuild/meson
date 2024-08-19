@@ -81,13 +81,13 @@ class CythonCompiler(Compiler):
                                'c'),
         )
 
-    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'OptionStore') -> T.List[str]:
         args: T.List[str] = []
         key = self.form_compileropt_key('version')
-        version = options.get_value(key)
+        version = options.get_value_for(key)
         args.append(f'-{version}')
         key = self.form_compileropt_key('language')
-        lang = options.get_value(key)
+        lang = options.get_value_for(key)
         if lang == 'cpp':
             args.append('--cplus')
         return args
