@@ -861,7 +861,11 @@ class Formatter:
 
             for f in fields(config):
                 getter = f.metadata['getter']
-                value = getter(cp, cp.default_section, f.name, fallback=None)
+                try:
+                    value = getter(cp, cp.default_section, f.name, fallback=None)
+                except ValueError as e:
+                    raise MesonException(
+                        f'Error parsing "{str(configuration_file)}", option "{f.name}", error: "{e!s}"')
                 if value is not None:
                     setattr(config, f.name, value)
 
