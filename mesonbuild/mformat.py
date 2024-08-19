@@ -823,7 +823,8 @@ class Formatter:
                     if value is not None:
                         setattr(config, f.name, value)
 
-            if cp.getboolean(cp.default_section, 'root'):
+            # Root is not required except in the top level .editorconfig.
+            if cp.getboolean(cp.default_section, 'root', fallback=False):
                 break
 
         return config

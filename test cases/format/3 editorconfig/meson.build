@@ -7,6 +7,7 @@ meson_files = {
 	'self': files('meson.build'),
 	'comments': files('crazy_comments.meson'),
 	'indentation': files('indentation.meson'),
+	'subdir editorconfig': files('subdir/sub.meson'),
 }
 
 foreach name, f : meson_files
