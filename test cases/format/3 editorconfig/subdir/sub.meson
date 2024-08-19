@@ -1,0 +1,3 @@
+project('line')
+
+msg = 'this is a very long line, and it should be be wrapped because we have line length limit of 120, not 60'
