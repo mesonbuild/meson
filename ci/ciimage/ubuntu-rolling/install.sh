@@ -82,6 +82,13 @@ cp LICENSE /usr/share/doc/zig
 cd ..
 rm -rf "$ZIG_BASE"
 
+# Hack for https://github.com/linux-test-project/lcov/issues/245
+# https://github.com/linux-test-project/lcov/commit/bf135caf5f626e02191c42bd2773e08a0bb9b7e5
+# XXX: Drop this once Ubuntu has lcov-2.1*
+git clone https://github.com/linux-test-project/lcov
+cd lcov
+make install
+
 # cleanup
 apt-get -y clean
 apt-get -y autoclean
