@@ -135,10 +135,7 @@ class OutputTargetMap:
         self.build_dir = build_dir
 
     def add(self, tgt: T.Union['ConverterTarget', 'ConverterCustomTarget']) -> None:
-        def assign_keys(keys: T.List[str]) -> None:
-            for i in [x for x in keys if x]:
-                self.tgt_map[i] = tgt
-        keys = [self._target_key(tgt.cmake_name)]
+        keys: T.List[T.Optional[str]] = [self._target_key(tgt.cmake_name)]
         if isinstance(tgt, ConverterTarget):
             keys += [tgt.full_name]
             keys += [self._rel_artifact_key(x) for x in tgt.artifacts]
@@ -146,7 +143,9 @@ class OutputTargetMap:
         if isinstance(tgt, ConverterCustomTarget):
             keys += [self._rel_generated_file_key(x) for x in tgt.original_outputs]
             keys += [self._base_generated_file_key(x) for x in tgt.original_outputs]
-        assign_keys(keys)
+        for k in keys:
+            if k is not None:
+                self.tgt_map[k] = tgt
 
     def _return_first_valid_key(self, keys: T.List[str]) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         for i in keys:
