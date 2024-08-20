@@ -275,6 +275,32 @@ def detect_clangformat() -> T.List[str]:
             return [path]
     return []
 
+def detect_clangtidy() -> T.List[str]:
+    """ Look for clang-tidy binary on build platform
+
+    Return: a single-element list of the found clang-tidy binary ready to be
+        passed to Popen()
+    """
+    tools = get_llvm_tool_names('clang-tidy')
+    for tool in tools:
+        path = shutil.which(tool)
+        if path is not None:
+            return [path]
+    return []
+
+def detect_clangapply() -> T.List[str]:
+    """ Look for clang-apply-replacements binary on build platform
+
+    Return: a single-element list of the found clang-apply-replacements binary
+        ready to be passed to Popen()
+    """
+    tools = get_llvm_tool_names('clang-apply-replacements')
+    for tool in tools:
+        path = shutil.which(tool)
+        if path is not None:
+            return [path]
+    return []
+
 def detect_windows_arch(compilers: CompilersDict) -> str:
     """
     Detecting the 'native' architecture of Windows is not a trivial task. We
