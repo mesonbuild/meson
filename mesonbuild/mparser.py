@@ -267,6 +267,7 @@ class WhitespaceNode(BaseNode):
         self.value = ''
         self.append(token)
         self.block_indent = False
+        self.is_continuation = False
 
     def append(self, token: Token[str]) -> None:
         self.value += token.value

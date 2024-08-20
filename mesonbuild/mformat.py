@@ -276,6 +276,7 @@ class TrimWhitespaces(FullAstVisitor):
 
     def move_whitespaces(self, from_node: mparser.BaseNode, to_node: mparser.BaseNode) -> None:
         to_node.whitespaces.value = from_node.whitespaces.value + to_node.whitespaces.value
+        to_node.whitespaces.is_continuation = from_node.whitespaces.is_continuation
         from_node.whitespaces = None
         to_node.whitespaces.accept(self)
 
@@ -317,7 +318,10 @@ class TrimWhitespaces(FullAstVisitor):
         for i, line in enumerate(lines):
             has_nl = line.endswith('\n')
             line = line.strip()
-            if line.startswith('#'):
+            if line.startswith('\\'):
+                node.value += ' '  # add space before \
+                node.is_continuation = True
+            elif line.startswith('#'):
                 if not in_block_comments:
                     node.value += self.config.indent_before_comments
                 else:
@@ -328,6 +332,8 @@ class TrimWhitespaces(FullAstVisitor):
             in_block_comments = True
         if node.value.endswith('\n'):
             node.value += self.indent_comments
+            if node.is_continuation:
+                node.value += self.config.indent_by
 
     def visit_SymbolNode(self, node: mparser.SymbolNode) -> None:
         super().visit_SymbolNode(node)
@@ -595,12 +601,17 @@ class ArgumentFormatter(FullAstVisitor):
     def visit_MethodNode(self, node: mparser.MethodNode) -> None:
         self.enter_node(node)
         node.source_object.accept(self)
+        is_cont = node.source_object.whitespaces and node.source_object.whitespaces.is_continuation
+        if is_cont:
+            self.level += 1
         if node.args.is_multiline:
             self.level += 1
             self.add_nl_after(node.lpar, indent=self.level)
         self.is_function_arguments = True
         node.args.accept(self)
         if node.args.is_multiline:
+            self.level -= 1
+        if is_cont:
             self.level -= 1
         self.exit_node(node)
 
