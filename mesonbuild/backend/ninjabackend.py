@@ -3666,10 +3666,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.generate_clangtool('format', 'check')
 
     def generate_clangtidy(self) -> None:
-        import shutil
-        if not shutil.which('clang-tidy'):
+        if not environment.detect_clangtidy():
             return
         self.generate_clangtool('tidy')
+        if not environment.detect_clangapply():
+            return
         self.generate_clangtool('tidy', 'fix')
 
     def generate_tags(self, tool: str, target_name: str) -> None:
