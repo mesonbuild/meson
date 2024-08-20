@@ -147,7 +147,7 @@ class OutputTargetMap:
             if k is not None:
                 self.tgt_map[k] = tgt
 
-    def _return_first_valid_key(self, keys: T.List[str]) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
+    def _return_first_valid_key(self, keys: T.List[T.Optional[str]]) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         for i in keys:
             if i and i in self.tgt_map:
                 return self.tgt_map[i]
@@ -165,7 +165,7 @@ class OutputTargetMap:
         return tgt
 
     def artifact(self, name: str) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
-        keys = []
+        keys: T.List[T.Optional[str]] = []
         candidates = [name, OutputTargetMap.rm_so_version.sub('', name)]
         for i in lib_suffixes:
             if not name.endswith('.' + i):
