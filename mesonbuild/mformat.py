@@ -839,7 +839,10 @@ class Formatter:
 
                 getter = f.metadata['getter']
                 for section in sections:
-                    value = getter(cp, section, f.name, fallback=None)
+                    try:
+                        value = getter(cp, section, f.name, fallback=None)
+                    except ValueError as e:
+                        raise MesonException(f'Invalid type for key "{f.name}" in "{editorconfig_file}" file:\n{e}') from e
                     if value is not None:
                         setattr(config, f.name, value)
 
@@ -857,6 +860,10 @@ class Formatter:
                 cp.read_default(configuration_file)
             except ParsingError as e:
                 raise MesonException(f'Unable to parse configuration file "{configuration_file}":\n{e}') from e
+
+            extra_keys = sorted(set(cp.defaults()).difference(f.name for f in fields(config)))
+            if extra_keys:
+                raise MesonException(f'Unknown config keys: "{", ".join(extra_keys)}" in configuration file "{configuration_file}"')
 
             for f in fields(config):
                 getter = f.metadata['getter']
@@ -992,9 +999,8 @@ def run(options: argparse.Namespace) -> int:
 
 # TODO: remove empty newlines when more than N (2...)
 # TODO: magic comment to prevent formatting
-# TODO: handle meson.options ?
 # TODO: split long lines on binary operators
-# TODO: align series of assignements
+# TODO: align series of assignments
 # TODO: align comments
 # TODO: move comments on long lines
 
