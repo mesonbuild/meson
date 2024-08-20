@@ -621,23 +621,23 @@ class CMakeTraceParser:
 
     def _cmake_target_compile_definitions(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_compile_definitions.html
-        self._parse_common_target_options('target_compile_definitions', 'COMPILE_DEFINITIONS', 'INTERFACE_COMPILE_DEFINITIONS', tline)
+        self._parse_common_target_options('target_compile_definitions', 'COMPILE_DEFINITIONS', 'INTERFACE_COMPILE_DEFINITIONS', None, tline)
 
     def _cmake_target_compile_options(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_compile_options.html
-        self._parse_common_target_options('target_compile_options', 'COMPILE_OPTIONS', 'INTERFACE_COMPILE_OPTIONS', tline)
+        self._parse_common_target_options('target_compile_options', 'COMPILE_OPTIONS', 'INTERFACE_COMPILE_OPTIONS', None, tline)
 
     def _cmake_target_include_directories(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_include_directories.html
-        self._parse_common_target_options('target_include_directories', 'INCLUDE_DIRECTORIES', 'INTERFACE_INCLUDE_DIRECTORIES', tline, ignore=['SYSTEM', 'BEFORE'], paths=True)
+        self._parse_common_target_options('target_include_directories', 'INCLUDE_DIRECTORIES', 'INTERFACE_INCLUDE_DIRECTORIES', 'INTERFACE_SYSTEM_INCLUDE_DIRECTORIES', tline, ignore=['BEFORE'], paths=True)
 
     def _cmake_target_link_options(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_link_options.html
-        self._parse_common_target_options('target_link_options', 'LINK_OPTIONS', 'INTERFACE_LINK_OPTIONS', tline)
+        self._parse_common_target_options('target_link_options', 'LINK_OPTIONS', 'INTERFACE_LINK_OPTIONS', None, tline)
 
     def _cmake_target_link_libraries(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_link_libraries.html
-        self._parse_common_target_options('target_link_options', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', tline)
+        self._parse_common_target_options('target_link_options', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', None, tline)
 
     def _cmake_message(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/message.html
@@ -651,7 +651,7 @@ class CMakeTraceParser:
 
         self.errors += [' '.join(args[1:])]
 
-    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False) -> None:
+    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, interface_system_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False) -> None:
         if ignore is None:
             ignore = ['BEFORE']
 
@@ -664,12 +664,18 @@ class CMakeTraceParser:
         if target not in self.targets:
             return self._gen_exception(func, f'TARGET {target} not found', tline)
 
+        interface_system = []
         interface = []
         private = []
 
         mode = 'PUBLIC'
+        scope = 'LOCAL'
         for i in args[1:]:
             if i in ignore:
+                continue
+
+            if i in {'SYSTEM'}:
+                scope = i
                 continue
 
             if i in {'INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'PRIVATE', 'LINK_PUBLIC', 'LINK_PRIVATE'}:
@@ -677,19 +683,27 @@ class CMakeTraceParser:
                 continue
 
             if mode in {'INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'LINK_PUBLIC'}:
-                interface += i.split(';')
+                if scope == 'SYSTEM':
+                    interface_system += i.split(';')
+                else:
+                    interface += i.split(';')
 
             if mode in {'PUBLIC', 'PRIVATE', 'LINK_PRIVATE'}:
                 private += i.split(';')
 
         if paths:
+            interface_system = self._guess_files(interface_system)
             interface = self._guess_files(interface)
             private = self._guess_files(private)
 
+        interface_system = [x for x in interface_system if x]
         interface = [x for x in interface if x]
         private = [x for x in private if x]
 
-        for j in [(private_prop, private), (interface_prop, interface)]:
+        for j in [(private_prop, private), (interface_prop, interface), (interface_system_prop, interface_system)]:
+            if not j[0]:
+                continue
+
             if not j[0] in self.targets[target].properties:
                 self.targets[target].properties[j[0]] = []
 
