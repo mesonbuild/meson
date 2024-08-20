@@ -769,9 +769,8 @@ class ComputeLineLengths(FullAstVisitor):
     def split_if_needed(self, node: mparser.ArgumentNode) -> None:
         if len(node) and not node.is_multiline and self.length > self.config.max_line_length:
             arg = self.argument_stack[self.level] if len(self.argument_stack) > self.level else node
-            if not arg.is_multiline:
-                arg.is_multiline = True
-                self.need_regenerate = True
+            arg.is_multiline = True
+            self.need_regenerate = True
 
     def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
         self.argument_stack.append(node)
