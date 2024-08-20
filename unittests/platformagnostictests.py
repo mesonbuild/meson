@@ -15,7 +15,7 @@ from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
-from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command
+from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
 from mesonbuild.mformat import Formatter, match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from mesonbuild.options import OptionStore
@@ -336,7 +336,40 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         for filename, pattern, expected in cases:
             self.assertTrue(match_path(filename, pattern) is expected, f'{filename} -> {pattern}')
-    
+
+    def test_format_invalid_config_key(self) -> None:
+        fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
+        self.addCleanup(os.unlink, fname)
+
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write('not_an_option = 42\n')
+
+        with self.assertRaises(MesonException):
+            Formatter(Path(fname), use_editor_config=False, fetch_subdirs=False)
+
+    def test_format_invalid_config_value(self) -> None:
+        fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
+        self.addCleanup(os.unlink, fname)
+
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write('max_line_length = string\n')
+
+        with self.assertRaises(MesonException):
+            Formatter(Path(fname), use_editor_config=False, fetch_subdirs=False)
+
+    def test_format_invalid_editorconfig_value(self) -> None:
+        dirpath = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dirpath)
+
+        editorconfig = Path(dirpath, '.editorconfig')
+        with open(editorconfig, 'w', encoding='utf-8') as handle:
+            handle.write('[*]\n')
+            handle.write('indent_size = string\n')
+
+        formatter = Formatter(None, use_editor_config=True, fetch_subdirs=False)
+        with self.assertRaises(MesonException):
+            formatter.load_editor_config(editorconfig)
+
     def test_format_empty_file(self) -> None:
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
         for code in ('', '\n'):
