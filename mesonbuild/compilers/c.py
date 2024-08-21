@@ -8,6 +8,7 @@ import os.path
 import typing as T
 
 from .. import options
+from ..options import OptionKey
 from .. import mlog
 from ..mesonlib import MesonException, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
@@ -269,7 +270,7 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
 
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject=None) -> T.List[str]:
         args = []
-        key = self.form_compileropt_key('std')
+        key = OptionKey('c_std', machine=self.for_machine)
         if target:
             std = env.coredata.get_option_for_target(target, key)
         else:

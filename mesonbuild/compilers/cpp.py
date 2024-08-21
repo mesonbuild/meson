@@ -285,7 +285,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         if std != 'none':
             args.append(self._find_best_cpp_std(std))
 
-        non_msvc_eh_options(env.determine_option_value(key.evolve('eh'), target, subproject), args)
+        non_msvc_eh_options(eh, args)
 
         if debugstl:
             args.append('-D_GLIBCXX_DEBUG=1')
