@@ -1248,7 +1248,7 @@ def detect_swift_compiler(env: 'Environment', for_machine: MachineChoice) -> Com
             cls = SwiftCompiler
             linker = guess_nix_linker(env,
                                       exelist, cls, version, for_machine,
-                                      extra_args=[f.name])
+                                      extra_args=[f.name, '-o /dev/null'])
         return cls(
             exelist, version, for_machine, is_cross, info, linker=linker)
 
