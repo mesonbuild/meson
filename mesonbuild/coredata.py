@@ -761,7 +761,6 @@ class CoreData:
 
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env, subproject)
 
-        enabled_opts: T.List[OptionKey] = []
         for key in comp.base_options:
             if subproject:
                 skey = key.evolve(subproject=subproject)
@@ -771,10 +770,8 @@ class CoreData:
                 self.optstore.add_system_option(skey.name, copy.deepcopy(compilers.base_options[key]))
                 if skey in env.options:
                     self.optstore.set_value(skey, env.options[skey])
-                    enabled_opts.append(skey)
                 elif subproject and key in env.options:
                     self.optstore.set_value(skey, env.options[key])
-                    enabled_opts.append(skey)
                 # FIXME
                 #if subproject and not self.optstore.has_option(key):
                 #    self.optstore[key] = copy.deepcopy(self.optstore[skey])
@@ -782,12 +779,14 @@ class CoreData:
                 self.optstore.set_value(skey, env.options[skey])
             elif subproject and key in env.options:
                 self.optstore.set_value(skey, env.options[key])
-        self.emit_base_options_warnings(enabled_opts)
+        self.emit_base_options_warnings()
 
-    def emit_base_options_warnings(self, enabled_opts: T.List[OptionKey]) -> None:
-        if OptionKey('b_bitcode') in enabled_opts:
-            mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
-            mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
+    def emit_base_options_warnings(self) -> None:
+        bcodekey = OptionKey('b_bitcode')
+        if bcodekey in self.optstore and self.optstore.get_value(bcodekey):
+            msg = '''Base option 'b_bitcode' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
+Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.'''
+            mlog.warning(msg, once=True, fatal=False)
 
 def get_cmd_line_file(build_dir: str) -> str:
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
