@@ -190,6 +190,8 @@ class MesonApp:
     def check_unused_options(self, coredata, cmd_line_options, all_subprojects):
         pending = coredata.optstore.pending_project_options
         errlist = []
+        permitted_unknowns = ['b_vscrt', 'b_lto', 'b_lundef']
+        permitlist = []
         for opt in pending:
             # Due to backwards compatibility setting build options in non-cross
             # builds is permitted and is a no-op. This should be made
@@ -202,7 +204,8 @@ class MesonApp:
                 continue
             if coredata.optstore.is_compiler_option(opt):
                 continue
-            if opt.name == 'b_vscrt':
+            if opt.name in permitted_unknowns:
+                permitlist.append(opt.name)
                 continue
             keystr = str(opt)
             if keystr in cmd_line_options:
@@ -210,6 +213,16 @@ class MesonApp:
         if errlist:
             errstr = ', '.join(errlist)
             raise MesonException(f'Unknown options: {errstr}')
+        if permitlist:
+            # This is needed due to backwards compatibility.
+            # It was permitted to define some command line options that
+            # were not used. This can be seen as a bug, since
+            # if you define -Db_lto but the compiler class does not
+            # support it, this option gets silently swallowed.
+            # So at least print a message about it.
+            optstr = ','.join(permitlist)
+            mlog.warning(f'Some command line options went unused: {optstr}', fatal=False)
+
         coredata.optstore.clear_pending()
 
 
