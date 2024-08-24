@@ -38,10 +38,10 @@ test('custom target arg', tester, args : testfilect, env : env_array)
 env = environment()
 env.append('PATH', 'something')
 
-bash = find_program('bash')
+pathtester = find_program('pathtester.py')
 
 custompathtgt = custom_target('testpathappend',
                               output : 'nothing.txt',
                               build_always : true,
-                              command : [bash, '-c', 'env'],
+                              command : [pathtester],
                               env : env)
