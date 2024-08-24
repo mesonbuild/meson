@@ -2,7 +2,7 @@
 
 import sys, subprocess
 
-if sys.platorm() == 'win32':
+if sys.platform == 'win32':
     cmd = ['xcopy', '/?']
 else:
     cmd = ['env']
