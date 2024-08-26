@@ -12,7 +12,7 @@ import itertools
 import typing as T
 from enum import Enum
 
-from .. import mlog, mesonlib
+from .. import mlog, mesonlib, build
 from ..compilers import clib_langs
 from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, version_compare_many
 from ..options import OptionKey
@@ -203,7 +203,8 @@ class Dependency(HoldableObject):
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False) -> 'Dependency':
+                               includes: bool = False, sources: bool = False,
+                               only_exts: bool = False) -> 'Dependency':
         """Create a new dependency that contains part of the parent dependency.
 
         The following options can be inherited:
@@ -308,17 +309,37 @@ class InternalDependency(Dependency):
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
                                includes: bool = False, sources: bool = False,
-                               extra_files: bool = False) -> InternalDependency:
-        final_compile_args = self.compile_args.copy() if compile_args else []
-        final_link_args = self.link_args.copy() if link_args else []
-        final_libraries = self.libraries.copy() if links else []
-        final_whole_libraries = self.whole_libraries.copy() if links else []
-        final_sources = self.sources.copy() if sources else []
-        final_extra_files = self.extra_files.copy() if extra_files else []
-        final_includes = self.include_directories.copy() if includes else []
+                               extra_files: bool = False, only_exts: bool = False) -> InternalDependency:
+        final_compile_args = self.compile_args.copy() if compile_args and not only_exts else []
+        final_link_args = self.link_args.copy() if link_args and not only_exts else []
+        final_libraries = self.libraries.copy() if links and not only_exts else []
+        final_whole_libraries = self.whole_libraries.copy() if links and not only_exts else []
+        final_sources = self.sources.copy() if sources and not only_exts else []
+        final_extra_files = self.extra_files.copy() if extra_files and not only_exts else []
+        final_includes = self.include_directories.copy() if includes and not only_exts else []
         final_deps = [d.get_partial_dependency(
             compile_args=compile_args, link_args=link_args, links=links,
-            includes=includes, sources=sources) for d in self.ext_deps]
+            includes=includes, sources=sources, only_exts=False) for d in self.ext_deps]
+        if only_exts:
+            for library in self.libraries:
+                final_deps += [d.get_partial_dependency(
+                    compile_args=compile_args, link_args=link_args, links=links,
+                    includes=includes, sources=sources, only_exts=False) for d in library.external_deps]
+                for target in library.link_targets:
+                    if not isinstance(target, build.StaticLibrary):
+                        continue
+                    final_deps += [d.get_partial_dependency(
+                        compile_args=compile_args, link_args=link_args, links=links,
+                        includes=includes, sources=sources, only_exts=False) for d in target.external_deps]
+                for whole_target in library.link_whole_targets:
+                    final_deps += [d.get_partial_dependency(
+                        compile_args=compile_args, link_args=link_args, links=links,
+                        includes=includes, sources=sources, only_exts=False) for d in whole_target.external_deps]
+            for library in self.whole_libraries:
+                final_deps += [d.get_partial_dependency(
+                    compile_args=compile_args, link_args=link_args, links=links,
+                    includes=includes, sources=sources, only_exts=False) for d in library.external_deps]
+
         return InternalDependency(
             self.version, final_includes, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
@@ -400,17 +421,18 @@ class ExternalDependency(Dependency, HasNativeKwarg):
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False) -> Dependency:
+                               includes: bool = False, sources: bool = False,
+                               only_exts: bool = False) -> Dependency:
         new = copy.copy(self)
-        if not compile_args:
+        if not compile_args and not only_exts:
             new.compile_args = []
-        if not link_args:
+        if not link_args and not only_exts:
             new.link_args = []
-        if not sources:
+        if not sources and not only_exts:
             new.sources = []
-        if not includes:
+        if not includes and not only_exts:
             pass # TODO maybe filter compile_args?
-        if not sources:
+        if not sources and not only_exts:
             new.sources = []
 
         return new
@@ -471,7 +493,8 @@ class NotFoundDependency(Dependency):
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False) -> 'NotFoundDependency':
+                               includes: bool = False, sources: bool = False,
+                               only_exts: bool = False) -> 'NotFoundDependency':
         return copy.copy(self)
 
 
@@ -508,11 +531,12 @@ class ExternalLibrary(ExternalDependency):
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False) -> 'ExternalLibrary':
+                               includes: bool = False, sources: bool = False,
+                               only_exts: bool = False) -> 'ExternalLibrary':
         # External library only has link_args, so ignore the rest of the
         # interface.
         new = copy.copy(self)
-        if not link_args:
+        if not link_args or only_exts:
             new.link_args = []
         return new
 

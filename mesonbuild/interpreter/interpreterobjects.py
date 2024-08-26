@@ -450,6 +450,7 @@ _PARTIAL_DEP_KWARGS = [
     KwargInfo('links',        bool, default=False),
     KwargInfo('includes',     bool, default=False),
     KwargInfo('sources',      bool, default=False),
+    KwargInfo('only_exts',    bool, default=False, since='1.6.0'),
 ]
 
 class DependencyHolder(ObjectHolder[Dependency]):
