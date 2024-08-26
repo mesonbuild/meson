@@ -1060,7 +1060,9 @@ class CMakeInterpreter:
 
         def detect_cycle(tgt: T.Union[ConverterTarget, ConverterCustomTarget]) -> None:
             if tgt.name in processing:
-                raise CMakeException('Cycle in CMake inputs/dependencies detected')
+                processing.append(tgt.name)
+                stack = ' -> '.join(processing)
+                raise CMakeException(f'Cycle in CMake inputs/dependencies detected: {stack}')
             processing.append(tgt.name)
 
         def resolve_ctgt_ref(ref: CustomTargetReference) -> T.Union[IdNode, IndexNode]:
