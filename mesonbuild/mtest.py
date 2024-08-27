@@ -99,13 +99,17 @@ def uniwidth(s: str) -> int:
 
 def determine_worker_count() -> int:
     varname = 'MESON_TESTTHREADS'
+    num_workers = 0
     if varname in os.environ:
         try:
             num_workers = int(os.environ[varname])
+            if num_workers < 0:
+                raise ValueError
         except ValueError:
             print(f'Invalid value in {varname}, using 1 thread.')
             num_workers = 1
-    else:
+
+    if num_workers == 0:
         try:
             # Fails in some weird environments such as Debian
             # reproducible build.

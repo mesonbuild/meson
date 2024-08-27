@@ -89,6 +89,10 @@ variable `MESON_TESTTHREADS` like this.
 $ MESON_TESTTHREADS=5 meson test
 ```
 
+Setting `MESON_TESTTHREADS` to 0 enables the default behavior (core
+count), whereas setting an invalid value results in setting the job
+count to 1.
+
 ## Priorities
 
 *(added in version 0.52.0)*
