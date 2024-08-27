@@ -20,6 +20,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from ..build import BuildTarget
 
 
 class ObjCCompiler(CLikeCompiler, Compiler):
@@ -120,6 +121,7 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
             std = env.coredata.get_option_for_target(target, key)
         else:
             std = env.coredata.get_option_for_subproject(key, subproject)
+        assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
