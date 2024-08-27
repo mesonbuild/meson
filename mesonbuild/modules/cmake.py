@@ -18,7 +18,6 @@ from ..interpreterbase import (
     FeatureNew,
     FeatureNewKwargs,
 
-    stringArgs,
     permittedKwargs,
     noPosargs,
     noKwargs,
@@ -148,21 +147,21 @@ class CMakeSubproject(ModuleObject):
         return orig
 
     @noKwargs
-    @stringArgs
-    def include_directories(self, state: ModuleState, args: T.List[str], kwargs: TYPE_kwargs) -> build.IncludeDirs:
-        info = self._args_to_info(args)
+    @typed_pos_args('cmake.subproject.include_directories', str)
+    def include_directories(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> build.IncludeDirs:
+        info = self._args_to_info(list(args))
         return self.get_variable(state, [info['inc']], kwargs)
 
     @noKwargs
-    @stringArgs
-    def target(self, state: ModuleState, args: T.List[str], kwargs: TYPE_kwargs) -> build.Target:
-        info = self._args_to_info(args)
+    @typed_pos_args('cmake.subproject.target', str)
+    def target(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> build.Target:
+        info = self._args_to_info(list(args))
         return self.get_variable(state, [info['tgt']], kwargs)
 
     @noKwargs
-    @stringArgs
-    def target_type(self, state: ModuleState, args: T.List[str], kwargs: TYPE_kwargs) -> str:
-        info = self._args_to_info(args)
+    @typed_pos_args('cmake.subproject.target_type', str)
+    def target_type(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
+        info = self._args_to_info(list(args))
         return info['func']
 
     @noPosargs
