@@ -844,25 +844,19 @@ class SubprojectHolder(MesonInterpreterObject):
         return not isinstance(self.held_object, NullSubprojectInterpreter)
 
     @noKwargs
+    @typed_pos_args('subproject.get_variable', str, optargs=[object])
     @noArgsFlattening
     @unholder_return
-    def get_variable_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Get_variable takes one or two arguments.')
+    def get_variable_method(self, args: T.Tuple[str, T.Optional[HoldableObject]], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         if isinstance(self.held_object, NullSubprojectInterpreter):  # == not self.found()
             raise InterpreterException(f'Subproject "{self.subdir}" disabled can\'t get_variable on it.')
-        varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('Get_variable first argument must be a string.')
+        varname, fallback = args
         try:
             return self.held_object.variables[varname]
         except KeyError:
-            pass
-
-        if len(args) == 2:
-            return self.held_object._holderify(args[1])
-
-        raise InvalidArguments(f'Requested variable "{varname}" not found.')
+            if fallback is not None:
+                return self.held_object._holderify(fallback)
+            raise InvalidArguments(f'Requested variable "{varname}" not found.')
 
 class ModuleObjectHolder(ObjectHolder[ModuleObject]):
     def method_call(self, method_name: str, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:
