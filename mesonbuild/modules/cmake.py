@@ -17,7 +17,6 @@ from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, NoneType, i
 from ..interpreterbase import (
     FeatureNew,
 
-    permittedKwargs,
     noPosargs,
     noKwargs,
 
@@ -34,7 +33,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from . import ModuleState
-    from ..cmake import SingleTargetOptions
+    from ..cmake.common import SingleTargetOptions
     from ..environment import Environment
     from ..interpreter import Interpreter, kwargs
     from ..interpreterbase import TYPE_kwargs, TYPE_var, InterpreterObject
@@ -59,6 +58,12 @@ if T.TYPE_CHECKING:
         options: T.Optional[CMakeSubprojectOptions]
         cmake_options: T.List[str]
 
+    class TargetKW(TypedDict):
+
+        target: T.Optional[str]
+
+
+_TARGET_KW = KwargInfo('target', (str, NoneType))
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
 
@@ -194,8 +199,8 @@ class CMakeSubprojectOptions(ModuleObject):
             }
         )
 
-    def _get_opts(self, kwargs: dict) -> SingleTargetOptions:
-        if 'target' in kwargs:
+    def _get_opts(self, kwargs: TargetKW) -> SingleTargetOptions:
+        if kwargs['target'] is not None:
             return self.target_options[kwargs['target']]
         return self.target_options.global_options
 
@@ -205,23 +210,23 @@ class CMakeSubprojectOptions(ModuleObject):
         self.cmake_options += cmake_defines_to_args(args[0])
 
     @typed_pos_args('subproject_options.set_override_option', str, str)
-    @permittedKwargs({'target'})
-    def set_override_option(self, state: ModuleState, args: T.Tuple[str, str], kwargs: TYPE_kwargs) -> None:
+    @typed_kwargs('subproject_options.set_override_option', _TARGET_KW)
+    def set_override_option(self, state: ModuleState, args: T.Tuple[str, str], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).set_opt(args[0], args[1])
 
     @typed_pos_args('subproject_options.set_install', bool)
-    @permittedKwargs({'target'})
-    def set_install(self, state: ModuleState, args: T.Tuple[bool], kwargs: TYPE_kwargs) -> None:
+    @typed_kwargs('subproject_options.set_install', _TARGET_KW)
+    def set_install(self, state: ModuleState, args: T.Tuple[bool], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).set_install(args[0])
 
     @typed_pos_args('subproject_options.append_compile_args', str, varargs=str, min_varargs=1)
-    @permittedKwargs({'target'})
-    def append_compile_args(self, state: ModuleState, args: T.Tuple[str, T.List[str]], kwargs: TYPE_kwargs) -> None:
+    @typed_kwargs('subproject_options.append_compile_args', _TARGET_KW)
+    def append_compile_args(self, state: ModuleState, args: T.Tuple[str, T.List[str]], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).append_args(args[0], args[1])
 
     @typed_pos_args('subproject_options.append_link_args', varargs=str, min_varargs=1)
-    @permittedKwargs({'target'})
-    def append_link_args(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> None:
+    @typed_kwargs('subproject_options.append_link_args', _TARGET_KW)
+    def append_link_args(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TargetKW) -> None:
         self._get_opts(kwargs).append_link_args(args[0])
 
     @noPosargs
