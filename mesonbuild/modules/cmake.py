@@ -39,7 +39,7 @@ if T.TYPE_CHECKING:
     from ..cmake import SingleTargetOptions
     from ..environment import Environment
     from ..interpreter import Interpreter, kwargs
-    from ..interpreterbase import TYPE_kwargs, TYPE_var
+    from ..interpreterbase import TYPE_kwargs, TYPE_var, InterpreterObject
 
     class WriteBasicPackageVersionFile(TypedDict):
 
@@ -126,9 +126,9 @@ class CMakeSubproject(ModuleObject):
         return res
 
     @noKwargs
-    @stringArgs
-    def get_variable(self, state: ModuleState, args: T.List[str], kwargs: TYPE_kwargs) -> TYPE_var:
-        return self.subp.get_variable_method(args, kwargs)
+    @typed_pos_args('cmake.subproject.get_variable', str, optargs=[str])
+    def get_variable(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
+        return self.subp.get_variable(args, kwargs)
 
     @FeatureNewKwargs('dependency', '0.56.0', ['include_type'])
     @permittedKwargs({'include_type'})
