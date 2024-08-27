@@ -16,7 +16,6 @@ from ..interpreter import SubprojectHolder
 from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, NoneType, in_set_validator
 from ..interpreterbase import (
     FeatureNew,
-    FeatureNewKwargs,
 
     permittedKwargs,
     noPosargs,
@@ -89,7 +88,6 @@ macro(set_and_check _var _file)
     message(FATAL_ERROR "File or directory ${_file} referenced by variable ${_var} does not exist !")
   endif()
 endmacro()
-
 ####################################################################################
 '''
 
@@ -125,9 +123,17 @@ class CMakeSubproject(ModuleObject):
     def get_variable(self, state: ModuleState, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         return self.subp.get_variable(args, kwargs)
 
-    @FeatureNewKwargs('dependency', '0.56.0', ['include_type'])
-    @permittedKwargs({'include_type'})
     @typed_pos_args('cmake.subproject.dependency', str)
+    @typed_kwargs(
+        'cmake.subproject.dependency',
+        KwargInfo(
+            'include_type',
+            str,
+            default='preserve',
+            since='0.56.0',
+            validator=in_set_validator({'preserve', 'system', 'non-system'})
+        ),
+    )
     def dependency(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, str]) -> dependencies.Dependency:
         info = self._args_to_info(args[0])
         if info['func'] == 'executable':
@@ -136,9 +142,8 @@ class CMakeSubproject(ModuleObject):
             raise InvalidArguments(f'{args[0]} does not support the dependency() method. Use target() instead.')
         orig = self.get_variable(state, [info['dep']], {})
         assert isinstance(orig, dependencies.Dependency)
-        actual = orig.include_type
-        if 'include_type' in kwargs and kwargs['include_type'] != actual:
-            mlog.debug('Current include type is {}. Converting to requested {}'.format(actual, kwargs['include_type']))
+        if kwargs['include_type'] != 'preserve' and kwargs['include_type'] != orig.include_type:
+            mlog.debug('Current include type is {}. Converting to requested {}'.format(orig.include_type, kwargs['include_type']))
             return orig.generate_system_dependency(kwargs['include_type'])
         return orig
 
