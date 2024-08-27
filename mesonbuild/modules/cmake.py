@@ -109,11 +109,7 @@ class CMakeSubproject(ModuleObject):
                              'found': self.found_method,
                              })
 
-    def _args_to_info(self, args: T.List[str]) -> T.Dict[str, str]:
-        if len(args) != 1:
-            raise InterpreterException('Exactly one argument is required.')
-
-        tgt = args[0]
+    def _args_to_info(self, tgt: str) -> T.Dict[str, str]:
         res = self.cm_interpreter.target_info(tgt)
         if res is None:
             raise InterpreterException(f'The CMake target {tgt} does not exist\n' +
@@ -133,7 +129,7 @@ class CMakeSubproject(ModuleObject):
     @permittedKwargs({'include_type'})
     @typed_pos_args('cmake.subproject.dependency', str)
     def dependency(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, str]) -> dependencies.Dependency:
-        info = self._args_to_info(list(args))
+        info = self._args_to_info(args[0])
         if info['func'] == 'executable':
             raise InvalidArguments(f'{args[0]} is an executable and does not support the dependency() method. Use target() instead.')
         if info['dep'] is None:
@@ -149,19 +145,19 @@ class CMakeSubproject(ModuleObject):
     @noKwargs
     @typed_pos_args('cmake.subproject.include_directories', str)
     def include_directories(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> build.IncludeDirs:
-        info = self._args_to_info(list(args))
+        info = self._args_to_info(args[0])
         return self.get_variable(state, [info['inc']], kwargs)
 
     @noKwargs
     @typed_pos_args('cmake.subproject.target', str)
     def target(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> build.Target:
-        info = self._args_to_info(list(args))
+        info = self._args_to_info(args[0])
         return self.get_variable(state, [info['tgt']], kwargs)
 
     @noKwargs
     @typed_pos_args('cmake.subproject.target_type', str)
     def target_type(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> str:
-        info = self._args_to_info(list(args))
+        info = self._args_to_info(args[0])
         return info['func']
 
     @noPosargs
