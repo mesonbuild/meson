@@ -132,9 +132,9 @@ class CMakeSubproject(ModuleObject):
 
     @FeatureNewKwargs('dependency', '0.56.0', ['include_type'])
     @permittedKwargs({'include_type'})
-    @stringArgs
-    def dependency(self, state: ModuleState, args: T.List[str], kwargs: T.Dict[str, str]) -> dependencies.Dependency:
-        info = self._args_to_info(args)
+    @typed_pos_args('cmake.subproject.dependency', str)
+    def dependency(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, str]) -> dependencies.Dependency:
+        info = self._args_to_info(list(args))
         if info['func'] == 'executable':
             raise InvalidArguments(f'{args[0]} is an executable and does not support the dependency() method. Use target() instead.')
         if info['dep'] is None:
