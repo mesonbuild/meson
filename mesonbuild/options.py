@@ -51,6 +51,8 @@ if T.TYPE_CHECKING:
         default: str
         choices: T.List
 
+    OptionValueType: TypeAlias = T.Union[str, int, bool, T.List[str]]
+
 DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
@@ -665,9 +667,6 @@ class BuiltinOption(T.Generic[_T]):
 
         cmdline_name = self.argparse_name_to_arg(str(name))
         parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
-
-
-OptionValueType = T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
