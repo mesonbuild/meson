@@ -617,7 +617,9 @@ class BuiltinOption(T.Generic[_T, _U]):
         parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
 
 
-OptionValueType = T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]
+if T.TYPE_CHECKING:
+    from typing_extensions import TypeAlias
+    OptionValueType: TypeAlias = T.Union[str, int, bool, T.List[str]]
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
