@@ -27,6 +27,16 @@ from .mesonlib import (
 )
 from . import mlog
 
+if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
+    class ArgparseKWs(TypedDict, total=False):
+
+        action: str
+        dest: str
+        default: str
+        choices: T.List
+
 DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
@@ -566,7 +576,7 @@ class BuiltinOption(T.Generic[_T, _U]):
         return self.default
 
     def add_to_argparse(self, name: str, parser: argparse.ArgumentParser, help_suffix: str) -> None:
-        kwargs = OrderedDict()
+        kwargs: ArgparseKWs = {}
 
         c = self._argparse_choices()
         b = self._argparse_action()
