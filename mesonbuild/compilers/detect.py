@@ -241,16 +241,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             else:
                 return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker)
         if 'TASKING VX-toolset' in err:
-            if 'TriCore' in err:
-                return linkers.TaskingTricoreStaticLinker(linker)
-            if 'ARM' in err:
-                return linkers.TaskingARMStaticLinker(linker)
-            if '8051' in err:
-                return linkers.Tasking8051StaticLinker(linker)
-            if 'PCP' in err:
-                return linkers.TaskingPCPStaticLinker(linker)
-            else:
-                return linkers.TaskingMCSStaticLinker(linker)
+            return linkers.TaskingStaticLinker(linker)
         if p.returncode == 0:
             return linkers.ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
@@ -617,23 +608,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 ccache, compiler, compiler_version, for_machine, is_cross, info,
                 full_version=full_version, linker=linker)
         if 'TASKING VX-toolset' in err:
-            if 'TriCore' in err or 'AURIX Development Studio' in err:
-                cls = c.TaskingTricoreCCompiler
-                lnk = linkers.TaskingTricoreLinker
-            elif 'ARM' in err:
-                cls = c.TaskingArmCCompiler
-                lnk = linkers.TaskingARMLinker
-            elif '8051' in err:
-                cls = c.Tasking8051CCompiler
-                lnk = linkers.Tasking8051Linker
-            elif 'PCP' in err:
-                cls = c.TaskingPCPCCompiler
-                lnk = linkers.TaskingPCPLinker
-            elif 'MCS' in err:
-                cls = c.TaskingMCSCCompiler
-                lnk = linkers.TaskingMCSLinker
-            else:
-                raise EnvironmentException('Failed to detect linker for TASKING VX-toolset compiler. Please update your cross file(s).')
+            cls = c.TaskingCCompiler
+            lnk = linkers.TaskingLinker
 
             tasking_ver_match = re.search(r'v([0-9]+)\.([0-9]+)r([0-9]+) Build ([0-9]+)', err)
             assert tasking_ver_match is not None, 'for mypy'

@@ -832,7 +832,9 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
             args.append('-lang ' + std)
         return args
 
-class _TaskingCCompiler(TaskingCompiler, CCompiler):
+class TaskingCCompiler(TaskingCompiler, CCompiler):
+    id = 'tasking'
+
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
@@ -840,18 +842,3 @@ class _TaskingCCompiler(TaskingCompiler, CCompiler):
         CCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                            info, linker=linker, full_version=full_version)
         TaskingCompiler.__init__(self)
-
-class TaskingTricoreCCompiler(_TaskingCCompiler):
-    id = 'cctc'
-
-class TaskingArmCCompiler(_TaskingCCompiler):
-    id = 'ccarm'
-
-class Tasking8051CCompiler(_TaskingCCompiler):
-    id = 'cc51'
-
-class TaskingMCSCCompiler(_TaskingCCompiler):
-    id = 'ccmcs'
-
-class TaskingPCPCCompiler(_TaskingCCompiler):
-    id = 'ccpcp'

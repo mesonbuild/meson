@@ -49,11 +49,7 @@ These are return values of the `get_id` (Compiler family) and
 | armasm    | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) | |
 | mwasmarm        | Metrowerks Assembler for Embedded ARM | |
 | mwasmeppc       | Metrowerks Assembler for Embedded PowerPC | |
-| cctc            | TASKING VX-toolset for TriCore compiler     | |
-| ccarm           | TASKING VX-toolset for ARM compiler         | |
-| cc51            | TASKING VX-toolset for 8051 compiler        | |
-| ccmcs           | TASKING VX-toolset for MCS compiler         | |
-| ccpcp           | TASKING VX-toolset for PCP compiler         | |
+| tasking         | TASKING VX-toolset     | |
 
 ## Linker ids
 
@@ -85,11 +81,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | ccomp      | CompCert used as the linker driver          |
 | mwldarm    | The Metrowerks Linker with the ARM interface, used with mwccarm only |
 | mwldeppc   | The Metrowerks Linker with the PowerPC interface, used with mwcceppc only |
-| ltc        | TASKING VX-toolset for TriCore linker       |
-| lkarm      | TASKING VX-toolset for ARM linker           |
-| lk51       | TASKING VX-toolset for 8051 linker          |
-| lmsc       | TASKING VX-toolset for MCS linker           |
-| lpcp       | TASKING VX-toolset for PCP linker           |
+| tasking    | TASKING VX-toolset                          |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.

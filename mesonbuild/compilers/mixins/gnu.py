@@ -609,8 +609,8 @@ class GnuCompiler(GnuLikeCompiler):
         # error.
         return ['-Werror=attributes']
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
-        return ['-r', '-o', prelink_name] + obj_list
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        return [prelink_name], ['-r', '-o', prelink_name] + obj_list
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         if threads == 0:

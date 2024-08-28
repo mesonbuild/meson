@@ -734,8 +734,7 @@ class NinjaBackend(backends.Backend):
                 rules += [f"{rule}{ext}" for rule in [self.compiler_to_pch_rule_name(compiler)]
                           for ext in ['', '_RSP']]
                 # Add custom MIL link rules to get the files compiled by the TASKING compiler family to MIL files included in the database
-                key = OptionKey('b_tasking_mil_link')
-                if key in compiler.base_options:
+                if compiler.get_id() == 'tasking':
                     rule = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
                     rules.append(rule)
                     rules.append(f'{rule}_RSP')
@@ -1085,19 +1084,11 @@ class NinjaBackend(backends.Backend):
             # Skip the link stage for this special type of target
             return
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
-        # For prelinking and TASKING mil linking there needs to be an additional link target and the object list is modified
+
         if not isinstance(target, build.StaticLibrary):
             final_obj_list = obj_list
         elif target.prelink:
             final_obj_list = self.generate_prelink(target, obj_list)
-        elif 'c' in target.compilers:
-            key = OptionKey('b_tasking_mil_link')
-            if key not in target.get_options() or key not in target.compilers['c'].base_options:
-                final_obj_list = obj_list
-            elif target.get_option(key):
-                final_obj_list = self.generate_mil_link(target, obj_list)
-            else:
-                final_obj_list = obj_list
         else:
             final_obj_list = obj_list
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
@@ -2621,9 +2612,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             for langname, compiler in clist.items():
                 if compiler.get_id() == 'clang':
                     self.generate_llvm_ir_compile_rule(compiler)
-                if OptionKey('b_tasking_mil_link') in compiler.base_options:
+                if compiler.get_id() == 'tasking':
                     self.generate_tasking_mil_compile_rules(compiler)
-                    self.generate_tasking_mil_link_rules(compiler)
                 self.generate_compile_rule_for(langname, compiler)
                 self.generate_pch_rule_for(langname, compiler)
                 for mode in compiler.get_modes():
@@ -3063,12 +3053,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             raise AssertionError(f'BUG: broken generated source file handling for {src!r}')
         else:
             raise InvalidArguments(f'Invalid source type: {src!r}')
-        obj_basename = self.object_filename_from_source(target, src)
-        # If mil linking is enabled for the target, then compilation output has to be MIL files instead of object files
-        if compiler.get_language() == 'c':
-            key = OptionKey('b_tasking_mil_link')
-            if key in compiler.base_options and target.get_option(key) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
-                obj_basename = f'{os.path.splitext(obj_basename)[0]}.mil'
+        obj_basename = self.object_filename_from_source(target, compiler, src)
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         dep_file = compiler.depfile_for_object(rel_obj)
 
@@ -3092,9 +3077,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # If TASKING compiler family is used and MIL linking is enabled for the target,
         # then compilation rule name is a special one to output MIL files
         # instead of object files for .c files
-        key = OptionKey('b_tasking_mil_link')
-        if key in compiler.base_options and target.get_option(key) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
-            compiler_name = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
+        key = OptionKey('b_lto')
+        if compiler.get_id() == 'tasking':
+            if ((isinstance(target, build.StaticLibrary) and target.prelink) or target.get_option(key)) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
+                compiler_name = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
+            else:
+                compiler_name = self.compiler_to_rule_name(compiler)
         else:
             compiler_name = self.compiler_to_rule_name(compiler)
         extra_deps = []
@@ -3473,36 +3461,19 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         prelinker = target.get_prelinker()
         cmd = prelinker.exelist[:]
-        cmd += prelinker.get_prelink_args(prelink_name, obj_list)
+        obj_list, args = prelinker.get_prelink_args(prelink_name, obj_list)
+        cmd += args
+        if prelinker.get_prelink_append_compile_args():
+            compile_args = self._generate_single_compile_base_args(target, prelinker)
+            compile_args += self._generate_single_compile_target_args(target, prelinker)
+            compile_args = compile_args.compiler.compiler_args(compile_args)
+            cmd += compile_args.to_native()
 
         cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', f'Prelinking {prelink_name}')
         self.add_build(elem)
-        return [prelink_name]
-
-    def generate_mil_link(self, target: build.StaticLibrary, obj_list: T.List[str]) -> T.List[str]:
-        assert isinstance(target, build.StaticLibrary)
-
-        mil_linked_name = os.path.join(self.get_target_private_dir(target), target.name + '-mil_link.o')
-        mil_link_list = []
-        obj_file_list = []
-        for obj in obj_list:
-            if obj.endswith('.mil'):
-                mil_link_list.append(obj)
-            else:
-                obj_file_list.append(obj)
-        obj_file_list.append(mil_linked_name)
-        compiler = get_compiler_for_source(target.compilers.values(), mil_link_list[0][:-3] + '.c')
-        commands = self._generate_single_compile_base_args(target, compiler)
-        commands += self._generate_single_compile_target_args(target, compiler)
-        commands = commands.compiler.compiler_args(commands)
-
-        elem = NinjaBuildElement(self.all_outputs, [mil_linked_name], self.get_compiler_rule_name('tasking_mil_link', compiler.for_machine), mil_link_list)
-        elem.add_item('ARGS', commands)
-        self.add_build(elem)
-
-        return obj_file_list
+        return obj_list
 
     def generate_link(self, target: build.BuildTarget, outname, obj_list, linker: T.Union['Compiler', 'StaticLinker'], extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
@@ -3535,9 +3506,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                                      linker,
                                                      isinstance(target, build.SharedModule),
                                                      self.environment.get_build_dir())
-        # Add --mil-link if the option is enabled
-        if isinstance(target, build.Executable) and 'c' in target.compilers and OptionKey('b_tasking_mil_link') in target.get_options():
-            commands += target.compilers['c'].get_tasking_mil_link_args(target.get_option(OptionKey('b_tasking_mil_link')))
         # Add -nostdlib if needed; can't be overridden
         commands += self.get_no_stdlib_link_args(target, linker)
         # Add things like /NOLOGO; usually can't be overridden
@@ -3647,6 +3615,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                             for t in target.link_depends])
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
+        if linker.get_id() == 'tasking':
+            if len([x for x in dep_targets + custom_target_libraries if x.endswith('.ma')]) > 0 and not target.get_option(OptionKey('b_lto')):
+                raise MesonException(f'Tried to link the target named \'{target.name}\' with a MIL archive without LTO enabled! This causes the compiler to ignore the archive.')
 
         # Compiler args must be included in TI C28x linker commands.
         if linker.get_id() in {'c2000', 'c6000', 'ti'}:

@@ -527,6 +527,7 @@ class MetrowerksStaticLinkerEmbeddedPowerPC(MetrowerksStaticLinker):
     id = 'mwldeppc'
 
 class TaskingStaticLinker(StaticLinker):
+    id = 'tasking'
 
     def __init__(self, exelist: T.List[str]):
         super().__init__(exelist)
@@ -542,21 +543,6 @@ class TaskingStaticLinker(StaticLinker):
 
     def get_linker_always_args(self) -> T.List[str]:
         return ['-r']
-
-class TaskingTricoreStaticLinker(TaskingStaticLinker):
-    id = 'artc'
-
-class TaskingARMStaticLinker(TaskingStaticLinker):
-    id = 'ararm'
-
-class Tasking8051StaticLinker(TaskingStaticLinker):
-    id = 'ar51'
-
-class TaskingMCSStaticLinker(TaskingStaticLinker):
-    id = 'armcs'
-
-class TaskingPCPStaticLinker(TaskingStaticLinker):
-    id = 'arpcp'
 
 def prepare_rpaths(raw_rpaths: T.Tuple[str, ...], build_dir: str, from_dir: str) -> T.List[str]:
     # The rpaths we write must be relative if they point to the build dir,
@@ -1697,6 +1683,7 @@ class MetrowerksLinkerEmbeddedPowerPC(MetrowerksLinker):
     id = 'mwldeppc'
 
 class TaskingLinker(DynamicLinker):
+    id = 'tasking'
 
     _OPTIMIZATION_ARGS: T.Dict[str, T.List[str]] = {
         'plain': [],
@@ -1731,6 +1718,9 @@ class TaskingLinker(DynamicLinker):
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-o', outputname]
 
+    def get_lto_args(self) -> T.List[str]:
+        return ['--mil-link']
+
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return RSPFileSyntax.TASKING
 
@@ -1744,18 +1734,3 @@ class TaskingLinker(DynamicLinker):
         for a in args:
             l.extend(self._apply_prefix('-Wl--whole-archive=' + a))
         return l
-
-class TaskingTricoreLinker(TaskingLinker):
-    id = 'ltc'
-
-class TaskingARMLinker(TaskingLinker):
-    id = 'lkarm'
-
-class Tasking8051Linker(TaskingLinker):
-    id = 'lk51'
-
-class TaskingMCSLinker(TaskingLinker):
-    id = 'lmsc'
-
-class TaskingPCPLinker(TaskingLinker):
-    id = 'lpcp'

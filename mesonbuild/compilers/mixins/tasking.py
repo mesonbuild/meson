@@ -56,7 +56,7 @@ class TaskingCompiler(Compiler):
 
         self.base_options = {
             OptionKey(o) for o in [
-                'b_tasking_mil_link',
+                'b_lto',
                 'b_staticpic',
                 'b_ndebug'
             ]
@@ -112,15 +112,27 @@ class TaskingCompiler(Compiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        mil_link_list = []
+        obj_file_list = []
+        for obj in obj_list:
+            if obj.endswith('.mil'):
+                mil_link_list.append(obj)
+            else:
+                obj_file_list.append(obj)
+        obj_file_list.append(prelink_name)
+
+        return obj_file_list, ['--mil-link', '-o', prelink_name, '-c'] + mil_link_list
+
+    def get_prelink_append_compile_args(self) -> bool:
+        return True
+
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
         return parameter_list
-
-    def get_tasking_mil_link_args(self, option_enabled: bool) -> T.List[str]:
-        return ['--mil-link'] if option_enabled else []
 
     def get_preprocess_only_args(self) -> T.List[str]:
         return ['-E']
