@@ -7,8 +7,10 @@ from __future__ import annotations
 import os
 import typing as T
 
-from ...mesonlib import EnvironmentException
+from ...mesonlib import EnvironmentException, File
 from ...options import OptionKey
+from ...build import BuildTarget, StaticLibrary
+from ...compilers import lang_suffixes
 
 if T.TYPE_CHECKING:
     from ...compilers.compilers import Compiler
@@ -56,7 +58,7 @@ class TaskingCompiler(Compiler):
 
         self.base_options = {
             OptionKey(o) for o in [
-                'b_tasking_mil_link',
+                'b_lto',
                 'b_staticpic',
                 'b_ndebug'
             ]
@@ -112,6 +114,21 @@ class TaskingCompiler(Compiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
+    def get_prelink_args(self, target: BuildTarget, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        mil_link_list = []
+        obj_file_list = []
+        for obj in obj_list:
+            if obj.endswith('.mil'):
+                mil_link_list.append(obj)
+            else:
+                obj_file_list.append(obj)
+        obj_file_list.append(prelink_name)
+
+        return obj_file_list, ['--mil-link', '-o', prelink_name, '-c'] + mil_link_list
+
+    def get_prelink_append_compile_args(self) -> bool:
+        return True
+
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
@@ -119,8 +136,18 @@ class TaskingCompiler(Compiler):
 
         return parameter_list
 
-    def get_tasking_mil_link_args(self, option_enabled: bool) -> T.List[str]:
-        return ['--mil-link'] if option_enabled else []
-
     def get_preprocess_only_args(self) -> T.List[str]:
         return ['-E']
+
+    # This is required for MIL linking, if b_lto is enabled on the target
+    def get_object_suffix_override(self, target: BuildTarget, source: File) -> T.Optional[str]:
+        if target.get_option(OptionKey('b_lto')) or (isinstance(target, StaticLibrary) and target.prelink):
+            if not source.rsplit('.', 1)[1] in lang_suffixes['c']:
+                if isinstance(target, StaticLibrary) and not target.prelink:
+                    raise EnvironmentException('Tried using MIL linking for a static library with a assembly file. This can only be done if the static library is prelinked or disable \'b_lto\'.')
+                else:
+                    return None
+            else:
+                return 'mil'
+        else:
+            return None
