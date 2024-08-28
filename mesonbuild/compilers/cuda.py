@@ -19,7 +19,7 @@ from .compilers import Compiler
 if T.TYPE_CHECKING:
     from .compilers import CompileCheckMode
     from ..build import BuildTarget
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
@@ -657,7 +657,7 @@ class CudaCompiler(Compiler):
                                ''),
         )
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject:T.Optional[str]=None) -> T.List[str]:
+    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
@@ -678,7 +678,7 @@ class CudaCompiler(Compiler):
             host_compiler_args = []
         return args + self._to_host_flags(host_compiler_args)
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject:T.Optional[str]=None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
         return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), _Phase.LINKER)
 
@@ -790,7 +790,7 @@ class CudaCompiler(Compiler):
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return self._to_host_flags(super().get_dependency_link_args(dep), Phase.LINKER)
 
-    def get_ccbin_args(self, target: 'BuildTarget', env: 'Environment', subproject:T.Optional[str]=None) -> T.List[str]:
+    def get_ccbin_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         key = self.form_compileropt_key('ccbindir')
         if target:
             ccbindir = env.coredata.get_option_for_target(target, key)

@@ -91,7 +91,7 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
                                'none'),
         )
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject:T.Optional[str]=None) -> T.List[str]:
+    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
         key = OptionKey('cpp_std', machine=self.for_machine)
         if target:

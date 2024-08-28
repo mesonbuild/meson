@@ -527,11 +527,11 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         pass
 
     def __post_init__(self, overrides: T.Optional[T.Dict[OptionKey, str]]) -> None:
-        if overrides:
-            ovr = {k.evolve(machine=self.for_machine) if k.lang else k: v
-                   for k, v in overrides.items()}
-        else:
-            ovr = {}
+        #if overrides:
+        #    ovr = {k.evolve(machine=self.for_machine) if k.lang else k: v
+        #           for k, v in overrides.items()}
+        #else:
+        #    ovr = {}
         # XXX: this should happen in the interpreter
         if has_path_sep(self.name):
             # Fix failing test 53 when this becomes an error.
@@ -648,7 +648,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
 
         self.raw_overrides = self.parse_overrides(kwargs)
 
-    def get_override(self, name:str) -> T.Optional[str]:
+    def get_override(self, name: str) -> T.Optional[str]:
         return self.raw_overrides.get(name, None)
 
     @staticmethod
@@ -1038,11 +1038,10 @@ class BuildTarget(Target):
                 obj_gen.append(src)
             else:
                 raise MesonException(f'Object extraction arguments must be strings, Files or targets (got {type(src).__name__}).')
-        eobjs =  ExtractedObjects(self, obj_src, obj_gen)
+        eobjs = ExtractedObjects(self, obj_src, obj_gen)
         if is_unity:
             eobjs.check_unity_compatible()
         return eobjs
-
 
     def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects:
         return ExtractedObjects(self, self.sources, self.generated, self.objects,

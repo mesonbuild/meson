@@ -40,7 +40,6 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter, Test
     from ..linkers.linkers import StaticLinker
     from ..mesonlib import FileMode, FileOrString
-    from ..wrap import WrapMode
 
     from typing_extensions import TypedDict
 
