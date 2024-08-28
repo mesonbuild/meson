@@ -6,6 +6,7 @@ from collections import OrderedDict
 from itertools import chain
 from functools import total_ordering
 import argparse
+import typing as T
 
 from .mesonlib import (
     HoldableObject,
@@ -23,11 +24,7 @@ from .mesonlib import (
     listify_array_value,
     MachineChoice,
 )
-
 from . import mlog
-
-import typing as T
-from typing import ItemsView
 
 DEFAULT_YIELDING = False
 
@@ -752,7 +749,7 @@ class OptionStore:
     def values(self):
         return self.d.values()
 
-    def items(self) -> ItemsView['OptionKey', 'UserOption[T.Any]']:
+    def items(self) -> T.ItemsView['OptionKey', 'UserOption[T.Any]']:
         return self.d.items()
 
     # FIXME: this method must be deleted and users moved to use "add_xxx_option"s instead.
