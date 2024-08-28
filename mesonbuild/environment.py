@@ -45,6 +45,7 @@ if T.TYPE_CHECKING:
 
     from .compilers import Compiler
     from .wrap.wrap import Resolver
+    from .build import BuildTarget
 
     CompilersDict = T.Dict[str, Compiler]
 
@@ -686,7 +687,7 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
 
-    def mfilestr2key(self, machine_file_string: str, section_subproject:str, machine: MachineChoice):
+    def mfilestr2key(self, machine_file_string: str, section_subproject: str, machine: MachineChoice):
         key = OptionKey.from_string(machine_file_string)
         assert key.machine == MachineChoice.HOST
         if key.subproject:

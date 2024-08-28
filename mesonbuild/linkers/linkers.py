@@ -14,7 +14,6 @@ from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
-    from ..coredata import KeyedOptionDictType
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..build import BuildTarget
@@ -70,7 +69,7 @@ class StaticLinker:
     def openmp_flags(self, env: Environment) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject:T.Optional[str]=None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
     @classmethod
@@ -176,10 +175,10 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     # XXX: is use_ldflags a compiler or a linker attribute?
 
-    def get_option_args(self, target: 'BuildTarget', env: 'Environment', subproject:T.Optional[str]=None) -> T.List[str]:
+    def get_option_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject:T.Optional[str]=None) -> T.List[str]:
+    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         return []
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
