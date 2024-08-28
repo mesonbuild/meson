@@ -1721,6 +1721,9 @@ class TaskingLinker(DynamicLinker):
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-o', outputname]
 
+    def get_lto_args(self) -> T.List[str]:
+        return ['--mil-link']
+
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return RSPFileSyntax.TASKING
 

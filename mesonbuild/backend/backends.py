@@ -25,6 +25,7 @@ from .. import programs
 from .. import mesonlib
 from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect
+from ..utils.universal import get_compiler_for_source
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet,
     ExecutableSerialisation, classify_unity_sources,
@@ -836,7 +837,7 @@ class Backend:
             fname = fname.replace(ch, '_')
         return hashed + fname
 
-    def object_filename_from_source(self, target: build.BuildTarget, source: 'FileOrString', targetdir: T.Optional[str] = None) -> str:
+    def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler, source: 'FileOrString', targetdir: T.Optional[str] = None) -> str:
         assert isinstance(source, mesonlib.File)
         if isinstance(target, build.CompileTarget):
             return target.sources_map[source]
@@ -867,7 +868,10 @@ class Backend:
                 gen_source = os.path.relpath(os.path.join(build_dir, rel_src),
                                              os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         machine = self.environment.machines[target.for_machine]
-        ret = self.canonicalize_filename(gen_source) + '.' + machine.get_object_suffix()
+        object_suffix = machine.get_object_suffix()
+        object_suffix_override = compiler.get_object_suffix_override(target, source)
+        object_suffix = object_suffix if object_suffix_override is None else object_suffix_override
+        ret = self.canonicalize_filename(gen_source) + '.' + object_suffix
         if targetdir is not None:
             return os.path.join(targetdir, ret)
         return ret
@@ -924,7 +928,8 @@ class Backend:
                     sources.append(_src)
 
         for osrc in sources:
-            objname = self.object_filename_from_source(extobj.target, osrc, targetdir)
+            compiler = get_compiler_for_source(extobj.target.compilers.values(), osrc)
+            objname = self.object_filename_from_source(extobj.target, compiler, osrc, targetdir)
             objpath = os.path.join(proj_dir_to_build_root, objname)
             result.append(objpath)
 
