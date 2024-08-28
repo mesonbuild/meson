@@ -673,16 +673,14 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
 }
 
 class OptionStore:
-    def __init__(self):
+    def __init__(self) -> None:
         self.d: T.Dict['OptionKey', 'UserOption[T.Any]'] = {}
-        self.project_options = set()
-        self.all_languages = set()
-        self.module_options = set()
+        self.project_options: T.Set[OptionKey] = set()
+        self.module_options: T.Set[OptionKey] = set()
         from .compilers import all_languages
-        for lang in all_languages:
-            self.all_languages.add(lang)
+        self.all_languages = set(all_languages)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.d)
 
     def ensure_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
@@ -696,29 +694,29 @@ class OptionStore:
     def get_value(self, key: T.Union[OptionKey, str]) -> 'T.Any':
         return self.get_value_object(key).value
 
-    def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         if '.' in key.name:
             raise MesonException(f'Internal error: non-module option has a period in its name {key.name}.')
         self.add_system_option_internal(key, valobj)
 
-    def add_system_option_internal(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_system_option_internal(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         assert isinstance(valobj, UserOption)
         self.d[key] = valobj
 
-    def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         if not key.name.startswith(language + '_'):
             raise MesonException(f'Internal error: all compiler option names must start with language prefix. ({key.name} vs {language}_)')
         self.add_system_option(key, valobj)
 
-    def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         self.d[key] = valobj
         self.project_options.add(key)
 
-    def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         if key.name.startswith('build.'):
             raise MesonException('FATAL internal error: somebody goofed option handling.')
@@ -732,38 +730,38 @@ class OptionStore:
         return self.d[key].set_value(new_value)
 
     # FIXME, this should be removed.or renamed to "change_type_of_existing_object" or something like that
-    def set_value_object(self, key: T.Union[OptionKey, str], new_object: 'UserOption[T.Any]') -> bool:
+    def set_value_object(self, key: T.Union[OptionKey, str], new_object: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         self.d[key] = new_object
 
-    def remove(self, key):
+    def remove(self, key: OptionKey) -> None:
         del self.d[key]
 
-    def __contains__(self, key):
+    def __contains__(self, key: OptionKey) -> bool:
         key = self.ensure_key(key)
         return key in self.d
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.d)
 
-    def keys(self):
+    def keys(self) -> T.KeysView[OptionKey]:
         return self.d.keys()
 
-    def values(self):
+    def values(self) -> T.ValuesView[UserOption[T.Any]]:
         return self.d.values()
 
     def items(self) -> T.ItemsView['OptionKey', 'UserOption[T.Any]']:
         return self.d.items()
 
     # FIXME: this method must be deleted and users moved to use "add_xxx_option"s instead.
-    def update(self, *args, **kwargs):
-        return self.d.update(*args, **kwargs)
+    def update(self, **kwargs: UserOption[T.Any]) -> None:
+        self.d.update(**kwargs)
 
-    def setdefault(self, k, o):
+    def setdefault(self, k: OptionKey, o: UserOption[T.Any]) -> UserOption[T.Any]:
         return self.d.setdefault(k, o)
 
-    def get(self, *args, **kwargs) -> UserOption:
-        return self.d.get(*args, **kwargs)
+    def get(self, o: OptionKey, default: T.Optional[UserOption[T.Any]] = None) -> T.Optional[UserOption[T.Any]]:
+        return self.d.get(o, default)
 
     def is_project_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a project option."""
