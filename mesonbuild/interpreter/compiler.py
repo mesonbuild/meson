@@ -11,7 +11,6 @@ import itertools
 import typing as T
 
 from .. import build
-from .. import coredata
 from .. import dependencies
 from .. import options
 from .. import mesonlib

@@ -290,9 +290,9 @@ def get_option_value_for_target(env: 'Environment', target: 'BuildTarget', opt: 
     return v
 
 
-def get_target_option_value(target: 'BuildTarget', 
-                            env: 'Environment', 
-                            opt: T.Union[OptionKey, str], 
+def get_target_option_value(target: 'BuildTarget',
+                            env: 'Environment',
+                            opt: T.Union[OptionKey, str],
                             fallback: '_T') -> '_T':
     """Get the value of an option, or the fallback value."""
     try:

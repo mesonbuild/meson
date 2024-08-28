@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import copy
 import functools
 import os.path
 import typing as T
