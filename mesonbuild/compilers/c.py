@@ -124,7 +124,7 @@ class ClangCCompiler(ClangCStds, ClangCompiler, CCompiler):
         opts = super().get_options()
         if self.info.is_windows() or self.info.is_cygwin():
             key = self.form_compileropt_key('winlibs')
-            opts[key] = options.UserArrayOption(
+            opts[key] = options.UserStringArrayOption(
                 self.make_option_name(key),
                 'Standard Windows libraries to link against',
                 gnu_winlibs)
@@ -257,7 +257,7 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
         opts = super().get_options()
         if self.info.is_windows() or self.info.is_cygwin():
             key = self.form_compileropt_key('winlibs')
-            opts[key] = options.UserArrayOption(
+            opts[key] = options.UserStringArrayOption(
                 self.make_option_name(key),
                 'Standard Windows libraries to link against',
                 gnu_winlibs)
@@ -406,7 +406,7 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
     def get_options(self) -> MutableKeyedOptionDictType:
         opts = super().get_options()
         key = self.form_compileropt_key('winlibs')
-        opts[key] = options.UserArrayOption(
+        opts[key] = options.UserStringArrayOption(
             self.make_option_name(key),
             'Standard Windows libraries to link against',
             msvc_winlibs)
@@ -733,9 +733,7 @@ class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        c_stds = ['c99']
-        key = self.form_compileropt_key('std')
-        opts[key].choices = ['none'] + c_stds
+        self._update_language_stds(opts, ['c99'])
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -763,9 +761,7 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        c_stds = ['c99']
-        key = self.form_compileropt_key('std')
-        opts[key].choices = ['none'] + c_stds
+        self._update_language_stds(opts, ['c99'])
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:

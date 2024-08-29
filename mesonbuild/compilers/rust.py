@@ -227,7 +227,7 @@ class RustCompiler(Compiler):
             self.make_option_name(key),
             'Rust edition to use',
             'none',
-            ['none', '2015', '2018', '2021', '2024'])
+            choices=['none', '2015', '2018', '2021', '2024'])
 
         return opts
 
