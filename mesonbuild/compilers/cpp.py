@@ -242,8 +242,8 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         opts[key] = options.UserComboOption(
             self.make_option_name(key),
             'C++ exception handling type.',
-            ['none', 'default', 'a', 's', 'sc'],
-            'default')
+            'default',
+            ['none', 'default', 'a', 's', 'sc'])
 
         key = self.form_compileropt_key('rtti')
         opts[key] = options.UserBooleanOption(
@@ -398,8 +398,8 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         opts[key] = options.UserComboOption(
             self.make_option_name(key),
             'C++ exception handling type.',
-            ['none', 'default', 'a', 's', 'sc'],
-            'default')
+            'default',
+            ['none', 'default', 'a', 's', 'sc'])
 
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
@@ -448,8 +448,8 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
         opts[key] = options.UserComboOption(
             self.make_option_name(key),
             'C++ exception handling type.',
-            ['none', 'default', 'a', 's', 'sc'],
-            'default')
+            'default',
+            ['none', 'default', 'a', 's', 'sc'])
 
         key = self.form_compileropt_key('rtti')
         opts[key] = options.UserBooleanOption(
@@ -577,8 +577,8 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         opts[key] = options.UserComboOption(
             self.make_option_name(key),
             'C++ exception handling type.',
-            ['none', 'default', 'a', 's', 'sc'],
-            'default')
+            'default',
+            ['none', 'default', 'a', 's', 'sc'])
 
         key = self.form_compileropt_key('debugstl')
         opts[key] = options.UserBooleanOption(
@@ -660,8 +660,8 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
         opts[key] = options.UserComboOption(
             self.make_option_name(key),
             'C++ exception handling type.',
-            ['none', 'default', 'a', 's', 'sc'],
-            'default')
+            'default',
+            ['none', 'default', 'a', 's', 'sc'])
 
         key = self.form_compileropt_key('rtti')
         opts[key] = options.UserBooleanOption(
@@ -753,8 +753,8 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         opts[key] = options.UserComboOption(
             self.make_option_name(key),
             'C++ exception handling type.',
-            ['none', 'default', 'a', 's', 'sc'],
-            'default')
+            'default',
+            ['none', 'default', 'a', 's', 'sc'])
 
         key = self.form_compileropt_key('rtti')
         opts[key] = options.UserBooleanOption(

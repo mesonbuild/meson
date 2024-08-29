@@ -226,8 +226,8 @@ class RustCompiler(Compiler):
         opts[key] = options.UserComboOption(
             self.make_option_name(key),
             'Rust edition to use',
-            ['none', '2015', '2018', '2021', '2024'],
-            'none')
+            'none',
+            ['none', '2015', '2018', '2021', '2024'])
 
         return opts
 
