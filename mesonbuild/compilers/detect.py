@@ -616,7 +616,8 @@ def detect_cpp_compiler(env: 'Environment', for_machine: MachineChoice) -> Compi
     return _detect_c_or_cpp_compiler(env, 'cpp', for_machine)
 
 def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from .cuda import CudaCompiler
+    from .cuda import CudaCompiler, Phase
+    from ..options import OptionKey
     from ..linkers.linkers import CudaLinker
     popen_exceptions = {}
     is_cross = env.is_cross_build(for_machine)
@@ -648,6 +649,12 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         cpp_compiler = detect_cpp_compiler(env, for_machine)
         cls = CudaCompiler
         env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+        key = OptionKey('cuda_link_args', machine=for_machine)
+        if key in env.options:
+            # To fix LDFLAGS issue
+            val = env.options[key]
+            assert isinstance(val, list)
+            env.coredata.set_options({key: cls.to_host_flags_base(val, Phase.LINKER)})
         linker = CudaLinker(compiler, for_machine, CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
         return cls(ccache, compiler, version, for_machine, is_cross, host_compiler=cpp_compiler, info=info, linker=linker)
     raise EnvironmentException(f'Could not find suitable CUDA compiler: "{"; ".join([" ".join(c) for c in compilers])}"')
