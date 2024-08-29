@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2024 Contributors to the The Meson project
-# Copyright © 2019-2024 Intel Corporation
+# Copyright © 2019-2025 Intel Corporation
 
 from __future__ import annotations
 from collections import OrderedDict
@@ -264,6 +264,13 @@ class UserOption(T.Generic[_T], HoldableObject):
     def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
         assert isinstance(self.value, (str, int, bool, list))
         return self.value
+
+    def printable_choices(self) -> T.Optional[T.List[str]]:
+        if not self.choices:
+            return None
+        if isinstance(self.choices, str):
+            return [self.choices]
+        return [str(c) for c in self.choices]
 
     # Check that the input is a valid value and return the
     # "cleaned" or "native" version. For example the Boolean
