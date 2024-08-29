@@ -123,13 +123,11 @@ class ClangCCompiler(ClangCStds, ClangCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         if self.info.is_windows() or self.info.is_cygwin():
-            self.update_options(
-                opts,
-                self.create_option(options.UserArrayOption,
-                                   self.form_compileropt_key('winlibs'),
-                                   'Standard Windows libs to link against',
-                                   gnu_winlibs),
-            )
+            key = self.form_compileropt_key('winlibs')
+            opts[key] = options.UserArrayOption(
+                self.make_option_name(key),
+                'Standard Windows libraries to link against',
+                gnu_winlibs)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -258,13 +256,11 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         if self.info.is_windows() or self.info.is_cygwin():
-            self.update_options(
-                opts,
-                self.create_option(options.UserArrayOption,
-                                   self.form_compileropt_key('winlibs'),
-                                   'Standard Windows libs to link against',
-                                   gnu_winlibs),
-            )
+            key = self.form_compileropt_key('winlibs')
+            opts[key] = options.UserArrayOption(
+                self.make_option_name(key),
+                'Standard Windows libraries to link against',
+                gnu_winlibs)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -408,15 +404,13 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
     """Shared methods that apply to MSVC-like C compilers."""
 
     def get_options(self) -> MutableKeyedOptionDictType:
-        return self.update_options(
-            super().get_options(),
-            self.create_option(
-                options.UserArrayOption,
-                self.form_compileropt_key('winlibs'),
-                'Standard Windows libs to link against',
-                msvc_winlibs,
-            ),
-        )
+        opts = super().get_options()
+        key = self.form_compileropt_key('winlibs')
+        opts[key] = options.UserArrayOption(
+            self.make_option_name(key),
+            'Standard Windows libraries to link against',
+            msvc_winlibs)
+        return opts
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         # need a TypeDict to make this work

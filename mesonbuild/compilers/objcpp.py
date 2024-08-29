@@ -35,6 +35,16 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
                           linker=linker)
         CLikeCompiler.__init__(self)
 
+    def form_compileropt_key(self, basename: str) -> OptionKey:
+        if basename == 'std':
+            return OptionKey('cpp_std', machine=self.for_machine)
+        return super().form_compileropt_key(basename)
+
+    def make_option_name(self, key: OptionKey) -> str:
+        if key.name == 'std':
+            return 'cpp_std'
+        return super().make_option_name(key)
+
     @staticmethod
     def get_display_language() -> str:
         return 'Objective-C++'
@@ -42,11 +52,6 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = '#import<stdio.h>\nclass MyClass;int main(void) { return 0; }\n'
         return self._sanity_check_impl(work_dir, environment, 'sanitycheckobjcpp.mm', code)
-
-    def form_compileropt_key(self, basename: str) -> OptionKey:
-        if basename == 'std':
-            return OptionKey(f'cpp_{basename}', machine=self.for_machine)
-        return super().form_compileropt_key(basename)
 
     def get_options(self) -> coredata.MutableKeyedOptionDictType:
         opts = super().get_options()

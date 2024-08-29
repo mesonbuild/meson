@@ -588,8 +588,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return []
 
-    def create_option(self, option_type: T.Type[UserOptionType], option_key: OptionKey, *args: T.Any, **kwargs: T.Any) -> T.Tuple[OptionKey, UserOptionType]:
-        return option_key, option_type(f'{self.language}_{option_key.name}', *args, **kwargs)
+    def make_option_name(self, key: OptionKey) -> str:
+        return f'{self.language}_{key.name}'
 
     @staticmethod
     def update_options(options: MutableKeyedOptionDictType, *args: T.Tuple[OptionKey, UserOptionType]) -> MutableKeyedOptionDictType:

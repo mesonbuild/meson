@@ -237,30 +237,32 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        self.update_options(
-            opts,
-            self.create_option(options.UserComboOption,
-                               self.form_compileropt_key('eh'),
-                               'C++ exception handling type',
-                               ['none', 'default', 'a', 's', 'sc'],
-                               'default'),
-            self.create_option(options.UserBooleanOption,
-                               self.form_compileropt_key('rtti'),
-                               'Enable RTTI',
-                               True),
-            self.create_option(options.UserBooleanOption,
-                               self.form_compileropt_key('debugstl'),
-                               'STL debug mode',
-                               False),
-        )
+
+        key = self.form_compileropt_key('eh')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'C++ exception handling type.',
+            ['none', 'default', 'a', 's', 'sc'],
+            'default')
+
+        key = self.form_compileropt_key('rtti')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'Enable RTTI',
+            True)
+
+        key = self.form_compileropt_key('debugstl')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'STL debug mode',
+            False)
+
         if self.info.is_windows() or self.info.is_cygwin():
-            self.update_options(
-                opts,
-                self.create_option(options.UserArrayOption,
-                                   self.form_compileropt_key('winlibs'),
-                                   'Standard Windows libs to link against',
-                                   gnu_winlibs),
-            )
+            key = self.form_compileropt_key('winlibs')
+            opts[key] = options.UserArrayOption(
+                self.make_option_name(key),
+                'Standard Win libraries to link against',
+                gnu_winlibs)
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -391,15 +393,15 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
+
+        key = self.form_compileropt_key('eh')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'C++ exception handling type.',
+            ['none', 'default', 'a', 's', 'sc'],
+            'default')
+
         key = self.form_compileropt_key('std')
-        self.update_options(
-            opts,
-            self.create_option(options.UserComboOption,
-                               key.evolve('eh'),
-                               'C++ exception handling type',
-                               ['none', 'default', 'a', 's', 'sc'],
-                               'default'),
-        )
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c++98', 'c++03', 'c++11', 'c++14', 'c++17'], gnu=True)
@@ -440,32 +442,34 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
                                          self.supported_warn_args(gnu_cpp_warning_args))}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        key = self.form_compileropt_key('std')
         opts = super().get_options()
-        self.update_options(
-            opts,
-            self.create_option(options.UserComboOption,
-                               self.form_compileropt_key('eh'),
-                               'C++ exception handling type',
-                               ['none', 'default', 'a', 's', 'sc'],
-                               'default'),
-            self.create_option(options.UserBooleanOption,
-                               self.form_compileropt_key('rtti'),
-                               'Enable RTTI',
-                               True),
-            self.create_option(options.UserBooleanOption,
-                               self.form_compileropt_key('debugstl'),
-                               'STL debug mode',
-                               False),
-        )
+
+        key = self.form_compileropt_key('eh')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'C++ exception handling type.',
+            ['none', 'default', 'a', 's', 'sc'],
+            'default')
+
+        key = self.form_compileropt_key('rtti')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'Enable RTTI',
+            True)
+
+        key = self.form_compileropt_key('debugstl')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'STL debug mode',
+            False)
+
         if self.info.is_windows() or self.info.is_cygwin():
-            self.update_options(
-                opts,
-                self.create_option(options.UserArrayOption,
-                                   key.evolve('cpp_winlibs'),
-                                   'Standard Windows libs to link against',
-                                   gnu_winlibs),
-            )
+            key = key.evolve(name='cpp_winlibs')
+            opts[key] = options.UserArrayOption(
+                self.make_option_name(key),
+                'Standard Win libraries to link against',
+                gnu_winlibs)
+
         return opts
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
@@ -569,6 +573,19 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
 
+        key = self.form_compileropt_key('eh')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'C++ exception handling type.',
+            ['none', 'default', 'a', 's', 'sc'],
+            'default')
+
+        key = self.form_compileropt_key('debugstl')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'STL debug mode',
+            False)
+
         cpp_stds = ['c++98']
         if version_compare(self.version, '>=1.20.00'):
             cpp_stds += ['c++03', 'c++0x', 'c++11']
@@ -586,18 +603,6 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
             cpp_stds += ['c++20']
 
         key = self.form_compileropt_key('std')
-        self.update_options(
-            opts,
-            self.create_option(options.UserComboOption,
-                               self.form_compileropt_key('eh'),
-                               'C++ exception handling type',
-                               ['none', 'default', 'a', 's', 'sc'],
-                               'default'),
-            self.create_option(options.UserBooleanOption,
-                               self.form_compileropt_key('debugstl'),
-                               'STL debug mode',
-                               False),
-        )
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(cpp_stds, gnu=True)
@@ -650,6 +655,26 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
+
+        key = self.form_compileropt_key('eh')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'C++ exception handling type.',
+            ['none', 'default', 'a', 's', 'sc'],
+            'default')
+
+        key = self.form_compileropt_key('rtti')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'Enable RTTI',
+            True)
+
+        key = self.form_compileropt_key('debugstl')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'STL debug mode',
+            False)
+
         # Every Unix compiler under the sun seems to accept -std=c++03,
         # with the exception of ICC. Instead of preventing the user from
         # globally requesting C++03, we transparently remap it to C++98
@@ -666,24 +691,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             c_stds += ['c++2a']
             g_stds += ['gnu++2a']
 
-        key = self.form_compileropt_key('std')
-        self.update_options(
-            opts,
-            self.create_option(options.UserComboOption,
-                               self.form_compileropt_key('eh'),
-                               'C++ exception handling type',
-                               ['none', 'default', 'a', 's', 'sc'],
-                               'default'),
-            self.create_option(options.UserBooleanOption,
-                               self.form_compileropt_key('rtti'),
-                               'Enable RTTI',
-                               True),
-            self.create_option(options.UserBooleanOption,
-                               self.form_compileropt_key('debugstl'),
-                               'STL debug mode',
-                               False),
-        )
-        std_opt = opts[key]
+        std_opt = opts[self.form_compileropt_key('std')]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(c_stds + g_stds)
         return opts
@@ -739,24 +747,28 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         return T.cast('T.List[str]', options.get_value(key)[:])
 
     def _get_options_impl(self, opts: 'MutableKeyedOptionDictType', cpp_stds: T.List[str]) -> 'MutableKeyedOptionDictType':
-        key = self.form_compileropt_key('std')
-        self.update_options(
-            opts,
-            self.create_option(options.UserComboOption,
-                               self.form_compileropt_key('eh'),
-                               'C++ exception handling type',
-                               ['none', 'default', 'a', 's', 'sc'],
-                               'default'),
-            self.create_option(options.UserBooleanOption,
-                               self.form_compileropt_key('rtti'),
-                               'Enable RTTI',
-                               True),
-            self.create_option(options.UserArrayOption,
-                               self.form_compileropt_key('winlibs'),
-                               'Standard Windows libs to link against',
-                               msvc_winlibs),
-        )
-        std_opt = opts[key]
+        opts = super().get_options()
+
+        key = self.form_compileropt_key('eh')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'C++ exception handling type.',
+            ['none', 'default', 'a', 's', 'sc'],
+            'default')
+
+        key = self.form_compileropt_key('rtti')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'Enable RTTI',
+            True)
+
+        key = self.form_compileropt_key('winlibs')
+        opts[key] = options.UserArrayOption(
+            self.make_option_name(key),
+            'Standard Win libraries to link against',
+            msvc_winlibs)
+
+        std_opt = opts[self.form_compileropt_key('std')]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(cpp_stds)
         return opts
