@@ -694,7 +694,7 @@ class Environment:
                     key = OptionKey.from_string(k)
                     # If we're in the cross file, and there is a `build.foo` warn about that. Later we'll remove it.
                     if machine is MachineChoice.HOST and key.machine is not machine:
-                        mlog.deprecation('Setting build machine options in cross files, please use a native file instead, this will be removed in meson 0.60', once=True)
+                        mlog.deprecation('Setting build machine options in cross files, please use a native file instead, this will be removed in meson 2.0', once=True)
                     if key.subproject:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
                     self.options[key.evolve(subproject=subproject, machine=machine)] = v

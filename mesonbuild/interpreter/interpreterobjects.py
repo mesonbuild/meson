@@ -938,7 +938,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
                 extract_all_objects called without setting recursive
                 keyword argument. Meson currently defaults to
                 non-recursive to maintain backward compatibility but
-                the default will be changed in the future.
+                the default will be changed in meson 2.0.
             ''')
         )
     )

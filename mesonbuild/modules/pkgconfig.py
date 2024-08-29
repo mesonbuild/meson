@@ -127,7 +127,7 @@ class DependenciesHelper:
                          'to generate() method instead of first positional '
                          'argument.', 'Adding', mlog.bold(data.display_name),
                          'to "Requires" field, but this is a deprecated '
-                         'behaviour that will change in a future version '
+                         'behaviour that will change in version 2.0 '
                          'of Meson. Please report the issue if this '
                          'warning cannot be avoided in your case.',
                          location=data.location)

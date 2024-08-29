@@ -256,7 +256,7 @@ permitted_dependency_kwargs = {
 
 implicit_check_false_warning = """You should add the boolean check kwarg to the run_command call.
          It currently defaults to false,
-         but it will default to true in future releases of meson.
+         but it will default to true in meson 2.0.
          See also: https://github.com/mesonbuild/meson/issues/9300"""
 class Interpreter(InterpreterBase, HoldableObject):
 
@@ -2300,7 +2300,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if kwargs['install_dir'] is not None:
                 raise InterpreterException('install_headers: cannot specify both "install_dir" and "subdir". Use only "install_dir".')
             if os.path.isabs(install_subdir):
-                mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
+                mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in meson 2.0.')
         else:
             install_subdir = ''
 
@@ -3157,7 +3157,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 if not strict and s.startswith(self.environment.get_build_dir()):
                     results.append(s)
                     mlog.warning(f'Source item {s!r} cannot be converted to File object, because it is a generated file. '
-                                 'This will become a hard error in the future.', location=self.current_node)
+                                 'This will become a hard error in meson 2.0.', location=self.current_node)
                 else:
                     self.validate_within_subproject(self.subdir, s)
                     results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))

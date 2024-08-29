@@ -362,7 +362,7 @@ class ArgumentNode(BaseNode):
     def set_kwarg(self, name: IdNode, value: BaseNode) -> None:
         if any((isinstance(x, IdNode) and name.value == x.value) for x in self.kwargs):
             mlog.warning(f'Keyword argument "{name.value}" defined multiple times.', location=self)
-            mlog.warning('This will be an error in future Meson releases.')
+            mlog.warning('This will be an error in Meson 2.0.')
         self.kwargs[name] = value
 
     def set_kwarg_no_check(self, name: BaseNode, value: BaseNode) -> None:

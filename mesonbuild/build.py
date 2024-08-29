@@ -1702,7 +1702,7 @@ class BuildTarget(Target):
                 else:
                     mlog.deprecation(f'target {self.name} links against shared module {link_target.name}, which is incorrect.'
                                      '\n             '
-                                     f'This will be an error in the future, so please use shared_library() for {link_target.name} instead.'
+                                     f'This will be an error in meson 2.0, so please use shared_library() for {link_target.name} instead.'
                                      '\n             '
                                      f'If shared_module() was used for {link_target.name} because it has references to undefined symbols,'
                                      '\n             '

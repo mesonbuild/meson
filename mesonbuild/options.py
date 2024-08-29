@@ -409,7 +409,7 @@ class UserArrayOption(UserOption[T.List[str]]):
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option is deprecated. ' \
-                  'This will become a hard error in the future.'
+                  'This will become a hard error in meson 2.0.'
             mlog.deprecation(msg)
         for i in newvalue:
             if not isinstance(i, str):
@@ -500,7 +500,7 @@ class UserStdOption(UserComboOption):
                 mlog.deprecation(
                     f'None of the values {candidates} are supported by the {self.lang} compiler.\n' +
                     f'However, the deprecated {std} std currently falls back to {newstd}.\n' +
-                    'This will be an error in the future.\n' +
+                    'This will be an error in meson 2.0.\n' +
                     'If the project supports both GNU and MSVC compilers, a value such as\n' +
                     '"c_std=gnu11,c11" specifies that GNU is preferred but it can safely fallback to plain c11.')
                 return newstd
