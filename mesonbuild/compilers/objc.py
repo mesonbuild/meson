@@ -99,6 +99,16 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
+    def form_compileropt_key(self, basename: str) -> OptionKey:
+        if basename == 'std':
+            return OptionKey('c_std', machine=self.for_machine)
+        return super().form_compileropt_key(basename)
+
+    def make_option_name(self, key: OptionKey) -> str:
+        if key.name == 'std':
+            return 'c_std'
+        return super().make_option_name(key)
+
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
         args = []
         std = options.get_value(self.form_compileropt_key('std'))
