@@ -2298,7 +2298,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if kwargs['install_dir'] is not None:
                 raise InterpreterException('install_headers: cannot specify both "install_dir" and "subdir". Use only "install_dir".')
             if os.path.isabs(install_subdir):
-                mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
+                mlog.deprecation('Subdir keyword must not be an absolute path.', error_since='1.6.99')
         else:
             install_subdir = ''
 
