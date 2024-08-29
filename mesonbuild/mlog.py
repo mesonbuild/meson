@@ -346,7 +346,22 @@ class _Logger:
                     once: bool = False, fatal: bool = True,
                     location: T.Optional[BaseNode] = None,
                     nested: bool = True, sep: T.Optional[str] = None,
-                    end: T.Optional[str] = None) -> None:
+                    end: T.Optional[str] = None,
+                    error_since: T.Optional[str] = None) -> None:
+        if error_since is not None:
+            from .coredata import version
+            from .mesonlib import version_compare
+            from .mesonlib import MesonException
+            cmpstr = '>=' + error_since
+            if version_compare(version, cmpstr):
+                self._log_error(_Severity.ERROR, *args, once=once, fatal=True, location=location,
+                                nested=nested, sep=sep, end=end, is_error=True)
+                raise MesonException(f'\n  This deprecated functionality became an error in Meson {version}.')
+
+            else:
+                args = args + (f'\n  This will become a hard error in Meson version {version}.',)
+                self._log_error(_Severity.DEPRECATION, *args, once=once, fatal=fatal, location=location,
+                                nested=nested, sep=sep, end=end, is_error=True)
         return self._log_error(_Severity.DEPRECATION, *args, once=once, fatal=fatal, location=location,
                                nested=nested, sep=sep, end=end, is_error=True)
 
