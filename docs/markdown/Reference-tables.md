@@ -155,7 +155,7 @@ These are provided by the `.system()` method call.
 | Value               | Comment                         |
 | -----               | -------                         |
 | android             | By convention only, subject to change |
-| cygwin              | The Cygwin environment for Windows |
+| cygwin              | Cygwin or MSYS2 environment on Windows |
 | darwin              | Either OSX or iOS |
 | dragonfly           | DragonFly BSD |
 | emscripten          | Emscripten's JavaScript environment |
@@ -165,7 +165,7 @@ These are provided by the `.system()` method call.
 | linux               | |
 | netbsd              | |
 | openbsd             | |
-| windows             | Any version of Windows |
+| windows             | Native Windows (not Cygwin or MSYS2) |
 | sunos               | illumos and Solaris |
 
 Any string not listed above is not guaranteed to remain stable in
