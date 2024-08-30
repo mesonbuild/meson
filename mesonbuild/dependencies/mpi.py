@@ -9,6 +9,7 @@ import os
 import re
 
 from ..environment import detect_cpu_family
+from ..mesonlib import Popen_safe
 from .base import DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -40,41 +41,43 @@ def mpi_factory(env: 'Environment',
     if DependencyMethods.CONFIG_TOOL in methods:
         nwargs = kwargs.copy()
 
+        # We try the environment variables for the tools first, but then
+        # fall back to the hardcoded names
+
+        if language == 'c':
+            env_vars = ['MPICC']
+        elif language == 'cpp':
+            env_vars = ['MPICXX']
+        elif language == 'fortran':
+            env_vars = ['MPIFC', 'MPIF90', 'MPIF77']
+
+        tool_names = [os.environ.get(env_name) for env_name in env_vars]
+        tool_names = [t for t in tool_names if t]  # remove empty environment variables
+
         if compiler_is_intel:
             if env.machines[for_machine].is_windows():
-                nwargs['version_arg'] = '-v'
                 nwargs['returncode_value'] = 3
 
             if language == 'c':
-                tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
+                tool_names.append('mpiicc')
             elif language == 'cpp':
-                tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
+                tool_names.append('mpiicpc')
             elif language == 'fortran':
-                tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
+                tool_names.append('mpiifort')
 
-            cls: T.Type[ConfigToolDependency] = IntelMPIConfigToolDependency
-        else: # OpenMPI, which doesn't work with intel
-            #
-            # We try the environment variables for the tools first, but then
-            # fall back to the hardcoded names
-            if language == 'c':
-                tool_names = [os.environ.get('MPICC'), 'mpicc']
-            elif language == 'cpp':
-                tool_names = [os.environ.get('MPICXX'), 'mpic++', 'mpicxx', 'mpiCC']
-            elif language == 'fortran':
-                tool_names = [os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']]
-                tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
-
-            cls = OpenMPIConfigToolDependency
-
-        tool_names = [t for t in tool_names if t]  # remove empty environment variables
-        assert tool_names
+        # even with intel compilers, mpicc has to be considered
+        if language == 'c':
+            tool_names.append('mpicc')
+        elif language == 'cpp':
+            tool_names.extend(['mpic++', 'mpicxx', 'mpiCC'])
+        elif language == 'fortran':
+            tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
         nwargs['tools'] = tool_names
         candidates.append(functools.partial(
-            cls, tool_names[0], env, nwargs, language=language))
+            MPIConfigToolDependency, tool_names[0], env, nwargs, language=language))
 
-    if DependencyMethods.SYSTEM in methods:
+    if DependencyMethods.SYSTEM in methods and env.machines[for_machine].is_windows():
         candidates.append(functools.partial(
             MSMPIDependency, 'msmpi', env, kwargs, language=language))
 
@@ -96,7 +99,18 @@ def mpi_factory(env: 'Environment',
 packages['mpi'] = mpi_factory
 
 
-class _MPIConfigToolDependency(ConfigToolDependency):
+class MPIConfigToolDependency(ConfigToolDependency):
+    """Wrapper around mpicc, Intel's mpiicc and friends."""
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
+        if not self.is_found:
+            return
+
+        args = self.get_config_value(['-show'], 'link and compile args')
+        self.compile_args = self._filter_compile_args(args)
+        self.link_args = self._filter_link_args(args)
 
     def _filter_compile_args(self, args: T.List[str]) -> T.List[str]:
         """
@@ -147,53 +161,34 @@ class _MPIConfigToolDependency(ConfigToolDependency):
                     f == '-pthread' or
                     (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')))
 
+    def _check_and_get_version(self, tool: T.List[str], returncode: int) -> T.Tuple[bool, T.Union[str, None]]:
+        p, out = Popen_safe(tool + ['--showme:version'])[:2]
+        valid = p.returncode == returncode
+        if valid:
+            # OpenMPI
+            v = re.search(r'\d+.\d+.\d+', out)
+            if v:
+                version = v.group(0)
+            else:
+                version = None
+            return valid, version
 
-class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
+        # --version is not the same as -v
+        p, out = Popen_safe(tool + ['-v'])[:2]
+        valid = p.returncode == returncode
+        out = out.split("\n", maxsplit=1)[0]
 
-    """Wrapper around Intel's mpiicc and friends."""
-
-    version_arg = '-v'  # --version is not the same as -v
-
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None):
-        super().__init__(name, env, kwargs, language=language)
-        if not self.is_found:
-            return
-
-        args = self.get_config_value(['-show'], 'link and compile args')
-        self.compile_args = self._filter_compile_args(args)
-        self.link_args = self._filter_link_args(args)
-
-    def _sanitize_version(self, out: str) -> str:
-        v = re.search(r'(\d{4}) Update (\d)', out)
-        if v:
-            return '{}.{}'.format(v.group(1), v.group(2))
-        return out
-
-
-class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
-
-    """Wrapper around OpenMPI mpicc and friends."""
-
-    version_arg = '--showme:version'
-
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None):
-        super().__init__(name, env, kwargs, language=language)
-        if not self.is_found:
-            return
-
-        c_args = self.get_config_value(['--showme:compile'], 'compile_args')
-        self.compile_args = self._filter_compile_args(c_args)
-
-        l_args = self.get_config_value(['--showme:link'], 'link_args')
-        self.link_args = self._filter_link_args(l_args)
-
-    def _sanitize_version(self, out: str) -> str:
+        # cases like "mpicc for MPICH version 4.2.2"
         v = re.search(r'\d+.\d+.\d+', out)
         if v:
-            return v.group(0)
-        return out
+            return valid, v.group(0)
+
+        # cases like "mpigcc for Intel(R) MPI library 2021.13"
+        v = re.search(r'\d+.\d+', out)
+        if v:
+            return valid, v.group(0)
+
+        return valid, None
 
 
 class MSMPIDependency(SystemDependency):
