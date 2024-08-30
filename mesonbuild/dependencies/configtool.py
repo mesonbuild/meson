@@ -69,6 +69,21 @@ class ConfigToolDependency(ExternalDependency):
             return m.group(0).rstrip('.')
         return version
 
+    def _check_and_get_version(self, tool: T.List[str], returncode: int) -> T.Tuple[bool, T.Union[str, None]]:
+        """Check whether a command is valid and get its version"""
+        p, out = Popen_safe(tool + [self.version_arg])[:2]
+        valid = True
+        if p.returncode != returncode:
+            if self.skip_version:
+                # maybe the executable is valid even if it doesn't support --version
+                p = Popen_safe(tool + [self.skip_version])[0]
+                if p.returncode != returncode:
+                    valid = False
+            else:
+                valid = False
+        version = self._sanitize_version(out.strip())
+        return valid, version
+
     def find_config(self, versions: T.List[str], returncode: int = 0) \
             -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
         """Helper method that searches for config tool binaries in PATH and
@@ -82,36 +97,29 @@ class ConfigToolDependency(ExternalDependency):
                 continue
             tool = potential_bin.get_command()
             try:
-                p, out = Popen_safe(tool + [self.version_arg])[:2]
+                valid, version = self._check_and_get_version(tool, returncode)
             except (FileNotFoundError, PermissionError):
                 continue
-            if p.returncode != returncode:
-                if self.skip_version:
-                    # maybe the executable is valid even if it doesn't support --version
-                    p = Popen_safe(tool + [self.skip_version])[0]
-                    if p.returncode != returncode:
-                        continue
-                else:
-                    continue
+            if not valid:
+                continue
 
-            out = self._sanitize_version(out.strip())
             # Some tools, like pcap-config don't supply a version, but also
             # don't fail with --version, in that case just assume that there is
             # only one version and return it.
-            if not out:
+            if not version:
                 return (tool, None)
             if versions:
-                is_found = version_compare_many(out, versions)[0]
+                is_found = version_compare_many(version, versions)[0]
                 # This allows returning a found version without a config tool,
                 # which is useful to inform the user that you found version x,
                 # but y was required.
                 if not is_found:
                     tool = None
             if best_match[1]:
-                if version_compare(out, '> {}'.format(best_match[1])):
-                    best_match = (tool, out)
+                if version_compare(version, '> {}'.format(best_match[1])):
+                    best_match = (tool, version)
             else:
-                best_match = (tool, out)
+                best_match = (tool, version)
 
         return best_match
 
