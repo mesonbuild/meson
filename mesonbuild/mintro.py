@@ -131,6 +131,7 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
                 'destination': target.out_name,
                 'tag': target.tag or None,
                 'subproject': target.subproject or None,
+                'install_rpath': target.install_rpath or None
             }
             for target in installdata.targets
         },
