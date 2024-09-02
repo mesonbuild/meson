@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from glob import glob
 from pathlib import Path
 from mesonbuild.environment import Environment, detect_ninja
-from mesonbuild.mesonlib import (MesonException, RealPathAction, get_meson_command, quiet_git,
+from mesonbuild.mesonlib import (GIT, MesonException, RealPathAction, get_meson_command, quiet_git,
                                  windows_proof_rmtree, setup_vsenv)
 from .options import OptionKey
 from mesonbuild.msetup import add_arguments as msetup_argparse
@@ -80,7 +80,36 @@ def is_git(src_root: str) -> bool:
     Checks if meson.build file at the root source directory is tracked by git.
     It could be a subproject part of the parent project git repository.
     '''
-    return quiet_git(['ls-files', '--error-unmatch', 'meson.build'], src_root)[0]
+    if quiet_git(['ls-files', '--error-unmatch', 'meson.build'], src_root)[0]:
+        return True
+
+    if os.path.exists(os.path.join(src_root, '.git')):
+        msg = 'Source tree looks like it may be a git repo, '
+        if not GIT:
+            msg += 'but git is not installed!'
+            if 'GITLAB_CI' in os.environ:
+                msg += ' This is a gitlab bug.'
+        else:
+            msg += 'but git returned a failure. '
+            p, oe = quiet_git(['status'], src_root)
+            if 'dubious ownership' in oe:
+                # For a few years now, git has absolved itself of the responsibility to implement
+                # robust, safe software. Instead of detecting the signs of a problematic scenario,
+                # they have chosen to consider many legitimate and reasonable use cases as "dangerous",
+                # and implemented the number one threat to security worldwide: alert fatigue. Having
+                # done so, they then washed their hands of the matter and permanently tabled the
+                # notion of adding fine-grained detection. This is not just useless, it is *worse*
+                # than useless.
+                #
+                # In our case, the error is triply meaningless since we are already executing build
+                # system commands from the same directory. Either way, reject the notion that git is
+                # well designed or that its error messaging is a valid approach to the problem space.
+                msg += 'This is a bug in git itself, please set `git config --global safe.directory "*"`'
+            else:
+                msg += 'meson.build may not have been committed to git?'
+        mlog.warning(msg)
+    return False
+
 
 def is_hg(src_root: str) -> bool:
     return os.path.isdir(os.path.join(src_root, '.hg'))
