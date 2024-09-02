@@ -176,17 +176,22 @@ class MPIConfigToolDependency(ConfigToolDependency):
         # --version is not the same as -v
         p, out = Popen_safe(tool + ['-v'])[:2]
         valid = p.returncode == returncode
-        out = out.split("\n", maxsplit=1)[0]
+        first_line = out.split('\n', maxsplit=1)[0]
 
         # cases like "mpicc for MPICH version 4.2.2"
-        v = re.search(r'\d+.\d+.\d+', out)
+        v = re.search(r'\d+.\d+.\d+', first_line)
         if v:
             return valid, v.group(0)
 
         # cases like "mpigcc for Intel(R) MPI library 2021.13"
-        v = re.search(r'\d+.\d+', out)
+        v = re.search(r'\d+.\d+', first_line)
         if v:
             return valid, v.group(0)
+
+        # cases like "mpiifort for the Intel(R) MPI Library 2019 Update 9 for Linux*"
+        v = re.search(r'(\d{4}) Update (\d)', first_line)
+        if v:
+            return valid, f'{v.group(1)}.{v.group(2)}'
 
         return valid, None
 
