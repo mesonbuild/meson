@@ -58,11 +58,11 @@ def mpi_factory(env: 'Environment',
                 nwargs['returncode_value'] = 3
 
             if language == 'c':
-                tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
+                tool_names = [os.environ.get('MPICC'), 'mpiicc']
             elif language == 'cpp':
-                tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
+                tool_names = [os.environ.get('MPICXX'), 'mpiicpc']
             elif language == 'fortran':
-                tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
+                tool_names = [os.environ.get('MPIF90'), 'mpiifort']
 
             cls: T.Type[ConfigToolDependency] = IntelMPIConfigToolDependency
         else: # OpenMPI, which doesn't work with intel
@@ -152,6 +152,10 @@ class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
     """Wrapper around Intel's mpiicc and friends."""
 
     version_arg = '-v'  # --version is not the same as -v
+    # ifort.cfg with: -Xlinker -rpath=... breaks -v (as ifort -v return 1 as exitcode)
+    os.environ["ICCCFG"] = "/dev/null"
+    os.environ["ICPCCFG"] = "/dev/null"
+    os.environ["IFORTCFG"] = "/dev/null"
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
                  language: T.Optional[str] = None):
