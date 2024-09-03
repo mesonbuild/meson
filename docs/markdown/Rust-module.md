@@ -67,6 +67,7 @@ It takes the following keyword arguments
 - `dependencies`: a list of `Dependency` objects to pass to the underlying clang call (*since 1.0.0*)
 - `language`: A literal string value of `c` or `cpp`. When set this will force bindgen to treat a source as the given language. Defaults to checking based on the input file extension. *(since 1.4.0)*
 - `bindgen_version`: a list of string version values. When set the found bindgen binary must conform to these constraints. *(since 1.4.0)*
+- `env`: environment variables to set, such as {'NAME1': 'value1', 'NAME2': 'value2'} or ['NAME1=value1', 'NAME2=value2'], or an env object which allows more sophisticated environment juggling. *(since 1.6.0)*
 
 ```meson
 rust = import('unstable-rust')

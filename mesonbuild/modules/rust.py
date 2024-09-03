@@ -14,11 +14,13 @@ from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, 
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
 from ..compilers.compilers import are_asserts_disabled, lang_suffixes
 from ..interpreter.type_checking import (
-    DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW,
+    DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW, ENV_KW,
     INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
-from ..mesonlib import File
+from ..mesonlib import (
+    File, EnvironmentVariables,
+)
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
@@ -49,6 +51,7 @@ if T.TYPE_CHECKING:
         output: str
         output_inline_wrapper: str
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
+        env: T.Optional[EnvironmentVariables]
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
 
@@ -198,6 +201,7 @@ class RustModule(ExtensionModule):
         KwargInfo('bindgen_version', ContainerTypeInfo(list, str), default=[], listify=True, since='1.4.0'),
         INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
         OUTPUT_KW,
+        ENV_KW.evolve(since='1.6.0'),
         KwargInfo(
             'output_inline_wrapper',
             str,
@@ -330,6 +334,7 @@ class RustModule(ExtensionModule):
             extra_depends=depends,
             depend_files=depend_files,
             backend=state.backend,
+            env=kwargs['env'],
             description='Generating bindings for Rust {}',
         )
 

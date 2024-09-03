@@ -129,6 +129,7 @@ endif
 
 subdir('sub')
 subdir('dependencies')
+subdir('env')
 
 gp = rust.bindgen(
   input : 'src/global-project.h',
