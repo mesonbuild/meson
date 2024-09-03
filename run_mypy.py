@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2024 Intel Corporation
 
 from pathlib import Path
 import argparse
@@ -38,6 +40,7 @@ modules = [
     'mesonbuild/interpreter/mesonmain.py',
     'mesonbuild/interpreter/interpreterobjects.py',
     'mesonbuild/interpreter/type_checking.py',
+    'mesonbuild/machinefile.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
     'mesonbuild/utils/core.py',
