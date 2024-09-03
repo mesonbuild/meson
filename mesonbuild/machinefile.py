@@ -12,10 +12,7 @@ from . import mparser
 from .mesonlib import MesonException
 
 if T.TYPE_CHECKING:
-    from .compilers import Compiler
     from .coredata import StrOrBytesPath
-
-    CompilersDict = T.Dict[str, Compiler]
 
 
 class CmdLineFileParser(configparser.ConfigParser):
