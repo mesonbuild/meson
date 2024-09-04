@@ -37,18 +37,6 @@ def mpi_factory(env: 'Environment',
         return []
     compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
 
-    # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers
-    if DependencyMethods.PKGCONFIG in methods and not compiler_is_intel:
-        pkg_name = None
-        if language == 'c':
-            pkg_name = 'ompi-c'
-        elif language == 'cpp':
-            pkg_name = 'ompi-cxx'
-        elif language == 'fortran':
-            pkg_name = 'ompi-fort'
-        candidates.append(functools.partial(
-            PkgConfigDependency, pkg_name, env, kwargs, language=language))
-
     if DependencyMethods.CONFIG_TOOL in methods:
         nwargs = kwargs.copy()
 
@@ -89,6 +77,19 @@ def mpi_factory(env: 'Environment',
     if DependencyMethods.SYSTEM in methods:
         candidates.append(functools.partial(
             MSMPIDependency, 'msmpi', env, kwargs, language=language))
+
+    # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers
+    # for MPI, environment variables and commands like mpicc should have priority
+    if DependencyMethods.PKGCONFIG in methods and not compiler_is_intel:
+        pkg_name = None
+        if language == 'c':
+            pkg_name = 'ompi-c'
+        elif language == 'cpp':
+            pkg_name = 'ompi-cxx'
+        elif language == 'fortran':
+            pkg_name = 'ompi-fort'
+        candidates.append(functools.partial(
+            PkgConfigDependency, pkg_name, env, kwargs, language=language))
 
     return candidates
 
