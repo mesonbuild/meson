@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2024 Contributors to the The Meson project
-# Copyright © 2024 Intel Corporation
+# Copyright © 2019-2024 Intel Corporation
 
 from __future__ import annotations
 from collections import OrderedDict
