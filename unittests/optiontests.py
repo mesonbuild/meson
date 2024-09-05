@@ -118,24 +118,24 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         # First augment a subproject
-        optstore.set_from_configure_command([], [f'{sub_name}:{name}={aug_value}'], [])
+        optstore.set_from_configure_command([f'{sub_name}:{name}={aug_value}'], [])
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), aug_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
-        optstore.set_from_configure_command([], [], [f'{sub_name}:{name}'])
+        optstore.set_from_configure_command([], [f'{sub_name}:{name}'])
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         # And now augment the top level option
-        optstore.set_from_configure_command([], [f':{name}={aug_value}'], [])
+        optstore.set_from_configure_command([f':{name}={aug_value}'], [])
         self.assertEqual(optstore.get_value_for(name, None), top_value)
         self.assertEqual(optstore.get_value_for(name, ''), aug_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
-        optstore.set_from_configure_command([], [], [f':{name}'])
+        optstore.set_from_configure_command([], [f':{name}'])
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
@@ -155,8 +155,8 @@ class OptionTests(unittest.TestCase):
                              choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
                              )
         optstore.add_system_option(name, co)
-        optstore.set_from_configure_command([], [f'{sub_name}:{name}={aug_value}'], [])
-        optstore.set_from_configure_command([f'{sub_name}:{name}={set_value}'], [], [])
+        optstore.set_from_configure_command([f'{sub_name}:{name}={aug_value}'], [])
+        optstore.set_from_configure_command([f'{sub_name}:{name}={set_value}'], [])
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), set_value)
 
