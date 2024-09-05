@@ -195,6 +195,7 @@ packages.defaults.update({
     'zlib': 'dev',
     'jni': 'dev',
     'jdk': 'dev',
+    'diasdk': 'dev',
 
     'boost': 'boost',
     'cuda': 'cuda',
