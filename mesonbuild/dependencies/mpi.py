@@ -10,7 +10,7 @@ import re
 
 from ..environment import detect_cpu_family
 from ..mesonlib import Popen_safe
-from .base import DependencyMethods, detect_compiler, SystemDependency
+from .base import DependencyException, DependencyMethods, detect_compiler, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import factory_methods
@@ -108,9 +108,21 @@ class MPIConfigToolDependency(ConfigToolDependency):
         if not self.is_found:
             return
 
-        args = self.get_config_value(['-show'], 'link and compile args')
-        self.compile_args = self._filter_compile_args(args)
-        self.link_args = self._filter_link_args(args)
+        # --showme for OpenMPI, -compile_info/-link_info for MPICH and IntelMPI
+        for comp, link in [('--showme:compile', '--showme:link'), ('-compile_info', '-link_info'), ('-show', None)]:
+            try:
+                c_args = self.get_config_value([comp], 'compile_args')
+                l_args = self.get_config_value([link], 'link_args') if link is not None else c_args
+            except DependencyException:
+                continue
+            else:
+                break
+        else:
+            self.is_found = False
+            return
+
+        self.compile_args = self._filter_compile_args(c_args)
+        self.link_args = self._filter_link_args(l_args)
 
     def _filter_compile_args(self, args: T.List[str]) -> T.List[str]:
         """
