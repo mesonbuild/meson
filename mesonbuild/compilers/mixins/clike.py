@@ -1191,7 +1191,8 @@ class CLikeCompiler(Compiler):
         commands = self.get_exelist(ccache=False) + ['-v', '-E', '-']
         commands += self.get_always_args()
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS from the env
-        commands += env.coredata.get_external_args(self.for_machine, self.language)
+        # 'std=c++<ver>','std=gnu++<ver>' are valid for C++/ObjC++ but not for 'C'
+        commands += [x for x in env.coredata.get_external_args(self.for_machine, self.language) if '-std=c++' not in x and '-std=gnu++' not in x]
         mlog.debug('Finding framework path by running: ', ' '.join(commands), '\n')
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
