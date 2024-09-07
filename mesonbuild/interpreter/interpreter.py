@@ -2801,6 +2801,12 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(p, build.IncludeDirs):
                 result.append(p)
             elif isinstance(p, str):
+                if key == 'd_import_dirs' and os.path.normpath(p).startswith(self.environment.get_source_dir()):
+                    FeatureDeprecated.single_use('Building absolute path to source dir is not supported',
+                                                 '0.45', self.subproject,
+                                                 'Use a relative path instead.',
+                                                 location=self.current_node)
+                    p = os.path.relpath(p, os.path.join(self.environment.get_source_dir(), self.subdir))
                 result.append(self.build_incdir_object([p]))
             else:
                 raise InterpreterException('Include directory objects can only be created from strings or include directories.')
@@ -3400,7 +3406,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 kwargs['language_args'][lang].extend(args)
                 kwargs['depend_files'].extend(deps)
         if targetclass is not build.Jar:
-            self.kwarg_strings_to_includedirs(kwargs)
+            kwargs['d_import_dirs'] = self.extract_incdirs(kwargs, 'd_import_dirs')
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.
@@ -3472,23 +3478,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.add_target(name, target)
         self.project_args_frozen = True
         return target
-
-    def kwarg_strings_to_includedirs(self, kwargs: kwtypes._BuildTarget) -> None:
-        if kwargs['d_import_dirs']:
-            items = kwargs['d_import_dirs']
-            cleaned_items: T.List[build.IncludeDirs] = []
-            for i in items:
-                if isinstance(i, str):
-                    # BW compatibility. This was permitted so we must support it
-                    # for a few releases so people can transition to "correct"
-                    # path declarations.
-                    if os.path.normpath(i).startswith(self.environment.get_source_dir()):
-                        mlog.warning('''Building a path to the source dir is not supported. Use a relative path instead.
-This will become a hard error in the future.''', location=self.current_node)
-                        i = os.path.relpath(i, os.path.join(self.environment.get_source_dir(), self.subdir))
-                        i = self.build_incdir_object([i])
-                cleaned_items.append(i)
-            kwargs['d_import_dirs'] = cleaned_items
 
     def add_stdlib_info(self, target):
         for l in target.compilers.keys():
