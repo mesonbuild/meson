@@ -309,7 +309,7 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
     for compiler in compilers.values():
         if compiler.id == 'msvc' and (compiler.target in {'x86', '80x86'}):
             return 'x86'
-        if compiler.id == 'clang-cl' and compiler.target == 'x86':
+        if compiler.id == 'clang-cl' and (compiler.target in {'x86', 'i686'}):
             return 'x86'
         if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
             return 'x86'
