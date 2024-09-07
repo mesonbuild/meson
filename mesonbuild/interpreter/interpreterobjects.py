@@ -12,7 +12,7 @@ from .. import options
 from .. import build
 from .. import mlog
 
-from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
+from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule, NewExtensionModule
 from ..backend.backends import TestProtocol
 from ..interpreterbase import (
                                ContainerTypeInfo, KwargInfo, MesonOperator,
@@ -872,6 +872,10 @@ class ModuleObjectHolder(ObjectHolder[ModuleObject]):
             args = flatten(args)
         if not getattr(method, 'no-second-level-holder-flattening', False):
             args, kwargs = resolve_second_level_holders(args, kwargs)
+        if not self.interpreter.active_projectname:
+            assert isinstance(modobj, (ExtensionModule, NewExtensionModule)), 'for mypy'
+            full_method_name = f'{modobj.INFO.name}.{method_name}'
+            raise mesonlib.MesonException(f'Module methods ({full_method_name}) cannot be invoked during project declaration.')
         state = ModuleState(self.interpreter)
         # Many modules do for example self.interpreter.find_program_impl(),
         # so we have to ensure they use the current interpreter and not the one
