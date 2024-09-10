@@ -397,7 +397,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         self.update_options(
             opts,
             self.create_option(options.UserComboOption,
-                               key.evolve('eh'),
+                               self.form_compileropt_key('eh'),
                                'C++ exception handling type.',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
@@ -475,7 +475,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
             self.update_options(
                 opts,
                 self.create_option(options.UserArrayOption,
-                                   key.evolve('cpp_winlibs'),
+                                   self.form_compileropt_key('cpp_winlibs'),
                                    'Standard Win libraries to link against',
                                    gnu_winlibs),
             )
@@ -700,11 +700,11 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
                 'gnu++03': 'gnu++98'
             }
             args.append('-std=' + remap_cpp03.get(std, std))
-        if options.get_value(key.evolve('eh')) == 'none':
+        if options.get_value(self.form_compileropt_key('eh')) == 'none':
             args.append('-fno-exceptions')
-        if not options.get_value(key.evolve('rtti')):
+        if not options.get_value(self.form_compileropt_key('rtti')):
             args.append('-fno-rtti')
-        if options.get_value(key.evolve('debugstl')):
+        if options.get_value(self.form_compileropt_key('debugstl')):
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 

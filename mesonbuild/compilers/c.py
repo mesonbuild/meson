@@ -310,7 +310,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
             self.update_options(
                 opts,
                 self.create_option(options.UserArrayOption,
-                                   key.evolve('c_winlibs'),
+                                   self.form_compileropt_key('winlibs'),
                                    'Standard Win libraries to link against',
                                    gnu_winlibs),
             )
