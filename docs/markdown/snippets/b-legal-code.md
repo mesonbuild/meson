@@ -2,12 +2,17 @@
 
 The new `b_legal_code` option is enabled by default. For C, it bans
 dangerous C constructs in C99 or later to emulate newer C compiler
-defaults.
+defaults. For C++, it also includes an option at LTO-time.
 
 For GCC, it sets the following:
 * `-Werror=implicit` (-> `-Werror=implicit-int,implicit-function-declaration`)
 * `-Werror=int-conversion`
 * `-Werror=incompatible-pointer-types`
+
+For GCC when LTO is enabled, it further sets the following:
+* `-Werror=lto-type-mismatch`
+* `-Werror=odr`
+* `-Werror=strict-aliasing`
 
 For Clang, it sets the following:
 * `-Werror=implicit` (-> `-Werror=implicit-int,implicit-function-declaration`)
