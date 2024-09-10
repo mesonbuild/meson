@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
 from ..mesonlib import listify, Popen_safe, Popen_safe_logged, split_args, version_compare, version_compare_many
-from ..programs import find_external_program
+from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 import re
 import typing as T
@@ -78,35 +78,11 @@ class ConfigToolDependency(ExternalDependency):
         for potential_bin in find_external_program(
                 self.env, self.for_machine, self.tool_name,
                 self.tool_name, self.tools, allow_default_for_cross=self.allow_default_for_cross):
-            if not potential_bin.found():
+            tool, out = self._check_config(potential_bin, [], versions, returncode)
+            if tool is None and out is None:
                 continue
-            tool = potential_bin.get_command()
-            try:
-                p, out = Popen_safe(tool + [self.version_arg])[:2]
-            except (FileNotFoundError, PermissionError):
-                continue
-            if p.returncode != returncode:
-                if self.skip_version:
-                    # maybe the executable is valid even if it doesn't support --version
-                    p = Popen_safe(tool + [self.skip_version])[0]
-                    if p.returncode != returncode:
-                        continue
-                else:
-                    continue
-
-            out = self._sanitize_version(out.strip())
-            # Some tools, like pcap-config don't supply a version, but also
-            # don't fail with --version, in that case just assume that there is
-            # only one version and return it.
-            if not out:
+            elif out is None:
                 return (tool, None)
-            if versions:
-                is_found = version_compare_many(out, versions)[0]
-                # This allows returning a found version without a config tool,
-                # which is useful to inform the user that you found version x,
-                # but y was required.
-                if not is_found:
-                    tool = None
             if best_match[1]:
                 if version_compare(out, '> {}'.format(best_match[1])):
                     best_match = (tool, out)
@@ -114,6 +90,39 @@ class ConfigToolDependency(ExternalDependency):
                 best_match = (tool, out)
 
         return best_match
+
+    def _check_config(self, potential_bin: ExternalProgram, args: T.List[str], versions: T.List[str], returncode: int = 0) \
+            -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
+        if not potential_bin.found():
+            return (None, None)
+        tool = potential_bin.get_command() + args
+        try:
+            p, out = Popen_safe(tool + [self.version_arg])[:2]
+        except (FileNotFoundError, PermissionError):
+            return (None, None)
+        if p.returncode != returncode:
+            if self.skip_version:
+                # maybe the executable is valid even if it doesn't support --version
+                p = Popen_safe(tool + [self.skip_version])[0]
+                if p.returncode != returncode:
+                    return (None, None)
+            else:
+                return (None, None)
+
+        out = self._sanitize_version(out.strip())
+        # Some tools, like pcap-config don't supply a version, but also
+        # don't fail with --version, in that case just assume that there is
+        # only one version and return it.
+        if not out:
+            return (tool, None)
+        if versions:
+            is_found = version_compare_many(out, versions)[0]
+            # This allows returning a found version without a config tool,
+            # which is useful to inform the user that you found version x,
+            # but y was required.
+            if not is_found:
+                tool = None
+        return tool, out
 
     def report_config(self, version: T.Optional[str], req_version: T.List[str]) -> bool:
         """Helper method to print messages about the tool."""

@@ -148,7 +148,7 @@ class FailureTests(BasePlatformTests):
              ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
              ("dependency('zlib', version : 1)", "Item must be a list or one of <class 'str'>"),
              ("dependency('zlib', required : 1)", "[Rr]equired.*boolean"),
-             ("dependency('zlib', method : 1)", "[Mm]ethod.*string"),
+             ("dependency('zlib', method : 1)", "[Mm]ethod.*string or external_program or list"),
              ("dependency('zlibfail')", self.dnf),)
         for contents, match in a:
             self.assertMesonRaises(contents, match)

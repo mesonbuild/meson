@@ -131,7 +131,7 @@ kwargs:
       if it's available for multiple languages.
 
   method:
-    type: str
+    type: str | external_program | list[external_program | str]
     since: 0.40.0
     default: "'auto'"
     description: |
@@ -140,6 +140,12 @@ kwargs:
       and [different dependencies support different values](
       Dependencies.md#dependencies-with-custom-lookup-functionality)
       for this (though `auto` will work on all of them)
+
+      *(since 1.6.0)* a dependency can be queried from a user-specified
+      config tool. That program must support `--cflags`, `--libs`, and
+      `--version` arguments. Additional arguments to the program can be
+      specified as a list (but the first argument must be the external_program).
+      The special value `@NAME@` will be replaced with the dependency name.
 
   native:
     type: bool
