@@ -491,9 +491,6 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return []
 
-    def get_legal_code_compiler_args(self) -> T.List[str]:
-        return []
-
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         # This provides a base for many compilers, GCC and Clang override this
         # for their specific arguments
@@ -617,8 +614,11 @@ class GnuCompiler(GnuLikeCompiler):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         return [prelink_name], ['-r', '-o', prelink_name] + obj_list
 
-    def get_legal_code_compiler_args(self) -> T.List[str]:
+    def get_legal_code_compiler_args(self, lto: bool = False) -> T.List[str]:
         args: T.List[str] = []
+
+        if lto and mesonlib.version_compare(self.version, '>=6.1.0'):
+            args.extend(('-Werror=lto-type-mismatch', '-Werror=odr', '-Werror=strict-aliasing'))
 
         if self.language in {'c', 'objc'} and mesonlib.version_compare_many(self.version, ['>=5.1.0', '<14.0.0'])[0]:
             args.extend(('-Werror=implicit', '-Werror=int-conversion',
@@ -643,8 +643,13 @@ class GnuCompiler(GnuLikeCompiler):
         return super().use_linker_args(linker, version)
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          legal_code: bool = False,
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
+
+        if legal_code and mesonlib.version_compare(self.version, '>=6.1.0'):
+            args.extend(('-Werror=lto-type-mismatch', '-Werror=odr', '-Werror=strict-aliasing'))
+
         if threads == 0:
             if self._has_lto_auto_support:
                 args.append('-flto=auto')

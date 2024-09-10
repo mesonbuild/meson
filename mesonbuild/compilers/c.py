@@ -141,7 +141,9 @@ class ClangCCompiler(ClangCStds, ClangCompiler, CCompiler):
 
         maybe_legal_code = (std == 'none') or (std not in {'c89', 'c90', 'gnu89', 'gnu90'})
         if maybe_legal_code and target and env.coredata.get_option_for_target(target, 'b_legal_code'):
-            args.extend(self.get_legal_code_compiler_args())
+            is_lto = env.coredata.get_option_for_target(target, 'b_lto')
+            assert isinstance(is_lto, bool), 'for mypy'
+            args.extend(self.get_legal_code_compiler_args(is_lto))
         return args
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
@@ -278,7 +280,9 @@ class GnuCCompiler(GnuCStds, GnuCompiler, CCompiler):
 
         maybe_legal_code = (std == 'none') or (std not in {'c89', 'c90', 'gnu89', 'gnu90'})
         if maybe_legal_code and target and env.coredata.get_option_for_target(target, 'b_legal_code'):
-            args.extend(self.get_legal_code_compiler_args())
+            is_lto = env.coredata.get_option_for_target(target, 'b_lto')
+            assert isinstance(is_lto, bool), 'for mypy'
+            args.extend(self.get_legal_code_compiler_args(is_lto))
         return args
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:

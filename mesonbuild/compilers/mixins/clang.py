@@ -212,7 +212,7 @@ class ClangCompiler(GnuLikeCompiler):
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
 
-    def get_legal_code_compiler_args(self) -> T.List[str]:
+    def get_legal_code_compiler_args(self, lto: bool = False) -> T.List[str]:
         args: T.List[str] = []
 
         if self.language in {'c', 'objc'} and mesonlib.version_compare(self.version, '>=3.3.0'):
@@ -250,6 +250,7 @@ class ClangCompiler(GnuLikeCompiler):
             return args
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          legal_code: bool = False,
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         args = self.get_lto_compile_args(threads=threads, mode=mode)
         if mode == 'thin' and thinlto_cache_dir is not None:

@@ -42,6 +42,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
         return []
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          legal_code: bool = False,
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return []
 
