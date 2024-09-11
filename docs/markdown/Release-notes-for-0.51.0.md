@@ -143,7 +143,7 @@ then invoke Meson as `meson setup builddir/ -Dcmake_prefix_path=/tmp/dep`
 You can tag a test as needing to fail like this:
 
 ```meson
-test('shoulfail', exe, should_fail: true)
+test('shouldfail', exe, should_fail: true)
 ```
 
 If the test passes the problem is reported in the error logs but due

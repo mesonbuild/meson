@@ -330,7 +330,7 @@ class NativeFileTests(BasePlatformTests):
             elif comp.id == 'gcc':
                 if shutil.which('ifort'):
                     # There is an ICC for windows (windows build, linux host),
-                    # but we don't support that ATM so lets not worry about it.
+                    # but we don't support that ATM so let's not worry about it.
                     if is_windows():
                         return 'ifort', 'intel-cl'
                     return 'ifort', 'intel'
@@ -634,7 +634,7 @@ class NativeFileTests(BasePlatformTests):
 
         testcase = os.path.join(self.rust_test_dir, '12 bindgen')
         config = self.helper_create_native_file({
-            'properties': {'bindgen_clang_arguments': 'sentinal'}
+            'properties': {'bindgen_clang_arguments': 'sentinel'}
         })
 
         self.init(testcase, extra_args=['--native-file', config])
@@ -642,10 +642,10 @@ class NativeFileTests(BasePlatformTests):
         for t in targets:
             if t['id'].startswith('rustmod-bindgen'):
                 args: T.List[str] = t['target_sources'][0]['compiler']
-                self.assertIn('sentinal', args, msg="Did not find machine file value")
+                self.assertIn('sentinel', args, msg="Did not find machine file value")
                 cargs_start = args.index('--')
-                sent_arg = args.index('sentinal')
-                self.assertLess(cargs_start, sent_arg, msg='sentinal argument does not come after "--"')
+                sent_arg = args.index('sentinel')
+                self.assertLess(cargs_start, sent_arg, msg='sentinel argument does not come after "--"')
                 break
         else:
             self.fail('Did not find a bindgen target')

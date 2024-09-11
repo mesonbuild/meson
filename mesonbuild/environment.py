@@ -329,7 +329,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     """
     Python is inconsistent in its platform module.
     It returns different values for the same cpu.
-    For x86 it might return 'x86', 'i686' or somesuch.
+    For x86 it might return 'x86', 'i686' or some such.
     Do some canonicalization.
     """
     if mesonlib.is_windows():
@@ -466,7 +466,7 @@ def detect_kernel(system: str) -> T.Optional[str]:
             raise MesonException('Failed to run "/usr/bin/uname -o"')
         out = out.lower().strip()
         if out not in {'illumos', 'solaris'}:
-            mlog.warning(f'Got an unexpected value for kernel on a SunOS derived platform, expcted either "illumos" or "solaris", but got "{out}".'
+            mlog.warning(f'Got an unexpected value for kernel on a SunOS derived platform, expected either "illumos" or "solaris", but got "{out}".'
                          "Please open a Meson issue with the OS you're running and the value detected for your kernel.")
             return None
         return out

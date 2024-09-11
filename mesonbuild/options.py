@@ -110,7 +110,7 @@ class OptionKey:
     def __init__(self, name: str, subproject: str = '',
                  machine: MachineChoice = MachineChoice.HOST):
         # the _type option to the constructor is kinda private. We want to be
-        # able tos ave the state and avoid the lookup function when
+        # able to save the state and avoid the lookup function when
         # pickling/unpickling, but we need to be able to calculate it when
         # constructing a new OptionKey
         object.__setattr__(self, 'name', name)

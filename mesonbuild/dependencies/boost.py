@@ -56,7 +56,7 @@ if T.TYPE_CHECKING:
 # Mac   / homebrew: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /usr/local/lib)
 # Mac   / macports: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /opt/local/lib)
 #
-# Its not clear that any other abi tags (e.g. -gd) are used in official packages.
+# It's not clear that any other abi tags (e.g. -gd) are used in official packages.
 #
 # On Linux systems, boost libs have multithreading support enabled, but without the -mt tag.
 #

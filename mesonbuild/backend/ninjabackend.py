@@ -101,7 +101,7 @@ def get_rsp_threshold() -> int:
         # and that has a limit of 8k.
         limit = 8192
     else:
-        # Unix-like OSes usualy have very large command line limits, (On Linux,
+        # Unix-like OSes usually have very large command line limits, (On Linux,
         # for example, this is limited by the kernel's MAX_ARG_STRLEN). However,
         # some programs place much lower limits, notably Wine which enforces a
         # 32k limit like Windows. Therefore, we limit the command line to 32k.
@@ -3135,7 +3135,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     # Fortran is a bit weird (again). When you link against a library, just compiling a source file
     # requires the mod files that are output when single files are built. To do this right we would need to
-    # scan all inputs and write out explicit deps for each file. That is stoo slow and too much effort so
+    # scan all inputs and write out explicit deps for each file. That is too slow and too much effort so
     # instead just have an ordered dependency on the library. This ensures all required mod files are created.
     # The real deps are then detected via dep file generation from the compiler. This breaks on compilers that
     # produce incorrect dep files but such is life.
