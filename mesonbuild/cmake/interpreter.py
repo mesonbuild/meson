@@ -487,7 +487,7 @@ class ConverterTarget:
             source_files = [x.name for x in i.sources + i.generated]
             for j in stem:
                 # On some platforms (specifically looking at you Windows with vs20xy backend) CMake does
-                # not produce object files with the format `foo.cpp.obj`, instead it skipps the language
+                # not produce object files with the format `foo.cpp.obj`, instead it skips the language
                 # suffix and just produces object files like `foo.obj`. Thus we have to do our best to
                 # undo this step and guess the correct language suffix of the object file. This is done
                 # by trying all language suffixes meson knows and checking if one of them fits.

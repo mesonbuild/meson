@@ -20,7 +20,7 @@ def parse_generator_expressions(
     '''Parse CMake generator expressions
 
     Most generator expressions are simply ignored for
-    simplicety, however some are required for some common
+    simplicity, however some are required for some common
     use cases.
     '''
 

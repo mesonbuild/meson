@@ -39,7 +39,7 @@ defaults: T.Dict[str, T.List[str]] = {}
 if is_windows():
     # Intel C and C++ compiler is icl on Windows, but icc and icpc elsewhere.
     # Search for icl before cl, since Intel "helpfully" provides a
-    # cl.exe that returns *exactly the same thing* that microsofts
+    # cl.exe that returns *exactly the same thing* that Microsoft's
     # cl.exe does, and if icl is present, it's almost certainly what
     # you want.
     defaults['c'] = ['icl', 'cl', 'cc', 'gcc', 'clang', 'clang-cl', 'pgcc']
@@ -181,7 +181,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             else:
                 trials = default_linkers
         elif compiler.id == 'intel-cl' and compiler.language == 'c': # why not cpp? Is this a bug?
-            # Intel has its own linker that acts like microsoft's lib
+            # Intel has its own linker that acts like Microsoft's lib
             trials = [['xilib']]
         elif is_windows() and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
             trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
@@ -585,7 +585,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 lnk = linkers.MetrowerksLinkerEmbeddedPowerPC
 
             mwcc_ver_match = re.search(r'Version (\d+)\.(\d+)\.?(\d+)? build (\d+)', out)
-            assert mwcc_ver_match is not None, 'for mypy'  # because mypy *should* be complaning that this could be None
+            assert mwcc_ver_match is not None, 'for mypy'  # because mypy *should* be complaining that this could be None
             compiler_version = '.'.join(x for x in mwcc_ver_match.groups() if x is not None)
 
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
@@ -595,7 +595,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 _, o_ld, _ = Popen_safe(ld + ['--version'])
 
                 mwld_ver_match = re.search(r'Version (\d+)\.(\d+)\.?(\d+)? build (\d+)', o_ld)
-                assert mwld_ver_match is not None, 'for mypy'  # because mypy *should* be complaning that this could be None
+                assert mwld_ver_match is not None, 'for mypy'  # because mypy *should* be complaining that this could be None
                 linker_version = '.'.join(x for x in mwld_ver_match.groups() if x is not None)
 
                 linker = lnk(ld, for_machine, version=linker_version)

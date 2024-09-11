@@ -187,7 +187,7 @@ with previous meson versions), 'static', or 'auto'. With auto, the value from
 `default_library` option is used, unless it is 'both', in which case 'shared'
 is used instead.
 
-When `default_both_libraries` is 'auto', passing a [[@both_libs]] dependecy
+When `default_both_libraries` is 'auto', passing a [[@both_libs]] dependency
 in [[both_libraries]] will link the static dependency with the static lib,
 and the shared dependency with the shared lib.
 

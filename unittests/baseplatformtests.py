@@ -496,13 +496,13 @@ class BasePlatformTests(TestCase):
 
         ensures that the copied tree is deleted after running.
 
-        :param srcdir: The locaiton of the source tree to copy
+        :param srcdir: The location of the source tree to copy
         :return: The location of the copy
         """
         dest = tempfile.mkdtemp()
         self.addCleanup(windows_proof_rmtree, dest)
 
-        # shutil.copytree expects the destinatin directory to not exist, Once
+        # shutil.copytree expects the destination directory to not exist, Once
         # python 3.8 is required the `dirs_exist_ok` parameter negates the need
         # for this
         dest = os.path.join(dest, 'subdir')

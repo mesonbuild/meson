@@ -1348,8 +1348,8 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, since='1.0', since_message='Its awesome, use it',
-                      deprecated='2.0', deprecated_message='Its terrible, dont use it')
+            KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
+                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1360,8 +1360,8 @@ class InternalTests(unittest.TestCase):
                 mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '0.1'}):
             # With Meson 0.1 it should trigger the "introduced" warning but not the "deprecated" warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
-            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. Its awesome, use it')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. Its terrible, dont use it')
+            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. It\'s awesome, use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. It\'s terrible, don\'t use it')
 
         with self.subTest('no warnings should be triggered'), \
                 mock.patch('sys.stdout', io.StringIO()) as out, \
@@ -1375,8 +1375,8 @@ class InternalTests(unittest.TestCase):
                 mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '2.0'}):
             # With Meson 2.0 it should trigger the "deprecated" warning but not the "introduced" warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
-            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. Its terrible, dont use it')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. Its awesome, use it')
+            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. It\'s terrible, don\'t use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. It\'s awesome, use it')
 
     def test_typed_kwarg_validator(self) -> None:
         @typed_kwargs(
@@ -1408,7 +1408,7 @@ class InternalTests(unittest.TestCase):
         @typed_kwargs(
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
-            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'dont use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
+            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'don\'t use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
             KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
             KwargInfo(
                 'mode',
@@ -1443,7 +1443,7 @@ class InternalTests(unittest.TestCase):
 
         with self.subTest('deprecated dict string value with msg'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'foo2': 'a'}})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo2" in dict keys. dont use it.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo2" in dict keys. don't use it.*""")
 
         with self.subTest('new dict string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'bar': 'b'}})

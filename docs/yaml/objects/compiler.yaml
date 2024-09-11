@@ -612,7 +612,7 @@ methods:
   # kwargs:
   #   checked:
   #     type: str
-  #     sinec: 0.59.0
+  #     since: 0.59.0
   #     default: "'off'"
   #     description: |
   #       Supported values:

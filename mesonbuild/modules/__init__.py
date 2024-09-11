@@ -113,7 +113,7 @@ class ModuleState:
         if wanted:
             kwargs['version'] = wanted
         # FIXME: Even if we fix the function, mypy still can't figure out what's
-        # going on here. And we really dont want to call interpreter
+        # going on here. And we really don't want to call interpreter
         # implementations of meson functions anyway.
         return self._interpreter.func_dependency(self.current_node, [depname], kwargs) # type: ignore
 

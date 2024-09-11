@@ -323,7 +323,7 @@ name:
   * `x.y.z` -> 'x'
   * `0.x.y` -> '0.x'
   * `0.0.x` -> '0'
-  It allows to make different dependencies for uncompatible versions of the same
+  It allows to make different dependencies for incompatible versions of the same
   crate.
 - `-rs` suffix is added to distinguish from regular system dependencies, for
   example `gstreamer-1.0` is a system pkg-config dependency and `gstreamer-0.22-rs`
@@ -359,7 +359,7 @@ the main project depends on `foo-1-rs` and `bar-1-rs`, and they both depend on
 configure `common-rs` with a set of features. Later, when `bar-1-rs` does a lookup
 for `common-1-rs` it has already been configured and the set of features cannot be
 changed. If `bar-1-rs` wants extra features from `common-1-rs`, Meson will error out.
-It is currently the responsability of the main project to resolve those
+It is currently the responsibility of the main project to resolve those
 issues by enabling extra features on each subproject:
 ```meson
 project(...,
