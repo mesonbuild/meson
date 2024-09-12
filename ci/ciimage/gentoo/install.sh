@@ -40,8 +40,7 @@ pkgs_stable=(
   sci-libs/hdf5
   dev-qt/linguist-tools
   sys-devel/llvm
-  # qt6 unstable
-  #dev-qt/qttools
+  dev-qt/qttools
 
   # misc
   app-admin/sudo
