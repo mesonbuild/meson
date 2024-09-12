@@ -62,6 +62,7 @@ topic](https://github.com/topics/meson).
  - [GNOME Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for GNOME
  - [GNOME Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on GNOME desktop
  - [GNOME Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a GNOME application for visualizing system resources
+ - [GNOME Web](https://gitlab.gnome.org/GNOME/epiphany), a browser for a simple, clean, beautiful view of the web
  - [GNU FriBidi](https://github.com/fribidi/fribidi), the open source implementation of the Unicode Bidirectional Algorithm
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
