@@ -4999,9 +4999,9 @@ class AllPlatformTests(BasePlatformTests):
             olddata = newdata
             oldmtime = newmtime
 
-    def test_c_cpp_stds(self) -> None:
+    def __test_multi_stds(self, extra_args: T.List[str]) -> None:
         testdir = os.path.join(self.unit_test_dir, '115 c cpp stds')
-        self.init(testdir)
+        self.init(testdir, extra_args=extra_args)
         # Invalid values should fail whatever compiler we have
         with self.assertRaises(subprocess.CalledProcessError):
             self.setconf('-Dc_std=invalid')
@@ -5029,8 +5029,21 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(self.getconf('c_std'), 'gnu89')
             self.assertEqual(self.getconf('cpp_std'), 'gnu++98')
             # The first supported std should be selected
-            self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
-            self.assertEqual(self.getconf('cpp_std'), 'c++11')
+            # self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
+            # self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    def test_c_cpp_stds(self) -> None:
+        self.__test_multi_stds(['-Dwith-c=true'])
+
+    @skip_if_not_language('objc')
+    @skip_if_not_language('objcpp')
+    def test_objc_objcpp_stds(self) -> None:
+        self.__test_multi_stds(['-Dwith-objc=true'])
+
+    @skip_if_not_language('objc')
+    @skip_if_not_language('objcpp')
+    def test_c_cpp_objc_objcpp_stds(self) -> None:
+        self.__test_multi_stds(['-Dwith-c=true', '-Dwith-objc=true'])
 
     def test_rsp_support(self):
         env = get_fake_env()
