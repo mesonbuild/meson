@@ -60,7 +60,14 @@ jobs:
       # All environment variables are stored inside the docker image in /ci/env_vars.sh
       # They are defined in the `env` section in each image.json. CI_ARGS should be set
       # via the `args` array ub the image.json
-      run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./tools/run_with_cov.py ./run_tests.py $CI_ARGS'
+      shell: bash
+      run: |
+        # dmd is installed under /root on OpenSUSE
+        [[ ${{ matrix.cfg.id }} == opensuse ]] && export HOME=/root
+
+        source /ci/env_vars.sh
+        cd $GITHUB_WORKSPACE
+        ./tools/run_with_cov.py ./run_tests.py $CI_ARGS
 
     - name: Aggregate coverage reports
       run: ./ci/combine_cov.sh
