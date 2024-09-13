@@ -89,8 +89,8 @@ you to set the environment in which the generator will process inputs.
 In previous versions of meson, a `meson.build` file like this:
 
 ```
-exectuable('foo', 'main.c')
-exectuable('foo', 'main.c', name_suffix: 'bar')
+executable('foo', 'main.c')
+executable('foo', 'main.c', name_suffix: 'bar')
 ```
 
 would result in a configure error because meson internally used
