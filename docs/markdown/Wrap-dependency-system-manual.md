@@ -379,7 +379,7 @@ Some naming conventions need to be respected:
 
 Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the root
 of (sub)project source tree. Meson will automatically load that file and convert
-it into a serie of wraps definitions.
+it into a series of wraps definitions.
 
 ## Using wrapped projects
 
