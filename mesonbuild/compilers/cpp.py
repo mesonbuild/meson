@@ -606,11 +606,12 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         std_opt.set_versions(cpp_stds, gnu=True)
         return opts
 
-    # Elbrus C++ compiler does not have lchmod, but there is only linker warning, not compiler error.
-    # So we should explicitly fail at this case.
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
                      dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
+        # Elbrus C++ compiler does not have lchmod, but there is only linker
+        # warning, not compiler error.  So we should explicitly fail at this
+        # case.
         if funcname == 'lchmod':
             return CompileCheckResult(False)
         else:
