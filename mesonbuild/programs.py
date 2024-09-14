@@ -119,7 +119,7 @@ class ExternalProgram(mesonlib.HoldableObject):
     @classmethod
     def from_bin_list(cls, env: 'Environment', for_machine: MachineChoice, name: str) -> 'ExternalProgram':
         # There is a static `for_machine` for this class because the binary
-        # always runs on the build platform. (It's host platform is our build
+        # always runs on the build platform. (Its host platform is our build
         # platform.) But some external programs have a target platform, so this
         # is what we are specifying here.
         command = env.lookup_binary_entry(for_machine, name)

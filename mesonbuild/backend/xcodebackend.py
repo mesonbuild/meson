@@ -423,7 +423,7 @@ class XCodeBackend(backends.Backend):
             # generate id for our own target-name
             t.buildphasemap = {}
             t.buildphasemap[tname] = self.gen_id()
-            # each target can have it's own Frameworks/Sources/..., generate id's for those
+            # each target can have its own Frameworks/Sources/..., generate id's for those
             t.buildphasemap['Frameworks'] = self.gen_id()
             t.buildphasemap['Resources'] = self.gen_id()
             t.buildphasemap['Sources'] = self.gen_id()
