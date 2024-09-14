@@ -71,7 +71,7 @@ class ExtractRequired(TypedDict):
     """Keyword Arguments consumed by the `extract_required_kwargs` function.
 
     Any function that uses the `required` keyword argument which accepts either
-    a boolean or a feature option should inherit it's arguments from this class.
+    a boolean or a feature option should inherit its arguments from this class.
     """
 
     required: T.Union[bool, options.UserFeatureOption]

@@ -157,7 +157,7 @@ class Dependency(HoldableObject):
         return self.compile_args
 
     def get_all_compile_args(self) -> T.List[str]:
-        """Get the compile arguments from this dependency and it's sub dependencies."""
+        """Get the compile arguments from this dependency and its sub dependencies."""
         return list(itertools.chain(self.get_compile_args(),
                                     *(d.get_all_compile_args() for d in self.ext_deps)))
 
@@ -167,7 +167,7 @@ class Dependency(HoldableObject):
         return self.link_args
 
     def get_all_link_args(self) -> T.List[str]:
-        """Get the link arguments from this dependency and it's sub dependencies."""
+        """Get the link arguments from this dependency and its sub dependencies."""
         return list(itertools.chain(self.get_link_args(),
                                     *(d.get_all_link_args() for d in self.ext_deps)))
 
@@ -213,7 +213,7 @@ class Dependency(HoldableObject):
             compile_args -- any compile args
             link_args -- any link args
 
-        Additionally the new dependency will have the version parameter of it's
+        Additionally the new dependency will have the version parameter of its
         parent (if any) and the requested values of any dependencies will be
         added as well.
         """

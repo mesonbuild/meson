@@ -22,7 +22,7 @@ class ConfigToolDependency(ExternalDependency):
 
     Takes the following extra keys in kwargs that it uses internally:
     :tools List[str]: A list of tool names to use
-    :version_arg str: The argument to pass to the tool to get it's version
+    :version_arg str: The argument to pass to the tool to get its version
     :skip_version str: The argument to pass to the tool to ignore its version
         (if ``version_arg`` fails, but it may start accepting it in the future)
         Because some tools are stupid and don't accept --version

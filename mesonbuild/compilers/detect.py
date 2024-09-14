@@ -280,7 +280,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         compiler_name = os.path.basename(compiler[0])
 
         if any(os.path.basename(x) in {'cl', 'cl.exe', 'clang-cl', 'clang-cl.exe'} for x in compiler):
-            # Watcom C provides it's own cl.exe clone that mimics an older
+            # Watcom C provides its own cl.exe clone that mimics an older
             # version of Microsoft's compiler. Since Watcom's cl.exe is
             # just a wrapper, we skip using it if we detect its presence
             # so as not to confuse Meson when configuring for MSVC.
@@ -1026,7 +1026,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
         version = search_version(out)
         cls: T.Type[RustCompiler] = rust.RustCompiler
 
-        # Clippy is a wrapper around rustc, but it doesn't have rustc in it's
+        # Clippy is a wrapper around rustc, but it doesn't have rustc in its
         # output. We can otherwise treat it as rustc.
         if 'clippy' in out:
             # clippy returns its own version and not the rustc version by
