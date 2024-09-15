@@ -2357,7 +2357,13 @@ class NinjaBackend(backends.Backend):
                     continue
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
-                args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']
+                args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none)
+                if compiler.get_linker_id() in {'cl2000', 'cl6000', 'ti'}:
+                    # TI C28x linker requires a different order of args and
+                    # static libs last with the full name.
+                    args += ['$LINK_ARGS', '$in', '$TI_C28X_STATIC_LIBS']
+                else:
+                    args += ['$in', '$LINK_ARGS']
                 description = 'Linking target $out'
                 if num_pools > 0:
                     pool = 'pool = link_pool'
