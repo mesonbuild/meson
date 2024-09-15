@@ -3560,6 +3560,21 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                             for t in target.link_depends])
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
+
+        # Compiler args must be included in TI C28x linker commands and static libs must go last.
+        if linker.get_id() in {'c2000', 'c6000', 'ti'}: 
+            for for_machine in MachineChoice:
+                clist = self.environment.coredata.compilers[for_machine]
+                for langname, compiler in clist.items():
+                    if langname == 'c' and compiler.get_id() in {'c2000', 'c6000', 'ti'}:
+                        compile_args = self.generate_basic_compiler_args(target, compiler)
+            elem.add_item('ARGS', compile_args)
+            # Static lib flags must be filtered off to add as a different item.
+            ti_c28x_static_lib_args = [arg for arg in commands if arg.startswith('-l') or arg.startswith('--library=')]
+            for arg in ti_c28x_static_lib_args:
+                commands.remove(arg)            
+            elem.add_item('TI_C28X_STATIC_LIBS', ti_c28x_static_lib_args)
+
         elem.add_item('LINK_ARGS', commands)
         self.create_target_linker_introspection(target, linker, commands)
         return elem
