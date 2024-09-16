@@ -805,6 +805,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                                        'testfile.' + self.default_suffix)
                 with open(srcname, 'w', encoding='utf-8') as ofile:
                     ofile.write(code)
+                    if not code.endswith('\n'):
+                        ofile.write('\n')
                 # ccache would result in a cache miss
                 no_ccache = True
                 code_debug = f'Code:\n{code}'
