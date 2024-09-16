@@ -417,7 +417,7 @@ class CLikeCompiler(Compiler):
         else:
             # TODO: we want to do this in the caller
             extra_args = mesonlib.listify(extra_args)
-        extra_args = mesonlib.listify([e(mode.value) if callable(e) else e for e in extra_args])
+        extra_args = mesonlib.listify([e(mode) if callable(e) else e for e in extra_args])
 
         if dependencies is None:
             dependencies = []
