@@ -8,8 +8,6 @@ import subprocess
 import json
 import pathlib
 import shutil
-import tempfile
-import locale
 
 from .. import mlog
 from .core import MesonException
@@ -20,14 +18,6 @@ __all__ = [
     'setup_vsenv',
 ]
 
-
-bat_template = '''@ECHO OFF
-
-call "{}"
-
-ECHO {}
-SET
-'''
 
 # If on Windows and VS is installed but not set up in the environment,
 # set it to be runnable. In this way Meson can be directly invoked
@@ -91,42 +81,47 @@ def _setup_vsenv(force: bool) -> bool:
         raise MesonException(f'Could not find {bat_path}')
 
     mlog.log('Activating VS', bat_info[0]['catalog']['productDisplayVersion'])
-    bat_separator = '---SPLIT---'
-    bat_contents = bat_template.format(bat_path, bat_separator)
-    bat_file = tempfile.NamedTemporaryFile('w', suffix='.bat', encoding='utf-8', delete=False)
-    bat_file.write(bat_contents)
-    bat_file.flush()
-    bat_file.close()
-    bat_output = subprocess.check_output(bat_file.name, universal_newlines=True,
-                                         encoding=locale.getpreferredencoding(False))
-    os.unlink(bat_file.name)
-    bat_lines = bat_output.split('\n')
-    bat_separator_seen = False
-    for bat_line in bat_lines:
-        if bat_line == bat_separator:
-            bat_separator_seen = True
+
+    before_separator = '---BEFORE---'
+    after_separator = '---AFTER---'
+    # This will print to stdout the env variables set before the VS
+    # activation and after VS activation so that we can process only
+    # newly created environment variables. This is required to correctly parse
+    # environment variables taking into account that some variables
+    # can have multiple lines. (https://github.com/mesonbuild/meson/pull/13682)
+    cmd = f'set&& echo {before_separator}&&"{bat_path.absolute()}" && echo {after_separator}&& set'
+    process = subprocess.Popen(
+        f'cmd.exe /c "{cmd}"',
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True,
+    )
+    stdout, stderr = process.communicate()
+    if process.returncode != 0:
+        raise RuntimeError(f'Script failed with error: {stderr.decode()}')
+    lines = stdout.decode().splitlines()
+
+    # Remove the output from the vcvars script
+    try:
+        lines_before = set(lines[: lines.index(before_separator)])
+        lines_after = set(lines[lines.index(after_separator) + 1:])
+    except ValueError:
+        raise MesonException('Could not find separators in environment variables output')
+
+    # Filter out duplicated lines to remove env variables that haven't changed
+    new_lines = lines_after - lines_before
+    for line in new_lines:
+        parts = line.split('=', 1)
+        if len(parts) != 2:
             continue
-        if not bat_separator_seen:
-            continue
-        if not bat_line:
+        k, v = parts
+        if k is None or v is None:
             continue
         try:
-            k, v = bat_line.split('=', 1)
+            os.environ[k] = v
         except ValueError:
-            # there is no "=", ignore junk data
+            # Ignore errors from junk data returning invalid environment variable names
             pass
-        else:
-            try:
-                os.environ[k] = v
-            except ValueError:
-                # FIXME: When a value contains a newline, the output of SET
-                # command is impossible to parse because it makes not escaping.
-                # `VAR="Hello\n=World"` gets split into two lines:
-                # `VAR=Hello` and `=World`. That 2nd line will cause ValueError
-                # exception here. Just ignore for now because variables we do
-                # care won't have multiline values.
-                pass
-
     return True
 
 def setup_vsenv(force: bool = False) -> bool:
