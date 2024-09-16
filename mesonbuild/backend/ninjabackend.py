@@ -3562,7 +3562,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_dep(dep_targets + custom_target_libraries)
 
         # Compiler args must be included in TI C28x linker commands and static libs must go last.
-        if linker.get_id() in {'c2000', 'c6000', 'ti'}: 
+        if linker.get_id() in {'c2000', 'c6000', 'ti'}:
             for for_machine in MachineChoice:
                 clist = self.environment.coredata.compilers[for_machine]
                 for langname, compiler in clist.items():
@@ -3572,7 +3572,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # Static lib flags must be filtered off to add as a different item.
             ti_c28x_static_lib_args = [arg for arg in commands if arg.startswith('-l') or arg.startswith('--library=')]
             for arg in ti_c28x_static_lib_args:
-                commands.remove(arg)            
+                commands.remove(arg)
             elem.add_item('TI_C28X_STATIC_LIBS', ti_c28x_static_lib_args)
 
         elem.add_item('LINK_ARGS', commands)
