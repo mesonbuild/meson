@@ -35,7 +35,7 @@ if add_languages('fortran', required : false)
   if method in ['auto', 'pkg-config']
     # https://bugs.debian.org/1078026
     fs = import('fs')
-    if fs.exists('/usr/lib/x86_64-linux-gnu/pkgconfig/ompi-fort.pc')
+    if fs.is_dir('/ci') and fs.exists('/usr/lib/x86_64-linux-gnu/pkgconfig/ompi-fort.pc')
       if fs.hash('/usr/lib/x86_64-linux-gnu/pkgconfig/ompi-fort.pc', 'md5') == '0892a93630e3d3359c43c58d5a82efc0'
         error('MESON_SKIP_TEST: openmpi pkgconfig file is broken on Debian/Ubuntu')
       endif
