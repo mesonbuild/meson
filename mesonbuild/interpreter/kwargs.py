@@ -268,6 +268,7 @@ class DependencyGetVariable(TypedDict):
     pkgconfig: T.Optional[str]
     configtool: T.Optional[str]
     internal: T.Optional[str]
+    system: T.Optional[str]
     default_value: T.Optional[str]
     pkgconfig_define: PkgConfigDefineType
 
