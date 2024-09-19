@@ -707,10 +707,11 @@ class NinjaBackend(backends.Backend):
             return
         with open(os.path.join(self.environment.get_build_dir(), 'rust-project.json'),
                   'w', encoding='utf-8') as f:
+            sysroot = self.environment.coredata.compilers.host['rust'].get_sysroot()
             json.dump(
                 {
-                    "sysroot_src": os.path.join(self.environment.coredata.compilers.host['rust'].get_sysroot(),
-                                                'lib/rustlib/src/rust/library/'),
+                    "sysroot": sysroot,
+                    "sysroot_src": os.path.join(sysroot, 'lib/rustlib/src/rust/library/'),
                     "crates": [c.to_json() for c in self.rust_crates.values()],
                 },
                 f, indent=4)
