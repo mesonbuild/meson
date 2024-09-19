@@ -545,6 +545,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
         KwargInfo('pkgconfig', (str, NoneType)),
         KwargInfo('configtool', (str, NoneType)),
         KwargInfo('internal', (str, NoneType), since='0.54.0'),
+        KwargInfo('system', (str, NoneType), since='1.6.0'),
         KwargInfo('default_value', (str, NoneType)),
         PKGCONFIG_DEFINE_KW,
     )
@@ -561,6 +562,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
             pkgconfig=kwargs['pkgconfig'] or default_varname,
             configtool=kwargs['configtool'] or default_varname,
             internal=kwargs['internal'] or default_varname,
+            system=kwargs['system'] or default_varname,
             default_value=kwargs['default_value'],
             pkgconfig_define=kwargs['pkgconfig_define'],
         )

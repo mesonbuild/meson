@@ -237,7 +237,7 @@ class Dependency(HoldableObject):
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     default_value: T.Optional[str] = None,
+                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         if default_value is not None:
             return default_value
@@ -329,7 +329,7 @@ class InternalDependency(Dependency):
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     default_value: T.Optional[str] = None,
+                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         val = self.variables.get(internal, default_value)
         if val is not None:
