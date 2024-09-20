@@ -9,10 +9,16 @@ on:
     paths:
     - "**.py"
     - ".github/workflows/lint.yml"
+    - ".pylintrc"
+    - ".flake8"
+    - ".mypy.ini"
   pull_request:
     paths:
     - "**.py"
     - ".github/workflows/lint.yml"
+    - ".pylintrc"
+    - ".flake8"
+    - ".mypy.ini"
 
 permissions:
   contents: read
