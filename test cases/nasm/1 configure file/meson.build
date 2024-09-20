@@ -50,7 +50,7 @@ config_file = configure_file(
 cc = meson.get_compiler('c')
 link_args = cc.get_supported_link_arguments(['-no-pie'])
 
-exe = executable('hello', asm_gen.process('hello.asm'),
+exe = executable('hello', asm_gen.process('hello-' + host_machine.cpu_family() + '.asm'),
   link_args: link_args,
 )
 
