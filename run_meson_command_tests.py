@@ -206,12 +206,12 @@ class CommandTests(unittest.TestCase):
         with open(script_file, 'w') as f:
             f.write('#!/usr/bin/env python3\n\n')
             f.write(f'{test_command}\n')
+        self.addCleanup(os.remove, script_file)
 
         for cmd in [['-c', test_command, 'fake argument'], [script_file, 'fake argument']]:
             pyout = self._run(python_command + cmd)
             mesonout = self._run(python_command + [meson_command, 'runpython'] + cmd, env=env)
             self.assertEqual(pyout, mesonout)
-
 
 if __name__ == '__main__':
     print('Meson build system', meson_version, 'Command Tests')
