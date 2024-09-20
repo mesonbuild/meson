@@ -191,7 +191,7 @@ methods:
         since: 0.58.0
         description: |
           This argument is used as a default value
-          for `cmake`, `pkgconfig`, `configtool` and `internal` keyword
+          for `cmake`, `pkgconfig`, `configtool`, `internal` and `system` keyword
           arguments. It is useful in the common case where `pkgconfig` and `internal`
           use the same variable name, in which case it's easier to write `dep.get_variable('foo')`
           instead of `dep.get_variable(pkgconfig: 'foo', internal: 'foo')`.
@@ -213,6 +213,11 @@ methods:
         type: str
         since: 0.54.0
         description: The internal variable name
+
+      system:
+        type: str
+        since: 1.6.0
+        description: The system variable name
 
       default_value:
         type: str
