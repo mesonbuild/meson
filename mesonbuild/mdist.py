@@ -254,6 +254,9 @@ class HgDist(Dist):
         '''Check whether there are uncommitted changes in hg'''
         env = os.environ.copy()
         env['LC_ALL'] = 'C'
+        # cpython's gettext has a bug and uses LANGUAGE to override LC_ALL,
+        # contrary to the gettext spec
+        env.pop('LANGUAGE', None)
         out = subprocess.check_output(['hg', '-R', self.src_root, 'summary'], env=env)
         return b'commit: (clean)' not in out
 
