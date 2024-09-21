@@ -16,6 +16,7 @@ from mesonbuild import mlog
 from run_tests import handle_meson_skip_test
 from run_project_tests import TestDef, load_test_json, run_test, BuildStep
 from run_project_tests import setup_commands, detect_system_compiler, detect_tools
+from run_project_tests import setup_symlinks, clear_transitive_files
 
 if T.TYPE_CHECKING:
     from run_project_tests import CompilerArgumentType
@@ -44,6 +45,7 @@ def main() -> None:
     parser.add_argument('--quick', action='store_true', help='Skip some compiler and tool checking')
     args = T.cast('ArgumentType', parser.parse_args())
 
+    setup_symlinks()
     setup_commands(args.backend)
     if not args.quick:
         detect_system_compiler(args)
@@ -95,6 +97,7 @@ def main() -> None:
                 mlog.log(cmd_res)
             mlog.log(result.stde)
 
+    clear_transitive_files()
     exit(1 if failed else 0)
 
 if __name__ == "__main__":
