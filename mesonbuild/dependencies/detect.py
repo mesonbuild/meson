@@ -10,6 +10,7 @@ from .base import ExternalDependency, DependencyException, DependencyMethods, No
 
 from ..mesonlib import listify, MachineChoice, PerMachine
 from .. import mlog
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -56,8 +57,11 @@ def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
         if key in {'version', 'native', 'required', 'fallback', 'allow_fallback', 'default_options',
                    'not_found_message', 'include_type'}:
             continue
-        # All keyword arguments are strings, ints, or lists (or lists of lists)
-        if isinstance(value, list):
+        # All other keyword arguments are strings, ints, or lists (or lists of lists)
+        if isinstance(value, ExternalProgram):
+            value = value.get_path()
+        elif isinstance(value, list):
+            value = [i.get_path() if isinstance(i, ExternalProgram) else i for i in value]
             for i in value:
                 assert isinstance(i, str)
             value = tuple(frozenset(listify(value)))
@@ -85,8 +89,8 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
         raise DependencyException('Keyword "required" must be a boolean.')
-    if not isinstance(kwargs.get('method', ''), str):
-        raise DependencyException('Keyword "method" must be a string.')
+    if not isinstance(kwargs.get('method', ''), (str, ExternalProgram, list)):
+        raise DependencyException('Keyword "method" must be a string or external_program or list.')
     lname = name.lower()
     if lname not in _packages_accept_language and 'language' in kwargs:
         raise DependencyException(f'{name} dependency does not accept "language" keyword argument')
@@ -171,8 +175,29 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
                                     kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:
     # First check if the method is valid
-    if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
-        raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
+    method: T.Union[str, ExternalProgram, T.List[T.Union[ExternalProgram, str]]] = kwargs.get('method', 'auto')
+    user_method: T.Optional[T.Tuple[ExternalProgram, T.List[str]]] = None
+    if isinstance(method, str):
+        if method not in [e.value for e in DependencyMethods]:
+            raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
+
+    elif isinstance(method, list):
+        if len(method) == 0:
+            raise DependencyException('method must not be empty list')
+        elif not isinstance(method[0], ExternalProgram):
+            raise DependencyException('method first list element must be external program')
+        else:
+            args: T.List[str] = []
+            for elem in method[1:]:
+                if not isinstance(elem, str):
+                    raise DependencyException('method list[1:] elements must be str')
+                args.append(elem)
+            user_method = (method[0], args)
+
+    elif isinstance(method, ExternalProgram):
+        user_method = (method, [])
+    else:
+        raise DependencyException('method must be str or list or external program')
 
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
@@ -192,9 +217,13 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
 
     candidates: T.List['DependencyGenerator'] = []
 
-    if kwargs.get('method', 'auto') == 'auto':
+    if method == 'auto':
         # Just use the standard detection methods.
         methods = ['pkg-config', 'extraframework', 'cmake']
+    elif user_method is not None:
+        from .misc import UserConfigToolDependency
+        candidates.append(functools.partial(UserConfigToolDependency, name, user_method, env, kwargs))
+        methods = []
     else:
         # If it's explicitly requested, use that detection method (only).
         methods = [kwargs['method']]

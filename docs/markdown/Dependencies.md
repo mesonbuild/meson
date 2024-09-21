@@ -286,6 +286,28 @@ objfw_dep = dependency('objfw', version: '>= 1.0')
 binary when cross compiling if the config tool did not have an entry
 in the cross file.
 
+## User-specified config tool
+
+If a dependency has a config tool and it is not natively supported by meson,
+you can specify it directly as the dependency method:
+
+```meson
+config_tool = find_program('my-config-tool')
+dep = dependency('some-dep', method: config_tool)
+```
+
+The config tool program **must** support `--cflags`, `--libs`, and `--version`.
+
+If it requires additional args, you can specify them. The special value `@NAME@`
+will be replaced with the dependency name if found:
+
+```meson
+config_tool = find_program('my-config-tool')
+dep = dependency('some-dep', method: [config_tool, '--package', '@NAME@'])
+```
+
+*(added 1.6.0)*
+
 # Dependencies with custom lookup functionality
 
 Some dependencies have specific detection logic.

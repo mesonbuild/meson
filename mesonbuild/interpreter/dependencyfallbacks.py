@@ -7,6 +7,7 @@ from .. import build
 from ..wrap import WrapMode
 from ..mesonlib import extract_as_list, stringlistify, version_compare_many, listify
 from ..options import OptionKey
+from ..programs import ExternalProgram
 from ..dependencies import Dependency, DependencyException, NotFoundDependency
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
                                InterpreterException, InvalidArguments)
@@ -84,7 +85,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # We use kwargs from the dependency() function, for things like version,
         # module, etc.
         name = func_args[0]
-        self._handle_featurenew_dependencies(name)
+        self._handle_featurenew_dependencies(name, kwargs.get('method', None))
         dep = dependencies.find_external_dependency(name, self.environment, kwargs)
         if dep.found():
             for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
@@ -266,7 +267,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             if var_dep and cached_dep.found() and var_dep != cached_dep:
                 mlog.warning(f'Inconsistency: Subproject has overridden the dependency with another variable than {varname!r}')
 
-    def _handle_featurenew_dependencies(self, name: str) -> None:
+    def _handle_featurenew_dependencies(self, name: str, method: T.Any) -> None:
         'Do a feature check on dependencies used by this subproject'
         if name == 'mpi':
             FeatureNew.single_use('MPI Dependency', '0.42.0', self.subproject)
@@ -278,6 +279,9 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             FeatureNew.single_use('LibWMF Dependency', '0.44.0', self.subproject)
         elif name == 'openmp':
             FeatureNew.single_use('OpenMP Dependency', '0.46.0', self.subproject)
+
+        if isinstance(method, (ExternalProgram, list)):
+            FeatureNew.single_use('Keyword "method" as an ExternalProgram', '1.6.0', self.subproject)
 
     def _notfound_dependency(self) -> NotFoundDependency:
         return NotFoundDependency(self.names[0] if self.names else '', self.environment)

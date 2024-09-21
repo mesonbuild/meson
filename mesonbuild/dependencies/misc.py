@@ -18,6 +18,7 @@ from .detect import packages
 from .factory import DependencyFactory, factory_methods
 from .pkgconfig import PkgConfigDependency
 from ..options import OptionKey
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -493,6 +494,28 @@ class ObjFWDependency(ConfigToolDependency):
         # TODO: Once Meson supports adding flags per language, only add --objcflags to ObjC
         self.compile_args = self.get_config_value(['--cppflags', '--cflags', '--objcflags'] + extra_flags, 'compile_args')
         self.link_args = self.get_config_value(['--ldflags', '--libs'] + extra_flags, 'link_args')
+
+
+class UserConfigToolDependency(ConfigToolDependency):
+    def __init__(self, name: str, user_method: T.Tuple[ExternalProgram, T.List[str]], environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
+        program, args = user_method
+        args = [name if arg == "@NAME@" else arg for arg in args]
+        self.user_method = (program, args)
+
+        self.tools = [program.get_path()]
+
+        super().__init__(name, environment, kwargs, language)
+
+        if not self.is_found:
+            return
+
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
+
+    def find_config(self, versions: T.List[str], returncode: int = 0) \
+            -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
+        program, args = self.user_method
+        return self._check_config(program, args, versions, returncode)
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
