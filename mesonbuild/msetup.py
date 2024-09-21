@@ -163,15 +163,10 @@ class MesonApp:
         has_partial_build = os.path.isdir(priv_dir)
         if has_valid_build:
             if not self.options.reconfigure and not self.options.wipe:
-                print('Directory already configured.\n\n'
-                      'Just run your build command (e.g. ninja) and Meson will regenerate as necessary.\n'
-                      'Run "meson setup --reconfigure to force Meson to regenerate.\n\n'
-                      'If build failures persist, run "meson setup --wipe" to rebuild from scratch\n'
-                      'using the same options as passed when configuring the build.')
                 if self.options.cmd_line_options:
-                    from . import mconf
-                    raise SystemExit(mconf.run_impl(self.options, build_dir))
-                raise SystemExit(0)
+                    print('Directory already configured, applying new settings.')
+                else:
+                    print('Directory already configured.')
         elif not has_partial_build and self.options.wipe:
             raise MesonException(f'Directory is not empty and does not contain a previous build:\n{build_dir}')
         return src_dir, build_dir
