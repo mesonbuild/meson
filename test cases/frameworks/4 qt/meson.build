@@ -6,7 +6,7 @@ project('qt4, qt5, and qt6 build test', 'cpp',
 subdir('mocdep')
 
 qt5_modules = ['Widgets']
-qt6_modules = ['Widgets']
+qt6_modules = ['Widgets', 'Qml']
 foreach qt : ['qt4', 'qt5', 'qt6']
   qt_modules = ['Core', 'Gui']
   if qt == 'qt5'
@@ -163,6 +163,10 @@ foreach qt : ['qt4', 'qt5', 'qt6']
 
     if qt == 'qt5'
       subdir('subfolder')
+    endif
+
+    if qt == 'qt6'
+      subdir('qml')
     endif
 
     # Check we can apply a version constraint
