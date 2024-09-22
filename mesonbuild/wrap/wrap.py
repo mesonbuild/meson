@@ -687,7 +687,11 @@ class Resolver:
         elif WHITELIST_SUBDOMAIN in urlstring:
             raise WrapException(f'{urlstring} may be a WrapDB-impersonating URL')
         else:
-            headers = {'User-Agent': f'mesonbuild/{coredata.version}'}
+            headers = {
+                'User-Agent': f'mesonbuild/{coredata.version}',
+                'Accept-Language': '*',
+                'Accept-Encoding': '*',
+            }
             creds = self.get_netrc_credentials(url.netloc)
 
             if creds is not None and '@' not in url.netloc:
