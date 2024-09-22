@@ -20,6 +20,8 @@ from mesonbuild import coredata
 
 # Elementtree does not support CDATA. So hack it.
 WINVER_CHECK = 'Installed OR (VersionNT64 &gt; 602)>'
+NUGET_INDEX = 'https://api.nuget.org/v3/index.json'
+WIXEXT_TOOL = 'WixToolset.UI.wixext'
 
 def gen_guid():
     '''
@@ -302,28 +304,50 @@ class PackageGenerator:
                                ])
 
 
+def is_nuget_source_active():
+    '''
+       Check if nuget source is active
+    '''
+    result = subprocess.run(['dotnet', 'nuget', 'list', 'source', '--format', 'Short'], stdout=subprocess.PIPE)
+    return f'E {NUGET_INDEX}' in result.stdout.decode('utf-8')
+
+def is_wixext_installed():
+    '''
+       Check if wix extension is installed
+    '''
+    result = subprocess.run(['wix', 'extension', 'list'], stdout=subprocess.PIPE)
+    return WIXEXT_TOOL in result.stdout.decode('utf-8')
+
 def install_wix():
-    subprocess.check_call(['dotnet',
-                           'nuget',
-                           'add',
-                           'source',
-                           'https://api.nuget.org/v3/index.json'])
+    # Check if nuget source is active before trying to add it
+    # dotnet nuget add source returns non-zero if the source already exists
+    if not is_nuget_source_active():
+        subprocess.check_call(['dotnet',
+                               'nuget',
+                               'add',
+                               'source',
+                               NUGET_INDEX])
+
     subprocess.check_call(['dotnet',
                            'tool',
                            'install',
                            '--global',
                            'wix'])
-    subprocess.check_call(['wix',
-                           'extension',
-                           'add',
-                           'WixToolset.UI.wixext',
-                           ])
 
 if __name__ == '__main__':
     if not os.path.exists('meson.py'):
         sys.exit(print('Run me in the top level source dir.'))
     if not shutil.which('wix'):
         install_wix()
+
+    # Install wixext if not installed
+    if not is_wixext_installed():
+        subprocess.check_call(['wix',
+                               'extension',
+                               'add',
+                               WIXEXT_TOOL,
+                               ])
+
     subprocess.check_call(['pip', 'install', '--upgrade', 'pyinstaller'])
 
     p = PackageGenerator()
