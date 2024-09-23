@@ -35,6 +35,9 @@ echo 'export PKG_CONFIG_PATH="/usr/lib64/mpi/gcc/openmpi3/lib64/pkgconfig:$PKG_C
 curl -fsS https://dlang.org/install.sh | bash -s dmd | tee dmd_out.txt
 cat dmd_out.txt | grep source | sed 's/^[^`]*`//g' | sed 's/`.*//g' >> /ci/env_vars.sh
 chmod +x /ci/env_vars.sh
+# Lower ulimit before running dub, otherwise there's a very high chance it will OOM.
+# See: https://github.com/dlang/phobos/pull/9048 and https://github.com/dlang/phobos/pull/8990
+echo 'ulimit -n -S 10000' >> /ci/env_vars.sh
 
 source /ci/env_vars.sh
 
