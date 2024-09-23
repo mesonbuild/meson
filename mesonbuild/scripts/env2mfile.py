@@ -230,10 +230,13 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
         deb_detect_cmake(infos, data)
     except ValueError:
         pass
-    try:
-        infos.binaries['pkg-config'] = locate_path("%s-pkg-config" % host_arch)
-    except ValueError:
-        pass # pkg-config is optional
+    for tool in [
+        'pkg-config',
+    ]:
+        try:
+            infos.binaries[tool] = locate_path("%s-%s" % (host_arch, tool))
+        except ValueError:
+            pass    # optional
     try:
         infos.binaries['cups-config'] = locate_path("cups-config")
     except ValueError:
