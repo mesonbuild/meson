@@ -44,6 +44,10 @@ eatmydata apt-get -y install --no-install-recommends wine-stable  # Wine is spec
 
 install_python_packages hotdoc
 
+# Lower ulimit before running dub, otherwise there's a very high chance it will OOM.
+# See: https://github.com/dlang/phobos/pull/9048 and https://github.com/dlang/phobos/pull/8990
+echo 'ulimit -n -S 10000' >> /ci/env_vars.sh
+ulimit -n -S 10000
 # dub stuff
 dub_fetch urld
 dub build --deep urld --arch=x86_64 --compiler=gdc --build=debug
