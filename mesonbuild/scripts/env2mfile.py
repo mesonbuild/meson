@@ -330,7 +330,7 @@ def detect_cross_system(infos: MachineInfo, options: T.Any) -> None:
 
 def detect_cross_env(options: T.Any) -> MachineInfo:
     if options.debarch:
-        print('Detecting cross environment via dpkg-reconfigure.')
+        print('Detecting cross environment via dpkg-architecture.')
         infos = detect_cross_debianlike(options)
     else:
         print('Detecting cross environment via environment variables.')
