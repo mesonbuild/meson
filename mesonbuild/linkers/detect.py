@@ -186,27 +186,6 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             v = search_version(o)
 
         linker = linkers.LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
-    # detect xtools first, bug #10805
-    elif 'xtools-' in o.split('\n', maxsplit=1)[0]:
-        xtools = o.split(' ', maxsplit=1)[0]
-        v = xtools.split('-', maxsplit=2)[1]
-        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
-    # First might be apple clang, second is for real gcc, the third is icc.
-    # Note that "ld: unknown option: " sometimes instead is "ld: unknown options:".
-    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option' in e:
-        if isinstance(comp_class.LINKER_PREFIX, str):
-            cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
-        else:
-            cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args
-        _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
-
-        for line in newerr.split('\n'):
-            if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
-                v = line.split('-')[1]
-                break
-        else:
-            __failed_to_detect_linker(compiler, check_args, o, e)
-        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'GNU' in o or 'GNU' in e:
         gnu_cls: T.Type[GnuDynamicLinker]
         # this is always the only thing on stdout, except for swift
@@ -239,6 +218,30 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     elif o.startswith('zig ld'):
         linker = linkers.ZigCCDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+    # detect xtools first, bug #10805
+    elif 'xtools-' in o.split('\n', maxsplit=1)[0]:
+        xtools = o.split(' ', maxsplit=1)[0]
+        v = xtools.split('-', maxsplit=2)[1]
+        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+    # detect linker on MacOS - must be after other platforms because the
+    # "(use -v to see invocation)" will match clang on other platforms,
+    # but the rest of the checks will fail and call __failed_to_detect_linker.
+    # First might be apple clang, second is for real gcc, the third is icc.
+    # Note that "ld: unknown option: " sometimes instead is "ld: unknown options:".
+    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option' in e:
+        if isinstance(comp_class.LINKER_PREFIX, str):
+            cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
+        else:
+            cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args
+        _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
+
+        for line in newerr.split('\n'):
+            if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
+                v = line.split('-')[1]
+                break
+        else:
+            __failed_to_detect_linker(compiler, check_args, o, e)
+        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     else:
         __failed_to_detect_linker(compiler, check_args, o, e)
     return linker
