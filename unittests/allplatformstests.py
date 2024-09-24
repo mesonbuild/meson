@@ -1129,6 +1129,8 @@ class AllPlatformTests(BasePlatformTests):
                     # ld-like linker of link.exe-like linker (usually the
                     # former for msys2, the latter otherwise)
                     self.assertIsInstance(cc.linker, (linkers.MSVCDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
+                elif is_sunos():
+                    self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
                 else:
                     self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, intel):
