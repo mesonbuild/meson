@@ -19,6 +19,7 @@ from .gnu import GnuLikeCompiler
 if T.TYPE_CHECKING:
     from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
+    from ..compilers import CompileCheckResult
 
 clang_color_args: T.Dict[str, T.List[str]] = {
     'auto': ['-fdiagnostics-color=auto'],
@@ -112,7 +113,7 @@ class ClangCompiler(GnuLikeCompiler):
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         if extra_args is None:
             extra_args = []
         # Starting with XCode 8, we need to pass this to force linker

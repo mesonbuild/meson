@@ -14,6 +14,7 @@ from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import CompileCheckResult
     from ..coredata import KeyedOptionDictType
     from ..environment import Environment
     from ..mesonlib import MachineChoice
@@ -174,7 +175,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_option_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> CompileCheckResult:
         raise EnvironmentException(f'Language {self.id} does not support has_multi_link_arguments.')
 
     def get_debugfile_name(self, targetfile: str) -> T.Optional[str]:

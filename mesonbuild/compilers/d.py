@@ -32,6 +32,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from .compilers import CompileCheckResult
 
     CompilerMixinBase = Compiler
 else:
@@ -547,7 +548,7 @@ class DCompiler(Compiler):
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> DCompilerArgs:
         return DCompilerArgs(self, args)
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> CompileCheckResult:
         return self.compiles('int i;\n', env, extra_args=args)
 
     def _get_target_arch_args(self) -> T.List[str]:
@@ -632,7 +633,7 @@ class DCompiler(Compiler):
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
                    extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None,
-                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+                   disable_cache: bool = False) -> CompileCheckResult:
 
         extra_args = self._get_compile_extra_args(extra_args)
         code = f'''{prefix}

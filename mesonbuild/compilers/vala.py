@@ -10,7 +10,7 @@ from .. import mlog
 from .. import mesonlib
 from ..mesonlib import EnvironmentException, version_compare, LibType
 from ..options import OptionKey
-from .compilers import CompileCheckMode, Compiler
+from .compilers import CompileCheckMode, CompileCheckResult, Compiler
 
 if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
@@ -191,7 +191,7 @@ class ValaCompiler(Compiler):
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
+              disable_cache: bool = False) -> CompileCheckResult:
         self.force_link = True
         if compiler:
             with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
