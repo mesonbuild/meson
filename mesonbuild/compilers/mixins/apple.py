@@ -59,3 +59,12 @@ class AppleCompilerMixin(Compiler):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
         # The objects are prelinked through the compiler, which injects -lSystem
         return ['-nostdlib', '-r', '-o', prelink_name] + obj_list
+
+
+class AppleCStdsMixin(Compiler):
+
+    """Provide version overrides for the Apple Compilers."""
+
+    _C17_VERSION = '>=10.0.0'
+    _C18_VERSION = '>=11.0.0'
+    _C2X_VERSION = '>=11.0.0'
