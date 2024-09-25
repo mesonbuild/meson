@@ -5024,7 +5024,7 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=gnu++11,vc++11,c++11')
             self.assertEqual(self.getconf('cpp_std'), 'vc++11')
-        elif cc.get_id() in {'gcc', 'clang'}:
+        elif cc.get_id() == 'gcc' or (cc.get_id() == 'clang' and not is_windows()):
             # default_option should have selected those
             self.assertEqual(self.getconf('c_std'), 'gnu89')
             self.assertEqual(self.getconf('cpp_std'), 'gnu++98')
