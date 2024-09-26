@@ -816,7 +816,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 cmd = cmd.absolute_path(srcdir, builddir)
             # Prefer scripts in the current source directory
             search_dir = os.path.join(srcdir, self.subdir)
-            prog = ExternalProgram(cmd, silent=True, search_dir=search_dir)
+            prog = ExternalProgram(cmd, silent=True, search_dirs=[search_dir])
             if not prog.found():
                 raise InterpreterException(f'Program or command {cmd!r} not found or not executable')
             cmd = prog
@@ -1586,7 +1586,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return prog
         return None
 
-    def program_from_system(self, args: T.List[mesonlib.FileOrString], search_dirs: T.List[str],
+    def program_from_system(self, args: T.List[mesonlib.FileOrString], search_dirs: T.Optional[T.List[str]],
                             extra_info: T.List[mlog.TV_Loggable]) -> T.Optional[ExternalProgram]:
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
@@ -1601,15 +1601,15 @@ class Interpreter(InterpreterBase, HoldableObject):
                     search_dir = os.path.join(self.environment.get_source_dir(),
                                               exename.subdir)
                 exename = exename.fname
-                extra_search_dirs = []
+                search_dirs = [search_dir]
             elif isinstance(exename, str):
-                search_dir = source_dir
-                extra_search_dirs = search_dirs
+                if search_dirs:
+                    search_dirs = [source_dir] + search_dirs
+                else:
+                    search_dirs = [source_dir]
             else:
                 raise InvalidArguments(f'find_program only accepts strings and files, not {exename!r}')
-            extprog = ExternalProgram(exename, search_dir=search_dir,
-                                      extra_search_dirs=extra_search_dirs,
-                                      silent=True)
+            extprog = ExternalProgram(exename, search_dirs=search_dirs, silent=True)
             if extprog.found():
                 extra_info.append(f"({' '.join(extprog.get_command())})")
                 return extprog
@@ -1681,7 +1681,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
                        default_options: T.Optional[T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]],
                        required: bool,
-                       search_dirs: T.List[str],
+                       search_dirs: T.Optional[T.List[str]],
                        wanted: T.Union[str, T.List[str]],
                        version_arg: T.Optional[str],
                        version_func: T.Optional[ProgramVersionFunc],

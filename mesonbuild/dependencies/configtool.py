@@ -37,7 +37,7 @@ class ConfigToolDependency(ExternalDependency):
     allow_default_for_cross = False
     __strip_version = re.compile(r'^[0-9][0-9.]+')
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, exclude_paths: T.Optional[T.List[str]] = None):
         super().__init__(DependencyTypeName('config-tool'), environment, kwargs, language=language)
         self.name = name
         # You may want to overwrite the class version in some cases
@@ -52,7 +52,7 @@ class ConfigToolDependency(ExternalDependency):
             req_version = mesonlib.stringlistify(req_version_raw)
         else:
             req_version = []
-        tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0))
+        tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0), exclude_paths=exclude_paths)
         self.config = tool
         self.is_found = self.report_config(version, req_version)
         if not self.is_found:
@@ -84,15 +84,17 @@ class ConfigToolDependency(ExternalDependency):
         version = self._sanitize_version(out.strip())
         return valid, version
 
-    def find_config(self, versions: T.List[str], returncode: int = 0) \
+    def find_config(self, versions: T.List[str], returncode: int = 0, exclude_paths: T.Optional[T.List[str]] = None) \
             -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
         """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
         """
+        exclude_paths = [] if exclude_paths is None else exclude_paths
         best_match: T.Tuple[T.Optional[T.List[str]], T.Optional[str]] = (None, None)
         for potential_bin in find_external_program(
                 self.env, self.for_machine, self.tool_name,
-                self.tool_name, self.tools, allow_default_for_cross=self.allow_default_for_cross):
+                self.tool_name, self.tools, exclude_paths=exclude_paths,
+                allow_default_for_cross=self.allow_default_for_cross):
             if not potential_bin.found():
                 continue
             tool = potential_bin.get_command()
