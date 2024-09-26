@@ -340,6 +340,12 @@ class OverrideProgram(ExternalProgram):
 
     """A script overriding a program."""
 
+    def __init__(self, name: str, version: str, command: T.Optional[T.List[str]] = None,
+                 silent: bool = False, search_dir: T.Optional[str] = None,
+                 extra_search_dirs: T.Optional[T.List[str]] = None):
+        self.cached_version = version
+        super().__init__(name, command=command, silent=silent,
+                         search_dir=search_dir, extra_search_dirs=extra_search_dirs)
 
 def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
                           display_name: str, default_names: T.List[str],
