@@ -312,7 +312,14 @@ class CursesConfigToolDependency(ConfigToolDependency):
     tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
-        super().__init__(name, env, kwargs, language)
+        exclude_paths = None
+        # macOS mistakenly ships /usr/bin/ncurses5.4-config and a man page for
+        # it, but none of the headers or libraries. Ignore /usr/bin because it
+        # can only contain this broken configtool script.
+        # Homebrew is /usr/local or /opt/homebrew.
+        if env.machines.build and env.machines.build.system == 'darwin':
+            exclude_paths = ['/usr/bin']
+        super().__init__(name, env, kwargs, language, exclude_paths=exclude_paths)
         if not self.is_found:
             return
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
