@@ -15,6 +15,8 @@ from ... import arglist
 from ... import mesonlib
 from ... import mlog
 from mesonbuild.compilers.compilers import CompileCheckMode
+from ...options import OptionKey
+from mesonbuild.linkers.linkers import ClangClDynamicLinker
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -110,7 +112,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     INVOKES_LINKER = False
 
     def __init__(self, target: str):
-        self.base_options = {mesonlib.OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like
+        self.base_options = {OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like
         self.target = target
         self.is_64 = ('x64' in target) or ('x86_64' in target)
         # do some canonicalization of target machine
@@ -125,7 +127,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         else:
             self.machine = target
         if mesonlib.version_compare(self.version, '>=19.28.29910'): # VS 16.9.0 includes cl 19.28.29910
-            self.base_options.add(mesonlib.OptionKey('b_sanitize'))
+            self.base_options.add(OptionKey('b_sanitize'))
         assert self.linker is not None
         self.linker.machine = self.machine
 
@@ -204,10 +206,10 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         objname = os.path.splitext(source)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['/openmp']
 
-    def openmp_link_flags(self) -> T.List[str]:
+    def openmp_link_flags(self, env: Environment) -> T.List[str]:
         return []
 
     # FIXME, no idea what these should be.
@@ -361,7 +363,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # false without compiling anything
         return name in {'dllimport', 'dllexport'}, False
 
-    def get_argument_syntax(self) -> str:
+    @staticmethod
+    def get_argument_syntax() -> str:
         return 'msvc'
 
     def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
@@ -381,6 +384,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # As a last resort, try search in a compiled binary
         return self._symbols_have_underscore_prefix_searchbin(env)
 
+    def get_pie_args(self) -> T.List[str]:
+        return []
 
 class MSVCCompiler(VisualStudioLikeCompiler):
 
@@ -425,6 +430,10 @@ class MSVCCompiler(VisualStudioLikeCompiler):
     def get_pch_base_name(self, header: str) -> str:
         return os.path.basename(header)
 
+    # MSVC requires linking to the generated object file when linking a build target
+    # that uses a precompiled header
+    def should_link_pch_object(self) -> bool:
+        return True
 
 class ClangClCompiler(VisualStudioLikeCompiler):
 
@@ -434,6 +443,10 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     def __init__(self, target: str):
         super().__init__(target)
+
+        self.base_options.update(
+            {OptionKey('b_lto_threads'), OptionKey('b_lto'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
+             OptionKey('b_thinlto_cache_dir')})
 
         # Assembly
         self.can_compile_suffixes.add('s')
@@ -456,6 +469,18 @@ class ClangClCompiler(VisualStudioLikeCompiler):
             path = '.'
         return ['/clang:-isystem' + path] if is_system else ['-I' + path]
 
+    @classmethod
+    def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
+        # Clang additionally can use a linker specified as a path, unlike MSVC.
+        if linker == 'lld-link':
+            return ['-fuse-ld=lld-link']
+        return super().use_linker_args(linker, version)
+
+    def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
+        # clang-cl forwards arguments span-wise with the /LINK flag
+        # therefore -Wl will be received by lld-link or LINK and rejected
+        return super().use_linker_args(self.linker.id, '') + super().linker_to_compiler_args([flag[4:] if flag.startswith('-Wl,') else flag for flag in args])
+
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         if dep.get_include_type() == 'system':
             converted: T.List[str] = []
@@ -467,3 +492,34 @@ class ClangClCompiler(VisualStudioLikeCompiler):
             return converted
         else:
             return dep.get_compile_args()
+
+    def openmp_link_flags(self, env: Environment) -> T.List[str]:
+        # see https://github.com/mesonbuild/meson/issues/5298
+        libs = self.find_library('libomp', env, [])
+        if libs is None:
+            raise mesonlib.MesonBugException('Could not find libomp')
+        return super().openmp_link_flags(env) + libs
+
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        args: T.List[str] = []
+        if mode == 'thin':
+            # LTO data generated by clang-cl is only usable by lld-link
+            if not isinstance(self.linker, ClangClDynamicLinker):
+                raise mesonlib.MesonException(f"LLVM's ThinLTO only works with lld-link, not {self.linker.id}")
+            args.append(f'-flto={mode}')
+        else:
+            assert mode == 'default', 'someone forgot to wire something up'
+            args.extend(super().get_lto_compile_args(threads=threads))
+        return args
+
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        args = []
+        if mode == 'thin' and thinlto_cache_dir is not None:
+            args.extend(self.linker.get_thinlto_cache_args(thinlto_cache_dir))
+        # lld-link /threads:N has the same behaviour as -flto-jobs=N in lld
+        if threads > 0:
+            # clang-cl was released after clang already had LTO support, so it
+            # is safe to assume that all versions of clang-cl support LTO
+            args.append(f'/threads:{threads}')
+        return args

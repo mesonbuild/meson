@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/75 unfound run/meson.build:4:0: ERROR: Tried to use non-existing executable 'nonexisting_prog'"
-    }
-  ]
-}

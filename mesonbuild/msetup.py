@@ -11,6 +11,7 @@ import typing as T
 
 from . import build, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .mesonlib import MesonException
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -242,10 +243,11 @@ class MesonApp:
 
             self.finalize_postconf_hooks(b, intr)
             if self.options.profile:
+                localvars = locals()
                 fname = f'profile-{intr.backend.name}-backend.log'
                 fname = os.path.join(self.build_dir, 'meson-logs', fname)
-                profile.runctx('gen_result = intr.backend.generate(capture, vslite_ctx)', globals(), locals(), filename=fname)
-                captured_compile_args = locals()['gen_result']
+                profile.runctx('gen_result = intr.backend.generate(capture, vslite_ctx)', globals(), localvars, filename=fname)
+                captured_compile_args = localvars['gen_result']
                 assert captured_compile_args is None or isinstance(captured_compile_args, dict)
             else:
                 captured_compile_args = intr.backend.generate(capture, vslite_ctx)
@@ -273,9 +275,9 @@ class MesonApp:
 
             # collect warnings about unsupported build configurations; must be done after full arg processing
             # by Interpreter() init, but this is most visible at the end
-            if env.coredata.options[mesonlib.OptionKey('backend')].value == 'xcode':
+            if env.coredata.optstore.get_value('backend') == 'xcode':
                 mlog.warning('xcode backend is currently unmaintained, patches welcome')
-            if env.coredata.options[mesonlib.OptionKey('layout')].value == 'flat':
+            if env.coredata.optstore.get_value('layout') == 'flat':
                 mlog.warning('-Dlayout=flat is unsupported and probably broken. It was a failed experiment at '
                              'making Windows build artifacts runnable while uninstalled, due to PATH considerations, '
                              'but was untested by CI and anyways breaks reasonable use of conflicting targets in different subdirs. '
@@ -319,10 +321,10 @@ def run_genvslite_setup(options: CMDOptions) -> None:
     # invoke the appropriate 'meson compile ...' build commands upon the normal visual studio build/rebuild/clean actions, instead of using
     # the native VS/msbuild system.
     builddir_prefix = options.builddir
-    genvsliteval = options.cmd_line_options.pop(mesonlib.OptionKey('genvslite'))
+    genvsliteval = options.cmd_line_options.pop(OptionKey('genvslite'))
     # The command line may specify a '--backend' option, which doesn't make sense in conjunction with
     # '--genvslite', where we always want to use a ninja back end -
-    k_backend = mesonlib.OptionKey('backend')
+    k_backend = OptionKey('backend')
     if k_backend in options.cmd_line_options.keys():
         if options.cmd_line_options[k_backend] != 'ninja':
             raise MesonException('Explicitly specifying a backend option with \'genvslite\' is not necessary '
@@ -335,12 +337,12 @@ def run_genvslite_setup(options: CMDOptions) -> None:
 
     for buildtypestr in buildtypes_list:
         options.builddir = f'{builddir_prefix}_{buildtypestr}' # E.g. builddir_release
-        options.cmd_line_options[mesonlib.OptionKey('buildtype')] = buildtypestr
+        options.cmd_line_options[OptionKey('buildtype')] = buildtypestr
         app = MesonApp(options)
         vslite_ctx[buildtypestr] = app.generate(capture=True)
     #Now for generating the 'lite' solution and project files, which will use these builds we've just set up, above.
     options.builddir = f'{builddir_prefix}_vs'
-    options.cmd_line_options[mesonlib.OptionKey('genvslite')] = genvsliteval
+    options.cmd_line_options[OptionKey('genvslite')] = genvsliteval
     app = MesonApp(options)
     app.generate(capture=False, vslite_ctx=vslite_ctx)
 
@@ -352,11 +354,11 @@ def run(options: T.Union[CMDOptions, T.List[str]]) -> int:
     coredata.parse_cmd_line_options(options)
 
     # Msetup doesn't actually use this option, but we pass msetup options to
-    # mconf, and it does. We won't actally hit the path that uses it, but don't
+    # mconf, and it does. We won't actually hit the path that uses it, but don't
     # lie
     options.pager = False
 
-    if mesonlib.OptionKey('genvslite') in options.cmd_line_options.keys():
+    if OptionKey('genvslite') in options.cmd_line_options.keys():
         run_genvslite_setup(options)
     else:
         app = MesonApp(options)

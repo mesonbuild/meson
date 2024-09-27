@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2024 Intel Corporation
 
 from pathlib import Path
 import argparse
@@ -38,13 +40,16 @@ modules = [
     'mesonbuild/interpreter/mesonmain.py',
     'mesonbuild/interpreter/interpreterobjects.py',
     'mesonbuild/interpreter/type_checking.py',
+    'mesonbuild/machinefile.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
     'mesonbuild/utils/core.py',
     'mesonbuild/utils/platform.py',
     'mesonbuild/utils/universal.py',
+    'mesonbuild/utils/vsenv.py',
     'mesonbuild/mconf.py',
     'mesonbuild/mdist.py',
+    'mesonbuild/mformat.py',
     'mesonbuild/minit.py',
     'mesonbuild/minstall.py',
     'mesonbuild/mintro.py',
@@ -61,7 +66,7 @@ modules = [
     'mesonbuild/modules/keyval.py',
     'mesonbuild/modules/modtest.py',
     'mesonbuild/modules/pkgconfig.py',
-    'mesonbuild/modules/qt.py',
+    'mesonbuild/modules/_qt.py',
     'mesonbuild/modules/qt4.py',
     'mesonbuild/modules/qt5.py',
     'mesonbuild/modules/qt6.py',
@@ -83,6 +88,7 @@ additional = [
     'tools',
     'docs/genrefman.py',
     'docs/refman',
+    'unittests/helpers.py',
 ]
 
 if os.name == 'posix':

@@ -21,6 +21,7 @@ foo = static_library('foo-rs', 'foo.rs',
   rust_abi: 'c',
   link_with: pm,
 )
+shared_library('shared', 'foo.c', link_with : foo)
 exe = executable('footest', 'foo.c',
   link_with: foo,
 )

@@ -1,0 +1,94 @@
+project(
+    'indentation',
+    default_options: {
+        'buildtype': 'release',
+        'default_library': 'shared',
+        'prefer_static': false,
+        'unity': 'off',
+    },
+    meson_version: '>= 1.5.0',
+    version: '1.2.3',
+)
+
+a = [
+    # comment
+    # comment
+    1,
+    # comment
+    2,
+    3,
+    [
+        4,
+        5,
+        6,
+        [
+            7,
+            8,
+            9,
+            [
+                10,  # 10
+                11,  # 11
+                12,  # 12
+            ],
+            13,
+            14,
+            15,
+        ],
+    ],
+]
+d = {}
+
+if meson.project_version().version_compare('>1.2')
+    # comment
+    # comment
+    if meson.version().version_compare('>1.0')
+        # comment
+        # comment
+        foreach i : a
+            # comment
+            e = {
+                'a': 'a',
+                'b': 'b',
+                'c': 'c',
+                'd': [
+                    1,
+                    2,
+                    3,
+                    {
+                        'e': 'e',
+                        'f': 'f',
+                        'g': 'g',
+                        'h': {
+                            'i': (
+                                # a
+                                1
+                                # b
+                                +
+                                # c
+                                2
+                            ),
+                            'j': [
+                                1,  # 1
+                                2,  # 2
+                                3,  # 3
+                            ],
+                        },
+                    },
+                ],
+            }
+        endforeach
+
+        foreach j : a
+            # comment
+            # comment
+            # comment
+        endforeach
+    elif 42 in d
+        d += {'foo': 43}
+    else  # ensure else is correctly indented (issue #13316)
+        # comment
+        k = 'k'
+        # comment
+        # comment
+    endif
+endif

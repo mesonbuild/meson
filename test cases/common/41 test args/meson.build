@@ -33,3 +33,19 @@ testfilect = custom_target('testfile',
                            build_by_default : true,
                            command : [copy, '@INPUT@', '@OUTPUT@'])
 test('custom target arg', tester, args : testfilect, env : env_array)
+
+# https://github.com/mesonbuild/meson/issues/12327
+env = environment()
+env.append('PATH', 'something')
+
+pathtester = find_program('pathtester.py')
+
+custompathtgt = custom_target('testpathappend',
+                              output : 'nothing.txt',
+                              build_always : true,
+                              command : [pathtester],
+                              env : env)
+
+# https://github.com/mesonbuild/meson/issues/3552
+wrap = find_program('wrap.py')
+test('external program arg', wrap, args : [testerpy, testfile])

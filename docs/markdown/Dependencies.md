@@ -80,8 +80,8 @@ var = foo_dep.get_variable(cmake : 'CMAKE_VAR', pkgconfig : 'pkg-config-var', co
 ```
 
 It accepts the keywords 'cmake', 'pkgconfig', 'pkgconfig_define',
-'configtool', 'internal', and 'default_value'. 'pkgconfig_define'
-works just like the 'define_variable' argument to
+'configtool', 'internal', 'system', and 'default_value'.
+'pkgconfig_define' works just like the 'define_variable' argument to
 `get_pkgconfig_variable`. When this method is invoked the keyword
 corresponding to the underlying type of the dependency will be used to
 look for a variable. If that variable cannot be found or if the caller
@@ -266,11 +266,12 @@ DC="dmd" meson setup builddir
 
 ## Config tool
 
-[CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
-[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
-modules or additionally can be detected via a config tool
-(cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
-tools, and they can be found like other dependencies:
+[CUPS](#cups), [LLVM](#llvm), [ObjFW](#objfw), [pcap](#pcap),
+[WxWidgets](#wxwidgets), [libwmf](#libwmf), [GCrypt](#libgcrypt),
+[GPGME](#gpgme), and GnuStep either do not provide pkg-config modules or
+additionally can be detected via a config tool (cups-config, llvm-config,
+libgcrypt-config, etc). Meson has native support for these tools, and they can
+be found like other dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
@@ -278,6 +279,7 @@ cups_dep = dependency('cups', version : '>=1.4')
 llvm_dep = dependency('llvm', version : '>=4.0')
 libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
 gpgme_dep = dependency('gpgme', version: '>= 1.0')
+objfw_dep = dependency('objfw', version: '>= 1.0')
 ```
 
 *Since 0.55.0* Meson won't search $PATH any more for a config tool
@@ -637,6 +639,36 @@ language-specific, you must specify the requested language using the
 
 Meson uses pkg-config to find NetCDF.
 
+## ObjFW
+
+*(added 1.5.0)*
+
+Meson has native support for ObjFW, including support for ObjFW packages.
+
+In order to use ObjFW, simply create the dependency:
+
+```meson
+objfw_dep = dependency('objfw')
+```
+
+In order to also use ObjFW packages, simply specify them as modules:
+
+```meson
+objfw_dep = dependency('objfw', modules: ['SomePackage'])
+```
+
+If you need a dependency with and without packages, e.g. because your tests
+want to use ObjFWTest, but you don't want to link your application against the
+tests, simply get two dependencies and use them as appropriate:
+
+```meson
+objfw_dep = dependency('objfw', modules: ['SomePackage'])
+objfwtest_dep = dependency('objfw', modules: ['ObjFWTest'])
+```
+
+Then use `objfw_dep` for your library and only `objfwtest_dep` (not both) for
+your tests.
+
 ## OpenMP
 
 *(added 0.46.0)*
@@ -734,7 +766,7 @@ your own risk.
 
 ## SDL2
 
-SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool,
+SDL2 can be located using `pkg-config`, the `sdl2-config` config tool,
 as an OSX framework, or `cmake`.
 
 `method` may be `auto`, `config-tool`, `extraframework`,
@@ -816,6 +848,34 @@ version.
 `method` may be `auto`, `pkg-config`, `cmake`, or `system`.
 
 *New in 0.54.0* the `system` method.
+
+## DIA SDK
+
+*(added 1.6.0)*
+
+Microsoft's Debug Interface Access SDK (DIA SDK) is available only on Windows,
+when using msvc, clang-cl or clang compiler from Microsoft Visual Studio.
+
+The DIA SDK runtime is not statically linked to target. The default usage
+method requires the runtime DLL (msdiaXXX.dll) to be manually registered in the
+OS with `regsrv32.exe` command, so it can be loaded using `CoCreateInstance`
+Windows function.
+
+Alternatively, you can use meson to copy the DIA runtime DLL to your build
+directory, and load it dynamically using `NoRegCoCreate` function provided by
+the DIA SDK. To facilitate this, you can read DLL path from dependency's
+variable 'dll' and use fs module to copy it. Example:
+
+```meson
+dia = dependency('diasdk', required: true)
+fs = import('fs')
+fs.copyfile(dia.get_variable('dll'))
+
+conf = configuration_data()
+conf.set('msdia_dll_name', fs.name(dia_dll_name))
+```
+
+Only the major version is available (eg. version is `14` for msdia140.dll).
 
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the

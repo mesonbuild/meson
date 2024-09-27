@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/60 grab sibling/subprojects/a/meson.build:3:0: ERROR: Sandbox violation: Tried to grab file sneaky.c outside current (sub)project."
-    }
-  ]
-}

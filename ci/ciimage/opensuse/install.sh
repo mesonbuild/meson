@@ -5,7 +5,7 @@ set -e
 source /ci/common.sh
 
 pkgs=(
-  python3-pip python3 python3-devel
+  python3-pip python3 python3-devel python3-setuptools
   ninja make git autoconf automake patch libjpeg-devel
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-obj-c++ vala rust bison flex curl lcov
   mono-core gtkmm3-devel gtest gmock protobuf-devel wxGTK3-3_2-devel gobject-introspection-devel
@@ -39,7 +39,7 @@ chmod +x /ci/env_vars.sh
 source /ci/env_vars.sh
 
 dub_fetch urld
-dub build urld --compiler=dmd
+dub build --deep urld --arch=x86_64 --compiler=dmd --build=debug
 dub_fetch dubtestproject
 dub build dubtestproject:test1 --compiler=dmd
 dub build dubtestproject:test2 --compiler=dmd

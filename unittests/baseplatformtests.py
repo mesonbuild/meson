@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
+# Copyright © 2024 Intel Corporation
 
+from __future__ import annotations
 from pathlib import PurePath
 from unittest import mock, TestCase, SkipTest
 import json
@@ -9,6 +11,7 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 import tempfile
 import typing as T
 
@@ -28,7 +31,7 @@ import mesonbuild.modules.pkgconfig
 
 
 from run_tests import (
-    Backend, ensure_backend_detects_changes, get_backend_commands,
+    Backend, get_backend_commands,
     get_builddir_target_args, get_meson_script, run_configure_inprocess,
     run_mtest_inprocess, handle_meson_skip_test,
 )
@@ -39,54 +42,58 @@ from run_tests import (
 # e.g. for assertXXX helpers.
 __unittest = True
 
+@mock.patch.dict(os.environ)
 class BasePlatformTests(TestCase):
     prefix = '/usr'
     libdir = 'lib'
 
-    def setUp(self):
-        super().setUp()
-        self.maxDiff = None
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.maxDiff = None
         src_root = str(PurePath(__file__).parents[1])
-        self.src_root = src_root
+        cls.src_root = src_root
         # Get the backend
-        self.backend_name = os.environ['MESON_UNIT_TEST_BACKEND']
-        backend_type = 'vs' if self.backend_name.startswith('vs') else self.backend_name
-        self.backend = getattr(Backend, backend_type)
-        self.meson_args = ['--backend=' + self.backend_name]
-        self.meson_native_files = []
-        self.meson_cross_files = []
-        self.meson_command = python_command + [get_meson_script()]
-        self.setup_command = self.meson_command + ['setup'] + self.meson_args
-        self.mconf_command = self.meson_command + ['configure']
-        self.mintro_command = self.meson_command + ['introspect']
-        self.wrap_command = self.meson_command + ['wrap']
-        self.rewrite_command = self.meson_command + ['rewrite']
+        cls.backend_name = os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja')
+        backend_type = 'vs' if cls.backend_name.startswith('vs') else cls.backend_name
+        cls.backend = getattr(Backend, backend_type)
+        cls.meson_args = ['--backend=' + cls.backend_name]
+        cls.meson_command = python_command + [get_meson_script()]
+        cls.setup_command = cls.meson_command + ['setup'] + cls.meson_args
+        cls.mconf_command = cls.meson_command + ['configure']
+        cls.mintro_command = cls.meson_command + ['introspect']
+        cls.wrap_command = cls.meson_command + ['wrap']
+        cls.rewrite_command = cls.meson_command + ['rewrite']
         # Backend-specific build commands
-        self.build_command, self.clean_command, self.test_command, self.install_command, \
-            self.uninstall_command = get_backend_commands(self.backend)
+        cls.build_command, cls.clean_command, cls.test_command, cls.install_command, \
+            cls.uninstall_command = get_backend_commands(cls.backend)
         # Test directories
-        self.common_test_dir = os.path.join(src_root, 'test cases/common')
-        self.python_test_dir = os.path.join(src_root, 'test cases/python')
-        self.rust_test_dir = os.path.join(src_root, 'test cases/rust')
-        self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
-        self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
-        self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
-        self.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
-        self.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
-        self.objc_test_dir = os.path.join(src_root, 'test cases/objc')
-        self.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
+        cls.common_test_dir = os.path.join(src_root, 'test cases/common')
+        cls.python_test_dir = os.path.join(src_root, 'test cases/python')
+        cls.rust_test_dir = os.path.join(src_root, 'test cases/rust')
+        cls.vala_test_dir = os.path.join(src_root, 'test cases/vala')
+        cls.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
+        cls.unit_test_dir = os.path.join(src_root, 'test cases/unit')
+        cls.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
+        cls.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
+        cls.objc_test_dir = os.path.join(src_root, 'test cases/objc')
+        cls.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
+        cls.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
 
         # Misc stuff
-        self.orig_env = os.environ.copy()
-        if self.backend is Backend.ninja:
-            self.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
+        if cls.backend is Backend.ninja:
+            cls.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
         else:
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
-            self.no_rebuild_stdout = [f'UNKNOWN BACKEND {self.backend.name!r}']
+            cls.no_rebuild_stdout = [f'UNKNOWN BACKEND {cls.backend.name!r}']
         os.environ['COLUMNS'] = '80'
+        os.environ['PYTHONIOENCODING'] = 'utf8'
 
-        self.builddirs = []
+    def setUp(self):
+        super().setUp()
+        self.meson_native_files = []
+        self.meson_cross_files = []
         self.new_builddir()
 
     def change_builddir(self, newdir):
@@ -96,7 +103,10 @@ class BasePlatformTests(TestCase):
         self.installdir = os.path.join(self.builddir, 'install')
         self.distdir = os.path.join(self.builddir, 'meson-dist')
         self.mtest_command = self.meson_command + ['test', '-C', self.builddir]
-        self.builddirs.append(self.builddir)
+        if os.path.islink(newdir):
+            self.addCleanup(os.unlink, self.builddir)
+        else:
+            self.addCleanup(windows_proof_rmtree, self.builddir)
 
     def new_builddir(self):
         # Keep builddirs inside the source tree so that virus scanners
@@ -135,16 +145,6 @@ class BasePlatformTests(TestCase):
         log = self._get_meson_log()
         if log:
             print(log)
-
-    def tearDown(self):
-        for path in self.builddirs:
-            try:
-                windows_proof_rmtree(path)
-            except FileNotFoundError:
-                pass
-        os.environ.clear()
-        os.environ.update(self.orig_env)
-        super().tearDown()
 
     def _run(self, command, *, workdir=None, override_envvars: T.Optional[T.Mapping[str, str]] = None, stderr=True):
         '''
@@ -285,11 +285,11 @@ class BasePlatformTests(TestCase):
         '''
         return self.build(target=target, override_envvars=override_envvars)
 
-    def setconf(self, arg, will_build=True):
-        if not isinstance(arg, list):
+    def setconf(self, arg: T.Sequence[str], will_build: bool = True) -> None:
+        if isinstance(arg, str):
             arg = [arg]
-        if will_build:
-            ensure_backend_detects_changes(self.backend)
+        else:
+            arg = list(arg)
         self._run(self.mconf_command + arg + [self.builddir])
 
     def getconf(self, optname: str):
@@ -303,7 +303,6 @@ class BasePlatformTests(TestCase):
         windows_proof_rmtree(self.builddir)
 
     def utime(self, f):
-        ensure_backend_detects_changes(self.backend)
         os.utime(f)
 
     def get_compdb(self):
@@ -360,14 +359,14 @@ class BasePlatformTests(TestCase):
         if isinstance(args, str):
             args = [args]
         out = subprocess.check_output(self.mintro_command + args + [self.builddir],
-                                      universal_newlines=True)
+                                      encoding='utf-8', universal_newlines=True)
         return json.loads(out)
 
     def introspect_directory(self, directory, args):
         if isinstance(args, str):
             args = [args]
         out = subprocess.check_output(self.mintro_command + args + [directory],
-                                      universal_newlines=True)
+                                      encoding='utf-8', universal_newlines=True)
         try:
             obj = json.loads(out)
         except Exception as e:
@@ -491,3 +490,23 @@ class BasePlatformTests(TestCase):
 
     def assertLength(self, val, length):
         assert len(val) == length, f'{val} is not length {length}'
+
+    def copy_srcdir(self, srcdir: str) -> str:
+        """Copies a source tree and returns that copy.
+
+        ensures that the copied tree is deleted after running.
+
+        :param srcdir: The location of the source tree to copy
+        :return: The location of the copy
+        """
+        dest = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dest)
+
+        # shutil.copytree expects the destination directory to not exist, Once
+        # python 3.8 is required the `dirs_exist_ok` parameter negates the need
+        # for this
+        dest = os.path.join(dest, 'subdir')
+
+        shutil.copytree(srcdir, dest)
+
+        return dest

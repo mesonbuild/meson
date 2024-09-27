@@ -5,6 +5,8 @@ is_windows = build_machine.system() == 'windows'
 fs = import('fs')
 
 f = files('meson.build')
+btgt = executable('btgt', 'btgt.c')
+ctgt = fs.copyfile('ctgt.txt')
 
 assert(fs.exists('meson.build'), 'Existing file reported as missing.')
 assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
@@ -88,6 +90,13 @@ new_check = is_windows ? 'j:\\foo\\bar.ini' : '/foo/bar.ini'
 new = fs.replace_suffix(original, '.ini')
 assert(new == new_check, 'absolute path replace_suffix failed')
 
+new = fs.replace_suffix(btgt, '.ini')
+assert(new == 'btgt.ini', 'replace_suffix failed for build target')
+new = fs.replace_suffix(ctgt, '.ini')
+assert(new == 'ctgt.ini', 'replace_suffix failed for custom target')
+new = fs.replace_suffix(ctgt[0], '.ini')
+assert(new == 'ctgt.ini', 'replace_suffix failed for custom target index')
+
 # -- hash
 
 md5 = fs.hash('subdir/subdirfile.txt', 'md5')
@@ -135,11 +144,25 @@ assert(fs.parent(f[1]) == 'subdir/..', 'failed to get dirname')
 else
 assert(fs.parent(f[1]) == 'subdir\..', 'failed to get dirname')
 endif
+assert(fs.parent(btgt) == '.', 'failed to get dirname for build target')
+assert(fs.parent(ctgt) == '.', 'failed to get dirname for custom target')
+assert(fs.parent(ctgt[0]) == '.', 'failed to get dirname for custom target index')
+
 assert(fs.name('foo/bar') == 'bar', 'failed to get basename')
 assert(fs.name(f[1]) == 'meson.build', 'failed to get basename')
 assert(fs.name('foo/bar/baz.dll.a') == 'baz.dll.a', 'failed to get basename with compound suffix')
+if host_machine.system() in ['cygwin', 'windows']
+  assert(fs.name(btgt) == 'btgt.exe', 'failed to get basename of build target')
+else
+  assert(fs.name(btgt) == 'btgt', 'failed to get basename of build target')
+endif
+assert(fs.name(ctgt) == 'ctgt.txt', 'failed to get basename of custom target')
+assert(fs.name(ctgt[0]) == 'ctgt.txt', 'failed to get basename of custom target index')
 assert(fs.stem('foo/bar/baz.dll') == 'baz', 'failed to get stem with suffix')
 assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compound suffix')
+assert(fs.stem(btgt) == 'btgt', 'failed to get stem of build target')
+assert(fs.stem(ctgt) == 'ctgt', 'failed to get stem of custom target')
+assert(fs.stem(ctgt[0]) == 'ctgt', 'failed to get stem of custom target index')
 
 # relative_to
 if build_machine.system() == 'windows'

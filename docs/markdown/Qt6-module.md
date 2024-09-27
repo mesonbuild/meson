@@ -20,7 +20,7 @@ Compiles Qt's resources collection files (.qrc) into c++ files for compilation.
 It takes no positional arguments, and the following keyword arguments:
   - `name` (string | empty): if provided a single .cpp file will be generated,
     and the output of all qrc files will be combined in this file, otherwise
-    each qrc file be written to it's own cpp file.
+    each qrc file be written to its own cpp file.
   - `sources` (File | string | custom_target | custom_target index | generator_output)[]:
     A list of sources to be transpiled. Required, must have at least one source<br/>
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
@@ -111,7 +111,7 @@ This method takes the following keyword arguments:
    directory. For instance, when a file called `subdir/one.input` is processed
    it generates a file `{target private directory}/subdir/one.out` when `true`,
    and `{target private directory}/one.out` when `false` (default).
-    
+
 It returns an array of targets and sources to pass to a compilation target.
 
 ## compile_translations
@@ -156,6 +156,9 @@ This method takes the following keyword arguments:
   `true` or an enabled [`feature`](Build-options.md#features) and some tools are
   missing Meson will abort.
 - `method` string: The method to use to detect Qt, see [[dependency]]
+- `tools`: string[]: *Since 1.6.0*. List of tools to check. Testable tools
+  are `moc`, `uic`, `rcc` and `lrelease`. By default `tools` is set to `['moc',
+  'uic', 'rcc', 'lrelease']`
 
 ## Dependencies
 

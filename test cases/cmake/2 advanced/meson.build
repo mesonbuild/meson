@@ -15,6 +15,8 @@ sub_sta = sub_pro.dependency('cmModLibStatic')
 # Build some files
 exe1 = executable('main1', ['main.cpp'], dependencies: [sub_dep])
 exe2 = executable('main2', ['main.cpp'], dependencies: [sub_sta])
+slib = shared_library('slib', ['slib.cpp'], dependencies: [sub_dep])
+exe3 = executable('main3', ['main3.cpp'], link_with: slib)
 test('test1', exe1)
 test('test2', exe2)
 

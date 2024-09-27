@@ -7,7 +7,8 @@ import subprocess
 import shutil
 import tempfile
 from ..environment import detect_ninja, detect_scanbuild
-from ..coredata import get_cmd_line_file, CmdLineFileParser
+from ..coredata import get_cmd_line_file
+from ..machinefile import CmdLineFileParser
 from ..mesonlib import windows_proof_rmtree
 from pathlib import Path
 import typing as T

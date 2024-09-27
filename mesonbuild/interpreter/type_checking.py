@@ -11,11 +11,12 @@ from .. import compilers
 from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
-from ..coredata import UserFeatureOption
+from ..options import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
-                        OptionKey, EnvironmentVariables)
+                        EnvironmentVariables)
+from ..options import OptionKey
 from ..programs import ExternalProgram
 
 # Helper definition for type checks that are `Optional[T]`
@@ -144,8 +145,6 @@ def variables_validator(contents: T.Union[str, T.List[str], T.Dict[str, str]]) -
     for k, v in variables.items():
         if not k:
             return 'empty variable name'
-        if not v:
-            return 'empty variable value'
         if any(c.isspace() for c in k):
             return f'invalid whitespace in variable name {k!r}'
     return None
@@ -270,12 +269,12 @@ DEPFILE_KW: KwargInfo[T.Optional[str]] = KwargInfo(
     validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None
 )
 
-# TODO: CustomTargetIndex should be supported here as well
-DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget]]] = KwargInfo(
+DEPENDS_KW: KwargInfo[T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]] = KwargInfo(
     'depends',
-    ContainerTypeInfo(list, (BuildTarget, CustomTarget)),
+    ContainerTypeInfo(list, (BuildTarget, CustomTarget, CustomTargetIndex)),
     listify=True,
     default=[],
+    since_values={CustomTargetIndex: '1.5.0'},
 )
 
 DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
@@ -287,7 +286,6 @@ DEPEND_FILES_KW: KwargInfo[T.List[T.Union[str, File]]] = KwargInfo(
 
 COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File]]] = KwargInfo(
     'command',
-    # TODO: should accept CustomTargetIndex as well?
     ContainerTypeInfo(list, (str, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram, File), allow_empty=False),
     required=True,
     listify=True,
@@ -487,7 +485,7 @@ VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
 PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=False, since='0.63.0')
 
 TEST_KWS: T.List[KwargInfo] = [
-    KwargInfo('args', ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex)),
+    KwargInfo('args', ContainerTypeInfo(list, (str, File, BuildTarget, CustomTarget, CustomTargetIndex, ExternalProgram)),
               listify=True, default=[]),
     KwargInfo('should_fail', bool, default=False),
     KwargInfo('timeout', int, default=30),

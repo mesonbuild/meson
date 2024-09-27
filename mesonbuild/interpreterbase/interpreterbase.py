@@ -93,12 +93,19 @@ class InterpreterBase:
         # do nothing in an AST interpreter
         return
 
+    def read_buildfile(self, fname: str, errname: str) -> str:
+        try:
+            with open(fname, encoding='utf-8') as f:
+                return f.read()
+        except UnicodeDecodeError as e:
+            node = mparser.BaseNode(1, 1, errname)
+            raise InvalidCode.from_node(f'Build file failed to parse as unicode: {e}', node=node)
+
     def load_root_meson_file(self) -> None:
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments(f'Missing Meson file in {mesonfile}')
-        with open(mesonfile, encoding='utf-8') as mf:
-            code = mf.read()
+        code = self.read_buildfile(mesonfile, mesonfile)
         if code.isspace():
             raise InvalidCode('Builder file is empty.')
         assert isinstance(code, str)
@@ -198,11 +205,12 @@ class InterpreterBase:
             self.assignment(cur)
         elif isinstance(cur, mparser.MethodNode):
             return self.method_call(cur)
-        elif isinstance(cur, mparser.BaseStringNode):
-            if isinstance(cur, mparser.MultilineFormatStringNode):
-                return self.evaluate_multiline_fstring(cur)
-            elif isinstance(cur, mparser.FormatStringNode):
-                return self.evaluate_fstring(cur)
+        elif isinstance(cur, mparser.StringNode):
+            if cur.is_fstring:
+                if cur.is_multiline:
+                    return self.evaluate_multiline_fstring(cur)
+                else:
+                    return self.evaluate_fstring(cur)
             else:
                 return self._holderify(cur.value)
         elif isinstance(cur, mparser.BooleanNode):
@@ -256,7 +264,7 @@ class InterpreterBase:
     @FeatureNew('dict', '0.47.0')
     def evaluate_dictstatement(self, cur: mparser.DictNode) -> InterpreterObject:
         def resolve_key(key: mparser.BaseNode) -> str:
-            if not isinstance(key, mparser.BaseStringNode):
+            if not isinstance(key, mparser.StringNode):
                 FeatureNew.single_use('Dictionary entry using non literal key', '0.53.0', self.subproject)
             key_holder = self.evaluate_statement(key)
             if key_holder is None:
@@ -424,11 +432,11 @@ class InterpreterBase:
             return self.evaluate_statement(node.falseblock)
 
     @FeatureNew('multiline format strings', '0.63.0')
-    def evaluate_multiline_fstring(self, node: mparser.MultilineFormatStringNode) -> InterpreterObject:
+    def evaluate_multiline_fstring(self, node: mparser.StringNode) -> InterpreterObject:
         return self.evaluate_fstring(node)
 
     @FeatureNew('format strings', '0.58.0')
-    def evaluate_fstring(self, node: T.Union[mparser.FormatStringNode, mparser.MultilineFormatStringNode]) -> InterpreterObject:
+    def evaluate_fstring(self, node: mparser.StringNode) -> InterpreterObject:
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:

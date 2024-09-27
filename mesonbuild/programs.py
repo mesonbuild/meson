@@ -36,6 +36,7 @@ class ExternalProgram(mesonlib.HoldableObject):
         self.name = name
         self.path: T.Optional[str] = None
         self.cached_version: T.Optional[str] = None
+        self.version_arg = '--version'
         if command is not None:
             self.command = mesonlib.listify(command)
             if mesonlib.is_windows():
@@ -93,9 +94,9 @@ class ExternalProgram(mesonlib.HoldableObject):
 
     def get_version(self, interpreter: T.Optional['Interpreter'] = None) -> str:
         if not self.cached_version:
-            raw_cmd = self.get_command() + ['--version']
+            raw_cmd = self.get_command() + [self.version_arg]
             if interpreter:
-                res = interpreter.run_command_impl((self, ['--version']),
+                res = interpreter.run_command_impl((self, [self.version_arg]),
                                                    {'capture': True,
                                                     'check': True,
                                                     'env': mesonlib.EnvironmentVariables()},
@@ -118,7 +119,7 @@ class ExternalProgram(mesonlib.HoldableObject):
     @classmethod
     def from_bin_list(cls, env: 'Environment', for_machine: MachineChoice, name: str) -> 'ExternalProgram':
         # There is a static `for_machine` for this class because the binary
-        # always runs on the build platform. (It's host platform is our build
+        # always runs on the build platform. (Its host platform is our build
         # platform.) But some external programs have a target platform, so this
         # is what we are specifying here.
         command = env.lookup_binary_entry(for_machine, name)

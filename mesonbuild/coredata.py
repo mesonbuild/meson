@@ -1,38 +1,40 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2013-2023 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright 2013-2024 The Meson development team
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
 import copy
 
-from . import mlog, mparser
+from . import mlog, options
 import pickle, os, uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict, abc
-from dataclasses import dataclass
+import dataclasses
 
 from .mesonlib import (
-    HoldableObject,
-    MesonException, EnvironmentException, MachineChoice, PerMachine,
-    PerMachineDefaultable, default_libdir, default_libexecdir,
-    default_prefix, default_datadir, default_includedir, default_infodir,
-    default_localedir, default_mandir, default_sbindir, default_sysconfdir,
-    split_args, OptionKey, OptionType, stringlistify,
+    MesonBugException,
+    MesonException, MachineChoice, PerMachine,
+    PerMachineDefaultable,
+    stringlistify,
     pickle_load
 )
-from .wrap import WrapMode
+
+from .options import OptionKey
+
+from .machinefile import CmdLineFileParser
+
 import ast
-import argparse
-import configparser
 import enum
 import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
+    import argparse
     from typing_extensions import Protocol
+    from typing import Any
 
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
@@ -40,6 +42,8 @@ if T.TYPE_CHECKING:
     from .environment import Environment
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
+    from .interpreterbase import SubProject
+    from .options import UserOption
 
     class SharedCMDOptions(Protocol):
 
@@ -56,9 +60,9 @@ if T.TYPE_CHECKING:
         cross_file: T.List[str]
         native_file: T.List[str]
 
-    OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], 'OptionsView']
-    MutableKeyedOptionDictType = T.Dict['OptionKey', 'UserOption[T.Any]']
-    KeyedOptionDictType = T.Union[MutableKeyedOptionDictType, 'OptionsView']
+    OptionDictType = T.Union[T.Dict[str, 'options.UserOption[T.Any]'], 'OptionsView']
+    MutableKeyedOptionDictType = T.Dict['OptionKey', 'options.UserOption[T.Any]']
+    KeyedOptionDictType = T.Union['options.OptionStore', 'OptionsView']
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
@@ -70,7 +74,7 @@ if T.TYPE_CHECKING:
 #
 # Pip requires that RCs are named like this: '0.1.0.rc1'
 # But the corresponding Git tag needs to be '0.1.0rc1'
-version = '1.3.99'
+version = '1.5.99'
 
 # The next stable version when we are in dev. This is used to allow projects to
 # require meson version >=1.2.0 when using 1.1.99. FeatureNew won't warn when
@@ -82,20 +86,11 @@ if stable_version.endswith('.99'):
     stable_version_array[-2] = str(int(stable_version_array[-2]) + 1)
     stable_version = '.'.join(stable_version_array)
 
-backendlist = ['ninja', 'vs', 'vs2010', 'vs2012', 'vs2013', 'vs2015', 'vs2017', 'vs2019', 'vs2022', 'xcode', 'none']
-genvslitelist = ['vs2022']
-buildtypelist = ['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom']
-
-DEFAULT_YIELDING = False
-
-# Can't bind this near the class method it seems, sadly.
-_T = T.TypeVar('_T')
-
 
 def get_genvs_default_buildtype_list() -> list[str]:
     # just debug, debugoptimized, and release for now
     # but this should probably be configurable through some extra option, alongside --genvslite.
-    return buildtypelist[1:-2]
+    return options.buildtypelist[1:-2]
 
 
 class MesonVersionMismatchException(MesonException):
@@ -107,320 +102,6 @@ class MesonVersionMismatchException(MesonException):
         self.old_version = old_version
         self.current_version = current_version
 
-
-class UserOption(T.Generic[_T], HoldableObject):
-    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]],
-                 yielding: bool,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__()
-        self.choices = choices
-        self.description = description
-        if not isinstance(yielding, bool):
-            raise MesonException('Value of "yielding" must be a boolean.')
-        self.yielding = yielding
-        self.deprecated = deprecated
-        self.readonly = False
-
-    def listify(self, value: T.Any) -> T.List[T.Any]:
-        return [value]
-
-    def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
-        assert isinstance(self.value, (str, int, bool, list))
-        return self.value
-
-    # Check that the input is a valid value and return the
-    # "cleaned" or "native" version. For example the Boolean
-    # option could take the string "true" and return True.
-    def validate_value(self, value: T.Any) -> _T:
-        raise RuntimeError('Derived option class did not override validate_value.')
-
-    def set_value(self, newvalue: T.Any) -> bool:
-        oldvalue = getattr(self, 'value', None)
-        self.value = self.validate_value(newvalue)
-        return self.value != oldvalue
-
-class UserStringOption(UserOption[str]):
-    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, None, yielding, deprecated)
-        self.set_value(value)
-
-    def validate_value(self, value: T.Any) -> str:
-        if not isinstance(value, str):
-            raise MesonException('Value "%s" for string option is not a string.' % str(value))
-        return value
-
-class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description: str, value: bool, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, [True, False], yielding, deprecated)
-        self.set_value(value)
-
-    def __bool__(self) -> bool:
-        return self.value
-
-    def validate_value(self, value: T.Any) -> bool:
-        if isinstance(value, bool):
-            return value
-        if not isinstance(value, str):
-            raise MesonException(f'Value {value} cannot be converted to a boolean')
-        if value.lower() == 'true':
-            return True
-        if value.lower() == 'false':
-            return False
-        raise MesonException('Value %s is not boolean (true or false).' % value)
-
-class UserIntegerOption(UserOption[int]):
-    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        min_value, max_value, default_value = value
-        self.min_value = min_value
-        self.max_value = max_value
-        c: T.List[str] = []
-        if min_value is not None:
-            c.append('>=' + str(min_value))
-        if max_value is not None:
-            c.append('<=' + str(max_value))
-        choices = ', '.join(c)
-        super().__init__(description, choices, yielding, deprecated)
-        self.set_value(default_value)
-
-    def validate_value(self, value: T.Any) -> int:
-        if isinstance(value, str):
-            value = self.toint(value)
-        if not isinstance(value, int):
-            raise MesonException('New value for integer option is not an integer.')
-        if self.min_value is not None and value < self.min_value:
-            raise MesonException('New value %d is less than minimum value %d.' % (value, self.min_value))
-        if self.max_value is not None and value > self.max_value:
-            raise MesonException('New value %d is more than maximum value %d.' % (value, self.max_value))
-        return value
-
-    def toint(self, valuestring: str) -> int:
-        try:
-            return int(valuestring)
-        except ValueError:
-            raise MesonException('Value string "%s" is not convertible to an integer.' % valuestring)
-
-class OctalInt(int):
-    # NinjaBackend.get_user_option_args uses str() to converts it to a command line option
-    # UserUmaskOption.toint() uses int(str, 8) to convert it to an integer
-    # So we need to use oct instead of dec here if we do not want values to be misinterpreted.
-    def __str__(self) -> str:
-        return oct(int(self))
-
-class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
-    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, (0, 0o777, value), yielding, deprecated)
-        self.choices = ['preserve', '0000-0777']
-
-    def printable_value(self) -> str:
-        if self.value == 'preserve':
-            return self.value
-        return format(self.value, '04o')
-
-    def validate_value(self, value: T.Any) -> T.Union[str, OctalInt]:
-        if value == 'preserve':
-            return 'preserve'
-        return OctalInt(super().validate_value(value))
-
-    def toint(self, valuestring: T.Union[str, OctalInt]) -> int:
-        try:
-            return int(valuestring, 8)
-        except ValueError as e:
-            raise MesonException(f'Invalid mode: {e}')
-
-class UserComboOption(UserOption[str]):
-    def __init__(self, description: str, choices: T.List[str], value: T.Any,
-                 yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, choices, yielding, deprecated)
-        if not isinstance(self.choices, list):
-            raise MesonException('Combo choices must be an array.')
-        for i in self.choices:
-            if not isinstance(i, str):
-                raise MesonException('Combo choice elements must be strings.')
-        self.set_value(value)
-
-    def validate_value(self, value: T.Any) -> str:
-        if value not in self.choices:
-            if isinstance(value, bool):
-                _type = 'boolean'
-            elif isinstance(value, (int, float)):
-                _type = 'number'
-            else:
-                _type = 'string'
-            optionsstring = ', '.join([f'"{item}"' for item in self.choices])
-            raise MesonException('Value "{}" (of type "{}") for combo option "{}" is not one of the choices.'
-                                 ' Possible choices are (as string): {}.'.format(
-                                     value, _type, self.description, optionsstring))
-        return value
-
-class UserArrayOption(UserOption[T.List[str]]):
-    def __init__(self, description: str, value: T.Union[str, T.List[str]],
-                 split_args: bool = False,
-                 allow_dups: bool = False, yielding: bool = DEFAULT_YIELDING,
-                 choices: T.Optional[T.List[str]] = None,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, choices if choices is not None else [], yielding, deprecated)
-        self.split_args = split_args
-        self.allow_dups = allow_dups
-        self.set_value(value)
-
-    @staticmethod
-    def listify_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
-        if isinstance(value, str):
-            if value.startswith('['):
-                try:
-                    newvalue = ast.literal_eval(value)
-                except ValueError:
-                    raise MesonException(f'malformed option {value}')
-            elif value == '':
-                newvalue = []
-            else:
-                if shlex_split_args:
-                    newvalue = split_args(value)
-                else:
-                    newvalue = [v.strip() for v in value.split(',')]
-        elif isinstance(value, list):
-            newvalue = value
-        else:
-            raise MesonException(f'"{value}" should be a string array, but it is not')
-        return newvalue
-
-    def listify(self, value: T.Any) -> T.List[T.Any]:
-        return self.listify_value(value, self.split_args)
-
-    def validate_value(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
-        newvalue = self.listify(value)
-
-        if not self.allow_dups and len(set(newvalue)) != len(newvalue):
-            msg = 'Duplicated values in array option is deprecated. ' \
-                  'This will become a hard error in the future.'
-            mlog.deprecation(msg)
-        for i in newvalue:
-            if not isinstance(i, str):
-                raise MesonException(f'String array element "{newvalue!s}" is not a string.')
-        if self.choices:
-            bad = [x for x in newvalue if x not in self.choices]
-            if bad:
-                raise MesonException('Options "{}" are not in allowed choices: "{}"'.format(
-                    ', '.join(bad), ', '.join(self.choices)))
-        return newvalue
-
-    def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
-        """Extend the value with an additional value."""
-        new = self.validate_value(value)
-        self.set_value(self.value + new)
-
-
-class UserFeatureOption(UserComboOption):
-    static_choices = ['enabled', 'disabled', 'auto']
-
-    def __init__(self, description: str, value: T.Any, yielding: bool = DEFAULT_YIELDING,
-                 deprecated: T.Union[bool, str, T.Dict[str, str], T.List[str]] = False):
-        super().__init__(description, self.static_choices, value, yielding, deprecated)
-        self.name: T.Optional[str] = None  # TODO: Refactor options to all store their name
-
-    def is_enabled(self) -> bool:
-        return self.value == 'enabled'
-
-    def is_disabled(self) -> bool:
-        return self.value == 'disabled'
-
-    def is_auto(self) -> bool:
-        return self.value == 'auto'
-
-class UserStdOption(UserComboOption):
-    '''
-    UserOption specific to c_std and cpp_std options. User can set a list of
-    STDs in preference order and it selects the first one supported by current
-    compiler.
-
-    For historical reasons, some compilers (msvc) allowed setting a GNU std and
-    silently fell back to C std. This is now deprecated. Projects that support
-    both GNU and MSVC compilers should set e.g. c_std=gnu11,c11.
-
-    This is not using self.deprecated mechanism we already have for project
-    options because we want to print a warning if ALL values are deprecated, not
-    if SOME values are deprecated.
-    '''
-    def __init__(self, lang: str, all_stds: T.List[str]) -> None:
-        self.lang = lang.lower()
-        self.all_stds = ['none'] + all_stds
-        # Map a deprecated std to its replacement. e.g. gnu11 -> c11.
-        self.deprecated_stds: T.Dict[str, str] = {}
-        super().__init__(f'{lang} language standard to use', ['none'], 'none')
-
-    def set_versions(self, versions: T.List[str], gnu: bool = False, gnu_deprecated: bool = False) -> None:
-        assert all(std in self.all_stds for std in versions)
-        self.choices += versions
-        if gnu:
-            gnu_stds_map = {f'gnu{std[1:]}': std for std in versions}
-            if gnu_deprecated:
-                self.deprecated_stds.update(gnu_stds_map)
-            else:
-                self.choices += gnu_stds_map.keys()
-
-    def validate_value(self, value: T.Union[str, T.List[str]]) -> str:
-        candidates = UserArrayOption.listify_value(value)
-        unknown = [std for std in candidates if std not in self.all_stds]
-        if unknown:
-            raise MesonException(f'Unknown {self.lang.upper()} std {unknown}. Possible values are {self.all_stds}.')
-        # Check first if any of the candidates are not deprecated
-        for std in candidates:
-            if std in self.choices:
-                return std
-        # Fallback to a deprecated std if any
-        for std in candidates:
-            newstd = self.deprecated_stds.get(std)
-            if newstd is not None:
-                mlog.deprecation(
-                    f'None of the values {candidates} are supported by the {self.lang} compiler.\n' +
-                    f'However, the deprecated {std} std currently falls back to {newstd}.\n' +
-                    'This will be an error in the future.\n' +
-                    'If the project supports both GNU and MSVC compilers, a value such as\n' +
-                    '"c_std=gnu11,c11" specifies that GNU is prefered but it can safely fallback to plain c11.')
-                return newstd
-        raise MesonException(f'None of values {candidates} are supported by the {self.lang.upper()} compiler. ' +
-                             f'Possible values are {self.choices}')
-
-@dataclass
-class OptionsView(abc.Mapping):
-    '''A view on an options dictionary for a given subproject and with overrides.
-    '''
-
-    # TODO: the typing here could be made more explicit using a TypeDict from
-    # python 3.8 or typing_extensions
-    options: KeyedOptionDictType
-    subproject: T.Optional[str] = None
-    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None
-
-    def __getitem__(self, key: OptionKey) -> UserOption:
-        # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
-        # We should try to share the code somehow.
-        key = key.evolve(subproject=self.subproject)
-        if not key.is_project():
-            opt = self.options.get(key)
-            if opt is None or opt.yielding:
-                opt = self.options[key.as_root()]
-        else:
-            opt = self.options[key]
-            if opt.yielding:
-                opt = self.options.get(key.as_root(), opt)
-        if self.overrides:
-            override_value = self.overrides.get(key.as_root())
-            if override_value is not None:
-                opt = copy.copy(opt)
-                opt.set_value(override_value)
-        return opt
-
-    def __iter__(self) -> T.Iterator[OptionKey]:
-        return iter(self.options)
-
-    def __len__(self) -> int:
-        return len(self.options)
 
 class DependencyCacheType(enum.Enum):
 
@@ -473,8 +154,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins[self.__pkg_conf_key].value),
-            DependencyCacheType.CMAKE: stringlistify(self.__builtins[self.__cmake_key].value),
+            DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins.get_value(self.__pkg_conf_key)),
+            DependencyCacheType.CMAKE: stringlistify(self.__builtins.get_value(self.__cmake_key)),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
@@ -564,7 +245,7 @@ _V = T.TypeVar('_V')
 
 class CoreData:
 
-    def __init__(self, options: SharedCMDOptions, scratch_dir: str, meson_command: T.List[str]):
+    def __init__(self, cmd_options: SharedCMDOptions, scratch_dir: str, meson_command: T.List[str]):
         self.lang_guids = {
             'default': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
             'c': '8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942',
@@ -578,9 +259,14 @@ class CoreData:
         self.meson_command = meson_command
         self.target_guids = {}
         self.version = version
-        self.options: 'MutableKeyedOptionDictType' = {}
-        self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
+        self.optstore = options.OptionStore()
+        self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
         self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
+
+        # Stores the (name, hash) of the options file, The name will be either
+        # "meson_options.txt" or "meson.options".
+        # This is used by mconf to reload the option file if it's changed.
+        self.options_files: T.Dict[SubProject, T.Optional[T.Tuple[str, str]]] = {}
 
         # Set of subprojects that have already been initialized once, this is
         # required to be stored and reloaded with the coredata, as we don't
@@ -590,8 +276,8 @@ class CoreData:
         # For host == build configurations these caches should be the same.
         self.deps: PerMachine[DependencyCache] = PerMachineDefaultable.default(
             self.is_cross_build(),
-            DependencyCache(self.options, MachineChoice.BUILD),
-            DependencyCache(self.options, MachineChoice.HOST))
+            DependencyCache(self.optstore, MachineChoice.BUILD),
+            DependencyCache(self.optstore, MachineChoice.HOST))
 
         self.compiler_check_cache: T.Dict['CompilerCheckCacheKey', 'CompileResult'] = OrderedDict()
         self.run_check_cache: T.Dict['RunCheckCacheKey', 'RunResult'] = OrderedDict()
@@ -600,18 +286,18 @@ class CoreData:
         self.cmake_cache: PerMachine[CMakeStateCache] = PerMachine(CMakeStateCache(), CMakeStateCache())
 
         # Only to print a warning if it changes between Meson invocations.
-        self.config_files = self.__load_config_files(options, scratch_dir, 'native')
+        self.config_files = self.__load_config_files(cmd_options, scratch_dir, 'native')
         self.builtin_options_libdir_cross_fixup()
         self.init_builtins('')
 
     @staticmethod
-    def __load_config_files(options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
+    def __load_config_files(cmd_options: SharedCMDOptions, scratch_dir: str, ftype: str) -> T.List[str]:
         # Need to try and make the passed filenames absolute because when the
         # files are parsed later we'll have chdir()d.
         if ftype == 'cross':
-            filenames = options.cross_file
+            filenames = cmd_options.cross_file
         else:
-            filenames = options.native_file
+            filenames = cmd_options.native_file
 
         if not filenames:
             return []
@@ -667,7 +353,7 @@ class CoreData:
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
         if self.cross_files:
-            BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
+            options.BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
 
     def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
@@ -701,7 +387,7 @@ class CoreData:
         except TypeError:
             return value
         if option.name.endswith('dir') and value.is_absolute() and \
-           option not in BUILTIN_DIR_NOPREFIX_OPTIONS:
+           option not in options.BUILTIN_DIR_NOPREFIX_OPTIONS:
             try:
                 # Try to relativize the path.
                 value = value.relative_to(prefix)
@@ -720,49 +406,51 @@ class CoreData:
 
     def init_builtins(self, subproject: str) -> None:
         # Create builtin options with default values
-        for key, opt in BUILTIN_OPTIONS.items():
-            self.add_builtin_option(self.options, key.evolve(subproject=subproject), opt)
+        for key, opt in options.BUILTIN_OPTIONS.items():
+            self.add_builtin_option(self.optstore, key.evolve(subproject=subproject), opt)
         for for_machine in iter(MachineChoice):
-            for key, opt in BUILTIN_OPTIONS_PER_MACHINE.items():
-                self.add_builtin_option(self.options, key.evolve(subproject=subproject, machine=for_machine), opt)
+            for key, opt in options.BUILTIN_OPTIONS_PER_MACHINE.items():
+                self.add_builtin_option(self.optstore, key.evolve(subproject=subproject, machine=for_machine), opt)
 
     @staticmethod
     def add_builtin_option(opts_map: 'MutableKeyedOptionDictType', key: OptionKey,
-                           opt: 'BuiltinOption') -> None:
+                           opt: 'options.BuiltinOption') -> None:
         if key.subproject:
             if opt.yielding:
                 # This option is global and not per-subproject
                 return
-            value = opts_map[key.as_root()].value
+            value = opts_map.get_value(key.as_root())
         else:
             value = None
-        opts_map[key] = opt.init_option(key, value, default_prefix())
+        if key.has_module_prefix():
+            modulename = key.get_module_prefix()
+            opts_map.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
+        else:
+            opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
-            self.options[OptionKey('backend_max_links')] = UserIntegerOption(
+            self.optstore.add_system_option('backend_max_links', options.UserIntegerOption(
+                'backend_max_links',
                 'Maximum number of linker processes to run or 0 for no '
                 'limit',
-                (0, None, 0))
+                (0, None, 0)))
         elif backend_name.startswith('vs'):
-            self.options[OptionKey('backend_startup_project')] = UserStringOption(
+            self.optstore.add_system_option('backend_startup_project', options.UserStringOption(
+                'backend_startup_project',
                 'Default project to execute in Visual Studio',
-                '')
+                ''))
 
-    def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool, WrapMode]:
+    def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool]:
         try:
-            v = self.options[key].value
-            if key.name == 'wrap_mode':
-                return WrapMode[v]
+            v = self.optstore.get_value(key)
             return v
         except KeyError:
             pass
 
         try:
-            v = self.options[key.as_root()]
+            v = self.optstore.get_value_object(key.as_root())
             if v.yielding:
-                if key.name == 'wrap_mode':
-                    return WrapMode[v.value]
                 return v.value
         except KeyError:
             pass
@@ -771,15 +459,15 @@ class CoreData:
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
-        if key.is_builtin():
+        if self.optstore.is_builtin_option(key):
             if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
             else:
-                prefix = self.options[OptionKey('prefix')].value
+                prefix = self.optstore.get_value('prefix')
                 value = self.sanitize_dir_option_value(prefix, key, value)
 
         try:
-            opt = self.options[key]
+            opt = self.optstore.get_value_object(key)
         except KeyError:
             raise MesonException(f'Tried to set unknown builtin option {str(key)}')
 
@@ -830,7 +518,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.options[OptionKey('buildtype')].value
+        value = self.optstore.get_value('buildtype')
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -849,8 +537,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.options[OptionKey('optimization')].value
-        actual_debug = self.options[OptionKey('debug')].value
+        actual_opt = self.optstore.get_value('optimization')
+        actual_debug = self.optstore.get_value('debug')
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -879,46 +567,52 @@ class CoreData:
             assert value == 'custom'
             return False
 
-        dirty |= self.options[OptionKey('optimization')].set_value(opt)
-        dirty |= self.options[OptionKey('debug')].set_value(debug)
+        dirty |= self.optstore.set_value('optimization', opt)
+        dirty |= self.optstore.set_value('debug', debug)
 
         return dirty
 
-    @staticmethod
-    def is_per_machine_option(optname: OptionKey) -> bool:
-        if optname.name in BUILTIN_OPTIONS_PER_MACHINE:
+    def is_per_machine_option(self, optname: OptionKey) -> bool:
+        if optname.as_host() in options.BUILTIN_OPTIONS_PER_MACHINE:
             return True
-        return optname.lang is not None
+        return self.optstore.is_compiler_option(optname)
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        return T.cast('T.List[str]', self.options[OptionKey('args', machine=for_machine, lang=lang)].value)
+        key = OptionKey(f'{lang}_args', machine=for_machine)
+        return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        return T.cast('T.List[str]', self.options[OptionKey('link_args', machine=for_machine, lang=lang)].value)
+        key = OptionKey(f'{lang}_link_args', machine=for_machine)
+        return T.cast('T.List[str]', self.optstore.get_value(key))
 
-    def update_project_options(self, options: 'MutableKeyedOptionDictType') -> None:
-        for key, value in options.items():
-            if not key.is_project():
+    def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
+        for key, value in project_options.items():
+            if key not in self.optstore:
+                self.optstore.add_project_option(key, value)
                 continue
-            if key not in self.options:
-                self.options[key] = value
-                continue
+            if key.subproject != subproject:
+                raise MesonBugException(f'Tried to set an option for subproject {key.subproject} from {subproject}!')
 
-            oldval = self.options[key]
+            oldval = self.optstore.get_value_object(key)
             if type(oldval) is not type(value):
-                self.options[key] = value
+                self.optstore.set_value(key, value.value)
             elif oldval.choices != value.choices:
                 # If the choices have changed, use the new value, but attempt
                 # to keep the old options. If they are not valid keep the new
                 # defaults but warn.
-                self.options[key] = value
+                self.optstore.set_value_object(key, value)
                 try:
                     value.set_value(oldval.value)
                 except MesonException:
                     mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).',
                                  fatal=False)
+
+        # Find any extranious keys for this project and remove them
+        for key in self.optstore.keys() - project_options.keys():
+            if self.optstore.is_project_option(key) and key.subproject == subproject:
+                self.optstore.remove(key)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:
@@ -928,40 +622,40 @@ class CoreData:
     def copy_build_options_from_regular_ones(self) -> bool:
         dirty = False
         assert not self.is_cross_build()
-        for k in BUILTIN_OPTIONS_PER_MACHINE:
-            o = self.options[k]
-            dirty |= self.options[k.as_build()].set_value(o.value)
-        for bk, bv in self.options.items():
+        for k in options.BUILTIN_OPTIONS_PER_MACHINE:
+            o = self.optstore.get_value_object(k)
+            dirty |= self.optstore.set_value(k.as_build(), o.value)
+        for bk, bv in self.optstore.items():
             if bk.machine is MachineChoice.BUILD:
                 hk = bk.as_host()
                 try:
-                    hv = self.options[hk]
+                    hv = self.optstore.get_value_object(hk)
                     dirty |= bv.set_value(hv.value)
                 except KeyError:
                     continue
 
         return dirty
 
-    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
+    def set_options(self, opts_to_set: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
         dirty = False
         if not self.is_cross_build():
-            options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
+            opts_to_set = {k: v for k, v in opts_to_set.items() if k.machine is not MachineChoice.BUILD}
         # Set prefix first because it's needed to sanitize other options
         pfk = OptionKey('prefix')
-        if pfk in options:
-            prefix = self.sanitize_prefix(options[pfk])
-            dirty |= self.options[OptionKey('prefix')].set_value(prefix)
-            for key in BUILTIN_DIR_NOPREFIX_OPTIONS:
-                if key not in options:
-                    dirty |= self.options[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
+        if pfk in opts_to_set:
+            prefix = self.sanitize_prefix(opts_to_set[pfk])
+            dirty |= self.optstore.set_value('prefix', prefix)
+            for key in options.BUILTIN_DIR_NOPREFIX_OPTIONS:
+                if key not in opts_to_set:
+                    dirty |= self.optstore.set_value(key, options.BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
 
         unknown_options: T.List[OptionKey] = []
-        for k, v in options.items():
+        for k, v in opts_to_set.items():
             if k == pfk:
                 continue
-            elif k in self.options:
+            elif k in self.optstore:
                 dirty |= self.set_option(k, v, first_invocation)
-            elif k.machine != MachineChoice.BUILD and k.type != OptionType.COMPILER:
+            elif k.machine != MachineChoice.BUILD and not self.optstore.is_compiler_option(k):
                 unknown_options.append(k)
         if unknown_options:
             unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
@@ -974,6 +668,8 @@ class CoreData:
         return dirty
 
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
+        from .compilers import base_options
+
         # Main project can set default options on subprojects, but subprojects
         # can only set default options on themselves.
         # Preserve order: if env.options has 'buildtype' it must come after
@@ -1001,25 +697,36 @@ class CoreData:
             # Always test this using the HOST machine, as many builtin options
             # are not valid for the BUILD machine, but the yielding value does
             # not differ between them even when they are valid for both.
-            if subproject and k.is_builtin() and self.options[k.evolve(subproject='', machine=MachineChoice.HOST)].yielding:
+            if subproject and self.optstore.is_builtin_option(k) and self.optstore.get_value_object(k.evolve(subproject='', machine=MachineChoice.HOST)).yielding:
                 continue
-            # Skip compiler and backend options, they are handled when
+            # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
-            if k.type in {OptionType.COMPILER, OptionType.BACKEND}:
+            if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
                 continue
-            if k.type == OptionType.BASE and env.first_invocation:
+            if self.optstore.is_base_option(k) and k.as_root() in base_options:
+                # set_options will report unknown base options
                 continue
             options[k] = v
 
         self.set_options(options, subproject=subproject, first_invocation=env.first_invocation)
 
-    def add_compiler_options(self, options: 'MutableKeyedOptionDictType', lang: str, for_machine: MachineChoice,
-                             env: 'Environment') -> None:
-        for k, o in options.items():
+    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
+                             env: Environment, subproject: str) -> None:
+        for k, o in c_options.items():
             value = env.options.get(k)
             if value is not None:
                 o.set_value(value)
-            self.options.setdefault(k, o)
+                if not subproject:
+                    self.optstore.set_value_object(k, o)  # override compiler option on reconfigure
+            self.optstore.setdefault(k, o)
+
+            if subproject:
+                sk = k.evolve(subproject=subproject)
+                value = env.options.get(sk) or value
+                if value is not None:
+                    o.set_value(value)
+                    self.optstore.set_value_object(sk, o)  # override compiler option on reconfigure
+                self.optstore.setdefault(sk, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
@@ -1027,118 +734,41 @@ class CoreData:
         from .compilers import compilers
         # These options are all new at this point, because the compiler is
         # responsible for adding its own options, thus calling
-        # `self.options.update()`` is perfectly safe.
-        self.options.update(compilers.get_global_options(lang, comp, for_machine, env))
+        # `self.optstore.update()`` is perfectly safe.
+        for gopt_key, gopt_valobj in compilers.get_global_options(lang, comp, for_machine, env).items():
+            self.optstore.add_compiler_option(lang, gopt_key, gopt_valobj)
 
-    def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
+    def process_compiler_options(self, lang: str, comp: Compiler, env: Environment, subproject: str) -> None:
         from . import compilers
 
-        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env)
+        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env, subproject)
 
         enabled_opts: T.List[OptionKey] = []
         for key in comp.base_options:
-            if key in self.options:
-                continue
-            oobj = copy.deepcopy(compilers.base_options[key])
-            if key in env.options:
-                oobj.set_value(env.options[key])
-                enabled_opts.append(key)
-            self.options[key] = oobj
+            if subproject:
+                skey = key.evolve(subproject=subproject)
+            else:
+                skey = key
+            if skey not in self.optstore:
+                self.optstore.add_system_option(skey, copy.deepcopy(compilers.base_options[key]))
+                if skey in env.options:
+                    self.optstore.set_value(skey, env.options[skey])
+                    enabled_opts.append(skey)
+                elif subproject and key in env.options:
+                    self.optstore.set_value(skey, env.options[key])
+                    enabled_opts.append(skey)
+                if subproject and key not in self.optstore:
+                    self.optstore.add_system_option(key, copy.deepcopy(self.optstore.get_value_object(skey)))
+            elif skey in env.options:
+                self.optstore.set_value(skey, env.options[skey])
+            elif subproject and key in env.options:
+                self.optstore.set_value(skey, env.options[key])
         self.emit_base_options_warnings(enabled_opts)
 
     def emit_base_options_warnings(self, enabled_opts: T.List[OptionKey]) -> None:
         if OptionKey('b_bitcode') in enabled_opts:
             mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
             mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
-
-class CmdLineFileParser(configparser.ConfigParser):
-    def __init__(self) -> None:
-        # We don't want ':' as key delimiter, otherwise it would break when
-        # storing subproject options like "subproject:option=value"
-        super().__init__(delimiters=['='], interpolation=None)
-
-    def read(self, filenames: T.Union['StrOrBytesPath', T.Iterable['StrOrBytesPath']], encoding: T.Optional[str] = 'utf-8') -> T.List[str]:
-        return super().read(filenames, encoding)
-
-    def optionxform(self, optionstr: str) -> str:
-        # Don't call str.lower() on keys
-        return optionstr
-
-class MachineFileParser():
-    def __init__(self, filenames: T.List[str], sourcedir: str) -> None:
-        self.parser = CmdLineFileParser()
-        self.constants: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = {'True': True, 'False': False}
-        self.sections: T.Dict[str, T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = {}
-
-        for fname in filenames:
-            with open(fname, encoding='utf-8') as f:
-                content = f.read()
-                content = content.replace('@GLOBAL_SOURCE_ROOT@', sourcedir)
-                content = content.replace('@DIRNAME@', os.path.dirname(fname))
-                try:
-                    self.parser.read_string(content, fname)
-                except configparser.Error as e:
-                    raise EnvironmentException(f'Malformed machine file: {e}')
-
-        # Parse [constants] first so they can be used in other sections
-        if self.parser.has_section('constants'):
-            self.constants.update(self._parse_section('constants'))
-
-        for s in self.parser.sections():
-            if s == 'constants':
-                continue
-            self.sections[s] = self._parse_section(s)
-
-    def _parse_section(self, s: str) -> T.Dict[str, T.Union[str, bool, int, T.List[str]]]:
-        self.scope = self.constants.copy()
-        section: T.Dict[str, T.Union[str, bool, int, T.List[str]]] = {}
-        for entry, value in self.parser.items(s):
-            if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                raise EnvironmentException(f'Malformed variable name {entry!r} in machine file.')
-            # Windows paths...
-            value = value.replace('\\', '\\\\')
-            try:
-                ast = mparser.Parser(value, 'machinefile').parse()
-                if not ast.lines:
-                    raise EnvironmentException('value cannot be empty')
-                res = self._evaluate_statement(ast.lines[0])
-            except MesonException as e:
-                raise EnvironmentException(f'Malformed value in machine file variable {entry!r}: {str(e)}.')
-            except KeyError as e:
-                raise EnvironmentException(f'Undefined constant {e.args[0]!r} in machine file variable {entry!r}.')
-            section[entry] = res
-            self.scope[entry] = res
-        return section
-
-    def _evaluate_statement(self, node: mparser.BaseNode) -> T.Union[str, bool, int, T.List[str]]:
-        if isinstance(node, (mparser.BaseStringNode)):
-            return node.value
-        elif isinstance(node, mparser.BooleanNode):
-            return node.value
-        elif isinstance(node, mparser.NumberNode):
-            return node.value
-        elif isinstance(node, mparser.ParenthesizedNode):
-            return self._evaluate_statement(node.inner)
-        elif isinstance(node, mparser.ArrayNode):
-            # TODO: This is where recursive types would come in handy
-            return [self._evaluate_statement(arg) for arg in node.args.arguments]
-        elif isinstance(node, mparser.IdNode):
-            return self.scope[node.value]
-        elif isinstance(node, mparser.ArithmeticNode):
-            l = self._evaluate_statement(node.left)
-            r = self._evaluate_statement(node.right)
-            if node.operation == 'add':
-                if (isinstance(l, str) and isinstance(r, str)) or \
-                   (isinstance(l, list) and isinstance(r, list)):
-                    return l + r
-            elif node.operation == 'div':
-                if isinstance(l, str) and isinstance(r, str):
-                    return os.path.join(l, r)
-        raise EnvironmentException('Unsupported node type')
-
-def parse_machine_files(filenames: T.List[str], sourcedir: str):
-    parser = MachineFileParser(filenames, sourcedir)
-    return parser.sections
 
 def get_cmd_line_file(build_dir: str) -> str:
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
@@ -1225,9 +855,9 @@ def save(obj: CoreData, build_dir: str) -> str:
 
 
 def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
-    for n, b in BUILTIN_OPTIONS.items():
+    for n, b in options.BUILTIN_OPTIONS.items():
         b.add_to_argparse(str(n), parser, '')
-    for n, b in BUILTIN_OPTIONS_PER_MACHINE.items():
+    for n, b in options.BUILTIN_OPTIONS_PER_MACHINE.items():
         b.add_to_argparse(str(n), parser, ' (just for host machine)')
         b.add_to_argparse(str(n.as_build()), parser, ' (just for build machine)')
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
@@ -1251,185 +881,83 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
 
     # Merge builtin options set with --option into the dict.
     for key in chain(
-            BUILTIN_OPTIONS.keys(),
-            (k.as_build() for k in BUILTIN_OPTIONS_PER_MACHINE.keys()),
-            BUILTIN_OPTIONS_PER_MACHINE.keys(),
+            options.BUILTIN_OPTIONS.keys(),
+            (k.as_build() for k in options.BUILTIN_OPTIONS_PER_MACHINE.keys()),
+            options.BUILTIN_OPTIONS_PER_MACHINE.keys(),
     ):
         name = str(key)
         value = getattr(args, name, None)
         if value is not None:
             if key in args.cmd_line_options:
-                cmdline_name = BuiltinOption.argparse_name_to_arg(name)
+                cmdline_name = options.BuiltinOption.argparse_name_to_arg(name)
                 raise MesonException(
                     f'Got argument {name} as both -D{name} and {cmdline_name}. Pick one.')
             args.cmd_line_options[key] = value
             delattr(args, name)
 
+@dataclasses.dataclass
+class OptionsView(abc.Mapping):
+    '''A view on an options dictionary for a given subproject and with overrides.
+    '''
 
-_U = T.TypeVar('_U', bound=UserOption[_T])
+    # TODO: the typing here could be made more explicit using a TypeDict from
+    # python 3.8 or typing_extensions
+    original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, UserOption[Any]]']
+    subproject: T.Optional[str] = None
+    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = dataclasses.field(default_factory=dict)
 
-class BuiltinOption(T.Generic[_T, _U]):
-
-    """Class for a builtin option type.
-
-    There are some cases that are not fully supported yet.
-    """
-
-    def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: bool = True, *,
-                 choices: T.Any = None, readonly: bool = False):
-        self.opt_type = opt_type
-        self.description = description
-        self.default = default
-        self.choices = choices
-        self.yielding = yielding
-        self.readonly = readonly
-
-    def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> _U:
-        """Create an instance of opt_type and return it."""
-        if value is None:
-            value = self.prefixed_default(name, prefix)
-        keywords = {'yielding': self.yielding, 'value': value}
-        if self.choices:
-            keywords['choices'] = self.choices
-        o = self.opt_type(self.description, **keywords)
-        o.readonly = self.readonly
-        return o
-
-    def _argparse_action(self) -> T.Optional[str]:
-        # If the type is a boolean, the presence of the argument in --foo form
-        # is to enable it. Disabling happens by using -Dfoo=false, which is
-        # parsed under `args.projectoptions` and does not hit this codepath.
-        if isinstance(self.default, bool):
-            return 'store_true'
-        return None
-
-    def _argparse_choices(self) -> T.Any:
-        if self.opt_type is UserBooleanOption:
-            return [True, False]
-        elif self.opt_type is UserFeatureOption:
-            return UserFeatureOption.static_choices
-        return self.choices
-
-    @staticmethod
-    def argparse_name_to_arg(name: str) -> str:
-        if name == 'warning_level':
-            return '--warnlevel'
+    def __getitem__(self, key: OptionKey) -> options.UserOption:
+        # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
+        # We should try to share the code somehow.
+        key = key.evolve(subproject=self.subproject)
+        if not isinstance(self.original_options, options.OptionStore):
+            # This is only used by CUDA currently.
+            # This entire class gets removed when option refactor
+            # is finished.
+            if '_' in key.name or key.lang is not None:
+                is_project_option = False
+            else:
+                sys.exit(f'FAIL {key}.')
         else:
-            return '--' + name.replace('_', '-')
-
-    def prefixed_default(self, name: 'OptionKey', prefix: str = '') -> T.Any:
-        if self.opt_type in [UserComboOption, UserIntegerOption]:
-            return self.default
-        try:
-            return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
-        except KeyError:
-            pass
-        return self.default
-
-    def add_to_argparse(self, name: str, parser: argparse.ArgumentParser, help_suffix: str) -> None:
-        kwargs = OrderedDict()
-
-        c = self._argparse_choices()
-        b = self._argparse_action()
-        h = self.description
-        if not b:
-            h = '{} (default: {}).'.format(h.rstrip('.'), self.prefixed_default(name))
+            is_project_option = self.original_options.is_project_option(key)
+        if not is_project_option:
+            opt = self.original_options.get(key)
+            if opt is None or opt.yielding:
+                key2 = key.as_root()
+                # This hack goes away once wi start using OptionStore
+                # to hold overrides.
+                if isinstance(self.original_options, options.OptionStore):
+                    if key2 not in self.original_options:
+                        raise KeyError(f'{key} {key2}')
+                    opt = self.original_options.get_value_object(key2)
+                else:
+                    opt = self.original_options[key2]
         else:
-            kwargs['action'] = b
-        if c and not b:
-            kwargs['choices'] = c
-        kwargs['default'] = argparse.SUPPRESS
-        kwargs['dest'] = name
+            opt = self.original_options[key]
+            if opt.yielding:
+                opt = self.original_options.get(key.as_root(), opt)
+        if self.overrides:
+            override_value = self.overrides.get(key.as_root())
+            if override_value is not None:
+                opt = copy.copy(opt)
+                opt.set_value(override_value)
+        return opt
 
-        cmdline_name = self.argparse_name_to_arg(name)
-        parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
+    def get_value(self, key: T.Union[str, OptionKey]):
+        if isinstance(key, str):
+            key = OptionKey(key)
+        return self[key].value
 
+    def set_value(self, key: T.Union[str, OptionKey], value: T.Union[str, int, bool, T.List[str]]):
+        if isinstance(key, str):
+            key = OptionKey(key)
+        self.overrides[key] = value
 
-# Update `docs/markdown/Builtin-options.md` after changing the options below
-# Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
-# Please also update completion scripts in $MESONSRC/data/shell-completions/
-BUILTIN_DIR_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
-    (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', default_datadir())),
-    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', default_includedir())),
-    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', default_infodir())),
-    (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
-    (OptionKey('licensedir'),      BuiltinOption(UserStringOption, 'Licenses directory', '')),
-    (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', default_localedir())),
-    (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
-    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', default_mandir())),
-    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', default_sbindir())),
-    (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
-    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
-])
+    def __iter__(self) -> T.Iterator[OptionKey]:
+        return iter(self.original_options)
 
-BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
-    (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist,
-                                                 readonly=True)),
-    (OptionKey('genvslite'),
-     BuiltinOption(
-         UserComboOption,
-         'Setup multiple buildtype-suffixed ninja-backend build directories, '
-         'and a [builddir]_vs containing a Visual Studio meta-backend with multiple configurations that calls into them',
-         'vs2022',
-         choices=genvslitelist)
-     ),
-    (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                                 choices=buildtypelist)),
-    (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
-    (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                                                 yielding=False)),
-    (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
-    (OptionKey('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
-    (OptionKey('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
-    (OptionKey('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])),
-    (OptionKey('prefer_static'),   BuiltinOption(UserBooleanOption, 'Whether to try static linking before shared linking', False)),
-    (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
-    (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
-    (OptionKey('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
-    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4))),
-    (OptionKey('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'], yielding=False)),
-    (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
-    (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
-    (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
-    (OptionKey('vsenv'),           BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
-
-    # Pkgconfig module
-    (OptionKey('relocatable', module='pkgconfig'),
-     BuiltinOption(UserBooleanOption, 'Generate pkgconfig files as relocatable', False)),
-
-    # Python module
-    (OptionKey('bytecompile', module='python'),
-     BuiltinOption(UserIntegerOption, 'Whether to compile bytecode', (-1, 2, 0))),
-    (OptionKey('install_env', module='python'),
-     BuiltinOption(UserComboOption, 'Which python environment to install to', 'prefix', choices=['auto', 'prefix', 'system', 'venv'])),
-    (OptionKey('platlibdir', module='python'),
-     BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
-    (OptionKey('purelibdir', module='python'),
-     BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
-    (OptionKey('allow_limited_api', module='python'),
-     BuiltinOption(UserBooleanOption, 'Whether to allow use of the Python Limited API', True)),
-])
-
-BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
-
-BUILTIN_OPTIONS_PER_MACHINE: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('pkg_config_path'), BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
-    (OptionKey('cmake_prefix_path'), BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
-])
-
-# Special prefix-dependent defaults for installation directories that reside in
-# a path outside of the prefix in FHS and common usage.
-BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
-    OptionKey('sysconfdir'):     {'/usr': '/etc'},
-    OptionKey('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
-    OptionKey('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
-    OptionKey('platlibdir', module='python'): {},
-    OptionKey('purelibdir', module='python'): {},
-}
+    def __len__(self) -> int:
+        return len(self.original_options)
 
 FORBIDDEN_TARGET_NAMES = frozenset({
     'clean',

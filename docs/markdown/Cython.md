@@ -32,6 +32,18 @@ py.extension_module(
 )
 ```
 
+You can pass arguments accepted by the `cython` CLI script with the
+`cython_args` argument:
+
+```meson
+py.extension_module(
+    'foo-bounds'
+    'foo.pyx',
+    dependencies : dep_py,
+    cython_args : ['-Xboundscheck=False'],
+)
+```
+
 ## C++ intermediate support
 
 *(New in 0.60.0)*

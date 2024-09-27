@@ -12,6 +12,15 @@ authors:
 This module provides support for finding and building extensions against
 python installations, be they python 2 or 3.
 
+If you want to build and package Python extension modules using tools
+compatible with [PEP-517](https://peps.python.org/pep-0517/), check out
+[meson-python](https://mesonbuild.com/meson-python/index.html).
+
+If you are building Python extension modules against a Python interpreter
+located in a venv or Conda environment, you probably want to set
+`python.install_venv=auto`;
+see [Python module options](Builtin-options.md#python-module) for details.
+
 *Added 0.46.0*
 
 ## Functions
@@ -112,6 +121,8 @@ Additionally, the following diverge from [[shared_module]]'s default behavior:
 - `gnu_symbol_visibility`: if unset, it will default to `'hidden'` on versions
   of Python that support this (the python headers define `PyMODINIT_FUNC` has
   default visibility).
+  
+Note that Cython support uses `extension_module`, see [the reference for Cython](Cython.md).
 
 *since 0.63.0* `extension_module` automatically adds a dependency to the library
 if one is not explicitly provided. To support older versions, the user may need to

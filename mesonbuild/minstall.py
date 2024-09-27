@@ -18,7 +18,8 @@ import re
 from . import build, environment
 from .backend.backends import InstallData
 from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       is_aix, setup_vsenv, pickle_load, is_osx, OptionKey)
+                       is_aix, setup_vsenv, pickle_load, is_osx)
+from .options import OptionKey
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
 try:
@@ -148,23 +149,29 @@ def set_chown(path: str, user: T.Union[str, int, None] = None,
     # be actually passed properly.
     # Not nice, but better than actually rewriting shutil.chown until
     # this python bug is fixed: https://bugs.python.org/issue18108
-    real_os_chown = os.chown
 
-    def chown(path: T.Union[int, str, 'os.PathLike[str]', bytes, 'os.PathLike[bytes]'],
-              uid: int, gid: int, *, dir_fd: T.Optional[int] = dir_fd,
-              follow_symlinks: bool = follow_symlinks) -> None:
-        """Override the default behavior of os.chown
+    if sys.version_info >= (3, 13):
+        # pylint: disable=unexpected-keyword-arg
+        # cannot handle sys.version_info, https://github.com/pylint-dev/pylint/issues/9138
+        shutil.chown(path, user, group, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+    else:
+        real_os_chown = os.chown
 
-        Use a real function rather than a lambda to help mypy out. Also real
-        functions are faster.
-        """
-        real_os_chown(path, uid, gid, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+        def chown(path: T.Union[int, str, 'os.PathLike[str]', bytes, 'os.PathLike[bytes]'],
+                  uid: int, gid: int, *, dir_fd: T.Optional[int] = dir_fd,
+                  follow_symlinks: bool = follow_symlinks) -> None:
+            """Override the default behavior of os.chown
 
-    try:
-        os.chown = chown
-        shutil.chown(path, user, group)
-    finally:
-        os.chown = real_os_chown
+            Use a real function rather than a lambda to help mypy out. Also real
+            functions are faster.
+            """
+            real_os_chown(path, uid, gid, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+
+        try:
+            os.chown = chown
+            shutil.chown(path, user, group)
+        finally:
+            os.chown = real_os_chown
 
 
 def set_chmod(path: str, mode: int, dir_fd: T.Optional[int] = None,

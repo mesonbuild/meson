@@ -28,18 +28,18 @@ class RewriterTests(BasePlatformTests):
         if isinstance(args, str):
             args = [args]
         command = self.rewrite_command + ['--verbose', '--skip', '--sourcedir', directory] + args
-        p = subprocess.run(command, capture_output=True, text=True, timeout=60)
+        p = subprocess.run(command, capture_output=True, encoding='utf-8', text=True, timeout=60)
         print('STDOUT:')
         print(p.stdout)
         print('STDERR:')
         print(p.stderr)
         if p.returncode != 0:
-            if 'MESON_SKIP_TEST' in p.stdout:
+            if 'MESON_SKIP_TEST' in p.stderr:
                 raise unittest.SkipTest('Project requested skipping.')
-            raise subprocess.CalledProcessError(p.returncode, command, output=p.stdout)
-        if not p.stderr:
+            raise subprocess.CalledProcessError(p.returncode, command, output=p.stderr)
+        if not p.stdout:
             return {}
-        return json.loads(p.stderr)
+        return json.loads(p.stdout)
 
     def rewrite(self, directory, args):
         if isinstance(args, str):

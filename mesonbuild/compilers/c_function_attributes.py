@@ -80,6 +80,8 @@ C_FUNC_ATTRIBUTES = {
         'int foo(void) __attribute__((noreturn));',
     'nothrow':
         'int foo(void) __attribute__((nothrow));',
+    'null_terminated_string_arg':
+        'int foo(const char * p) __attribute__((null_terminated_string_arg(1)));',
     'optimize':
         '__attribute__((optimize(3))) int foo(void) { return 0; }',
     'packed':

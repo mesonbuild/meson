@@ -2,10 +2,7 @@
 # due to use of setup_env.json
 project('external CMake dependency', ['c', 'cpp'])
 
-cmake = find_program('cmake', required: false)
-if not cmake.found()
-  error('MESON_SKIP_TEST cmake binary not available.')
-endif
+cmake = find_program('cmake')
 
 # Zlib is probably on all dev machines.
 

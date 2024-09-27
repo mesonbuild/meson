@@ -6,19 +6,11 @@
 from __future__ import annotations
 
 from .. import mparser
-from .visitor import AstVisitor
+from .visitor import AstVisitor, FullAstVisitor
 
-from itertools import zip_longest
 import re
 import typing as T
 
-arithmic_map = {
-    'add': '+',
-    'sub': '-',
-    'mod': '%',
-    'mul': '*',
-    'div': '/'
-}
 
 class AstPrinter(AstVisitor):
     def __init__(self, indent: int = 2, arg_newline_cutoff: int = 5, update_ast_line_nos: bool = False):
@@ -65,28 +57,17 @@ class AstPrinter(AstVisitor):
         node.lineno = self.curr_line or node.lineno
 
     def escape(self, val: str) -> str:
-        return val.translate(str.maketrans(T.cast(
-            'T.Dict[str, T.Union[str, int]]',
-            {'\'': '\\\'', '\\': '\\\\'})))
+        return val.replace('\\', '\\\\').replace("'", "\'")
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         assert isinstance(node.value, str)
-        self.append("'" + self.escape(node.value) + "'", node)
-        node.lineno = self.curr_line or node.lineno
 
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
-        assert isinstance(node.value, str)
-        self.append("f'" + self.escape(node.value) + "'", node)
-        node.lineno = self.curr_line or node.lineno
-
-    def visit_MultilineStringNode(self, node: mparser.MultilineFormatStringNode) -> None:
-        assert isinstance(node.value, str)
-        self.append("'''" + node.value + "'''", node)
-        node.lineno = self.curr_line or node.lineno
-
-    def visit_FormatMultilineStringNode(self, node: mparser.FormatStringNode) -> None:
-        assert isinstance(node.value, str)
-        self.append("f'''" + node.value + "'''", node)
+        if node.is_fstring:
+            self.append('f', node)
+        if node.is_multiline:
+            self.append("'''" + node.value + "'''", node)
+        else:
+            self.append("'" + self.escape(node.value) + "'", node)
         node.lineno = self.curr_line or node.lineno
 
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
@@ -123,13 +104,13 @@ class AstPrinter(AstVisitor):
 
     def visit_ComparisonNode(self, node: mparser.ComparisonNode) -> None:
         node.left.accept(self)
-        self.append_padded(node.ctype, node)
+        self.append_padded(node.ctype if node.ctype != 'notin' else 'not in', node)
         node.lineno = self.curr_line or node.lineno
         node.right.accept(self)
 
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
         node.left.accept(self)
-        self.append_padded(arithmic_map[node.operation], node)
+        self.append_padded(node.operator.value, node)
         node.lineno = self.curr_line or node.lineno
         node.right.accept(self)
 
@@ -193,6 +174,7 @@ class AstPrinter(AstVisitor):
             i.accept(self)
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.append('else', node)
+            self.newline()
             node.elseblock.accept(self)
         self.append('endif', node)
 
@@ -240,223 +222,51 @@ class AstPrinter(AstVisitor):
         else:
             self.result = re.sub(r', $', '', self.result)
 
-class RawPrinter(AstVisitor):
+class RawPrinter(FullAstVisitor):
 
     def __init__(self) -> None:
         self.result = ''
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:
-        # XXX: this seems like it could never actually be reached...
-        self.result += node.value  # type: ignore[attr-defined]
-        if node.whitespaces:
-            node.whitespaces.accept(self)
+        self.enter_node(node)
+        assert hasattr(node, 'value')
+        self.result += node.value
+        self.exit_node(node)
 
-    def visit_unary_operator(self, node: mparser.UnaryOperatorNode) -> None:
-        node.operator.accept(self)
-        node.value.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_binary_operator(self, node: mparser.BinaryOperatorNode) -> None:
-        node.left.accept(self)
-        node.operator.accept(self)
-        node.right.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
+    def visit_EmptyNode(self, node: mparser.EmptyNode) -> None:
+        self.enter_node(node)
+        self.exit_node(node)
 
     def visit_BooleanNode(self, node: mparser.BooleanNode) -> None:
+        self.enter_node(node)
         self.result += 'true' if node.value else 'false'
-        if node.whitespaces:
-            node.whitespaces.accept(self)
+        self.exit_node(node)
 
     def visit_NumberNode(self, node: mparser.NumberNode) -> None:
+        self.enter_node(node)
         self.result += node.raw_value
-        if node.whitespaces:
-            node.whitespaces.accept(self)
+        self.exit_node(node)
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
-        self.result += f"'{node.raw_value}'"
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_MultilineStringNode(self, node: mparser.MultilineStringNode) -> None:
-        self.result += f"'''{node.value}'''"
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
-        self.result += 'f'
-        self.visit_StringNode(node)
-
-    def visit_MultilineFormatStringNode(self, node: mparser.MultilineFormatStringNode) -> None:
-        self.result += 'f'
-        self.visit_MultilineStringNode(node)
+        self.enter_node(node)
+        if node.is_fstring:
+            self.result += 'f'
+        if node.is_multiline:
+            self.result += f"'''{node.value}'''"
+        else:
+            self.result += f"'{node.raw_value}'"
+        self.exit_node(node)
 
     def visit_ContinueNode(self, node: mparser.ContinueNode) -> None:
+        self.enter_node(node)
         self.result += 'continue'
-        if node.whitespaces:
-            node.whitespaces.accept(self)
+        self.exit_node(node)
 
     def visit_BreakNode(self, node: mparser.BreakNode) -> None:
+        self.enter_node(node)
         self.result += 'break'
-        if node.whitespaces:
-            node.whitespaces.accept(self)
+        self.exit_node(node)
 
-    def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
-        node.lbracket.accept(self)
-        node.args.accept(self)
-        node.rbracket.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_DictNode(self, node: mparser.DictNode) -> None:
-        node.lcurl.accept(self)
-        node.args.accept(self)
-        node.rcurl.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
-        node.lpar.accept(self)
-        node.inner.accept(self)
-        node.rpar.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_OrNode(self, node: mparser.OrNode) -> None:
-        self.visit_binary_operator(node)
-
-    def visit_AndNode(self, node: mparser.AndNode) -> None:
-        self.visit_binary_operator(node)
-
-    def visit_ComparisonNode(self, node: mparser.ComparisonNode) -> None:
-        self.visit_binary_operator(node)
-
-    def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
-        self.visit_binary_operator(node)
-
-    def visit_NotNode(self, node: mparser.NotNode) -> None:
-        self.visit_unary_operator(node)
-
-    def visit_CodeBlockNode(self, node: mparser.CodeBlockNode) -> None:
-        if node.pre_whitespaces:
-            node.pre_whitespaces.accept(self)
-        for i in node.lines:
-            i.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_IndexNode(self, node: mparser.IndexNode) -> None:
-        node.iobject.accept(self)
-        node.lbracket.accept(self)
-        node.index.accept(self)
-        node.rbracket.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_MethodNode(self, node: mparser.MethodNode) -> None:
-        node.source_object.accept(self)
-        node.dot.accept(self)
-        node.name.accept(self)
-        node.lpar.accept(self)
-        node.args.accept(self)
-        node.rpar.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
-        node.func_name.accept(self)
-        node.lpar.accept(self)
-        node.args.accept(self)
-        node.rpar.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
-        node.var_name.accept(self)
-        node.operator.accept(self)
-        node.value.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
-        node.var_name.accept(self)
-        node.operator.accept(self)
-        node.value.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
-        node.foreach_.accept(self)
-        for varname, comma in zip_longest(node.varnames, node.commas):
-            varname.accept(self)
-            if comma is not None:
-                comma.accept(self)
-        node.column.accept(self)
-        node.items.accept(self)
-        node.block.accept(self)
-        node.endforeach.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_IfClauseNode(self, node: mparser.IfClauseNode) -> None:
-        for i in node.ifs:
-            i.accept(self)
-        if not isinstance(node.elseblock, mparser.EmptyNode):
-            node.elseblock.accept(self)
-        node.endif.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_UMinusNode(self, node: mparser.UMinusNode) -> None:
-        self.visit_unary_operator(node)
-
-    def visit_IfNode(self, node: mparser.IfNode) -> None:
-        node.if_.accept(self)
-        node.condition.accept(self)
-        node.block.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_ElseNode(self, node: mparser.ElseNode) -> None:
-        node.else_.accept(self)
-        node.block.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_TernaryNode(self, node: mparser.TernaryNode) -> None:
-        node.condition.accept(self)
-        node.questionmark.accept(self)
-        node.trueblock.accept(self)
-        node.column.accept(self)
-        node.falseblock.accept(self)
-        if node.whitespaces:
-            node.whitespaces.accept(self)
-
-    def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
-        commas_iter = iter(node.commas)
-
-        for arg in node.arguments:
-            arg.accept(self)
-            try:
-                comma = next(commas_iter)
-                comma.accept(self)
-            except StopIteration:
-                pass
-
-        assert len(node.columns) == len(node.kwargs)
-        for (key, val), column in zip(node.kwargs.items(), node.columns):
-            key.accept(self)
-            column.accept(self)
-            val.accept(self)
-            try:
-                comma = next(commas_iter)
-                comma.accept(self)
-            except StopIteration:
-                pass
-
-        if node.whitespaces:
-            node.whitespaces.accept(self)
 
 class AstJSONPrinter(AstVisitor):
     def __init__(self) -> None:
@@ -513,9 +323,6 @@ class AstJSONPrinter(AstVisitor):
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         self.gen_ElementaryNode(node)
 
-    def visit_FormatStringNode(self, node: mparser.FormatStringNode) -> None:
-        self.gen_ElementaryNode(node)
-
     def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
         self._accept('args', node.args)
         self.setbase(node)
@@ -543,7 +350,7 @@ class AstJSONPrinter(AstVisitor):
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
         self._accept('left', node.left)
         self._accept('right', node.right)
-        self.current['op'] = arithmic_map[node.operation]
+        self.current['op'] = node.operator.value
         self.setbase(node)
 
     def visit_NotNode(self, node: mparser.NotNode) -> None:

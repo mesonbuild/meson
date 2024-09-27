@@ -1,0 +1,20 @@
+{
+    "matrix": {
+        "options": {
+            "default_library": [
+                { "val": "shared" },
+                { "val": "static" },
+                { "val": "both"   }
+            ],
+            "default_both_libraries": [
+                { "val": "shared" },
+                { "val": "static" },
+                { "val": "auto"   }
+            ],
+            "use_dep": [
+                { "val": false },
+                { "val": true  }
+            ]
+        }
+    }
+}

@@ -8,6 +8,7 @@ import dataclasses
 import typing as T
 
 from .. import build, mesonlib
+from ..options import OptionKey
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
 from ..mesonlib import relpath, HoldableObject, MachineChoice
@@ -18,7 +19,6 @@ if T.TYPE_CHECKING:
     from ..interpreter.interpreter import ProgramVersionFunc
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import OverrideProgram
-    from ..wrap import WrapMode
     from ..dependencies import Dependency
 
 class ModuleState:
@@ -113,7 +113,7 @@ class ModuleState:
         if wanted:
             kwargs['version'] = wanted
         # FIXME: Even if we fix the function, mypy still can't figure out what's
-        # going on here. And we really dont want to call interpreter
+        # going on here. And we really don't want to call interpreter
         # implementations of meson functions anyway.
         return self._interpreter.func_dependency(self.current_node, [depname], kwargs) # type: ignore
 
@@ -132,16 +132,13 @@ class ModuleState:
         self._interpreter.func_test(self.current_node, real_args, kwargs)
 
     def get_option(self, name: str, subproject: str = '',
-                   machine: MachineChoice = MachineChoice.HOST,
-                   lang: T.Optional[str] = None,
-                   module: T.Optional[str] = None) -> T.Union[T.List[str], str, int, bool, 'WrapMode']:
-        return self.environment.coredata.get_option(mesonlib.OptionKey(name, subproject, machine, lang, module))
+                   machine: MachineChoice = MachineChoice.HOST) -> T.Union[T.List[str], str, int, bool]:
+        return self.environment.coredata.get_option(OptionKey(name, subproject, machine))
 
     def is_user_defined_option(self, name: str, subproject: str = '',
                                machine: MachineChoice = MachineChoice.HOST,
-                               lang: T.Optional[str] = None,
-                               module: T.Optional[str] = None) -> bool:
-        key = mesonlib.OptionKey(name, subproject, machine, lang, module)
+                               lang: T.Optional[str] = None) -> bool:
+        key = OptionKey(name, subproject, machine)
         return key in self._interpreter.user_defined_options.cmd_line_options
 
     def process_include_dirs(self, dirs: T.Iterable[T.Union[str, IncludeDirs]]) -> T.Iterable[IncludeDirs]:

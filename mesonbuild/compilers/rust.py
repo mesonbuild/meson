@@ -9,8 +9,9 @@ import textwrap
 import re
 import typing as T
 
-from .. import coredata
-from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged, OptionKey
+from .. import options
+from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged
+from ..options import OptionKey
 from .compilers import Compiler, clike_debug_args
 
 if T.TYPE_CHECKING:
@@ -19,7 +20,6 @@ if T.TYPE_CHECKING:
     from ..environment import Environment  # noqa: F401
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
-    from ..programs import ExternalProgram
     from ..dependencies import Dependency
 
 
@@ -44,6 +44,7 @@ class RustCompiler(Compiler):
         '1': [],
         '2': [],
         '3': ['-W', 'warnings'],
+        'everything': ['-W', 'warnings'],
     }
 
     # Those are static libraries, but we use dylib= here as workaround to avoid
@@ -59,13 +60,11 @@ class RustCompiler(Compiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  full_version: T.Optional[str] = None,
                  linker: T.Optional['DynamicLinker'] = None):
         super().__init__([], exelist, version, for_machine, info,
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
-        self.exe_wrapper = exe_wrapper
         self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
@@ -77,39 +76,68 @@ class RustCompiler(Compiler):
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest')
-        with open(source_name, 'w', encoding='utf-8') as ofile:
-            ofile.write(textwrap.dedent(
-                '''fn main() {
-                }
-                '''))
+        cmdlist = self.exelist.copy()
 
-        cmdlist = self.exelist + ['-o', output_name, source_name]
+        with open(source_name, 'w', encoding='utf-8') as ofile:
+            # If machine kernel is not `none`, try to compile a dummy program.
+            # If 'none', this is likely a `no-std`(i.e. bare metal) project.
+            if self.info.kernel != 'none':
+                ofile.write(textwrap.dedent(
+                    '''fn main() {
+                    }
+                    '''))
+            else:
+                # If rustc linker is gcc, add `-nostartfiles`
+                if 'ld.' in self.linker.id:
+                    cmdlist.extend(['-C', 'link-arg=-nostartfiles'])
+                ofile.write(textwrap.dedent(
+                    '''#![no_std]
+                    #![no_main]
+                    #[no_mangle]
+                    pub fn _start() {
+                    }
+                    #[panic_handler]
+                    fn panic(_info: &core::panic::PanicInfo) -> ! {
+                        loop {}
+                    }
+                    '''))
+
+        cmdlist.extend(['-o', output_name, source_name])
         pc, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
+        self._native_static_libs(work_dir, source_name)
         if self.is_cross:
-            if self.exe_wrapper is None:
+            if not environment.has_exe_wrapper():
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper.get_command() + [output_name]
+            cmdlist = environment.exe_wrapper.get_command() + [output_name]
         else:
             cmdlist = [output_name]
         pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         pe.wait()
         if pe.returncode != 0:
             raise EnvironmentException(f'Executables created by Rust compiler {self.name_string()} are not runnable.')
+
+    def _native_static_libs(self, work_dir: str, source_name: str) -> None:
         # Get libraries needed to link with a Rust staticlib
         cmdlist = self.exelist + ['--crate-type', 'staticlib', '--print', 'native-static-libs', source_name]
         p, stdo, stde = Popen_safe_logged(cmdlist, cwd=work_dir)
-        if p.returncode == 0:
-            match = re.search('native-static-libs: (.*)$', stde, re.MULTILINE)
-            if match:
-                # Exclude some well known libraries that we don't need because they
-                # are always part of C/C++ linkers. Rustc probably should not print
-                # them, pkg-config for example never specify them.
-                # FIXME: https://github.com/rust-lang/rust/issues/55120
-                exclude = {'-lc', '-lgcc_s', '-lkernel32', '-ladvapi32'}
-                self.native_static_libs = [i for i in match.group(1).split() if i not in exclude]
+        if p.returncode != 0:
+            raise EnvironmentException('Rust compiler cannot compile staticlib.')
+        match = re.search('native-static-libs: (.*)$', stde, re.MULTILINE)
+        if not match:
+            if self.info.kernel == 'none':
+                # no match and kernel == none (i.e. baremetal) is a valid use case.
+                # return and let native_static_libs list empty
+                return
+            raise EnvironmentException('Failed to find native-static-libs in Rust compiler output.')
+        # Exclude some well known libraries that we don't need because they
+        # are always part of C/C++ linkers. Rustc probably should not print
+        # them, pkg-config for example never specify them.
+        # FIXME: https://github.com/rust-lang/rust/issues/55120
+        exclude = {'-lc', '-lgcc_s', '-lkernel32', '-ladvapi32'}
+        self.native_static_libs = [i for i in match.group(1).split() if i not in exclude]
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['--dep-info', outfile]
@@ -154,15 +182,12 @@ class RustCompiler(Compiler):
     # C compiler for dynamic linking, as such we invoke the C compiler's
     # use_linker_args method instead.
 
-    def get_options(self) -> 'MutableKeyedOptionDictType':
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        return {
-            key: coredata.UserComboOption(
-                'Rust edition to use',
-                ['none', '2015', '2018', '2021'],
-                'none',
-            ),
-        }
+    def get_options(self) -> MutableKeyedOptionDictType:
+        return dict((self.create_option(options.UserComboOption,
+                                        self.form_compileropt_key('std'),
+                                        'Rust edition to use',
+                                        ['none', '2015', '2018', '2021'],
+                                        'none'),))
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         # Rust doesn't have dependency compile arguments so simply return
@@ -172,10 +197,10 @@ class RustCompiler(Compiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        std = options[key]
-        if std.value != 'none':
-            args.append('--edition=' + std.value)
+        key = self.form_compileropt_key('std')
+        std = options.get_value(key)
+        if std != 'none':
+            args.append('--edition=' + std)
         return args
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
@@ -216,7 +241,7 @@ class RustCompiler(Compiler):
         # pic is on by rustc
         return []
 
-    def get_assert_args(self, disable: bool) -> T.List[str]:
+    def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
 

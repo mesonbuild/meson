@@ -10,10 +10,11 @@ import typing as T
 from typing_extensions import TypedDict, Literal, Protocol, NotRequired
 
 from .. import build
-from .. import coredata
+from .. import options
 from ..compilers import Compiler
 from ..dependencies.base import Dependency
-from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString, OptionKey
+from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString
+from ..options import OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
@@ -37,7 +38,7 @@ class BaseTest(TypedDict):
 
     """Shared base for the Rust module."""
 
-    args: T.List[T.Union[str, File, build.Target]]
+    args: T.List[T.Union[str, File, build.Target, ExternalProgram]]
     should_fail: bool
     timeout: int
     workdir: T.Optional[str]
@@ -70,10 +71,10 @@ class ExtractRequired(TypedDict):
     """Keyword Arguments consumed by the `extract_required_kwargs` function.
 
     Any function that uses the `required` keyword argument which accepts either
-    a boolean or a feature option should inherit it's arguments from this class.
+    a boolean or a feature option should inherit its arguments from this class.
     """
 
-    required: T.Union[bool, coredata.UserFeatureOption]
+    required: T.Union[bool, options.UserFeatureOption]
 
 
 class ExtractSearchDirs(TypedDict):
@@ -210,6 +211,7 @@ class Project(TypedDict):
     meson_version: T.Optional[str]
     default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     license: T.List[str]
+    license_files: T.List[str]
     subproject_dir: str
 
 
@@ -266,6 +268,7 @@ class DependencyGetVariable(TypedDict):
     pkgconfig: T.Optional[str]
     configtool: T.Optional[str]
     internal: T.Optional[str]
+    system: T.Optional[str]
     default_value: T.Optional[str]
     pkgconfig_define: PkgConfigDefineType
 

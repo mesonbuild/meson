@@ -10,7 +10,7 @@ import typing as T
 
 from ... import mesonlib
 from ...linkers.linkers import ArmClangDynamicLinker
-from ...mesonlib import OptionKey
+from ...options import OptionKey
 from ..compilers import clike_debug_args
 from .clang import clang_color_args
 

@@ -24,6 +24,7 @@ pkgs_stable=(
   #dev-util/bindgen
 
   dev-libs/elfutils
+  dev-util/gdbus-codegen
   dev-libs/gobject-introspection
   dev-util/itstool
   dev-libs/protobuf
@@ -39,8 +40,7 @@ pkgs_stable=(
   sci-libs/hdf5
   dev-qt/linguist-tools
   sys-devel/llvm
-  # qt6 unstable
-  #dev-qt/qttools
+  dev-qt/qttools
 
   # misc
   app-admin/sudo
@@ -114,6 +114,12 @@ cat <<-EOF >> /etc/portage/make.conf
 	EMERGE_DEFAULT_OPTS="\${EMERGE_DEFAULT_OPTS} --autounmask-write --autounmask-continue --autounmask-keep-keywords=y --autounmask-use=y"
 	EMERGE_DEFAULT_OPTS="\${EMERGE_DEFAULT_OPTS} --binpkg-respect-use=y"
 
+	# prevent painfully verbose Github Actions logs.
+	FETCHCOMMAND='wget --no-show-progress -t 3 -T 60 --passive-ftp -O "\\\${DISTDIR}/\\\${FILE}" "\\\${URI}"'
+
+	# Fortran is no longer enabled by default in 23.0, but we do need and use it.
+	USE="\${USE} fortran"
+
 	FEATURES="\${FEATURES} parallel-fetch parallel-install -merge-sync"
 	FEATURES="\${FEATURES} getbinpkg binpkg-request-signature"
 
@@ -149,3 +155,13 @@ rm /usr/lib/python/EXTERNALLY-MANAGED
 python3 -m ensurepip
 install_python_packages
 python3 -m pip install "${base_python_pkgs[@]}"
+
+echo "source /etc/profile" >> /ci/env_vars.sh
+
+# Cleanup to avoid including large contents in the docker image.
+# We don't need cache files that are side artifacts of installing packages.
+# We also don't need the gentoo tree -- the official docker image doesn't
+# either, and expects you to use emerge-webrsync once you need it.
+rm -rf /var/cache/binpkgs
+rm -rf /var/cache/distfiles
+rm -rf /var/db/repos/gentoo

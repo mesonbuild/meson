@@ -13,7 +13,7 @@ summary({'Some boolean': false,
 summary({'missing prog': find_program('xyzzy', required: false),
          'existing prog': find_program(get_option('python')).full_path(),
          'missing dep': dependency('', required: false),
-         'external dep': dependency('zlib', required: false),
+         'external dep': dependency('dl', required: false),
          'internal dep': declare_dependency(),
          'disabler': disabler(),
         }, section: 'Stuff')

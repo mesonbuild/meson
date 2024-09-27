@@ -11,8 +11,8 @@ import typing as T
 
 from ... import mesonlib
 from ...linkers.linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker, \
-    MoldDynamicLinker
-from ...mesonlib import OptionKey
+    MoldDynamicLinker, MSVCDynamicLinker
+from ...options import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
@@ -36,6 +36,13 @@ clang_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-Oz'],
 }
 
+clang_lang_map = {
+    'c': 'c',
+    'cpp': 'c++',
+    'objc': 'objective-c',
+    'objcpp': 'objective-c++',
+}
+
 class ClangCompiler(GnuLikeCompiler):
 
     id = 'clang'
@@ -51,6 +58,8 @@ class ClangCompiler(GnuLikeCompiler):
         # linkers don't have base_options.
         if isinstance(self.linker, AppleDynamicLinker):
             self.base_options.add(OptionKey('b_bitcode'))
+        elif isinstance(self.linker, MSVCDynamicLinker):
+            self.base_options.add(OptionKey('b_vscrt'))
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
 
@@ -77,9 +86,23 @@ class ClangCompiler(GnuLikeCompiler):
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # Clang is different than GCC, it will return True when a symbol isn't
-        # defined in a header. Specifically this seems to have something to do
-        # with functions that may be in a header on some systems, but not all of
-        # them. `strlcat` specifically with can trigger this.
+        # defined in a header. Specifically this is caused by a functionality
+        # both GCC and clang have: for some "well known" functions, arbitrarily
+        # chosen, they provide fixit suggestions for the header you should try
+        # including.
+        #
+        # - With GCC, this is a note appended to the prexisting diagnostic
+        #   "error: undeclared identifier"
+        #
+        # - With clang, the error is converted to a c89'ish implicit function
+        #   declaration instead, which can be disabled with -Wno-error and on
+        #   clang < 16, simply passes compilation by default.
+        #
+        # One example of a clang fixit suggestion is for `strlcat`, which
+        # triggers this.
+        #
+        # This was reported in 2017 and promptly fixed. Just kidding!
+        # https://github.com/llvm/llvm-project/issues/33905
         myargs: T.List[str] = ['-Werror=implicit-function-declaration']
         if mode is CompileCheckMode.COMPILE:
             myargs.extend(['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'])
@@ -102,7 +125,7 @@ class ClangCompiler(GnuLikeCompiler):
         return super().has_function(funcname, prefix, env, extra_args=extra_args,
                                     dependencies=dependencies)
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=3.8.0'):
             return ['-fopenmp']
         elif mesonlib.version_compare(self.version, '>=3.7.0'):
@@ -110,6 +133,13 @@ class ClangCompiler(GnuLikeCompiler):
         else:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
+
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
+        if isinstance(self.linker, (MSVCDynamicLinker)):
+            # With MSVC, DLLs only export symbols that are explicitly exported,
+            # so if a module defs file is specified, we use that to export symbols
+            return ['-Wl,/DEF:' + defsfile]
+        return super().gen_vs_module_defs_args(defsfile)
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
@@ -154,6 +184,12 @@ class ClangCompiler(GnuLikeCompiler):
             assert mode == 'default', 'someone forgot to wire something up'
             args.extend(super().get_lto_compile_args(threads=threads))
         return args
+
+    def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
+        if isinstance(self.linker, (ClangClDynamicLinker, MSVCDynamicLinker)):
+            return [flag if flag.startswith('-Wl,') else f'-Wl,{flag}' for flag in args]
+        else:
+            return args
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:

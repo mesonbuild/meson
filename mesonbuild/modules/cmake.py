@@ -10,6 +10,7 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleObject, ModuleInfo
 
 from .. import build, mesonlib, mlog, dependencies
+from ..options import OptionKey
 from ..cmake import TargetOptions, cmake_defines_to_args
 from ..interpreter import SubprojectHolder
 from ..interpreter.type_checking import REQUIRED_KW, INSTALL_DIR_KW, NoneType, in_set_validator
@@ -136,6 +137,8 @@ class CMakeSubproject(ModuleObject):
         info = self._args_to_info(args)
         if info['func'] == 'executable':
             raise InvalidArguments(f'{args[0]} is an executable and does not support the dependency() method. Use target() instead.')
+        if info['dep'] is None:
+            raise InvalidArguments(f'{args[0]} does not support the dependency() method. Use target() instead.')
         orig = self.get_variable(state, [info['dep']], {})
         assert isinstance(orig, dependencies.Dependency)
         actual = orig.include_type
@@ -216,7 +219,7 @@ class CMakeSubprojectOptions(ModuleObject):
     def append_compile_args(self, state: ModuleState, args: T.Tuple[str, T.List[str]], kwargs: TYPE_kwargs) -> None:
         self._get_opts(kwargs).append_args(args[0], args[1])
 
-    @typed_pos_args('subproject_options.append_compile_args', varargs=str, min_varargs=1)
+    @typed_pos_args('subproject_options.append_link_args', varargs=str, min_varargs=1)
     @permittedKwargs({'target'})
     def append_link_args(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> None:
         self._get_opts(kwargs).append_link_args(args[0])
@@ -297,7 +300,7 @@ class CmakeModule(ExtensionModule):
 
         pkgroot = pkgroot_name = kwargs['install_dir']
         if pkgroot is None:
-            pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'cmake', name)
+            pkgroot = os.path.join(state.environment.coredata.get_option(OptionKey('libdir')), 'cmake', name)
             pkgroot_name = os.path.join('{libdir}', 'cmake', name)
 
         template_file = os.path.join(self.cmake_root, 'Modules', f'BasicConfigVersion-{compatibility}.cmake.in')
@@ -368,14 +371,14 @@ class CmakeModule(ExtensionModule):
 
         install_dir = kwargs['install_dir']
         if install_dir is None:
-            install_dir = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'cmake', name)
+            install_dir = os.path.join(state.environment.coredata.get_option(OptionKey('libdir')), 'cmake', name)
 
         conf = kwargs['configuration']
         if isinstance(conf, dict):
             FeatureNew.single_use('cmake.configure_package_config_file dict as configuration', '0.62.0', state.subproject, location=state.current_node)
             conf = build.ConfigurationData(conf)
 
-        prefix = state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
+        prefix = state.environment.coredata.get_option(OptionKey('prefix'))
         abs_install_dir = install_dir
         if not os.path.isabs(abs_install_dir):
             abs_install_dir = os.path.join(prefix, install_dir)

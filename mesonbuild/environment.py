@@ -11,11 +11,16 @@ import collections
 
 from . import coredata
 from . import mesonlib
+from . import machinefile
+
+CmdLineFileParser = machinefile.CmdLineFileParser
+
 from .mesonlib import (
     MesonException, MachineChoice, Popen_safe, PerMachine,
-    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey,
+    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg,
     search_version, MesonBugException
 )
+from .options import OptionKey
 from . import mlog
 from .programs import ExternalProgram
 
@@ -72,8 +77,7 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
     return value
 
 
-def detect_gcovr(min_version: str = '3.3', log: bool = False):
-    gcovr_exe = 'gcovr'
+def detect_gcovr(gcovr_exe: str = 'gcovr', min_version: str = '3.3', log: bool = False):
     try:
         p, found = Popen_safe([gcovr_exe, '--version'])[0:2]
     except (FileNotFoundError, PermissionError):
@@ -86,8 +90,7 @@ def detect_gcovr(min_version: str = '3.3', log: bool = False):
         return gcovr_exe, found
     return None, None
 
-def detect_lcov(log: bool = False):
-    lcov_exe = 'lcov'
+def detect_lcov(lcov_exe: str = 'lcov', log: bool = False):
     try:
         p, found = Popen_safe([lcov_exe, '--version'])[0:2]
     except (FileNotFoundError, PermissionError):
@@ -100,27 +103,61 @@ def detect_lcov(log: bool = False):
         return lcov_exe, found
     return None, None
 
-def detect_llvm_cov():
-    tools = get_llvm_tool_names('llvm-cov')
-    for tool in tools:
-        if mesonlib.exe_exists([tool, '--version']):
+def detect_llvm_cov(suffix: T.Optional[str] = None):
+    # If there's a known suffix or forced lack of suffix, use that
+    if suffix is not None:
+        if suffix == '':
+            tool = 'llvm-cov'
+        else:
+            tool = f'llvm-cov-{suffix}'
+        if shutil.which(tool) is not None:
             return tool
+    else:
+        # Otherwise guess in the dark
+        tools = get_llvm_tool_names('llvm-cov')
+        for tool in tools:
+            if shutil.which(tool):
+                return tool
     return None
 
-def find_coverage_tools() -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
+def compute_llvm_suffix(coredata: coredata.CoreData):
+    # Check to see if the user is trying to do coverage for either a C or C++ project
+    compilers = coredata.compilers[MachineChoice.BUILD]
+    cpp_compiler_is_clang = 'cpp' in compilers and compilers['cpp'].id == 'clang'
+    c_compiler_is_clang = 'c' in compilers and compilers['c'].id == 'clang'
+    # Extract first the C++ compiler if available. If it's a Clang of some kind, compute the suffix if possible
+    if cpp_compiler_is_clang:
+        suffix = compilers['cpp'].version.split('.')[0]
+        return suffix
+
+    # Then the C compiler, again checking if it's some kind of Clang and computing the suffix
+    if c_compiler_is_clang:
+        suffix = compilers['c'].version.split('.')[0]
+        return suffix
+
+    # Neither compiler is a Clang, or no compilers are for C or C++
+    return None
+
+def detect_lcov_genhtml(lcov_exe: str = 'lcov', genhtml_exe: str = 'genhtml'):
+    lcov_exe, lcov_version = detect_lcov(lcov_exe)
+    if shutil.which(genhtml_exe) is None:
+        genhtml_exe = None
+
+    return lcov_exe, lcov_version, genhtml_exe
+
+def find_coverage_tools(coredata: coredata.CoreData) -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
     gcovr_exe, gcovr_version = detect_gcovr()
 
-    llvm_cov_exe = detect_llvm_cov()
+    llvm_cov_exe = detect_llvm_cov(compute_llvm_suffix(coredata))
+    # Some platforms may provide versioned clang but only non-versioned llvm utils
+    if llvm_cov_exe is None:
+        llvm_cov_exe = detect_llvm_cov('')
 
-    lcov_exe, lcov_version = detect_lcov()
-    genhtml_exe = 'genhtml'
-
-    if not mesonlib.exe_exists([genhtml_exe, '--version']):
-        genhtml_exe = None
+    lcov_exe, lcov_version, genhtml_exe = detect_lcov_genhtml()
 
     return gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe
 
-def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.List[str]:
+def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.Optional[T.List[str]]:
     r = detect_ninja_command_and_version(version, log)
     return r[0] if r else None
 
@@ -159,6 +196,10 @@ def get_llvm_tool_names(tool: str) -> T.List[str]:
     # unless it becomes a stable release.
     suffixes = [
         '', # base (no suffix)
+        '-19.1', '19.1',
+        '-19',  '19',
+        '-18.1', '18.1',
+        '-18',  '18',
         '-17',  '17',
         '-16',  '16',
         '-15',  '15',
@@ -178,7 +219,7 @@ def get_llvm_tool_names(tool: str) -> T.List[str]:
         '-3.7', '37',
         '-3.6', '36',
         '-3.5', '35',
-        '-15',    # Debian development snapshot
+        '-20',    # Debian development snapshot
         '-devel', # FreeBSD development snapshot
     ]
     names: T.List[str] = []
@@ -234,6 +275,32 @@ def detect_clangformat() -> T.List[str]:
             return [path]
     return []
 
+def detect_clangtidy() -> T.List[str]:
+    """ Look for clang-tidy binary on build platform
+
+    Return: a single-element list of the found clang-tidy binary ready to be
+        passed to Popen()
+    """
+    tools = get_llvm_tool_names('clang-tidy')
+    for tool in tools:
+        path = shutil.which(tool)
+        if path is not None:
+            return [path]
+    return []
+
+def detect_clangapply() -> T.List[str]:
+    """ Look for clang-apply-replacements binary on build platform
+
+    Return: a single-element list of the found clang-apply-replacements binary
+        ready to be passed to Popen()
+    """
+    tools = get_llvm_tool_names('clang-apply-replacements')
+    for tool in tools:
+        path = shutil.which(tool)
+        if path is not None:
+            return [path]
+    return []
+
 def detect_windows_arch(compilers: CompilersDict) -> str:
     """
     Detecting the 'native' architecture of Windows is not a trivial task. We
@@ -268,7 +335,7 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
     for compiler in compilers.values():
         if compiler.id == 'msvc' and (compiler.target in {'x86', '80x86'}):
             return 'x86'
-        if compiler.id == 'clang-cl' and compiler.target == 'x86':
+        if compiler.id == 'clang-cl' and (compiler.target in {'x86', 'i686'}):
             return 'x86'
         if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
             return 'x86'
@@ -288,7 +355,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     """
     Python is inconsistent in its platform module.
     It returns different values for the same cpu.
-    For x86 it might return 'x86', 'i686' or somesuch.
+    For x86 it might return 'x86', 'i686' or some such.
     Do some canonicalization.
     """
     if mesonlib.is_windows():
@@ -425,7 +492,7 @@ def detect_kernel(system: str) -> T.Optional[str]:
             raise MesonException('Failed to run "/usr/bin/uname -o"')
         out = out.lower().strip()
         if out not in {'illumos', 'solaris'}:
-            mlog.warning(f'Got an unexpected value for kernel on a SunOS derived platform, expcted either "illumos" or "solaris", but got "{out}".'
+            mlog.warning(f'Got an unexpected value for kernel on a SunOS derived platform, expected either "illumos" or "solaris", but got "{out}".'
                          "Please open a Meson issue with the OS you're running and the value detected for your kernel.")
             return None
         return out
@@ -474,18 +541,18 @@ def machine_info_can_run(machine_info: MachineInfo):
     if machine_info.system != detect_system():
         return False
     true_build_cpu_family = detect_cpu_family({})
+    assert machine_info.cpu_family is not None, 'called on incomplete machine_info'
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
         ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
-        ((true_build_cpu_family == 'mips64') and (machine_info.cpu_family == 'mips')) or \
-        ((true_build_cpu_family == 'aarch64') and (machine_info.cpu_family == 'arm'))
+        ((true_build_cpu_family == 'mips64') and (machine_info.cpu_family == 'mips'))
 
 class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
 
-    def __init__(self, source_dir: str, build_dir: str, options: coredata.SharedCMDOptions) -> None:
+    def __init__(self, source_dir: str, build_dir: str, cmd_options: coredata.SharedCMDOptions) -> None:
         self.source_dir = source_dir
         self.build_dir = build_dir
         # Do not try to create build directories when build_dir is none.
@@ -501,26 +568,26 @@ class Environment:
                 self.coredata: coredata.CoreData = coredata.load(self.get_build_dir(), suggest_reconfigure=False)
                 self.first_invocation = False
             except FileNotFoundError:
-                self.create_new_coredata(options)
+                self.create_new_coredata(cmd_options)
             except coredata.MesonVersionMismatchException as e:
                 # This is routine, but tell the user the update happened
                 mlog.log('Regenerating configuration from scratch:', str(e))
-                coredata.read_cmd_line_file(self.build_dir, options)
-                self.create_new_coredata(options)
+                coredata.read_cmd_line_file(self.build_dir, cmd_options)
+                self.create_new_coredata(cmd_options)
             except MesonException as e:
                 # If we stored previous command line options, we can recover from
                 # a broken/outdated coredata.
                 if os.path.isfile(coredata.get_cmd_line_file(self.build_dir)):
                     mlog.warning('Regenerating configuration from scratch.', fatal=False)
                     mlog.log('Reason:', mlog.red(str(e)))
-                    coredata.read_cmd_line_file(self.build_dir, options)
-                    self.create_new_coredata(options)
+                    coredata.read_cmd_line_file(self.build_dir, cmd_options)
+                    self.create_new_coredata(cmd_options)
                 else:
                     raise MesonException(f'{str(e)} Try regenerating using "meson setup --wipe".')
         else:
             # Just create a fresh coredata in this case
             self.scratch_dir = ''
-            self.create_new_coredata(options)
+            self.create_new_coredata(cmd_options)
 
         ## locally bind some unfrozen configuration
 
@@ -558,7 +625,7 @@ class Environment:
         ## Read in native file(s) to override build machine configuration
 
         if self.coredata.config_files is not None:
-            config = coredata.parse_machine_files(self.coredata.config_files, self.source_dir)
+            config = machinefile.parse_machine_files(self.coredata.config_files, self.source_dir)
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
@@ -569,7 +636,7 @@ class Environment:
         ## Read in cross file(s) to override host machine configuration
 
         if self.coredata.cross_files:
-            config = coredata.parse_machine_files(self.coredata.cross_files, self.source_dir)
+            config = machinefile.parse_machine_files(self.coredata.cross_files, self.source_dir)
             properties.host = Properties(config.get('properties', {}))
             binaries.host = BinaryTable(config.get('binaries', {}))
             cmakevars.host = CMakeVariables(config.get('cmake', {}))
@@ -592,7 +659,7 @@ class Environment:
         self.cmakevars = cmakevars.default_missing()
 
         # Command line options override those from cross/native files
-        self.options.update(options.cmd_line_options)
+        self.options.update(cmd_options.cmd_line_options)
 
         # Take default value from env if not set in cross/native files or command line.
         self._set_default_options_from_env()
@@ -655,7 +722,7 @@ class Environment:
                     key = OptionKey.from_string(k)
                     # If we're in the cross file, and there is a `build.foo` warn about that. Later we'll remove it.
                     if machine is MachineChoice.HOST and key.machine is not machine:
-                        mlog.deprecation('Setting build machine options in cross files, please use a native file instead, this will be removed in meson 0.60', once=True)
+                        mlog.deprecation('Setting build machine options in cross files, please use a native file instead, this will be removed in meson 2.0', once=True)
                     if key.subproject:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
                     self.options[key.evolve(subproject=subproject, machine=machine)] = v
@@ -707,14 +774,12 @@ class Environment:
                 # if it changes on future invocations.
                 if self.first_invocation:
                     if keyname == 'ldflags':
-                        key = OptionKey('link_args', machine=for_machine, lang='c')  # needs a language to initialize properly
                         for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
-                            key = key.evolve(lang=lang)
+                            key = OptionKey(name=f'{lang}_link_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     elif keyname == 'cppflags':
-                        key = OptionKey('env_args', machine=for_machine, lang='c')
                         for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
-                            key = key.evolve(lang=lang)
+                            key = OptionKey(f'{lang}_env_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
@@ -734,7 +799,8 @@ class Environment:
                             # We still use the original key as the base here, as
                             # we want to inherit the machine and the compiler
                             # language
-                            key = key.evolve('env_args')
+                            lang = key.name.split('_', 1)[0]
+                            key = key.evolve(f'{lang}_env_args')
                         env_opts[key].extend(p_list)
 
         # Only store options that are not already in self.options,
@@ -927,3 +993,6 @@ class Environment:
         if not self.need_exe_wrapper():
             return None
         return self.exe_wrapper
+
+    def has_exe_wrapper(self) -> bool:
+        return self.exe_wrapper and self.exe_wrapper.found()

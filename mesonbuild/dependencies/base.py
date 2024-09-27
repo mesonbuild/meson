@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2018 The Meson development team
+# Copyright © 2024 Intel Corporation
 
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
@@ -10,12 +11,13 @@ import os
 import collections
 import itertools
 import typing as T
+import uuid
 from enum import Enum
 
 from .. import mlog, mesonlib
 from ..compilers import clib_langs
-from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, OptionKey
-from ..mesonlib import version_compare_many
+from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, version_compare_many
+from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
@@ -106,6 +108,9 @@ class Dependency(HoldableObject):
         return kwargs['include_type']
 
     def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
+        # This allows two Dependencies to be compared even after being copied.
+        # The purpose is to allow the name to be changed, but still have a proper comparison
+        self._id = uuid.uuid4().int
         self.name = f'dep{id(self)}'
         self.version:  T.Optional[str] = None
         self.language: T.Optional[str] = None # None means C-like
@@ -123,6 +128,14 @@ class Dependency(HoldableObject):
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
         self.feature_since: T.Optional[T.Tuple[str, str]] = None
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Dependency):
+            return NotImplemented
+        return self._id == other._id
+
+    def __hash__(self) -> int:
+        return self._id
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} {self.name}: {self.is_found}>'
@@ -157,7 +170,7 @@ class Dependency(HoldableObject):
         return self.compile_args
 
     def get_all_compile_args(self) -> T.List[str]:
-        """Get the compile arguments from this dependency and it's sub dependencies."""
+        """Get the compile arguments from this dependency and its sub dependencies."""
         return list(itertools.chain(self.get_compile_args(),
                                     *(d.get_all_compile_args() for d in self.ext_deps)))
 
@@ -167,7 +180,7 @@ class Dependency(HoldableObject):
         return self.link_args
 
     def get_all_link_args(self) -> T.List[str]:
-        """Get the link arguments from this dependency and it's sub dependencies."""
+        """Get the link arguments from this dependency and its sub dependencies."""
         return list(itertools.chain(self.get_link_args(),
                                     *(d.get_all_link_args() for d in self.ext_deps)))
 
@@ -213,7 +226,7 @@ class Dependency(HoldableObject):
             compile_args -- any compile args
             link_args -- any link args
 
-        Additionally the new dependency will have the version parameter of it's
+        Additionally the new dependency will have the version parameter of its
         parent (if any) and the requested values of any dependencies will be
         added as well.
         """
@@ -237,7 +250,7 @@ class Dependency(HoldableObject):
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     default_value: T.Optional[str] = None,
+                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         if default_value is not None:
             return default_value
@@ -247,6 +260,14 @@ class Dependency(HoldableObject):
         new_dep = copy.deepcopy(self)
         new_dep.include_type = self._process_include_type_kw({'include_type': include_type})
         return new_dep
+
+    def get_as_static(self, recursive: bool) -> Dependency:
+        """Used as base case for internal_dependency"""
+        return self
+
+    def get_as_shared(self, recursive: bool) -> Dependency:
+        """Used as base case for internal_dependency"""
+        return self
 
 class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
@@ -321,7 +342,7 @@ class InternalDependency(Dependency):
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
-                     default_value: T.Optional[str] = None,
+                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
                      pkgconfig_define: PkgConfigDefineType = None) -> str:
         val = self.variables.get(internal, default_value)
         if val is not None:
@@ -343,6 +364,20 @@ class InternalDependency(Dependency):
         new_dep.whole_libraries += T.cast('T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]',
                                           new_dep.libraries)
         new_dep.libraries = []
+        return new_dep
+
+    def get_as_static(self, recursive: bool) -> InternalDependency:
+        new_dep = copy.copy(self)
+        new_dep.libraries = [lib.get('static') for lib in self.libraries]
+        if recursive:
+            new_dep.ext_deps = [dep.get_as_static(True) for dep in self.ext_deps]
+        return new_dep
+
+    def get_as_shared(self, recursive: bool) -> InternalDependency:
+        new_dep = copy.copy(self)
+        new_dep.libraries = [lib.get('shared') for lib in self.libraries]
+        if recursive:
+            new_dep.ext_deps = [dep.get_as_shared(True) for dep in self.ext_deps]
         return new_dep
 
 class HasNativeKwarg:
@@ -380,6 +415,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                                link_args: bool = False, links: bool = False,
                                includes: bool = False, sources: bool = False) -> Dependency:
         new = copy.copy(self)
+        new._id = uuid.uuid4().int
         if not compile_args:
             new.compile_args = []
         if not link_args:
@@ -414,7 +450,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                 self.is_found = False
                 found_msg: mlog.TV_LoggableList = []
                 found_msg += ['Dependency', mlog.bold(self.name), 'found:']
-                found_msg += [mlog.red('NO'), 'unknown version, but need:', self.version_reqs]
+                found_msg += [str(mlog.red('NO')) + '.', 'Unknown version, but need:', self.version_reqs]
                 mlog.log(*found_msg)
 
                 if self.required:
@@ -426,8 +462,8 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                     version_compare_many(self.version, self.version_reqs)
                 if not self.is_found:
                     found_msg = ['Dependency', mlog.bold(self.name), 'found:']
-                    found_msg += [mlog.red('NO'),
-                                  'found', mlog.normal_cyan(self.version), 'but need:',
+                    found_msg += [str(mlog.red('NO')) + '.',
+                                  'Found', mlog.normal_cyan(self.version), 'but need:',
                                   mlog.bold(', '.join([f"'{e}'" for e in not_found]))]
                     if found:
                         found_msg += ['; matched:',
@@ -450,7 +486,9 @@ class NotFoundDependency(Dependency):
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
                                includes: bool = False, sources: bool = False) -> 'NotFoundDependency':
-        return copy.copy(self)
+        new = copy.copy(self)
+        new._id = uuid.uuid4().int
+        return new
 
 
 class ExternalLibrary(ExternalDependency):
@@ -490,6 +528,7 @@ class ExternalLibrary(ExternalDependency):
         # External library only has link_args, so ignore the rest of the
         # interface.
         new = copy.copy(self)
+        new._id = uuid.uuid4().int
         if not link_args:
             new.link_args = []
         return new

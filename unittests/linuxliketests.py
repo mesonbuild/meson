@@ -25,8 +25,9 @@ import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
     MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
     is_sunos, windows_proof_rmtree, version_compare, is_linux,
-    OptionKey, EnvironmentException
+    EnvironmentException
 )
+from mesonbuild.options import OptionKey
 from mesonbuild.compilers import (
     detect_c_compiler, detect_cpp_compiler, compiler_from_language,
 )
@@ -35,6 +36,7 @@ from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI, PkgConfigInterface
+from mesonbuild.programs import NonExistingExternalProgram
 import mesonbuild.modules.pkgconfig
 
 PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
@@ -280,7 +282,6 @@ class LinuxlikeTests(BasePlatformTests):
 
         symdir = f'{self.builddir}-symlink'
         os.symlink(self.builddir, symdir)
-        self.addCleanup(os.unlink, symdir)
         self.change_builddir(symdir)
 
         self.init(testdir)
@@ -316,6 +317,19 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
         self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
+
+    def test_qt5dependency_no_lrelease(self):
+        '''
+        Test that qt5 detection with qmake works. This can't be an ordinary
+        test case because it involves setting the environment.
+        '''
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        def _no_lrelease(self, prog, *args, **kwargs):
+            if 'lrelease' in prog:
+                return NonExistingExternalProgram(prog)
+            return self._interpreter.find_program_impl(prog, *args, **kwargs)
+        with mock.patch.object(mesonbuild.modules.ModuleState, 'find_program', _no_lrelease):
+            self.init(testdir, inprocess=True, extra_args=['-Dmethod=qmake', '-Dexpect_lrelease=false'])
 
     def test_qt5dependency_qmake_detection(self):
         '''
@@ -485,7 +499,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Check that all the listed -std=xxx options for this compiler work just fine when used
         # https://en.wikipedia.org/wiki/Xcode#Latest_versions
         # https://www.gnu.org/software/gcc/projects/cxx-status.html
-        key = OptionKey('std', lang=compiler.language)
+        key = OptionKey(f'{compiler.language}_std')
         for v in compiler.get_options()[key].choices:
             # we do it like this to handle gnu++17,c++17 and gnu17,c17 cleanly
             # thus, C++ first
@@ -1124,7 +1138,7 @@ class LinuxlikeTests(BasePlatformTests):
         # option, adding the meson-uninstalled directory to it.
         PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
 
-        pkg_config_path = env.coredata.options[OptionKey('pkg_config_path')].value
+        pkg_config_path = env.coredata.optstore.get_value('pkg_config_path')
         self.assertEqual(pkg_config_path, [pkg_dir])
 
     @skipIfNoPkgconfig
@@ -1411,7 +1425,7 @@ class LinuxlikeTests(BasePlatformTests):
         Test that installation of broken symlinks works fine.
         https://github.com/mesonbuild/meson/issues/3914
         '''
-        testdir = os.path.join(self.common_test_dir, testdir)
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, testdir))
         subdir = os.path.join(testdir, subdir_path)
         with chdir(subdir):
             # Can't distribute broken symlinks in the source tree because it breaks
@@ -1419,17 +1433,14 @@ class LinuxlikeTests(BasePlatformTests):
             # hand.
             src = '../../nonexistent.txt'
             os.symlink(src, 'invalid-symlink.txt')
-            try:
-                self.init(testdir)
-                self.build()
-                self.install()
-                install_path = subdir_path.split(os.path.sep)[-1]
-                link = os.path.join(self.installdir, 'usr', 'share', install_path, 'invalid-symlink.txt')
-                self.assertTrue(os.path.islink(link), msg=link)
-                self.assertEqual(src, os.readlink(link))
-                self.assertFalse(os.path.isfile(link), msg=link)
-            finally:
-                os.remove(os.path.join(subdir, 'invalid-symlink.txt'))
+            self.init(testdir)
+            self.build()
+            self.install()
+            install_path = subdir_path.split(os.path.sep)[-1]
+            link = os.path.join(self.installdir, 'usr', 'share', install_path, 'invalid-symlink.txt')
+            self.assertTrue(os.path.islink(link), msg=link)
+            self.assertEqual(src, os.readlink(link))
+            self.assertFalse(os.path.isfile(link), msg=link)
 
     def test_install_subdir_symlinks(self):
         self.install_subdir_invalid_symlinks('59 install subdir', os.path.join('sub', 'sub1'))
@@ -1687,9 +1698,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Prelinking currently only works on recently new GNU toolchains.
         # Skip everything else. When support for other toolchains is added,
         # remove limitations as necessary.
-        if is_osx():
-            raise SkipTest('Prelinking not supported on Darwin.')
-        if 'clang' in os.environ.get('CC', 'dummy'):
+        if 'clang' in os.environ.get('CC', 'dummy') and not is_osx():
             raise SkipTest('Prelinking not supported with Clang.')
         testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -1705,10 +1714,9 @@ class LinuxlikeTests(BasePlatformTests):
         p = subprocess.run([ar, 't', outlib],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL,
-                           text=True, timeout=1)
+                           encoding='utf-8', text=True, timeout=1)
         obj_files = p.stdout.strip().split('\n')
-        self.assertEqual(len(obj_files), 1)
-        self.assertTrue(obj_files[0].endswith('-prelink.o'))
+        self.assertTrue(any(o.endswith('-prelink.o') for o in obj_files))
 
     def do_one_test_with_nativefile(self, testdir, args):
         testdir = os.path.join(self.common_test_dir, testdir)

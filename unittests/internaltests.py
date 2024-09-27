@@ -32,13 +32,14 @@ from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectH
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
-    is_cygwin, is_openbsd, search_version, MesonException, OptionKey,
-    OptionType
+    is_cygwin, is_openbsd, search_version, MesonException,
 )
+from mesonbuild.options import OptionKey
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
+from mesonbuild import utils
 
 
 from run_tests import (
@@ -241,7 +242,7 @@ class InternalTests(unittest.TestCase):
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
         l = gcc.compiler_args(['-Lfoodir', '-lfoo'])
-        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-lfoo'])
         # Direct-adding a library and a libpath appends both correctly
         l.extend_direct(['-Lbardir', '-lbar'])
         self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-Wl,--end-group'])
@@ -269,10 +270,10 @@ class InternalTests(unittest.TestCase):
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
         ## Test that 'direct' append and extend works
         l = gcc.compiler_args(['-Lfoodir', '-lfoo'])
-        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-lfoo'])
         ## Test that to_native removes all system includes
         l += ['-isystem/usr/include', '-isystem=/usr/share/include', '-DSOMETHING_IMPORTANT=1', '-isystem', '/usr/local/include']
-        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-Wl,--start-group', '-lfoo', '-Wl,--end-group', '-DSOMETHING_IMPORTANT=1'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-lfoo', '-DSOMETHING_IMPORTANT=1'])
 
     def test_string_templates_substitution(self):
         dictfunc = mesonbuild.mesonlib.get_filenames_templates_dict
@@ -287,6 +288,7 @@ class InternalTests(unittest.TestCase):
         outputs = []
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c'}
         # Check dictionary
         self.assertEqual(ret, d)
@@ -309,6 +311,7 @@ class InternalTests(unittest.TestCase):
         outputs = ['out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': '.'}
         # Check dictionary
@@ -330,6 +333,7 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0],
+             '@PLAINNAME0@': 'foo.c.in', '@BASENAME0@': 'foo.c',
              '@PLAINNAME@': 'foo.c.in', '@BASENAME@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
         # Check dictionary
@@ -339,7 +343,9 @@ class InternalTests(unittest.TestCase):
         inputs = ['bar/foo.c.in', 'baz/foo.c.in']
         outputs = []
         ret = dictfunc(inputs, outputs)
-        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1]}
+        d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c'}
         # Check dictionary
         self.assertEqual(ret, d)
         # Check substitutions
@@ -376,6 +382,8 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTDIR@': 'dir'}
         # Check dictionary
         self.assertEqual(ret, d)
@@ -402,6 +410,8 @@ class InternalTests(unittest.TestCase):
         outputs = ['dir/out.c', 'dir/out2.c']
         ret = dictfunc(inputs, outputs)
         d = {'@INPUT@': inputs, '@INPUT0@': inputs[0], '@INPUT1@': inputs[1],
+             '@PLAINNAME0@': 'foo.c.in', '@PLAINNAME1@': 'foo.c.in',
+             '@BASENAME0@': 'foo.c', '@BASENAME1@': 'foo.c',
              '@OUTPUT@': outputs, '@OUTPUT0@': outputs[0], '@OUTPUT1@': outputs[1],
              '@OUTDIR@': 'dir'}
         # Check dictionary
@@ -616,7 +626,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
-            env.coredata.options[OptionKey('link_args', lang='c')] = FakeCompilerOptions()
+            env.coredata.optstore.set_value_object(OptionKey('c_link_args'), FakeCompilerOptions())
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -1338,8 +1348,8 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, since='1.0', since_message='Its awesome, use it',
-                      deprecated='2.0', deprecated_message='Its terrible, dont use it')
+            KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
+                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1350,8 +1360,8 @@ class InternalTests(unittest.TestCase):
                 mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '0.1'}):
             # With Meson 0.1 it should trigger the "introduced" warning but not the "deprecated" warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
-            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. Its awesome, use it')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. Its terrible, dont use it')
+            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. It\'s awesome, use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. It\'s terrible, don\'t use it')
 
         with self.subTest('no warnings should be triggered'), \
                 mock.patch('sys.stdout', io.StringIO()) as out, \
@@ -1365,8 +1375,8 @@ class InternalTests(unittest.TestCase):
                 mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '2.0'}):
             # With Meson 2.0 it should trigger the "deprecated" warning but not the "introduced" warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
-            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. Its terrible, dont use it')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. Its awesome, use it')
+            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. It\'s terrible, don\'t use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. It\'s awesome, use it')
 
     def test_typed_kwarg_validator(self) -> None:
         @typed_kwargs(
@@ -1398,7 +1408,7 @@ class InternalTests(unittest.TestCase):
         @typed_kwargs(
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
-            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'dont use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
+            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'don\'t use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
             KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
             KwargInfo(
                 'mode',
@@ -1433,7 +1443,7 @@ class InternalTests(unittest.TestCase):
 
         with self.subTest('deprecated dict string value with msg'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'foo2': 'a'}})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo2" in dict keys. dont use it.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo2" in dict keys. don't use it.*""")
 
         with self.subTest('new dict string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'bar': 'b'}})
@@ -1690,16 +1700,16 @@ class InternalTests(unittest.TestCase):
 
     def test_option_key_from_string(self) -> None:
         cases = [
-            ('c_args', OptionKey('args', lang='c', _type=OptionType.COMPILER)),
-            ('build.cpp_args', OptionKey('args', machine=MachineChoice.BUILD, lang='cpp', _type=OptionType.COMPILER)),
-            ('prefix', OptionKey('prefix', _type=OptionType.BUILTIN)),
-            ('made_up', OptionKey('made_up', _type=OptionType.PROJECT)),
+            ('c_args', OptionKey('c_args')),
+            ('build.cpp_args', OptionKey('cpp_args', machine=MachineChoice.BUILD)),
+            ('prefix', OptionKey('prefix')),
+            ('made_up', OptionKey('made_up')),
 
             # TODO: the from_String method should be splitting the prefix off of
             # these, as we have the type already, but it doesn't. For now have a
             # test so that we don't change the behavior un-intentionally
-            ('b_lto', OptionKey('b_lto', _type=OptionType.BASE)),
-            ('backend_startup_project', OptionKey('backend_startup_project', _type=OptionType.BACKEND)),
+            ('b_lto', OptionKey('b_lto')),
+            ('backend_startup_project', OptionKey('backend_startup_project')),
         ]
 
         for raw, expected in cases:

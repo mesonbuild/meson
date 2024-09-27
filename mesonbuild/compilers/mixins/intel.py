@@ -18,6 +18,10 @@ from ... import mesonlib
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
+from ...options import OptionKey
+
+if T.TYPE_CHECKING:
+    from ...environment import Environment
 
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class
@@ -63,7 +67,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         # It does have IPO, which serves much the same purpose as LOT, but
         # there is an unfortunate rule for using IPO (you can't control the
         # name of the output file) which break assumptions meson makes
-        self.base_options = {mesonlib.OptionKey(o) for o in [
+        self.base_options = {OptionKey(o) for o in [
             'b_pch', 'b_lundef', 'b_asneeded', 'b_pgo', 'b_coverage',
             'b_ndebug', 'b_staticpic', 'b_pie']}
         self.lang_header = 'none'
@@ -78,7 +82,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_pch_name(self, name: str) -> str:
         return os.path.basename(name) + '.' + self.get_pch_suffix()
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
         else:
@@ -154,7 +158,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         version = int(v1 + v2)
         return self._calculate_toolset_version(version)
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['/Qopenmp']
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:

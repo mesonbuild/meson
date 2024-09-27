@@ -32,9 +32,9 @@ jobs:
       HAS_SSH_KEY: ${{ secrets.WEBSITE_PRIV_KEY != '' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/cache/restore@v3
+      - uses: actions/cache/restore@v4
         id: restore-cache
         with:
           # should use 'pip3 cache dir' to discover this path
@@ -47,7 +47,7 @@ jobs:
           sudo apt-get -y install python3-pip ninja-build libjson-glib-dev
           pip install hotdoc chevron strictyaml
 
-      - uses: actions/cache/save@v3
+      - uses: actions/cache/save@v4
         with:
           # should use 'pip3 cache dir' to discover this path
           path: ~/.cache/pip

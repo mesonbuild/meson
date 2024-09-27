@@ -9,7 +9,7 @@ import typing as T
 from mesonbuild.interpreterbase.decorators import FeatureNew
 
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
-from .. import mlog
+from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
 from ..compilers.compilers import are_asserts_disabled, lang_suffixes
@@ -19,6 +19,7 @@ from ..interpreter.type_checking import (
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..mesonlib import File
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -27,7 +28,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
-    from ..programs import ExternalProgram, OverrideProgram
+    from ..programs import OverrideProgram
     from ..interpreter.type_checking import SourcesVarargsType
 
     from typing_extensions import TypedDict, Literal
@@ -46,6 +47,7 @@ if T.TYPE_CHECKING:
         include_directories: T.List[IncludeDirs]
         input: T.List[SourceInputs]
         output: str
+        output_inline_wrapper: str
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
@@ -84,7 +86,7 @@ class RustModule(ExtensionModule):
     def test(self, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncTest) -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.
 
-        Rust puts it's unitests inside it's main source files, unlike most
+        Rust puts its unitests inside its main source files, unlike most
         languages that put them in external files. This means that normally
         you have to define two separate targets with basically the same
         arguments to get tests:
@@ -196,10 +198,16 @@ class RustModule(ExtensionModule):
         KwargInfo('bindgen_version', ContainerTypeInfo(list, str), default=[], listify=True, since='1.4.0'),
         INCLUDE_DIRECTORIES.evolve(since_values={ContainerTypeInfo(list, str): '1.0.0'}),
         OUTPUT_KW,
+        KwargInfo(
+            'output_inline_wrapper',
+            str,
+            default='',
+            since='1.4.0',
+        ),
         DEPENDENCIES_KW.evolve(since='1.0.0'),
     )
     def bindgen(self, state: ModuleState, args: T.List, kwargs: FuncBindgen) -> ModuleReturnValue:
-        """Wrapper around bindgen to simplify it's use.
+        """Wrapper around bindgen to simplify its use.
 
         The main thing this simplifies is the use of `include_directory`
         objects, instead of having to pass a plethora of `-I` arguments.
@@ -223,7 +231,7 @@ class RustModule(ExtensionModule):
             # bindgen always uses clang, so it's safe to hardcode -I here
             clang_args.extend([f'-I{x}' for x in i.to_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])
-        if are_asserts_disabled(state.environment.coredata.options):
+        if are_asserts_disabled(state.environment.coredata.optstore):
             clang_args.append('-DNDEBUG')
 
         for de in kwargs['dependencies']:
@@ -261,7 +269,7 @@ class RustModule(ExtensionModule):
                 raise InterpreterException(f'Unknown file type extension for: {name}')
 
         # We only want include directories and defines, other things may not be valid
-        cargs = state.get_option('args', state.subproject, lang=language)
+        cargs = state.get_option(f'{language}_args', state.subproject)
         assert isinstance(cargs, list), 'for mypy'
         for a in itertools.chain(state.global_args.get(language, []), state.project_args.get(language, []), cargs):
             if a.startswith(('-I', '/I', '-D', '/D', '-U', '/U')):
@@ -272,7 +280,7 @@ class RustModule(ExtensionModule):
 
         # Add the C++ standard to the clang arguments. Attempt to translate VS
         # extension versions into the nearest standard version
-        std = state.get_option('std', lang=language)
+        std = state.get_option(f'{language}_std')
         assert isinstance(std, str), 'for mypy'
         if std.startswith('vc++'):
             if std.endswith('latest'):
@@ -287,12 +295,27 @@ class RustModule(ExtensionModule):
         if std != 'none':
             clang_args.append(f'-std={std}')
 
+        inline_wrapper_args: T.List[str] = []
+        outputs = [kwargs['output']]
+        if kwargs['output_inline_wrapper']:
+            # Todo drop this isinstance once Executable supports version_compare
+            if isinstance(self._bindgen_bin, ExternalProgram):
+                if mesonlib.version_compare(self._bindgen_bin.get_version(), '< 0.65'):
+                    raise InterpreterException('\'output_inline_wrapper\' parameter of rust.bindgen requires bindgen-0.65 or newer')
+
+            outputs.append(kwargs['output_inline_wrapper'])
+            inline_wrapper_args = [
+                '--experimental', '--wrap-static-fns',
+                '--wrap-static-fns-path', os.path.join(state.environment.build_dir, '@OUTPUT1@')
+            ]
+
         cmd = self._bindgen_bin.get_command() + \
             [
                 '@INPUT@', '--output',
-                os.path.join(state.environment.build_dir, '@OUTPUT@')
+                os.path.join(state.environment.build_dir, '@OUTPUT0@')
             ] + \
-            kwargs['args'] + ['--'] + kwargs['c_args'] + clang_args + \
+            kwargs['args'] + inline_wrapper_args + ['--'] + \
+            kwargs['c_args'] + clang_args + \
             ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@']
 
         target = CustomTarget(
@@ -302,7 +325,7 @@ class RustModule(ExtensionModule):
             state.environment,
             cmd,
             [header],
-            [kwargs['output']],
+            outputs,
             depfile='@PLAINNAME@.d',
             extra_depends=depends,
             depend_files=depend_files,
@@ -310,7 +333,7 @@ class RustModule(ExtensionModule):
             description='Generating bindings for Rust {}',
         )
 
-        return ModuleReturnValue([target], [target])
+        return ModuleReturnValue(target, [target])
 
     # Allow a limited set of kwargs, but still use the full set of typed_kwargs()
     # because it could be setting required default values.

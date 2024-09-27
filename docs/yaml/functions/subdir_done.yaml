@@ -5,11 +5,11 @@ description: |
   Stops further interpretation of the Meson script file from the point
   of the invocation. All steps executed up to this point are valid and
   will be executed by Meson. This means that all targets defined before
-  the call of [[subdir_done]] will be build.
+  the call of [[subdir_done]] will be built.
 
-  If the current script was called by `subdir` the execution returns to
+  If the current script was called by `subdir`, the execution returns to
   the calling directory and continues as if the script had reached the
-  end. If the current script is the top level script Meson configures
+  end. If the current script is the top level script, Meson configures
   the project as defined up to this point.
 
 example: |
@@ -20,5 +20,5 @@ example: |
   executable('exe2', 'exe2.cpp')
   ```
 
-  The executable `exe1` will be build, while the executable `exe2` is not
-  build.
+  The executable `exe1` will be built, while the executable `exe2` is not
+  built.

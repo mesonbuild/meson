@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import typing as T
 
-from .. import coredata
-from ..mesonlib import OptionKey
+from .. import options
+from ..options import OptionKey
 
 from .compilers import Compiler
 from .mixins.clike import CLikeCompiler
@@ -14,7 +14,7 @@ from .mixins.gnu import GnuCompiler, gnu_common_warning_args, gnu_objc_warning_a
 from .mixins.clang import ClangCompiler
 
 if T.TYPE_CHECKING:
-    from ..programs import ExternalProgram
+    from .. import coredata
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
@@ -27,13 +27,12 @@ class ObjCCompiler(CLikeCompiler, Compiler):
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrap: T.Optional['ExternalProgram'],
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         Compiler.__init__(self, ccache, exelist, version, for_machine, info,
                           is_cross=is_cross, full_version=full_version,
                           linker=linker)
-        CLikeCompiler.__init__(self, exe_wrap)
+        CLikeCompiler.__init__(self)
 
     @staticmethod
     def get_display_language() -> str:
@@ -47,12 +46,11 @@ class ObjCCompiler(CLikeCompiler, Compiler):
 class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         ObjCCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                              info, exe_wrapper, linker=linker, full_version=full_version)
+                              info, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -67,12 +65,11 @@ class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
 class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrapper: T.Optional['ExternalProgram'] = None,
                  defines: T.Optional[T.Dict[str, str]] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
         ObjCCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
-                              info, exe_wrapper, linker=linker, full_version=full_version)
+                              info, linker=linker, full_version=full_version)
         ClangCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
@@ -82,21 +79,20 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
                           'everything': ['-Weverything']}
 
     def get_options(self) -> 'coredata.MutableKeyedOptionDictType':
-        opts = super().get_options()
-        opts.update({
-            OptionKey('std', machine=self.for_machine, lang='c'): coredata.UserComboOption(
-                'C language standard to use',
-                ['none', 'c89', 'c99', 'c11', 'c17', 'gnu89', 'gnu99', 'gnu11', 'gnu17'],
-                'none',
-            )
-        })
-        return opts
+        return self.update_options(
+            super().get_options(),
+            self.create_option(options.UserComboOption,
+                               OptionKey('c_std', machine=self.for_machine),
+                               'C language standard to use',
+                               ['none', 'c89', 'c99', 'c11', 'c17', 'gnu89', 'gnu99', 'gnu11', 'gnu17'],
+                               'none'),
+        )
 
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options[OptionKey('std', machine=self.for_machine, lang='c')]
-        if std.value != 'none':
-            args.append('-std=' + std.value)
+        std = options.get_value(OptionKey('c_std', machine=self.for_machine))
+        if std != 'none':
+            args.append('-std=' + std)
         return args
 
 class AppleClangObjCCompiler(ClangObjCCompiler):

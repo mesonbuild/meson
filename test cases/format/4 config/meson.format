@@ -1,0 +1,11 @@
+; Different options for config
+
+max_line_length = 120
+indent_by = '  '
+space_array = true
+kwargs_force_multiline = true
+wide_colon = true
+no_single_comma_function = true
+
+indent_before_comments = '   '
+; end_of_line = 'native'

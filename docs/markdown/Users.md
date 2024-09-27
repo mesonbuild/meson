@@ -19,6 +19,7 @@ topic](https://github.com/topics/meson).
  - [Akira](https://github.com/akiraux/Akira), a native Linux app for UI and UX design built in Vala and Gtk
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
+ - [Asteria](https://github.com/lhmouse/asteria), another scripting language
  - [Audacious](https://github.com/audacious-media-player), a lightweight and versatile audio player
  - [bolt](https://gitlab.freedesktop.org/bolt/bolt), userspace daemon to enable security levels for Thunderbolt™ 3 on Linux
  - [bsdutils](https://github.com/dcantrell/bsdutils), alternative to GNU coreutils using software from FreeBSD
@@ -51,7 +52,7 @@ topic](https://github.com/topics/meson).
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
  - [GameMode](https://github.com/FeralInteractive/gamemode), a daemon/lib combo for Linux that allows games to request a set of optimisations be temporarily applied to the host OS
  - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
- - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (experimental replacing autoconf)
+ - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (master branch)
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
  - [Glorytun](https://github.com/angt/glorytun), a multipath UDP tunnel
  - [GNOME Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a GNOME hypervisor
@@ -61,6 +62,7 @@ topic](https://github.com/topics/meson).
  - [GNOME Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for GNOME
  - [GNOME Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on GNOME desktop
  - [GNOME Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a GNOME application for visualizing system resources
+ - [GNOME Web](https://gitlab.gnome.org/GNOME/epiphany), a browser for a simple, clean, beautiful view of the web
  - [GNU FriBidi](https://github.com/fribidi/fribidi), the open source implementation of the Unicode Bidirectional Algorithm
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
@@ -109,6 +111,7 @@ format files
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
  - [LXC](https://github.com/lxc/lxc), Linux container runtime
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
+ - [mcfgthread](https://github.com/lhmouse/mcfgthread), cornerstone library for C++11 threading on mingw-w64
  - [Mesa](https://mesa3d.org/), an open source graphics driver project
  - [Miniz](https://github.com/richgel999/miniz), a zlib replacement library
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via WiFi-Display specification aka Miracast
@@ -117,6 +120,7 @@ format files
  - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
  - [NetPanzer](https://github.com/netpanzer/netpanzer), a 2D online multiplayer tactical warfare game designed for fast action combat
+ - [NumPy](https://numpy.org/), a Python package for scientific computing
  - [nvme-cli](https://github.com/linux-nvme/nvme-cli), NVMe management command line interface
  - [OcherBook](https://github.com/ccoffing/OcherBook), an open source book reader for Kobo devices
  - [oomd](https://github.com/facebookincubator/oomd), a userspace Out-Of-Memory (OOM) killer for Linux systems
@@ -165,15 +169,7 @@ format files
  - [ThorVG](https://www.thorvg.org/), vector-based scenes and animations library
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
- - [TSCL Xtest](https://github.com/trilobite-stdlib/tscl-xtest-c), a framework for testing C/C++ code
- - [TSCL Xmock](https://github.com/trilobite-stdlib/tscl-xtest-c), a framework for mocking C/C++ code
- - [TSCL Xmemory](https://github.com/trilobite-stdlib/tscl-xmemory-c), a library for low-level, memory and bitwise operations in C
- - [TSCL Xscience](https://github.com/trilobite-stdlib/tscl-xscience-c), a library for scientific calculations in C
- - [TSCL Xstring](https://github.com/trilobite-stdlib/tscl-xstring-c), a library for working with strings and ciphers in C
- - [TSCL Xdata](https://github.com/trilobite-stdlib/tscl-xdata-c), a library with data structures and algorithms in C
- - [TSCL Xutil](https://github.com/trilobite-stdlib/tscl-xutil-c), a library with utilities for the most tedious task in C
- - [TSCL Xmath](https://github.com/trilobite-stdlib/tscl-xmath-c), a library with mathematical components for projects in C
- - [TSCL Xcore](https://github.com/trilobite-stdlib/tscl-xcore-c), a core framework with essentials for any projects in C
+ - [Fossil Logic](https://github.com/fossillogic), Fossil Logic is a cutting-edge software development company specializing in C/C++, Python, programming, Android development using Kotlin, and SQL solutions.
  - [UFJF-MLTK](https://github.com/mateus558/UFJF-Machine-Learning-Toolkit), A C++ cross-platform framework for machine learning algorithms development and testing
  - [Vala Language Server](https://github.com/benwaffle/vala-language-server), code intelligence engine for the Vala and Genie programming languages
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala

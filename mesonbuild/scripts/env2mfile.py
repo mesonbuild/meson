@@ -273,7 +273,6 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
     os.replace(tmpfilename, ofilename)
 
 def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') -> T.Tuple[T.List[str], T.List[str]]:
-    ldflags = tuple(shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, '')))
     compile_args = []
     if langname in compilers.CFLAGS_MAPPING:
         compile_args = shlex.split(os.environ.get(compilers.CFLAGS_MAPPING[langname] + envvar_suffix, ''))
@@ -282,7 +281,10 @@ def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') ->
         lang_compile_args = list(cppflags) + compile_args
     else:
         lang_compile_args = compile_args
-    lang_link_args = list(ldflags) + compile_args
+    lang_link_args = []
+    if langname in compilers.LANGUAGES_USING_LDFLAGS:
+        lang_link_args += shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, ''))
+    lang_link_args += compile_args
     return (lang_compile_args, lang_link_args)
 
 def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:

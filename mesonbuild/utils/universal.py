@@ -7,6 +7,7 @@
 from __future__ import annotations
 from pathlib import Path
 import argparse
+import ast
 import enum
 import sys
 import stat
@@ -14,7 +15,7 @@ import time
 import abc
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
-from functools import lru_cache, wraps, total_ordering
+from functools import lru_cache, wraps
 from itertools import tee
 from tempfile import TemporaryDirectory, NamedTemporaryFile
 import typing as T
@@ -56,6 +57,7 @@ _U = T.TypeVar('_U')
 __all__ = [
     'GIT',
     'python_command',
+    'NoProjectVersion',
     'project_meson_versions',
     'SecondLevelHolder',
     'File',
@@ -66,9 +68,7 @@ __all__ = [
     'EnvironmentException',
     'FileOrString',
     'GitException',
-    'OptionKey',
     'dump_conf_header',
-    'OptionType',
     'OrderedSet',
     'PerMachine',
     'PerMachineDefaultable',
@@ -97,7 +97,6 @@ __all__ = [
     'do_conf_file',
     'do_conf_str',
     'do_replacement',
-    'exe_exists',
     'expand_arguments',
     'extract_as_list',
     'first',
@@ -129,6 +128,7 @@ __all__ = [
     'iter_regexin_iter',
     'join_args',
     'listify',
+    'listify_array_value',
     'partition',
     'path_is_in_root',
     'pickle_load',
@@ -158,16 +158,22 @@ __all__ = [
 ]
 
 
+class NoProjectVersion:
+    pass
+
 # TODO: this is such a hack, this really should be either in coredata or in the
 # interpreter
 # {subproject: project_meson_version}
-project_meson_versions: T.DefaultDict[str, str] = collections.defaultdict(str)
+project_meson_versions: T.Dict[str, T.Union[str, NoProjectVersion]] = {}
 
 
 from glob import glob
 
-if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-    # using a PyInstaller bundle, e.g. the MSI installed executable
+if getattr(sys, 'frozen', False):
+    # Using e.g. a PyInstaller bundle, such as the MSI installed executable.
+    # It is conventional for freeze programs to set this attribute to indicate
+    # that the program is self hosted, and for example there is no associated
+    # "python" executable.
     python_command = [sys.executable, 'runpython']
 else:
     python_command = [sys.executable]
@@ -678,15 +684,6 @@ def is_qnx() -> bool:
 def is_aix() -> bool:
     return platform.system().lower() == 'aix'
 
-def exe_exists(arglist: T.List[str]) -> bool:
-    try:
-        if subprocess.run(arglist, timeout=10).returncode == 0:
-            return True
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    return False
-
-
 @lru_cache(maxsize=None)
 def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     '''
@@ -1177,24 +1174,21 @@ def do_replacement(regex: T.Pattern[str], line: str,
                    variable_format: Literal['meson', 'cmake', 'cmake@'],
                    confdata: T.Union[T.Dict[str, T.Tuple[str, T.Optional[str]]], 'ConfigurationData']) -> T.Tuple[str, T.Set[str]]:
     missing_variables: T.Set[str] = set()
-    if variable_format == 'cmake':
-        start_tag = '${'
-        backslash_tag = '\\${'
-    else:
-        start_tag = '@'
-        backslash_tag = '\\@'
 
     def variable_replace(match: T.Match[str]) -> str:
-        # Pairs of escape characters before '@' or '\@'
+        # Pairs of escape characters before '@', '\@', '${' or '\${'
         if match.group(0).endswith('\\'):
             num_escapes = match.end(0) - match.start(0)
             return '\\' * (num_escapes // 2)
-        # Single escape character and '@'
-        elif match.group(0) == backslash_tag:
-            return start_tag
-        # Template variable to be replaced
+        # Handle cmake escaped \${} tags
+        elif variable_format == 'cmake' and match.group(0) == '\\${':
+            return '${'
+        # \@escaped\@ variables
+        elif match.groupdict().get('escaped') is not None:
+            return match.group('escaped')[1:-2]+'@'
         else:
-            varname = match.group(1)
+            # Template variable to be replaced
+            varname = match.group('variable')
             var_str = ''
             if varname in confdata:
                 var, _ = confdata.get(varname)
@@ -1275,11 +1269,23 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData',
 
 def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'meson') -> T.Pattern[str]:
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
-    # Also allow escaping '@' with '\@'
     if variable_format in {'meson', 'cmake@'}:
-        regex = re.compile(r'(?:\\\\)+(?=\\?@)|\\@|@([-a-zA-Z0-9_]+)@')
+        # Also allow escaping pairs of '@' with '\@'
+        regex = re.compile(r'''
+            (?:\\\\)+(?=\\?@)  # Matches multiple backslashes followed by an @ symbol
+            |                  # OR
+            (?<!\\)@(?P<variable>[-a-zA-Z0-9_]+)@  # Match a variable enclosed in @ symbols and capture the variable name; no matches beginning with '\@'
+            |                  # OR
+            (?P<escaped>\\@[-a-zA-Z0-9_]+\\@)  # Match an escaped variable enclosed in @ symbols
+        ''', re.VERBOSE)
     else:
-        regex = re.compile(r'(?:\\\\)+(?=\\?\$)|\\\${|\${([-a-zA-Z0-9_]+)}')
+        regex = re.compile(r'''
+            (?:\\\\)+(?=\\?\$)  # Match multiple backslashes followed by a dollar sign
+            |                  # OR
+            \\\${              # Match a backslash followed by a dollar sign and an opening curly brace
+            |                  # OR
+            \${(?P<variable>[-a-zA-Z0-9_]+)}  # Match a variable enclosed in curly braces and capture the variable name
+        ''', re.VERBOSE)
     return regex
 
 def do_conf_str(src: str, data: T.List[str], confdata: 'ConfigurationData',
@@ -1435,6 +1441,26 @@ def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
             result.append(i)
     return result
 
+def listify_array_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
+    if isinstance(value, str):
+        if value.startswith('['):
+            try:
+                newvalue = ast.literal_eval(value)
+            except ValueError:
+                raise MesonException(f'malformed value {value}')
+        elif value == '':
+            newvalue = []
+        else:
+            if shlex_split_args:
+                newvalue = split_args(value)
+            else:
+                newvalue = [v.strip() for v in value.split(',')]
+    elif isinstance(value, list):
+        newvalue = value
+    else:
+        raise MesonException(f'"{value}" should be a string array, but it is not')
+    assert isinstance(newvalue, list)
+    return newvalue
 
 def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> T.List[_U]:
     '''
@@ -1565,7 +1591,7 @@ def Popen_safe_logged(args: T.List[str], msg: str = 'Called', **kwargs: T.Any) -
         mlog.debug(f'{msg}: `{join_args(args)}` -> {excp}')
         raise
 
-    rc, out, err = p.returncode, o.strip(), e.strip()
+    rc, out, err = p.returncode, o.strip() if o else None, e.strip() if e else None
     mlog.debug('-----------')
     mlog.debug(f'{msg}: `{join_args(args)}` -> {rc}')
     if out:
@@ -1719,6 +1745,8 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
     If there is more than one input file, the following keys are also created:
 
     @INPUT0@, @INPUT1@, ... one for each input file
+    @PLAINNAME0@, @PLAINNAME1@, ... one for each input file
+    @BASENAME0@, @BASENAME1@, ... one for each input file
 
     If there is more than one output file, the following keys are also created:
 
@@ -1732,6 +1760,9 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
         for (ii, vv) in enumerate(inputs):
             # Write out @INPUT0@, @INPUT1@, ...
             values[f'@INPUT{ii}@'] = vv
+            plain = os.path.basename(vv)
+            values[f'@PLAINNAME{ii}@'] = plain
+            values[f'@BASENAME{ii}@'] = os.path.splitext(plain)[0]
         if len(inputs) == 1:
             # Just one value, substitute @PLAINNAME@ and @BASENAME@
             values['@PLAINNAME@'] = plain = os.path.basename(inputs[0])
@@ -1749,7 +1780,7 @@ def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T
     return values
 
 
-def _make_tree_writable(topdir: str) -> None:
+def _make_tree_writable(topdir: T.Union[str, Path]) -> None:
     # Ensure all files and directories under topdir are writable
     # (and readable) by owner.
     for d, _, files in os.walk(topdir):
@@ -1760,7 +1791,7 @@ def _make_tree_writable(topdir: str) -> None:
                 os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)
 
 
-def windows_proof_rmtree(f: str) -> None:
+def windows_proof_rmtree(f:  T.Union[str, Path]) -> None:
     # On Windows if anyone is holding a file open you can't
     # delete it. As an example an anti virus scanner might
     # be scanning files you are trying to delete. The only
@@ -1787,7 +1818,7 @@ def windows_proof_rmtree(f: str) -> None:
     shutil.rmtree(f)
 
 
-def windows_proof_rm(fpath: str) -> None:
+def windows_proof_rm(fpath: T.Union[str, Path]) -> None:
     """Like windows_proof_rmtree, but for a single file."""
     if os.path.isfile(fpath):
         os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)
@@ -1908,14 +1939,14 @@ class OrderedSet(T.MutableSet[_T]):
         for item in iterable:
             self.discard(item)
 
-def relpath(path: str, start: str) -> str:
+def relpath(path: T.Union[str, Path], start: T.Union[str, Path]) -> str:
     # On Windows a relative path can't be evaluated for paths on two different
     # drives (i.e. c:\foo and f:\bar).  The only thing left to do is to use the
     # original absolute path.
     try:
         return os.path.relpath(path, start)
     except (TypeError, ValueError):
-        return path
+        return str(path)
 
 def path_is_in_root(path: Path, root: Path, resolve: bool = False) -> bool:
     # Check whether a path is within the root directory root
@@ -1949,7 +1980,58 @@ class LibType(enum.IntEnum):
 
 class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
     '''
-    Fallback progress bar implementation when tqdm is not found
+    Fallback progress bar implementation when tqdm is not foundclass OptionType(enum.IntEnum):
+
+    """Enum used to specify what kind of argument a thing is."""
+
+    BUILTIN = 0
+    BACKEND = 1
+    BASE = 2
+    COMPILER = 3
+    PROJECT = 4
+
+# This is copied from coredata. There is no way to share this, because this
+# is used in the OptionKey constructor, and the coredata lists are
+# OptionKeys...
+_BUILTIN_NAMES = {
+    'prefix',
+    'bindir',
+    'datadir',
+    'includedir',
+    'infodir',
+    'libdir',
+    'licensedir',
+    'libexecdir',
+    'localedir',
+    'localstatedir',
+    'mandir',
+    'sbindir',
+    'sharedstatedir',
+    'sysconfdir',
+    'auto_features',
+    'backend',
+    'buildtype',
+    'debug',
+    'default_library',
+    'errorlogs',
+    'genvslite',
+    'install_umask',
+    'layout',
+    'optimization',
+    'prefer_static',
+    'stdsplit',
+    'strip',
+    'unity',
+    'unity_size',
+    'warning_level',
+    'werror',
+    'wrap_mode',
+    'force_fallback_for',
+    'pkg_config_path',
+    'cmake_prefix_path',
+    'vsenv',
+}
+
 
     Since this class is not an actual iterator, but only provides a minimal
     fallback, it is safe to ignore the 'Iterator does not return self from
@@ -2123,257 +2205,6 @@ def generate_list(func: T.Callable[..., T.Generator[_T, None, None]]) -> T.Calla
         return list(func(*args, **kwargs))
 
     return wrapper
-
-
-class OptionType(enum.IntEnum):
-
-    """Enum used to specify what kind of argument a thing is."""
-
-    BUILTIN = 0
-    BACKEND = 1
-    BASE = 2
-    COMPILER = 3
-    PROJECT = 4
-
-# This is copied from coredata. There is no way to share this, because this
-# is used in the OptionKey constructor, and the coredata lists are
-# OptionKeys...
-_BUILTIN_NAMES = {
-    'prefix',
-    'bindir',
-    'datadir',
-    'includedir',
-    'infodir',
-    'libdir',
-    'licensedir',
-    'libexecdir',
-    'localedir',
-    'localstatedir',
-    'mandir',
-    'sbindir',
-    'sharedstatedir',
-    'sysconfdir',
-    'auto_features',
-    'backend',
-    'buildtype',
-    'debug',
-    'default_library',
-    'errorlogs',
-    'genvslite',
-    'install_umask',
-    'layout',
-    'optimization',
-    'prefer_static',
-    'stdsplit',
-    'strip',
-    'unity',
-    'unity_size',
-    'warning_level',
-    'werror',
-    'wrap_mode',
-    'force_fallback_for',
-    'pkg_config_path',
-    'cmake_prefix_path',
-    'vsenv',
-}
-
-
-def _classify_argument(key: 'OptionKey') -> OptionType:
-    """Classify arguments into groups so we know which dict to assign them to."""
-
-    if key.name.startswith('b_'):
-        return OptionType.BASE
-    elif key.lang is not None:
-        return OptionType.COMPILER
-    elif key.name in _BUILTIN_NAMES or key.module:
-        return OptionType.BUILTIN
-    elif key.name.startswith('backend_'):
-        assert key.machine is MachineChoice.HOST, str(key)
-        return OptionType.BACKEND
-    else:
-        assert key.machine is MachineChoice.HOST, str(key)
-        return OptionType.PROJECT
-
-
-@total_ordering
-class OptionKey:
-
-    """Represents an option key in the various option dictionaries.
-
-    This provides a flexible, powerful way to map option names from their
-    external form (things like subproject:build.option) to something that
-    internally easier to reason about and produce.
-    """
-
-    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', 'type', 'module']
-
-    name: str
-    subproject: str
-    machine: MachineChoice
-    lang: T.Optional[str]
-    _hash: int
-    type: OptionType
-    module: T.Optional[str]
-
-    def __init__(self, name: str, subproject: str = '',
-                 machine: MachineChoice = MachineChoice.HOST,
-                 lang: T.Optional[str] = None,
-                 module: T.Optional[str] = None,
-                 _type: T.Optional[OptionType] = None):
-        # the _type option to the constructor is kinda private. We want to be
-        # able tos ave the state and avoid the lookup function when
-        # pickling/unpickling, but we need to be able to calculate it when
-        # constructing a new OptionKey
-        object.__setattr__(self, 'name', name)
-        object.__setattr__(self, 'subproject', subproject)
-        object.__setattr__(self, 'machine', machine)
-        object.__setattr__(self, 'lang', lang)
-        object.__setattr__(self, 'module', module)
-        object.__setattr__(self, '_hash', hash((name, subproject, machine, lang, module)))
-        if _type is None:
-            _type = _classify_argument(self)
-        object.__setattr__(self, 'type', _type)
-
-    def __setattr__(self, key: str, value: T.Any) -> None:
-        raise AttributeError('OptionKey instances do not support mutation.')
-
-    def __getstate__(self) -> T.Dict[str, T.Any]:
-        return {
-            'name': self.name,
-            'subproject': self.subproject,
-            'machine': self.machine,
-            'lang': self.lang,
-            '_type': self.type,
-            'module': self.module,
-        }
-
-    def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
-        """De-serialize the state of a pickle.
-
-        This is very clever. __init__ is not a constructor, it's an
-        initializer, therefore it's safe to call more than once. We create a
-        state in the custom __getstate__ method, which is valid to pass
-        splatted to the initializer.
-        """
-        # Mypy doesn't like this, because it's so clever.
-        self.__init__(**state)  # type: ignore
-
-    def __hash__(self) -> int:
-        return self._hash
-
-    def _to_tuple(self) -> T.Tuple[str, OptionType, str, str, MachineChoice, str]:
-        return (self.subproject, self.type, self.lang or '', self.module or '', self.machine, self.name)
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, OptionKey):
-            return self._to_tuple() == other._to_tuple()
-        return NotImplemented
-
-    def __lt__(self, other: object) -> bool:
-        if isinstance(other, OptionKey):
-            return self._to_tuple() < other._to_tuple()
-        return NotImplemented
-
-    def __str__(self) -> str:
-        out = self.name
-        if self.lang:
-            out = f'{self.lang}_{out}'
-        if self.machine is MachineChoice.BUILD:
-            out = f'build.{out}'
-        if self.module:
-            out = f'{self.module}.{out}'
-        if self.subproject:
-            out = f'{self.subproject}:{out}'
-        return out
-
-    def __repr__(self) -> str:
-        return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r}, {self.lang!r}, {self.module!r}, {self.type!r})'
-
-    @classmethod
-    def from_string(cls, raw: str) -> 'OptionKey':
-        """Parse the raw command line format into a three part tuple.
-
-        This takes strings like `mysubproject:build.myoption` and Creates an
-        OptionKey out of them.
-        """
-        try:
-            subproject, raw2 = raw.split(':')
-        except ValueError:
-            subproject, raw2 = '', raw
-
-        module = None
-        for_machine = MachineChoice.HOST
-        try:
-            prefix, raw3 = raw2.split('.')
-            if prefix == 'build':
-                for_machine = MachineChoice.BUILD
-            else:
-                module = prefix
-        except ValueError:
-            raw3 = raw2
-
-        from ..compilers import all_languages
-        if any(raw3.startswith(f'{l}_') for l in all_languages):
-            lang, opt = raw3.split('_', 1)
-        else:
-            lang, opt = None, raw3
-        assert ':' not in opt
-        assert '.' not in opt
-
-        return cls(opt, subproject, for_machine, lang, module)
-
-    def evolve(self, name: T.Optional[str] = None, subproject: T.Optional[str] = None,
-               machine: T.Optional[MachineChoice] = None, lang: T.Optional[str] = '',
-               module: T.Optional[str] = '') -> 'OptionKey':
-        """Create a new copy of this key, but with altered members.
-
-        For example:
-        >>> a = OptionKey('foo', '', MachineChoice.Host)
-        >>> b = OptionKey('foo', 'bar', MachineChoice.Host)
-        >>> b == a.evolve(subproject='bar')
-        True
-        """
-        # We have to be a little clever with lang here, because lang is valid
-        # as None, for non-compiler options
-        return OptionKey(
-            name if name is not None else self.name,
-            subproject if subproject is not None else self.subproject,
-            machine if machine is not None else self.machine,
-            lang if lang != '' else self.lang,
-            module if module != '' else self.module
-        )
-
-    def as_root(self) -> 'OptionKey':
-        """Convenience method for key.evolve(subproject='')."""
-        return self.evolve(subproject='')
-
-    def as_build(self) -> 'OptionKey':
-        """Convenience method for key.evolve(machine=MachineChoice.BUILD)."""
-        return self.evolve(machine=MachineChoice.BUILD)
-
-    def as_host(self) -> 'OptionKey':
-        """Convenience method for key.evolve(machine=MachineChoice.HOST)."""
-        return self.evolve(machine=MachineChoice.HOST)
-
-    def is_backend(self) -> bool:
-        """Convenience method to check if this is a backend option."""
-        return self.type is OptionType.BACKEND
-
-    def is_builtin(self) -> bool:
-        """Convenience method to check if this is a builtin option."""
-        return self.type is OptionType.BUILTIN
-
-    def is_compiler(self) -> bool:
-        """Convenience method to check if this is a builtin option."""
-        return self.type is OptionType.COMPILER
-
-    def is_project(self) -> bool:
-        """Convenience method to check if this is a project option."""
-        return self.type is OptionType.PROJECT
-
-    def is_base(self) -> bool:
-        """Convenience method to check if this is a base option."""
-        return self.type is OptionType.BASE
 
 
 def pickle_load(filename: str, object_name: str, object_type: T.Type[_PL], suggest_reconfigure: bool = True) -> _PL:

@@ -59,7 +59,7 @@ Any include paths in these dependencies will be passed to the underlying call to
 ## String arguments to the rust.bindgen include_directories argument
 
 Most other cases of include_directories accept strings as well as
-`IncludeDirectory` objects, so lets do that here too for consistency.
+`IncludeDirectory` objects, so let's do that here too for consistency.
 
 ## The Rust module is stable
 

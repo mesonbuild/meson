@@ -39,7 +39,7 @@ about its value.
 
 ## [[configure_file]] now has a `macro_name` parameter.
 
-This new paramater, `macro_name` allows C macro-style include guards to be added
+This new parameter, `macro_name` allows C macro-style include guards to be added
 to [[configure_file]]'s output when a template file is not given. This change
 simplifies the creation of configure files that define macros with dynamic names
 and want the C-style include guards.
@@ -89,8 +89,8 @@ you to set the environment in which the generator will process inputs.
 In previous versions of meson, a `meson.build` file like this:
 
 ```
-exectuable('foo', 'main.c')
-exectuable('foo', 'main.c', name_suffix: 'bar')
+executable('foo', 'main.c')
+executable('foo', 'main.c', name_suffix: 'bar')
 ```
 
 would result in a configure error because meson internally used

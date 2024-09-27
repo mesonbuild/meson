@@ -256,7 +256,7 @@ to be the host machine.
 Once you have the cross file, starting a build is simple
 
 ```console
-$ meson srcdir builddir --cross-file cross_file.txt
+$ meson setup builddir --cross-file cross_file.txt
 ```
 
 Once configuration is done, compilation is started by invoking `meson compile`

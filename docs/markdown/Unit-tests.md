@@ -89,6 +89,10 @@ variable `MESON_TESTTHREADS` like this.
 $ MESON_TESTTHREADS=5 meson test
 ```
 
+Setting `MESON_TESTTHREADS` to 0 enables the default behavior (core
+count), whereas setting an invalid value results in setting the job
+count to 1.
+
 ## Priorities
 
 *(added in version 0.52.0)*
@@ -208,6 +212,9 @@ Sometimes you need to run the tests multiple times, which is done like this:
 $ meson test --repeat=10
 ```
 
+Meson will set the `MESON_TEST_ITERATION` environment variable to the
+current iteration of the test *(added 1.5.0)*.
+
 Invoking tests via a helper executable such as Valgrind can be done with the
 `--wrap` argument
 
@@ -256,10 +263,28 @@ $ meson test --gdb --gdb-path /path/to/gdb testname
 $ meson test --print-errorlogs
 ```
 
+Running tests interactively can be done with the `--interactive` option.
+`meson test --interactive` invokes tests with stdout, stdin and stderr
+connected directly to the calling terminal. This can be useful if your test is
+an integration test running in a container or virtual machine where a debug
+shell is spawned if it fails *(added 1.5.0)*:
+
+```console
+$ meson test --interactive testname
+```
+
 Meson will report the output produced by the failing tests along with
 other useful information as the environmental variables. This is
 useful, for example, when you run the tests on Travis-CI, Jenkins and
 the like.
+
+By default, the output from tests will be limited to the last 100 lines. The
+maximum number of lines to show can be configured with the `--max-lines` option
+*(added 1.5.0)*:
+
+```console
+$ meson test --max-lines=1000 testname
+```
 
 **Timeout**
 
