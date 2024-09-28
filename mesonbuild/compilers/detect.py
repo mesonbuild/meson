@@ -46,8 +46,8 @@ if is_windows():
     # There is currently no pgc++ for Windows, only for  Mac and Linux.
     defaults['cpp'] = ['icl', 'cl', 'c++', 'g++', 'clang++', 'clang-cl']
     defaults['fortran'] = ['ifort', 'gfortran', 'flang', 'pgfortran', 'g95']
-    defaults['objc'] = ['clang-cl', 'gcc']
-    defaults['objcpp'] = ['clang-cl', 'g++']
+    defaults['objc'] = ['clang', 'clang-cl', 'gcc']
+    defaults['objcpp'] = ['clang-cl', 'clang-cl', 'g++']
     defaults['cs'] = ['csc', 'mcs']
 else:
     if platform.machine().lower() == 'e2k':

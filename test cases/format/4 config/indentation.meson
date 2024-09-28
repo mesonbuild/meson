@@ -71,3 +71,18 @@ if meson.project_version().version_compare('>1.2')
     endforeach
   endif
 endif
+
+subproject(
+  '@0@-@1@-@2@-@3@'.format(
+    meson.project_name(),
+    meson.project_version(),
+    meson.project_build_root(),
+    meson.project_source_root(),
+  ),
+  default_options : [
+    'aaaaaaaa=bbbbbbbbbb',
+    'cccccccccccc=ddddddddddddd',
+    'eeeeeeeeeeeeeee=fffffffffffff',
+    'gggggggggggggggggggggg=hhhhhhhhhhhhhhhhhhhh',
+  ],
+)

@@ -837,7 +837,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return ["-Wl,-cache_path_lto," + path]
 
     def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
-        return self._apply_prefix('-export_dynamic')
+        if mesonlib.version_compare(self.version, '>=224.1'):
+            return self._apply_prefix('-export_dynamic')
+        return []
 
 
 class LLVMLD64DynamicLinker(AppleDynamicLinker):
@@ -1323,6 +1325,9 @@ class VisualStudioLikeLinkerMixin(DynamicLinkerBase):
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         return RSPFileSyntax.MSVC
+
+    def get_pie_args(self) -> T.List[str]:
+        return []
 
 
 class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):

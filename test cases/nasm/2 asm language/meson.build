@@ -46,7 +46,7 @@ config_file = configure_file(
 cc = meson.get_compiler('c')
 link_args = cc.get_supported_link_arguments(['-no-pie'])
 
-exe = executable('hello', 'hello.asm',
+exe = executable('hello', 'hello-' + host_machine.cpu_family() + '.asm',
   nasm_args: '-DFOO',
   link_args: link_args,
 )
@@ -55,7 +55,7 @@ test('hello', exe)
 #Test whether pthread dependency gets filtered out
 threads = dependency('threads')
 
-exe2 = executable('hello_w_threads', 'hello.asm',
+exe2 = executable('hello_w_threads', 'hello-' + host_machine.cpu_family() + '.asm',
   config_file,
   nasm_args: '-DFOO',
   link_args: link_args,

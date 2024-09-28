@@ -47,6 +47,7 @@ d = {'a': 1, 'b': 2, 'c': 3}
 # string conversion
 '''This is not a multiline'''
 f'This is not a fstring'
+'''This isn't convertible'''
 
 # group arg value
 arguments = [

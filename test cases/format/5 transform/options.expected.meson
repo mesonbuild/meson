@@ -29,6 +29,7 @@ d = {
 # string conversion
 'This is not a multiline'
 'This is not a fstring'
+'''This isn't convertible'''
 
 # group arg value
 arguments = [
