@@ -98,12 +98,11 @@ foreach cc : compilers
   # For some functions one needs to define _GNU_SOURCE before including the
   # right headers to get them picked up. Make sure we can detect these functions
   # as well without any prefix
-  if cc.has_header_symbol('sys/socket.h', 'recvmmsg',
+  if cc.has_header_symbol('sys/stat.h', 'statx',
                           prefix : '#define _GNU_SOURCE',
                           args : unit_test_args)
-    # We assume that if recvmmsg exists sendmmsg does too
-    assert (cc.has_function('sendmmsg', args : unit_test_args),
-            'Failed to detect function "sendmmsg" (should always exist).')
+    assert (cc.has_function('statx', args : unit_test_args),
+            'Failed to detect function "statx" (should always exist).')
   endif
 
   # We should be able to find GCC and Clang __builtin functions
