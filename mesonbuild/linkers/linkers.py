@@ -1637,9 +1637,6 @@ class MetrowerksLinker(DynamicLinker):
     def get_accepts_rsp(self) -> bool:
         return True
 
-    def get_lib_prefix(self) -> str:
-        return ""
-
     def get_linker_always_args(self) -> T.List[str]:
         return []
 
@@ -1652,8 +1649,9 @@ class MetrowerksLinker(DynamicLinker):
     def invoked_by_compiler(self) -> bool:
         return False
 
-    def rsp_file_syntax(self) -> RSPFileSyntax:
-        return RSPFileSyntax.GCC
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+        raise MesonException(f'{self.id} does not support shared libraries.')
 
 
 class MetrowerksLinkerARM(MetrowerksLinker):
