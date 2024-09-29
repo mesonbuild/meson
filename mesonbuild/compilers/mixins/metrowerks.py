@@ -179,13 +179,12 @@ class MetrowerksCompiler(Compiler):
         self.base_options = {
             OptionKey(o) for o in ['b_pch', 'b_ndebug']}
 
-        default_warn_args: T.List[str] = []
         self.warn_args: T.Dict[str, T.List[str]] = {
-            '0': ['-w', 'off'],
-            '1': default_warn_args,
-            '2': default_warn_args + ['-w', 'most'],
-            '3': default_warn_args + ['-w', 'all'],
-            'everything': default_warn_args + ['-w', 'full']}
+            '0': ['-warnings', 'off'],
+            '1': [],
+            '2': ['-warnings', 'on,nocmdline'],
+            '3': ['-warnings', 'on,all'],
+            'everything': ['-warnings', 'on,full']}
 
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         # Earlier versions of these compilers do not support specifying
