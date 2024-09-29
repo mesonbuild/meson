@@ -275,6 +275,6 @@ class MetrowerksCompiler(Compiler):
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I':
-                parameter_list[idx] = i[:9] + os.path.normpath(os.path.join(build_dir, i[9:]))
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
         return parameter_list
