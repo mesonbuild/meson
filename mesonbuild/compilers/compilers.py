@@ -1113,6 +1113,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # TODO: This is a candidate for returning an immutable list
         return []
 
+    def is_custom_sysroot(self, args: CompilerArgs) -> bool:
+        return False
+
     def get_largefile_args(self) -> T.List[str]:
         '''Enable transparent large-file-support for 32-bit UNIX systems'''
         if not (self.get_argument_syntax() == 'msvc' or self.info.is_darwin()):

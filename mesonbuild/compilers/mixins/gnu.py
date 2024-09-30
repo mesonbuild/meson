@@ -23,6 +23,7 @@ if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
     from ...environment import Environment
     from ..compilers import Compiler
+    from ...arglist import CompilerArgs
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but
@@ -400,6 +401,9 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     def get_default_include_dirs(self) -> T.List[str]:
         return gnulike_default_include_dirs(tuple(self.get_exelist(ccache=False)), self.language).copy()
+
+    def is_custom_sysroot(self, args: 'CompilerArgs') -> bool:
+        return any(x.startswith('-isysroot') or x.startswith('-sysroot') for x in args)
 
     @abc.abstractmethod
     def openmp_flags(self, env: Environment) -> T.List[str]:

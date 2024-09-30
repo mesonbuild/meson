@@ -275,6 +275,20 @@ class InternalTests(unittest.TestCase):
         l += ['-isystem/usr/include', '-isystem=/usr/share/include', '-DSOMETHING_IMPORTANT=1', '-isystem', '/usr/local/include']
         self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-lfoo', '-DSOMETHING_IMPORTANT=1'])
 
+    def test_compiler_args_do_not_remove_system_if_sysroot(self):
+        linker = linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
+        gcc = GnuCCompiler([], [], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
+        gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
+        l = gcc.compiler_args(['-Lfoodir', '-lfoo'])
+        self.assertEqual(l.to_native(copy=True), ['-Lfoodir', '-lfoo'])
+        ## Test that to_native removes does not remove system includes when sysroot/isysroot are present
+        l += ['-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk',
+            '-isystem/usr/include', '-isystem=/usr/share/include', '-DSOMETHING_IMPORTANT=1', '-isystem', '/usr/local/include']
+        self.assertEqual(l.to_native(copy=True), ['-isystem/usr/include', '-isystem=/usr/share/include', '-isystem',
+            '/usr/local/include','-Lfoodir', '-lfoo', '-isysroot',
+            '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk',
+            '-DSOMETHING_IMPORTANT=1'])
+
     def test_compiler_args_do_not_break_two_args_include(self):
         linker = linkers.GnuBFDDynamicLinker([], MachineChoice.HOST, '-Wl,', [])
         gcc = GnuCCompiler([], [], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
