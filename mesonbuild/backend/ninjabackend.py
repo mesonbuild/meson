@@ -692,7 +692,9 @@ class NinjaBackend(backends.Backend):
         mlog.cmd_ci_include(outfilename)  # For CI debugging
         # Refresh Ninja's caches. https://github.com/ninja-build/ninja/pull/1685
         # Cannot use when running with dyndeps: https://github.com/ninja-build/ninja/issues/1952
-        if mesonlib.version_compare(self.ninja_version, '>=1.10.0') and os.path.exists(os.path.join(self.environment.build_dir, '.ninja_log')) and not self._uses_dyndeps:
+        if ((mesonlib.version_compare(self.ninja_version, '>= 1.12.0') or
+                (mesonlib.version_compare(self.ninja_version, '>=1.10.0') and not self._uses_dyndeps))
+                and os.path.exists(os.path.join(self.environment.build_dir, '.ninja_log'))):
             subprocess.call(self.ninja_command + ['-t', 'restat'], cwd=self.environment.build_dir)
             subprocess.call(self.ninja_command + ['-t', 'cleandead'], cwd=self.environment.build_dir)
         self.generate_compdb()
