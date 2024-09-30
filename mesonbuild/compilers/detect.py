@@ -1436,13 +1436,12 @@ def _get_clang_compiler_defines(compiler: T.List[str], lang: str) -> T.Dict[str,
         # based on the driver.
         lang = clang_lang_map[lang]
 
-        # The compiler may not infer the target language based on the driver name
-        # so first, try with '-cpp -x lang', then fallback without given it's less
-        # portable. We try with '-cpp' as GCC needs it for Fortran at least, and
-        # it seems to do no harm.
-        output = _try_obtain_compiler_defines(['-cpp', '-x', lang] + baseline_test_args)
+        # The compiler may not infer the target language based on the driver name.
+        # Try first with '-x lang' to supported systemwide language level overrides,
+        # then fallback to without since it's a more recent option.
+        output = _try_obtain_compiler_defines(['-x', lang] + baseline_test_args)
     except (EnvironmentException, KeyError):
-        mlog.debug(f'pre-processor extraction using -cpp -x {lang} failed, falling back w/o lang')
+        mlog.debug(f'pre-processor extraction using -x {lang} failed, falling back w/o lang')
         output = _try_obtain_compiler_defines(baseline_test_args)
 
     defines: T.Dict[str, str] = {}
