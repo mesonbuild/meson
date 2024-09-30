@@ -1,5 +1,9 @@
 project('objfw build tests', 'objcpp')
 
+if get_option('backend').startswith('vs')
+  error('MESON_SKIP_TEST: objcpp is not supported by vs backend')
+endif
+
 objfw_dep = dependency('objfw', required: false)
 objfwtest_dep = dependency('objfw', modules: ['ObjFWTest'], required: false)
 

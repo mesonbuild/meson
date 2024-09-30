@@ -4,10 +4,11 @@
 import subprocess
 import re
 import os
+import platform
 import unittest
 
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx
+    MachineChoice, is_osx, version_compare
 )
 from mesonbuild.compilers import (
     detect_c_compiler
@@ -81,6 +82,7 @@ class DarwinTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    @unittest.skipIf(version_compare(platform.mac_ver()[0], '<10.7'), '-export_dynamic was added in 10.7')
     def test_apple_lto_export_dynamic(self):
         '''
         Tests that -Wl,-export_dynamic is correctly added, when export_dynamic: true is set.

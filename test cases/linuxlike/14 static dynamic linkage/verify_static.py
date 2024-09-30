@@ -5,8 +5,16 @@ import sys
 
 def handle_common(path):
     """Handle the common case."""
-    output = subprocess.check_output(['nm', path]).decode('utf-8')
-    if 'T zlibVersion' in output:
+    try:
+        output = subprocess.check_output(['nm', '--defined-only', '-P', '-A', path]).decode('utf-8')
+    except subprocess.CalledProcessError:
+        # some NMs only support -U. Older binutils only supports --defined-only.
+        output = subprocess.check_output(['nm', '-UPA', path]).decode('utf-8')
+    # POSIX format. Prints all *defined* symbols, looks like this:
+    # builddir/main_static: zlibVersion T 1190 39
+    # or
+    # builddir/main_static: zlibVersion D 1fde0 30
+    if ': zlibVersion ' in output:
         return 0
     return 1
 
