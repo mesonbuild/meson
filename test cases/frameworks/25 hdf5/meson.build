@@ -1,4 +1,8 @@
-project('hdf5_framework', 'c')
+project(
+  'hdf5_framework',
+  'c',
+  default_options : ['cpp_std=c++11'],
+)
 
 # NOTE: all HDF5 languages must have HDF5 C library working.
 
