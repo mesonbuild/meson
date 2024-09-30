@@ -1,7 +1,6 @@
 {
   "installed": [
     {"type": "js_module_main", "file": "usr/async_example"},
-    {"type": "js_module_ext", "file": "usr/async_example"},
-    {"type": "js_module_worker", "file": "usr/async_example"}
+    {"type": "js_module_ext", "file": "usr/async_example"}
   ]
 }
