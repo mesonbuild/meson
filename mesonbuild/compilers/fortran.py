@@ -262,7 +262,6 @@ class SunFortranCompiler(FortranCompiler):
 
 class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
-    file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
     id = 'intel'
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
@@ -275,6 +274,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
         # we are sent the type of compiler
         IntelGnuLikeCompiler.__init__(self)
+        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
         default_warn_args = ['-warn', 'general', '-warn', 'truncated_source']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -318,7 +318,6 @@ class IntelLLVMFortranCompiler(IntelFortranCompiler):
 
 class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
-    file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
     always_args = ['/nologo']
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
@@ -329,6 +328,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
                                  is_cross, info, linker=linker,
                                  full_version=full_version)
         IntelVisualStudioLikeCompiler.__init__(self, target)
+        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
 
         default_warn_args = ['/warn:general', '/warn:truncated_source']
         self.warn_args = {'0': [],
