@@ -40,7 +40,6 @@ class CcrxCompiler(Compiler):
 
     if T.TYPE_CHECKING:
         is_cross = True
-        can_compile_suffixes: T.Set[str] = set()
 
     id = 'ccrx'
 
