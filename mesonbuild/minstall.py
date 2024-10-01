@@ -152,7 +152,7 @@ def set_chown(path: str, user: T.Union[str, int, None] = None,
 
     if sys.version_info >= (3, 13):
         # pylint: disable=unexpected-keyword-arg
-        # cannot handle sys.version_info, https://github.com/pylint-dev/pylint/issues/9138
+        # cannot handle sys.version_info, https://github.com/pylint-dev/pylint/issues/9622
         shutil.chown(path, user, group, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
     else:
         real_os_chown = os.chown
