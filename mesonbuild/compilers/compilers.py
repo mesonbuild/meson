@@ -452,8 +452,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         self.exelist = ccache + exelist
         self.exelist_no_ccache = exelist
         # In case it's been overridden by a child class already
-        if not hasattr(self, 'file_suffixes'):
-            self.file_suffixes = lang_suffixes[self.language]
+        self.file_suffixes = lang_suffixes[self.language]
         if not hasattr(self, 'can_compile_suffixes'):
             self.can_compile_suffixes: T.Set[str] = set(self.file_suffixes)
         self.default_suffix = self.file_suffixes[0]
