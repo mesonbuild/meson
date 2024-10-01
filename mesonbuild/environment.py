@@ -41,10 +41,9 @@ from functools import lru_cache
 from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
-    from configparser import ConfigParser
-
     from .compilers import Compiler
     from .compilers.mixins.visualstudio import VisualStudioLikeCompiler
+    from .options import ElementaryOptionValues
     from .wrap.wrap import Resolver
     from . import cargo
 
@@ -633,7 +632,7 @@ class Environment:
         #
         # Note that order matters because of 'buildtype', if it is after
         # 'optimization' and 'debug' keys, it override them.
-        self.options: T.MutableMapping[OptionKey, T.Union[str, T.List[str]]] = collections.OrderedDict()
+        self.options: T.MutableMapping[OptionKey, ElementaryOptionValues] = collections.OrderedDict()
 
         ## Read in native file(s) to override build machine configuration
 
@@ -702,7 +701,8 @@ class Environment:
         # Store a global state of Cargo dependencies
         self.cargo: T.Optional[cargo.Interpreter] = None
 
-    def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
+    def _load_machine_file_options(self, config: T.Mapping[str, T.Mapping[str, ElementaryOptionValues]],
+                                   properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
 
         # Look for any options in the deprecated paths section, warn about
@@ -712,6 +712,7 @@ class Environment:
         if paths:
             mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
             for k, v in paths.items():
+                assert isinstance(v, (str, list)), 'for mypy'
                 self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
 
         # Next look for compiler options in the "properties" section, this is
@@ -724,6 +725,7 @@ class Environment:
         for k, v in properties.properties.copy().items():
             if k in deprecated_properties:
                 mlog.deprecation(f'{k} in the [properties] section of the machine file is deprecated, use the [built-in options] section.')
+                assert isinstance(v, (str, list)), 'for mypy'
                 self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
                 del properties.properties[k]
 
