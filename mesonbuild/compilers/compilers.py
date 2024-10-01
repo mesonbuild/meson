@@ -451,10 +451,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                  full_version: T.Optional[str] = None, is_cross: bool = False):
         self.exelist = ccache + exelist
         self.exelist_no_ccache = exelist
-        # In case it's been overridden by a child class already
         self.file_suffixes = lang_suffixes[self.language]
-        if not hasattr(self, 'can_compile_suffixes'):
-            self.can_compile_suffixes: T.Set[str] = set(self.file_suffixes)
+        self.can_compile_suffixes = set(self.file_suffixes)
         self.default_suffix = self.file_suffixes[0]
         self.version = version
         self.full_version = full_version
