@@ -41,10 +41,9 @@ from functools import lru_cache
 from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
-    from configparser import ConfigParser
-
     from .compilers import Compiler
     from .compilers.mixins.visualstudio import VisualStudioLikeCompiler
+    from .options import ElementaryOptionValues
     from .wrap.wrap import Resolver
     from . import cargo
 
@@ -633,7 +632,7 @@ class Environment:
         #
         # Note that order matters because of 'buildtype', if it is after
         # 'optimization' and 'debug' keys, it override them.
-        self.options: T.MutableMapping[OptionKey, T.Union[str, T.List[str]]] = collections.OrderedDict()
+        self.options: T.MutableMapping[OptionKey, ElementaryOptionValues] = collections.OrderedDict()
 
         self.machinestore = machinefile.MachineFileStore(self.coredata.config_files, self.coredata.cross_files, self.source_dir)
 
@@ -701,7 +700,7 @@ class Environment:
         # Store a global state of Cargo dependencies
         self.cargo: T.Optional[cargo.Interpreter] = None
 
-    def mfilestr2key(self, machine_file_string: str, section_subproject: str, machine: MachineChoice):
+    def mfilestr2key(self, machine_file_string: str, section_subproject: str, machine: MachineChoice) -> OptionKey:
         key = OptionKey.from_string(machine_file_string)
         assert key.machine == MachineChoice.HOST
         if key.subproject:
@@ -712,7 +711,8 @@ class Environment:
             return key.evolve(machine=machine)
         return key
 
-    def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
+    def _load_machine_file_options(self, config: T.Mapping[str, T.Mapping[str, ElementaryOptionValues]],
+                                   properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
 
         # Look for any options in the deprecated paths section, warn about

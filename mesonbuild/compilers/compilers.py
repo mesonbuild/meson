@@ -1424,6 +1424,8 @@ def get_global_options(lang: str,
 
     comp_options = env.options.get(comp_key, [])
     link_options = env.options.get(largkey, [])
+    assert isinstance(comp_options, (str, list)), 'for mypy'
+    assert isinstance(link_options, (str, list)), 'for mypy'
 
     cargs = options.UserStringArrayOption(
         argkey.name,
