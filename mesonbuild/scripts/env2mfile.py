@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import sys, os, subprocess, shutil
 import shlex
 import typing as T
@@ -47,21 +48,21 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--endian', default='little', choices=['big', 'little'],
                         help='Define endianness for cross compilation.')
 
+@dataclass
 class MachineInfo:
-    def __init__(self) -> None:
-        self.compilers: T.Dict[str, T.List[str]] = {}
-        self.binaries: T.Dict[str, T.List[str]] = {}
-        self.properties: T.Dict[str, T.Union[str, T.List[str]]] = {}
-        self.compile_args: T.Dict[str, T.List[str]] = {}
-        self.link_args: T.Dict[str, T.List[str]] = {}
-        self.cmake: T.Dict[str, T.Union[str, T.List[str]]] = {}
+    compilers: T.Dict[str, T.List[str]] = field(default_factory=dict)
+    binaries: T.Dict[str, T.List[str]] = field(default_factory=dict)
+    properties: T.Dict[str, T.Union[str, T.List[str]]] = field(default_factory=dict)
+    compile_args: T.Dict[str, T.List[str]] = field(default_factory=dict)
+    link_args: T.Dict[str, T.List[str]] = field(default_factory=dict)
+    cmake: T.Dict[str, T.Union[str, T.List[str]]] = field(default_factory=dict)
 
-        self.system: T.Optional[str] = None
-        self.subsystem: T.Optional[str] = None
-        self.kernel: T.Optional[str] = None
-        self.cpu: T.Optional[str] = None
-        self.cpu_family: T.Optional[str] = None
-        self.endian: T.Optional[str] = None
+    system: T.Optional[str] = None
+    subsystem: T.Optional[str] = None
+    kernel: T.Optional[str] = None
+    cpu: T.Optional[str] = None
+    cpu_family: T.Optional[str] = None
+    endian: T.Optional[str] = None
 
 #parser = argparse.ArgumentParser(description='''Generate cross compilation definition file for the Meson build system.
 #
