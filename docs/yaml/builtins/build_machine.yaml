@@ -22,7 +22,7 @@ methods:
 
 - name: cpu
   returns: str
-  description: Returns a more specific CPU name, such as `i686`, `amd64`, etc.
+  description: Returns a more specific CPU name, such as `i686`, `armv8l`, etc.
 
 - name: system
   returns: str
