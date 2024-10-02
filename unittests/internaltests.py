@@ -1750,6 +1750,7 @@ class InternalTests(unittest.TestCase):
                 'cmake': ['/usr/bin/cmake'],
                 'pkg-config': [f'/usr/bin/{gnu_tuple}-pkg-config'],
                 'cups-config': ['/usr/bin/cups-config'],
+                'exe_wrapper': [f'/usr/bin/{gnu_tuple}-cross-exe-wrapper'],
                 'g-ir-annotation-tool': [f'/usr/bin/{gnu_tuple}-g-ir-annotation-tool'],
                 'g-ir-compiler': [f'/usr/bin/{gnu_tuple}-g-ir-compiler'],
                 'g-ir-doc-tool': [f'/usr/bin/{gnu_tuple}-g-ir-doc-tool'],
