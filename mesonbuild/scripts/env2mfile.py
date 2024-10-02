@@ -142,6 +142,13 @@ deb_cpu_map = {
     'powerpc64le': 'ppc64',
 }
 
+def replace_special_cases(special_cases: T.Mapping[str, str], name: str) -> str:
+    '''
+    If name is a key in special_cases, replace it with the value, or otherwise
+    pass it through unchanged.
+    '''
+    return special_cases.get(name, name)
+
 def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
     system_name_map = {'linux': 'Linux', 'kfreebsd': 'kFreeBSD', 'hurd': 'GNU'}
     system_processor_map = {'arm': 'armv7l', 'mips64el': 'mips64', 'powerpc64le': 'ppc64le'}
@@ -152,8 +159,7 @@ def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
     except KeyError:
         pass
     infos.cmake["CMAKE_SYSTEM_NAME"] = system_name_map[data['DEB_HOST_ARCH_OS']]
-    infos.cmake["CMAKE_SYSTEM_PROCESSOR"] = system_processor_map.get(data['DEB_HOST_GNU_CPU'],
-                                                                     data['DEB_HOST_GNU_CPU'])
+    infos.cmake["CMAKE_SYSTEM_PROCESSOR"] = replace_special_cases(system_processor_map, data['DEB_HOST_GNU_CPU'])
 
 def deb_compiler_lookup(infos: MachineInfo, compilerstems: T.List[T.Tuple[str, str]], host_arch: str, gccsuffix: str) -> None:
     for langname, stem in compilerstems:
@@ -185,10 +191,8 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
     host_os = data['DEB_HOST_ARCH_OS']
     host_subsystem = host_os
     host_kernel = 'linux'
-    host_cpu_family = deb_cpu_family_map.get(data['DEB_HOST_GNU_CPU'],
-                                             data['DEB_HOST_GNU_CPU'])
-    host_cpu = deb_cpu_map.get(data['DEB_HOST_ARCH'],
-                               data['DEB_HOST_ARCH'])
+    host_cpu_family = replace_special_cases(deb_cpu_family_map, data['DEB_HOST_GNU_CPU'])
+    host_cpu = replace_special_cases(deb_cpu_map, data['DEB_HOST_ARCH'])
     host_endian = data['DEB_HOST_ARCH_ENDIAN']
 
     compilerstems = [('c', 'gcc'),
