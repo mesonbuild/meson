@@ -1835,9 +1835,7 @@ class InternalTests(unittest.TestCase):
                     system='linux',
                     subsystem='linux',
                     kernel='linux',
-                    # TODO: In native builds we get x86_64, but in
-                    # cross-builds it's amd64
-                    cpu='TODO',
+                    cpu='x86_64',
                     cpu_family='x86_64',
                     endian='little',
                 ),
@@ -1940,8 +1938,7 @@ class InternalTests(unittest.TestCase):
                     # fail when kernel() is called.
                     # https://github.com/mesonbuild/meson/issues/13740
                     kernel='TODO',
-                    # TODO: Currently hurd-i386, but should be i686
-                    cpu='TODO',
+                    cpu='i686',
                     cpu_family='x86',
                     endian='little',
                 ),
@@ -1980,8 +1977,7 @@ class InternalTests(unittest.TestCase):
                     system='kfreebsd',
                     subsystem='kfreebsd',
                     kernel='freebsd',
-                    # TODO: Currently kfreebsd-amd64 but should be x86_64
-                    cpu='TODO',
+                    cpu='x86_64',
                     cpu_family='x86_64',
                     endian='little',
                 ),
@@ -2059,8 +2055,7 @@ class InternalTests(unittest.TestCase):
                     system='linux',
                     subsystem='linux',
                     kernel='linux',
-                    # TODO: Currently ppc64el, but native builds have ppc64le,
-                    # and maybe it should be ppc64 in both cases?
+                    # TODO: Currently ppc64, but native builds have ppc64le
                     # https://github.com/mesonbuild/meson/issues/13741
                     cpu='TODO',
                     cpu_family='ppc64',
