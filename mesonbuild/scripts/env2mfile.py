@@ -250,6 +250,13 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
             infos.binaries[tool] = locate_path("%s-%s" % (host_arch, exe))
         except ValueError:
             pass
+    for tool, exe in [
+        ('vala', 'valac'),
+    ]:
+        try:
+            infos.compilers[tool] = locate_path("%s-%s" % (host_arch, exe))
+        except ValueError:
+            pass
     try:
         infos.binaries['cups-config'] = locate_path("cups-config")
     except ValueError:
