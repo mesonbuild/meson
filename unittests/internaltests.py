@@ -1933,10 +1933,8 @@ class InternalTests(unittest.TestCase):
                         'CMAKE_SYSTEM_NAME': 'GNU',
                         'CMAKE_SYSTEM_PROCESSOR': 'i686',
                     },
-                    # TODO: Currently hurd, but should be gnu as per
-                    # https://mesonbuild.com/Reference-tables.html
-                    system='TODO',
-                    subsystem='TODO',
+                    system='gnu',
+                    subsystem='gnu',
                     # TODO: Currently linux, but should be gnu/hurd/mach?
                     # https://github.com/mesonbuild/meson/issues/13740
                     kernel='TODO',

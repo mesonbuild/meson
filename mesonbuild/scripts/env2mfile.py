@@ -142,6 +142,11 @@ deb_cpu_map = {
     'powerpc64le': 'ppc64',
 }
 
+# map from DEB_HOST_ARCH_OS to Meson machine.system()
+deb_os_map = {
+    'hurd': 'gnu',
+}
+
 def replace_special_cases(special_cases: T.Mapping[str, str], name: str) -> str:
     '''
     If name is a key in special_cases, replace it with the value, or otherwise
@@ -188,7 +193,7 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
         k, v = line.split('=', 1)
         data[k] = v
     host_arch = data['DEB_HOST_GNU_TYPE']
-    host_os = data['DEB_HOST_ARCH_OS']
+    host_os = replace_special_cases(deb_os_map, data['DEB_HOST_ARCH_OS'])
     host_subsystem = host_os
     host_kernel = 'linux'
     host_cpu_family = replace_special_cases(deb_cpu_family_map, data['DEB_HOST_GNU_CPU'])
