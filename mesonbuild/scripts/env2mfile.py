@@ -130,14 +130,20 @@ def get_args_from_envvars(infos: MachineInfo) -> None:
     if objcpp_link_args:
         infos.link_args['objcpp'] = objcpp_link_args
 
+# map from DEB_HOST_GNU_CPU to Meson machine.cpu_family()
 deb_cpu_family_map = {
     'mips64el': 'mips64',
     'i686': 'x86',
     'powerpc64le': 'ppc64',
 }
 
-deb_cpu_map = {
+# map from DEB_HOST_ARCH to Meson machine.cpu()
+deb_arch_cpu_map = {
     'armhf': 'arm7hlf',
+}
+
+# map from DEB_HOST_GNU_CPU to Meson machine.cpu()
+deb_cpu_map = {
     'mips64el': 'mips64',
     'powerpc64le': 'ppc64',
 }
@@ -202,7 +208,8 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
     host_subsystem = host_os
     host_kernel = replace_special_cases(deb_kernel_map, data['DEB_HOST_ARCH_OS'])
     host_cpu_family = replace_special_cases(deb_cpu_family_map, data['DEB_HOST_GNU_CPU'])
-    host_cpu = replace_special_cases(deb_cpu_map, data['DEB_HOST_ARCH'])
+    host_cpu = deb_arch_cpu_map.get(data['DEB_HOST_ARCH'],
+                                    replace_special_cases(deb_cpu_map, data['DEB_HOST_GNU_CPU']))
     host_endian = data['DEB_HOST_ARCH_ENDIAN']
 
     compilerstems = [('c', 'gcc'),
