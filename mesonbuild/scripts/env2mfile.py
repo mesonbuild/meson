@@ -147,6 +147,11 @@ deb_os_map = {
     'hurd': 'gnu',
 }
 
+# map from DEB_HOST_ARCH_OS to Meson machine.kernel()
+deb_kernel_map = {
+    'kfreebsd': 'freebsd',
+}
+
 def replace_special_cases(special_cases: T.Mapping[str, str], name: str) -> str:
     '''
     If name is a key in special_cases, replace it with the value, or otherwise
@@ -195,7 +200,7 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
     host_arch = data['DEB_HOST_GNU_TYPE']
     host_os = replace_special_cases(deb_os_map, data['DEB_HOST_ARCH_OS'])
     host_subsystem = host_os
-    host_kernel = 'linux'
+    host_kernel = replace_special_cases(deb_kernel_map, data['DEB_HOST_ARCH_OS'])
     host_cpu_family = replace_special_cases(deb_cpu_family_map, data['DEB_HOST_GNU_CPU'])
     host_cpu = replace_special_cases(deb_cpu_map, data['DEB_HOST_ARCH'])
     host_endian = data['DEB_HOST_ARCH_ENDIAN']

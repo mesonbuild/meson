@@ -1935,7 +1935,9 @@ class InternalTests(unittest.TestCase):
                     },
                     system='gnu',
                     subsystem='gnu',
-                    # TODO: Currently linux, but should be gnu/hurd/mach?
+                    # TODO: Currently hurd; should match whatever happens
+                    # during native builds, but at the moment native builds
+                    # fail when kernel() is called.
                     # https://github.com/mesonbuild/meson/issues/13740
                     kernel='TODO',
                     # TODO: Currently hurd-i386, but should be i686
@@ -1977,8 +1979,7 @@ class InternalTests(unittest.TestCase):
                     },
                     system='kfreebsd',
                     subsystem='kfreebsd',
-                    # TODO: Currently linux but should be freebsd
-                    kernel='TODO',
+                    kernel='freebsd',
                     # TODO: Currently kfreebsd-amd64 but should be x86_64
                     cpu='TODO',
                     cpu_family='x86_64',
