@@ -171,6 +171,9 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
         cmd = ['dpkg-architecture', '-a' + options.debarch]
     output = subprocess.check_output(cmd, universal_newlines=True,
                                      stderr=subprocess.DEVNULL)
+    return dpkg_architecture_to_machine_info(output, options)
+
+def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInfo:
     data = {}
     for line in output.split('\n'):
         line = line.strip()
