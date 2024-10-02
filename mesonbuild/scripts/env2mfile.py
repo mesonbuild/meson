@@ -230,6 +230,12 @@ def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInf
     except ValueError:
         pass
     for tool in [
+        'g-ir-annotation-tool',
+        'g-ir-compiler',
+        'g-ir-doc-tool',
+        'g-ir-generate',
+        'g-ir-inspect',
+        'g-ir-scanner',
         'pkg-config',
     ]:
         try:

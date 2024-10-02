@@ -1750,6 +1750,12 @@ class InternalTests(unittest.TestCase):
                 'cmake': ['/usr/bin/cmake'],
                 'pkg-config': [f'/usr/bin/{gnu_tuple}-pkg-config'],
                 'cups-config': ['/usr/bin/cups-config'],
+                'g-ir-annotation-tool': [f'/usr/bin/{gnu_tuple}-g-ir-annotation-tool'],
+                'g-ir-compiler': [f'/usr/bin/{gnu_tuple}-g-ir-compiler'],
+                'g-ir-doc-tool': [f'/usr/bin/{gnu_tuple}-g-ir-doc-tool'],
+                'g-ir-generate': [f'/usr/bin/{gnu_tuple}-g-ir-generate'],
+                'g-ir-inspect': [f'/usr/bin/{gnu_tuple}-g-ir-inspect'],
+                'g-ir-scanner': [f'/usr/bin/{gnu_tuple}-g-ir-scanner'],
             }
 
         for title, dpkg_arch, gccsuffix, env, expected in [
