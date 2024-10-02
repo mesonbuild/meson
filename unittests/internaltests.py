@@ -1739,6 +1739,7 @@ class InternalTests(unittest.TestCase):
                 'cpp': [f'/usr/bin/{gnu_tuple}-g++{gcc_suffix}'],
                 'objc': [f'/usr/bin/{gnu_tuple}-gobjc{gcc_suffix}'],
                 'objcpp': [f'/usr/bin/{gnu_tuple}-gobjc++{gcc_suffix}'],
+                'vala': [f'/usr/bin/{gnu_tuple}-valac'],
             }
 
         def expected_binaries(gnu_tuple: str) -> T.Dict[str, T.List[str]]:
