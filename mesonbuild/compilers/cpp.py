@@ -350,6 +350,15 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
 
     id = 'emscripten'
 
+    # Emscripten uses different version numbers than Clang; `emcc -v` will show
+    # the Clang version number used as well (but `emcc --version` does not).
+    # See https://github.com/pyodide/pyodide/discussions/4762 for more on
+    # emcc <--> clang versions. Note, although earlier versions claim to be the
+    # Clang versions 12.0.0 and 17.0.0 required for these C++ standards, they
+    # only accept the flags in the later versions below.
+    _CPP23_VERSION = '>=2.0.10'
+    _CPP26_VERSION = '>=3.1.39'
+
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
