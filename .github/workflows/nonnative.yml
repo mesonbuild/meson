@@ -65,6 +65,10 @@ jobs:
         python3 -m pip install coverage
     - uses: actions/checkout@v3
     - uses: mymindstorm/setup-emsdk@v14
+    - name: Run a single test to populate the cache
+      run: |
+        cd $GITHUB_WORKSPACE
+        ./run_tests.py $CI_ARGS --cross node-api-emscripten.json --cross-only --only "node-api/node-api/1 hello_world"
     - name: Run tests
       run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./tools/run_with_cov.py ./run_tests.py $CI_ARGS --cross node-api-emscripten.json --cross-only --only node-api'
 
