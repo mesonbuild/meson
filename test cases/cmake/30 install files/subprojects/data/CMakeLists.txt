@@ -10,4 +10,7 @@ install(FILES data-static.txt ${CMAKE_CURRENT_BINARY_DIR}/data-dynamic.txt DESTI
 set(INSTALL_FILES data-static2.txt data-static3.txt)
 install(FILES ${INSTALL_FILES} DESTINATION share)
 
+# https://github.com/mmomtchev/hadron/issues/48
+install(FILES invalid_file DESTINATION share)
+
 subdirs("subdir")

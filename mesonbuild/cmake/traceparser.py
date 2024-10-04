@@ -678,7 +678,11 @@ class CMakeTraceParser:
                     break
                 for p in args[i].split(';'):
                     absolute = Path(p) if Path(p).is_absolute() else Path(tline.file).parent / Path(p)
-                    install_list += [absolute]
+                    if absolute.exists():
+                        install_list += [absolute]
+                    else:
+                        mlog.warning(f'install(FILES {absolute}) references non-existing file, ignoring it' +
+                                     ', see https://github.com/mmomtchev/hadron/issues/48')
                 i += 1
 
             while i < len(args):
@@ -692,7 +696,8 @@ class CMakeTraceParser:
         if not dest:
             mlog.warning(f'install({args[0]}...) without DESTINATION is not supported by meson')
             return
-        self.install_packs += [CMakeInstallPack(pack_type, install_list, dest)]
+        if len(install_list) > 0:
+            self.install_packs += [CMakeInstallPack(pack_type, install_list, dest)]
 
     def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False) -> None:
         if ignore is None:
