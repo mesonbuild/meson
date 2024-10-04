@@ -10,7 +10,9 @@ short-description: Working with Rust in Meson
 Meson can't track dependency information for crates linked by rustc as
 a result of `extern crate` statements in Rust source code.  If your
 crate dependencies are properly expressed in Meson, there should be no
-need for `extern crate` statements in your Rust code.
+need for `extern crate` statements in your Rust code, as long as you use the
+Rust 2018 edition or later. This means adding `rust_std=2018` (or later) to the
+`project(default_options)` argument.
 
 An example of the problems with `extern crate` is that if you delete a
 crate from a Meson build file, other crates that depend on that crate
