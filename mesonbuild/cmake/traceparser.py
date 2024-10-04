@@ -676,8 +676,9 @@ class CMakeTraceParser:
                 if args[i].upper() in set(['TYPE', 'DESTINATION', 'PERMISSIONS', 'CONFIGURATIONS',
                                            'COMPONENT', 'RENAME', 'OPTIONAL', 'EXCLUDE_FROM_ALL']):
                     break
-                absolute = Path(args[i]) if Path(args[i]).is_absolute() else Path(tline.file).parent / Path(args[i])
-                install_list += [absolute]
+                for p in args[i].split(';'):
+                    absolute = Path(p) if Path(p).is_absolute() else Path(tline.file).parent / Path(p)
+                    install_list += [absolute]
                 i += 1
 
             while i < len(args):
