@@ -212,7 +212,7 @@ class CMakeToolchain:
         languages = list(self.compilers.keys())
         lang_ids = [language_map.get(x, x.upper()) for x in languages]
         cmake_content = dedent(f'''
-            cmake_minimum_required(VERSION 3.7)
+            cmake_minimum_required(VERSION 3.10)
             project(CompInfo {' '.join(lang_ids)})
         ''')
 
