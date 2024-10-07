@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ import typing as T
 from .. import options
 from ..mesonlib import EnvironmentException, MesonException, Popen_safe_logged
 from ..options import OptionKey
-from .compilers import Compiler, clike_debug_args
+from .compilers import Compiler, CompileCheckMode, clike_debug_args
 
 if T.TYPE_CHECKING:
     from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
@@ -244,6 +245,14 @@ class RustCompiler(Compiler):
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
+
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        return self.compiles('fn main { std::process::exit(0) };\n', env, extra_args=args, mode=CompileCheckMode.COMPILE)
+
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        args = self.linker.fatal_warnings() + args
+        return self.compiles(
+            'fn main { std::process::exit(0) };\n', env, extra_args=args, mode=CompileCheckMode.LINK)
 
 
 class ClippyRustCompiler(RustCompiler):
