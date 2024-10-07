@@ -235,7 +235,10 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                     # linked in by default
                     continue
                 else:
-                    i = name + '.lib'
+                    if name.endswith('.lib'):
+                        i = name
+                    else:
+                        i = name + '.lib'
             elif i.startswith('-isystem'):
                 # just use /I for -isystem system include path s
                 if i.startswith('-isystem='):

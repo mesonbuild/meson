@@ -111,16 +111,16 @@ BLACKLIST_CLANG_CL_LINK_FLAGS: T.Collection[str] = [
 ]
 
 BLACKLIST_LINK_LIBS: T.Collection[str] = [
-    'kernel32.lib',
-    'user32.lib',
-    'gdi32.lib',
-    'winspool.lib',
-    'shell32.lib',
-    'ole32.lib',
-    'oleaut32.lib',
-    'uuid.lib',
-    'comdlg32.lib',
-    'advapi32.lib'
+    'kernel32',
+    'user32',
+    'gdi32',
+    'winspool',
+    'shell32',
+    'ole32',
+    'oleaut32',
+    'uuid',
+    'comdlg32',
+    'advapi32'
 ]
 
 TRANSFER_DEPENDENCIES_FROM: T.Collection[str] = ['header_only']
@@ -131,6 +131,13 @@ def _sanitize_cmake_name(name: str) -> str:
     if name in FORBIDDEN_TARGET_NAMES or name.startswith('meson'):
         name = 'cm_' + name
     return name
+
+_lib_regex = re.compile(r'(-l)?([_a-zA-Z0-9]+)(\.lib)?')
+def is_blacklisted_lib(lib: str) -> bool:
+    name = _lib_regex.match(lib)
+    if name is None:
+        return False
+    return name.group(2) in BLACKLIST_LINK_LIBS
 
 class OutputTargetMap:
     rm_so_version = re.compile(r'(\.[0-9]+)+$')
@@ -478,7 +485,7 @@ class ConverterTarget:
                 return False
             return True
 
-        self.link_libraries = [x for x in self.link_libraries if x.lower() not in BLACKLIST_LINK_LIBS]
+        self.link_libraries = [x for x in self.link_libraries if not is_blacklisted_lib(x)]
         self.link_flags = [x for x in self.link_flags if check_flag(x)]
 
         # Handle OSX frameworks
