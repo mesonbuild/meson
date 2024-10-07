@@ -213,7 +213,7 @@ class EmscriptenCCompiler(EmscriptenMixin, ClangCCompiler):
     _C17_VERSION = '>=1.38.35'
     _C18_VERSION = '>=1.38.35'
     _C2X_VERSION = '>=1.38.35'  # 1.38.35 used Clang 9.0.0
-    _C23_VERSION = '>=3.0.0'    # 3.0.0 used Clang 18.0.0
+    _C23_VERSION = '>=3.1.45'    # 3.1.45 used Clang 18.0.0
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo',
