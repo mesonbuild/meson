@@ -114,7 +114,7 @@ class IntrospectionInterpreter(AstInterpreter):
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
         self.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
-        self.default_options.update(self.project_default_options)
+        self.default_options.update(self.project_default_options) # type: ignore [arg-type]
         self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
