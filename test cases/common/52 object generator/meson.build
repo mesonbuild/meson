@@ -37,6 +37,8 @@ gen3 = generator(python,
 
 generated3 = gen3.process(['source4.c'])
 
-e = executable('prog', 'prog.c', generated, generated2, generated3)
+subdir('dir')
+
+e = executable('prog', 'prog.c', generated, generated2, generated3, generated4)
 
 test('objgen', e)

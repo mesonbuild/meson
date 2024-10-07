@@ -2605,17 +2605,18 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         subdir = genlist.subdir
         exe = generator.get_exe()
         infilelist = genlist.get_inputs()
-        outfilelist = genlist.get_outputs()
         extra_dependencies = self.get_target_depend_files(genlist)
-        for i, curfile in enumerate(infilelist):
-            if len(generator.outputs) == 1:
-                sole_output = os.path.join(self.get_target_private_dir(target), outfilelist[i])
-            else:
-                sole_output = f'{curfile}'
+        for curfile in infilelist:
             infilename = curfile.rel_to_builddir(self.build_to_src, self.get_target_private_dir(target))
             base_args = generator.get_arglist(infilename)
             outfiles = genlist.get_outputs_for(curfile)
-            outfiles = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+            outfilespriv = [os.path.join(self.get_target_private_dir(target), of) for of in outfiles]
+
+            if len(generator.outputs) == 1:
+                sole_output = outfilespriv[0]
+            else:
+                sole_output = f'{curfile}'
+
             if generator.depfile is None:
                 rulename = 'CUSTOM_COMMAND'
                 args = base_args
@@ -2626,19 +2627,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 args = [x.replace('@DEPFILE@', depfile) for x in base_args]
             args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', sole_output)
                     for x in args]
-            args = self.replace_outputs(args, self.get_target_private_dir(target), outfilelist)
-            # We have consumed output files, so drop them from the list of remaining outputs.
-            if len(generator.outputs) > 1:
-                outfilelist = outfilelist[len(generator.outputs):]
+            args = self.replace_outputs(args, self.get_target_private_dir(target), outfiles)
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist, reason = self.as_meson_exe_cmdline(exe,
                                                         self.replace_extra_args(args, genlist),
-                                                        capture=outfiles[0] if generator.capture else None,
+                                                        capture=outfilespriv[0] if generator.capture else None,
                                                         env=genlist.env)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
 
-            elem = NinjaBuildElement(self.all_outputs, outfiles, rulename, infilename)
+            elem = NinjaBuildElement(self.all_outputs, outfilespriv, rulename, infilename)
             elem.add_dep([self.get_target_filename(x) for x in generator.depends])
             if generator.depfile is not None:
                 elem.add_item('DEPFILE', depfile)
