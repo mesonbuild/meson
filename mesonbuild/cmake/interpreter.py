@@ -858,7 +858,7 @@ class CMakeInterpreter:
 
         cmake_args = []
         cmake_args += cmake_get_generator_args(self.env)
-        cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix}']
+        cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix.as_posix()}']
         cmake_args += extra_cmake_options
         if any(arg.startswith('-DCMAKE_BUILD_TYPE=') for arg in cmake_args):
             # Allow to override the CMAKE_BUILD_TYPE environment variable
@@ -874,8 +874,8 @@ class CMakeInterpreter:
         if self.backend_name == 'ninja':
             ninja = detect_ninja()
             if ninja is None or len(ninja) > 1:
-                raise CMakeException(f'CMake requires an exeucutable name for ninja, got {ninja}')
-            cmake_args += [f'-DCMAKE_MAKE_PROGRAM={ninja[0]}']
+                raise CMakeException(f'CMake requires an executable name for ninja, got {ninja}')
+            cmake_args += [f'-DCMAKE_MAKE_PROGRAM={Path(ninja[0]).as_posix()}']
 
         trace_args = self.trace.trace_args()
         cmcmp_args = [f'-DCMAKE_POLICY_WARNING_{x}=OFF' for x in DISABLE_POLICY_WARNINGS]
