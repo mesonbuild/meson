@@ -16,7 +16,7 @@ from enum import Enum
 
 from .. import mlog, mesonlib
 from ..compilers import clib_langs
-from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, version_compare_many
+from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, OrderedSet, version_compare_many
 from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
@@ -25,8 +25,8 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes, WholeLibTypes,
-        StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
+        IncludeDirs, LibTypes, WholeLibTypes,
+        StructuredSources, ExtractedObjects, GeneratedTypes
     )
     from ..interpreter.type_checking import PkgConfigDefineType
 
@@ -350,7 +350,7 @@ class InternalDependency(Dependency):
         raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
     def generate_link_whole_dependency(self, recursive: bool) -> Dependency:
-        from ..build import SharedLibrary, CustomTarget, CustomTargetIndex
+        from ..build import StaticLibrary, SharedLibrary, CustomTarget, CustomTargetIndex
 
         for x in self.libraries:
             if isinstance(x, SharedLibrary):
@@ -360,7 +360,7 @@ class InternalDependency(Dependency):
                 raise MesonException('Cannot convert a dependency to link_whole when it contains a '
                                      'CustomTarget or CustomTargetIndex which is a shared library')
 
-        # Early return if there is nothing to do
+        # Early return to avoid unnecesary copies
         if not self.libraries and not self.ext_deps:
             return self
 
@@ -370,45 +370,68 @@ class InternalDependency(Dependency):
             new_dep.whole_libraries += T.cast('T.List[WholeLibTypes]', self.libraries)
             return new_dep
 
-        whole_libraries = set()
-        libraries = set()
-        ext_deps = set()
-        includes = set()
-        visited_deps = set()
-        stack = set([self])
+        whole_libraries: OrderedSet[WholeLibTypes] = OrderedSet()
+        libraries: OrderedSet[LibTypes] = OrderedSet()
+        ext_deps: OrderedSet[Dependency] = OrderedSet()
+        visited_deps: OrderedSet[InternalDependency] = OrderedSet()
+        stack = OrderedSet([self])
 
-        def add_exts(deps: T.Set[Dependency]):
-            nonlocal stack
-            nonlocal ext_deps
+        # Called on ext_deps after its contents have been extracted
+        def clean_dep(dep: InternalDependency) -> InternalDependency:
+            if dep.whole_libraries or dep.libraries or dep.ext_deps:
+                dep = copy.copy(dep)
+                dep.whole_libraries = []
+                dep.libraries = []
+                dep.ext_deps = []
+            return dep
+
+        # Called on whole_libraries to prevent them from adding extra linking parameters that are already handled
+        def clean_lib(lib: StaticLibrary) -> StaticLibrary:
+            if lib.link_whole_targets or lib.link_targets or lib.external_deps:
+                lib = copy.copy(lib)
+                lib.link_whole_targets = []
+                lib.link_targets = []
+                lib.external_deps = []
+            return lib
+
+        # Adds a set of dependencies to the stack or to the top library ext-deps
+        def add_exts(deps: OrderedSet[Dependency]) -> None:
+            nonlocal ext_deps, stack
             int_deps = {d for d in deps if isinstance(d, InternalDependency)}
-            stack |= int_deps - visited_deps
+            next = int_deps - visited_deps
+            stack |= next
             ext_deps |= deps - int_deps
+            ext_deps |= {clean_dep(dep) for dep in next}
 
         while stack:
             dep = stack.pop()
             visited_deps.add(dep)
-            add_exts(set(dep.ext_deps))
+            add_exts(OrderedSet(dep.ext_deps))
 
-            whole_libraries |= set(dep.whole_libraries + dep.libraries)
-            includes |= set(dep.include_directories)
+            for lib in dep.whole_libraries + dep.libraries:
+                if lib in whole_libraries:
+                    continue
 
-            for lib in dep.libraries:
-                exts = set(lib.external_deps)
-                lib_stack = set(lib.link_targets)
+                exts: OrderedSet[Dependency] = OrderedSet()
+                lib_stack = OrderedSet([lib])
+
                 while lib_stack:
                     t = lib_stack.pop()
+
                     if isinstance(t, SharedLibrary) or (isinstance(t, (CustomTarget, CustomTargetIndex)) and t.links_dynamically()):
                         libraries.add(t)
                         continue
                     whole_libraries.add(t)
-                    exts |= set(t.external_deps)
-                    lib_stack |= set(t.link_targets) - whole_libraries - libraries
+
+                    if isinstance(t, StaticLibrary):
+                        exts |= OrderedSet(t.external_deps)
+                        lib_stack |= OrderedSet(t.link_whole_targets + t.link_targets) - whole_libraries - libraries
+
                 add_exts(exts)
 
-        new_dep.whole_libraries = list(whole_libraries)
+        new_dep.whole_libraries = [clean_lib(lib) if isinstance(lib, StaticLibrary) else lib for lib in whole_libraries]
         new_dep.libraries = list(libraries)
         new_dep.ext_deps = list(ext_deps)
-        new_dep.include_directories = list(includes)
 
         return new_dep
 
