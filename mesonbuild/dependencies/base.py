@@ -25,7 +25,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
-        CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes,
+        CustomTarget, IncludeDirs, CustomTargetIndex, LibTypes, WholeLibTypes,
         StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
     )
     from ..interpreter.type_checking import PkgConfigDefineType
@@ -273,7 +273,7 @@ class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
                  link_args: T.List[str],
                  libraries: T.List[LibTypes],
-                 whole_libraries: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]],
+                 whole_libraries: T.List[WholeLibTypes],
                  sources: T.Sequence[T.Union[mesonlib.File, GeneratedTypes, StructuredSources]],
                  extra_files: T.Sequence[mesonlib.File],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
@@ -349,10 +349,10 @@ class InternalDependency(Dependency):
             return val
         raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
-    def generate_link_whole_dependency(self) -> Dependency:
+    def generate_link_whole_dependency(self, recursive: bool) -> Dependency:
         from ..build import SharedLibrary, CustomTarget, CustomTargetIndex
-        new_dep = copy.deepcopy(self)
-        for x in new_dep.libraries:
+
+        for x in self.libraries:
             if isinstance(x, SharedLibrary):
                 raise MesonException('Cannot convert a dependency to link_whole when it contains a '
                                      'SharedLibrary')
@@ -360,10 +360,56 @@ class InternalDependency(Dependency):
                 raise MesonException('Cannot convert a dependency to link_whole when it contains a '
                                      'CustomTarget or CustomTargetIndex which is a shared library')
 
-        # Mypy doesn't understand that the above is a TypeGuard
-        new_dep.whole_libraries += T.cast('T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]',
-                                          new_dep.libraries)
+        # Early return if there is nothing to do
+        if not self.libraries and not self.ext_deps:
+            return self
+
+        new_dep = copy.deepcopy(self)
         new_dep.libraries = []
+        if not recursive:
+            new_dep.whole_libraries += T.cast('T.List[WholeLibTypes]', self.libraries)
+            return new_dep
+
+        whole_libraries = set()
+        libraries = set()
+        ext_deps = set()
+        includes = set()
+        visited_deps = set()
+        stack = set([self])
+
+        def add_exts(deps: T.Set[Dependency]):
+            nonlocal stack
+            nonlocal ext_deps
+            int_deps = {d for d in deps if isinstance(d, InternalDependency)}
+            stack |= int_deps - visited_deps
+            ext_deps |= deps - int_deps
+
+        while stack:
+            dep = stack.pop()
+            visited_deps.add(dep)
+            add_exts(set(dep.ext_deps))
+
+            whole_libraries |= set(dep.whole_libraries + dep.libraries)
+            includes |= set(dep.include_directories)
+
+            for lib in dep.libraries:
+                exts = set(lib.external_deps)
+                lib_stack = set(lib.link_targets)
+                while lib_stack:
+                    t = lib_stack.pop()
+                    if isinstance(t, SharedLibrary) or (isinstance(t, (CustomTarget, CustomTargetIndex)) and t.links_dynamically()):
+                        libraries.add(t)
+                        continue
+                    whole_libraries.add(t)
+                    exts |= set(t.external_deps)
+                    lib_stack |= set(t.link_targets) - whole_libraries - libraries
+                add_exts(exts)
+
+        new_dep.whole_libraries = list(whole_libraries)
+        new_dep.libraries = list(libraries)
+        new_dep.ext_deps = list(ext_deps)
+        new_dep.include_directories = list(includes)
+
         return new_dep
 
     def get_as_static(self, recursive: bool) -> InternalDependency:
