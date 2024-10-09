@@ -33,7 +33,10 @@ class PkgConfigInterface:
     @staticmethod
     def instance(env: Environment, for_machine: MachineChoice, silent: bool) -> T.Optional[PkgConfigInterface]:
         '''Return a pkg-config implementation singleton'''
-        for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
+        if env.coredata.is_build_only:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
         impl = PkgConfigInterface.class_impl[for_machine]
         if impl is False:
             impl = PkgConfigCLI(env, for_machine, silent)
@@ -50,7 +53,10 @@ class PkgConfigInterface:
         Even when we use another implementation internally, external tools might
         still need the CLI implementation.
         '''
-        for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
+        if env.coredata.is_build_only:
+            for_machine = MachineChoice.BUILD
+        else:
+            for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
         impl: T.Union[Literal[False], T.Optional[PkgConfigInterface]] # Help confused mypy
         impl = PkgConfigInterface.instance(env, for_machine, silent)
         if impl and not isinstance(impl, PkgConfigCLI):
