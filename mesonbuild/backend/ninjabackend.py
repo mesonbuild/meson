@@ -3723,6 +3723,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Once all the linker options have been passed, we will start passing
         # libraries and library paths from internal and external sources.
         commands = linker.compiler_args()
+        if isinstance(target, build.Executable) and 'emscripten' in {comp.id for comp in target.compilers.values()}:
+            commands += ['-sMAIN_MODULE=2']
         # First, the trivial ones that are impossible to override.
         #
         # Add linker args for linking this target derived from 'base' build

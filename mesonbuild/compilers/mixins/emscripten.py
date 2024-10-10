@@ -48,12 +48,15 @@ class EmscriptenMixin(Compiler):
         return os.path.join(dirname, 'output.' + suffix)
 
     def thread_link_flags(self) -> T.List[str]:
-        args = ['-pthread']
+        args = []
         count = self.environment.coredata.optstore.get_value_for(OptionKey(f'{self.language}_thread_count', machine=self.for_machine))
         assert isinstance(count, int)
         if count:
             args.append(f'-sPTHREAD_POOL_SIZE={count}')
         return args
+
+    def thread_flags(self) -> T.List[str]:
+        return []
 
     def get_options(self) -> options.MutableKeyedOptionDictType:
         opts = super().get_options()
