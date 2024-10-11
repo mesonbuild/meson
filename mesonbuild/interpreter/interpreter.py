@@ -1043,9 +1043,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
+        if self.environment.cargo is None:
+            self.environment.cargo = cargo.Interpreter(self.environment)
         with mlog.nested(subp_name):
-            ast, options = cargo.interpret(subp_name, subdir, self.environment)
-            self.coredata.update_project_options(options, subp_name)
+            ast = self.environment.cargo.interpret(subdir)
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
                 # FIXME: Are there other files used by cargo interpreter?
@@ -1291,15 +1292,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.subproject_dir = self.subproject_dir
 
         # Load wrap files from this (sub)project.
-        wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
-        if not self.is_subproject() or wrap_mode != WrapMode.nopromote:
-            subdir = os.path.join(self.subdir, spdirname)
-            r = wrap.Resolver(self.environment.get_source_dir(), subdir, self.subproject, wrap_mode)
-            if self.is_subproject():
-                assert self.environment.wrap_resolver is not None, 'for mypy'
-                self.environment.wrap_resolver.merge_wraps(r)
-            else:
-                self.environment.wrap_resolver = r
+        subprojects_dir = os.path.join(self.subdir, spdirname)
+        if not self.is_subproject():
+            wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
+            self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
+        else:
+            assert self.environment.wrap_resolver is not None, 'for mypy'
+            self.environment.wrap_resolver.load_and_merge(subprojects_dir, self.subproject)
 
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))

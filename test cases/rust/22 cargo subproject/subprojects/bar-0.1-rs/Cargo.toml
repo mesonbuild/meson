@@ -8,6 +8,10 @@ version = "0.1"
 optional = true
 version = "1.0"
 
+[dependencies.common]
+version = "0.0.1"
+features = ["f2"]
+
 [features]
 default = ["f2"]
 f1 = []
