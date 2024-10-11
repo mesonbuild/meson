@@ -1563,12 +1563,17 @@ def detect_tools(report: bool = True) -> None:
         print('{0:<{2}}: {1}'.format(tool.tool, get_version(tool), max_width))
     print()
 
-tmpdir = list(Path('.').glob('test cases/**/*install functions and follow symlinks'))
-assert len(tmpdir) == 1
-symlink_test_dir = tmpdir[0]
-symlink_file1 = symlink_test_dir / 'foo/link1'
-symlink_file2 = symlink_test_dir / 'foo/link2.h'
-del tmpdir
+tmpdir1 = list(Path('.').glob('test cases/**/*install functions and follow symlinks'))
+tmpdir2 = list(Path('.').glob('test cases/frameworks/*boost symlinks'))
+assert len(tmpdir1) == 1
+assert len(tmpdir2) == 1
+symlink_test_dir1 = tmpdir1[0]
+symlink_test_dir2 = tmpdir2[0] / 'boost/include'
+symlink_file1 = symlink_test_dir1 / 'foo/link1'
+symlink_file2 = symlink_test_dir1 / 'foo/link2.h'
+symlink_file3 = symlink_test_dir2 / 'boost'
+del tmpdir1
+del tmpdir2
 
 def clear_transitive_files() -> None:
     a = Path('test cases/common')
@@ -1585,11 +1590,18 @@ def clear_transitive_files() -> None:
         symlink_file2.unlink()
     except FileNotFoundError:
         pass
+    try:
+        symlink_file3.unlink()
+        symlink_test_dir2.rmdir()
+    except FileNotFoundError:
+        pass
 
 def setup_symlinks() -> None:
     try:
         symlink_file1.symlink_to('file1')
         symlink_file2.symlink_to('file1')
+        symlink_test_dir2.mkdir(parents=True, exist_ok=True)
+        symlink_file3.symlink_to('../Cellar/boost/0.3.0/include/boost')
     except OSError:
         print('symlinks are not supported on this system')
 

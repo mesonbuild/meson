@@ -65,9 +65,12 @@ def check_format() -> None:
                 check_file(root / file)
 
 def check_symlinks():
+    # Test data must NOT contain symlinks. setup.py
+    # butchers them. If you need symlinks, they need
+    # to be created on the fly.
     for f in Path('test cases').glob('**/*'):
         if f.is_symlink():
-            if 'boost symlinks' in str(f):
+            if 'boost symlinks/boost/lib' in str(f):
                 continue
             raise SystemExit(f'Test data dir contains symlink: {f}.')
 
