@@ -241,7 +241,7 @@ class Build:
         self.project_name = 'name of master project'
         self.project_version: T.Optional[str] = None
         self.environment = environment
-        self.projects = {}
+        self.projects: T.Dict[SubProject, str] = {}  # Maps SubProject (an ID) to the pretty subproject name
         self.targets: 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]' = OrderedDict()
         self.targetnames: T.Set[T.Tuple[str, str]] = set() # Set of executable names and their subdir
         self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
@@ -256,7 +256,8 @@ class Build:
         self.data: T.List[Data] = []
         self.symlinks: T.List[SymlinkData] = []
         self.static_linker: PerMachine[StaticLinker] = PerMachine(None, None)
-        self.subprojects = {}
+        # TODO: Shouldn't this be `dict[SubProject, str]`? That would mean some changes to the interpreter
+        self.subprojects: T.Dict[str, str] = {}  # Maps pretty subproject name to it's version
         self.subproject_dir = ''
         self.install_scripts: T.List['ExecutableSerialisation'] = []
         self.postconf_scripts: T.List['ExecutableSerialisation'] = []
@@ -277,15 +278,15 @@ class Build:
         self.devenv: T.List[EnvironmentVariables] = []
         self.modules: T.List[str] = []
 
-    def get_build_targets(self):
-        build_targets = OrderedDict()
+    def get_build_targets(self) -> OrderedDict[str, BuildTarget]:
+        build_targets: OrderedDict[str, BuildTarget] = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, BuildTarget):
                 build_targets[name] = t
         return build_targets
 
-    def get_custom_targets(self):
-        custom_targets = OrderedDict()
+    def get_custom_targets(self) -> OrderedDict[str, CustomTarget]:
+        custom_targets: T.OrderedDict[str, CustomTarget] = OrderedDict()
         for name, t in self.targets.items():
             if isinstance(t, CustomTarget):
                 custom_targets[name] = t
@@ -308,10 +309,10 @@ class Build:
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
             self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 
-    def get_project(self):
-        return self.projects['']
+    def get_project(self) -> str:
+        return self.projects[T.cast('SubProject', '')]
 
-    def get_subproject_dir(self):
+    def get_subproject_dir(self) -> str:
         return self.subproject_dir
 
     def get_targets(self) -> 'T.OrderedDict[str, T.Union[CustomTarget, BuildTarget]]':
@@ -1815,7 +1816,7 @@ class Generator(HoldableObject):
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
         return bases
 
-    def get_dep_outname(self, inname: str) -> T.List[str]:
+    def get_dep_outname(self, inname: str) -> str:
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.basename(inname)
@@ -3090,7 +3091,7 @@ class Data(HoldableObject):
     subproject: str
     rename: T.List[str] = None
     install_tag: T.Optional[str] = None
-    data_type: str = None
+    data_type: T.Optional[str] = None
     follow_symlinks: T.Optional[bool] = None
 
     def __post_init__(self) -> None:
@@ -3118,12 +3119,16 @@ class TestSetup:
     env: EnvironmentVariables
     exclude_suites: T.List[str]
 
-def get_sources_string_names(sources, backend):
+
+def get_sources_string_names(sources: T.Sequence[T.Union[str, BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList, File, ExtractedObjects]],
+                             backend: Backend) -> T.List[str]:
     '''
     For the specified list of @sources which can be strings, Files, or targets,
     get all the output basenames.
     '''
-    names = []
+    names: T.List[str] = []
+    if isinstance(sources, str):
+        sources = [sources]
     for s in sources:
         if isinstance(s, str):
             names.append(s)
