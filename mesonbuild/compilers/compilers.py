@@ -40,6 +40,7 @@ if T.TYPE_CHECKING:
     _T = T.TypeVar('_T')
     UserOptionType = T.TypeVar('UserOptionType', bound=options.UserOption)
 
+
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in detect.py."""
@@ -184,6 +185,22 @@ class CompileCheckMode(enum.Enum):
     PREPROCESS = 'preprocess'
     COMPILE = 'compile'
     LINK = 'link'
+
+
+@dataclass
+class CompileCheckResult:
+
+    """The result of a Compiler check.
+
+    :param result: Whether the check was successful or not
+    :param cached: Whether the result was retrieved from a cache, defaults to False
+    """
+
+    result: bool
+    cached: bool = False
+
+    def __bool__(self) -> bool:
+        return self.result
 
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
@@ -527,12 +544,33 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def has_members(self, typename: str, membernames: T.List[str],
                     prefix: str, env: 'Environment', *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                    dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                    dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
+        """Test if a given type (struct, class, etc) has specific members.
+
+        :param typename: The type whose members will be checked
+        :param membernames: The members to checkf or
+        :param prefix: A preamble to add to the top of the generated test code
+        :param env: The Meson Environment
+        :param extra_args: Any extra arguments to pass to the check, defaults to None
+        :param dependencies: A list of Meson Dependency objects, defaults to None
+        :raises EnvironmentException: If the given compiler does not implement this check
+        :return: a :class:`CompileCheckResult`
+        """
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
     def has_type(self, typename: str, prefix: str, env: 'Environment',
                  extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]], *,
-                 dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                 dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
+        """Test if a given type exists.
+
+        :param typename: The type whose members will be checked
+        :param prefix: A preamble to add to the top of the generated test code
+        :param env: The Meson Environment
+        :param extra_args: Any extra arguments to pass to the check, defaults to None
+        :param dependencies: A list of Meson Dependency objects, defaults to None
+        :raises EnvironmentException: If the given compiler does not implement this check
+        :return: a :class:`CompileCheckResult`
+        """
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
     def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
@@ -601,19 +639,26 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
-        """Check that header is usable.
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
+        """Check that a header is actually usable.
 
-        Returns a two item tuple of bools. The first bool is whether the
-        check succeeded, the second is whether the result was cached (True)
-        or run fresh (False).
+        In contrast to :method:`has_header`, which checks that a header exists.
+        Tihs is useful for cases where a header contains an #error define.
+
+        :param hname: the name of the header to check for
+        :param prefix: A preamble to add to the top of the generated test code
+        :param env: The Meson Environment
+        :param extra_args: Any extra arguments to pass to the check, defaults to None
+        :param dependencies: A list of Meson Dependency objects, defaults to None
+        :raises EnvironmentException: If the given compiler does not implement this check
+        :return: a :class:`CompileCheckResult`
         """
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
                    extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None,
-                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+                   disable_cache: bool = False) -> CompileCheckResult:
         """Check that header is exists.
 
         This check will return true if the file exists, even if it contains:
@@ -622,18 +667,33 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # error "You thought you could use this, LOLZ!"
         ```
 
-        Use check_header if your header only works in some cases.
+        Use :method:`check_header` if your header only works in some cases.
 
-        Returns a two item tuple of bools. The first bool is whether the
-        check succeeded, the second is whether the result was cached (True)
-        or run fresh (False).
+        :param hname: the name of the header to check for
+        :param prefix: A preamble to add to the top of the generated test code
+        :param env: The Meson Environment
+        :param extra_args: Any extra arguments to pass to the check, defaults to None
+        :param dependencies: A list of Meson Dependency objects, defaults to None
+        :raises EnvironmentException: If the given compiler does not implement this check
+        :return: a :class:`CompileCheckResult`
         """
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
                           extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                          dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
+        """Test if a given header has a specific symbol defined.
+
+        :param hname: the name of the header to check in
+        :param symbol: The symbol to look for
+        :param prefix: A preamble to add to the top of the generated test code
+        :param env: The Meson Environment
+        :param extra_args: Any extra arguments to pass to the check, defaults to None
+        :param dependencies: A list of Meson Dependency objects, defaults to None
+        :raises EnvironmentException: If the given compiler does not implement this check
+        :return: a :class:`CompileCheckResult`
+        """
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
     def run(self, code: 'mesonlib.FileOrString', env: 'Environment',
@@ -702,12 +762,16 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         """See if a function exists.
 
-        Returns a two item tuple of bools. The first bool is whether the
-        check succeeded, the second is whether the result was cached (True)
-        or run fresh (False).
+        :param funcname: the name of the function to check for
+        :param prefix: A preamble to add to the top of the generated test code
+        :param env: The Meson Environment
+        :param extra_args: Any extra arguments to pass to the check, defaults to None
+        :param dependencies: A list of Meson Dependency objects, defaults to None
+        :raises EnvironmentException: If the given compiler does not implement this check
+        :return: a :class:`CompileCheckResult`
         """
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
@@ -737,23 +801,25 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_program_dirs(self, env: 'Environment') -> T.List[str]:
         return []
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> CompileCheckResult:
         """Checks if the compiler has all of the arguments.
 
-        :returns:
-            A tuple of (bool, bool). The first value is whether the check
-            succeeded, and the second is whether it was retrieved from a cache
+        :param args: The arguments to test
+        :param env: The Meson Environment
+        :raises EnvironmentException: If the given compiler does not implement this check
+        :return: a :class:`CompileCheckResult`
         """
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> CompileCheckResult:
         """Checks if the linker has all of the arguments.
 
-        :returns:
-            A tuple of (bool, bool). The first value is whether the check
-            succeeded, and the second is whether it was retrieved from a cache
+        :param args: The arguments to test
+        :param env: The Meson Environment
+        :raises EnvironmentException: If the given compiler does not implement this check
+        :return: a :class:`CompileCheckResult`
         """
         return self.linker.has_multi_arguments(args, env)
 
@@ -947,7 +1013,16 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # or does not target Windows
         return self.linker.get_win_subsystem_args(value)
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_func_attribute(self, name: str, env: 'Environment') -> CompileCheckResult:
+        """Test if the compiler supports various attribute modifiers
+
+        These are usually in the form `__attribute__(...)` or `__declspec(...)`
+
+        :param name: The name of the attribute to test for
+        :param env: The Meson Environment
+        :raises EnvironmentException: If the given compiler doesn't implement this check
+        :return: A :class:`CompileCheckResult`
+        """
         raise EnvironmentException(
             f'Language {self.get_display_language()} does not support function attributes.')
 
@@ -1294,21 +1369,34 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                  extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: CompileCheckMode = CompileCheckMode.COMPILE,
-                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
+                 disable_cache: bool = False) -> CompileCheckResult:
         """Run a compilation or link test to see if code can be compiled/linked.
 
-        :returns:
-            A tuple of (bool, bool). The first value is whether the check
-            succeeded, and the second is whether it was retrieved from a cache
+        :param code: A string or File of test code
+        :param env: The Meson Environment
+        :param extra_args: Extra arguments to pass to the compiler, defaults to None
+        :param dependencies: A list of extra Dependencies, defaults to None
+        :param mode: How to test, either Compile, Link, or Preprocess; defaults to CompileCheckMode.COMPILE
+        :param disable_cache: If true run the check even if we've already run it before, defaults to False
+        :return: A :class:`CompileCheckResult`
         """
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
-            return p.returncode == 0, p.cached
+            return CompileCheckResult(p.returncode == 0, p.cached)
 
     def links(self, code: 'mesonlib.FileOrString', env: 'Environment', *,
               compiler: T.Optional['Compiler'] = None,
               extra_args: T.Union[None, T.List[str], CompilerArgs, T.Callable[[CompileCheckMode], T.List[str]]] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
+              disable_cache: bool = False) -> CompileCheckResult:
+        """Run a compilation or link test to see if code can be compiled/linked.
+
+        :param code: A string or File of test code
+        :param env: The Meson Environment
+        :param extra_args: Extra arguments to pass to the compiler, defaults to None
+        :param dependencies: A list of extra Dependencies, defaults to None
+        :param disable_cache: If true run the check even if we've already run it before, defaults to False
+        :return: A :class:`CompileCheckResult`
+        """
         if compiler:
             with compiler._build_wrapper(code, env, dependencies=dependencies, want_output=True) as r:
                 objfile = mesonlib.File.from_absolute_file(r.output_name)
