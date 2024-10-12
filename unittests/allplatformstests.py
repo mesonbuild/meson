@@ -3021,6 +3021,8 @@ class AllPlatformTests(BasePlatformTests):
         expected = {
             'descriptive_name': 'proj',
             'version': 'undefined',
+            'license': ['unknown'],
+            'license_files': [],
             'subproject_dir': 'subprojects',
             'subprojects': [
                 {
@@ -3415,7 +3417,14 @@ class AllPlatformTests(BasePlatformTests):
         self.assertListEqual(dependencies_to_find, [])
 
         # Check projectinfo
-        self.assertDictEqual(res['projectinfo'], {'version': '1.2.3', 'descriptive_name': 'introspection', 'subproject_dir': 'subprojects', 'subprojects': []})
+        self.assertDictEqual(res['projectinfo'], {
+            'version': '1.2.3',
+            'license': ['unknown'],
+            'license_files': [],
+            'descriptive_name': 'introspection',
+            'subproject_dir': 'subprojects',
+            'subprojects': []
+        })
 
         # Check targets
         targets_to_find = {

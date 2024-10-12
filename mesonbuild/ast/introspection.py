@@ -93,14 +93,30 @@ class IntrospectionInterpreter(AstInterpreter):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
 
+        def _str_list(node: T.Any) -> T.Optional[T.List[str]]:
+            if isinstance(node, ArrayNode):
+                r = []
+                for v in node.args.arguments:
+                    if not isinstance(v, StringNode):
+                        return None
+                    r.append(v.value)
+                return r
+            if isinstance(node, StringNode):
+                return [node.value]
+            return None
+
         proj_name = args[0]
         proj_vers = kwargs.get('version', 'undefined')
-        proj_langs = self.flatten_args(args[1:])
         if isinstance(proj_vers, ElementaryNode):
             proj_vers = proj_vers.value
         if not isinstance(proj_vers, str):
             proj_vers = 'undefined'
-        self.project_data = {'descriptive_name': proj_name, 'version': proj_vers}
+        proj_langs = self.flatten_args(args[1:])
+        # Match the value returned by ``meson.project_license()`` when
+        # no ``license`` argument is specified in the ``project()`` call.
+        proj_license = _str_list(kwargs.get('license', None)) or ['unknown']
+        proj_license_files = _str_list(kwargs.get('license_files', None)) or []
+        self.project_data = {'descriptive_name': proj_name, 'version': proj_vers, 'license': proj_license, 'license_files': proj_license_files}
 
         optfile = os.path.join(self.source_root, self.subdir, 'meson.options')
         if not os.path.exists(optfile):
