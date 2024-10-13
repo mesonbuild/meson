@@ -182,6 +182,7 @@ Native names as returned by the `.kernel()` method.
 | freebsd | |
 | openbsd | |
 | netbsd  | |
+| gnu     | GNU Hurd |
 | nt      | |
 | xnu                 | Kernel of various Apple OSes    |
 | illumos             | Kernel derived from OpenSolaris by community efforts |

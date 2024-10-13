@@ -156,6 +156,7 @@ deb_os_map = {
 # map from DEB_HOST_ARCH_OS to Meson machine.kernel()
 deb_kernel_map = {
     'kfreebsd': 'freebsd',
+    'hurd': 'gnu',
 }
 
 def replace_special_cases(special_cases: T.Mapping[str, str], name: str) -> str:
