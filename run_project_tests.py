@@ -1563,17 +1563,23 @@ def detect_tools(report: bool = True) -> None:
         print('{0:<{2}}: {1}'.format(tool.tool, get_version(tool), max_width))
     print()
 
-tmpdir1 = list(Path('.').glob('test cases/**/*install functions and follow symlinks'))
-tmpdir2 = list(Path('.').glob('test cases/frameworks/*boost symlinks'))
-assert len(tmpdir1) == 1
-assert len(tmpdir2) == 1
-symlink_test_dir1 = tmpdir1[0]
-symlink_test_dir2 = tmpdir2[0] / 'boost/include'
-symlink_file1 = symlink_test_dir1 / 'foo/link1'
-symlink_file2 = symlink_test_dir1 / 'foo/link2.h'
-symlink_file3 = symlink_test_dir2 / 'boost'
-del tmpdir1
-del tmpdir2
+symlink_test_dir1 = None
+symlink_test_dir2 = None
+symlink_file1 = None
+symlink_file2 = None
+symlink_file3 = None
+
+def scan_test_data_symlinks() -> None:
+    global symlink_test_dir1, symlink_test_dir2, symlink_file1, symlink_file2, symlink_file3
+    tmpdir1 = list(Path('.').glob('test cases/**/*install functions and follow symlinks'))
+    tmpdir2 = list(Path('.').glob('test cases/frameworks/*boost symlinks'))
+    assert len(tmpdir1) == 1
+    assert len(tmpdir2) == 1
+    symlink_test_dir1 = tmpdir1[0]
+    symlink_test_dir2 = tmpdir2[0] / 'boost/include'
+    symlink_file1 = symlink_test_dir1 / 'foo/link1'
+    symlink_file2 = symlink_test_dir1 / 'foo/link2.h'
+    symlink_file3 = symlink_test_dir2 / 'boost'
 
 def clear_transitive_files() -> None:
     a = Path('test cases/common')
@@ -1583,16 +1589,19 @@ def clear_transitive_files() -> None:
         else:
             mesonlib.windows_proof_rm(str(d))
     try:
-        symlink_file1.unlink()
+        if symlink_file1 is not None:
+            symlink_file1.unlink()
     except FileNotFoundError:
         pass
     try:
-        symlink_file2.unlink()
+        if symlink_file2 is not None:
+            symlink_file2.unlink()
     except FileNotFoundError:
         pass
     try:
-        symlink_file3.unlink()
-        symlink_test_dir2.rmdir()
+        if symlink_file3 is not None:
+            symlink_file3.unlink()
+            symlink_test_dir2.rmdir()
     except FileNotFoundError:
         pass
 
@@ -1610,7 +1619,6 @@ if __name__ == '__main__':
         raise SystemExit('Running under CI but $MESON_CI_JOBNAME is not set (set to "thirdparty" if you are running outside of the github org)')
 
     setup_vsenv()
-
     try:
         # This fails in some CI environments for unknown reasons.
         num_workers = multiprocessing.cpu_count()
@@ -1649,8 +1657,11 @@ if __name__ == '__main__':
     if options.native_file:
         options.extra_args += ['--native-file', options.native_file]
 
+    if not mesonlib.is_windows():
+        scan_test_data_symlinks()
     clear_transitive_files()
-    setup_symlinks()
+    if not mesonlib.is_windows():
+        setup_symlinks()
     mesonlib.set_meson_command(get_meson_script())
 
     print('Meson build system', meson_version, 'Project Tests')
