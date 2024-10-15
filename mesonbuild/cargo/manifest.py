@@ -173,7 +173,7 @@ class Dependency:
     """Representation of a Cargo Dependency Entry."""
 
     package: str
-    version: T.List[str]
+    version: T.List[str] = dataclasses.field(default_factory=list)
     registry: T.Optional[str] = None
     git: T.Optional[str] = None
     branch: T.Optional[str] = None
@@ -210,6 +210,13 @@ class Dependency:
         """Create a dependency from a raw cargo dictionary or string"""
         raw_dep = _depv_to_dep(raw_depv)
         return cls.from_raw_dict(name, raw_dep)
+
+    def update_version(self, v: str) -> None:
+        self.version = version.convert(v)
+        try:
+            delattr(self, 'api')
+        except AttributeError:
+            pass
 
 
 @dataclasses.dataclass

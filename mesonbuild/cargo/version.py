@@ -27,6 +27,8 @@ def convert(cargo_ver: str) -> T.List[str]:
     """
     # Cleanup, just for safety
     cargo_ver = cargo_ver.strip()
+    if not cargo_ver:
+        return []
     cargo_vers = [c.strip() for c in cargo_ver.split(',')]
 
     out: T.List[str] = []

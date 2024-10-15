@@ -15,6 +15,7 @@ import os
 import collections
 import urllib.parse
 import itertools
+import re
 import typing as T
 
 from . import builder, version, cfg
@@ -155,6 +156,16 @@ class Interpreter:
                 return
             raise MesonException(f'Dependency {depname} not defined in {pkg.manifest.package.name} manifest')
         pkg.required_deps.add(depname)
+        if not dep.version:
+            # The manifest did not specify a version, but we probably have one
+            # from Cargo.lock. See if any of our subprojects matches.
+            for subp_name in self.environment.wrap_resolver.wraps.keys():
+                m = re.fullmatch(rf'{dep.package}-([\d\.]+)-rs', subp_name)
+                if m is not None:
+                    dep.update_version(m[1])
+                    break
+            else:
+                raise MesonException(f'Cannot determine version of cargo package {depname}')
         dep_pkg, _ = self._fetch_package(dep.package, dep.api)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
