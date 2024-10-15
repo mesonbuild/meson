@@ -6,6 +6,7 @@ from __future__ import annotations
 """Abstractions for the LLVM/Clang compiler family."""
 
 import os
+import platform
 import shutil
 import typing as T
 
@@ -82,7 +83,10 @@ class ClangCompiler(GnuLikeCompiler):
         # them. `strlcat` specifically with can trigger this.
         myargs: T.List[str] = ['-Werror=implicit-function-declaration']
         if mode is CompileCheckMode.COMPILE:
-            myargs.extend(['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'])
+            compile_check_extra_args = ['-Werror=unknown-warning-option']
+            if platform.system() != 'Linux':
+                compile_check_extra_args.append('-Werror=unused-command-line-argument')
+            myargs.extend(compile_check_extra_args)
             if mesonlib.version_compare(self.version, '>=3.6.0'):
                 myargs.append('-Werror=ignored-optimization-argument')
         return super().get_compiler_check_args(mode) + myargs
