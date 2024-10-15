@@ -176,6 +176,9 @@ class Dependency:
 
     def __post_init__(self, name: str) -> None:
         self.package = self.package or name
+        self._update_api()
+
+    def _update_api(self) -> None:
         # Extract wanted API version from version constraints.
         api = set()
         for v in self.version:
@@ -197,6 +200,10 @@ class Dependency:
             return cls(name, version.convert(raw))
         fixed = _raw_mapping_to_attributes(raw, cls, f'Dependency entry {name}', convert_version=True)
         return cls(name, **fixed)
+
+    def update_version(self, v: str) -> None:
+        self.version = version.convert(v)
+        self._update_api()
 
 
 @dataclasses.dataclass
