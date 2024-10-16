@@ -157,6 +157,12 @@ class ModuleState:
     def add_language(self, lang: str, for_machine: MachineChoice) -> None:
         self._interpreter.add_languages([lang], True, for_machine)
 
+    def add_target(self, args: T.Tuple[str, SourcesVarargsType],
+                   kwargs: T.Union[kwtypes.Executable, kwtypes.StaticLibrary, kwtypes.SharedLibrary, kwtypes.SharedModule, kwtypes.Jar],
+                   targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]]
+                   ) -> T.Union[build.Executable, build.StaticLibary, build.SharedModule, build.SharedLibrary, build.Jar]:
+        return self._interpreter.build_target(self.current_node, args, kwargs, targetclass)
+
 class ModuleObject(HoldableObject):
     """Base class for all objects returned by modules
     """
