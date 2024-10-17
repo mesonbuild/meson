@@ -354,27 +354,6 @@ method = cargo
 dependency_names = foo-bar-0.1-rs
 ```
 
-Cargo features are exposed as Meson boolean options, with the `feature-` prefix.
-For example the `default` feature is named `feature-default` and can be set from
-the command line with `-Dfoo-1-rs:feature-default=false`. When a cargo subproject
-depends on another cargo subproject, it will automatically enable features it
-needs using the `dependency('foo-1-rs', default_options: ...)` mechanism. However,
-unlike Cargo, the set of enabled features is not managed globally. Let's assume
-the main project depends on `foo-1-rs` and `bar-1-rs`, and they both depend on
-`common-1-rs`. The main project will first look up `foo-1-rs` which itself will
-configure `common-rs` with a set of features. Later, when `bar-1-rs` does a lookup
-for `common-1-rs` it has already been configured and the set of features cannot be
-changed. If `bar-1-rs` wants extra features from `common-1-rs`, Meson will error out.
-It is currently the responsibility of the main project to resolve those
-issues by enabling extra features on each subproject:
-```meson
-project(...,
-  default_options: {
-    'common-1-rs:feature-something': true,
-  },
-)
-```
-
 In addition, if the file `meson/meson.build` exists, Meson will call `subdir('meson')`
 where the project can add manual logic that would usually be part of `build.rs`.
 Some naming conventions need to be respected:
