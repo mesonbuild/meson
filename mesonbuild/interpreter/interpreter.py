@@ -1640,6 +1640,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         if name in self.build.find_overrides:
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
         self.build.find_overrides[name] = exe
+        if name == 'pkg-config' and isinstance(exe, ExternalProgram):
+            from ..dependencies.pkgconfig import PkgConfigInterface
+            PkgConfigInterface.set_program_override(exe, MachineChoice.HOST)
 
     def notfound_program(self, args: T.List[mesonlib.FileOrString]) -> ExternalProgram:
         return NonExistingExternalProgram(' '.join(

@@ -551,9 +551,14 @@ def validate_output(test: TestDef, stdo: str, stde: str) -> str:
 def clear_internal_caches() -> None:
     import mesonbuild.interpreterbase
     from mesonbuild.dependencies.cmake import CMakeDependency
+    from mesonbuild.dependencies.pkgconfig import PkgConfigInterface
     from mesonbuild.mesonlib import PerMachine
     mesonbuild.interpreterbase.FeatureNew.feature_registry = {}
     CMakeDependency.class_cmakeinfo = PerMachine(None, None)
+    PkgConfigInterface.class_impl = PerMachine(False, False)
+    PkgConfigInterface.class_cli_impl = PerMachine(False, False)
+    PkgConfigInterface.pkg_bin_per_machine = PerMachine(None, None)
+
 
 def run_test_inprocess(testdir: str) -> T.Tuple[int, str, str, str]:
     old_stdout = sys.stdout
