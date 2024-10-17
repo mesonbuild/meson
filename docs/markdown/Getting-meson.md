@@ -60,7 +60,7 @@ module](Python-module.md) and do not have any external dependencies
 will continue to work as expected.
 
 Please note that this is a new feature, so bug reports are expected
-and welcome!
+and reports are welcome!
 
 ## Dependencies
 
