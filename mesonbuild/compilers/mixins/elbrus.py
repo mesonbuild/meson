@@ -15,6 +15,7 @@ from .gnu import GnuLikeCompiler
 from .gnu import gnu_optimization_args
 from ...mesonlib import Popen_safe
 from ...options import OptionKey
+from ...build import BuildTarget
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -76,8 +77,8 @@ class ElbrusCompiler(GnuLikeCompiler):
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return gnu_optimization_args[optimization_level]
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
-        return ['-r', '-nodefaultlibs', '-nostartfiles', '-o', prelink_name] + obj_list
+    def get_prelink_args(self, target: BuildTarget, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        return [prelink_name], ['-r', '-nodefaultlibs', '-nostartfiles', '-o', prelink_name] + obj_list
 
     def get_pch_suffix(self) -> str:
         # Actually it's not supported for now, but probably will be supported in future

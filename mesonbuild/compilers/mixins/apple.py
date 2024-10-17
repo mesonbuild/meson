@@ -9,6 +9,7 @@ import typing as T
 from ...mesonlib import MesonException
 
 if T.TYPE_CHECKING:
+    from ...build import BuildTarget
     from ..._typing import ImmutableListProtocol
     from ...environment import Environment
     from ..compilers import Compiler
@@ -56,6 +57,6 @@ class AppleCompilerMixin(Compiler):
             raise MesonException("Couldn't find libomp")
         return self.__BASE_OMP_FLAGS + link
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
+    def get_prelink_args(self, target: BuildTarget, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         # The objects are prelinked through the compiler, which injects -lSystem
-        return ['-nostdlib', '-r', '-o', prelink_name] + obj_list
+        return [prelink_name], ['-nostdlib', '-r', '-o', prelink_name] + obj_list
