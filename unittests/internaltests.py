@@ -1933,11 +1933,7 @@ class InternalTests(unittest.TestCase):
                     },
                     system='gnu',
                     subsystem='gnu',
-                    # TODO: Currently hurd; should match whatever happens
-                    # during native builds, but at the moment native builds
-                    # fail when kernel() is called.
-                    # https://github.com/mesonbuild/meson/issues/13740
-                    kernel='TODO',
+                    kernel='gnu',
                     cpu='i686',
                     cpu_family='x86',
                     endian='little',
