@@ -889,17 +889,17 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         self.utime(os.path.join(testdir, 'meson.build'))
         o = self._run(self.mtest_command + ['--list'])
-        self.assertIn('Regenerating build files.', o)
+        self.assertIn('Regenerating build files', o)
         self.assertIn('test_features / xfail', o)
         o = self._run(self.mtest_command + ['--list'])
-        self.assertNotIn('Regenerating build files.', o)
+        self.assertNotIn('Regenerating build files', o)
         # no real targets should have been built
         tester = os.path.join(self.builddir, 'tester' + exe_suffix)
         self.assertPathDoesNotExist(tester)
         # check that we don't reconfigure if --no-rebuild is passed
         self.utime(os.path.join(testdir, 'meson.build'))
         o = self._run(self.mtest_command + ['--list', '--no-rebuild'])
-        self.assertNotIn('Regenerating build files.', o)
+        self.assertNotIn('Regenerating build files', o)
 
     def test_unexisting_test_name(self):
         testdir = os.path.join(self.unit_test_dir, '4 suite selection')

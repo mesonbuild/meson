@@ -1282,38 +1282,38 @@ class NinjaBackend(backends.Backend):
     def generate_coverage_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str], llvm_cov_exe: T.Optional[str]) -> None:
         e = self.create_phony_target('coverage', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, [], gcovr_exe, llvm_cov_exe)
-        e.add_item('description', 'Generates coverage reports')
+        e.add_item('description', 'Generating coverage reports')
         self.add_build(e)
         self.generate_coverage_legacy_rules(gcovr_exe, gcovr_version, llvm_cov_exe)
 
     def generate_coverage_legacy_rules(self, gcovr_exe: T.Optional[str], gcovr_version: T.Optional[str], llvm_cov_exe: T.Optional[str]) -> None:
         e = self.create_phony_target('coverage-html', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--html'], gcovr_exe, llvm_cov_exe)
-        e.add_item('description', 'Generates HTML coverage report')
+        e.add_item('description', 'Generating HTML coverage report')
         self.add_build(e)
 
         if gcovr_exe:
             e = self.create_phony_target('coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
             self.generate_coverage_command(e, ['--xml'], gcovr_exe, llvm_cov_exe)
-            e.add_item('description', 'Generates XML coverage report')
+            e.add_item('description', 'Generating XML coverage report')
             self.add_build(e)
 
             e = self.create_phony_target('coverage-text', 'CUSTOM_COMMAND', 'PHONY')
             self.generate_coverage_command(e, ['--text'], gcovr_exe, llvm_cov_exe)
-            e.add_item('description', 'Generates text coverage report')
+            e.add_item('description', 'Generating text coverage report')
             self.add_build(e)
 
             if mesonlib.version_compare(gcovr_version, '>=4.2'):
                 e = self.create_phony_target('coverage-sonarqube', 'CUSTOM_COMMAND', 'PHONY')
                 self.generate_coverage_command(e, ['--sonarqube'], gcovr_exe, llvm_cov_exe)
-                e.add_item('description', 'Generates Sonarqube XML coverage report')
+                e.add_item('description', 'Generating Sonarqube XML coverage report')
                 self.add_build(e)
 
     def generate_install(self) -> None:
         self.create_install_data_files()
         elem = self.create_phony_target('install', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_dep('all')
-        elem.add_item('DESC', 'Installing files.')
+        elem.add_item('DESC', 'Installing files')
         elem.add_item('COMMAND', self.environment.get_build_command() + ['install', '--no-rebuild'])
         elem.add_item('pool', 'console')
         self.add_build(elem)
@@ -1327,7 +1327,7 @@ class NinjaBackend(backends.Backend):
             cmd += ['--print-errorlogs']
         elem = self.create_phony_target('test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
-        elem.add_item('DESC', 'Running all tests.')
+        elem.add_item('DESC', 'Running all tests')
         elem.add_item('pool', 'console')
         self.add_build(elem)
 
@@ -1337,7 +1337,7 @@ class NinjaBackend(backends.Backend):
             'benchmarklog', '--num-processes=1', '--no-rebuild']
         elem = self.create_phony_target('benchmark', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
-        elem.add_item('DESC', 'Running benchmark suite.')
+        elem.add_item('DESC', 'Running benchmark suite')
         elem.add_item('pool', 'console')
         self.add_build(elem)
 
@@ -1372,7 +1372,7 @@ class NinjaBackend(backends.Backend):
              '.']
         self.add_rule(NinjaRule('REGENERATE_BUILD',
                                 c, [],
-                                'Regenerating build files.',
+                                'Regenerating build files',
                                 extra='generator = 1'))
 
     def add_rule_comment(self, comment: NinjaComment) -> None:
@@ -2559,7 +2559,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         command = self.environment.get_build_command() + \
             ['--internal', 'depscan']
         args = ['$picklefile', '$out', '$in']
-        description = 'Module scanner.'
+        description = 'Scanning modules'
         rule = NinjaRule(rulename, command, args, description)
         self.add_rule(rule)
 
@@ -3411,7 +3411,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)
-        elem.add_item('description', f'Prelinking {prelink_name}.')
+        elem.add_item('description', f'Prelinking {prelink_name}')
         self.add_build(elem)
         return [prelink_name]
 
