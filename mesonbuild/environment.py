@@ -476,6 +476,7 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
                                         'darwin': 'xnu',
                                         'dragonfly': 'dragonfly',
                                         'haiku': 'haiku',
+                                        'gnu': 'gnu',
                                         }
 
 def detect_kernel(system: str) -> T.Optional[str]:
