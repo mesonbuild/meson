@@ -241,6 +241,7 @@ permitted_dependency_kwargs = {
     'default_options',
     'fallback',
     'include_type',
+    'interpreter',
     'language',
     'main',
     'method',
