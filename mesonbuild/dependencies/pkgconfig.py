@@ -260,7 +260,7 @@ class PkgConfigCLI(PkgConfigInterface):
         if uninstalled:
             uninstalled_path = Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix()
             if uninstalled_path not in extra_paths:
-                extra_paths.append(uninstalled_path)
+                extra_paths.insert(0, uninstalled_path)
         env.set('PKG_CONFIG_PATH', extra_paths)
         sysroot = self.env.properties[self.for_machine].get_sys_root()
         if sysroot:
