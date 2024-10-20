@@ -126,7 +126,7 @@ valid tools are `moc`, `uic`, `rcc` and `lrelease`.
 ## Simple tool to test build reproducibility
 
 Meson now ships with a command for testing whether your project can be
-[built reprodicibly](https://reproducible-builds.org/). It can be used
+[built reproducibly](https://reproducible-builds.org/). It can be used
 by running a command like the following in the source root of your
 project:
 
