@@ -116,6 +116,10 @@ class NapiModule(ExtensionModule):
         self.source_root: Path = Path(interpreter.environment.get_source_dir())
         self.load_node_process()
         self.download_headers()
+        if 'cpp' in self.interpreter.environment.coredata.compilers.host:
+            self.load_node_addon_api_package()
+        if self.interpreter.environment.machines.host.system == 'emscripten':
+            self.load_emnapi_package()
         self.methods.update({
             'extension_module': self.extension_module_method,
             'test': self.test_method,
@@ -142,10 +146,12 @@ class NapiModule(ExtensionModule):
     def load_node_addon_api_package(self) -> None:
         if self.node_addon_api_package is None:
             self.node_addon_api_package = self.parse_node_json_output('require("node-addon-api")')
+            mlog.log('node-addon-api:', mlog.bold(self.node_addon_api_package['include'].strip('\"')))
 
     def load_emnapi_package(self) -> None:
         if self.emnapi_package is None:
             self.emnapi_package = self.parse_node_json_output('require("emnapi")')
+            mlog.log('emnapi:', mlog.bold(str([str(p) for p in self.emnapi_include_dirs(self.source_root)])))
 
     def construct_swig_options(self, opts: 'NodeAPIOptions') -> T.List[str]:
         if opts['swig']:
@@ -256,21 +262,18 @@ class NapiModule(ExtensionModule):
     def resolve(self, p: T.Union[str, Path]) -> Path:
         r: Path = p if isinstance(p, Path) else Path(p)
         if r.is_absolute():
-            return r
-        return self.source_root / r
+            return r.resolve()
+        return (self.source_root / r).resolve()
 
     def emnapi_sources(self, source_root: Path) -> T.List[Path]:
-        self.load_emnapi_package()
         sources: T.List[str] = self.emnapi_package['sources']
         return [self.relativize(self.resolve(d), source_root) for d in sources]
 
     def emnapi_include_dirs(self, source_root: Path) -> T.List[Path]:
-        self.load_emnapi_package()
         inc_dirs: T.List[str] = [self.emnapi_package['include_dir']]
         return [self.relativize(self.resolve(d), source_root) for d in inc_dirs]
 
     def emnapi_js_library(self, source_root: Path) -> Path:
-        self.load_emnapi_package()
         js_lib: str = self.emnapi_package['js_library']
         return Path(js_lib)
 

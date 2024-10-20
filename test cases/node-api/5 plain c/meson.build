@@ -3,9 +3,9 @@ project(
   ['c']
 )
 
-napi = import('node-api')
-
 run_command(['npm', '--prefix', meson.global_source_root(), 'install'], check: true)
+
+napi = import('node-api')
 
 addon = napi.extension_module(
   'hello_world',

@@ -3,10 +3,9 @@ project(
   ['c', 'cpp']
 )
 
-napi = import('node-api')
-
 run_command(['npm', '--prefix', meson.global_source_root(), 'install'], check: true)
 
+napi = import('node-api')
 
 thread_dep = dependency('threads')
 addon = napi.extension_module(
