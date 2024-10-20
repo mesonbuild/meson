@@ -101,4 +101,6 @@ interface][matrix_web]) or [OFTC IRC][oftc_irc].
 More information about the Meson build system can be found at the
 [project's home page](https://mesonbuild.com).
 
+You can also [Ask Meson Guru](https://gurubase.io/g/meson), it is a Meson-focused AI to answer your questions.
+
 Meson is a registered trademark of ***Jussi Pakkanen***.
