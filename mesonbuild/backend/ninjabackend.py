@@ -3555,6 +3555,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                             for t in target.link_depends])
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
+
+        # Compiler args must be included in TI C28x linker commands.
+        if linker.get_id() in {'c2000', 'c6000', 'ti'}:
+            compile_args = []
+            for for_machine in MachineChoice:
+                clist = self.environment.coredata.compilers[for_machine]
+                for langname, compiler in clist.items():
+                    if langname in {'c', 'cpp'} and compiler.get_id() in {'c2000', 'c6000', 'ti'}:
+                        compile_args += self.generate_basic_compiler_args(target, compiler)
+            elem.add_item('ARGS', compile_args)
+
         elem.add_item('LINK_ARGS', commands)
         self.create_target_linker_introspection(target, linker, commands)
         return elem
