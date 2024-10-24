@@ -1338,7 +1338,7 @@ class BuildTarget(Target):
     def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_dirs
 
-    def add_deps(self, deps):
+    def add_deps(self, deps: T.Sequence[dependencies.Dependency]):
         deps = listify(deps)
         for dep in deps:
             if dep in self.added_deps:
