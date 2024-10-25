@@ -381,10 +381,6 @@ class _PythonDependencyBase(_Base):
                         else:
                             libpath = Path(f'python{vernum}.dll')
                 else:
-                    if self.is_freethreaded:
-                        libpath = Path('libs') / f'python{vernum}t.lib'
-                    else:
-                        libpath = Path('libs') / f'python{vernum}.lib'
                     # For a debug build, pyconfig.h may force linking with
                     # pythonX_d.lib (see meson#10776). This cannot be avoided
                     # and won't work unless we also have a debug build of
@@ -408,6 +404,12 @@ class _PythonDependencyBase(_Base):
                             certainly result in a failed build. Prefer using a release build
                             type or a debug Python interpreter.
                             '''))
+
+                    suffix = f'_d' if self.major_version == 3 and buildtype == 'debug' else ''
+                    if self.is_freethreaded:
+                        libpath = Path('libs') / f'python{vernum}{suffix}t.lib'
+                    else:
+                        libpath = Path('libs') / f'python{vernum}{suffix}.lib'
             # base_prefix to allow for virtualenvs.
             lib = Path(self.variables.get('base_prefix')) / libpath
         elif self.platform.startswith('mingw'):
