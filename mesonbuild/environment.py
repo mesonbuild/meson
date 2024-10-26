@@ -1000,3 +1000,25 @@ class Environment:
 
     def has_exe_wrapper(self) -> bool:
         return self.exe_wrapper and self.exe_wrapper.found()
+
+    def get_env_for_paths(self, library_paths: T.Set[str], extra_paths: T.Set[str]) -> mesonlib.EnvironmentVariables:
+        env = mesonlib.EnvironmentVariables()
+        need_wine = not self.machines.build.is_windows() and self.machines.host.is_windows()
+        if need_wine:
+            # Executable paths should be in both PATH and WINEPATH.
+            # - Having them in PATH makes bash completion find it,
+            #   and make running "foo.exe" find it when wine-binfmt is installed.
+            # - Having them in WINEPATH makes "wine foo.exe" find it.
+            library_paths.update(extra_paths)
+        if library_paths:
+            if need_wine:
+                env.prepend('WINEPATH', list(library_paths), separator=';')
+            elif self.machines.host.is_windows() or self.machines.host.is_cygwin():
+                extra_paths.update(library_paths)
+            elif self.machines.host.is_darwin():
+                env.prepend('DYLD_LIBRARY_PATH', list(library_paths))
+            else:
+                env.prepend('LD_LIBRARY_PATH', list(library_paths))
+        if extra_paths:
+            env.prepend('PATH', list(extra_paths))
+        return env
