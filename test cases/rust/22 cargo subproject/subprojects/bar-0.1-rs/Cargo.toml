@@ -1,6 +1,7 @@
 [package]
 name = "bar"
 version = "0.1"
+flooob = "lolz"
 
 # This dependency does not exist, it is required by default but this subproject
 # is called with default-features=false.
