@@ -147,6 +147,7 @@ class Package:
     publish: bool = True
     metadata: T.Dict[str, T.Dict[str, str]] = dataclasses.field(default_factory=dict)
     default_run: T.Optional[str] = None
+    autolib: bool = True
     autobins: bool = True
     autoexamples: bool = True
     autotests: bool = True
