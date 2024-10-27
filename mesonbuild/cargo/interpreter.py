@@ -28,12 +28,21 @@ from ..wrap.wrap import PackageDefinition
 if T.TYPE_CHECKING:
     from types import ModuleType
 
-    from typing_extensions import Self
+    from typing_extensions import Protocol, Self
 
     from . import manifest
     from .. import mparser
     from ..environment import Environment
     from ..interpreterbase import SubProject
+
+    # Copied from typeshed. Blarg that they don't expose this
+    class DataclassInstance(Protocol):
+        __dataclass_fields__: T.ClassVar[dict[str, dataclasses.Field[T.Any]]]
+
+    _UnknownKeysT = T.TypeVar('_UnknownKeysT', manifest.FixedPackage,
+                              manifest.FixedDependency, manifest.FixedLibTarget,
+                              manifest.FixedBuildTarget)
+
 
 # tomllib is present in python 3.11, before that it is a pypi module called tomli,
 # we try to import tomllib, then tomli,
@@ -53,6 +62,14 @@ else:
     # have access to the `Environment` for that in this module.
     toml2json = shutil.which('toml2json')
 
+
+_EXTRA_KEYS_WARNING = (
+    "This may (unlikely) be an error in the cargo manifest, or may be a missing "
+    "implementation in Meson. If this issue can be reproduced with the latest "
+    "version of Meson, please help us by opening an issue at "
+    "https://github.com/mesonbuild/meson/issues. Please include the crate and "
+    "version that is generating this warning if possible."
+)
 
 class TomlImplementationMissing(MesonException):
     pass
@@ -118,6 +135,30 @@ def _fixup_raw_mappings(d: T.Union[manifest.BuildTarget, manifest.LibTarget, man
     return T.cast('T.Union[manifest.FixedBuildTarget, manifest.FixedLibTarget, manifest.FixedDependency]', raw)
 
 
+def _handle_unknown_keys(data: _UnknownKeysT, cls: T.Union[DataclassInstance, T.Type[DataclassInstance]],
+                         msg: str) -> _UnknownKeysT:
+    """Remove and warn on keys that are coming from cargo, but are unknown to
+    our representations.
+
+    This is intended to give users the possibility of things proceeding when a
+    new key is added to Cargo.toml that we don't yet handle, but to still warn
+    them that things might not work.
+
+    :param data: The raw data to look at
+    :param cls: The Dataclass derived type that will be created
+    :param msg: the header for the error message. Usually something like "In N structure".
+    :return: The original data structure, but with all unknown keys removed.
+    """
+    unexpected = set(data) - {x.name for x in dataclasses.fields(cls)}
+    if unexpected:
+        mlog.warning(msg, 'has unexpected keys', '"{}".'.format(', '.join(sorted(unexpected))),
+                     _EXTRA_KEYS_WARNING)
+        for k in unexpected:
+            # Mypy and Pyright can't prove that this is okay
+            del data[k]  # type: ignore[misc]
+    return data
+
+
 @dataclasses.dataclass
 class Package:
 
@@ -160,6 +201,7 @@ class Package:
     def from_raw(cls, raw: manifest.Package) -> Self:
         pkg = T.cast('manifest.FixedPackage',
                      {fixup_meson_varname(k): v for k, v in raw.items()})
+        pkg = _handle_unknown_keys(pkg, cls, f'Package entry {pkg["name"]}')
         return cls(**pkg)
 
 @dataclasses.dataclass
@@ -240,7 +282,8 @@ class Dependency:
         """Create a dependency from a raw cargo dictionary"""
         if isinstance(raw, str):
             return cls(name, version.convert(raw))
-        return cls(name, **_fixup_raw_mappings(raw))
+        fixed = _handle_unknown_keys(_fixup_raw_mappings(raw), cls, f'Dependency entry {name}')
+        return cls(name, **fixed)
 
 
 @dataclasses.dataclass
@@ -273,7 +316,8 @@ class BuildTarget:
 
     @classmethod
     def from_raw(cls, raw: manifest.BuildTarget) -> Self:
-        build = _fixup_raw_mappings(raw)
+        name = raw.get('name', '<anonymous>')
+        build = _handle_unknown_keys(_fixup_raw_mappings(raw), cls, f'Binary entry {name}')
         return cls(**build)
 
 @dataclasses.dataclass
@@ -289,13 +333,14 @@ class Library(BuildTarget):
     doc_scrape_examples: bool = True
 
     @classmethod
-    def from_raw(cls, raw: manifest.LibTarget, fallback_name: str) -> Self:
+    def from_raw(cls, raw: manifest.LibTarget, fallback_name: str) -> Self:  # type: ignore[override]
         fixed = _fixup_raw_mappings(raw)
 
         # We need to set the name field if it's not set manually, including if
         # other fields are set in the lib section
         if 'name' not in fixed:
             fixed['name'] = fallback_name
+        fixed = _handle_unknown_keys(fixed, cls, f'Library entry {fixed["name"]}')
 
         return cls(**fixed)
 
