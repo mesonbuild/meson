@@ -49,6 +49,7 @@ These are return values of the `get_id` (Compiler family) and
 | armasm    | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) | |
 | mwasmarm        | Metrowerks Assembler for Embedded ARM | |
 | mwasmeppc       | Metrowerks Assembler for Embedded PowerPC | |
+| rgbds           | Rednex GameBoy Development System | |
 
 ## Linker ids
 
@@ -80,6 +81,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | ccomp      | CompCert used as the linker driver          |
 | mwldarm    | The Metrowerks Linker with the ARM interface, used with mwccarm only |
 | mwldeppc   | The Metrowerks Linker with the PowerPC interface, used with mwcceppc only |
+| rgbds      | Rednex GameBoy Development System           |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
@@ -132,6 +134,7 @@ set in the cross file.
 | s390                | IBM zSystem s390         |
 | s390x               | IBM zSystem s390x        |
 | sh4                 | SuperH SH-4              |
+| sm83                | Sharp SM83 (GB/GBC)      |
 | sparc               | 32 bit SPARC             |
 | sparc64             | SPARC v9 processor       |
 | sw_64               | 64 bit sunway processor  |

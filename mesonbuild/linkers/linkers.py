@@ -1660,3 +1660,16 @@ class MetrowerksLinkerARM(MetrowerksLinker):
 
 class MetrowerksLinkerEmbeddedPowerPC(MetrowerksLinker):
     id = 'mwldeppc'
+
+
+class RgbdsLinker(DynamicLinker):
+    id = 'rgblink'
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
+
+    def get_search_args(self, dirname: str) -> T.List[str]:
+        return []
