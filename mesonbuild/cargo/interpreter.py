@@ -28,6 +28,8 @@ from ..wrap.wrap import PackageDefinition
 if T.TYPE_CHECKING:
     from types import ModuleType
 
+    from typing_extensions import Self
+
     from . import manifest
     from .. import mparser
     from ..environment import Environment
@@ -154,6 +156,12 @@ class Package:
     def __post_init__(self) -> None:
         self.api = _version_to_api(self.version)
 
+    @classmethod
+    def from_raw(cls, raw: manifest.Package) -> Self:
+        pkg = T.cast('manifest.FixedPackage',
+                     {fixup_meson_varname(k): v for k, v in raw.items()})
+        return cls(**pkg)
+
 @dataclasses.dataclass
 class SystemDependency:
 
@@ -263,6 +271,10 @@ class BuildTarget:
     required_features: T.List[str] = dataclasses.field(default_factory=list)
     plugin: bool = False
 
+    @classmethod
+    def from_raw(cls, raw: manifest.BuildTarget) -> Self:
+        build = _fixup_raw_mappings(raw)
+        return cls(**build)
 
 @dataclasses.dataclass
 class Library(BuildTarget):
@@ -275,6 +287,17 @@ class Library(BuildTarget):
     proc_macro: bool = False
     crate_type: T.List[manifest.CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
     doc_scrape_examples: bool = True
+
+    @classmethod
+    def from_raw(cls, raw: manifest.LibTarget, fallback_name: str) -> Self:
+        fixed = _fixup_raw_mappings(raw)
+
+        # We need to set the name field if it's not set manually, including if
+        # other fields are set in the lib section
+        if 'name' not in fixed:
+            fixed['name'] = fallback_name
+
+        return cls(**fixed)
 
 
 @dataclasses.dataclass
@@ -343,26 +366,16 @@ class Manifest:
 
 
 def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = '') -> Manifest:
-    # This cast is a bit of a hack to deal with proc-macro
-    lib = _fixup_raw_mappings(raw_manifest.get('lib', {}))
-
-    # We need to set the name field if it's not set manually,
-    # including if other fields are set in the lib section
-    lib.setdefault('name', raw_manifest['package']['name'])
-
-    pkg = T.cast('manifest.FixedPackage',
-                 {fixup_meson_varname(k): v for k, v in raw_manifest['package'].items()})
-
     return Manifest(
-        Package(**pkg),
+        Package.from_raw(raw_manifest['package']),
         {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('dependencies', {}).items()},
         {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('dev-dependencies', {}).items()},
         {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('build-dependencies', {}).items()},
-        Library(**lib),
-        [Binary(**_fixup_raw_mappings(b)) for b in raw_manifest.get('bin', {})],
-        [Test(**_fixup_raw_mappings(b)) for b in raw_manifest.get('test', {})],
-        [Benchmark(**_fixup_raw_mappings(b)) for b in raw_manifest.get('bench', {})],
-        [Example(**_fixup_raw_mappings(b)) for b in raw_manifest.get('example', {})],
+        Library.from_raw(raw_manifest.get('lib', {}), raw_manifest['package']['name']),
+        [Binary.from_raw(b) for b in raw_manifest.get('bin', {})],
+        [Test.from_raw(b) for b in raw_manifest.get('test', {})],
+        [Benchmark.from_raw(b) for b in raw_manifest.get('bench', {})],
+        [Example.from_raw(b) for b in raw_manifest.get('example', {})],
         raw_manifest.get('features', {}),
         {k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
          for k, v in raw_manifest.get('target', {}).items()},
