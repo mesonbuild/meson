@@ -195,7 +195,7 @@ class Workspace(TypedDict):
 Manifest = TypedDict(
     'Manifest',
     {
-        'package': Package,
+        'package': Required[Package],
         'badges': T.Dict[str, Badge],
         'dependencies': T.Dict[str, DependencyV],
         'dev-dependencies': T.Dict[str, DependencyV],
