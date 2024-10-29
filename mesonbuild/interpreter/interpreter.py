@@ -31,7 +31,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
-from ..interpreterbase import stringifyUserArguments, resolve_second_level_holders
+from ..interpreterbase import stringifyUserArguments
 from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
 from ..optinterpreter import optname_regex
 
@@ -690,7 +690,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('version', (str, NoneType)),
         KwargInfo('objects', ContainerTypeInfo(list, build.ExtractedObjects), listify=True, default=[], since='1.1.0'),
     )
-    @noSecondLevelHolderResolving
     def func_declare_dependency(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                                 kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
         deps = kwargs['dependencies']
@@ -1917,15 +1916,12 @@ class Interpreter(InterpreterBase, HoldableObject):
     @permittedKwargs(known_build_target_kwargs)
     @typed_pos_args('build_target', str, varargs=SOURCES_VARARGS)
     @typed_kwargs('build_target', *BUILD_TARGET_KWS, allow_unknown=True)
-    @noSecondLevelHolderResolving
     def func_build_target(self, node: mparser.BaseNode,
                           args: T.Tuple[str, SourcesVarargsType],
                           kwargs: kwtypes.BuildTarget
                           ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedLibrary,
                                        build.SharedModule, build.BothLibraries, build.Jar]:
         target_type = kwargs['target_type']
-        if target_type not in {'both_libraries', 'library'}:
-            args, kwargs = resolve_second_level_holders(args, kwargs)
 
         if target_type == 'executable':
             return self.build_target(node, args, kwargs, build.Executable)
@@ -2172,13 +2168,19 @@ class Interpreter(InterpreterBase, HoldableObject):
     @FeatureNew('alias_target', '0.52.0')
     @typed_pos_args('alias_target', str, varargs=(build.Target, build.BothLibraries), min_varargs=1)
     @noKwargs
-    @noSecondLevelHolderResolving
     def func_alias_target(self, node: mparser.BaseNode, args: T.Tuple[str, T.List[T.Union[build.Target, build.BothLibraries]]],
                           kwargs: TYPE_kwargs) -> build.AliasTarget:
         name, deps = args
         if any(isinstance(d, build.RunTarget) for d in deps):
             FeatureNew.single_use('alias_target that depends on run_targets', '0.60.0', self.subproject)
-        tg = build.AliasTarget(name, deps, self.subdir, self.subproject, self.environment)
+        real_deps: T.List[build.Target] = []
+        for d in deps:
+            if isinstance(d, build.BothLibraries):
+                real_deps.append(d.shared)
+                real_deps.append(d.static)
+            else:
+                real_deps.append(d)
+        tg = build.AliasTarget(name, real_deps, self.subdir, self.subproject, self.environment)
         self.add_target(name, tg)
         return tg
 
@@ -3284,16 +3286,18 @@ class Interpreter(InterpreterBase, HoldableObject):
             # Keep only compilers used for linking
             static_lib.compilers = {k: v for k, v in static_lib.compilers.items() if k in compilers.clink_langs}
 
+        # Cross reference them to implement as_shared() and as_static() methods.
+        shared_lib.set_static(static_lib)
+        static_lib.set_shared(shared_lib)
+
         return build.BothLibraries(shared_lib, static_lib, preferred_library)
 
     def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library):
         default_library = self.coredata.get_option(OptionKey('default_library', subproject=self.subproject))
         assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
-            args, kwargs = resolve_second_level_holders(args, kwargs)
             return self.build_target(node, args, T.cast('kwtypes.StaticLibrary', kwargs), build.SharedLibrary)
         elif default_library == 'static':
-            args, kwargs = resolve_second_level_holders(args, kwargs)
             return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.StaticLibrary)
         elif default_library == 'both':
             return self.build_both_libraries(node, args, kwargs)
