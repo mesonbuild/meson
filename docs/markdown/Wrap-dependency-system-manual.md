@@ -66,7 +66,7 @@ An example wrap-git will look like this:
 ```ini
 [wrap-git]
 url = https://github.com/libfoobar/libfoobar.git
-revision = head
+revision = HEAD
 depth = 1
 ```
 
@@ -124,7 +124,7 @@ case, the directory will be copied into `subprojects/` before applying patches.
 - `url` - name of the wrap-git repository to clone. Required.
 - `revision` - name of the revision to checkout. Must be either: a
   valid value (such as a git tag) for the VCS's `checkout` command, or
-  (for git) `head` to track upstream's default branch. Required.
+  (for git) `HEAD` to track upstream's default branch. Required.
 
 ### Specific to wrap-git
 - `depth` - shallowly clone the repository to X number of commits. This saves bandwidth and disk
