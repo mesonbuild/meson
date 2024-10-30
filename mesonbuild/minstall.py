@@ -74,7 +74,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Do not rebuild before installing.')
     parser.add_argument('--only-changed', default=False, action='store_true',
                         help='Only overwrite files that are older than the copied file.')
-    parser.add_argument('--quiet', default=False, action='store_true',
+    parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='Do not print every file that was installed.')
     parser.add_argument('--destdir', default=None,
                         help='Sets or overrides DESTDIR environment. (Since 0.57.0)')
