@@ -18,7 +18,7 @@ compatible with [PEP-517](https://peps.python.org/pep-0517/), check out
 
 If you are building Python extension modules against a Python interpreter
 located in a venv or Conda environment, you probably want to set
-`python.install_venv=auto`;
+`python.install_env=auto`;
 see [Python module options](Builtin-options.md#python-module) for details.
 
 *Added 0.46.0*
