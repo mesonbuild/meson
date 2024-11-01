@@ -2701,11 +2701,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         ofile_rpath = os.path.join(self.subdir, output)
         if ofile_rpath in self.configure_file_outputs:
             mesonbuildfile = os.path.join(self.subdir, 'meson.build')
-            current_call = f"{mesonbuildfile}:{self.current_lineno}"
+            current_call = f"{mesonbuildfile}:{self.current_node.lineno}"
             first_call = "{}:{}".format(mesonbuildfile, self.configure_file_outputs[ofile_rpath])
             mlog.warning('Output file', mlog.bold(ofile_rpath, True), 'for configure_file() at', current_call, 'overwrites configure_file() output at', first_call)
         else:
-            self.configure_file_outputs[ofile_rpath] = self.current_lineno
+            self.configure_file_outputs[ofile_rpath] = self.current_node.lineno
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
 
