@@ -1564,7 +1564,7 @@ class BuildTarget(Target):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
                 self.extra_files.extend(f for f in dep.extra_files if f not in self.extra_files)
-                self.add_include_dirs(dep.include_directories, dep.get_include_type())
+                self.add_include_dirs(dep.get_include_dirs())
                 self.objects.extend(dep.objects)
                 self.link_targets.extend(dep.libraries)
                 self.link_whole_targets.extend(dep.whole_libraries)
@@ -1637,13 +1637,8 @@ class BuildTarget(Target):
             else:
                 mlog.warning(msg + ' This will fail in cross build.')
 
-    def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: str = 'preserve') -> None:
-        if set_is_system != 'preserve':
-            is_system = set_is_system == 'system'
-            self.include_dirs.extend([IncludeDirs(x.curdir, x.incdirs, is_system, x.build_project,
-                                                  x.extra_build_dirs) for x in args])
-        else:
-            self.include_dirs.extend(args)
+    def add_include_dirs(self, args: T.Sequence['IncludeDirs']) -> None:
+        self.include_dirs.extend(args)
 
     def get_aliases(self) -> T.List[T.Tuple[str, str, str]]:
         return []

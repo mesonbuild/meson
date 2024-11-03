@@ -379,7 +379,12 @@ class InternalDependency(Dependency):
             final_sources, final_extra_files, final_deps, self.variables, [], [], [], self.name)
 
     def get_include_dirs(self) -> T.List['IncludeDirs']:
-        return self.include_directories
+        from ..build import IncludeDirs
+        ids = self.include_directories
+        if self.include_type != 'preserve':
+            is_system = self.include_type == 'system'
+            ids = [IncludeDirs(x.curdir, x.incdirs, is_system, x.build_project, x.extra_build_dirs) for x in ids]
+        return ids
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
