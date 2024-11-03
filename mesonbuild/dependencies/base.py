@@ -14,7 +14,7 @@ import typing as T
 import uuid
 from enum import Enum
 
-from .. import mlog, mesonlib, build
+from .. import mlog, mesonlib
 from ..compilers import clib_langs
 from ..mesonlib import LibType, MachineChoice, MesonException, HoldableObject, version_compare_many
 from ..options import OptionKey
@@ -340,10 +340,11 @@ class InternalDependency(Dependency):
             final_sources, final_extra_files, final_deps, self.variables, [], [], [])
 
     def get_include_dirs(self) -> T.List['IncludeDirs']:
+        from ..build import IncludeDirs
         ids = self.include_directories
         if self.include_type != 'preserve':
             is_system = self.include_type == 'system'
-            ids = [build.IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
+            ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
         return ids
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
