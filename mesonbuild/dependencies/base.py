@@ -304,6 +304,8 @@ class InternalDependency(Dependency):
         for k, v in self.__dict__.items():
             if k in {'libraries', 'whole_libraries'}:
                 setattr(result, k, copy.copy(v))
+            elif k == 'include_directories':
+                setattr(result, k, copy.copy(self.get_include_dirs()))
             else:
                 setattr(result, k, copy.deepcopy(v, memo))
         return result
@@ -328,7 +330,7 @@ class InternalDependency(Dependency):
         final_whole_libraries = self.whole_libraries.copy() if links else []
         final_sources = self.sources.copy() if sources else []
         final_extra_files = self.extra_files.copy() if extra_files else []
-        final_includes = self.include_directories.copy() if includes else []
+        final_includes = self.get_include_dirs().copy() if includes else []
         final_deps = [d.get_partial_dependency(
             compile_args=compile_args, link_args=link_args, links=links,
             includes=includes, sources=sources) for d in self.ext_deps]
