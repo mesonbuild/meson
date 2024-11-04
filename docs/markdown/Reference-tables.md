@@ -386,6 +386,7 @@ machine](#Environment-variables-per-machine) section for details.
 | C#            | CSC      | CSC       | The linker is the compiler                  |
 | Cython        | CYTHON   |           |                                             |
 | nasm          | NASM     |           | Uses the C linker                           |
+| archiver      |          | AR        |                                             |
 
 *The old environment variables are still supported, but are deprecated
 and will be removed in a future version of Meson.
