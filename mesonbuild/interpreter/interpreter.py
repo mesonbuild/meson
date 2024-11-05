@@ -1954,6 +1954,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         ),
         KwargInfo('fallback', (str, NoneType)),
         KwargInfo('replace_string', str, default='@VCS_TAG@'),
+        INSTALL_KW.evolve(since='1.7.0'),
+        INSTALL_DIR_KW.evolve(since='1.7.0'),
+        INSTALL_TAG_KW.evolve(since='1.7.0'),
+        INSTALL_MODE_KW.evolve(since='1.7.0'),
     )
     def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwtypes.VcsTag') -> build.CustomTarget:
         if kwargs['fallback'] is None:
@@ -1994,6 +1998,13 @@ class Interpreter(InterpreterBase, HoldableObject):
              replace_string,
              regex_selector] + vcs_cmd
 
+        install = kwargs['install']
+        install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
+        install_dir = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
+        install_tag = [] if kwargs['install_tag'] is None else [kwargs['install_tag']]
+        if install and not install_dir:
+            raise InvalidArguments('vcs_tag: "install_dir" keyword argument must be set when "install" is true.')
+
         tg = build.CustomTarget(
             kwargs['output'][0],
             self.subdir,
@@ -2004,6 +2015,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             kwargs['output'],
             build_by_default=True,
             build_always_stale=True,
+            install=install,
+            install_dir=install_dir,
+            install_mode=install_mode,
+            install_tag=install_tag,
         )
         self.add_target(tg.name, tg)
         return tg
