@@ -78,7 +78,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
                 f.write(code)
                 return f.name
-        
+
         fname = write_file("option('intminmax', type: 'integer', value: 10, min: 0, max: 5)")
         self.assertRaisesRegex(MesonException, 'Value 10 for option "intminmax" is more than maximum value 5.',
                                interp.process, fname)
@@ -86,7 +86,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['one', 'four'])")
         self.assertRaisesRegex(MesonException, 'Value "four" for option "array" is not in allowed choices: "one, two, three"',
                                interp.process, fname)
-        
+
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['four', 'five', 'six'])")
         self.assertRaisesRegex(MesonException, 'Values "four, five, six" for option "array" are not in allowed choices: "one, two, three"',
                                interp.process, fname)
@@ -326,7 +326,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             ('a.txt', '{a,b,c}.txt', True),
             ('a.txt', '*.{txt,tex,cpp}', True),
             ('a.hpp', '*.{txt,tex,cpp}', False),
-            
+
             ('a1.txt', 'a{0..9}.txt', True),
             ('a001.txt', 'a{0..9}.txt', True),
             ('a-1.txt', 'a{-10..10}.txt', True),
@@ -376,14 +376,14 @@ class PlatformAgnosticTests(BasePlatformTests):
         for code in ('', '\n'):
             formatted = formatter.format(code, Path())
             self.assertEqual('\n', formatted)
-    
+
     def test_format_indent_comment_in_brackets(self) -> None:
         """Ensure comments in arrays and dicts are correctly indented"""
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
         code = 'a = [\n    # comment\n]\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
-        
+
         code = 'a = [\n    # comment\n    1,\n]\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
@@ -391,7 +391,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         code = 'a = {\n    # comment\n}\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
-        
+
     def test_error_configuring_subdir(self):
         testdir = os.path.join(self.common_test_dir, '152 index customtarget')
         out = self.init(os.path.join(testdir, 'subdir'), allow_fail=True)
