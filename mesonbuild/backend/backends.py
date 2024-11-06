@@ -467,18 +467,21 @@ class Backend:
 
     def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
                             ) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
-        obj_list, deps = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
+        obj_list: T.List[str] = []
+        deps: T.List[build.BuildTargetTypes] = []
+        self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root, obj_list, deps)
         return list(dict.fromkeys(obj_list)), deps
 
     def determine_ext_objs(self, objects: build.ExtractedObjects, proj_dir_to_build_root: str = '') -> T.List[str]:
-        obj_list, _ = self._flatten_object_list(objects.target, [objects], proj_dir_to_build_root)
+        obj_list: T.List[str] = []
+        deps: T.List[build.BuildTargetTypes] = []
+        self._flatten_object_list(objects.target, [objects], proj_dir_to_build_root, obj_list, deps)
         return list(dict.fromkeys(obj_list))
 
     def _flatten_object_list(self, target: build.BuildTarget,
                              objects: T.Sequence[T.Union[str, 'File', build.ExtractedObjects]],
-                             proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
-        obj_list: T.List[str] = []
-        deps: T.List[build.BuildTargetTypes] = []
+                             proj_dir_to_build_root: str,
+                             obj_list: T.List[str], deps: T.List[build.BuildTargetTypes]) -> None:
         for obj in objects:
             if isinstance(obj, str):
                 o = os.path.join(proj_dir_to_build_root,
@@ -495,14 +498,11 @@ class Backend:
                     obj_list.append(obj.rel_to_builddir(o))
             elif isinstance(obj, build.ExtractedObjects):
                 if obj.recursive:
-                    objs, d = self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
-                    obj_list.extend(objs)
-                    deps.extend(d)
-                obj_list.extend(self._determine_ext_objs(obj, proj_dir_to_build_root))
+                    self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root, obj_list, deps)
+                self._determine_ext_objs(obj, proj_dir_to_build_root, obj_list)
                 deps.append(obj.target)
             else:
                 raise MesonException('Unknown data type in object list.')
-        return obj_list, deps
 
     @staticmethod
     def is_swift_target(target: build.BuildTarget) -> bool:
@@ -872,9 +872,7 @@ class Backend:
             return os.path.join(targetdir, ret)
         return ret
 
-    def _determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str) -> T.List[str]:
-        result: T.List[str] = []
-
+    def _determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str, result: T.List[str]) -> None:
         targetdir = self.get_target_private_dir(extobj.target)
 
         # Merge sources and generated sources
@@ -902,7 +900,7 @@ class Backend:
 
         # extobj could contain only objects and no sources
         if not sources:
-            return result
+            return
 
         # With unity builds, sources don't map directly to objects,
         # we only support extracting all the objects in this mode,
@@ -926,8 +924,6 @@ class Backend:
             objname = self.object_filename_from_source(extobj.target, osrc, targetdir)
             objpath = os.path.join(proj_dir_to_build_root, objname)
             result.append(objpath)
-
-        return result
 
     def get_pch_include_args(self, compiler: 'Compiler', target: build.BuildTarget) -> T.List[str]:
         args: T.List[str] = []
