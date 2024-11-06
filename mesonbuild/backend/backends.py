@@ -469,37 +469,31 @@ class Backend:
                             ) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
         obj_list: T.List[str] = []
         deps: T.List[build.BuildTargetTypes] = []
-        self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root, obj_list, deps)
-        return list(dict.fromkeys(obj_list)), deps
+        self._flatten_object_list(target, target.get_objects(), obj_list, deps)
+        obj_list = list(dict.fromkeys(obj_list))
+        if proj_dir_to_build_root:
+            obj_list = [os.path.join(proj_dir_to_build_root, x) for x in obj_list]
+        return obj_list, deps
 
     def determine_ext_objs(self, objects: build.ExtractedObjects) -> T.List[str]:
         obj_list: T.List[str] = []
         deps: T.List[build.BuildTargetTypes] = []
-        self._flatten_object_list(objects.target, [objects], '', obj_list, deps)
+        self._flatten_object_list(objects.target, [objects], obj_list, deps)
         return list(dict.fromkeys(obj_list))
 
     def _flatten_object_list(self, target: build.BuildTarget,
                              objects: T.Sequence[T.Union[str, 'File', build.ExtractedObjects]],
-                             proj_dir_to_build_root: str,
                              obj_list: T.List[str], deps: T.List[build.BuildTargetTypes]) -> None:
         for obj in objects:
             if isinstance(obj, str):
-                o = os.path.join(proj_dir_to_build_root,
-                                 self.build_to_src, target.get_subdir(), obj)
+                o = os.path.join(self.build_to_src, target.get_subdir(), obj)
                 obj_list.append(o)
             elif isinstance(obj, mesonlib.File):
-                if obj.is_built:
-                    o = os.path.join(proj_dir_to_build_root,
-                                     obj.rel_to_builddir(self.build_to_src))
-                    obj_list.append(o)
-                else:
-                    o = os.path.join(proj_dir_to_build_root,
-                                     self.build_to_src)
-                    obj_list.append(obj.rel_to_builddir(o))
+                obj_list.append(obj.rel_to_builddir(self.build_to_src))
             elif isinstance(obj, build.ExtractedObjects):
                 if obj.recursive:
-                    self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root, obj_list, deps)
-                self._determine_ext_objs(obj, proj_dir_to_build_root, obj_list)
+                    self._flatten_object_list(obj.target, obj.objlist, obj_list, deps)
+                self._determine_ext_objs(obj, obj_list)
                 deps.append(obj.target)
             else:
                 raise MesonException('Unknown data type in object list.')
@@ -872,7 +866,7 @@ class Backend:
             return os.path.join(targetdir, ret)
         return ret
 
-    def _determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str, result: T.List[str]) -> None:
+    def _determine_ext_objs(self, extobj: 'build.ExtractedObjects', result: T.List[str]) -> None:
         targetdir = self.get_target_private_dir(extobj.target)
 
         # Merge sources and generated sources
@@ -896,7 +890,7 @@ class Backend:
                 compiler = extobj.target.compilers[lang]
                 if compiler.get_argument_syntax() == 'msvc':
                     objname = self.get_msvc_pch_objname(lang, pch)
-                    result.append(os.path.join(proj_dir_to_build_root, targetdir, objname))
+                    result.append(os.path.join(targetdir, objname))
 
         # extobj could contain only objects and no sources
         if not sources:
@@ -922,8 +916,7 @@ class Backend:
 
         for osrc in sources:
             objname = self.object_filename_from_source(extobj.target, osrc, targetdir)
-            objpath = os.path.join(proj_dir_to_build_root, objname)
-            result.append(objpath)
+            result.append(objname)
 
     def get_pch_include_args(self, compiler: 'Compiler', target: build.BuildTarget) -> T.List[str]:
         args: T.List[str] = []
