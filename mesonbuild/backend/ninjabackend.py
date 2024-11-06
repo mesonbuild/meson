@@ -623,6 +623,7 @@ class NinjaBackend(backends.Backend):
         if ninja is None:
             raise MesonException('Could not detect Ninja v1.8.2 or newer')
         (self.ninja_command, self.ninja_version) = ninja
+        self.ninja_has_dyndeps = mesonlib.version_compare(self.ninja_version, '>=1.10.0')
         outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
         tempfilename = outfilename + '~'
         with open(tempfilename, 'w', encoding='utf-8') as outfile:
@@ -1089,7 +1090,7 @@ class NinjaBackend(backends.Backend):
                 self.add_build(elem)
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
-        if mesonlib.version_compare(self.ninja_version, '<1.10.0'):
+        if not self.ninja_has_dyndeps:
             return False
         if 'fortran' in target.compilers:
             return True
@@ -2451,7 +2452,7 @@ class NinjaBackend(backends.Backend):
         '''Use the new Ninja feature for scanning dependencies during build,
         rather than up front. Remove this and all old scanning code once Ninja
         minimum version is bumped to 1.10.'''
-        return mesonlib.version_compare(self.ninja_version, '>=1.10.0')
+        return self.ninja_has_dyndeps
 
     def generate_fortran_dep_hack(self, crstr: str) -> None:
         if self.use_dyndeps_for_fortran():
