@@ -472,8 +472,8 @@ class Backend:
         obj_list, deps = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
         return list(dict.fromkeys(obj_list)), deps
 
-    def determine_ext_objs(self, objects: build.ExtractedObjects, proj_dir_to_build_root: str = '') -> T.List[str]:
-        obj_list, _ = self._flatten_object_list(objects.target, [objects], proj_dir_to_build_root)
+    def determine_ext_objs(self, objects: build.ExtractedObjects) -> T.List[str]:
+        obj_list, _ = self._flatten_object_list(objects.target, [objects], '')
         return list(dict.fromkeys(obj_list))
 
     def _flatten_object_list(self, target: build.BuildTarget,
