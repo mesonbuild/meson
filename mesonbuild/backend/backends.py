@@ -472,10 +472,10 @@ class Backend:
         self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root, obj_list, deps)
         return list(dict.fromkeys(obj_list)), deps
 
-    def determine_ext_objs(self, objects: build.ExtractedObjects, proj_dir_to_build_root: str = '') -> T.List[str]:
+    def determine_ext_objs(self, objects: build.ExtractedObjects) -> T.List[str]:
         obj_list: T.List[str] = []
         deps: T.List[build.BuildTargetTypes] = []
-        self._flatten_object_list(objects.target, [objects], proj_dir_to_build_root, obj_list, deps)
+        self._flatten_object_list(objects.target, [objects], '', obj_list, deps)
         return list(dict.fromkeys(obj_list))
 
     def _flatten_object_list(self, target: build.BuildTarget,
