@@ -1,0 +1,5 @@
+[wrap-file]
+method = cmake
+
+[provide]
+cmTest1 = cmTest1_dep
