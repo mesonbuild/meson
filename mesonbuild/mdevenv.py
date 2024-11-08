@@ -17,6 +17,7 @@ from . import mlog
 
 if T.TYPE_CHECKING:
     from .backend.backends import InstallData
+    from .build import Build
 
 POWERSHELL_EXES = {'pwsh.exe', 'powershell.exe'}
 
@@ -58,7 +59,7 @@ def reduce_winepath(env: T.Dict[str, str]) -> None:
     env['WINEPATH'] = get_wine_shortpath([winecmd], winepath.split(';'))
     mlog.log('Meson detected wine and has set WINEPATH accordingly')
 
-def get_env(b: build.Build, dump_fmt: T.Optional[str]) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
+def get_env(b: build.Build, dump_fmt: T.Optional[str] = None) -> T.Tuple[T.Dict[str, str], T.Set[str]]:
     extra_env = EnvironmentVariables()
     extra_env.set('MESON_DEVENV', ['1'])
     extra_env.set('MESON_PROJECT_NAME', [b.project_name])
@@ -156,28 +157,8 @@ def dump(devenv: T.Dict[str, str], varnames: T.Set[str], dump_format: T.Optional
         if dump_format == 'export':
             print(f'export {name}', file=output)
 
-def run(options: argparse.Namespace) -> int:
-    privatedir = Path(options.builddir) / 'meson-private'
-    buildfile = privatedir / 'build.dat'
-    if not buildfile.is_file():
-        raise MesonException(f'Directory {options.builddir!r} does not seem to be a Meson build directory.')
-    b = build.load(options.builddir)
-    workdir = options.workdir or options.builddir
-
-    need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
-    setup_vsenv(need_vsenv) # Call it before get_env to get vsenv vars as well
-    dump_fmt = options.dump_format if options.dump else None
-    devenv, varnames = get_env(b, dump_fmt)
-    if options.dump:
-        if options.devcmd:
-            raise MesonException('--dump option does not allow running other command.')
-        if options.dump is True:
-            dump(devenv, varnames, dump_fmt)
-        else:
-            with open(options.dump, "w", encoding='utf-8') as output:
-                dump(devenv, varnames, dump_fmt, output)
-        return 0
-
+# Used by mrun.py
+def run_cmd(b: Build, args: T.List[str], workdir: T.Optional[Path] = None) -> int:
     if b.environment.need_exe_wrapper():
         m = 'An executable wrapper could be required'
         exe_wrapper = b.environment.get_exe_wrapper()
@@ -186,10 +167,13 @@ def run(options: argparse.Namespace) -> int:
             m += f': {cmd}'
         mlog.log(m)
 
+    workdir = workdir or Path(b.environment.build_dir)
+    privatedir = Path(b.environment.build_dir, 'meson-private')
     install_data = minstall.load_install_data(str(privatedir / 'install.dat'))
     write_gdb_script(privatedir, install_data, workdir)
 
-    args = options.devcmd
+    devenv = get_env(b)[0]
+
     if not args:
         prompt_prefix = f'[{b.project_name}]'
         shell_env = os.environ.get("SHELL")
@@ -233,3 +217,26 @@ def run(options: argparse.Namespace) -> int:
         return e.returncode
     except FileNotFoundError:
         raise MesonException(f'Command not found: {args[0]}')
+
+def run(options: argparse.Namespace) -> int:
+    buildfile = Path(options.builddir, 'meson-private', 'build.dat')
+    if not buildfile.is_file():
+        raise MesonException(f'Directory {options.builddir!r} does not seem to be a Meson build directory.')
+    b = build.load(options.builddir)
+
+    need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+    setup_vsenv(need_vsenv) # Call it before get_env to get vsenv vars as well
+
+    if options.dump:
+        if options.devcmd:
+            raise MesonException('--dump option does not allow running other command.')
+        dump_fmt = options.dump_format if options.dump else None
+        devenv, varnames = get_env(b, dump_fmt)
+        if options.dump is True:
+            dump(devenv, varnames, dump_fmt)
+        else:
+            with open(options.dump, "w", encoding='utf-8') as output:
+                dump(devenv, varnames, dump_fmt, output)
+        return 0
+
+    return run_cmd(b, options.devcmd, options.workdir)
