@@ -64,7 +64,8 @@ def errorhandler(e: Exception, command: str) -> int:
 class CommandLineParser:
     def __init__(self) -> None:
         # only import these once we do full argparse processing
-        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv, mformat
+        from . import (mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata,
+                       mcompile, mdevenv, mformat, mrun)
         from .scripts import env2mfile, reprotest
         from .wrap import wraptool
         import shutil
@@ -101,6 +102,8 @@ class CommandLineParser:
                          help_msg='Build the project')
         self.add_command('devenv', mdevenv.add_arguments, mdevenv.run,
                          help_msg='Run commands in developer environment')
+        self.add_command('run', mrun.add_arguments, mrun.run,
+                         help_msg='Compile and run an executable')
         self.add_command('env2mfile', env2mfile.add_arguments, env2mfile.run,
                          help_msg='Convert current environment to a cross or native file')
         self.add_command('reprotest', reprotest.add_arguments, reprotest.run,

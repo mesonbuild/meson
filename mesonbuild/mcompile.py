@@ -356,6 +356,33 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         help='Arguments to pass to `xcodebuild` (applied only on `xcode` backend).'
     )
 
+# Used by mrun.py
+def compile_single_executable(environment: Environment, target: T.Optional[str]) -> T.Tuple[T.Optional[str], int]:
+    builddir = Path(environment.build_dir)
+    intro_data = parse_introspect_data(builddir)
+    if target:
+        intro_target = get_target_from_intro_data(target, builddir, intro_data)
+        if intro_target['type'] != 'executable':
+            raise MesonException('--bin argument must be an executable')
+    else:
+        found_targets: T.List[IntroTarget] = []
+        for name, targets in intro_data.items():
+            for intro_target in targets:
+                # Restrict the search to installable executables.
+                if intro_target['type'] == 'executable' and intro_target['installed']:
+                    found_targets.append(intro_target)
+        if not found_targets:
+            raise MesonException('No executable targets found.')
+        elif len(found_targets) > 1:
+            suggestions_str = get_suggestions(builddir, found_targets)
+            raise MesonException('Multiple executable targets found.'
+                                 f' Specify --bin argument:\n{suggestions_str}')
+        intro_target = found_targets[0]
+    returncode = run_compile(environment, [intro_target])
+    if returncode != 0:
+        return None, returncode
+    return intro_target['filename'][0], 0
+
 def run_compile(environment: Environment, targets: T.List[IntroTarget],
                 jobs: int = 0, load_average: int = 0, verbose: bool = False,
                 clean: bool = False, ninja_args: T.Optional[T.List[str]] = None,
