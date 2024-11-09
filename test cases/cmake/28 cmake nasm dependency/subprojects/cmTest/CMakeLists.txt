@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION ${CMAKE_VERSION})
 
-project(cmTest2)
+project(cmTest)
 
 #Detect processor
 if ("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "[Aa][Mm][Dd]64")
@@ -21,4 +21,4 @@ endif ()
 
 enable_language(ASM_NASM)
 
-add_library(cmTest2 STATIC cmTestAsm.asm)
+add_library(cmTest STATIC cmTest.c cmTestAsm.asm)

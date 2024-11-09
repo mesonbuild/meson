@@ -1,2 +1,0 @@
-[properties]
-cmake_skip_compiler_test = 'always'
