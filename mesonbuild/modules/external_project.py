@@ -19,7 +19,7 @@ from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
-                        get_variable_regex, do_replacement, join_args)
+                        get_variable_regex, do_replacement, join_args, relpath)
 from ..options import OptionKey
 
 if T.TYPE_CHECKING:
@@ -93,10 +93,10 @@ class ExternalProject(NewExtensionModule):
         # will install files into "c:/bar/c:/foo" which is an invalid path.
         # Work around that issue by removing the drive from prefix.
         if self.prefix.drive:
-            self.prefix = self.prefix.relative_to(self.prefix.drive)
+            self.prefix = Path(relpath(self.prefix, self.prefix.drive))
 
         # self.prefix is an absolute path, so we cannot append it to another path.
-        self.rel_prefix = self.prefix.relative_to(self.prefix.root)
+        self.rel_prefix = Path(relpath(self.prefix, self.prefix.root))
 
         self._configure(state)
 
