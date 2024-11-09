@@ -2,4 +2,4 @@
 method = cmake
 
 [provide]
-cmTest2 = cmTest2_dep
+cmTest = cmTest_dep
