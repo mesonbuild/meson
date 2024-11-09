@@ -10,8 +10,10 @@ endif
 
 # First dependency triggers initial compilers state update
 sub_dep_1 = dependency('cmTest1')
-# Add nasm as a language..
-add_languages('nasm', required: true, native: false)
+# Add nasm as a language...
+if not add_languages('nasm', required: false, native: false)
+  error('MESON_SKIP_TEST: nasm not found')
+endif
 # ...and check for 2nd dependency. Together with cmake_skip_compiler_test = 'always',
 # this triggers another CMake compilers state update, this time with nasm
 # in the mix
