@@ -51,7 +51,7 @@ topic](https://github.com/topics/meson).
  - [Frida](https://github.com/frida/frida-core), a dynamic binary instrumentation toolkit
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
  - [GameMode](https://github.com/FeralInteractive/gamemode), a daemon/lib combo for Linux that allows games to request a set of optimisations be temporarily applied to the host OS
- - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
+ - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop
  - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (master branch)
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
  - [Glorytun](https://github.com/angt/glorytun), a multipath UDP tunnel
@@ -97,10 +97,10 @@ topic](https://github.com/topics/meson).
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib), a GLib wrapper for libgit2
  - [libglvnd](https://gitlab.freedesktop.org/glvnd/libglvnd), Vendor neutral OpenGL dispatch library for Unix-like OSes
  - [Libhttpseverywhere](https://git.gnome.org/browse/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
- - [libmodulemd](https://github.com/fedora-modularity/libmodulemd), a GObject Introspected library for managing [Fedora Project](https://getfedora.org/) module metadata.
+ - [libmodulemd](https://github.com/fedora-modularity/libmodulemd), a GObject Introspected library for managing [Fedora Project](https://getfedora.org/) module metadata
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location
 lookup based on OpenStreetMap data
- - [libratbag](https://github.com/libratbag/libratbag), provides a DBus daemon to configure input devices, mainly gaming mice.
+ - [libratbag](https://github.com/libratbag/libratbag), provides a DBus daemon to configure input devices, mainly gaming mice
  - [libspng](https://github.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG)
 format files
  - [libSRTP](https://github.com/cisco/libsrtp) (from Cisco Systems), a library for SRTP (Secure Realtime Transport Protocol)
@@ -129,7 +129,7 @@ format files
  - [OpenH264](https://github.com/cisco/openh264), open source H.264 codec
  - [OpenHMD](https://github.com/OpenHMD/OpenHMD), a free and open source API and drivers for immersive technology, such as head mounted displays with built in head tracking
  - [OpenRC](https://github.com/OpenRC/openrc), an init system for Unix-like operating systems
- - [OpenTitan](https://github.com/lowRISC/opentitan), an open source silicon Root of Trust (RoT) project.
+ - [OpenTitan](https://github.com/lowRISC/opentitan), an open source silicon Root of Trust (RoT) project
  - [Orc](https://gitlab.freedesktop.org/gstreamer/orc), the Optimized Inner Loop Runtime Compiler
  - [OTS](https://github.com/khaledhosny/ots), the OpenType Sanitizer, parses and serializes OpenType files (OTF, TTF) and WOFF and WOFF2 font files, validating and sanitizing them as it goes. Used by Chromium and Firefox
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style Meson example project
@@ -140,7 +140,7 @@ format files
  - [Peek](https://github.com/phw/peek), simple animated GIF screen recorder with an easy to use interface
  - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM
  - [PipeWire](https://github.com/PipeWire/pipewire), a framework for video and audio for containerized applications
- - [Paper Rock Scissors](https://github.com/michaelbrockus/paper_rock_scissors), a game with weapons themed at home paper rock scissors style.
+ - [Paper Rock Scissors](https://github.com/michaelbrockus/paper_rock_scissors), a game with weapons themed at home paper rock scissors style
  - [Pistache](https://github.com/pistacheio/pistache), a high performance REST toolkit written in C++
  - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Pitivi](https://github.com/pitivi/pitivi/), a nonlinear video editor
@@ -151,7 +151,7 @@ format files
  - [qboot](https://github.com/bonzini/qboot), a minimal x86 firmware for booting Linux kernels
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
- - [refivar](https://github.com/nvinson/refivar), A reimplementation of efivar in Rust.
+ - [refivar](https://github.com/nvinson/refivar), A reimplementation of efivar in Rust
  - [Rizin](https://rizin.re), Free and Open Source Reverse Engineering Framework
  - [rmw](https://remove-to-waste.info), safe-remove utility for the command line
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
@@ -171,7 +171,7 @@ format files
  - [ThorVG](https://www.thorvg.org/), vector-based scenes and animations library
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
- - [Fossil Logic](https://github.com/fossillogic), Fossil Logic is a cutting-edge software development company specializing in C/C++, Python, programming, Android development using Kotlin, and SQL solutions.
+ - [Fossil Logic](https://github.com/fossillogic), Fossil Logic is a cutting-edge software development company specializing in C/C++, Python, programming, Android development using Kotlin, and SQL solutions
  - [UFJF-MLTK](https://github.com/mateus558/UFJF-Machine-Learning-Toolkit), A C++ cross-platform framework for machine learning algorithms development and testing
  - [Vala Language Server](https://github.com/benwaffle/vala-language-server), code intelligence engine for the Vala and Genie programming languages
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
