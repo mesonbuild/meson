@@ -109,6 +109,7 @@ format files
  - [libvips](https://github.com/libvips/libvips), a fast image processing library with low memory needs
  - [Libvirt](https://libvirt.org), a toolkit to manage virtualization platforms
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
+ - [Linux PAM](https://github.com/linux-pam/linux-pam), The Pluggable Authentication Modules project for Linux
  - [LXC](https://github.com/lxc/lxc), Linux container runtime
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
  - [mcfgthread](https://github.com/lhmouse/mcfgthread), cornerstone library for C++11 threading on mingw-w64
