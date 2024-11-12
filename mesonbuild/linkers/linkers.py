@@ -1777,3 +1777,13 @@ class TaskingLinker(DynamicLinker):
         for a in args:
             l.extend(self._apply_prefix('-Wl--whole-archive=' + a))
         return l
+
+
+class ZOSDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+
+    """z/OS ld-style interface for the program management binder."""
+
+    id = 'ld.binder'
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
