@@ -55,6 +55,15 @@ class ExternalProgram(mesonlib.HoldableObject):
                 if ret:
                     self.command = ret + args
                 else:
+                    if os.path.isabs(cmd) and not os.path.exists(cmd):
+                        # Maybe the name is an absolute path to a native Windows
+                        # executable, but without the extension. This is technically wrong,
+                        # but many people do it because it works in the MinGW shell.
+                        for ext in self.windows_exts:
+                            trial_ext = f'{cmd}.{ext}'
+                            if os.path.exists(trial_ext):
+                                cmd = trial_ext
+                                break
                     self.command = [cmd] + args
         else:
             if search_dirs is None:
