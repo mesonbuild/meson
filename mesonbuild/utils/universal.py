@@ -128,6 +128,7 @@ __all__ = [
     'is_osx',
     'is_parent_path',
     'is_qnx',
+    'is_zos',
     'is_sunos',
     'is_windows',
     'is_wsl',
@@ -617,6 +618,10 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
         host = self.host if self.host is not None else self.build
         target = self.target if self.target is not None else host
         return PerThreeMachine(self.build, host, target)
+
+
+def is_zos() -> bool:
+    return platform.system().lower() == 'os/390'
 
 
 def is_sunos() -> bool:

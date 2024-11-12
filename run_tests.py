@@ -352,7 +352,7 @@ def main():
     _, backend_flags = guess_backend(options.backend, shutil.which('msbuild'))
     no_unittests = options.no_unittests
     # Running on a developer machine? Be nice!
-    if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'CI' not in os.environ:
+    if not mesonlib.is_zos() and not mesonlib.is_windows() and not mesonlib.is_haiku() and 'CI' not in os.environ:
         os.nice(20)
     # Appveyor sets the `platform` environment variable which completely messes
     # up building with the vs2010 and vs2015 backends.
