@@ -13,6 +13,7 @@ import shutil
 import typing as T
 from collections import defaultdict
 from pathlib import Path
+from functools import lru_cache
 
 from . import mlog
 from . import mesonlib
@@ -23,6 +24,9 @@ from mesonbuild import build
 
 if T.TYPE_CHECKING:
     import argparse
+    from .environment import Environment
+    IntroTarget = T.Dict[str, T.Any]
+
 
 def array_arg(value: str) -> T.List[str]:
     return listify_array_value(value)
@@ -34,7 +38,8 @@ def validate_builddir(builddir: Path) -> None:
                              'It is also possible that the build directory was generated with an old\n'
                              'meson version. Please regenerate it in this case.')
 
-def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
+@lru_cache(maxsize=None)
+def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[IntroTarget]]:
     """
     Converts a List of name-to-dict to a dict of name-to-dicts (since names are not unique)
     """
@@ -94,7 +99,25 @@ class ParsedTargetName:
         }
         return type in allowed_types
 
-def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
+def get_suggestions(builddir: Path, found_targets: T.List[IntroTarget]) -> str:
+    resolved_bdir = builddir.resolve()
+    suggestions: T.List[str] = []
+    for i in found_targets:
+        i_name = i['name']
+        split = i['id'].rsplit('@', 1)
+        if len(split) > 1:
+            split = split[0].split('@@', 1)
+            if len(split) > 1:
+                i_name = split[1]
+            else:
+                i_name = split[0]
+        p = Path(i['filename'][0]).relative_to(resolved_bdir).parent / i_name
+        t = i['type'].replace(' ', '_')
+        suggestions.append(f'- ./{p}:{t}')
+    return '\n'.join(suggestions)
+
+def get_target_from_intro_data(full_name: str, builddir: Path, introspect_data: IntroTarget) -> IntroTarget:
+    target = ParsedTargetName(full_name)
     if target.name not in introspect_data and target.base_name not in introspect_data:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
 
@@ -102,7 +125,7 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
     # if target.name doesn't find anything, try just the base name
     if not intro_targets:
         intro_targets = introspect_data[target.base_name]
-    found_targets: T.List[T.Dict[str, T.Any]] = []
+    found_targets: T.List[IntroTarget] = []
 
     resolved_bdir = builddir.resolve()
 
@@ -124,39 +147,26 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
                 (target.path and intro_target['filename'] != 'no_name' and
                  Path(target.path) != Path(intro_target['filename'][0]).relative_to(resolved_bdir).parent)):
                 continue
-            found_targets += [intro_target]
+            found_targets.append(intro_target)
 
     if not found_targets:
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
     elif len(found_targets) > 1:
-        suggestions: T.List[str] = []
-        for i in found_targets:
-            i_name = i['name']
-            split = i['id'].rsplit('@', 1)
-            if len(split) > 1:
-                split = split[0].split('@@', 1)
-                if len(split) > 1:
-                    i_name = split[1]
-                else:
-                    i_name = split[0]
-            p = Path(i['filename'][0]).relative_to(resolved_bdir).parent / i_name
-            t = i['type'].replace(' ', '_')
-            suggestions.append(f'- ./{p}:{t}')
-        suggestions_str = '\n'.join(suggestions)
+        suggestions_str = get_suggestions(builddir, found_targets)
         raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambiguous name.'
                              f' Add target type and/or path:\n{suggestions_str}')
-
     return found_targets[0]
 
-def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> T.List[str]:
-    intro_target = get_target_from_intro_data(target, builddir, introspect_data)
-
+def generate_target_names_ninja(intro_target: IntroTarget, builddir: Path) -> T.List[str]:
     if intro_target['type'] in {'alias', 'run'}:
-        return [target.name]
+        return [intro_target["name"]]
     else:
         return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
 
-def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_ninja(builddir: Path, targets: T.List[IntroTarget],
+                          jobs: int = 0, load_average: int = 0,
+                          verbose: bool = False, clean: bool = False,
+                          ninja_args: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     runner = detect_ninja()
     if runner is None:
         raise MesonException('Cannot find ninja.')
@@ -167,29 +177,25 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tu
 
     # If the value is set to < 1 then don't set anything, which let's
     # ninja/samu decide what to do.
-    if options.jobs > 0:
-        cmd.extend(['-j', str(options.jobs)])
-    if options.load_average > 0:
-        cmd.extend(['-l', str(options.load_average)])
+    if jobs > 0:
+        cmd.extend(['-j', str(jobs)])
+    if load_average > 0:
+        cmd.extend(['-l', str(load_average)])
 
-    if options.verbose:
+    if verbose:
         cmd.append('-v')
 
-    cmd += options.ninja_args
+    cmd += ninja_args or []
 
     # operands must be processed after options/option-arguments
-    if options.targets:
-        intro_data = parse_introspect_data(builddir)
-        for t in options.targets:
-            cmd.extend(generate_target_names_ninja(ParsedTargetName(t), builddir, intro_data))
-    if options.clean:
+    for t in targets:
+        cmd.extend(generate_target_names_ninja(t, builddir))
+    if clean:
         cmd.append('clean')
 
     return cmd, None
 
-def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> str:
-    intro_target = get_target_from_intro_data(target, builddir, introspect_data)
-
+def generate_target_name_vs(intro_target: IntroTarget, builddir: Path) -> str:
     assert intro_target['type'] not in {'alias', 'run'}, 'Should not reach here: `run` targets must be handle above'
 
     # Normalize project name
@@ -200,53 +206,52 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
         target_name = str(rel_path / target_name)
     return target_name
 
-def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_vs(builddir: Path, targets: T.List[IntroTarget],
+                       jobs: int = 0, load_average: int = 0,
+                       verbose: bool = False, clean: bool = False,
+                       vs_args: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     slns = list(builddir.glob('*.sln'))
     assert len(slns) == 1, 'More than one solution in a project?'
     sln = slns[0]
 
     cmd = ['msbuild']
 
-    if options.targets:
-        intro_data = parse_introspect_data(builddir)
-        has_run_target = any(
-            get_target_from_intro_data(ParsedTargetName(t), builddir, intro_data)['type'] in {'alias', 'run'}
-            for t in options.targets)
-
+    if targets:
+        has_run_target = any(t['type'] in {'alias', 'run'} for t in targets)
         if has_run_target:
             # `run` target can't be used the same way as other targets on `vs` backend.
             # They are defined as disabled projects, which can't be invoked as `.sln`
             # target and have to be invoked directly as project instead.
             # Issue: https://github.com/microsoft/msbuild/issues/4772
 
-            if len(options.targets) > 1:
+            if len(targets) > 1:
                 raise MesonException('Only one target may be specified when `run` target type is used on this backend.')
-            intro_target = get_target_from_intro_data(ParsedTargetName(options.targets[0]), builddir, intro_data)
+            intro_target = targets[0]
             proj_dir = Path(intro_target['filename'][0]).parent
             proj = proj_dir/'{}.vcxproj'.format(intro_target['id'])
             cmd += [str(proj.resolve())]
         else:
             cmd += [str(sln.resolve())]
-            cmd.extend(['-target:{}'.format(generate_target_name_vs(ParsedTargetName(t), builddir, intro_data)) for t in options.targets])
+            cmd.extend(['-target:{}'.format(generate_target_name_vs(t, builddir)) for t in targets])
     else:
         cmd += [str(sln.resolve())]
 
-    if options.clean:
+    if clean:
         cmd.extend(['-target:Clean'])
 
     # In msbuild `-maxCpuCount` with no number means "detect cpus", the default is `-maxCpuCount:1`
-    if options.jobs > 0:
-        cmd.append(f'-maxCpuCount:{options.jobs}')
+    if jobs > 0:
+        cmd.append(f'-maxCpuCount:{jobs}')
     else:
         cmd.append('-maxCpuCount')
 
-    if options.load_average:
+    if load_average:
         mlog.warning('Msbuild does not have a load-average switch, ignoring.')
 
-    if not options.verbose:
+    if not verbose:
         cmd.append('-verbosity:minimal')
 
-    cmd += options.vs_args
+    cmd += vs_args
 
     # Remove platform from env if set so that msbuild does not
     # pick x86 platform when solution platform is Win32
@@ -255,7 +260,10 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
 
     return cmd, env
 
-def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
+def get_parsed_args_xcode(builddir: Path, targets: T.List[IntroTarget],
+                          jobs: int = 0, load_average: int = 0,
+                          verbose: bool = False, clean: bool = False,
+                          xcode_args: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     runner = 'xcodebuild'
     if not shutil.which(runner):
         raise MesonException('Cannot find xcodebuild, did you install XCode?')
@@ -265,30 +273,31 @@ def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tu
 
     cmd = [runner, '-parallelizeTargets']
 
-    if options.targets:
-        for t in options.targets:
-            cmd += ['-target', t]
+    if targets:
+        for t in targets:
+            # FIXME: How does it work to disambiguate?
+            cmd += ['-target', t['name']]
 
-    if options.clean:
-        if options.targets:
+    if clean:
+        if targets:
             cmd += ['clean']
         else:
             cmd += ['-alltargets', 'clean']
         # Otherwise xcodebuild tries to delete the builddir and fails
         cmd += ['-UseNewBuildSystem=FALSE']
 
-    if options.jobs > 0:
-        cmd.extend(['-jobs', str(options.jobs)])
+    if jobs > 0:
+        cmd.extend(['-jobs', str(jobs)])
 
-    if options.load_average > 0:
+    if load_average > 0:
         mlog.warning('xcodebuild does not have a load-average switch, ignoring')
 
-    if options.verbose:
+    if verbose:
         # xcodebuild is already quite verbose, and -quiet doesn't print any
         # status messages
         pass
 
-    cmd += options.xcode_args
+    cmd += xcode_args
     return cmd, None
 
 # Note: when adding arguments, please also add them to the completion
@@ -347,6 +356,59 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         help='Arguments to pass to `xcodebuild` (applied only on `xcode` backend).'
     )
 
+# Used by mrun.py
+def compile_single_executable(environment: Environment, target: T.Optional[str]) -> T.Tuple[T.Optional[str], int]:
+    builddir = Path(environment.build_dir)
+    intro_data = parse_introspect_data(builddir)
+    if target:
+        intro_target = get_target_from_intro_data(target, builddir, intro_data)
+        if intro_target['type'] != 'executable':
+            raise MesonException('--bin argument must be an executable')
+    else:
+        found_targets: T.List[IntroTarget] = []
+        for name, targets in intro_data.items():
+            for intro_target in targets:
+                # Restrict the search to installable executables.
+                if intro_target['type'] == 'executable' and intro_target['installed']:
+                    found_targets.append(intro_target)
+        if not found_targets:
+            raise MesonException('No executable targets found.')
+        elif len(found_targets) > 1:
+            suggestions_str = get_suggestions(builddir, found_targets)
+            raise MesonException('Multiple executable targets found.'
+                                 f' Specify --bin argument:\n{suggestions_str}')
+        intro_target = found_targets[0]
+    returncode = run_compile(environment, [intro_target])
+    if returncode != 0:
+        return None, returncode
+    return intro_target['filename'][0], 0
+
+def run_compile(environment: Environment, targets: T.List[IntroTarget],
+                jobs: int = 0, load_average: int = 0, verbose: bool = False,
+                clean: bool = False, ninja_args: T.Optional[T.List[str]] = None,
+                vs_args: T.Optional[T.List[str]] = None,
+                xcode_args: T.Optional[T.List[str]] = None) -> int:
+    bdir = Path(environment.build_dir)
+
+    backend = environment.coredata.get_option(OptionKey('backend'))
+    assert isinstance(backend, str)
+
+    cmd: T.List[str] = []
+    env: T.Optional[T.Dict[str, str]] = None
+    if backend == 'ninja':
+        cmd, env = get_parsed_args_ninja(bdir, targets, jobs, load_average, verbose, clean, ninja_args)
+    elif backend.startswith('vs'):
+        cmd, env = get_parsed_args_vs(bdir, targets, jobs, load_average, verbose, clean, vs_args)
+    elif backend == 'xcode':
+        cmd, env = get_parsed_args_xcode(bdir, targets, jobs, load_average, verbose, clean, xcode_args)
+    else:
+        raise MesonException(
+            f'Backend `{backend}` is not yet supported by `compile`. Use generated project files directly instead.')
+
+    mlog.log(mlog.green('INFO:'), 'calculating backend command to run:', join_args(cmd))
+    p, *_ = mesonlib.Popen_safe(cmd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, env=env)
+    return p.returncode
+
 def run(options: 'argparse.Namespace') -> int:
     bdir = Path(options.wd)
     validate_builddir(bdir)
@@ -359,23 +421,10 @@ def run(options: 'argparse.Namespace') -> int:
     if setup_vsenv(need_vsenv):
         mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')
 
-    cmd: T.List[str] = []
-    env: T.Optional[T.Dict[str, str]] = None
+    intro_targets: T.List[IntroTarget] = []
+    if options.targets:
+        intro_data = parse_introspect_data(bdir)
+        intro_targets = [get_target_from_intro_data(t, bdir, intro_data) for t in options.targets]
 
-    backend = cdata.get_option(OptionKey('backend'))
-    assert isinstance(backend, str)
-    mlog.log(mlog.green('INFO:'), 'autodetecting backend as', backend)
-    if backend == 'ninja':
-        cmd, env = get_parsed_args_ninja(options, bdir)
-    elif backend.startswith('vs'):
-        cmd, env = get_parsed_args_vs(options, bdir)
-    elif backend == 'xcode':
-        cmd, env = get_parsed_args_xcode(options, bdir)
-    else:
-        raise MesonException(
-            f'Backend `{backend}` is not yet supported by `compile`. Use generated project files directly instead.')
-
-    mlog.log(mlog.green('INFO:'), 'calculating backend command to run:', join_args(cmd))
-    p, *_ = mesonlib.Popen_safe(cmd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, env=env)
-
-    return p.returncode
+    return run_compile(b.environment, intro_targets, options.jobs, options.load_average,
+                       options.verbose, options.clean, options.ninja_args, options.vs_args, options.xcode_args)
