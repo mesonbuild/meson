@@ -81,6 +81,9 @@ if sys.maxunicode >= 0x10000:
 UNENCODABLE_XML_CHR_RANGES = [fr'{chr(low)}-{chr(high)}' for (low, high) in UNENCODABLE_XML_UNICHRS]
 UNENCODABLE_XML_CHRS_RE = re.compile('([' + ''.join(UNENCODABLE_XML_CHR_RANGES) + '])')
 
+RUST_TEST_RE = re.compile(r'^test (?!result)(.*) \.\.\. (.*)$')
+RUST_DOCTEST_RE = re.compile(r'^(.*?) - (.*? |)\(line (\d+)\)')
+
 
 def is_windows() -> bool:
     platname = platform.system().lower()
@@ -1157,8 +1160,14 @@ class TestRunRust(TestRun):
 
         n = 1
         async for line in lines:
-            if line.startswith('test ') and not line.startswith('test result'):
-                _, name, _, result = line.rstrip().split(' ')
+            match = RUST_TEST_RE.match(line)
+            if match:
+                name, result = match.groups()
+                doctest = RUST_DOCTEST_RE.match(name)
+                if doctest:
+                    name = ':'.join((x.rstrip() for x in doctest.groups() if x))
+                else:
+                    name = name.rstrip()
                 name = name.replace('::', '.')
                 t = parse_res(n, name, result)
                 self.results.append(t)
