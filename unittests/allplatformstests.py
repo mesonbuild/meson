@@ -3333,13 +3333,17 @@ class AllPlatformTests(BasePlatformTests):
             ('win_subsystem', (str, None)),
         ]
 
-        targets_sources_typelist = [
+        targets_sources_unknown_lang_typelist = [
             ('language', str),
             ('compiler', list),
             ('parameters', list),
             ('sources', list),
             ('generated_sources', list),
             ('unity_sources', (list, None)),
+        ]
+
+        targets_sources_typelist = targets_sources_unknown_lang_typelist + [
+            ('machine', str),
         ]
 
         target_sources_linker_typelist = [
@@ -3456,7 +3460,10 @@ class AllPlatformTests(BasePlatformTests):
                 targets_to_find.pop(i['name'], None)
             for j in i['target_sources']:
                 if 'compiler' in j:
-                    assertKeyTypes(targets_sources_typelist, j)
+                    if j['language'] == 'unknown':
+                        assertKeyTypes(targets_sources_unknown_lang_typelist, j)
+                    else:
+                        assertKeyTypes(targets_sources_typelist, j)
                     self.assertEqual(j['sources'], [os.path.normpath(f) for f in tgt[4]])
                 else:
                     assertKeyTypes(target_sources_linker_typelist, j)
@@ -3558,6 +3565,7 @@ class AllPlatformTests(BasePlatformTests):
                 sources += j.get('sources', [])
             i['target_sources'] = [{
                 'language': 'unknown',
+                'machine': 'host',
                 'compiler': [],
                 'parameters': [],
                 'sources': sources,
