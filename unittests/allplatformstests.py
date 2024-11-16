@@ -4892,6 +4892,24 @@ class AllPlatformTests(BasePlatformTests):
         # When clippy is used, we should get an exception since a variable named
         # "foo" is used, but is on our denylist
         testdir = os.path.join(self.rust_test_dir, '1 basic')
+        self.init(testdir)
+        self.build('clippy')
+
+        self.wipe()
+        self.init(testdir, extra_args=['--werror', '-Db_colorout=never'])
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.build('clippy')
+        self.assertTrue('error: use of a blacklisted/placeholder name `foo`' in cm.exception.stdout or
+                        'error: use of a disallowed/placeholder name `foo`' in cm.exception.stdout)
+
+    @skip_if_not_language('rust')
+    @unittest.skipIf(not shutil.which('clippy-driver'), 'Test requires clippy-driver')
+    def test_rust_clippy_as_rustc(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        # When clippy is used, we should get an exception since a variable named
+        # "foo" is used, but is on our denylist
+        testdir = os.path.join(self.rust_test_dir, '1 basic')
         self.init(testdir, extra_args=['--werror'], override_envvars={'RUSTC': 'clippy-driver'})
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.build()

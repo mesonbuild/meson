@@ -2040,6 +2040,12 @@ class Backend:
         commands += [input]
         return commands
 
+    def have_language(self, langname: str) -> bool:
+        for for_machine in MachineChoice:
+            if langname in self.environment.coredata.compilers[for_machine]:
+                return True
+        return False
+
     def compiler_to_generator(self, target: build.BuildTarget,
                               compiler: 'Compiler',
                               sources: _ALL_SOURCES_TYPE,
