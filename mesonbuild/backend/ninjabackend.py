@@ -837,6 +837,7 @@ class NinjaBackend(backends.Backend):
             # The new entry
             src_block = {
                 'language': lang,
+                'machine': comp.for_machine.get_lower_case_name(),
                 'compiler': comp.get_exelist(),
                 'parameters': parameters,
                 'sources': [],
