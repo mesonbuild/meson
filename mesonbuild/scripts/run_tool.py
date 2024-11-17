@@ -27,7 +27,7 @@ def parse_pattern_file(fname: Path) -> T.List[str]:
         pass
     return patterns
 
-def run_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., subprocess.CompletedProcess], *args: T.Any) -> int:
+def run_clang_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., subprocess.CompletedProcess], *args: T.Any) -> int:
     patterns = parse_pattern_file(srcdir / f'.{name}-include')
     globs: T.Union[T.List[T.List[Path]], T.List[T.Generator[Path, None, None]]]
     if patterns:

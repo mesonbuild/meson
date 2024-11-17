@@ -8,7 +8,7 @@ import subprocess
 from pathlib import Path
 import sys
 
-from .run_tool import run_tool
+from .run_tool import run_clang_tool
 from ..environment import detect_clangformat
 from ..mesonlib import version_compare
 from ..programs import ExternalProgram
@@ -57,4 +57,4 @@ def run(args: T.List[str]) -> int:
     else:
         cformat_ver = None
 
-    return run_tool('clang-format', srcdir, builddir, run_clang_format, exelist, options, cformat_ver)
+    return run_clang_tool('clang-format', srcdir, builddir, run_clang_format, exelist, options, cformat_ver)
