@@ -120,6 +120,7 @@ format files
  - [mrsh](https://github.com/emersion/mrsh), a minimal POSIX shell
  - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
+ - [netatalk](https://netatalk.io/), a free and open source AFP file server for Mac and Apple II
  - [NetPanzer](https://github.com/netpanzer/netpanzer), a 2D online multiplayer tactical warfare game designed for fast action combat
  - [NumPy](https://numpy.org/), a Python package for scientific computing
  - [nvme-cli](https://github.com/linux-nvme/nvme-cli), NVMe management command line interface
