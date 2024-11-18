@@ -11,17 +11,17 @@ import os
 import shutil
 import sys
 
-from .run_tool import run_clang_tool
+from .run_tool import run_clang_tool, run_with_buffered_output
 from ..environment import detect_clangtidy, detect_clangapply
 import typing as T
 
-def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: T.Optional[Path]) -> subprocess.CompletedProcess:
+async def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: T.Optional[Path]) -> int:
     args = []
     if fixesdir is not None:
         handle, name = tempfile.mkstemp(prefix=fname.name + '.', suffix='.yaml', dir=fixesdir)
         os.close(handle)
         args.extend(['-export-fixes', name])
-    return subprocess.run(tidyexe + args + ['-quiet', '-p', str(builddir), str(fname)])
+    return await run_with_buffered_output(tidyexe + args + ['-quiet', '-p', str(builddir), str(fname)])
 
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
