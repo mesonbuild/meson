@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio.subprocess
 import fnmatch
 import itertools
+import json
 import signal
 import sys
 from pathlib import Path
@@ -126,3 +127,12 @@ def run_clang_tool(name: str, srcdir: Path, builddir: Path, fn: T.Callable[..., 
     def wrapper(path: Path) -> T.Iterable[T.Coroutine[None, None, int]]:
         yield fn(path, *args)
     return asyncio.run(_run_workers(all_clike_files(name, srcdir, builddir), wrapper))
+
+def run_tool_on_targets(fn: T.Callable[[T.Dict[str, T.Any]],
+                                       T.Iterable[T.Coroutine[None, None, int]]]) -> int:
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+    with open('meson-info/intro-targets.json', encoding='utf-8') as fp:
+        targets = json.load(fp)
+    return asyncio.run(_run_workers(targets, fn))
