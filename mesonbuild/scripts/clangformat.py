@@ -4,17 +4,16 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
 from pathlib import Path
 import sys
 
-from .run_tool import run_clang_tool
+from .run_tool import run_clang_tool, run_with_buffered_output
 from ..environment import detect_clangformat
 from ..mesonlib import version_compare
 from ..programs import ExternalProgram
 import typing as T
 
-def run_clang_format(fname: Path, exelist: T.List[str], options: argparse.Namespace, cformat_ver: T.Optional[str]) -> subprocess.CompletedProcess:
+async def run_clang_format(fname: Path, exelist: T.List[str], options: argparse.Namespace, cformat_ver: T.Optional[str]) -> int:
     clangformat_10 = False
     if options.check and cformat_ver:
         if version_compare(cformat_ver, '>=10'):
@@ -26,14 +25,14 @@ def run_clang_format(fname: Path, exelist: T.List[str], options: argparse.Namesp
         else:
             original = fname.read_bytes()
     before = fname.stat().st_mtime
-    ret = subprocess.run(exelist + ['-style=file', '-i', str(fname)])
+    ret = await run_with_buffered_output(exelist + ['-style=file', '-i', str(fname)])
     after = fname.stat().st_mtime
     if before != after:
         print('File reformatted: ', fname)
         if options.check and not clangformat_10:
             # Restore the original if only checking.
             fname.write_bytes(original)
-            ret.returncode = 1
+            return 1
     return ret
 
 def run(args: T.List[str]) -> int:
