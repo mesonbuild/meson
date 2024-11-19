@@ -310,7 +310,14 @@ class ExternalProgram(mesonlib.HoldableObject):
             paths = OrderedSet(path.split(os.pathsep)).difference(exclude_paths)
             path = os.pathsep.join(paths)
         command = shutil.which(name, path=path)
-        if mesonlib.is_windows():
+        if command is not None and mesonlib.is_windows():
+            # Some programs like cmd.exe do not expect forward slashes in the first part
+            # of GetCommandLineW() (the part corresponding to argv[0]) and confuse the
+            # slash for a command-line switch.
+            #
+            # Example: "C:\Windows\System32/cmd.exe /C echo hello world" fails with
+            # "syntax error".
+            command = command.replace('/', '\\')
             return self._search_windows_special_cases(name, command, exclude_paths)
         # On UNIX-like platforms, shutil.which() is enough to find
         # all executables whether in PATH or with an absolute path
