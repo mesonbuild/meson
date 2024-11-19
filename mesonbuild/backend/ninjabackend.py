@@ -1979,7 +1979,7 @@ class NinjaBackend(backends.Backend):
                 orderdeps.append(fname)
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
-        target_name = os.path.join(target.subdir, target.get_filename())
+        target_name = self.get_target_filename(target)
         cratetype = target.rust_crate_type
         args.extend(['--crate-type', cratetype])
 
@@ -2042,7 +2042,7 @@ class NinjaBackend(backends.Backend):
                 # dependency, so that collisions with libraries in rustc's
                 # sysroot don't cause ambiguity
                 d_name = self._get_rust_dependency_name(target, d)
-                args += ['--extern', '{}={}'.format(d_name, os.path.join(d.subdir, d.filename))]
+                args += ['--extern', '{}={}'.format(d_name, self.get_target_filename(d))]
                 project_deps.append(RustDep(d_name, self.rust_crates[d.name].order))
                 continue
 
@@ -2134,8 +2134,8 @@ class NinjaBackend(backends.Backend):
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + rustc.get_target_libdir()]
 
         proc_macro_dylib_path = None
-        if getattr(target, 'rust_crate_type', '') == 'proc-macro':
-            proc_macro_dylib_path = os.path.abspath(os.path.join(target.subdir, target.get_filename()))
+        if cratetype == 'proc-macro':
+            proc_macro_dylib_path = self.get_target_filename_abs(target)
 
         self._add_rust_project_entry(target.name,
                                      os.path.abspath(os.path.join(self.environment.build_dir, main_rust_file)),
