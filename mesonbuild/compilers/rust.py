@@ -282,7 +282,7 @@ class RustCompiler(Compiler):
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}', '-C', 'overflow-checks=no']
 
-    def get_rust_tool(self, name: str, env: Environment) -> T.List[str]:
+    def get_rust_tool(self, name: str, env: Environment, keep_args: bool = True) -> T.List[str]:
         if self.rustup_run_and_args:
             rustup_exelist, args = self.rustup_run_and_args
             # do not use extend so that exelist is copied
@@ -299,7 +299,7 @@ class RustCompiler(Compiler):
         else:
             return []
 
-        return exelist + args
+        return exelist + args if keep_args else exelist
 
 
 class ClippyRustCompiler(RustCompiler):
