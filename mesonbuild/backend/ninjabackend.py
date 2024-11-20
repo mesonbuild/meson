@@ -3659,6 +3659,20 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 elem.add_dep(crate.target_name)
         self.add_build(elem)
 
+    def generate_rustfmt(self) -> None:
+        if not self.have_language('rust'):
+            return
+
+        for target, args in {'rustfmt': [], 'rustfmt-check': ['--check']}.items():
+            if target in self.all_outputs:
+                continue
+            cmd = self.environment.get_build_command() + \
+                ['--internal', 'rustfmt'] + args + [self.environment.build_dir]
+            elem = self.create_phony_target(target, 'CUSTOM_COMMAND', 'PHONY')
+            elem.add_item('COMMAND', cmd)
+            elem.add_item('pool', 'console')
+            self.add_build(elem)
+
     def generate_scanbuild(self) -> None:
         if not environment.detect_scanbuild():
             return
@@ -3727,6 +3741,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.generate_clangformat()
         self.generate_clangtidy()
         self.generate_clippy()
+        self.generate_rustfmt()
         self.generate_tags('etags', 'TAGS')
         self.generate_tags('ctags', 'ctags')
         self.generate_tags('cscope', 'cscope')
