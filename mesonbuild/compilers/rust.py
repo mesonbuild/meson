@@ -104,7 +104,7 @@ class RustCompiler(Compiler):
     def needs_static_linker(self) -> bool:
         return False
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, environment: Environment) -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
         output_name = os.path.join(work_dir, 'rusttest')
         cmdlist = self.exelist.copy()
@@ -323,6 +323,14 @@ class RustCompiler(Compiler):
 
         return exelist + args
 
+    @functools.lru_cache(maxsize=None)
+    def get_rustdoc(self, env: 'Environment') -> T.Optional[RustdocTestCompiler]:
+        exelist = self.get_rust_tool('rustdoc', env)
+        if not exelist:
+            return None
+
+        return RustdocTestCompiler(exelist, self.version, self.for_machine,
+                                   self.is_cross, self.info, linker=self.linker)
 
 class ClippyRustCompiler(RustCompiler):
 
