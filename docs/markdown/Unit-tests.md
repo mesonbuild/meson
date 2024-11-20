@@ -83,13 +83,13 @@ possible.
 
 By default Meson uses as many concurrent processes as there are cores
 on the test machine. You can override this with the environment
-variable `MESON_TESTTHREADS` like this.
+variable `MESON_TESTTHREADS` or, *since 1.7.0*, `MESON_NUM_PROCESSES`:
 
 ```console
-$ MESON_TESTTHREADS=5 meson test
+$ MESON_NUM_PROCESSES=5 meson test
 ```
 
-Setting `MESON_TESTTHREADS` to 0 enables the default behavior (core
+Setting `MESON_NUM_PROCESSES` to 0 enables the default behavior (core
 count), whereas setting an invalid value results in setting the job
 count to 1.
 
