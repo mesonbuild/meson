@@ -26,6 +26,7 @@ def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: T.Optio
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--fix', action='store_true')
+    parser.add_argument('--color', default='always')
     parser.add_argument('sourcedir')
     parser.add_argument('builddir')
     options = parser.parse_args(args)
@@ -37,6 +38,9 @@ def run(args: T.List[str]) -> int:
     if not tidyexe:
         print(f'Could not execute clang-tidy "{" ".join(tidyexe)}"')
         return 1
+
+    if options.color == 'always' or options.color == 'auto' and sys.stdout.isatty():
+        tidyexe += ['--use-color']
 
     fixesdir: T.Optional[Path] = None
     if options.fix:
