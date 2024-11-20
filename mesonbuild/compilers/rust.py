@@ -645,7 +645,7 @@ class RustCompiler(Compiler):
         action = "no" if disable else "yes"
         return ['-C', f'debug-assertions={action}']
 
-    def get_rust_tool(self, name: str) -> T.List[str]:
+    def get_rust_tool(self, name: str, keep_args: bool = True) -> T.List[str]:
         if self.rustup_run_and_args:
             rustup_exelist, args = self.rustup_run_and_args
             # do not use extend so that exelist is copied
@@ -662,7 +662,7 @@ class RustCompiler(Compiler):
         else:
             return []
 
-        return exelist + args
+        return exelist + args if keep_args else exelist
 
     def has_multi_arguments(self, args: T.List[str]) -> T.Tuple[bool, bool]:
         return self.compiles('fn main() { std::process::exit(0) }\n', extra_args=args, mode=CompileCheckMode.COMPILE)
