@@ -13,6 +13,7 @@ import sys
 import stat
 import time
 import abc
+import multiprocessing
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from functools import lru_cache, wraps
@@ -94,6 +95,7 @@ __all__ = [
     'default_sysconfdir',
     'detect_subprojects',
     'detect_vcs',
+    'determine_worker_count',
     'do_conf_file',
     'do_conf_str',
     'do_replacement',
@@ -1085,6 +1087,31 @@ def default_sysconfdir() -> str:
         return 'settings'
     return 'etc'
 
+
+def determine_worker_count(varnames: T.Optional[T.List[str]] = None) -> int:
+    num_workers = 0
+    varnames = varnames or []
+    # Add MESON_NUM_PROCESSES last, so it will prevail if more than one
+    # variable is present.
+    varnames.append('MESON_NUM_PROCESSES')
+    for varname in varnames:
+        if varname in os.environ:
+            try:
+                num_workers = int(os.environ[varname])
+                if num_workers < 0:
+                    raise ValueError
+            except ValueError:
+                print(f'Invalid value in {varname}, using 1 thread.')
+                num_workers = 1
+
+    if num_workers == 0:
+        try:
+            # Fails in some weird environments such as Debian
+            # reproducible build.
+            num_workers = multiprocessing.cpu_count()
+        except Exception:
+            num_workers = 1
+    return num_workers
 
 def has_path_sep(name: str, sep: str = '/\\') -> bool:
     'Checks if any of the specified @sep path separators are in @name'
