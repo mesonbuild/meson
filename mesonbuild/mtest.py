@@ -38,7 +38,6 @@ from .coredata import version as coredata_version
 from .mesonlib import (MesonException, OrderedSet, RealPathAction,
                        get_wine_shortpath, join_args, split_args, setup_vsenv)
 from .options import OptionKey
-from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
 from .backend.backends import TestProtocol, TestSerialisation
 
@@ -2158,10 +2157,14 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
 
     assert len(ninja) > 0
 
+    targets_file = os.path.join(wd, 'meson-info/intro-targets.json')
+    with open(targets_file, encoding='utf-8') as fp:
+        targets_info = json.load(fp)
+
     depends: T.Set[str] = set()
     targets: T.Set[str] = set()
     intro_targets: T.Dict[str, T.List[str]] = {}
-    for target in load_info_file(get_infodir(wd), kind='targets'):
+    for target in targets_info:
         intro_targets[target['id']] = [
             convert_path_to_target(f)
             for f in target['filename']]
