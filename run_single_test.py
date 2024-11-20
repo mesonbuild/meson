@@ -48,7 +48,7 @@ def main() -> None:
 
     if not is_windows():
         scan_test_data_symlinks()
-    setup_symlinks()
+        setup_symlinks()
     setup_commands(args.backend)
     if not args.quick:
         detect_system_compiler(args)
