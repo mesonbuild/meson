@@ -991,6 +991,8 @@ class Environment:
         value = self.properties[for_machine].get('needs_exe_wrapper', None)
         if value is not None:
             return value
+        if not self.is_cross_build():
+            return False
         return not machine_info_can_run(self.machines[for_machine])
 
     def get_exe_wrapper(self) -> T.Optional[ExternalProgram]:
