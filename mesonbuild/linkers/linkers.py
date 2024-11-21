@@ -298,6 +298,13 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         #Only used by AIX.
         return []
 
+    def get_default_pool_depth(self) -> int:
+        # Returns the ideal number of concurrent invocations.
+        # Returning 0 means no limit, so the default concurrency
+        # value (tipically the number of logical processors) is
+        # used
+        return 0
+
 
 if T.TYPE_CHECKING:
     StaticLinkerBase = StaticLinker
@@ -1367,6 +1374,12 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def fatal_warnings(self) -> T.List[str]:
         return ['-WX']
+
+    def get_default_pool_depth(self) -> int:
+        # MS link.exe is internally multithreaded and uses lots of memory.
+        # we might check the amount of physical memory here, but it's not
+        # clear if parallel invocations of the linker bring any advantage.
+        return 1
 
 
 class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
