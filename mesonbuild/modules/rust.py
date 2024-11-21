@@ -37,6 +37,7 @@ if T.TYPE_CHECKING:
 
     class FuncTest(_kwargs.BaseTest):
 
+        args: T.List[_kwargs.TestArgs]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
         link_with: T.List[LibTypes]
