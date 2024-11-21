@@ -66,18 +66,23 @@ def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optiona
                          'Please specify the exact backend to use.'.format(vs_version, vs_install_dir))
 
 
-def split_o_flags_args(args: T.List[str]) -> T.List[str]:
+def split_o_flags_args(args: T.List[str], remove: bool) -> T.List[str]:
     """
     Splits any /O args and returns them. Does not take care of flags overriding
-    previous ones. Skips non-O flag arguments.
+    previous ones. Skips non-O flag arguments. If remove is true, found arguments
+    will be removed from the args list
 
     ['/Ox', '/Ob1'] returns ['/Ox', '/Ob1']
     ['/Oxj', '/MP'] returns ['/Ox', '/Oj']
     """
     o_flags = []
-    for arg in args:
+    indexes = []
+    for index, arg in enumerate(args):
         if not arg.startswith('/O'):
             continue
+
+        indexes.append(index)
+
         flags = list(arg[2:])
         # Assume that this one can't be clumped with the others since it takes
         # an argument itself
@@ -85,6 +90,11 @@ def split_o_flags_args(args: T.List[str]) -> T.List[str]:
             o_flags.append(arg)
         else:
             o_flags += ['/O' + f for f in flags]
+
+    if remove:
+        for index in reversed(indexes):
+            args.pop(index)
+
     return o_flags
 
 def generate_guid_from_path(path, path_type) -> str:
@@ -1273,7 +1283,7 @@ class Vs2010Backend(backends.Backend):
             target,
             platform: str,
             subsystem,
-            build_args,
+            build_args_,
             target_args,
             target_defines,
             target_inc_dirs,
@@ -1281,6 +1291,30 @@ class Vs2010Backend(backends.Backend):
             ) -> None:
         compiler = self._get_cl_compiler(target)
         buildtype_link_args = compiler.get_optimization_link_args(self.optimization)
+
+        build_args_copy = build_args_.copy()
+
+        def check_build_arg(name, remove = True):
+            index = None
+            try:
+                index = build_args_copy.index(name)
+            except ValueError:
+                pass
+            if index and remove:
+                build_args_copy.pop(index)
+            return index is not None
+
+        def check_build_arg_prefix(prefix):
+            for a in build_args_copy:
+                if a.startswith(prefix):
+                    return True
+            return False
+
+        def get_remaining_build_args():
+            result = ' '.join(build_args_copy)
+            # TODO: Ensure we don't use build_args_copy anymore
+            # build_args_copy = None
+            return result
 
         # Prefix to use to access the build root from the vcxproj dir
         down = self.target_to_build_root(target)
@@ -1318,25 +1352,31 @@ class Vs2010Backend(backends.Backend):
         else:
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
+
         # Sanitizers
-        if '/fsanitize=address' in build_args:
+        if check_build_arg('/fsanitize=address', remove=True):
             ET.SubElement(type_config, 'EnableASAN').text = 'true'
+
         # Debug format
-        if '/ZI' in build_args:
+        if check_build_arg('/ZI', remove=True):
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
-        elif '/Zi' in build_args:
+        elif check_build_arg('/Zi', remove=True):
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
-        elif '/Z7' in build_args:
+        elif check_build_arg('/Z7', remove=True):
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'OldStyle'
         else:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'None'
+        assert not check_build_arg_prefix('/Z[:alnum:]') # TODO
+
         # Runtime checks
-        if '/RTC1' in build_args:
+        if check_build_arg('/RTC1', remove=True):
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'EnableFastChecks'
-        elif '/RTCu' in build_args:
+        elif check_build_arg('/RTCu', remove=True):
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
-        elif '/RTCs' in build_args:
+        elif check_build_arg('/RTCs', remove=True):
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
+        assert not check_build_arg_prefix('/RTC')
+
         # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
         # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
         if 'cpp' in target.compilers:
@@ -1349,6 +1389,7 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'false'
             else:  # 'sc' or 'default'
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
+        assert not check_build_arg_prefix('/EH')
 
         if len(target_args) > 0:
             target_args.append('%(AdditionalOptions)')
@@ -1363,8 +1404,9 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'WarningLevel').text = warning_level
         if target.get_option(OptionKey('werror')):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
+
         # Optimization flags
-        o_flags = split_o_flags_args(build_args)
+        o_flags = split_o_flags_args(build_args_copy, remove=True)
         if '/Ox' in o_flags:
             ET.SubElement(clconf, 'Optimization').text = 'Full'
         elif '/O2' in o_flags:
@@ -1379,14 +1421,23 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'InlineFunctionExpansion').text = 'OnlyExplicitInline'
         elif '/Ob2' in o_flags:
             ET.SubElement(clconf, 'InlineFunctionExpansion').text = 'AnySuitable'
+        assert not check_build_arg_prefix('/O')
+
         # Size-preserving flags
         if '/Os' in o_flags or '/O1' in o_flags:
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Size'
         # Note: setting FavorSizeOrSpeed with clang-cl conflicts with /Od and can make debugging difficult, so don't.
         elif '/Od' not in o_flags:
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Speed'
-        # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
+
         self.generate_lang_standard_info(file_args, clconf)
+
+        # todo
+        have_no_logo = check_build_arg('/nologo', remove=True)
+
+        additional = get_remaining_build_args()
+        if additional:
+            ET.SubElement(clconf, 'AdditionalOptions').text = additional
 
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
@@ -1531,8 +1582,10 @@ class Vs2010Backend(backends.Backend):
             targetmachine.text = 'MachineARM64EC'
         else:
             raise MesonException('Unsupported Visual Studio target machine: ' + targetplatform)
-        # /nologo
-        ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
+
+        if have_no_logo:
+            ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
+
         # /release
         if not target.get_option(OptionKey('debug')):
             ET.SubElement(link, 'SetChecksum').text = 'true'
@@ -2089,6 +2142,7 @@ class Vs2010Backend(backends.Backend):
             self.add_project_reference(root, regen_vcxproj, self.environment.coredata.regen_guid)
 
     def generate_lang_standard_info(self, file_args: T.Dict[str, CompilerArgs], clconf: ET.Element) -> None:
+        # virtual method implemented in vs20XXbackend subclass
         pass
 
     # Returns if a target generates a manifest or not.
