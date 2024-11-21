@@ -1128,7 +1128,8 @@ class Vs2010Backend(backends.Backend):
 
     @staticmethod
     def get_build_args(compiler, optimization_level: str, debug: bool, sanitize: str) -> T.List[str]:
-        build_args = compiler.get_optimization_args(optimization_level)
+        build_args = compiler.get_always_args()
+        build_args += compiler.get_optimization_args(optimization_level)
         build_args += compiler.get_debug_args(debug)
         build_args += compiler.sanitizer_compile_args(sanitize)
 
@@ -1444,7 +1445,8 @@ class Vs2010Backend(backends.Backend):
 
         # Linker options
         link = ET.SubElement(compiles, 'Link')
-        extra_link_args = compiler.compiler_args()
+        extra_link_args = compiler.get_linker_always_args()
+        extra_link_args += compiler.compiler_args()
         extra_link_args += compiler.get_optimization_link_args(self.optimization)
         # Generate Debug info
         if self.debug:
