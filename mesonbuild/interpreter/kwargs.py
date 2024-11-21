@@ -19,6 +19,9 @@ from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
+if T.TYPE_CHECKING:
+    TestArgs = T.Union[str, File, build.Target, ExternalProgram]
+
 class FuncAddProjectArgs(TypedDict):
 
     """Keyword Arguments for the add_*_arguments family of arguments.
@@ -38,7 +41,6 @@ class BaseTest(TypedDict):
 
     """Shared base for the Rust module."""
 
-    args: T.List[T.Union[str, File, build.Target, ExternalProgram]]
     should_fail: bool
     timeout: int
     workdir: T.Optional[str]
@@ -52,6 +54,7 @@ class FuncBenchmark(BaseTest):
 
     """Keyword Arguments shared between `test` and `benchmark`."""
 
+    args: T.List[TestArgs]
     protocol: Literal['exitcode', 'tap', 'gtest', 'rust']
 
 
