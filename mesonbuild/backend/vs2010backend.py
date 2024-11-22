@@ -1293,29 +1293,23 @@ class Vs2010Backend(backends.Backend):
         compiler = self._get_cl_compiler(target)
         buildtype_link_args = compiler.get_optimization_link_args(self.optimization)
 
-        build_args_copy = build_args_.copy()
+        build_args = build_args_ + target_args
 
         def check_build_arg(name, remove = True):
             index = None
             try:
-                index = build_args_copy.index(name)
+                index = build_args.index(name)
             except ValueError:
                 pass
             if index and remove:
-                build_args_copy.pop(index)
+                build_args.pop(index)
             return index is not None
 
         def check_build_arg_prefix(prefix):
-            for a in build_args_copy:
+            for a in build_args:
                 if a.startswith(prefix):
                     return True
             return False
-
-        def get_remaining_build_args():
-            result = ' '.join(build_args_copy)
-            # TODO: Ensure we don't use build_args_copy anymore
-            # build_args_copy = None
-            return result
 
         # Prefix to use to access the build root from the vcxproj dir
         down = self.target_to_build_root(target)
@@ -1336,6 +1330,7 @@ class Vs2010Backend(backends.Backend):
         clconf = ET.SubElement(compiles, 'ClCompile')
         if True in ((dep.name == 'openmp') for dep in target.get_external_deps()):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
+
         # CRT type; debug or release
         vscrt_type = target.get_option(OptionKey('b_vscrt'))
         vscrt_val = compiler.get_crt_val(vscrt_type, self.buildtype)
@@ -1392,13 +1387,15 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
         assert not check_build_arg_prefix('/EH')
 
-        if len(target_args) > 0:
-            target_args.append('%(AdditionalOptions)')
-            ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
-        ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
-        target_defines.append('%(PreprocessorDefinitions)')
-        ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
+        if len(target_inc_dirs) > 0:
+            ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
+
+        if len(target_defines) > 0:
+            target_defines.append('%(PreprocessorDefinitions)')
+            ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
+
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
+
         # Warning level
         warning_level = T.cast('str', target.get_option(OptionKey('warning_level')))
         warning_level = 'EnableAllWarnings' if warning_level == 'everything' else 'Level' + str(1 + int(warning_level))
@@ -1407,7 +1404,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
 
         # Optimization flags
-        o_flags = split_o_flags_args(build_args_copy, remove=True)
+        o_flags = split_o_flags_args(build_args, remove=True)
         if '/Ox' in o_flags:
             ET.SubElement(clconf, 'Optimization').text = 'Full'
         elif '/O2' in o_flags:
@@ -1433,12 +1430,14 @@ class Vs2010Backend(backends.Backend):
 
         self.generate_lang_standard_info(file_args, clconf)
 
-        # todo
-        have_no_logo = check_build_arg('/nologo', remove=True)
+        # SuppressStartupBanner is a boolean prop and defaults to true
+        if not check_build_arg('/nologo', remove=True):
+            ET.SubElement(clconf, 'SuppressStartupBanner').text = 'false'
 
-        additional = get_remaining_build_args()
-        if additional:
-            ET.SubElement(clconf, 'AdditionalOptions').text = additional
+        # Anything else goes in AdditionalOptions
+        if len(build_args) > 0:
+            build_args.append('%(AdditionalOptions)')
+            ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(build_args)
 
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
@@ -1448,6 +1447,24 @@ class Vs2010Backend(backends.Backend):
         extra_link_args = compiler.get_linker_always_args()
         extra_link_args += compiler.compiler_args()
         extra_link_args += compiler.get_optimization_link_args(self.optimization)
+
+        # Note that cl.exe arguments are case sensitive, but link.exe arguments are not.
+        def check_link_arg(name, remove = True):
+            index = None
+            for i, value in enumerate(extra_link_args):
+                if value.upper() == name.upper():
+                    index = i
+                    break
+            if index and remove:
+                extra_link_args.pop(index)
+            return index is not None
+
+        def check_link_arg_prefix(prefix):
+            for a in extra_link_args:
+                if a.upper().startswith(prefix.upper()):
+                    return True
+            return False
+
         # Generate Debug info
         if self.debug:
             self.generate_debug_information(link)
@@ -1542,9 +1559,6 @@ class Vs2010Backend(backends.Backend):
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
 
-        if len(extra_link_args) > 0:
-            extra_link_args.append('%(AdditionalOptions)')
-            ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
         if len(additional_libpaths) > 0:
             additional_libpaths.insert(0, '%(AdditionalLibraryDirectories)')
             ET.SubElement(link, 'AdditionalLibraryDirectories').text = ';'.join(additional_libpaths)
@@ -1585,12 +1599,16 @@ class Vs2010Backend(backends.Backend):
         else:
             raise MesonException('Unsupported Visual Studio target machine: ' + targetplatform)
 
-        if have_no_logo:
-            ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
+        if not check_link_arg('/NOLOGO', remove=True):
+            ET.SubElement(link, 'SuppressStartupBanner').text = 'false'
 
-        # /release
-        if not target.get_option(OptionKey('debug')):
+        if check_link_arg('/RELEASE', remove=True):
             ET.SubElement(link, 'SetChecksum').text = 'true'
+
+        # Remaining arguments in AdditionalOptions
+        if len(extra_link_args) > 0:
+            extra_link_args.append('%(AdditionalOptions)')
+            ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
 
     # Visual studio doesn't simply allow the src files of a project to be added with the 'Condition=...' attribute,
     # to allow us to point to the different debug/debugoptimized/release sets of generated src files for each of
