@@ -13,6 +13,7 @@ import platform
 import pickle
 import zipfile, tarfile
 import sys
+import sysconfig
 from unittest import mock, SkipTest, skipIf, skipUnless, expectedFailure
 from contextlib import contextmanager
 from glob import glob
@@ -3054,6 +3055,121 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Dstart_native=false'], override_envvars=env)
         self.wipe()
         self.init(testdir, extra_args=['-Dstart_native=true'], override_envvars=env)
+
+    @skipIf(is_osx(), 'Not implemented for Darwin yet')
+    @skipIf(is_windows(), 'POSIX only')
+    def test_python_build_config_extensions(self):
+        testdir = os.path.join(self.unit_test_dir,
+                               '125 python extension')
+
+        VERSION_INFO_KEYS = ('major', 'minor', 'micro', 'releaselevel', 'serial')
+        EXTENSION_SUFFIX = '.extension-suffix.so'
+        STABLE_ABI_SUFFIX = '.stable-abi-suffix.so'
+        # macOS framework builds put libpython in PYTHONFRAMEWORKPREFIX.
+        LIBDIR = (sysconfig.get_config_var('PYTHONFRAMEWORKPREFIX') or
+                  sysconfig.get_config_var('LIBDIR'))
+
+        python_build_config = {
+            'schema_version': '1.0',
+            'base_interpreter': sys.executable,
+            'base_prefix': '/usr',
+            'platform': sysconfig.get_platform(),
+            'language': {
+                'version': sysconfig.get_python_version(),
+                'version_info': {key: getattr(sys.version_info, key) for key in VERSION_INFO_KEYS}
+            },
+            'implementation': {
+                attr: (
+                    getattr(sys.implementation, attr)
+                    if attr != 'version' else
+                    {key: getattr(sys.implementation.version, key) for key in VERSION_INFO_KEYS}
+                )
+                for attr in dir(sys.implementation)
+                if not attr.startswith('__')
+            },
+            'abi': {
+                'flags': list(sys.abiflags),
+                'extension_suffix': EXTENSION_SUFFIX,
+                'stable_abi_suffix': STABLE_ABI_SUFFIX,
+            },
+            'suffixes': {
+                'source': ['.py'],
+                'bytecode': ['.pyc'],
+                'optimized_bytecode': ['.pyc'],
+                'debug_bytecode': ['.pyc'],
+                'extensions': [EXTENSION_SUFFIX, STABLE_ABI_SUFFIX, '.so'],
+            },
+            'libpython': {
+                'dynamic': os.path.join(LIBDIR, sysconfig.get_config_var('LDLIBRARY')),
+                'static': os.path.join(LIBDIR, sysconfig.get_config_var('LIBRARY')),
+                # set it to False on PyPy, since dylib is optional, but also
+                # the value is currently wrong:
+                # https://github.com/pypy/pypy/issues/5249
+                'link_extensions': '__pypy__' not in sys.builtin_module_names,
+            },
+            'c_api': {
+                'headers': sysconfig.get_config_var('INCLUDEPY'),
+            }
+        }
+
+        py3library = sysconfig.get_config_var('PY3LIBRARY')
+        if py3library is not None:
+            python_build_config['libpython']['dynamic_stableabi'] = os.path.join(LIBDIR, py3library)
+
+        build_stable_abi = sysconfig.get_config_var('Py_GIL_DISABLED') != 1 or sys.version_info >= (3, 15)
+        intro_installed_file = os.path.join(self.builddir, 'meson-info', 'intro-installed.json')
+        expected_files = [
+            os.path.join(self.builddir, 'foo' + EXTENSION_SUFFIX),
+        ]
+        if build_stable_abi:
+            expected_files += [
+                os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX),
+            ]
+        if is_cygwin():
+            expected_files += [
+                os.path.join(self.builddir, 'foo' + EXTENSION_SUFFIX.replace('.so', '.dll.a')),
+            ]
+            if build_stable_abi:
+                expected_files += [
+                    os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX.replace('.so', '.dll.a')),
+                ]
+
+        for with_pkgconfig in (False, True):
+            with self.subTest(with_pkgconfig=with_pkgconfig):
+                if with_pkgconfig:
+                    libpc = sysconfig.get_config_var('LIBPC')
+                    if libpc is None:
+                        continue
+                    python_build_config['c_api']['pkgconfig_path'] = libpc
+                # Old Ubuntu versions have incorrect LIBDIR, skip testing non-pkgconfig variant there.
+                elif not os.path.exists(python_build_config['libpython']['dynamic']):
+                    continue
+
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
+                    json.dump(python_build_config, fp=python_build_config_file)
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
+                    cross_file.write(
+                        textwrap.dedent(f'''
+                            [binaries]
+                            pkg-config = 'pkg-config'
+
+                            [built-in options]
+                            python.build_config = '{python_build_config_file.name}'
+                        '''.strip())
+                    )
+                    cross_file.flush()
+
+                for extra_args in (
+                    ['--python.build-config', python_build_config_file.name],
+                    ['--cross-file', cross_file.name],
+                ):
+                    with self.subTest(extra_args=extra_args):
+                        self.init(testdir, extra_args=extra_args)
+                        self.build()
+                        with open(intro_installed_file) as f:
+                            intro_installed = json.load(f)
+                        self.assertEqual(sorted(expected_files), sorted(intro_installed))
+                        self.wipe()
 
     def __reconfigure(self):
         # Set an older version to force a reconfigure from scratch
