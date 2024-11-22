@@ -417,7 +417,7 @@ class MSVCCompiler(VisualStudioLikeCompiler):
     # Override CCompiler.get_always_args
     # We want to drop '/utf-8' for Visual Studio 2013 and earlier
     def get_always_args(self) -> T.List[str]:
-        return self.always_args
+        return self.always_args.copy()
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         if self.version.split('.')[0] == '16' and instruction_set == 'avx':
