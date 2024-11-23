@@ -9,6 +9,7 @@ executable('fooprog', 'foo.c',
 
 executable('barprog', 'foo.c',
     build_by_default : false,
+    install : true,
 )
 
 comp = files('mygen.py')
