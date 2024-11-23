@@ -96,11 +96,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     # /showIncludes is needed for build dependency tracking in Ninja
     # See: https://ninja-build.org/manual.html#_deps
-    # Assume UTF-8 sources by default, but self.unix_args_to_native() removes it
-    # if `/source-charset` is set too.
-    # It is also dropped if Visual Studio 2013 or earlier is used, since it would
-    # not be supported in that case.
-    always_args = ['/nologo', '/showIncludes', '/utf-8']
+    always_args = ['/nologo', '/showIncludes']
     warn_args: T.Dict[str, T.List[str]] = {
         '0': [],
         '1': ['/W2'],
@@ -131,7 +127,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         assert self.linker is not None
         self.linker.machine = self.machine
 
-    # Override CCompiler.get_always_args
     def get_always_args(self) -> T.List[str]:
         # TODO: use ImmutableListProtocol[str] here instead
         return self.always_args.copy()
@@ -252,15 +247,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             # -pthread in link flags is only used on Linux
             elif i == '-pthread':
                 continue
-            # cl.exe does not allow specifying both, so remove /utf-8 that we
-            # added automatically in the case the user overrides it manually.
-            elif (i.startswith('/source-charset:')
-                    or i.startswith('/execution-charset:')
-                    or i == '/validate-charset-'):
-                try:
-                    result.remove('/utf-8')
-                except ValueError:
-                    pass
             result.append(i)
         return result
 
@@ -396,12 +382,6 @@ class MSVCCompiler(VisualStudioLikeCompiler):
     def __init__(self, target: str):
         super().__init__(target)
 
-        # Visual Studio 2013 and earlier don't support the /utf-8 argument.
-        # We want to remove it. We also want to make an explicit copy so we
-        # don't mutate class constant state
-        if mesonlib.version_compare(self.version, '<19.00') and '/utf-8' in self.always_args:
-            self.always_args = [r for r in self.always_args if r != '/utf-8']
-
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         args = super().get_compile_debugfile_args(rel_obj, pch)
         # When generating a PDB file with PCH, all compile commands write
@@ -413,11 +393,6 @@ class MSVCCompiler(VisualStudioLikeCompiler):
         if pch and mesonlib.version_compare(self.version, '>=18.0'):
             args = ['/FS'] + args
         return args
-
-    # Override CCompiler.get_always_args
-    # We want to drop '/utf-8' for Visual Studio 2013 and earlier
-    def get_always_args(self) -> T.List[str]:
-        return self.always_args.copy()
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         if self.version.split('.')[0] == '16' and instruction_set == 'avx':
