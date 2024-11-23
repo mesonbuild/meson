@@ -1372,20 +1372,8 @@ class BuildTarget(Target):
                     self.external_deps.append(dep)
                     self.process_sourcelist(dep.get_sources())
                 self.add_deps(dep.ext_deps)
-            elif isinstance(dep, BuildTarget):
-                raise InvalidArguments(f'Tried to use a build target {dep.name} as a dependency of target {self.name}.\n'
-                                       'You probably should put it in link_with instead.')
             else:
-                # This is a bit of a hack. We do not want Build to know anything
-                # about the interpreter so we can't import it and use isinstance.
-                # This should be reliable enough.
-                if hasattr(dep, 'held_object'):
-                    # FIXME: subproject is not a real ObjectHolder so we have to do this by hand
-                    dep = dep.held_object
-                if hasattr(dep, 'project_args_frozen') or hasattr(dep, 'global_args_frozen'):
-                    raise InvalidArguments('Tried to use subproject object as a dependency.\n'
-                                           'You probably wanted to use a dependency declared in it instead.\n'
-                                           'Access it by calling get_variable() on the subproject object.')
+                # Kept here for robustness, types are checked by the interpreter
                 raise InvalidArguments(f'Argument is of an unacceptable type {type(dep).__name__!r}.\nMust be '
                                        'either an external dependency (returned by find_library() or '
                                        'dependency()) or an internal dependency (returned by '

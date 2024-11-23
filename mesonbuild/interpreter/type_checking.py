@@ -584,6 +584,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
                 ('1.1.0', 'generated sources as positional "objects" arguments')
         },
     ),
+    DEPENDENCIES_KW,
 ]
 
 
