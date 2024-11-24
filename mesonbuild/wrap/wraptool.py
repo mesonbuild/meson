@@ -99,7 +99,7 @@ def install(options: 'argparse.Namespace') -> None:
     if os.path.exists(wrapfile):
         raise SystemExit('Wrap file already exists.')
     (version, revision) = get_latest_version(name, options.allow_insecure)
-    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap', options.allow_insecure, True)
+    url = open_wrapdburl(f'wrapdb:///v2/{name}_{version}-{revision}/{name}.wrap', options.allow_insecure, True)
     with open(wrapfile, 'wb') as f:
         f.write(url.read())
     print(f'Installed {name} version {version} revision {revision}')
