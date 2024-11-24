@@ -1,5 +1,9 @@
 project('cmake nasm dependency', ['c', 'cpp'])
 
+if meson.is_cross_build()
+  error('MESON_SKIP_TEST: skip this on cross builds')
+endif
+
 if get_option('backend').startswith('vs')
   error('MESON_SKIP_TEST: nasm is not supported by vs backend')
 endif
