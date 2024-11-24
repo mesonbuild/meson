@@ -45,3 +45,15 @@ The contents of the Wrap database are tracked in git repos of the
 [Mesonbuild project](https://github.com/mesonbuild). The actual
 process is simple and described in [submission
 documentation](Adding-new-projects-to-wrapdb.md).
+
+## Self-hosted Wrap database
+
+If for whatever reason you want to use self-hosted or proxied Wrap database *(since 1.X.X)* you may override server address with the `MESON_WRAPDB_MIRROR` environment variable:
+
+```console
+$ export MESON_WRAPDB_MIRROR=user:password@wrapdb.mydomain.invalid:8080
+$ meson wrap update-db
+$ meson wrap install zlib
+```
+
+You will be limited to the wraps available on the mirror.
