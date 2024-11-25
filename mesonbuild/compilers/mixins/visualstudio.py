@@ -131,6 +131,43 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # TODO: use ImmutableListProtocol[str] here instead
         return self.always_args.copy()
 
+    def add_default_build_args(self, args: CompilerArgs) -> None:
+        # /utf-8 is supported starting with VS 2015
+        # FIXME: what about clang-cl?
+        if mesonlib.version_compare(self.version, '<19.00'):
+            return
+
+        native = args.to_native()
+
+        def have_arg(native, name):
+            name = name.lower()
+            for a in args:
+                start = a[:len(name)+1].lower()
+                if (start[0] == '/' or start[0] == '-') and start[1:] == name:
+                    return True
+            return False
+
+        if have_arg(native, 'utf-8'):
+            return
+
+        have_execution_charset = have_arg(native, 'execution-charset:')
+        have_source_charset = have_arg(native, 'source-charset:')
+        have_validate_charset = have_arg(native, 'validate-charset')
+
+        options: T.List[str] = []
+        if (not have_execution_charset and
+            not have_source_charset and
+            not have_validate_charset):
+            options = ['/utf-8']
+        else:
+            if not have_execution_charset:
+                options += ['/execution-charset:utf-8']
+            if not have_source_charset:
+                options += ['/source-charset:utf-8']
+            if not have_validate_charset:
+                options += ['/validate-charset']
+        args += options
+
     def get_pch_suffix(self) -> str:
         return 'pch'
 
