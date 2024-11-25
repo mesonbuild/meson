@@ -1756,7 +1756,7 @@ class AllPlatformTests(BasePlatformTests):
             if not (compiler.info.is_windows() or compiler.info.is_cygwin() or compiler.info.is_darwin()):
                 extra_args += ['-fPIC']
             link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
-            if not is_osx():
+            if not is_osx() and not is_windows() and not is_cygwin():
                 link_cmd += ['-Wl,-soname=' + os.path.basename(outfile)]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
