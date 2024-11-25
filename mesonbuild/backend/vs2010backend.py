@@ -1023,6 +1023,10 @@ class Vs2010Backend(backends.Backend):
         # to override all the defaults, but not the per-target compile args.
         for lang in file_args.keys():
             file_args[lang] += target.get_option(OptionKey(f'{lang}_args', machine=target.for_machine))
+        # Meson default build arguments, which must added as last so that they're added only
+        # if not already set in other ways
+        for lang in file_args.keys():
+            target.compilers[lang].add_default_build_args(file_args[lang])
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
