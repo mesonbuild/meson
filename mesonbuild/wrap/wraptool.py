@@ -7,6 +7,7 @@ import sys, os
 import configparser
 import shutil
 import typing as T
+import json
 
 from glob import glob
 from .wrap import (open_wrapdburl, WrapException, get_releases, get_releases_data,
@@ -58,6 +59,10 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     p = subparsers.add_parser('promote', help='bring a subsubproject up to the master project')
     p.add_argument('project_path')
     p.set_defaults(wrap_func=promote)
+
+    p = subparsers.add_parser('set-db-mirror', help='Set WrapDB mirror address (RFC 3986 authority) to use')
+    p.add_argument('authority')
+    p.set_defaults(wrap_func=set_db_mirror)
 
     p = subparsers.add_parser('update-db', help='Update list of projects available in WrapDB (Since 0.61.0)')
     p.add_argument('--allow-insecure', default=False, action='store_true',
@@ -186,6 +191,14 @@ def status(options: 'argparse.Namespace') -> None:
             print('', name, f'up to date. Branch {current_branch}, revision {current_revision}.')
         else:
             print('', name, f'not up to date. Have {current_branch} {current_revision}, but {latest_branch} {latest_revision} is available.')
+
+def set_db_mirror(options: 'argparse.Namespace') -> None:
+    Path('subprojects').mkdir(exist_ok=True)
+    with Path('subprojects/wrapdb-mirrors.json').open('w', encoding='utf-8') as f:
+        json.dump({
+            "version": 1, # If the stored format changes, don't want to guess how to preserve forward compatibility,
+            "mirrors": [options.authority],
+        }, f)
 
 def update_db(options: 'argparse.Namespace') -> None:
     data = get_releases_data(options.allow_insecure)
