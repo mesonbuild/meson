@@ -49,18 +49,29 @@ except ImportError:
     has_ssl = False
 
 REQ_TIMEOUT = 30.0
-
 WRAPDB_UPSTREAM_HOSTNAME = 'wrapdb.mesonbuild.com'
-WRAPDB_NETLOC = os.environ.get('MESON_WRAPDB_MIRROR', WRAPDB_UPSTREAM_HOSTNAME)
 
 ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
 
 PATCH = shutil.which('patch')
 
+@lru_cache(maxsize=None)
+def wrapdb_netloc() -> str:
+    try:
+        with Path('subprojects/wrapdb-mirrors.json').open('r', encoding='utf-8') as f:
+            mirrorlist = json.load(f)
+            version = mirrorlist['version']
+            if version > 1:
+                m = f'WrapDB mirrors file (v{version}) was created with the newer version of meson'
+                raise WrapException(m)
+            return str(mirrorlist['mirrors'][0])
+    except FileNotFoundError:
+        return WRAPDB_UPSTREAM_HOSTNAME
+
 def is_trusted_subdomain(hostname: str) -> bool:
     trusted_subdomains = {
         WRAPDB_UPSTREAM_HOSTNAME,
-        urllib.parse.urlparse(f'//{WRAPDB_NETLOC}').hostname,
+        urllib.parse.urlparse(f'//{wrapdb_netloc()}').hostname,
     }
     for entry in trusted_subdomains:
         if hostname.endswith(entry):
@@ -74,7 +85,7 @@ def expand_wrapdburl(urlstr: str) -> urllib.parse.ParseResult:
     if url.scheme == 'wrapdb':
         if url.netloc:
             raise WrapException(f'{urlstr} with wrapdb: scheme should not have a netloc')
-        url = url._replace(scheme='https', netloc=WRAPDB_NETLOC)
+        url = url._replace(scheme='https', netloc=wrapdb_netloc())
     if not url.hostname:
         raise WrapException(f'{urlstr} is not a valid URL')
     if not is_trusted_subdomain(url.hostname):
@@ -128,7 +139,7 @@ def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
 
 def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str, allow_insecure: bool) -> None:
     resp = open_wrapdburl(f'wrapdb:///v2/{name}_{new_version}-{new_revision}/{name}.wrap',
-                         allow_insecure, True)
+                          allow_insecure, True)
     with open(wrapfile, 'wb') as f:
         f.write(resp.read())
 
