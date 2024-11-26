@@ -53,7 +53,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
 
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
-    dedup1_prefixes = ('-l', '-Wl,-l')
+    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,-rpath,', '-Wl,-rpath-link,')
     dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
     dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread', '-Wl,--export-dynamic')
 
