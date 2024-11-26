@@ -1718,7 +1718,7 @@ class XCodeBackend(backends.Backend):
                     langname = LANGNAMEMAP[lang]
                     langargs.setdefault(langname, [])
                     langargs[langname] = cargs + cti_args + args
-            symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
+            symroot = os.path.join(self.environment.get_build_dir(), target.subdir).rstrip('/')
             bt_dict = PbxDict()
             objects_dict.add_item(valid, bt_dict, buildtype)
             bt_dict.add_item('isa', 'XCBuildConfiguration')
