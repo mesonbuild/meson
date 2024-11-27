@@ -3,3 +3,5 @@
 * text eol=lf
 *.png binary
 *.icns binary
+data/shell-completions/bash/meson linguist-language=Shell
+data/shell-completions/zsh/_meson linguist-language=Shell

@@ -15,7 +15,7 @@ base_python_pkgs=(
   pytest-xdist
   pytest-subtests
   coverage
-  jsonschema
+  fastjsonschema
 )
 
 python_pkgs=(
@@ -39,11 +39,11 @@ dub_fetch() {
 }
 
 install_minimal_python_packages() {
-  rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED
+  rm -f /usr/lib*/python3.*/EXTERNALLY-MANAGED
   python3 -m pip install "${base_python_pkgs[@]}" $*
 }
 
 install_python_packages() {
-  rm -f /usr/lib/python3.*/EXTERNALLY-MANAGED
+  rm -f /usr/lib*/python3.*/EXTERNALLY-MANAGED
   python3 -m pip install "${base_python_pkgs[@]}" "${python_pkgs[@]}" $*
 }

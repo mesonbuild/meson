@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2015-2016 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import sys, os
@@ -20,7 +10,7 @@ import typing as T
 
 from glob import glob
 from .wrap import (open_wrapdburl, WrapException, get_releases, get_releases_data,
-                   update_wrap_file, parse_patch_url)
+                   parse_patch_url)
 from pathlib import Path
 
 from .. import mesonlib, msubprojects
@@ -28,6 +18,8 @@ from .. import mesonlib, msubprojects
 if T.TYPE_CHECKING:
     import argparse
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     subparsers = parser.add_subparsers(title='Commands', dest='command')
     subparsers.required = True
@@ -131,31 +123,6 @@ def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional
         branch, revision = parse_patch_url(patch_url)
         patch_filename = wrap_data['patch_filename']
     return branch, revision, wrap_data['directory'], wrap_data['source_filename'], patch_filename
-
-def update(options: 'argparse.Namespace') -> None:
-    name = options.name
-    if not os.path.isdir('subprojects'):
-        raise SystemExit('Subprojects dir not found. Run this command in your source root directory.')
-    wrapfile = os.path.join('subprojects', name + '.wrap')
-    if not os.path.exists(wrapfile):
-        raise SystemExit('Project ' + name + ' is not in use.')
-    (branch, revision, subdir, src_file, patch_file) = get_current_version(wrapfile)
-    (new_branch, new_revision) = get_latest_version(name, options.allow_insecure)
-    if new_branch == branch and new_revision == revision:
-        print('Project ' + name + ' is already up to date.')
-        raise SystemExit
-    update_wrap_file(wrapfile, name, new_branch, new_revision, options.allow_insecure)
-    shutil.rmtree(os.path.join('subprojects', subdir), ignore_errors=True)
-    try:
-        os.unlink(os.path.join('subprojects/packagecache', src_file))
-    except FileNotFoundError:
-        pass
-    if patch_file is not None:
-        try:
-            os.unlink(os.path.join('subprojects/packagecache', patch_file))
-        except FileNotFoundError:
-            pass
-    print(f'Updated {name} version {new_branch} revision {new_revision}')
 
 def info(options: 'argparse.Namespace') -> None:
     name = options.name

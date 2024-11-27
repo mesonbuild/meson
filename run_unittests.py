@@ -1,17 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # Work around some pathlib bugs...
 from mesonbuild import _pathlib
@@ -36,7 +25,7 @@ from mesonbuild.mesonlib import python_command, setup_vsenv
 import mesonbuild.modules.pkgconfig
 
 from unittests.allplatformstests import AllPlatformTests
-from unittests.cargotests import CargoVersionTest, CargoCfgTest
+from unittests.cargotests import CargoVersionTest, CargoCfgTest, CargoLockTest
 from unittests.darwintests import DarwinTests
 from unittests.failuretests import FailureTests
 from unittests.linuxcrosstests import LinuxCrossArmTests, LinuxCrossMingwTests
@@ -136,7 +125,7 @@ def main():
         # Let there be colors!
         if 'CI' in os.environ:
             pytest_args += ['--color=yes']
-        pytest_args += ['./run_unittests.py']
+        pytest_args += ['unittests']
         pytest_args += convert_args(sys.argv[1:])
         # Always disable pytest-cov because we use a custom setup
         try:

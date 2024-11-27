@@ -6,15 +6,21 @@ concurrency:
 
 on:
   push:
+    branches:
+      - master
+      # Stable branches such as 0.56 or 1.0
+      - '[0-9]+.[0-9]+'
     paths:
       - "mesonbuild/**"
       - "test cases/**"
+      - "unittests/**"
       - ".github/workflows/cygwin.yml"
       - "run*tests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
+      - "unittests/**"
       - ".github/workflows/cygwin.yml"
       - "run*tests.py"
 
@@ -35,7 +41,7 @@ jobs:
       MESON_CI_JOBNAME: cygwin-${{ matrix.NAME }}
 
     steps:
-      - uses: actions/cache/restore@v3
+      - uses: actions/cache/restore@v4
         id: restore-cache
         with:
           # should use 'pip3 cache dir' to discover this path
@@ -45,7 +51,7 @@ jobs:
 
       - run: git config --global core.autocrlf input
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: cygwin/cygwin-install-action@master
         with:
@@ -63,6 +69,7 @@ jobs:
             libgtk3-devel
             libxml2-devel
             libxslt-devel
+            make
             ninja
             python2-devel
             python3-devel
@@ -76,11 +83,10 @@ jobs:
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          # jsonschema is max capped because the new version depends on rust dependencies which are... hard to get on cygwin
-          python3 -m pip --disable-pip-version-check install gcovr 'jsonschema<4.18' pefile pytest pytest-subtests pytest-xdist coverage
+          python3 -m pip --disable-pip-version-check install gcovr fastjsonschema pefile pytest pytest-subtests pytest-xdist coverage
         shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
 
-      - uses: actions/cache/save@v3
+      - uses: actions/cache/save@v4
         with:
           # should use 'pip3 cache dir' to discover this path
           path: C:\cygwin\home\runneradmin\.cache\pip
@@ -96,7 +102,7 @@ jobs:
           SKIP_STATIC_BOOST: 1
         shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.NAME }}
           path: meson-test-run.*

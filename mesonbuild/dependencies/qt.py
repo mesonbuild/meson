@@ -1,18 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2017 The Meson development team
-# Copyright © 2021 Intel Corporation
-# SPDX-license-identifier: Apache-2.0
+# Copyright © 2021-2023 Intel Corporation
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 """Dependency finders for the Qt framework."""
@@ -30,6 +19,7 @@ from .pkgconfig import PkgConfigDependency
 from .factory import DependencyFactory
 from .. import mlog
 from .. import mesonlib
+from ..options import OptionKey
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
@@ -53,7 +43,7 @@ def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) ->
 
     private_dir = os.path.join(mod_inc_dir, mod_version)
     # fallback, let's try to find a directory with the latest version
-    if not os.path.exists(private_dir):
+    if os.path.isdir(mod_inc_dir) and not os.path.exists(private_dir):
         dirs = [filename for filename in os.listdir(mod_inc_dir)
                 if os.path.isdir(os.path.join(mod_inc_dir, filename))]
 
@@ -131,6 +121,7 @@ class _QtBase:
     clib_compiler: T.Union['MissingCompiler', 'Compiler']
     env: 'Environment'
     libexecdir: T.Optional[str] = None
+    version: str
 
     def __init__(self, name: str, kwargs: T.Dict[str, T.Any]):
         self.name = name
@@ -198,7 +189,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                 self.is_found = False
                 return
             if self.private_headers:
-                qt_inc_dir = mod.get_pkgconfig_variable('includedir', [], None)
+                qt_inc_dir = mod.get_variable(pkgconfig='includedir')
                 mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m)
                 if not os.path.isdir(mod_private_dir):
                     # At least some versions of homebrew don't seem to set this
@@ -220,7 +211,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                 if arg == f'-l{debug_lib_name}' or arg.endswith(f'{debug_lib_name}.lib') or arg.endswith(f'{debug_lib_name}.a'):
                     is_debug = True
                     break
-            libdir = self.get_pkgconfig_variable('libdir', [], None)
+            libdir = self.get_variable(pkgconfig='libdir')
             if not self._link_with_qt_winmain(is_debug, libdir):
                 self.is_found = False
                 return
@@ -228,7 +219,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
         self.bindir = self.get_pkgconfig_host_bins(self)
         if not self.bindir:
             # If exec_prefix is not defined, the pkg-config file is broken
-            prefix = self.get_pkgconfig_variable('exec_prefix', [], None)
+            prefix = self.get_variable(pkgconfig='exec_prefix')
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
@@ -256,6 +247,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
     """Find Qt using Qmake as a config-tool."""
 
+    version: str
     version_arg = '-v'
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
@@ -305,9 +297,9 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
 
         # Use the buildtype by default, but look at the b_vscrt option if the
         # compiler supports it.
-        is_debug = self.env.coredata.get_option(mesonlib.OptionKey('buildtype')) == 'debug'
-        if mesonlib.OptionKey('b_vscrt') in self.env.coredata.options:
-            if self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
+        is_debug = self.env.coredata.get_option(OptionKey('buildtype')) == 'debug'
+        if OptionKey('b_vscrt') in self.env.coredata.optstore:
+            if self.env.coredata.optstore.get_value('b_vscrt') in {'mdd', 'mtd'}:
                 is_debug = True
         modules_lib_suffix = _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], is_debug)
 
@@ -349,6 +341,9 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         if m:
             return m.group(0).rstrip('.')
         return version
+
+    def get_variable_args(self, variable_name: str) -> T.List[str]:
+        return ['-query', f'{variable_name}']
 
     @abc.abstractmethod
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
@@ -419,7 +414,7 @@ class Qt4PkgConfigDependency(QtPkgConfigDependency):
         applications = ['moc', 'uic', 'rcc', 'lupdate', 'lrelease']
         for application in applications:
             try:
-                return os.path.dirname(core.get_pkgconfig_variable(f'{application}_location', [], None))
+                return os.path.dirname(core.get_variable(pkgconfig=f'{application}_location'))
             except mesonlib.MesonException:
                 pass
         return None
@@ -436,7 +431,7 @@ class Qt5PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
-        return core.get_pkgconfig_variable('host_bins', [], None)
+        return core.get_variable(pkgconfig='host_bins')
 
     @staticmethod
     def get_pkgconfig_host_libexecs(core: PkgConfigDependency) -> str:
@@ -457,12 +452,12 @@ class Qt6PkgConfigDependency(Qt6WinMainMixin, QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
-        return core.get_pkgconfig_variable('bindir', [], None)
+        return core.get_variable(pkgconfig='bindir')
 
     @staticmethod
     def get_pkgconfig_host_libexecs(core: PkgConfigDependency) -> str:
         # Qt6 pkg-config for Qt defines libexecdir from 6.3+
-        return core.get_pkgconfig_variable('libexecdir', [], None)
+        return core.get_variable(pkgconfig='libexecdir')
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)

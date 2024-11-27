@@ -79,6 +79,7 @@ machine](#specifying-options-per-machine) section for details.
 | genvslite {vs2022}                     | vs2022        | Setup multi-builtype ninja build directories and Visual Studio solution | no | no |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | no                |
 | debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
+| default_both_libraries {shared, static, auto} | shared | Default library type for both_libraries                        | no             | no                |
 | default_library {shared, static, both} | shared        | Default library type                                           | no             | yes               |
 | errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
@@ -91,7 +92,7 @@ machine](#specifying-options-per-machine) section for details.
 | strip                                  | false         | Strip targets on install                                       | no             | no                |
 | unity {on, off, subprojects}           | off           | Unity build                                                    | no             | no                |
 | unity_size {>=2}                       | 4             | Unity file block size                                          | no             | no                |
-| warning_level {0, 1, 2, 3, everything} | 1             | Set the warning level. From 0 = none to everything = highest   | no             | yes               |
+| warning_level {0, 1, 2, 3, everything} | 1             | Set the warning level. From 0 = compiler default to everything = highest | no   | yes               |
 | werror                                 | false         | Treat warnings as errors                                       | no             | yes               |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                   | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
@@ -177,6 +178,19 @@ fails.
 
 `vsenv` is `true` by default when using the `vs` backend.
 
+
+#### Details for `default_both_libraries`
+
+Since `1.6.0`, you can select the default type of library selected when using
+a `both_libraries` object. This can be either 'shared' (default value, compatible
+with previous meson versions), 'static', or 'auto'. With auto, the value from
+`default_library` option is used, unless it is 'both', in which case 'shared'
+is used instead.
+
+When `default_both_libraries` is 'auto', passing a [[@both_libs]] dependency
+in [[both_libraries]] will link the static dependency with the static lib,
+and the shared dependency with the shared lib.
+
 ## Base options
 
 These are set in the same way as universal options, either by
@@ -257,7 +271,7 @@ or compiler being used:
 | ------           | ------------- | ---------------                          | ----------- |
 | c_args           |               | free-form comma-separated list           | C compile arguments to use |
 | c_link_args      |               | free-form comma-separated list           | C link arguments to use |
-| c_std            | none          | none, c89, c99, c11, c17, c18, c2x, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x | C language standard to use |
+| c_std            | none          | none, c89, c99, c11, c17, c18, c2x, c23, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x, gnu23 | C language standard to use |
 | c_winlibs        | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 | c_thread_count   | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
 | cpp_args         |               | free-form comma-separated list           | C++ compile arguments to use |
@@ -280,11 +294,11 @@ All these `<lang>_*` options are specified per machine. See below in
 the [specifying options per machine](#specifying-options-per-machine)
 section on how to do this in cross builds.
 
-When using MSVC, `cpp_eh=none` will result in no exception flags being
-passed, while the `cpp_eh=[value]` will result in `/EH[value]`. Since
-*0.51.0* `cpp_eh=default` will result in `/EHsc` on MSVC. When using
-gcc-style compilers, nothing is passed (allowing exceptions to work),
-while `cpp_eh=none` passes `-fno-exceptions`.
+When using MSVC, `cpp_eh=[value]` will result in `/EH[value]` being passed.
+The magic value `none` translates to `s-c-` to disable exceptions. *Since
+0.51.0* `default` translates to `sc`. When using gcc-style compilers, nothing
+is passed (allowing exceptions to work), while `cpp_eh=none` passes
+`-fno-exceptions`.
 
 Since *0.54.0* The `<lang>_thread_count` option can be used to control
 the value passed to `-s PTHREAD_POOL_SIZE` when using emcc. No other
@@ -295,6 +309,21 @@ Since *0.63.0* all compiler options can be set per subproject, see
 is inherited from the main project. This is useful, for example, when the main
 project requires C++11, but a subproject requires C++14. The `cpp_std` value
 from the subproject's `default_options` is now respected.
+
+Since *1.3.0* `c_std` and `cpp_std` options now accept a list of values.
+Projects that prefer GNU C, but can fallback to ISO C, can now set, for
+example, `default_options: 'c_std=gnu11,c11'`, and it will use `gnu11` when
+available, but fallback to c11 otherwise. It is an error only if none of the
+values are supported by the current compiler.
+Likewise, a project that can take benefit of `c++17` but can still build with
+`c++11` can set `default_options: 'cpp_std=c++17,c++11'`.
+This allows us to deprecate `gnuXX` values from the MSVC compiler. That means
+that `default_options: 'c_std=gnu11'` will now print a warning with MSVC
+but fallback to `c11`. No warning is printed if at least one
+of the values is valid, i.e. `default_options: 'c_std=gnu11,c11'`.
+In the future that deprecation warning will become an hard error because
+`c_std=gnu11` should mean GNU is required, for projects that cannot be
+built with MSVC for example.
 
 ## Specifying options per machine
 
@@ -393,7 +422,8 @@ interpreter directly, even if it is a venv. Setting to `venv` will instead use
 the paths for the virtualenv the python found installation comes from (or fail
 if it is not a virtualenv).  Setting to `auto` will check if the found
 installation is a virtualenv, and use `venv` or `system` as appropriate (but
-never `prefix`). This option is mutually exclusive with the `platlibdir`/`purelibdir`.
+never `prefix`). Note that Conda environments are treated as `system`.
+This option is mutually exclusive with the `platlibdir`/`purelibdir`.
 
 For backwards compatibility purposes, the default `install_env` is `prefix`.
 

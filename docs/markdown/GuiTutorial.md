@@ -170,6 +170,20 @@ executable('sdlprog', 'sdlprog.c',
            dependencies: sdl2_dep)
 ```
 
+**NOTE:** If you're on Windows you need to include the sdl2main dependency as well; To do so you can modify the above build script like so:
+
+```meson
+project('sdldemo', 'c',
+        default_options: 'default_library=static')
+
+sdl2_dep = dependency('sdl2')
+sdl2_main_dep = dependency('sdl2main')
+
+executable('sdlprog', 'sdlprog.c',
+           win_subsystem: 'windows',
+           dependencies: [sdl2_dep, sdl2_main_dep])
+```
+
 In addition to the dependency this has a few other changes. First we
 specify that we want to build helper libraries statically. For simple
 projects like these it makes things simpler. We also need to tell

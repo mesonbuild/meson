@@ -36,7 +36,7 @@ ignored if the library is configured as static at the compile time.
 
 ```meson
 project('shared lib', 'c')
-library('mylib', 'source.c', version : '1.2.3', soversion : '0')
+library('mylib', 'source.c', version : '1.2.3', soversion : '1')
 ```
 
 It is common to build a library and then an executable that links

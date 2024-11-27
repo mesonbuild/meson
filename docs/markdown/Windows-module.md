@@ -12,7 +12,7 @@ Windows.
   windows.compile_resources(...(string | File | CustomTarget | CustomTargetIndex),
                             args: []string,
                             depend_files: [](string | File),
-                            depends: [](BuildTarget | CustomTarget)
+                            depends: [](BuildTarget | CustomTarget | CustomTargetIndex)
                             include_directories: [](IncludeDirectories | string)): []CustomTarget
 ```
 

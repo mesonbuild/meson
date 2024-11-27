@@ -1,18 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2022 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import sys, os, subprocess, shutil
 import shlex
 import typing as T
@@ -31,6 +22,8 @@ def has_for_build() -> bool:
             return True
     return False
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--debarch', default=None,
                         help='The dpkg architecture to generate.')
@@ -55,21 +48,21 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('--endian', default='little', choices=['big', 'little'],
                         help='Define endianness for cross compilation.')
 
+@dataclass
 class MachineInfo:
-    def __init__(self) -> None:
-        self.compilers: T.Dict[str, T.List[str]] = {}
-        self.binaries: T.Dict[str, T.List[str]] = {}
-        self.properties: T.Dict[str, T.Union[str, T.List[str]]] = {}
-        self.compile_args: T.Dict[str, T.List[str]] = {}
-        self.link_args: T.Dict[str, T.List[str]] = {}
-        self.cmake: T.Dict[str, T.Union[str, T.List[str]]] = {}
+    compilers: T.Dict[str, T.List[str]] = field(default_factory=dict)
+    binaries: T.Dict[str, T.List[str]] = field(default_factory=dict)
+    properties: T.Dict[str, T.Union[str, T.List[str]]] = field(default_factory=dict)
+    compile_args: T.Dict[str, T.List[str]] = field(default_factory=dict)
+    link_args: T.Dict[str, T.List[str]] = field(default_factory=dict)
+    cmake: T.Dict[str, T.Union[str, T.List[str]]] = field(default_factory=dict)
 
-        self.system: T.Optional[str] = None
-        self.subsystem: T.Optional[str] = None
-        self.kernel: T.Optional[str] = None
-        self.cpu: T.Optional[str] = None
-        self.cpu_family: T.Optional[str] = None
-        self.endian: T.Optional[str] = None
+    system: T.Optional[str] = None
+    subsystem: T.Optional[str] = None
+    kernel: T.Optional[str] = None
+    cpu: T.Optional[str] = None
+    cpu_family: T.Optional[str] = None
+    endian: T.Optional[str] = None
 
 #parser = argparse.ArgumentParser(description='''Generate cross compilation definition file for the Meson build system.
 #
@@ -137,17 +130,41 @@ def get_args_from_envvars(infos: MachineInfo) -> None:
     if objcpp_link_args:
         infos.link_args['objcpp'] = objcpp_link_args
 
+# map from DEB_HOST_GNU_CPU to Meson machine.cpu_family()
 deb_cpu_family_map = {
     'mips64el': 'mips64',
     'i686': 'x86',
     'powerpc64le': 'ppc64',
 }
 
-deb_cpu_map = {
+# map from DEB_HOST_ARCH to Meson machine.cpu()
+deb_arch_cpu_map = {
     'armhf': 'arm7hlf',
+}
+
+# map from DEB_HOST_GNU_CPU to Meson machine.cpu()
+deb_cpu_map = {
     'mips64el': 'mips64',
     'powerpc64le': 'ppc64',
 }
+
+# map from DEB_HOST_ARCH_OS to Meson machine.system()
+deb_os_map = {
+    'hurd': 'gnu',
+}
+
+# map from DEB_HOST_ARCH_OS to Meson machine.kernel()
+deb_kernel_map = {
+    'kfreebsd': 'freebsd',
+    'hurd': 'gnu',
+}
+
+def replace_special_cases(special_cases: T.Mapping[str, str], name: str) -> str:
+    '''
+    If name is a key in special_cases, replace it with the value, or otherwise
+    pass it through unchanged.
+    '''
+    return special_cases.get(name, name)
 
 def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
     system_name_map = {'linux': 'Linux', 'kfreebsd': 'kFreeBSD', 'hurd': 'GNU'}
@@ -159,8 +176,7 @@ def deb_detect_cmake(infos: MachineInfo, data: T.Dict[str, str]) -> None:
     except KeyError:
         pass
     infos.cmake["CMAKE_SYSTEM_NAME"] = system_name_map[data['DEB_HOST_ARCH_OS']]
-    infos.cmake["CMAKE_SYSTEM_PROCESSOR"] = system_processor_map.get(data['DEB_HOST_GNU_CPU'],
-                                                                     data['DEB_HOST_GNU_CPU'])
+    infos.cmake["CMAKE_SYSTEM_PROCESSOR"] = replace_special_cases(system_processor_map, data['DEB_HOST_GNU_CPU'])
 
 def deb_compiler_lookup(infos: MachineInfo, compilerstems: T.List[T.Tuple[str, str]], host_arch: str, gccsuffix: str) -> None:
     for langname, stem in compilerstems:
@@ -178,6 +194,9 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
         cmd = ['dpkg-architecture', '-a' + options.debarch]
     output = subprocess.check_output(cmd, universal_newlines=True,
                                      stderr=subprocess.DEVNULL)
+    return dpkg_architecture_to_machine_info(output, options)
+
+def dpkg_architecture_to_machine_info(output: str, options: T.Any) -> MachineInfo:
     data = {}
     for line in output.split('\n'):
         line = line.strip()
@@ -186,13 +205,12 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
         k, v = line.split('=', 1)
         data[k] = v
     host_arch = data['DEB_HOST_GNU_TYPE']
-    host_os = data['DEB_HOST_ARCH_OS']
+    host_os = replace_special_cases(deb_os_map, data['DEB_HOST_ARCH_OS'])
     host_subsystem = host_os
-    host_kernel = 'linux'
-    host_cpu_family = deb_cpu_family_map.get(data['DEB_HOST_GNU_CPU'],
-                                             data['DEB_HOST_GNU_CPU'])
-    host_cpu = deb_cpu_map.get(data['DEB_HOST_ARCH'],
-                               data['DEB_HOST_ARCH'])
+    host_kernel = replace_special_cases(deb_kernel_map, data['DEB_HOST_ARCH_OS'])
+    host_cpu_family = replace_special_cases(deb_cpu_family_map, data['DEB_HOST_GNU_CPU'])
+    host_cpu = deb_arch_cpu_map.get(data['DEB_HOST_ARCH'],
+                                    replace_special_cases(deb_cpu_map, data['DEB_HOST_GNU_CPU']))
     host_endian = data['DEB_HOST_ARCH_ENDIAN']
 
     compilerstems = [('c', 'gcc'),
@@ -212,10 +230,33 @@ def detect_cross_debianlike(options: T.Any) -> MachineInfo:
         deb_detect_cmake(infos, data)
     except ValueError:
         pass
-    try:
-        infos.binaries['pkg-config'] = locate_path("%s-pkg-config" % host_arch)
-    except ValueError:
-        pass # pkg-config is optional
+    for tool in [
+        'g-ir-annotation-tool',
+        'g-ir-compiler',
+        'g-ir-doc-tool',
+        'g-ir-generate',
+        'g-ir-inspect',
+        'g-ir-scanner',
+        'pkg-config',
+    ]:
+        try:
+            infos.binaries[tool] = locate_path("%s-%s" % (host_arch, tool))
+        except ValueError:
+            pass    # optional
+    for tool, exe in [
+        ('exe_wrapper', 'cross-exe-wrapper'),
+    ]:
+        try:
+            infos.binaries[tool] = locate_path("%s-%s" % (host_arch, exe))
+        except ValueError:
+            pass
+    for tool, exe in [
+        ('vala', 'valac'),
+    ]:
+        try:
+            infos.compilers[tool] = locate_path("%s-%s" % (host_arch, exe))
+        except ValueError:
+            pass
     try:
         infos.binaries['cups-config'] = locate_path("cups-config")
     except ValueError:
@@ -246,7 +287,7 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
             write_args_line(ofile, exename, exe)
         ofile.write('\n')
 
-        ofile.write('[properties]\n')
+        ofile.write('[built-in options]\n')
         all_langs = list(set(infos.compile_args.keys()).union(set(infos.link_args.keys())))
         all_langs.sort()
         for lang in all_langs:
@@ -254,6 +295,9 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
                 write_args_line(ofile, lang + '_args', infos.compile_args[lang])
             if lang in infos.link_args:
                 write_args_line(ofile, lang + '_link_args', infos.link_args[lang])
+        ofile.write('\n')
+
+        ofile.write('[properties]\n')
         for k, v in infos.properties.items():
             write_args_line(ofile, k, v)
         ofile.write('\n')
@@ -278,7 +322,6 @@ def write_machine_file(infos: MachineInfo, ofilename: str, write_system_info: bo
     os.replace(tmpfilename, ofilename)
 
 def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') -> T.Tuple[T.List[str], T.List[str]]:
-    ldflags = tuple(shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, '')))
     compile_args = []
     if langname in compilers.CFLAGS_MAPPING:
         compile_args = shlex.split(os.environ.get(compilers.CFLAGS_MAPPING[langname] + envvar_suffix, ''))
@@ -287,7 +330,10 @@ def detect_language_args_from_envvars(langname: str, envvar_suffix: str = '') ->
         lang_compile_args = list(cppflags) + compile_args
     else:
         lang_compile_args = compile_args
-    lang_link_args = list(ldflags) + compile_args
+    lang_link_args = []
+    if langname in compilers.LANGUAGES_USING_LDFLAGS:
+        lang_link_args += shlex.split(os.environ.get('LDFLAGS' + envvar_suffix, ''))
+    lang_link_args += compile_args
     return (lang_compile_args, lang_link_args)
 
 def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
@@ -296,7 +342,10 @@ def detect_compilers_from_envvars(envvar_suffix: str = '') -> MachineInfo:
         compilerstr = os.environ.get(envvarname + envvar_suffix)
         if not compilerstr:
             continue
-        compiler = shlex.split(compilerstr)
+        if os.path.exists(compilerstr):
+            compiler = [compilerstr]
+        else:
+            compiler = shlex.split(compilerstr)
         infos.compilers[langname] = compiler
         lang_compile_args, lang_link_args = detect_language_args_from_envvars(langname, envvar_suffix)
         if lang_compile_args:
@@ -330,7 +379,7 @@ def detect_cross_system(infos: MachineInfo, options: T.Any) -> None:
 
 def detect_cross_env(options: T.Any) -> MachineInfo:
     if options.debarch:
-        print('Detecting cross environment via dpkg-reconfigure.')
+        print('Detecting cross environment via dpkg-architecture.')
         infos = detect_cross_debianlike(options)
     else:
         print('Detecting cross environment via environment variables.')

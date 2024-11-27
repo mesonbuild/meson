@@ -1,1 +1,1 @@
-meson.options
+option('foo', type : 'string')

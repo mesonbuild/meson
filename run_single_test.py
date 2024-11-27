@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# SPDX-license-identifier: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2021-2024 Intel Corporation
 
 """Script for running a single project test.
 
@@ -13,8 +13,11 @@ import pathlib
 import typing as T
 
 from mesonbuild import mlog
-from run_project_tests import TestDef, load_test_json, run_test, BuildStep, test_emits_skip_msg
-from run_project_tests import setup_commands, detect_system_compiler, print_tool_versions
+from mesonbuild.mesonlib import is_windows
+from run_tests import handle_meson_skip_test
+from run_project_tests import TestDef, load_test_json, run_test, BuildStep
+from run_project_tests import setup_commands, detect_system_compiler, detect_tools
+from run_project_tests import scan_test_data_symlinks, setup_symlinks, clear_transitive_files
 
 if T.TYPE_CHECKING:
     from run_project_tests import CompilerArgumentType
@@ -43,10 +46,13 @@ def main() -> None:
     parser.add_argument('--quick', action='store_true', help='Skip some compiler and tool checking')
     args = T.cast('ArgumentType', parser.parse_args())
 
+    if not is_windows():
+        scan_test_data_symlinks()
+        setup_symlinks()
     setup_commands(args.backend)
     if not args.quick:
         detect_system_compiler(args)
-        print_tool_versions()
+    detect_tools(not args.quick)
 
     test = TestDef(args.case, args.case.stem, [])
     tests = load_test_json(test, False)
@@ -69,15 +75,7 @@ def main() -> None:
             is_skipped = True
             skip_reason = 'not run because preconditions were not met'
         else:
-            for l in result.stdo.splitlines():
-                if test_emits_skip_msg(l):
-                    is_skipped = True
-                    offset = l.index('MESON_SKIP_TEST') + 16
-                    skip_reason = l[offset:].strip()
-                    break
-            else:
-                is_skipped = False
-                skip_reason = ''
+            is_skipped, skip_reason = handle_meson_skip_test(result.stdo)
 
         if is_skipped:
             msg = mlog.yellow('SKIP:')
@@ -102,6 +100,7 @@ def main() -> None:
                 mlog.log(cmd_res)
             mlog.log(result.stde)
 
+    clear_transitive_files()
     exit(1 if failed else 0)
 
 if __name__ == "__main__":

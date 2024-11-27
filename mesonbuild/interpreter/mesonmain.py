@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
+import copy
 import os
 import typing as T
 
@@ -11,7 +12,8 @@ from .. import dependencies
 from .. import build
 from .. import mlog, coredata
 
-from ..mesonlib import MachineChoice, OptionKey
+from ..mesonlib import MachineChoice
+from ..options import OptionKey
 from ..programs import OverrideProgram, ExternalProgram
 from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
 from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
@@ -188,6 +190,7 @@ class MesonMain(MesonInterpreterObject):
         varargs=(str, mesonlib.File, ExternalProgram)
     )
     @noKwargs
+    @FeatureNew('meson.add_dist_script', '0.48.0')
     def add_dist_script_method(
             self,
             args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgram],
@@ -331,7 +334,7 @@ class MesonMain(MesonInterpreterObject):
                                         self.interpreter.environment.build_dir)
             if not os.path.exists(abspath):
                 raise InterpreterException(f'Tried to override {name} with a file that does not exist.')
-            exe = OverrideProgram(name, [abspath])
+            exe = OverrideProgram(name, self.interpreter.project_version, command=[abspath])
         self.interpreter.add_find_program_override(name, exe)
 
     @typed_kwargs(
@@ -345,6 +348,16 @@ class MesonMain(MesonInterpreterObject):
         name, dep = args
         if not name:
             raise InterpreterException('First argument must be a string and cannot be empty')
+
+        # Make a copy since we're going to mutate.
+        #
+        #   dep = declare_dependency()
+        #   meson.override_dependency('foo', dep)
+        #   meson.override_dependency('foo-1.0', dep)
+        #   dep = dependency('foo')
+        #   dep.name() # == 'foo-1.0'
+        dep = copy.copy(dep)
+        dep.name = name
 
         optkey = OptionKey('default_library', subproject=self.interpreter.subproject)
         default_library = self.interpreter.coredata.get_option(optkey)

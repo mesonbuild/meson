@@ -5,9 +5,17 @@ short-description: How to use Meson in Visual Studio
 # Using with Visual Studio
 
 In order to generate Visual Studio projects, Meson needs to know the
-settings of your installed version of Visual Studio. The only way to
-get this information is to run Meson under the Visual Studio Command
-Prompt.
+settings of your installed version of Visual Studio.
+
+
+The traditional way to get this information is to run Meson (or any build
+system) under the Visual Studio Command Prompt.
+
+If no Visual Studio Command Prompt was detected, and no mingw compilers are
+detected either, meson will attempt to find "a" Visual Studio installation for
+you automatically, by asking Microsoft's "vswhere" program. If you want to
+ignore mingw compilers, pass the `--vsenv` option on the meson command line.
+If you need to guarantee a specific Visual Studio version, set it up manually.
 
 You can always find the Visual Studio Command Prompt by searching from
 the Start Menu. However, the name is different for each Visual Studio

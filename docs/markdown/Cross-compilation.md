@@ -14,6 +14,7 @@ targeting 64-bit Windows could be:
 c = 'x86_64-w64-mingw32-gcc'
 cpp = 'x86_64-w64-mingw32-g++'
 ar = 'x86_64-w64-mingw32-ar'
+windres = 'x86_64-w64-mingw32-windres'
 strip = 'x86_64-w64-mingw32-strip'
 exe_wrapper = 'wine64'
 
@@ -256,7 +257,7 @@ to be the host machine.
 Once you have the cross file, starting a build is simple
 
 ```console
-$ meson srcdir builddir --cross-file cross_file.txt
+$ meson setup builddir --cross-file cross_file.txt
 ```
 
 Once configuration is done, compilation is started by invoking `meson compile`

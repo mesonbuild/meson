@@ -22,7 +22,7 @@ if build_machine.system() == 'windows'
   assert(fs.relative_to(ctgt[0], 'subdirfile.txt') == '..\\@0@\\subdirfile.txt'.format(src_to_build))
   # Test that BuildTarget works
   assert(fs.relative_to('subdirfile.txt', btgt) == '..\\@0@\\subdirfile.txt'.format(build_to_src))
-  assert(fs.relative_to(btgt, 'subdirfile.txt') == '..\\@0@\\btgt.exe'.format(src_to_build))
+  assert(fs.relative_to(btgt, 'subdirfile.txt') == '..\\@0@\\@1@'.format(src_to_build, fs.name(btgt.full_path())))
 else
   # Test that CustomTarget works
   assert(fs.relative_to('subdirfile.txt', ctgt) == '../@0@/subdirfile.txt'.format(build_to_src))
@@ -32,9 +32,5 @@ else
   assert(fs.relative_to(ctgt[0], 'subdirfile.txt') == '../@0@/subdirfile.txt'.format(src_to_build))
   # Test that BuildTarget works
   assert(fs.relative_to('subdirfile.txt', btgt) == '../@0@/subdirfile.txt'.format(build_to_src))
-  if host_machine.system() == 'windows'
-    assert(fs.relative_to(btgt, 'subdirfile.txt') == '../@0@/btgt.exe'.format(src_to_build))
-  else
-    assert(fs.relative_to(btgt, 'subdirfile.txt') == '../@0@/btgt'.format(src_to_build))
-  endif
+  assert(fs.relative_to(btgt, 'subdirfile.txt') == '../@0@/@1@'.format(src_to_build, fs.name(btgt.full_path())))
 endif

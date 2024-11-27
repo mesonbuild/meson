@@ -1,6 +1,7 @@
 project(
   'dependency include_type',
   ['c', 'cpp'],
+  default_options: ['cpp_std=c++11'],
 )
 
 dep = dependency('zlib', method: 'pkg-config', required : false)

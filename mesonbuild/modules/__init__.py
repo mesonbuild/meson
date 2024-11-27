@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This file contains the base representation for import('modname')
 
@@ -19,6 +8,7 @@ import dataclasses
 import typing as T
 
 from .. import build, mesonlib
+from ..options import OptionKey
 from ..build import IncludeDirs
 from ..interpreterbase.decorators import noKwargs, noPosargs
 from ..mesonlib import relpath, HoldableObject, MachineChoice
@@ -26,10 +16,9 @@ from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
-    from ..interpreter.interpreterobjects import MachineHolder
+    from ..interpreter.interpreter import ProgramVersionFunc
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import OverrideProgram
-    from ..wrap import WrapMode
     from ..dependencies import Dependency
 
 class ModuleState:
@@ -49,7 +38,7 @@ class ModuleState:
         self.subproject = interpreter.subproject
         self.subdir = interpreter.subdir
         self.root_subdir = interpreter.root_subdir
-        self.current_lineno = interpreter.current_lineno
+        self.current_lineno = interpreter.current_node.lineno
         self.environment = interpreter.environment
         self.project_name = interpreter.build.project_name
         self.project_version = interpreter.build.dep_manifest[interpreter.active_projectname].version
@@ -62,9 +51,6 @@ class ModuleState:
         self.man = interpreter.build.get_man()
         self.global_args = interpreter.build.global_args.host
         self.project_args = interpreter.build.projects_args.host.get(interpreter.subproject, {})
-        self.build_machine = T.cast('MachineHolder', interpreter.builtin['build_machine']).held_object
-        self.host_machine = T.cast('MachineHolder', interpreter.builtin['host_machine']).held_object
-        self.target_machine = T.cast('MachineHolder', interpreter.builtin['target_machine']).held_object
         self.current_node = interpreter.current_node
 
     def get_include_args(self, include_dirs: T.Iterable[T.Union[str, build.IncludeDirs]], prefix: str = '-I') -> T.List[str]:
@@ -86,8 +72,8 @@ class ModuleState:
 
     def find_program(self, prog: T.Union[mesonlib.FileOrString, T.List[mesonlib.FileOrString]],
                      required: bool = True,
-                     version_func: T.Optional[T.Callable[[T.Union[ExternalProgram, build.Executable, OverrideProgram]], str]] = None,
-                     wanted: T.Optional[str] = None, silent: bool = False,
+                     version_func: T.Optional[ProgramVersionFunc] = None,
+                     wanted: T.Union[str, T.List[str]] = '', silent: bool = False,
                      for_machine: MachineChoice = MachineChoice.HOST) -> T.Union[ExternalProgram, build.Executable, OverrideProgram]:
         if not isinstance(prog, list):
             prog = [prog]
@@ -111,7 +97,12 @@ class ModuleState:
         if dep.found() and dep.type_name == 'pkgconfig':
             value = dep.get_variable(pkgconfig=varname)
             if value:
-                return ExternalProgram(name, [value])
+                progobj = ExternalProgram(value)
+                if not progobj.found():
+                    msg = (f'Dependency {depname!r} tool variable {varname!r} contains erroneous value: {value!r}\n\n'
+                           f'This is a distributor issue -- please report it to your {depname} provider.')
+                    raise mesonlib.MesonException(msg)
+                return progobj
 
         # Normal program lookup
         return self.find_program(name, required=required, wanted=wanted)
@@ -122,7 +113,7 @@ class ModuleState:
         if wanted:
             kwargs['version'] = wanted
         # FIXME: Even if we fix the function, mypy still can't figure out what's
-        # going on here. And we really dont want to call interpreter
+        # going on here. And we really don't want to call interpreter
         # implementations of meson functions anyway.
         return self._interpreter.func_dependency(self.current_node, [depname], kwargs) # type: ignore
 
@@ -141,16 +132,13 @@ class ModuleState:
         self._interpreter.func_test(self.current_node, real_args, kwargs)
 
     def get_option(self, name: str, subproject: str = '',
-                   machine: MachineChoice = MachineChoice.HOST,
-                   lang: T.Optional[str] = None,
-                   module: T.Optional[str] = None) -> T.Union[T.List[str], str, int, bool, 'WrapMode']:
-        return self.environment.coredata.get_option(mesonlib.OptionKey(name, subproject, machine, lang, module))
+                   machine: MachineChoice = MachineChoice.HOST) -> T.Union[T.List[str], str, int, bool]:
+        return self.environment.coredata.get_option(OptionKey(name, subproject, machine))
 
     def is_user_defined_option(self, name: str, subproject: str = '',
                                machine: MachineChoice = MachineChoice.HOST,
-                               lang: T.Optional[str] = None,
-                               module: T.Optional[str] = None) -> bool:
-        key = mesonlib.OptionKey(name, subproject, machine, lang, module)
+                               lang: T.Optional[str] = None) -> bool:
+        key = OptionKey(name, subproject, machine)
         return key in self._interpreter.user_defined_options.cmd_line_options
 
     def process_include_dirs(self, dirs: T.Iterable[T.Union[str, IncludeDirs]]) -> T.Iterable[IncludeDirs]:
@@ -166,6 +154,8 @@ class ModuleState:
             else:
                 yield self._interpreter.build_incdir_object([d])
 
+    def add_language(self, lang: str, for_machine: MachineChoice) -> None:
+        self._interpreter.add_languages([lang], True, for_machine)
 
 class ModuleObject(HoldableObject):
     """Base class for all objects returned by modules
@@ -261,7 +251,7 @@ class ModuleReturnValue:
         self.new_objects: T.List[T.Union['TYPE_var', 'mesonlib.ExecutableSerialisation']] = new_objects
 
 class GResourceTarget(build.CustomTarget):
-    pass
+    source_dirs: T.List[str] = []
 
 class GResourceHeaderTarget(build.CustomTarget):
     pass

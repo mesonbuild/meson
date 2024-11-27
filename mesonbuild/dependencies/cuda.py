@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2019 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import glob
@@ -34,7 +24,7 @@ if T.TYPE_CHECKING:
 
 class CudaDependency(SystemDependency):
 
-    supported_languages = ['cuda', 'cpp', 'c'] # see also _default_language
+    supported_languages = ['cpp', 'c', 'cuda'] # see also _default_language
 
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         compilers = environment.coredata.compilers[self.get_for_machine_from_kwargs(kwargs)]
@@ -45,8 +35,13 @@ class CudaDependency(SystemDependency):
         super().__init__('cuda', environment, kwargs, language=language)
         self.lib_modules: T.Dict[str, T.List[str]] = {}
         self.requested_modules = self.get_requested(kwargs)
-        if 'cudart' not in self.requested_modules:
-            self.requested_modules = ['cudart'] + self.requested_modules
+        if not any(runtime in self.requested_modules for runtime in ['cudart', 'cudart_static']):
+            # By default, we prefer to link the static CUDA runtime, since this is what nvcc also does by default:
+            # https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#cudart-none-shared-static-cudart
+            req_modules = ['cudart']
+            if kwargs.get('static', True):
+                req_modules = ['cudart_static']
+            self.requested_modules = req_modules + self.requested_modules
 
         (self.cuda_path, self.version, self.is_found) = self._detect_cuda_path_and_version()
         if not self.is_found:
@@ -61,12 +56,9 @@ class CudaDependency(SystemDependency):
             self.incdir = os.path.join(self.cuda_path, 'include')
             self.compile_args += [f'-I{self.incdir}']
 
-        if self.language != 'cuda':
-            arch_libdir = self._detect_arch_libdir()
-            self.libdir = os.path.join(self.cuda_path, arch_libdir)
-            mlog.debug('CUDA library directory is', mlog.bold(self.libdir))
-        else:
-            self.libdir = None
+        arch_libdir = self._detect_arch_libdir()
+        self.libdir = os.path.join(self.cuda_path, arch_libdir)
+        mlog.debug('CUDA library directory is', mlog.bold(self.libdir))
 
         self.is_found = self._find_requested_libraries()
 
@@ -244,7 +236,14 @@ class CudaDependency(SystemDependency):
         all_found = True
 
         for module in self.requested_modules:
-            args = self.clib_compiler.find_library(module, self.env, [self.libdir] if self.libdir else [])
+            args = self.clib_compiler.find_library(module, self.env, [self.libdir])
+            if module == 'cudart_static' and self.language != 'cuda':
+                machine = self.env.machines[self.for_machine]
+                if machine.is_linux():
+                    # extracted by running
+                    #   nvcc -v foo.o
+                    args += ['-lrt', '-lpthread', '-ldl']
+
             if args is None:
                 self._report_dependency_error(f'Couldn\'t find requested CUDA module \'{module}\'')
                 all_found = False
@@ -286,10 +285,24 @@ class CudaDependency(SystemDependency):
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         args: T.List[str] = []
-        if self.libdir:
-            args += self.clib_compiler.get_linker_search_args(self.libdir)
         for lib in self.requested_modules:
-            args += self.lib_modules[lib]
+            link_args = self.lib_modules[lib]
+            # Turn canonical arguments like
+            #   /opt/cuda/lib64/libcublas.so
+            # back into
+            #   -lcublas
+            # since this is how CUDA modules were passed to nvcc since time immemorial
+            if language == 'cuda':
+                if lib in frozenset(['cudart', 'cudart_static']):
+                    # nvcc always links these unconditionally
+                    mlog.debug(f'Not adding \'{lib}\' to dependency, since nvcc will link it implicitly')
+                    link_args = []
+                elif link_args and link_args[0].startswith(self.libdir):
+                    # module included with CUDA, nvcc knows how to find these itself
+                    mlog.debug(f'CUDA module \'{lib}\' found in CUDA libdir')
+                    link_args = ['-l' + lib]
+            args += link_args
+
         return args
 
 packages['cuda'] = CudaDependency

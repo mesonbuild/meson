@@ -2,8 +2,14 @@
 
 *New in Meson 0.57.0*
 
-The Qt6 module provides tools to automatically deal with the various
+The Qt6 module provides methods to automatically deal with the various
 tools and steps required for Qt.
+
+<div class="alert alert-warning">
+<strong>Warning:</strong> before version 0.63.0 Meson would fail to find
+Qt 6.1 or later due to the Qt tools having moved to the libexec subdirectory,
+and tool names being suffixed with only the Qt major version number e.g. qmake6.
+</div>
 
 ## compile_resources
 
@@ -14,12 +20,12 @@ Compiles Qt's resources collection files (.qrc) into c++ files for compilation.
 It takes no positional arguments, and the following keyword arguments:
   - `name` (string | empty): if provided a single .cpp file will be generated,
     and the output of all qrc files will be combined in this file, otherwise
-    each qrc file be written to it's own cpp file.
+    each qrc file be written to its own cpp file.
   - `sources` (File | string | custom_target | custom_target index | generator_output)[]:
     A list of sources to be transpiled. Required, must have at least one source<br/>
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-rcc`
-  - `method` string: The method to use to detect qt, see [[dependency]]
+  - `method` string: The method to use to detect Qt, see [[dependency]]
 
 ## compile_ui
 
@@ -32,7 +38,12 @@ It takes no positional arguments, and the following keyword arguments:
     A list of sources to be transpiled. Required, must have at least one source<br/>
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-uic`
-  - `method` string: The method to use to detect qt, see [[dependency]]
+  - `method` string: The method to use to detect Qt, see [[dependency]]
+  - `preserve_paths` bool: *New in 1.4.0*. If `true`, specifies that the output
+    files need to maintain their directory structure inside the target temporary
+    directory. For instance, when a file called `subdir/one.input` is processed
+    it generates a file `{target private directory}/subdir/one.out` when `true`,
+    and `{target private directory}/one.out` when `false` (default).
 
 ## compile_moc
 
@@ -49,10 +60,15 @@ It takes no positional arguments, and the following keyword arguments:
      A list of headers to be transpiled into .cpp files<br/>
     *New in 0.60.0*: support for custom_target, custom_target_index, and generator_output.
   - `extra_args` string[]: Extra arguments to pass directly to `qt-moc`
-  - `method` string: The method to use to detect qt, see [[dependency]]
+  - `method` string: The method to use to detect Qt, see [[dependency]]
   - `dependencies`: dependency objects whose include directories are used by moc.
   - `include_directories` (string | IncludeDirectory)[]: A list of `include_directory()`
     objects used when transpiling the .moc files
+  - `preserve_paths` bool: *New in 1.4.0*. If `true`, specifies that the output
+    files need to maintain their directory structure inside the target temporary
+    directory. For instance, when a file called `subdir/one.input` is processed
+    it generates a file `{target private directory}/subdir/one.out` when `true`,
+    and `{target private directory}/one.out` when `false` (default).
 
 ## preprocess
 
@@ -90,6 +106,11 @@ This method takes the following keyword arguments:
  - `dependencies` Dependency[]: dependency objects needed by moc.
  - *Deprecated in 0.59.0.*: `sources`: a list of extra sources, which are added
    to the output unchanged.
+ - `preserve_paths` bool: *Since 1.4.0*. If `true`, specifies that the output
+   files need to maintain their directory structure inside the target temporary
+   directory. For instance, when a file called `subdir/one.input` is processed
+   it generates a file `{target private directory}/subdir/one.out` when `true`,
+   and `{target private directory}/one.out` when `false` (default).
 
 It returns an array of targets and sources to pass to a compilation target.
 
@@ -134,11 +155,14 @@ This method takes the following keyword arguments:
 - `required` bool | FeatureOption: by default, `required` is set to `false`. If `required` is set to
   `true` or an enabled [`feature`](Build-options.md#features) and some tools are
   missing Meson will abort.
-- `method` string: The method to use to detect qt, see [[dependency]]
+- `method` string: The method to use to detect Qt, see [[dependency]]
+- `tools`: string[]: *Since 1.6.0*. List of tools to check. Testable tools
+  are `moc`, `uic`, `rcc` and `lrelease`. By default `tools` is set to `['moc',
+  'uic', 'rcc', 'lrelease']`
 
 ## Dependencies
 
-See [Qt dependencies](Dependencies.md#qt4-qt5)
+See [Qt dependencies](Dependencies.md#qt)
 
 The 'modules' argument is used to include Qt modules in the project.
 See the Qt documentation for the [list of

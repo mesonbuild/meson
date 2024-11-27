@@ -228,13 +228,13 @@ fs.stem('foo/bar/baz.dll.a')  # baz.dll
 
 *Since 1.3.0*
 
-Return a relative filepath. In event a relative path could not be found, the
+Return a relative filepath. In the event a relative path could not be found, the
 absolute path of `to` is returned. Relative path arguments will be assumed to be
 relative to `meson.current_source_dir()`.
 
 Has the following positional arguments:
-   - to `str | file | custom_tgt | custom_idx | tgt`: end path
-   - from `str | file | custom_tgt | custom_idx | tgt`: start path
+   - to `str | file | custom_tgt | custom_idx | build_tgt`: end path
+   - from `str | file | custom_tgt | custom_idx | build_tgt`: start path
 
 returns:
    - a string

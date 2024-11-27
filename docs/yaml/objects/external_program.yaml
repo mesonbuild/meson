@@ -20,7 +20,8 @@ methods:
     and allows Meson to setup inter-target dependencies correctly (for
     example in cases where a program might be overridden by a [[@build_tgt]]).
     Only use this if you specifically need a string, such as when embedding
-    a program path into a header file.
+    a program path into a header file, or storing it into an environment
+    variable.
 
     For example:
 
@@ -47,7 +48,8 @@ methods:
     and allows Meson to setup inter-target dependencies correctly (for
     example in cases where a program might be overridden by a [[@build_tgt]]).
     Only use this if you specifically need a string, such as when embedding
-    a program path into a header file.
+    a program path into a header file, or storing it into an environment
+    variable.
 
     For example:
 

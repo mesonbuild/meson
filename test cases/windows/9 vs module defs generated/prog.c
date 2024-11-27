@@ -1,5 +1,9 @@
 int somedllfunc(void);
 
+int exefunc(void) {
+    return 42;
+}
+
 int main(void) {
-    return somedllfunc() == 42 ? 0 : 1;
+    return somedllfunc() == exefunc() ? 0 : 1;
 }

@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
@@ -19,6 +8,7 @@ from __future__ import annotations
 from functools import lru_cache
 from os import environ
 from pathlib import Path
+import itertools
 import re
 import typing as T
 
@@ -29,7 +19,8 @@ from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser
 from .tracetargets import resolve_cmake_trace_targets
 from .. import mlog, mesonlib
-from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible, OptionKey
+from ..mesonlib import MachineChoice, OrderedSet, path_is_in_root, relative_to_if_possible
+from ..options import OptionKey
 from ..mesondata import DataFile
 from ..compilers.compilers import assembler_suffixes, lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from ..programs import ExternalProgram
@@ -48,6 +39,7 @@ from ..mparser import (
     IndexNode,
     MethodNode,
     NumberNode,
+    SymbolNode,
 )
 
 
@@ -55,7 +47,6 @@ if T.TYPE_CHECKING:
     from .common import CMakeConfiguration, TargetOptions
     from .traceparser import CMakeGeneratorTarget
     from .._typing import ImmutableListProtocol
-    from ..build import Build
     from ..backend.backends import Backend
     from ..environment import Environment
 
@@ -65,7 +56,7 @@ if T.TYPE_CHECKING:
 
 # Disable all warnings automatically enabled with --trace and friends
 # See https://cmake.org/cmake/help/latest/variable/CMAKE_POLICY_WARNING_CMPNNNN.html
-disable_policy_warnings = [
+DISABLE_POLICY_WARNINGS: T.Collection[str] = [
     'CMP0025',
     'CMP0047',
     'CMP0056',
@@ -78,7 +69,15 @@ disable_policy_warnings = [
     'CMP0102',
 ]
 
-target_type_map = {
+# CMake is a bit more averse to debugging, but in spirit the build types match
+BUILDTYPE_MAP: T.Mapping[str, str] = {
+    'debug': 'Debug',
+    'debugoptimized': 'RelWithDebInfo',  # CMake sets NDEBUG
+    'release': 'Release',
+    'minsize': 'MinSizeRel',  # CMake leaves out debug information immediately
+}
+
+TARGET_TYPE_MAP: T.Mapping[str, str] = {
     'STATIC_LIBRARY': 'static_library',
     'MODULE_LIBRARY': 'shared_module',
     'SHARED_LIBRARY': 'shared_library',
@@ -87,9 +86,9 @@ target_type_map = {
     'INTERFACE_LIBRARY': 'header_only'
 }
 
-skip_targets = ['UTILITY']
+SKIP_TARGETS: T.Collection[str] = ['UTILITY']
 
-blacklist_compiler_flags = [
+BLACKLIST_COMPILER_FLAGS: T.Collection[str] = [
     '-Wall', '-Wextra', '-Weverything', '-Werror', '-Wpedantic', '-pedantic', '-w',
     '/W1', '/W2', '/W3', '/W4', '/Wall', '/WX', '/w',
     '/O1', '/O2', '/Ob', '/Od', '/Og', '/Oi', '/Os', '/Ot', '/Ox', '/Oy', '/Ob0',
@@ -97,15 +96,17 @@ blacklist_compiler_flags = [
     '/Z7', '/Zi', '/ZI',
 ]
 
-blacklist_link_flags = [
+BLACKLIST_LINK_FLAGS: T.Collection[str] = [
     '/machine:x64', '/machine:x86', '/machine:arm', '/machine:ebc',
     '/debug', '/debug:fastlink', '/debug:full', '/debug:none',
     '/incremental',
 ]
 
-blacklist_clang_cl_link_flags = ['/GR', '/EHsc', '/MDd', '/Zi', '/RTC1']
+BLACKLIST_CLANG_CL_LINK_FLAGS: T.Collection[str] = [
+    '/GR', '/EHsc', '/MDd', '/Zi', '/RTC1',
+]
 
-blacklist_link_libs = [
+BLACKLIST_LINK_LIBS: T.Collection[str] = [
     'kernel32.lib',
     'user32.lib',
     'gdi32.lib',
@@ -118,7 +119,7 @@ blacklist_link_libs = [
     'advapi32.lib'
 ]
 
-transfer_dependencies_from = ['header_only']
+TRANSFER_DEPENDENCIES_FROM: T.Collection[str] = ['header_only']
 
 _cmake_name_regex = re.compile(r'[^_a-zA-Z0-9]')
 def _sanitize_cmake_name(name: str) -> str:
@@ -135,10 +136,7 @@ class OutputTargetMap:
         self.build_dir = build_dir
 
     def add(self, tgt: T.Union['ConverterTarget', 'ConverterCustomTarget']) -> None:
-        def assign_keys(keys: T.List[str]) -> None:
-            for i in [x for x in keys if x]:
-                self.tgt_map[i] = tgt
-        keys = [self._target_key(tgt.cmake_name)]
+        keys: T.List[T.Optional[str]] = [self._target_key(tgt.cmake_name)]
         if isinstance(tgt, ConverterTarget):
             keys += [tgt.full_name]
             keys += [self._rel_artifact_key(x) for x in tgt.artifacts]
@@ -146,9 +144,11 @@ class OutputTargetMap:
         if isinstance(tgt, ConverterCustomTarget):
             keys += [self._rel_generated_file_key(x) for x in tgt.original_outputs]
             keys += [self._base_generated_file_key(x) for x in tgt.original_outputs]
-        assign_keys(keys)
+        for k in keys:
+            if k is not None:
+                self.tgt_map[k] = tgt
 
-    def _return_first_valid_key(self, keys: T.List[str]) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
+    def _return_first_valid_key(self, keys: T.List[T.Optional[str]]) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         for i in keys:
             if i and i in self.tgt_map:
                 return self.tgt_map[i]
@@ -166,7 +166,7 @@ class OutputTargetMap:
         return tgt
 
     def artifact(self, name: str) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
-        keys = []
+        keys: T.List[T.Optional[str]] = []
         candidates = [name, OutputTargetMap.rm_so_version.sub('', name)]
         for i in lib_suffixes:
             if not name.endswith('.' + i):
@@ -223,6 +223,7 @@ class ConverterTarget:
         self.install_dir: T.Optional[Path] = None
         self.link_libraries = target.link_libraries
         self.link_flags = target.link_flags + target.link_lang_flags
+        self.public_link_flags: T.List[str] = []
         self.depends_raw: T.List[str] = []
         self.depends: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
 
@@ -304,7 +305,7 @@ class ConverterTarget:
             if i not in self.compile_opts:
                 continue
 
-            temp = []
+            temp: T.List[str] = []
             for j in self.compile_opts[i]:
                 m = ConverterTarget.std_regex.match(j)
                 ctgt = output_target_map.generated(Path(j))
@@ -328,7 +329,7 @@ class ConverterTarget:
                     # corresponding custom target is run.2
                     self.generated_raw += [Path(j)]
                     temp += [j]
-                elif j in blacklist_compiler_flags:
+                elif j in BLACKLIST_COMPILER_FLAGS:
                     pass
                 else:
                     temp += [j]
@@ -347,6 +348,7 @@ class ConverterTarget:
             rtgt = resolve_cmake_trace_targets(self.cmake_name, trace, self.env)
             self.includes += [Path(x) for x in rtgt.include_directories]
             self.link_flags += rtgt.link_flags
+            self.public_link_flags += rtgt.public_link_flags
             self.public_compile_opts += rtgt.public_compile_opts
             self.link_libraries += rtgt.libraries
 
@@ -373,7 +375,15 @@ class ConverterTarget:
             supported += list(lang_suffixes[i])
         supported = [f'.{x}' for x in supported]
         self.sources = [x for x in self.sources if any(x.name.endswith(y) for y in supported)]
-        self.generated_raw = [x for x in self.generated_raw if any(x.name.endswith(y) for y in supported)]
+        # Don't filter unsupported files from generated_raw because they
+        # can be GENERATED dependencies for other targets.
+        # See: https://github.com/mesonbuild/meson/issues/11607
+        # However, the dummy CMake rule files for Visual Studio still
+        # need to be filtered out. They don't exist (because the project was
+        # not generated at this time) but the fileapi will still
+        # report them on Windows.
+        # See: https://stackoverflow.com/a/41816323
+        self.generated_raw = [x for x in self.generated_raw if not x.name.endswith('.rule')]
 
         # Make paths relative
         def rel_path(x: Path, is_header: bool, is_generated: bool) -> T.Optional[Path]:
@@ -407,11 +417,14 @@ class ConverterTarget:
                 return x.relative_to(root_src_dir)
             return x
 
+        def non_optional(inputs: T.Iterable[T.Optional[Path]]) -> T.List[Path]:
+            return [p for p in inputs if p is not None]
+
         build_dir_rel = self.build_dir.relative_to(Path(self.env.get_build_dir()) / subdir)
-        self.generated_raw = [rel_path(x, False, True) for x in self.generated_raw]
-        self.includes = list(OrderedSet([rel_path(x, True, False) for x in OrderedSet(self.includes)] + [build_dir_rel]))
-        self.sys_includes = list(OrderedSet([rel_path(x, True, False) for x in OrderedSet(self.sys_includes)]))
-        self.sources = [rel_path(x, False, False) for x in self.sources]
+        self.generated_raw = non_optional(rel_path(x, False, True) for x in self.generated_raw)
+        self.includes = non_optional(itertools.chain((rel_path(x, True, False) for x in OrderedSet(self.includes)), [build_dir_rel]))
+        self.sys_includes = non_optional(rel_path(x, True, False) for x in OrderedSet(self.sys_includes))
+        self.sources = non_optional(rel_path(x, False, False) for x in self.sources)
 
         # Resolve custom targets
         for gen_file in self.generated_raw:
@@ -421,13 +434,8 @@ class ConverterTarget:
                 ref = ctgt.get_ref(gen_file)
                 assert isinstance(ref, CustomTargetReference) and ref.valid()
                 self.generated_ctgt += [ref]
-            elif gen_file is not None:
+            else:
                 self.generated += [gen_file]
-
-        # Remove delete entries
-        self.includes = [x for x in self.includes if x is not None]
-        self.sys_includes = [x for x in self.sys_includes if x is not None]
-        self.sources = [x for x in self.sources if x is not None]
 
         # Make sure '.' is always in the include directories
         if Path('.') not in self.includes:
@@ -440,13 +448,13 @@ class ConverterTarget:
 
         # Remove blacklisted options and libs
         def check_flag(flag: str) -> bool:
-            if flag.lower() in blacklist_link_flags or flag in blacklist_compiler_flags + blacklist_clang_cl_link_flags:
+            if flag.lower() in BLACKLIST_LINK_FLAGS or flag in BLACKLIST_COMPILER_FLAGS or flag in BLACKLIST_CLANG_CL_LINK_FLAGS:
                 return False
             if flag.startswith('/D'):
                 return False
             return True
 
-        self.link_libraries = [x for x in self.link_libraries if x.lower() not in blacklist_link_libs]
+        self.link_libraries = [x for x in self.link_libraries if x.lower() not in BLACKLIST_LINK_LIBS]
         self.link_flags = [x for x in self.link_flags if check_flag(x)]
 
         # Handle OSX frameworks
@@ -479,7 +487,7 @@ class ConverterTarget:
             source_files = [x.name for x in i.sources + i.generated]
             for j in stem:
                 # On some platforms (specifically looking at you Windows with vs20xy backend) CMake does
-                # not produce object files with the format `foo.cpp.obj`, instead it skipps the language
+                # not produce object files with the format `foo.cpp.obj`, instead it skips the language
                 # suffix and just produces object files like `foo.obj`. Thus we have to do our best to
                 # undo this step and guess the correct language suffix of the object file. This is done
                 # by trying all language suffixes meson knows and checking if one of them fits.
@@ -525,7 +533,7 @@ class ConverterTarget:
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> 'ImmutableListProtocol[str]':
         try:
-            res = self.env.coredata.options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices
+            res = self.env.coredata.optstore.get_value_object(OptionKey(f'{lang}_std', machine=MachineChoice.BUILD)).choices
         except KeyError:
             return []
 
@@ -537,13 +545,13 @@ class ConverterTarget:
         return res
 
     def process_inter_target_dependencies(self) -> None:
-        # Move the dependencies from all transfer_dependencies_from to the target
+        # Move the dependencies from all TRANSFER_DEPENDENCIES_FROM to the target
         to_process = list(self.depends)
         processed = []
         new_deps = []
         for i in to_process:
             processed += [i]
-            if isinstance(i, ConverterTarget) and i.meson_func() in transfer_dependencies_from:
+            if isinstance(i, ConverterTarget) and i.meson_func() in TRANSFER_DEPENDENCIES_FROM:
                 to_process += [x for x in i.depends if x not in processed]
             else:
                 new_deps += [i]
@@ -551,11 +559,11 @@ class ConverterTarget:
 
     def cleanup_dependencies(self) -> None:
         # Clear the dependencies from targets that where moved from
-        if self.meson_func() in transfer_dependencies_from:
+        if self.meson_func() in TRANSFER_DEPENDENCIES_FROM:
             self.depends = []
 
     def meson_func(self) -> str:
-        return target_type_map.get(self.type.upper())
+        return TARGET_TYPE_MAP.get(self.type.upper())
 
     def log(self) -> None:
         mlog.log('Target', mlog.bold(self.name), f'({self.cmake_name})')
@@ -732,13 +740,13 @@ class ConverterCustomTarget:
                 self.inputs += [ctgt_ref]
 
     def process_inter_target_dependencies(self) -> None:
-        # Move the dependencies from all transfer_dependencies_from to the target
+        # Move the dependencies from all TRANSFER_DEPENDENCIES_FROM to the target
         to_process = list(self.depends)
         processed = []
         new_deps = []
         for i in to_process:
             processed += [i]
-            if isinstance(i, ConverterTarget) and i.meson_func() in transfer_dependencies_from:
+            if isinstance(i, ConverterTarget) and i.meson_func() in TRANSFER_DEPENDENCIES_FROM:
                 to_process += [x for x in i.depends if x not in processed]
             else:
                 new_deps += [i]
@@ -765,10 +773,9 @@ class ConverterCustomTarget:
         mlog.log('  -- depends:      ', mlog.bold(str(self.depends)))
 
 class CMakeInterpreter:
-    def __init__(self, build: 'Build', subdir: Path, src_dir: Path, install_prefix: Path, env: 'Environment', backend: 'Backend'):
-        self.build = build
+    def __init__(self, subdir: Path, install_prefix: Path, env: 'Environment', backend: 'Backend'):
         self.subdir = subdir
-        self.src_dir = src_dir
+        self.src_dir = Path(env.get_source_dir(), subdir)
         self.build_dir_rel = subdir / '__CMake_build'
         self.build_dir = Path(env.get_build_dir()) / self.build_dir_rel
         self.install_prefix = install_prefix
@@ -785,6 +792,7 @@ class CMakeInterpreter:
 
         # Analysed data
         self.project_name = ''
+        self.project_version = ''
         self.languages: T.List[str] = []
         self.targets: T.List[ConverterTarget] = []
         self.custom_targets: T.List[ConverterCustomTarget] = []
@@ -822,8 +830,13 @@ class CMakeInterpreter:
         cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix}']
         cmake_args += extra_cmake_options
+        if not any(arg.startswith('-DCMAKE_BUILD_TYPE=') for arg in cmake_args):
+            # Our build type is favored over any CMAKE_BUILD_TYPE environment variable
+            buildtype = T.cast('str', self.env.coredata.get_option(OptionKey('buildtype')))
+            if buildtype in BUILDTYPE_MAP:
+                cmake_args += [f'-DCMAKE_BUILD_TYPE={BUILDTYPE_MAP[buildtype]}']
         trace_args = self.trace.trace_args()
-        cmcmp_args = [f'-DCMAKE_POLICY_WARNING_{x}=OFF' for x in disable_policy_warnings]
+        cmcmp_args = [f'-DCMAKE_POLICY_WARNING_{x}=OFF' for x in DISABLE_POLICY_WARNINGS]
 
         self.fileapi.setup_request()
 
@@ -837,7 +850,7 @@ class CMakeInterpreter:
             mlog.log(mlog.bold('  - toolchain file:          '), toolchain_file.as_posix())
             mlog.log(mlog.bold('  - preload file:            '), preload_file.as_posix())
             mlog.log(mlog.bold('  - trace args:              '), ' '.join(trace_args))
-            mlog.log(mlog.bold('  - disabled policy warnings:'), '[{}]'.format(', '.join(disable_policy_warnings)))
+            mlog.log(mlog.bold('  - disabled policy warnings:'), '[{}]'.format(', '.join(DISABLE_POLICY_WARNINGS)))
             mlog.log()
             self.build_dir.mkdir(parents=True, exist_ok=True)
             os_env = environ.copy()
@@ -876,6 +889,8 @@ class CMakeInterpreter:
         # Load the codemodel configurations
         self.codemodel_configs = self.fileapi.get_cmake_configurations()
 
+        self.project_version = self.fileapi.get_project_version()
+
     def analyse(self) -> None:
         if self.codemodel_configs is None:
             raise CMakeException('CMakeInterpreter was not initialized')
@@ -898,7 +913,7 @@ class CMakeInterpreter:
                 for k_0 in j_0.targets:
                     # Avoid duplicate targets from different configurations and known
                     # dummy CMake internal target types
-                    if k_0.type not in skip_targets and k_0.name not in added_target_names:
+                    if k_0.type not in SKIP_TARGETS and k_0.name not in added_target_names:
                         added_target_names += [k_0.name]
                         self.targets += [ConverterTarget(k_0, self.env, self.for_machine)]
 
@@ -950,7 +965,7 @@ class CMakeInterpreter:
         for tgt in self.targets:
             tgt.cleanup_dependencies()
 
-        mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
+        mlog.log('CMake project', mlog.bold(self.project_name), mlog.bold(self.project_version), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
 
     def pretend_to_be_meson(self, options: TargetOptions) -> CodeBlockNode:
         if not self.project_name:
@@ -959,14 +974,17 @@ class CMakeInterpreter:
         def token(tid: str = 'string', val: TYPE_mixed = '') -> Token:
             return Token(tid, self.subdir.as_posix(), 0, 0, 0, None, val)
 
+        def symbol(val: str) -> SymbolNode:
+            return SymbolNode(token('', val))
+
         def string(value: str) -> StringNode:
-            return StringNode(token(val=value))
+            return StringNode(token(val=value), escape=False)
 
         def id_node(value: str) -> IdNode:
             return IdNode(token(val=value))
 
         def number(value: int) -> NumberNode:
-            return NumberNode(token(val=value))
+            return NumberNode(token(val=str(value)))
 
         def nodeify(value: TYPE_mixed_list) -> BaseNode:
             if isinstance(value, str):
@@ -984,14 +1002,14 @@ class CMakeInterpreter:
             raise RuntimeError('invalid type of value: {} ({})'.format(type(value).__name__, str(value)))
 
         def indexed(node: BaseNode, index: int) -> IndexNode:
-            return IndexNode(node, nodeify(index))
+            return IndexNode(node, symbol('['), nodeify(index), symbol(']'))
 
         def array(elements: TYPE_mixed_list) -> ArrayNode:
             args = ArgumentNode(token())
             if not isinstance(elements, list):
                 elements = [args]
             args.arguments += [nodeify(x) for x in elements if x is not None]
-            return ArrayNode(args, 0, 0, 0, 0)
+            return ArrayNode(symbol('['), args, symbol(']'))
 
         def function(name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> FunctionNode:
             args = [] if args is None else args
@@ -1002,7 +1020,7 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            func_n = FunctionNode(self.subdir.as_posix(), 0, 0, 0, 0, name, args_n)
+            func_n = FunctionNode(id_node(name), symbol('('), args_n, symbol(')'))
             return func_n
 
         def method(obj: BaseNode, name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> MethodNode:
@@ -1014,14 +1032,14 @@ class CMakeInterpreter:
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            return MethodNode(self.subdir.as_posix(), 0, 0, obj, name, args_n)
+            return MethodNode(obj, symbol('.'), id_node(name), symbol('('), args_n, symbol(')'))
 
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:
-            return AssignmentNode(self.subdir.as_posix(), 0, 0, var_name, value)
+            return AssignmentNode(id_node(var_name), symbol('='), value)
 
         # Generate the root code block and the project function call
         root_cb = CodeBlockNode(token())
-        root_cb.lines += [function('project', [self.project_name] + self.languages)]
+        root_cb.lines += [function('project', [self.project_name] + self.languages, {'version': self.project_version} if self.project_version else None)]
 
         # Add the run script for custom commands
 
@@ -1042,7 +1060,9 @@ class CMakeInterpreter:
 
         def detect_cycle(tgt: T.Union[ConverterTarget, ConverterCustomTarget]) -> None:
             if tgt.name in processing:
-                raise CMakeException('Cycle in CMake inputs/dependencies detected')
+                processing.append(tgt.name)
+                stack = ' -> '.join(processing)
+                raise CMakeException(f'Cycle in CMake inputs/dependencies detected: {stack}')
             processing.append(tgt.name)
 
         def resolve_ctgt_ref(ref: CustomTargetReference) -> T.Union[IdNode, IndexNode]:
@@ -1149,11 +1169,17 @@ class CMakeInterpreter:
 
             # declare_dependency kwargs
             dep_kwargs: TYPE_mixed_kwargs = {
-                'link_args': tgt.link_flags + tgt.link_libraries,
                 'link_with': id_node(tgt_var),
                 'compile_args': tgt.public_compile_opts,
                 'include_directories': id_node(inc_var),
             }
+
+            # Static libraries need all link options and transient dependencies, but other
+            # libraries should only use the link flags from INTERFACE_LINK_OPTIONS.
+            if tgt_func == 'static_library':
+                dep_kwargs['link_args'] = tgt.link_flags + tgt.link_libraries
+            else:
+                dep_kwargs['link_args'] = tgt.public_link_flags
 
             if dependencies:
                 generated += dependencies

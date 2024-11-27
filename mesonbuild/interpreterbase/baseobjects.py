@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2021 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from .. import mparser
@@ -25,7 +15,7 @@ from abc import ABCMeta
 from contextlib import AbstractContextManager
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol
+    from typing_extensions import Protocol, TypeAlias
 
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
@@ -35,14 +25,11 @@ if T.TYPE_CHECKING:
     class OperatorCall(Protocol[__T]):
         def __call__(self, other: __T) -> 'TYPE_var': ...
 
-TV_fw_var = T.Union[str, int, bool, list, dict, 'InterpreterObject']
-TV_fw_args = T.List[T.Union[mparser.BaseNode, TV_fw_var]]
-TV_fw_kwargs = T.Dict[str, T.Union[mparser.BaseNode, TV_fw_var]]
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
 
-TYPE_elementary = T.Union[str, int, bool, T.List[T.Any], T.Dict[str, T.Any]]
-TYPE_var = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject']
+TYPE_elementary: TypeAlias = T.Union[str, int, bool, T.Sequence['TYPE_elementary'], T.Dict[str, 'TYPE_elementary']]
+TYPE_var: TypeAlias = T.Union[TYPE_elementary, HoldableObject, 'MesonInterpreterObject', T.Sequence['TYPE_var'], T.Dict[str, 'TYPE_var']]
 TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
 TYPE_kwargs = T.Dict[str, TYPE_var]
 TYPE_nkwargs = T.Dict[str, TYPE_nvar]
@@ -135,7 +122,7 @@ class MutableInterpreterObject:
     ''' Dummy class to mark the object type as mutable '''
 
 HoldableTypes = (HoldableObject, int, bool, str, list, dict)
-TYPE_HoldableTypes = T.Union[TYPE_elementary, HoldableObject]
+TYPE_HoldableTypes = T.Union[TYPE_var, HoldableObject]
 InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)
 
 class ObjectHolder(InterpreterObject, T.Generic[InterpreterObjectTypeVar]):

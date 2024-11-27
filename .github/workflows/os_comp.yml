@@ -8,7 +8,7 @@ on:
   push:
     branches:
       - master
-      # Stable branches such as 0.56 or the eventual 1.0
+      # Stable branches such as 0.56 or 1.0
       - '[0-9]+.[0-9]+'
     paths:
       - "mesonbuild/**"
@@ -16,7 +16,7 @@ on:
       - "unittests/**"
       - ".github/workflows/images.yml"
       - ".github/workflows/os_comp.yml"
-      - "run_unittests.py"
+      - "run*tests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
@@ -24,7 +24,13 @@ on:
       - "unittests/**"
       - ".github/workflows/images.yml"
       - ".github/workflows/os_comp.yml"
-      - "run_unittests.py"
+      - "run*tests.py"
+
+# make GHA actions use node16 which still works with bionic
+# See https://github.blog/changelog/2024-03-07-github-actions-all-actions-will-run-on-node20-instead-of-node16-by-default/
+# Unclear how long this will work though
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 permissions:
   contents: read
@@ -40,6 +46,7 @@ jobs:
           - { name: Arch Linux,       id: arch     }
           - { name: CUDA (on Arch),   id: cuda     }
           - { name: Fedora,           id: fedora   }
+          - { name: Gentoo,           id: gentoo   }
           - { name: OpenSUSE,         id: opensuse }
           - { name: Ubuntu Bionic,    id: bionic   }
     container: mesonbuild/${{ matrix.cfg.id }}:latest
@@ -47,12 +54,20 @@ jobs:
       MESON_CI_JOBNAME: linux-${{ matrix.cfg.id }}-gcc
 
     steps:
+      # Need v3 because of bionic
     - uses: actions/checkout@v3
     - name: Run tests
       # All environment variables are stored inside the docker image in /ci/env_vars.sh
       # They are defined in the `env` section in each image.json. CI_ARGS should be set
       # via the `args` array ub the image.json
-      run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./tools/run_with_cov.py ./run_tests.py $CI_ARGS'
+      shell: bash
+      run: |
+        # dmd is installed under /root on OpenSUSE
+        [[ ${{ matrix.cfg.id }} == opensuse ]] && export HOME=/root
+
+        source /ci/env_vars.sh
+        cd $GITHUB_WORKSPACE
+        ./tools/run_with_cov.py ./run_tests.py $CI_ARGS
 
     - name: Aggregate coverage reports
       run: ./ci/combine_cov.sh
@@ -73,7 +88,7 @@ jobs:
       MESON_CI_JOBNAME_UPDATE: linux-arch-gcc-pypy
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Run tests
       run: |
         source /ci/env_vars.sh
@@ -127,7 +142,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run tests
         shell: bash

@@ -14,3 +14,7 @@ shared_library('lib1', 'foo.c')
 # Parent project is c++11 but this one uses c++14 to build.
 libcpp14 = library('lib2', 'foo.cpp')
 meson.override_dependency('libcpp14', declare_dependency(link_with: libcpp14))
+
+# Compiler checks should be using c++14 as well
+cxx = meson.get_compiler('cpp')
+assert(cxx.compiles(files('foo.cpp')))

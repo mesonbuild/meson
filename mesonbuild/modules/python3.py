@@ -1,23 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2017 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import sysconfig
 import typing as T
 
 from .. import mesonlib
-from . import ExtensionModule, ModuleInfo, ModuleState
+from . import ExtensionModule, ModuleInfo
 from ..build import (
     BuildTarget, CustomTarget, CustomTargetIndex, ExtractedObjects,
     GeneratedList, SharedModule, StructuredSources, known_shmod_kwargs
@@ -27,6 +17,7 @@ from ..interpreterbase import typed_kwargs, typed_pos_args, noPosargs, noKwargs,
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
+    from . import ModuleState
     from ..interpreter.interpreter import BuildTargetSource
     from ..interpreter.kwargs import SharedModule as SharedModuleKW
 
@@ -51,7 +42,7 @@ class Python3Module(ExtensionModule):
     @typed_pos_args('python3.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @typed_kwargs('python3.extension_module', *_MOD_KWARGS, allow_unknown=True)
     def extension_module(self, state: ModuleState, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: SharedModuleKW):
-        host_system = state.host_machine.system
+        host_system = state.environment.machines.host.system
         if host_system == 'darwin':
             # Default suffix is 'dylib' but Python does not use it for extensions.
             suffix = 'so'

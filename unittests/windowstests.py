@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 import subprocess
 import re
@@ -28,8 +17,9 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
     MachineChoice, is_windows, is_cygwin, python_command, version_compare,
-    EnvironmentException, OptionKey
+    EnvironmentException
 )
+from mesonbuild.options import OptionKey
 from mesonbuild.compilers import (
     detect_c_compiler, detect_d_compiler, compiler_from_language,
 )
@@ -64,20 +54,20 @@ class WindowsTests(BasePlatformTests):
         PATH to point to a directory with Python scripts.
         '''
         testdir = os.path.join(self.platform_test_dir, '8 find program')
-        # Find `cmd` and `cmd.exe`
-        prog1 = ExternalProgram('cmd')
-        self.assertTrue(prog1.found(), msg='cmd not found')
-        prog2 = ExternalProgram('cmd.exe')
-        self.assertTrue(prog2.found(), msg='cmd.exe not found')
+        # Find `xcopy` and `xcopy.exe`
+        prog1 = ExternalProgram('xcopy')
+        self.assertTrue(prog1.found(), msg='xcopy not found')
+        prog2 = ExternalProgram('xcopy.exe')
+        self.assertTrue(prog2.found(), msg='xcopy.exe not found')
         self.assertPathEqual(prog1.get_path(), prog2.get_path())
-        # Find cmd.exe with args without searching
-        prog = ExternalProgram('cmd', command=['cmd', '/C'])
-        self.assertTrue(prog.found(), msg='cmd not found with args')
-        self.assertPathEqual(prog.get_command()[0], 'cmd')
-        # Find cmd with an absolute path that's missing the extension
-        cmd_path = prog2.get_path()[:-4]
-        prog = ExternalProgram(cmd_path)
-        self.assertTrue(prog.found(), msg=f'{cmd_path!r} not found')
+        # Find xcopy.exe with args without searching
+        prog = ExternalProgram('xcopy', command=['xcopy', '/?'])
+        self.assertTrue(prog.found(), msg='xcopy not found with args')
+        self.assertPathEqual(prog.get_command()[0], 'xcopy')
+        # Find xcopy with an absolute path that's missing the extension
+        xcopy_path = prog2.get_path()[:-4]
+        prog = ExternalProgram(xcopy_path)
+        self.assertTrue(prog.found(), msg=f'{xcopy_path!r} not found')
         # Finding a script with no extension inside a directory works
         prog = ExternalProgram(os.path.join(testdir, 'test-script'))
         self.assertTrue(prog.found(), msg='test-script not found')
@@ -184,7 +174,7 @@ class WindowsTests(BasePlatformTests):
             # to the right reason).
             return
         self.build()
-    
+
     @skipIf(is_cygwin(), 'Test only applicable to Windows')
     def test_genvslite(self):
         # The test framework itself might be forcing a specific, non-ninja backend across a set of tests, which
@@ -195,7 +185,7 @@ class WindowsTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise SkipTest('Test only applies when using the Ninja backend')
 
-        testdir = os.path.join(self.unit_test_dir, '115 genvslite')
+        testdir = os.path.join(self.unit_test_dir, '117 genvslite')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
@@ -225,7 +215,7 @@ class WindowsTests(BasePlatformTests):
         # Wrap the following bulk of setup and msbuild invocation testing in a try-finally because any exception,
         # failure, or success must always clean up any of the suffixed build dir folders that may have been generated.
         try:
-            # Since this 
+            # Since this
             self.init(testdir, extra_args=['--genvslite', 'vs2022'])
             # We need to bear in mind that the BasePlatformTests framework creates and cleans up its own temporary
             # build directory.  However, 'genvslite' creates a set of suffixed build directories which we'll have
@@ -462,9 +452,6 @@ class WindowsTests(BasePlatformTests):
 
     @unittest.skipIf(is_cygwin(), "Needs visual studio")
     def test_vsenv_option(self):
-        if mesonbuild.environment.detect_msys2_arch():
-            # https://github.com/msys2-contrib/cpython-mingw/issues/141
-            raise SkipTest('mingw python fails with /bin being removed from PATH')
         if self.backend is not Backend.ninja:
             raise SkipTest('Only ninja backend is valid for test')
         env = os.environ.copy()

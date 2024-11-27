@@ -128,6 +128,18 @@ b = a + 'World'
 a = 'Hello'
 ```
 
+*Since 1.3.0* Some tokens are replaced in the machine file before parsing it:
+- `@GLOBAL_SOURCE_ROOT@`: the absolute path to the project's source tree
+- `@DIRNAME@`: the absolute path to the machine file's parent directory.
+
+It can be used, for example, to have paths relative to the source directory, or
+relative to toolchain's installation directory.
+```ini
+[binaries]
+c = '@DIRNAME@/toolchain/gcc'
+exe_wrapper = '@GLOBAL_SOURCE_ROOT@' / 'build-aux' / 'my-exe-wrapper.sh'
+```
+
 ### Binaries
 
 The binaries section contains a list of binaries. These can be used
@@ -261,7 +273,7 @@ list of strings.
 [cmake]
 
 CMAKE_C_COMPILER    = '/usr/bin/gcc'
-CMAKE_CXX_COMPILER  = 'C:\\user\\bin\\g++'
+CMAKE_CXX_COMPILER  = 'C:\\usr\\bin\\g++'
 CMAKE_SOME_VARIABLE = ['some', 'value with spaces']
 ```
 

@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 from __future__ import annotations
 import typing as T
@@ -95,9 +84,6 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
     def __init__(self, interpreter: Interpreter):
         super().__init__()
         self.rules: T.List[SourceSetRule] = []
-        self.subproject = interpreter.subproject
-        self.environment = interpreter.environment
-        self.subdir = interpreter.subdir
         self.frozen = False
         self.methods.update({
             'add': self.add_method,
@@ -197,8 +183,6 @@ class SourceSetImpl(SourceSet, MutableModuleObject):
             raise InterpreterException('add_all called with both positional and keyword arguments')
         keys, dependencies = self.check_conditions(when)
         for s in if_true:
-            if not isinstance(s, SourceSetImpl):
-                raise InvalidCode('Arguments to \'add_all\' after the first must be source sets')
             s.frozen = True
         self.rules.append(SourceSetRule(keys, dependencies, [], [], if_true, []))
 

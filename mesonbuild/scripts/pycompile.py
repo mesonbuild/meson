@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # ignore all lints for this file, since it is run by python2 as well
 
@@ -30,16 +19,16 @@ def compileall(files):
         f = f[12:]
 
         ddir = None
-        fullpath = os.environ['MESON_INSTALL_DESTDIR_'+key] + f
+        fullpath = absf = os.environ['MESON_INSTALL_DESTDIR_'+key] + f
         f = os.environ['MESON_INSTALL_'+key] + f
 
-        if fullpath != f:
+        if absf != f:
             ddir = os.path.dirname(f)
 
-        if os.path.isdir(fullpath):
-            for root, _, files in os.walk(fullpath):
+        if os.path.isdir(absf):
+            for root, _, files in os.walk(absf):
                 if ddir is not None:
-                    ddir = root.replace(fullpath, f, 1)
+                    ddir = root.replace(absf, f, 1)
                 for dirf in files:
                     if dirf.endswith('.py'):
                         fullpath = os.path.join(root, dirf)

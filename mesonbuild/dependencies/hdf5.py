@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2019 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This file contains the detection logic for miscellaneous external dependencies.
 from __future__ import annotations
@@ -133,13 +122,20 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         # and then without -c to get the link arguments.
         args = self.get_config_value(['-show', '-c'], 'args')[1:]
         args += self.get_config_value(['-show', '-noshlib' if self.static else '-shlib'], 'args')[1:]
+        found = False
         for arg in args:
             if arg.startswith(('-I', '-f', '-D')) or arg == '-pthread':
                 self.compile_args.append(arg)
             elif arg.startswith(('-L', '-l', '-Wl')):
                 self.link_args.append(arg)
+                found = True
             elif Path(arg).is_file():
                 self.link_args.append(arg)
+                found = True
+
+        # cmake h5cc is broken
+        if not found:
+            raise DependencyException('HDF5 was built with cmake instead of autotools, and h5cc is broken.')
 
     def _sanitize_version(self, ver: str) -> str:
         v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)

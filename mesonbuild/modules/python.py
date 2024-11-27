@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import copy, json, os, shutil, re
@@ -19,7 +9,7 @@ import typing as T
 from . import ExtensionModule, ModuleInfo
 from .. import mesonlib
 from .. import mlog
-from ..coredata import UserFeatureOption
+from ..options import UserFeatureOption
 from ..build import known_shmod_kwargs, CustomTarget, CustomTargetIndex, BuildTarget, GeneratedList, StructuredSources, ExtractedObjects, SharedModule
 from ..dependencies import NotFoundDependency
 from ..dependencies.detect import get_dep_identifier, find_external_dependency
@@ -32,7 +22,8 @@ from ..interpreterbase import (
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
-from ..mesonlib import MachineChoice, OptionKey
+from ..mesonlib import MachineChoice
+from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -84,6 +75,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
         if ret:
             self.platlib = self._get_path(state, 'platlib')
             self.purelib = self._get_path(state, 'purelib')
+            self.run_bytecompile.setdefault(self.info['version'], False)
         return ret
 
     def _get_path(self, state: T.Optional['ModuleState'], key: str) -> str:
@@ -91,13 +83,13 @@ class PythonExternalProgram(BasicPythonExternalProgram):
         if not state:
             # This happens only from run_project_tests.py
             return rel_path
-        value = T.cast('str', state.get_option(f'{key}dir', module='python'))
+        value = T.cast('str', state.get_option(f'python.{key}dir'))
         if value:
-            if state.is_user_defined_option('install_env', module='python'):
+            if state.is_user_defined_option('python.install_env'):
                 raise mesonlib.MesonException(f'python.{key}dir and python.install_env are mutually exclusive')
             return value
 
-        install_env = state.get_option('install_env', module='python')
+        install_env = state.get_option('python.install_env')
         if install_env == 'auto':
             install_env = 'venv' if self.info['is_venv'] else 'system'
 
@@ -121,7 +113,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
         _ExternalProgramHolder.__init__(self, python, interpreter)
         info = python.info
-        prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
+        prefix = self.interpreter.environment.coredata.get_option(OptionKey('prefix'))
         assert isinstance(prefix, str), 'for mypy'
         self.variables = info['variables']
         self.suffix = info['suffix']
@@ -177,7 +169,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
                                   self.current_node)
 
         limited_api_version = kwargs.pop('limited_api')
-        allow_limited_api = self.interpreter.environment.coredata.get_option(OptionKey('allow_limited_api', module='python'))
+        allow_limited_api = self.interpreter.environment.coredata.get_option(OptionKey('python.allow_limited_api'))
         if limited_api_version != '' and allow_limited_api:
 
             target_suffix = self.limited_api_suffix
@@ -193,13 +185,9 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
             new_cpp_args.append(limited_api_definition)
             kwargs['cpp_args'] = new_cpp_args
 
-            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
-            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
-            # directives. We manually override these here as this interferes with the intended
-            # use of the 'limited_api' kwarg
-            for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
-            compilers = self.interpreter.environment.coredata.compilers[for_machine]
-            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
+            # On Windows, the limited API DLL is python3.dll, not python3X.dll.
+            for_machine = kwargs['native']
+            if self.interpreter.environment.machines[for_machine].is_windows():
                 pydep_copy = copy.copy(pydep)
                 pydep_copy.find_libpy_windows(self.env, limited_api=True)
                 if not pydep_copy.found():
@@ -208,13 +196,19 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
                 new_deps.remove(pydep)
                 new_deps.append(pydep_copy)
 
+            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
+            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
+            # directives. We manually override these here as this interferes with the intended
+            # use of the 'limited_api' kwarg
+            compilers = self.interpreter.environment.coredata.compilers[for_machine]
+            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
                 pyver = pydep.version.replace('.', '')
                 python_windows_debug_link_exception = f'/NODEFAULTLIB:python{pyver}_d.lib'
                 python_windows_release_link_exception = f'/NODEFAULTLIB:python{pyver}.lib'
 
                 new_link_args = mesonlib.extract_as_list(kwargs, 'link_args')
 
-                is_debug = self.interpreter.environment.coredata.options[OptionKey('debug')].value
+                is_debug = self.interpreter.environment.coredata.optstore.get_value('debug')
                 if is_debug:
                     new_link_args.append(python_windows_debug_link_exception)
                 else:
@@ -232,7 +226,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = target_suffix
 
-        if 'gnu_symbol_visibility' not in kwargs and \
+        if kwargs['gnu_symbol_visibility'] == '' and \
                 (self.is_pypy or mesonlib.version_compare(self.version, '>=3.9')):
             kwargs['gnu_symbol_visibility'] = 'inlineshidden'
 
@@ -380,7 +374,7 @@ class PythonModule(ExtensionModule):
     def _get_install_scripts(self) -> T.List[mesonlib.ExecutableSerialisation]:
         backend = self.interpreter.backend
         ret = []
-        optlevel = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('bytecompile', module='python'))
+        optlevel = self.interpreter.environment.coredata.get_option(OptionKey('python.bytecompile'))
         if optlevel == -1:
             return ret
         if not any(PythonExternalProgram.run_bytecompile.values()):
@@ -554,7 +548,6 @@ class PythonModule(ExtensionModule):
             assert isinstance(python, PythonExternalProgram), 'for mypy'
             python = copy.copy(python)
             python.pure = kwargs['pure']
-            python.run_bytecompile.setdefault(python.info['version'], False)
             return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')

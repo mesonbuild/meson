@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2016 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This script extracts the symbols of a given shared library
 # into a file. If the symbols have not changed, the file is not
@@ -145,9 +134,10 @@ def osx_syms(libfilename: str, outfilename: str) -> None:
             match = i
             break
     result = [arr[match + 2], arr[match + 5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
-    # Get a list of all symbols exported
-    output = call_tool('nm', ['--extern-only', '--defined-only',
-                              '--format=posix', libfilename])
+    # Get a list of all symbols exported.  `nm -g -U -P` is equivalent to, and more portable than,
+    # `nm --extern-only --defined-only --format=posix`; cctools-port only understands the one-character form,
+    # as does `nm` on very old macOS versions, (see meson#11131). `llvm-nm` understands both forms.
+    output = call_tool('nm', ['-g', '-U', '-P', libfilename])
     if not output:
         dummy_syms(outfilename)
         return

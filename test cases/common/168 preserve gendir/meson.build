@@ -9,5 +9,10 @@ gen = generator(gprog, \
 generated = gen.process('base.inp', 'com/mesonbuild/subbie.inp',
   preserve_path_from : meson.current_source_dir())
 
+testcase expect_error('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
+  generated = gen.process('base.inp', 'com/mesonbuild/subbie.inp',
+    preserve_path_from : meson.current_source_dir() / 'com')
+endtestcase
+
 e = executable('testprog', 'testprog.c', generated)
 test('testprog', e)

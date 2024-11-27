@@ -17,17 +17,16 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         # bypass cache: https://github.com/github/codeql-action/issues/1445
-        tools: latest
+        tools: linked
         config-file: .github/codeql/codeql-config.yml
         languages: python
         # we have none
-        setup-python-dependencies: false
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3

@@ -2,10 +2,12 @@
   "matrix": {
     "options": {
       "method": [
-        { "val": "auto" },
-        { "val": "pkg-config" },
+        { "val": "auto",
+          "expect_skip_on_jobname": ["ubuntu"] },
+        { "val": "pkg-config",
+          "expect_skip_on_jobname": ["ubuntu"] },
         { "val": "config-tool",
-          "skip_on_jobname": ["fedora"] },
+          "expect_skip_on_jobname": ["fedora"] },
         {
           "val": "system",
           "compilers": { "c" :"msvc", "cpp": "msvc" }
@@ -13,5 +15,5 @@
       ]
     }
   },
-  "skip_on_jobname": ["azure", "cygwin", "msys2", "opensuse"]
+  "expect_skip_on_jobname": ["azure", "cygwin", "msys2", "opensuse"]
 }

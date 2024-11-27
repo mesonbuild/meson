@@ -38,6 +38,12 @@ set to a random value between 1..255. This can help find memory leaks on
 configurations using glibc, including with non-GCC compilers. This feature
 can be disabled as discussed in [[test]].
 
+### ASAN_OPTIONS, UBSAN_OPTIONS, and MSAN_OPTIONS
+
+By default, the environment variables `ASAN_OPTIONS`, `UBSAN_OPTIONS`, and
+`MSAN_OPTIONS` are set to enable aborting on detected violations and to give a
+backtrace. This feature can be disabled as discussed in [[test]].
+
 ## Coverage
 
 If you enable coverage measurements by giving Meson the command line
@@ -49,7 +55,7 @@ targets. These targets are `coverage-xml` and `coverage-text` which
 are both provided by [Gcovr](http://gcovr.com) (version 3.3 or higher)
 `coverage-sonarqube` which is provided by [Gcovr](http://gcovr.com) (version 4.2 or higher)
 and `coverage-html`, which requires
-[Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and
+[lcov](https://github.com/linux-test-project/lcov) and
 [GenHTML](https://linux.die.net/man/1/genhtml) or
 [Gcovr](http://gcovr.com). As a convenience, a high-level `coverage`
 target is also generated which will produce all 3 coverage report
@@ -82,6 +88,10 @@ variable `MESON_TESTTHREADS` like this.
 ```console
 $ MESON_TESTTHREADS=5 meson test
 ```
+
+Setting `MESON_TESTTHREADS` to 0 enables the default behavior (core
+count), whereas setting an invalid value results in setting the job
+count to 1.
 
 ## Priorities
 
@@ -202,6 +212,9 @@ Sometimes you need to run the tests multiple times, which is done like this:
 $ meson test --repeat=10
 ```
 
+Meson will set the `MESON_TEST_ITERATION` environment variable to the
+current iteration of the test *(added 1.5.0)*.
+
 Invoking tests via a helper executable such as Valgrind can be done with the
 `--wrap` argument
 
@@ -250,10 +263,28 @@ $ meson test --gdb --gdb-path /path/to/gdb testname
 $ meson test --print-errorlogs
 ```
 
+Running tests interactively can be done with the `--interactive` option.
+`meson test --interactive` invokes tests with stdout, stdin and stderr
+connected directly to the calling terminal. This can be useful if your test is
+an integration test running in a container or virtual machine where a debug
+shell is spawned if it fails *(added 1.5.0)*:
+
+```console
+$ meson test --interactive testname
+```
+
 Meson will report the output produced by the failing tests along with
 other useful information as the environmental variables. This is
 useful, for example, when you run the tests on Travis-CI, Jenkins and
 the like.
+
+By default, the output from tests will be limited to the last 100 lines. The
+maximum number of lines to show can be configured with the `--max-lines` option
+*(added 1.5.0)*:
+
+```console
+$ meson test --max-lines=1000 testname
+```
 
 **Timeout**
 

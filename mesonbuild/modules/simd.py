@@ -1,88 +1,114 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2017 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
-from .. import mesonlib, compilers, mlog
+import typing as T
+
+from .. import mesonlib, mlog
 from .. import build
+from ..compilers import Compiler
+from ..interpreter.type_checking import BT_SOURCES_KW, STATIC_LIB_KWS
+from ..interpreterbase.decorators import KwargInfo, permittedKwargs, typed_pos_args, typed_kwargs
 
 from . import ExtensionModule, ModuleInfo
+
+if T.TYPE_CHECKING:
+    from . import ModuleState
+    from ..interpreter import Interpreter, kwargs as kwtypes
+    from ..interpreter.type_checking import SourcesVarargsType
+
+    class CheckKw(kwtypes.StaticLibrary):
+
+        compiler: Compiler
+        mmx: SourcesVarargsType
+        sse: SourcesVarargsType
+        sse2: SourcesVarargsType
+        sse3: SourcesVarargsType
+        ssse3: SourcesVarargsType
+        sse41: SourcesVarargsType
+        sse42: SourcesVarargsType
+        avx: SourcesVarargsType
+        avx2: SourcesVarargsType
+        neon: SourcesVarargsType
+
+
+# FIXME add Altivec and AVX512.
+ISETS = (
+    'mmx',
+    'sse',
+    'sse2',
+    'sse3',
+    'ssse3',
+    'sse41',
+    'sse42',
+    'avx',
+    'avx2',
+    'neon',
+)
+
 
 class SimdModule(ExtensionModule):
 
     INFO = ModuleInfo('SIMD', '0.42.0', unstable=True)
 
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: Interpreter):
         super().__init__(interpreter)
-        # FIXME add Altivec and AVX512.
-        self.isets = ('mmx',
-                      'sse',
-                      'sse2',
-                      'sse3',
-                      'ssse3',
-                      'sse41',
-                      'sse42',
-                      'avx',
-                      'avx2',
-                      'neon',
-                      )
         self.methods.update({
             'check': self.check,
         })
 
-    def check(self, state, args, kwargs):
-        result = []
-        if len(args) != 1:
-            raise mesonlib.MesonException('Check requires one argument, a name prefix for checks.')
-        prefix = args[0]
-        if not isinstance(prefix, str):
-            raise mesonlib.MesonException('Argument must be a string.')
-        if 'compiler' not in kwargs:
-            raise mesonlib.MesonException('Must specify compiler keyword')
+    @typed_pos_args('simd.check', str)
+    @typed_kwargs('simd.check',
+                  KwargInfo('compiler', Compiler, required=True),
+                  *[BT_SOURCES_KW.evolve(name=iset, default=None) for iset in ISETS],
+                  *[a for a in STATIC_LIB_KWS if a.name != 'sources'],
+                  allow_unknown=True) # Because we also accept STATIC_LIB_KWS, but build targets have not been completely ported to typed_pos_args/typed_kwargs.
+    @permittedKwargs({'compiler', *ISETS, *build.known_stlib_kwargs}) # Also remove this, per above comment
+    def check(self, state: ModuleState, args: T.Tuple[str], kwargs: CheckKw) -> T.List[T.Union[T.List[build.StaticLibrary], build.ConfigurationData]]:
+        result: T.List[build.StaticLibrary] = []
+
         if 'sources' in kwargs:
             raise mesonlib.MesonException('SIMD module does not support the "sources" keyword')
-        basic_kwargs = {}
-        for key, value in kwargs.items():
-            if key not in self.isets and key != 'compiler':
-                basic_kwargs[key] = value
+
+        local_kwargs = set((*ISETS, 'compiler'))
+        static_lib_kwargs = T.cast('kwtypes.StaticLibrary', {k: v for k, v in kwargs.items() if k not in local_kwargs})
+
+        prefix = args[0]
         compiler = kwargs['compiler']
-        if not isinstance(compiler, compilers.compilers.Compiler):
-            raise mesonlib.MesonException('Compiler argument must be a compiler object.')
         conf = build.ConfigurationData()
-        for iset in self.isets:
-            if iset not in kwargs:
+
+        for iset in ISETS:
+            sources = kwargs[iset]
+            if sources is None:
                 continue
-            iset_fname = kwargs[iset] # Might also be an array or Files. static_library will validate.
-            args = compiler.get_instruction_set_args(iset)
-            if args is None:
-                mlog.log('Compiler supports %s:' % iset, mlog.red('NO'))
+
+            compile_args = compiler.get_instruction_set_args(iset)
+            if compile_args is None:
+                mlog.log(f'Compiler supports {iset}:', mlog.red('NO'))
                 continue
-            if args:
-                if not compiler.has_multi_arguments(args, state.environment)[0]:
-                    mlog.log('Compiler supports %s:' % iset, mlog.red('NO'))
-                    continue
-            mlog.log('Compiler supports %s:' % iset, mlog.green('YES'))
-            conf.values['HAVE_' + iset.upper()] = ('1', 'Compiler supports %s.' % iset)
+
+            if not compiler.has_multi_arguments(compile_args, state.environment)[0]:
+                mlog.log(f'Compiler supports {iset}:', mlog.red('NO'))
+                continue
+            mlog.log(f'Compiler supports {iset}:', mlog.green('YES'))
+            conf.values['HAVE_' + iset.upper()] = ('1', f'Compiler supports {iset}.')
+
             libname = prefix + '_' + iset
-            lib_kwargs = {'sources': iset_fname,
-                          }
-            lib_kwargs.update(basic_kwargs)
+            lib_kwargs = static_lib_kwargs.copy()
+            lib_kwargs['sources'] = sources
+
+            # Add compile args we derived above to those the user provided us
             langarg_key = compiler.get_language() + '_args'
             old_lang_args = mesonlib.extract_as_list(lib_kwargs, langarg_key)
-            all_lang_args = old_lang_args + args
+            all_lang_args = old_lang_args + compile_args
             lib_kwargs[langarg_key] = all_lang_args
-            result.append(self.interpreter.func_static_lib(None, [libname], lib_kwargs))
+
+            lib = self.interpreter.build_target(state.current_node, (libname, []), lib_kwargs, build.StaticLibrary)
+
+            result.append(lib)
+
         return [result, conf]
 
-def initialize(*args, **kwargs):
-    return SimdModule(*args, **kwargs)
+def initialize(interp: Interpreter) -> SimdModule:
+    return SimdModule(interp)

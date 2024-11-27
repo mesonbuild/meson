@@ -18,3 +18,8 @@ custom_target('output',
 output : 'output.dat',
 command : [g2, '@OUTDIR@', '@OUTPUT@'],
 depends : c1)
+
+custom_target('output2',
+output : 'output2.dat',
+command : [g2, '@OUTDIR@', '@OUTPUT@'],
+depends : c1[0])

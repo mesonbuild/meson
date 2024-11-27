@@ -8,7 +8,7 @@ mod tests {
 
         use super::*;
 
-        // This is an intentinally broken test that should be turned off by extra rust arguments
+        // This is an intentionally broken test that should be turned off by extra rust arguments
         #[cfg(not(broken = "false"))]
         #[test]
         fn test_broken() {

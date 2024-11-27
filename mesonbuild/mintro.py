@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 """This is a helper script for IDE developers. It allows you to
@@ -29,17 +19,19 @@ from pathlib import Path, PurePath
 import sys
 import typing as T
 
-from . import build, mesonlib, coredata as cdata
+from . import build, mesonlib, options, coredata as cdata
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
 from .dependencies import Dependency
 from . import environment
 from .interpreterbase import ObjectHolder
-from .mesonlib import OptionKey
+from .options import OptionKey
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
 
 if T.TYPE_CHECKING:
     import argparse
+    from typing import Any
+    from .options import UserOption
 
     from .interpreter import Interpreter
     from .mparser import BaseNode
@@ -64,8 +56,7 @@ class IntroCommand:
 
 def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
                                   builddata: T.Optional[build.Build] = None,
-                                  backend: T.Optional[backends.Backend] = None,
-                                  sourcedir: T.Optional[str] = None) -> 'T.Mapping[str, IntroCommand]':
+                                  backend: T.Optional[backends.Backend] = None) -> 'T.Mapping[str, IntroCommand]':
     if backend and builddata:
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
@@ -91,13 +82,15 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         ('tests', IntroCommand('List all unit tests', func=lambda: list_tests(testdata))),
     ])
 
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     intro_types = get_meson_introspection_types()
     for key, val in intro_types.items():
         flag = '--' + key.replace('_', '-')
         parser.add_argument(flag, action='store_true', dest=key, default=False, help=val.desc)
 
-    parser.add_argument('--backend', choices=sorted(cdata.backendlist), dest='backend', default='ninja',
+    parser.add_argument('--backend', choices=sorted(options.backendlist), dest='backend', default='ninja',
                         help='The backend to use for the --buildoptions introspection.')
     parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
                         help='Print all available information.')
@@ -138,6 +131,7 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
                 'destination': target.out_name,
                 'tag': target.tag or None,
                 'subproject': target.subproject or None,
+                'install_rpath': target.install_rpath or None
             }
             for target in installdata.targets
         },
@@ -187,7 +181,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
             args: T.List[BaseNode] = []
             if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
-                if n.func_name in BUILD_TARGET_FUNCTIONS:
+                if n.func_name.value in BUILD_TARGET_FUNCTIONS:
                     args.pop(0)
             elif isinstance(n, ArrayNode):
                 args = n.args.arguments
@@ -293,38 +287,38 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     optlist: T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = []
     subprojects = subprojects or []
 
-    dir_option_names = set(cdata.BUILTIN_DIR_OPTIONS)
+    dir_option_names = set(options.BUILTIN_DIR_OPTIONS)
     test_option_names = {OptionKey('errorlogs'),
                          OptionKey('stdsplit')}
 
     dir_options: 'cdata.MutableKeyedOptionDictType' = {}
     test_options: 'cdata.MutableKeyedOptionDictType' = {}
     core_options: 'cdata.MutableKeyedOptionDictType' = {}
-    for k, v in coredata.options.items():
+    for k, v in coredata.optstore.items():
         if k in dir_option_names:
             dir_options[k] = v
         elif k in test_option_names:
             test_options[k] = v
-        elif k.is_builtin():
+        elif coredata.optstore.is_builtin_option(k):
             core_options[k] = v
             if not v.yielding:
                 for s in subprojects:
                     core_options[k.evolve(subproject=s)] = v
 
-    def add_keys(options: 'cdata.KeyedOptionDictType', section: str) -> None:
-        for key, opt in sorted(options.items()):
+    def add_keys(opts: 'T.Union[dict[OptionKey, UserOption[Any]], cdata.KeyedOptionDictType]', section: str) -> None:
+        for key, opt in sorted(opts.items()):
             optdict = {'name': str(key), 'value': opt.value, 'section': section,
                        'machine': key.machine.get_lower_case_name() if coredata.is_per_machine_option(key) else 'any'}
-            if isinstance(opt, cdata.UserStringOption):
+            if isinstance(opt, options.UserStringOption):
                 typestr = 'string'
-            elif isinstance(opt, cdata.UserBooleanOption):
+            elif isinstance(opt, options.UserBooleanOption):
                 typestr = 'boolean'
-            elif isinstance(opt, cdata.UserComboOption):
+            elif isinstance(opt, options.UserComboOption):
                 optdict['choices'] = opt.choices
                 typestr = 'combo'
-            elif isinstance(opt, cdata.UserIntegerOption):
+            elif isinstance(opt, options.UserIntegerOption):
                 typestr = 'integer'
-            elif isinstance(opt, cdata.UserArrayOption):
+            elif isinstance(opt, options.UserArrayOption):
                 typestr = 'array'
                 if opt.choices:
                     optdict['choices'] = opt.choices
@@ -335,14 +329,14 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
             optlist.append(optdict)
 
     add_keys(core_options, 'core')
-    add_keys({k: v for k, v in coredata.options.items() if k.is_backend()}, 'backend')
-    add_keys({k: v for k, v in coredata.options.items() if k.is_base()}, 'base')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_backend_option(k)}, 'backend')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_base_option(k)}, 'base')
     add_keys(
-        {k: v for k, v in sorted(coredata.options.items(), key=lambda i: i[0].machine) if k.is_compiler()},
+        {k: v for k, v in sorted(coredata.optstore.items(), key=lambda i: i[0].machine) if coredata.optstore.is_compiler_option(k)},
         'compiler',
     )
     add_keys(dir_options, 'directory')
-    add_keys({k: v for k, v in coredata.options.items() if k.is_project()}, 'user')
+    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
     add_keys(test_options, 'test')
     return optlist
 
@@ -412,7 +406,7 @@ def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.D
             'version': d.get_version(),
             'compile_args': d.get_compile_args(),
             'link_args': d.get_link_args(),
-            'include_directories': [i for idirs in d.get_include_dirs() for i in idirs.to_string_list(backend.source_dir)],
+            'include_directories': [i for idirs in d.get_include_dirs() for i in idirs.to_string_list(backend.source_dir, backend.build_dir)],
             'sources': [f for s in d.get_sources() for f in _src_to_str(s)],
             'extra_files': [f for s in d.get_extra_files() for f in _src_to_str(s)],
             'dependencies': [e.name for e in d.ext_deps],
@@ -476,10 +470,12 @@ def list_machines(builddata: build.Build) -> T.Dict[str, T.Dict[str, T.Union[str
         machines[m]['object_suffix'] = machine.get_object_suffix()
     return machines
 
-def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]:
-    result: T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]] = {
+def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]]:
+    result: T.Dict[str, T.Union[str, T.List[str], T.List[T.Dict[str, str]]]] = {
         'version': builddata.project_version,
         'descriptive_name': builddata.project_name,
+        'license': builddata.dep_manifest[builddata.project_name].license,
+        'license_files': [f[1].fname for f in builddata.dep_manifest[builddata.project_name].license_files],
         'subproject_dir': builddata.subproject_dir,
     }
     subprojects = []
@@ -543,7 +539,7 @@ def run(options: argparse.Namespace) -> int:
     indent = 4 if options.indent else None
     results: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]] = []
     sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
-    intro_types = get_meson_introspection_types(sourcedir=sourcedir)
+    intro_types = get_meson_introspection_types()
 
     if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
@@ -601,7 +597,7 @@ def write_intro_info(intro_info: T.Sequence[T.Tuple[str, T.Union[dict, T.List[T.
         out_file = os.path.join(info_dir, f'intro-{kind}.json')
         tmp_file = os.path.join(info_dir, 'tmp_dump.json')
         with open(tmp_file, 'w', encoding='utf-8') as fp:
-            json.dump(data, fp)
+            json.dump(data, fp, indent=2)
             fp.flush() # Not sure if this is needed
         os.replace(tmp_file, out_file)
         updated_introspection_files.append(kind)

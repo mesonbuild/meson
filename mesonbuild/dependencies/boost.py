@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2020 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import re
@@ -21,6 +11,7 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
+from ..options import OptionKey
 
 from .base import DependencyException, SystemDependency
 from .detect import packages
@@ -65,7 +56,7 @@ if T.TYPE_CHECKING:
 # Mac   / homebrew: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /usr/local/lib)
 # Mac   / macports: libboost_<module>.dylib + libboost_<module>-mt.dylib    (location = /opt/local/lib)
 #
-# Its not clear that any other abi tags (e.g. -gd) are used in official packages.
+# It's not clear that any other abi tags (e.g. -gd) are used in official packages.
 #
 # On Linux systems, boost libs have multithreading support enabled, but without the -mt tag.
 #
@@ -270,7 +261,7 @@ class BoostLibraryFile():
                 update_vers(i[2:])
             elif i.isdigit():
                 update_vers(i)
-            elif len(i) >= 3 and i[0].isdigit and i[2].isdigit() and i[1] == '.':
+            elif len(i) >= 3 and i[0].isdigit() and i[2].isdigit() and i[1] == '.':
                 update_vers(i)
             else:
                 other_tags += [i]
@@ -350,7 +341,7 @@ class BoostLibraryFile():
 class BoostDependency(SystemDependency):
     def __init__(self, environment: Environment, kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__('boost', environment, kwargs, language='cpp')
-        buildtype = environment.coredata.get_option(mesonlib.OptionKey('buildtype'))
+        buildtype = environment.coredata.get_option(OptionKey('buildtype'))
         assert isinstance(buildtype, str)
         self.debug = buildtype.startswith('debug')
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
@@ -590,8 +581,8 @@ class BoostDependency(SystemDependency):
         # MSVC is very picky with the library tags
         vscrt = ''
         try:
-            crt_val = self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value
-            buildtype = self.env.coredata.options[mesonlib.OptionKey('buildtype')].value
+            crt_val = self.env.coredata.optstore.get_value('b_vscrt')
+            buildtype = self.env.coredata.optstore.get_value('buildtype')
             vscrt = self.clib_compiler.get_crt_compile_args(crt_val, buildtype)[0]
         except (KeyError, IndexError, AttributeError):
             pass
@@ -604,7 +595,8 @@ class BoostDependency(SystemDependency):
         # mlog.debug('    - vscrt: {}'.format(vscrt))
         libs = [x for x in libs if x.static == self.static or not self.explicit_static]
         libs = [x for x in libs if x.mt == self.multithreading]
-        libs = [x for x in libs if x.version_matches(lib_vers)]
+        if not self.env.machines[self.for_machine].is_openbsd():
+            libs = [x for x in libs if x.version_matches(lib_vers)]
         libs = [x for x in libs if x.arch_matches(self.arch)]
         libs = [x for x in libs if x.vscrt_matches(vscrt)]
         libs = [x for x in libs if x.nvsuffix != 'dll']  # Only link to import libraries
@@ -662,9 +654,19 @@ class BoostDependency(SystemDependency):
         try:
             boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
             if boost_pc.found():
-                boost_root = boost_pc.get_pkgconfig_variable('prefix', [], None)
-                if boost_root:
-                    roots += [Path(boost_root)]
+                boost_lib_dir = boost_pc.get_variable(pkgconfig='libdir')
+                boost_inc_dir = boost_pc.get_variable(pkgconfig='includedir')
+                if boost_lib_dir and boost_inc_dir:
+                    mlog.debug('Trying to find boost with:')
+                    mlog.debug(f'  - boost_includedir = {Path(boost_inc_dir)}')
+                    mlog.debug(f'  - boost_librarydir = {Path(boost_lib_dir)}')
+
+                    self.detect_split_root(Path(boost_inc_dir), Path(boost_lib_dir))
+                    return
+                else:
+                    boost_root = boost_pc.get_variable(pkgconfig='prefix')
+                    if boost_root:
+                        roots += [Path(boost_root)]
         except DependencyException:
             pass
 
@@ -674,8 +676,9 @@ class BoostDependency(SystemDependency):
         inc_paths = [x.resolve() for x in inc_paths]
         roots += inc_paths
 
+        m = self.env.machines[self.for_machine]
         # Add system paths
-        if self.env.machines[self.for_machine].is_windows():
+        if m.is_windows():
             # Where boost built from source actually installs it
             c_root = Path('C:/Boost')
             if c_root.is_dir():
@@ -697,8 +700,12 @@ class BoostDependency(SystemDependency):
             tmp: T.List[Path] = []
 
             # Add some default system paths
+            if m.is_darwin():
+                tmp.extend([
+                    Path('/opt/homebrew/'),        # for Apple Silicon MacOS
+                    Path('/usr/local/opt/boost'),  # for Intel Silicon MacOS
+                ])
             tmp += [Path('/opt/local')]
-            tmp += [Path('/usr/local/opt/boost')]
             tmp += [Path('/usr/local')]
             tmp += [Path('/usr')]
 

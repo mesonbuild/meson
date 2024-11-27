@@ -1,20 +1,5 @@
-#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# This class contains the basic functionality needed to run any interpreter
-# or an interpreter-based tool.
 
 # This tool is used to manipulate an existing Meson build definition.
 #
@@ -28,17 +13,20 @@ from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionL
 from mesonbuild.mesonlib import MesonException, setup_vsenv
 from . import mlog, environment
 from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, StringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, SymbolNode
 import json, os, re, sys
 import typing as T
 
 if T.TYPE_CHECKING:
+    from argparse import ArgumentParser, HelpFormatter
     from .mparser import BaseNode
 
 class RewriterException(MesonException):
     pass
 
-def add_arguments(parser, formatter=None):
+# Note: when adding arguments, please also add them to the completion
+# scripts in $MESONSRC/data/shell-completions/
+def add_arguments(parser: ArgumentParser, formatter: T.Callable[[str], HelpFormatter]) -> None:
     parser.add_argument('-s', '--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
     parser.add_argument('-V', '--verbose', action='store_true', default=False, help='Enable verbose output')
     parser.add_argument('-S', '--skip-errors', dest='skip', action='store_true', default=False, help='Skip errors instead of aborting')
@@ -104,34 +92,35 @@ class RequiredKeys:
 
         return wrapped
 
+def _symbol(val: str) -> SymbolNode:
+    return SymbolNode(Token('', '', 0, 0, 0, (0, 0), val))
+
 class MTypeBase:
     def __init__(self, node: T.Optional[BaseNode] = None):
         if node is None:
-            self.node = self._new_node()  # lgtm [py/init-calls-subclass] (node creation does not depend on base class state)
+            self.node = self.new_node()
         else:
             self.node = node
         self.node_type = None
-        for i in self.supported_nodes():  # lgtm [py/init-calls-subclass] (listing nodes does not depend on base class state)
+        for i in self.supported_nodes():
             if isinstance(self.node, i):
                 self.node_type = i
 
-    def _new_node(self):
+    @classmethod
+    def new_node(cls, value=None):
         # Overwrite in derived class
-        raise RewriterException('Internal error: _new_node of MTypeBase was called')
+        raise RewriterException('Internal error: new_node of MTypeBase was called')
+
+    @classmethod
+    def supported_nodes(cls):
+        # Overwrite in derived class
+        return []
 
     def can_modify(self):
         return self.node_type is not None
 
     def get_node(self):
         return self.node
-
-    def supported_nodes(self):
-        # Overwrite in derived class
-        return []
-
-    def set_value(self, value):
-        # Overwrite in derived class
-        mlog.warning('Cannot set the value of type', mlog.bold(type(self).__name__), '--> skipping')
 
     def add_value(self, value):
         # Overwrite in derived class
@@ -149,63 +138,74 @@ class MTypeStr(MTypeBase):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_node(self):
-        return StringNode(Token('', '', 0, 0, 0, None, ''))
+    @classmethod
+    def new_node(cls, value=None):
+        if value is None:
+            value = ''
+        return StringNode(Token('string', '', 0, 0, 0, None, str(value)))
 
-    def supported_nodes(self):
+    @classmethod
+    def supported_nodes(cls):
         return [StringNode]
-
-    def set_value(self, value):
-        self.node.value = str(value)
 
 class MTypeBool(MTypeBase):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_node(self):
-        return BooleanNode(Token('', '', 0, 0, 0, None, False))
+    @classmethod
+    def new_node(cls, value=None):
+        return BooleanNode(Token('', '', 0, 0, 0, None, bool(value)))
 
-    def supported_nodes(self):
+    @classmethod
+    def supported_nodes(cls):
         return [BooleanNode]
-
-    def set_value(self, value):
-        self.node.value = bool(value)
 
 class MTypeID(MTypeBase):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_node(self):
-        return IdNode(Token('', '', 0, 0, 0, None, ''))
+    @classmethod
+    def new_node(cls, value=None):
+        if value is None:
+            value = ''
+        return IdNode(Token('', '', 0, 0, 0, None, str(value)))
 
-    def supported_nodes(self):
+    @classmethod
+    def supported_nodes(cls):
         return [IdNode]
-
-    def set_value(self, value):
-        self.node.value = str(value)
 
 class MTypeList(MTypeBase):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_node(self):
-        return ArrayNode(ArgumentNode(Token('', '', 0, 0, 0, None, '')), 0, 0, 0, 0)
+    @classmethod
+    def new_node(cls, value=None):
+        if value is None:
+            value = []
+        elif not isinstance(value, list):
+            return cls._new_element_node(value)
+        args = ArgumentNode(Token('', '', 0, 0, 0, None, ''))
+        args.arguments = [cls._new_element_node(i) for i in value]
+        return ArrayNode(_symbol('['), args, _symbol(']'))
 
-    def _new_element_node(self, value):
+    @classmethod
+    def _new_element_node(cls, value):
         # Overwrite in derived class
         raise RewriterException('Internal error: _new_element_node of MTypeList was called')
 
     def _ensure_array_node(self):
         if not isinstance(self.node, ArrayNode):
             tmp = self.node
-            self.node = self._new_node()
-            self.node.args.arguments += [tmp]
+            self.node = self.new_node()
+            self.node.args.arguments = [tmp]
 
-    def _check_is_equal(self, node, value) -> bool:
+    @staticmethod
+    def _check_is_equal(node, value) -> bool:
         # Overwrite in derived class
         return False
 
-    def _check_regex_matches(self, node, regex: str) -> bool:
+    @staticmethod
+    def _check_regex_matches(node, regex: str) -> bool:
         # Overwrite in derived class
         return False
 
@@ -215,20 +215,14 @@ class MTypeList(MTypeBase):
                 return self.node.args.arguments[0]
         return self.node
 
-    def supported_element_nodes(self):
+    @classmethod
+    def supported_element_nodes(cls):
         # Overwrite in derived class
         return []
 
-    def supported_nodes(self):
-        return [ArrayNode] + self.supported_element_nodes()
-
-    def set_value(self, value):
-        if not isinstance(value, list):
-            value = [value]
-        self._ensure_array_node()
-        self.node.args.arguments = [] # Remove all current nodes
-        for i in value:
-            self.node.args.arguments += [self._new_element_node(i)]
+    @classmethod
+    def supported_nodes(cls):
+        return [ArrayNode] + cls.supported_element_nodes()
 
     def add_value(self, value):
         if not isinstance(value, list):
@@ -263,40 +257,48 @@ class MTypeStrList(MTypeList):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_element_node(self, value):
-        return StringNode(Token('', '', 0, 0, 0, None, str(value)))
+    @classmethod
+    def _new_element_node(cls, value):
+        return StringNode(Token('string', '', 0, 0, 0, None, str(value)))
 
-    def _check_is_equal(self, node, value) -> bool:
+    @staticmethod
+    def _check_is_equal(node, value) -> bool:
         if isinstance(node, StringNode):
             return node.value == value
         return False
 
-    def _check_regex_matches(self, node, regex: str) -> bool:
+    @staticmethod
+    def _check_regex_matches(node, regex: str) -> bool:
         if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
-    def supported_element_nodes(self):
+    @classmethod
+    def supported_element_nodes(cls):
         return [StringNode]
 
 class MTypeIDList(MTypeList):
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
-    def _new_element_node(self, value):
+    @classmethod
+    def _new_element_node(cls, value):
         return IdNode(Token('', '', 0, 0, 0, None, str(value)))
 
-    def _check_is_equal(self, node, value) -> bool:
+    @staticmethod
+    def _check_is_equal(node, value) -> bool:
         if isinstance(node, IdNode):
             return node.value == value
         return False
 
-    def _check_regex_matches(self, node, regex: str) -> bool:
+    @staticmethod
+    def _check_regex_matches(node, regex: str) -> bool:
         if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
-    def supported_element_nodes(self):
+    @classmethod
+    def supported_element_nodes(cls):
         return [IdNode]
 
 rewriter_keys = {
@@ -383,7 +385,7 @@ class Rewriter:
     def print_info(self):
         if self.info_dump is None:
             return
-        sys.stderr.write(json.dumps(self.info_dump, indent=2))
+        sys.stdout.write(json.dumps(self.info_dump, indent=2))
 
     def on_error(self):
         if self.skip_errors:
@@ -420,7 +422,7 @@ class Rewriter:
         if target in self.interpreter.assignments:
             node = self.interpreter.assignments[target]
             if isinstance(node, FunctionNode):
-                if node.func_name in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
+                if node.func_name.value in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
                     tgt = self.interpreter.assign_vals[target]
 
         return tgt
@@ -440,7 +442,7 @@ class Rewriter:
         if dependency in self.interpreter.assignments:
             node = self.interpreter.assignments[dependency]
             if isinstance(node, FunctionNode):
-                if node.func_name == 'dependency':
+                if node.func_name.value == 'dependency':
                     name = self.interpreter.flatten_args(node.args)[0]
                     dep = check_list(name)
 
@@ -468,11 +470,11 @@ class Rewriter:
 
         cdata = self.interpreter.coredata
         options = {
-            **{str(k): v for k, v in cdata.options.items()},
-            **{str(k): v for k, v in cdata.options.items()},
-            **{str(k): v for k, v in cdata.options.items()},
-            **{str(k): v for k, v in cdata.options.items()},
-            **{str(k): v for k, v in cdata.options.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
+            **{str(k): v for k, v in cdata.optstore.items()},
         }
 
         for key, val in sorted(cmd['options'].items()):
@@ -557,39 +559,42 @@ class Rewriter:
                 self.handle_error()
                 continue
 
-            # Remove the key from the kwargs
             if cmd['operation'] == 'delete':
-                if key in arg_node.kwargs:
-                    mlog.log('  -- Deleting', mlog.bold(key), 'from the kwargs')
-                    del arg_node.kwargs[key]
-                    num_changed += 1
-                else:
+                # Remove the key from the kwargs
+                if key not in arg_node.kwargs:
                     mlog.log('  -- Key', mlog.bold(key), 'is already deleted')
-                continue
+                    continue
+                mlog.log('  -- Deleting', mlog.bold(key), 'from the kwargs')
+                del arg_node.kwargs[key]
+            elif cmd['operation'] == 'set':
+                # Replace the key from the kwargs
+                mlog.log('  -- Setting', mlog.bold(key), 'to', mlog.yellow(str(val)))
+                arg_node.kwargs[key] = kwargs_def[key].new_node(val)
+            else:
+                # Modify the value from the kwargs
 
-            if key not in arg_node.kwargs:
-                arg_node.kwargs[key] = None
-            modifier = kwargs_def[key](arg_node.kwargs[key])
-            if not modifier.can_modify():
-                mlog.log('  -- Skipping', mlog.bold(key), 'because it is to complex to modify')
+                if key not in arg_node.kwargs:
+                    arg_node.kwargs[key] = None
+                modifier = kwargs_def[key](arg_node.kwargs[key])
+                if not modifier.can_modify():
+                    mlog.log('  -- Skipping', mlog.bold(key), 'because it is too complex to modify')
+                    continue
 
-            # Apply the operation
-            val_str = str(val)
-            if cmd['operation'] == 'set':
-                mlog.log('  -- Setting', mlog.bold(key), 'to', mlog.yellow(val_str))
-                modifier.set_value(val)
-            elif cmd['operation'] == 'add':
-                mlog.log('  -- Adding', mlog.yellow(val_str), 'to', mlog.bold(key))
-                modifier.add_value(val)
-            elif cmd['operation'] == 'remove':
-                mlog.log('  -- Removing', mlog.yellow(val_str), 'from', mlog.bold(key))
-                modifier.remove_value(val)
-            elif cmd['operation'] == 'remove_regex':
-                mlog.log('  -- Removing all values matching', mlog.yellow(val_str), 'from', mlog.bold(key))
-                modifier.remove_regex(val)
+                # Apply the operation
+                val_str = str(val)
+                if cmd['operation'] == 'add':
+                    mlog.log('  -- Adding', mlog.yellow(val_str), 'to', mlog.bold(key))
+                    modifier.add_value(val)
+                elif cmd['operation'] == 'remove':
+                    mlog.log('  -- Removing', mlog.yellow(val_str), 'from', mlog.bold(key))
+                    modifier.remove_value(val)
+                elif cmd['operation'] == 'remove_regex':
+                    mlog.log('  -- Removing all values matching', mlog.yellow(val_str), 'from', mlog.bold(key))
+                    modifier.remove_regex(val)
 
-            # Write back the result
-            arg_node.kwargs[key] = modifier.get_node()
+                # Write back the result
+                arg_node.kwargs[key] = modifier.get_node()
+
             num_changed += 1
 
         # Convert the keys back to IdNode's
@@ -630,7 +635,7 @@ class Rewriter:
             args = []
             if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
-                if n.func_name in BUILD_TARGET_FUNCTIONS:
+                if n.func_name.value in BUILD_TARGET_FUNCTIONS:
                     args.pop(0)
             elif isinstance(n, ArrayNode):
                 args = n.args.arguments
@@ -728,7 +733,7 @@ class Rewriter:
                     node = tgt_function.args.kwargs[extra_files_key]
                 except StopIteration:
                     # Target has no extra_files kwarg, create one
-                    node = ArrayNode(ArgumentNode(Token('', tgt_function.filename, 0, 0, 0, None, '[]')), tgt_function.end_lineno, tgt_function.end_colno, tgt_function.end_lineno, tgt_function.end_colno)
+                    node = ArrayNode(_symbol('['), ArgumentNode(Token('', tgt_function.filename, 0, 0, 0, None, '[]')), _symbol(']'))
                     tgt_function.args.kwargs[IdNode(Token('string', tgt_function.filename, 0, 0, 0, None, 'extra_files'))] = node
                     mark_array = False
                     if tgt_function not in self.modified_nodes:
@@ -812,17 +817,17 @@ class Rewriter:
 
             # Build src list
             src_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            src_arr_node = ArrayNode(src_arg_node, 0, 0, 0, 0)
+            src_arr_node = ArrayNode(_symbol('['), src_arg_node, _symbol(']'))
             src_far_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            src_fun_node = FunctionNode(filename, 0, 0, 0, 0, 'files', src_far_node)
-            src_ass_node = AssignmentNode(filename, 0, 0, source_id, src_fun_node)
+            src_fun_node = FunctionNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), 'files')), _symbol('('), src_far_node, _symbol(')'))
+            src_ass_node = AssignmentNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), source_id)), _symbol('='), src_fun_node)
             src_arg_node.arguments = [StringNode(Token('string', filename, 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
             tgt_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
-            tgt_fun_node = FunctionNode(filename, 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
-            tgt_ass_node = AssignmentNode(filename, 0, 0, target_id, tgt_fun_node)
+            tgt_fun_node = FunctionNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), cmd['target_type'])), _symbol('('), tgt_arg_node, _symbol(')'))
+            tgt_ass_node = AssignmentNode(IdNode(Token('id', filename, 0, 0, 0, (0, 0), target_id)), _symbol('='), tgt_fun_node)
             tgt_arg_node.arguments = [
                 StringNode(Token('string', filename, 0, 0, 0, None, cmd['target'])),
                 IdNode(Token('string', filename, 0, 0, 0, None, source_id))
@@ -1039,6 +1044,7 @@ cli_type_map = {
 }
 
 def run(options):
+    mlog.redirect(True)
     if not options.verbose:
         mlog.set_quiet()
 

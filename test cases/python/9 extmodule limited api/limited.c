@@ -6,12 +6,22 @@
 #error Wrong value for Py_LIMITED_API
 #endif
 
+static PyObject *
+hello(PyObject * Py_UNUSED(self), PyObject * Py_UNUSED(args)) {
+    return PyUnicode_FromString("hello world");
+}
+
+static struct PyMethodDef methods[] = {
+    { "hello", hello, METH_NOARGS, NULL },
+    { NULL, NULL, 0, NULL },
+};
+
 static struct PyModuleDef limited_module = {
    PyModuleDef_HEAD_INIT,
-   "limited_api_test",
+   "limited",
    NULL,
    -1,
-   NULL
+   methods
 };
 
 PyMODINIT_FUNC PyInit_limited(void) {

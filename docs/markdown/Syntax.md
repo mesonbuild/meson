@@ -109,7 +109,7 @@ Strings in Meson are declared with single quotes. To enter a literal
 single quote do it like this:
 
 ```meson
-single quote = 'contains a \' character'
+single_quote = 'contains a \' character'
 ```
 
 The full list of escape sequences is:
@@ -452,6 +452,15 @@ Keys must be unique:
 ```meson
 # This will fail
 my_dict = {'foo': 42, 'foo': 43}
+```
+
+Accessing elements of a dictionary works similarly to array indexing:
+
+```meson
+my_dict = {'foo': 42, 'bar': 'baz'}
+forty_two = my_dict['foo']
+# This will fail
+my_dict['does_not_exist']
 ```
 
 Dictionaries are immutable and do not have a guaranteed order.

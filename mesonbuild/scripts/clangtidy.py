@@ -1,30 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 import argparse
 import subprocess
 from pathlib import Path
+import tempfile
+import os
+import shutil
+import sys
 
 from .run_tool import run_tool
+from ..environment import detect_clangtidy, detect_clangapply
 import typing as T
 
-def run_clang_tidy(fname: Path, builddir: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(['clang-tidy', '-p', str(builddir), str(fname)])
+def run_clang_tidy(fname: Path, tidyexe: list, builddir: Path, fixesdir: T.Optional[Path]) -> subprocess.CompletedProcess:
+    args = []
+    if fixesdir is not None:
+        handle, name = tempfile.mkstemp(prefix=fname.name + '.', suffix='.yaml', dir=fixesdir)
+        os.close(handle)
+        args.extend(['-export-fixes', name])
+    return subprocess.run(tidyexe + args + ['-quiet', '-p', str(builddir), str(fname)])
 
 def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument('--fix', action='store_true')
     parser.add_argument('sourcedir')
     parser.add_argument('builddir')
     options = parser.parse_args(args)
@@ -32,4 +33,34 @@ def run(args: T.List[str]) -> int:
     srcdir = Path(options.sourcedir)
     builddir = Path(options.builddir)
 
-    return run_tool('clang-tidy', srcdir, builddir, run_clang_tidy, builddir)
+    tidyexe = detect_clangtidy()
+    if not tidyexe:
+        print(f'Could not execute clang-tidy "{" ".join(tidyexe)}"')
+        return 1
+
+    fixesdir: T.Optional[Path] = None
+    if options.fix:
+        applyexe = detect_clangapply()
+        if not applyexe:
+            print(f'Could not execute clang-apply-replacements "{" ".join(applyexe)}"')
+            return 1
+
+        fixesdir = builddir / 'meson-private' / 'clang-tidy-fix'
+        if fixesdir.is_dir():
+            shutil.rmtree(fixesdir)
+        elif fixesdir.exists():
+            fixesdir.unlink()
+        fixesdir.mkdir(parents=True)
+
+    tidyret = run_tool('clang-tidy', srcdir, builddir, run_clang_tidy, tidyexe, builddir, fixesdir)
+    if fixesdir is not None:
+        print('Applying fix-its...')
+        applyret = subprocess.run(applyexe + ['-format', '-style=file', '-ignore-insert-conflict', fixesdir]).returncode
+
+    if tidyret != 0:
+        print('Errors encountered while running clang-tidy', file=sys.stderr)
+        return tidyret
+    if fixesdir is not None and applyret != 0:
+        print('Errors encountered while running clang-apply-replacements', file=sys.stderr)
+        return applyret
+    return 0

@@ -19,6 +19,7 @@ topic](https://github.com/topics/meson).
  - [Akira](https://github.com/akiraux/Akira), a native Linux app for UI and UX design built in Vala and Gtk
  - [AQEMU](https://github.com/tobimensch/aqemu), a Qt GUI for QEMU virtual machines, since version 0.9.3
  - [Arduino sample project](https://github.com/jpakkane/mesonarduino)
+ - [Asteria](https://github.com/lhmouse/asteria), another scripting language
  - [Audacious](https://github.com/audacious-media-player), a lightweight and versatile audio player
  - [bolt](https://gitlab.freedesktop.org/bolt/bolt), userspace daemon to enable security levels for Thunderbolt™ 3 on Linux
  - [bsdutils](https://github.com/dcantrell/bsdutils), alternative to GNU coreutils using software from FreeBSD
@@ -37,6 +38,8 @@ topic](https://github.com/topics/meson).
  - [DOSBox Staging](https://github.com/dosbox-staging/dosbox-staging), DOS/x86 emulator
  - [DPDK](http://dpdk.org/browse/dpdk), Data Plane Development Kit, a set of libraries and drivers for fast packet processing
  - [DXVK](https://github.com/doitsujin/dxvk), a Vulkan-based Direct3D 11 implementation for Linux using Wine
+ - [EFL](https://www.enlightenment.org/about-efl), multiplatform set of libraries, used by the Enlightenment windows manager and other projects
+ - [Enlightenment](https://www.enlightenment.org/), windows manager, compositor and minimal desktop for Linux
  - [elementary OS](https://github.com/elementary/), Linux desktop oriented distribution
  - [Emeus](https://github.com/ebassi/emeus), constraint based layout manager for GTK+
  - [Entangle](https://entangle-photo.org/), tethered camera control and capture desktop application
@@ -48,8 +51,8 @@ topic](https://github.com/topics/meson).
  - [Frida](https://github.com/frida/frida-core), a dynamic binary instrumentation toolkit
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
  - [GameMode](https://github.com/FeralInteractive/gamemode), a daemon/lib combo for Linux that allows games to request a set of optimisations be temporarily applied to the host OS
- - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
- - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (experimental replacing autoconf)
+ - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop
+ - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (master branch)
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
  - [Glorytun](https://github.com/angt/glorytun), a multipath UDP tunnel
  - [GNOME Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a GNOME hypervisor
@@ -59,6 +62,7 @@ topic](https://github.com/topics/meson).
  - [GNOME Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for GNOME
  - [GNOME Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on GNOME desktop
  - [GNOME Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a GNOME application for visualizing system resources
+ - [GNOME Web](https://gitlab.gnome.org/GNOME/epiphany), a browser for a simple, clean, beautiful view of the web
  - [GNU FriBidi](https://github.com/fribidi/fribidi), the open source implementation of the Unicode Bidirectional Algorithm
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
@@ -86,16 +90,17 @@ topic](https://github.com/topics/meson).
  - [Le](https://github.com/kirushyk/le), machine learning framework
  - [libcamera](https://git.linuxtv.org/libcamera.git/), a library to handle complex cameras on Linux, ChromeOS and Android
  - [Libdrm](https://gitlab.freedesktop.org/mesa/drm), a library for abstracting DRM kernel interfaces
+ - [libdwarf](https://www.prevanders.net/dwarf.html), a multiplatform DWARF parser library
  - [libeconf](https://github.com/openSUSE/libeconf), Enhanced config file parsing library, which merges config files placed in several locations into one
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib), a GLib wrapper for libgit2
  - [libglvnd](https://gitlab.freedesktop.org/glvnd/libglvnd), Vendor neutral OpenGL dispatch library for Unix-like OSes
  - [Libhttpseverywhere](https://git.gnome.org/browse/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
- - [libmodulemd](https://github.com/fedora-modularity/libmodulemd), a GObject Introspected library for managing [Fedora Project](https://getfedora.org/) module metadata.
+ - [libmodulemd](https://github.com/fedora-modularity/libmodulemd), a GObject Introspected library for managing [Fedora Project](https://getfedora.org/) module metadata
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location
 lookup based on OpenStreetMap data
- - [libratbag](https://github.com/libratbag/libratbag), provides a DBus daemon to configure input devices, mainly gaming mice.
+ - [libratbag](https://github.com/libratbag/libratbag), provides a DBus daemon to configure input devices, mainly gaming mice
  - [libspng](https://github.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG)
 format files
  - [libSRTP](https://github.com/cisco/libsrtp) (from Cisco Systems), a library for SRTP (Secure Realtime Transport Protocol)
@@ -104,8 +109,10 @@ format files
  - [libvips](https://github.com/libvips/libvips), a fast image processing library with low memory needs
  - [Libvirt](https://libvirt.org), a toolkit to manage virtualization platforms
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
+ - [Linux PAM](https://github.com/linux-pam/linux-pam), The Pluggable Authentication Modules project for Linux
  - [LXC](https://github.com/lxc/lxc), Linux container runtime
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
+ - [mcfgthread](https://github.com/lhmouse/mcfgthread), cornerstone library for C++11 threading on mingw-w64
  - [Mesa](https://mesa3d.org/), an open source graphics driver project
  - [Miniz](https://github.com/richgel999/miniz), a zlib replacement library
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via WiFi-Display specification aka Miracast
@@ -113,13 +120,16 @@ format files
  - [mrsh](https://github.com/emersion/mrsh), a minimal POSIX shell
  - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
+ - [netatalk](https://netatalk.io/), a free and open source AFP file server for Mac and Apple II
+ - [NetPanzer](https://github.com/netpanzer/netpanzer), a 2D online multiplayer tactical warfare game designed for fast action combat
+ - [NumPy](https://numpy.org/), a Python package for scientific computing
  - [nvme-cli](https://github.com/linux-nvme/nvme-cli), NVMe management command line interface
  - [OcherBook](https://github.com/ccoffing/OcherBook), an open source book reader for Kobo devices
  - [oomd](https://github.com/facebookincubator/oomd), a userspace Out-Of-Memory (OOM) killer for Linux systems
  - [OpenH264](https://github.com/cisco/openh264), open source H.264 codec
  - [OpenHMD](https://github.com/OpenHMD/OpenHMD), a free and open source API and drivers for immersive technology, such as head mounted displays with built in head tracking
  - [OpenRC](https://github.com/OpenRC/openrc), an init system for Unix-like operating systems
- - [OpenTitan](https://github.com/lowRISC/opentitan), an open source silicon Root of Trust (RoT) project.
+ - [OpenTitan](https://github.com/lowRISC/opentitan), an open source silicon Root of Trust (RoT) project
  - [Orc](https://gitlab.freedesktop.org/gstreamer/orc), the Optimized Inner Loop Runtime Compiler
  - [OTS](https://github.com/khaledhosny/ots), the OpenType Sanitizer, parses and serializes OpenType files (OTF, TTF) and WOFF and WOFF2 font files, validating and sanitizing them as it goes. Used by Chromium and Firefox
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style Meson example project
@@ -130,7 +140,7 @@ format files
  - [Peek](https://github.com/phw/peek), simple animated GIF screen recorder with an easy to use interface
  - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM
  - [PipeWire](https://github.com/PipeWire/pipewire), a framework for video and audio for containerized applications
- - [Paper Rock Scissors](https://github.com/michaelbrockus/paper_rock_scissors), a game with weapons themed at home paper rock scissors style.
+ - [Paper Rock Scissors](https://github.com/michaelbrockus/paper_rock_scissors), a game with weapons themed at home paper rock scissors style
  - [Pistache](https://github.com/pistacheio/pistache), a high performance REST toolkit written in C++
  - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Pitivi](https://github.com/pitivi/pitivi/), a nonlinear video editor
@@ -141,7 +151,7 @@ format files
  - [qboot](https://github.com/bonzini/qboot), a minimal x86 firmware for booting Linux kernels
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
- - [refivar](https://github.com/nvinson/refivar), A reimplementation of efivar in Rust.
+ - [refivar](https://github.com/nvinson/refivar), A reimplementation of efivar in Rust
  - [Rizin](https://rizin.re), Free and Open Source Reverse Engineering Framework
  - [rmw](https://remove-to-waste.info), safe-remove utility for the command line
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
@@ -158,16 +168,18 @@ format files
  - [szl](https://github.com/dimkr/szl), a lightweight, embeddable scripting language
  - [Taisei Project](https://taisei-project.org/), an open-source Touhou Project clone and fangame
  - [Terminology](https://github.com/billiob/terminology), a terminal emulator based on the Enlightenment Foundation Libraries
+ - [ThorVG](https://www.thorvg.org/), vector-based scenes and animations library
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
+ - [Fossil Logic](https://github.com/fossillogic), Fossil Logic is a cutting-edge software development company specializing in C/C++, Python, programming, Android development using Kotlin, and SQL solutions
  - [UFJF-MLTK](https://github.com/mateus558/UFJF-Machine-Learning-Toolkit), A C++ cross-platform framework for machine learning algorithms development and testing
  - [Vala Language Server](https://github.com/benwaffle/vala-language-server), code intelligence engine for the Vala and Genie programming languages
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Venom](https://github.com/naxuroqa/Venom), a modern Tox client for the GNU/Linux desktop
  - [vkQuake](https://github.com/Novum/vkQuake), a port of id Software's Quake using Vulkan instead of OpenGL for rendering
  - [VMAF](https://github.com/Netflix/vmaf) (by Netflix), a perceptual video quality assessment based on multi-method fusion
- - [Wayland](https://github.com/wayland-project/wayland) and [Weston](https://github.com/wayland-project/weston), a next generation display server
- - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
+ - [Wayland](https://gitlab.freedesktop.org/wayland/wayland) and [Weston](https://gitlab.freedesktop.org/wayland/weston), a next generation display server
+ - [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots), a modular Wayland compositor library
  - [xi-gtk](https://github.com/eyelash/xi-gtk), a GTK+ front-end for the Xi editor
  - [Xorg](https://gitlab.freedesktop.org/xorg/xserver), the X.org display server (not the default yet)
  - [X Test Suite](https://gitlab.freedesktop.org/xorg/test/xts), The X.org test suite

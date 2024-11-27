@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The meson development team
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+
 from __future__ import annotations
 
 """Abstractions for the Intel Compiler families.
@@ -28,6 +18,10 @@ from ... import mesonlib
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
+from ...options import OptionKey
+
+if T.TYPE_CHECKING:
+    from ...environment import Environment
 
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class
@@ -50,13 +44,9 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     minsize: -O2
     """
 
-    BUILD_ARGS: T.Dict[str, T.List[str]] = {
-        'plain': [],
-        'debug': ["-g", "-traceback"],
-        'debugoptimized': ["-g", "-traceback"],
-        'release': [],
-        'minsize': [],
-        'custom': [],
+    DEBUG_ARGS: T.Dict[bool, T.List[str]] = {
+        False: [],
+        True: ['-g', '-traceback']
     }
 
     OPTIM_ARGS: T.Dict[str, T.List[str]] = {
@@ -77,7 +67,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         # It does have IPO, which serves much the same purpose as LOT, but
         # there is an unfortunate rule for using IPO (you can't control the
         # name of the output file) which break assumptions meson makes
-        self.base_options = {mesonlib.OptionKey(o) for o in [
+        self.base_options = {OptionKey(o) for o in [
             'b_pch', 'b_lundef', 'b_asneeded', 'b_pgo', 'b_coverage',
             'b_ndebug', 'b_staticpic', 'b_pie']}
         self.lang_header = 'none'
@@ -92,7 +82,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_pch_name(self, name: str) -> str:
         return os.path.basename(name) + '.' + self.get_pch_suffix()
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
         else:
@@ -115,8 +105,8 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_profile_use_args(self) -> T.List[str]:
         return ['-prof-use']
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return self.BUILD_ARGS[buildtype]
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        return self.DEBUG_ARGS[is_debug]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
@@ -129,13 +119,9 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     """Abstractions for ICL, the Intel compiler on Windows."""
 
-    BUILD_ARGS: T.Dict[str, T.List[str]] = {
-        'plain': [],
-        'debug': ["/Zi", "/traceback"],
-        'debugoptimized': ["/Zi", "/traceback"],
-        'release': [],
-        'minsize': [],
-        'custom': [],
+    DEBUG_ARGS: T.Dict[bool, T.List[str]] = {
+        False: [],
+        True: ['/Zi', '/traceback']
     }
 
     OPTIM_ARGS: T.Dict[str, T.List[str]] = {
@@ -172,11 +158,11 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         version = int(v1 + v2)
         return self._calculate_toolset_version(version)
 
-    def openmp_flags(self) -> T.List[str]:
+    def openmp_flags(self, env: Environment) -> T.List[str]:
         return ['/Qopenmp']
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return self.BUILD_ARGS[buildtype]
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        return self.DEBUG_ARGS[is_debug]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]

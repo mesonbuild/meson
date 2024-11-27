@@ -14,7 +14,7 @@ jobs:
     env:
       TESTDIR: "manual tests/13 builddir upgrade"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install ninja
         run: sudo apt-get -y install build-essential ninja-build
       - name: Fetch tags and unshallow

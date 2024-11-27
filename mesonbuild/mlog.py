@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2014 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
@@ -33,8 +22,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 if T.TYPE_CHECKING:
-    from ._typing import StringProtocol, SizedStringProtocol
+    from typing_extensions import Literal
 
+    from ._typing import StringProtocol, SizedStringProtocol
     from .mparser import BaseNode
 
     TV_Loggable = T.Union[str, 'AnsiDecorator', StringProtocol]
@@ -59,33 +49,8 @@ def _windows_ansi() -> bool:
     # original behavior
     return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
 
-def colorize_console() -> bool:
-    _colorize_console: bool = getattr(sys.stdout, 'colorize_console', None)
-    if _colorize_console is not None:
-        return _colorize_console
-
-    try:
-        if is_windows():
-            _colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()
-        else:
-            _colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
-    except Exception:
-        _colorize_console = False
-
-    sys.stdout.colorize_console = _colorize_console  # type: ignore[attr-defined]
-    return _colorize_console
-
-def setup_console() -> None:
-    # on Windows, a subprocess might call SetConsoleMode() on the console
-    # connected to stdout and turn off ANSI escape processing. Call this after
-    # running a subprocess to ensure we turn it on again.
-    if is_windows():
-        try:
-            delattr(sys.stdout, 'colorize_console')
-        except AttributeError:
-            pass
-
 _in_ci = 'CI' in os.environ
+_ci_is_github = 'GITHUB_ACTIONS' in os.environ
 
 
 class _Severity(enum.Enum):
@@ -100,6 +65,7 @@ class _Logger:
 
     log_dir: T.Optional[str] = None
     log_depth: T.List[str] = field(default_factory=list)
+    log_to_stderr: bool = False
     log_file: T.Optional[T.TextIO] = None
     log_timestamp_start: T.Optional[float] = None
     log_fatal_warnings = False
@@ -148,7 +114,7 @@ class _Logger:
         return None
 
     def start_pager(self) -> None:
-        if not colorize_console():
+        if not self.colorize_console():
             return
         pager_cmd = []
         if 'PAGER' in os.environ:
@@ -190,7 +156,7 @@ class _Logger:
             try:
                 self.log_pager.stdin.flush()
                 self.log_pager.stdin.close()
-            except BrokenPipeError:
+            except OSError:
                 pass
             self.log_pager.wait()
             self.log_pager = None
@@ -232,12 +198,17 @@ class _Logger:
             raw = '\n'.join(lines)
 
         # _Something_ is going to get printed.
+        if self.log_pager:
+            output = self.log_pager.stdin
+        elif self.log_to_stderr:
+            output = sys.stderr
+        else:
+            output = sys.stdout
         try:
-            output = self.log_pager.stdin if self.log_pager else None
             print(raw, end='', file=output)
         except UnicodeEncodeError:
             cleaned = raw.encode('ascii', 'replace').decode('ascii')
-            print(cleaned, end='')
+            print(cleaned, end='', file=output)
 
     def debug(self, *args: TV_Loggable, sep: T.Optional[str] = None,
               end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
@@ -253,7 +224,7 @@ class _Logger:
         if self.log_file is not None:
             print(*arr, file=self.log_file, sep=sep, end=end)
             self.log_file.flush()
-        if colorize_console():
+        if self.colorize_console():
             arr = process_markup(args, True, display_timestamp)
         if not self.log_errors_only or is_error:
             force_print(*arr, nested=nested, sep=sep, end=end)
@@ -272,34 +243,27 @@ class _Logger:
             sep: T.Optional[str] = None,
             end: T.Optional[str] = None,
             display_timestamp: bool = True) -> None:
-        if once:
-            self._log_once(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
-        else:
+        if self._should_log(*args, once=once):
             self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
 
     def log_timestamp(self, *args: TV_Loggable) -> None:
         if self.log_timestamp_start:
             self.log(*args)
 
-    def _log_once(self, *args: TV_Loggable, is_error: bool = False,
-                  nested: bool = True, sep: T.Optional[str] = None,
-                  end: T.Optional[str] = None, display_timestamp: bool = True) -> None:
-        """Log variant that only prints a given message one time per meson invocation.
-
-        This considers ansi decorated values by the values they wrap without
-        regard for the AnsiDecorator itself.
-        """
+    def _should_log(self, *args: TV_Loggable, once: bool) -> bool:
         def to_str(x: TV_Loggable) -> str:
             if isinstance(x, str):
                 return x
             if isinstance(x, AnsiDecorator):
                 return x.text
             return str(x)
+        if not once:
+            return True
         t = tuple(to_str(a) for a in args)
         if t in self.logged_once:
-            return
+            return False
         self.logged_once.add(t)
-        self._log(*args, is_error=is_error, nested=nested, sep=sep, end=end, display_timestamp=display_timestamp)
+        return True
 
     def _log_error(self, severity: _Severity, *rargs: TV_Loggable,
                    once: bool = False, fatal: bool = True,
@@ -322,6 +286,9 @@ class _Logger:
         # rargs is a tuple, not a list
         args = label + list(rargs)
 
+        if not self._should_log(*args, once=once):
+            return
+
         if location is not None:
             location_file = relpath(location.filename, os.getcwd())
             location_str = get_error_location_string(location_file, location.lineno)
@@ -330,7 +297,7 @@ class _Logger:
             location_list = T.cast('TV_LoggableList', [location_str])
             args = location_list + args
 
-        log(*args, once=once, nested=nested, sep=sep, end=end, is_error=is_error)
+        self._log(*args, nested=nested, sep=sep, end=end, is_error=is_error)
 
         self.log_warnings_counter += 1
 
@@ -412,8 +379,38 @@ class _Logger:
     def get_warning_count(self) -> int:
         return self.log_warnings_counter
 
+    def redirect(self, to_stderr: bool) -> None:
+        self.log_to_stderr = to_stderr
+
+    def colorize_console(self) -> bool:
+        output = sys.stderr if self.log_to_stderr else sys.stdout
+        _colorize_console: bool = getattr(output, 'colorize_console', None)
+        if _colorize_console is not None:
+            return _colorize_console
+        try:
+            if is_windows():
+                _colorize_console = os.isatty(output.fileno()) and _windows_ansi()
+            else:
+                _colorize_console = os.isatty(output.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
+        except Exception:
+            _colorize_console = False
+        output.colorize_console = _colorize_console  # type: ignore[attr-defined]
+        return _colorize_console
+
+    def setup_console(self) -> None:
+        # on Windows, a subprocess might call SetConsoleMode() on the console
+        # connected to stdout and turn off ANSI escape processing. Call this after
+        # running a subprocess to ensure we turn it on again.
+        output = sys.stderr if self.log_to_stderr else sys.stdout
+        if is_windows():
+            try:
+                delattr(output, 'colorize_console')
+            except AttributeError:
+                pass
+
 _logger = _Logger()
 cmd_ci_include = _logger.cmd_ci_include
+colorize_console = _logger.colorize_console
 debug = _logger.debug
 deprecation = _logger.deprecation
 error = _logger.error
@@ -430,9 +427,11 @@ nested_warnings = _logger.nested_warnings
 no_logging = _logger.no_logging
 notice = _logger.notice
 process_markup = _logger.process_markup
+redirect = _logger.redirect
 set_quiet = _logger.set_quiet
 set_timestamp_start = _logger.set_timestamp_start
 set_verbose = _logger.set_verbose
+setup_console = _logger.setup_console
 shutdown = _logger.shutdown
 start_pager = _logger.start_pager
 stop_pager = _logger.stop_pager
@@ -551,3 +550,30 @@ def code_line(text: str, line: str, colno: int) -> str:
     :return: A formatted string of the text, line, and a caret
     """
     return f'{text}\n{line}\n{" " * colno}^'
+
+@T.overload
+def ci_fold_file(fname: T.Union[str, os.PathLike], banner: str, force: Literal[True] = True) -> str: ...
+
+@T.overload
+def ci_fold_file(fname: T.Union[str, os.PathLike], banner: str, force: Literal[False] = False) -> T.Optional[str]: ...
+
+def ci_fold_file(fname: T.Union[str, os.PathLike], banner: str, force: bool = False) -> T.Optional[str]:
+    if not _in_ci and not force:
+        return None
+
+    if _ci_is_github:
+        header = f'::group::==== {banner} ===='
+        footer = '::endgroup::'
+    elif force:
+        header = banner
+        footer = ''
+    elif 'MESON_FORCE_SHOW_LOGS' in os.environ:
+        header = f'==== Forcing display of logs for {os.path.basename(fname)} ===='
+        footer = ''
+    else:
+        # only github is implemented
+        return None
+
+    with open(fname, 'r', encoding='utf-8') as f:
+        data = f.read()
+    return f'{header}\n{data}\n{footer}\n'

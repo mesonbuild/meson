@@ -1,15 +1,17 @@
 project('nasm config file', 'c')
 
-if host_machine.cpu_family() == 'x86' and host_machine.system() == 'windows'
-  asm_format = 'win32'
-elif host_machine.cpu_family() == 'x86_64' and host_machine.system() == 'windows'
-  asm_format = 'win64'
-elif host_machine.cpu_family() == 'x86' and host_machine.system() == 'linux'
+if not host_machine.cpu_family().startswith('x86')
+  error('MESON_SKIP_TEST: nasm only supported for x86 and x86_64')
+endif
+
+if host_machine.system() != 'linux'
+  error('MESON_SKIP_TEST: this test asm is made for Linux')
+endif
+
+if host_machine.cpu_family() == 'x86'
   asm_format = 'elf32'
-elif host_machine.cpu_family() == 'x86_64' and host_machine.system() == 'linux'
-  asm_format = 'elf64'
 else
-  error('MESON_SKIP_TEST: skipping test on this platform')
+  asm_format = 'elf64'
 endif
 
 nasm = find_program('nasm', required: false)
@@ -22,10 +24,16 @@ conf = configuration_data()
 
 conf.set('HELLO', 0)
 
+debug_nasm = []
+if get_option('debug')
+  debug_nasm = ['-g']
+endif
+
 asm_gen = generator(nasm,
   output : '@BASENAME@.o',
   arguments : [
     '-f', asm_format,
+    debug_nasm,
     '-i', meson.current_source_dir() + '/',
     '-i', join_paths(meson.current_source_dir(), ''),
     '-P', join_paths(meson.current_build_dir(), 'config.asm'),
@@ -42,7 +50,7 @@ config_file = configure_file(
 cc = meson.get_compiler('c')
 link_args = cc.get_supported_link_arguments(['-no-pie'])
 
-exe = executable('hello', asm_gen.process('hello.asm'),
+exe = executable('hello', asm_gen.process('hello-' + host_machine.cpu_family() + '.asm'),
   link_args: link_args,
 )
 

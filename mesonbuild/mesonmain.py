@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 # Work around some pathlib bugs...
@@ -25,17 +15,21 @@ import os.path
 import platform
 import importlib
 import argparse
+import typing as T
 
 from .utils.core import MesonException, MesonBugException
 from . import mlog
 
-def errorhandler(e, command):
+def errorhandler(e: Exception, command: str) -> int:
     import traceback
     if isinstance(e, MesonException):
         mlog.exception(e)
         logfile = mlog.shutdown()
         if logfile is not None:
             mlog.log("\nA full log can be found at", mlog.bold(logfile))
+            contents = mlog.ci_fold_file(logfile, f'CI platform detected, click here for {os.path.basename(logfile)} contents.')
+            if contents:
+                print(contents)
         if os.environ.get('MESON_FORCE_BACKTRACE'):
             raise e
         return 1
@@ -53,8 +47,8 @@ def errorhandler(e, command):
         if command == 'runpython':
             return 2
         elif isinstance(e, OSError):
-            mlog.exception("Unhandled python OSError. This is probably not a Meson bug, "
-                           "but an issue with your build environment.")
+            mlog.exception(Exception("Unhandled python OSError. This is probably not a Meson bug, "
+                           "but an issue with your build environment."))
             return e.errno
         else: # Exception
             msg = 'Unhandled python exception'
@@ -68,18 +62,18 @@ def errorhandler(e, command):
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 class CommandLineParser:
-    def __init__(self):
+    def __init__(self) -> None:
         # only import these once we do full argparse processing
-        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
-        from .scripts import env2mfile
+        from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv, mformat
+        from .scripts import env2mfile, reprotest
         from .wrap import wraptool
         import shutil
 
         self.term_width = shutil.get_terminal_size().columns
         self.formatter = lambda prog: argparse.HelpFormatter(prog, max_help_position=int(self.term_width / 2), width=self.term_width)
 
-        self.commands = {}
-        self.hidden_commands = []
+        self.commands: T.Dict[str, argparse.ArgumentParser] = {}
+        self.hidden_commands: T.List[str] = []
         self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formatter)
         self.subparsers = self.parser.add_subparsers(title='Commands', dest='command',
                                                      description='If no command is specified it defaults to setup command.')
@@ -109,6 +103,10 @@ class CommandLineParser:
                          help_msg='Run commands in developer environment')
         self.add_command('env2mfile', env2mfile.add_arguments, env2mfile.run,
                          help_msg='Convert current environment to a cross or native file')
+        self.add_command('reprotest', reprotest.add_arguments, reprotest.run,
+                         help_msg='Test if project builds reproducibly')
+        self.add_command('format', mformat.add_arguments, mformat.run, aliases=['fmt'],
+                         help_msg='Format meson source file')
         # Add new commands above this line to list them in help command
         self.add_command('help', self.add_help_arguments, self.run_help_command,
                          help_msg='Print help of a subcommand')
@@ -119,7 +117,8 @@ class CommandLineParser:
         self.add_command('unstable-coredata', munstable_coredata.add_arguments, munstable_coredata.run,
                          help_msg=argparse.SUPPRESS)
 
-    def add_command(self, name, add_arguments_func, run_func, help_msg, aliases=None):
+    def add_command(self, name: str, add_arguments_func: T.Callable[[argparse.ArgumentParser], None],
+                    run_func: T.Callable[[argparse.Namespace], int], help_msg: str, aliases: T.List[str] = None) -> None:
         aliases = aliases or []
         # FIXME: Cannot have hidden subparser:
         # https://bugs.python.org/issue22848
@@ -133,13 +132,13 @@ class CommandLineParser:
         for i in [name] + aliases:
             self.commands[i] = p
 
-    def add_runpython_arguments(self, parser: argparse.ArgumentParser):
+    def add_runpython_arguments(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument('-c', action='store_true', dest='eval_arg', default=False)
         parser.add_argument('--version', action='version', version=platform.python_version())
         parser.add_argument('script_file')
         parser.add_argument('script_args', nargs=argparse.REMAINDER)
 
-    def run_runpython_command(self, options):
+    def run_runpython_command(self, options: argparse.Namespace) -> int:
         sys.argv[1:] = options.script_args
         if options.eval_arg:
             exec(options.script_file)
@@ -149,17 +148,17 @@ class CommandLineParser:
             runpy.run_path(options.script_file, run_name='__main__')
         return 0
 
-    def add_help_arguments(self, parser):
+    def add_help_arguments(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument('command', nargs='?', choices=list(self.commands.keys()))
 
-    def run_help_command(self, options):
+    def run_help_command(self, options: argparse.Namespace) -> int:
         if options.command:
             self.commands[options.command].print_help()
         else:
             self.parser.print_help()
         return 0
 
-    def run(self, args):
+    def run(self, args: T.List[str]) -> int:
         implicit_setup_command_notice = False
         # If first arg is not a known command, assume user wants to run the setup
         # command.
@@ -203,7 +202,7 @@ class CommandLineParser:
                             'Meson will require Python 3.7 or newer', fatal=False)
             mlog.shutdown()
 
-def run_script_command(script_name, script_args):
+def run_script_command(script_name: str, script_args: T.List[str]) -> int:
     # Map script name to module name for those that doesn't match
     script_map = {'exe': 'meson_exe',
                   'install': 'meson_install',
@@ -226,16 +225,16 @@ def run_script_command(script_name, script_args):
         mlog.exception(e)
         return 1
 
-def ensure_stdout_accepts_unicode():
+def ensure_stdout_accepts_unicode() -> None:
     if sys.stdout.encoding and not sys.stdout.encoding.upper().startswith('UTF-'):
-        sys.stdout.reconfigure(errors='surrogateescape')
+        sys.stdout.reconfigure(errors='surrogateescape') # type: ignore[attr-defined]
 
-def set_meson_command(mainfile):
+def set_meson_command(mainfile: str) -> None:
     # Set the meson command that will be used to run scripts and so on
     from . import mesonlib
     mesonlib.set_meson_command(mainfile)
 
-def run(original_args, mainfile):
+def run(original_args: T.List[str], mainfile: str) -> int:
     if os.environ.get('MESON_SHOW_DEPRECATIONS'):
         # workaround for https://bugs.python.org/issue34624
         import warnings
@@ -263,7 +262,7 @@ def run(original_args, mainfile):
     # https://github.com/mesonbuild/meson/issues/3653
     if sys.platform == 'cygwin' and os.environ.get('MSYSTEM', '') not in ['MSYS', '']:
         mlog.error('This python3 seems to be msys/python on MSYS2 Windows, but you are in a MinGW environment')
-        mlog.error('Please install and use mingw-w64-x86_64-python3 and/or mingw-w64-x86_64-meson with Pacman')
+        mlog.error('Please install it via https://packages.msys2.org/base/mingw-w64-python')
         return 2
 
     args = original_args[:]
@@ -284,7 +283,7 @@ def run(original_args, mainfile):
     set_meson_command(mainfile)
     return CommandLineParser().run(args)
 
-def main():
+def main() -> int:
     # Always resolve the command path so Ninja can find it for regen, tests, etc.
     if 'meson.exe' in sys.executable:
         assert os.path.isabs(sys.executable)

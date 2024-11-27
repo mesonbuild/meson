@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2015-2022 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 from __future__ import annotations
 from collections import defaultdict
@@ -24,9 +13,10 @@ from . import ModuleReturnValue
 from .. import build
 from .. import dependencies
 from .. import mesonlib
+from ..options import OptionKey
 from .. import mlog
-from ..coredata import BUILTIN_DIR_OPTIONS
-from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI
+from ..options import BUILTIN_DIR_OPTIONS
+from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.type_checking import D_MODULE_VERSIONS_KW, INSTALL_DIR_KW, VARIABLES_KW, NoneType
 from ..interpreterbase import FeatureNew, FeatureDeprecated
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
@@ -137,7 +127,7 @@ class DependenciesHelper:
                          'to generate() method instead of first positional '
                          'argument.', 'Adding', mlog.bold(data.display_name),
                          'to "Requires" field, but this is a deprecated '
-                         'behaviour that will change in a future version '
+                         'behaviour that will change in version 2.0 '
                          'of Meson. Please report the issue if this '
                          'warning cannot be avoided in your case.',
                          location=data.location)
@@ -205,6 +195,13 @@ class DependenciesHelper:
                 if obj.found():
                     if obj.objects:
                         raise mesonlib.MesonException('.pc file cannot refer to individual object files.')
+
+                    # Ensure BothLibraries are resolved:
+                    if self.pub_libs and isinstance(self.pub_libs[0], build.StaticLibrary):
+                        obj = obj.get_as_static(recursive=True)
+                    else:
+                        obj = obj.get_as_shared(recursive=True)
+
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
                     self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
@@ -307,7 +304,7 @@ class DependenciesHelper:
         for name in reqs:
             vreqs = self.version_reqs.get(name, None)
             if vreqs:
-                result += [name + ' ' + self.format_vreq(vreq) for vreq in vreqs]
+                result += [name + ' ' + self.format_vreq(vreq) for vreq in sorted(vreqs)]
             else:
                 result += [name]
         return ', '.join(result)
@@ -493,7 +490,7 @@ class PkgConfigModule(NewExtensionModule):
             srcdir = PurePath(state.environment.get_source_dir())
         else:
             outdir = state.environment.scratch_dir
-            prefix = PurePath(_as_str(coredata.get_option(mesonlib.OptionKey('prefix'))))
+            prefix = PurePath(_as_str(coredata.get_option(OptionKey('prefix'))))
             if pkgroot:
                 pkgroot_ = PurePath(pkgroot)
                 if not pkgroot_.is_absolute():
@@ -510,7 +507,7 @@ class PkgConfigModule(NewExtensionModule):
                     if optname == 'prefix':
                         ofile.write('prefix={}\n'.format(self._escape(prefix)))
                     else:
-                        dirpath = PurePath(_as_str(coredata.get_option(mesonlib.OptionKey(optname))))
+                        dirpath = PurePath(_as_str(coredata.get_option(OptionKey(optname))))
                         ofile.write('{}={}\n'.format(optname, self._escape('${prefix}' / dirpath)))
             if uninstalled and not dataonly:
                 ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
@@ -682,7 +679,8 @@ class PkgConfigModule(NewExtensionModule):
         if dversions:
             compiler = state.environment.coredata.compilers.host.get('d')
             if compiler:
-                deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
+                deps.add_cflags(compiler.get_feature_args(
+                    {'versions': dversions, 'import_dirs': [], 'debug': [], 'unittest': False}, None))
 
         deps.remove_dups()
 
@@ -690,6 +688,8 @@ class PkgConfigModule(NewExtensionModule):
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
             for name, value in vardict.items():
+                if not value:
+                    FeatureNew.single_use('empty variable value in pkg.generate', '1.4.0', state.subproject, location=state.current_node)
                 if not dataonly and name in reserved:
                     raise mesonlib.MesonException(f'Variable "{name}" is reserved')
                 variables.append((name, value))
@@ -702,15 +702,15 @@ class PkgConfigModule(NewExtensionModule):
         pkgroot = pkgroot_name = kwargs['install_dir'] or default_install_dir
         if pkgroot is None:
             if mesonlib.is_freebsd():
-                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))), 'libdata', 'pkgconfig')
+                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(OptionKey('prefix'))), 'libdata', 'pkgconfig')
                 pkgroot_name = os.path.join('{prefix}', 'libdata', 'pkgconfig')
             elif mesonlib.is_haiku():
-                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))), 'develop', 'lib', 'pkgconfig')
+                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(OptionKey('prefix'))), 'develop', 'lib', 'pkgconfig')
                 pkgroot_name = os.path.join('{prefix}', 'develop', 'lib', 'pkgconfig')
             else:
-                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(mesonlib.OptionKey('libdir'))), 'pkgconfig')
+                pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(OptionKey('libdir'))), 'pkgconfig')
                 pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
-        relocatable = state.get_option('relocatable', module='pkgconfig')
+        relocatable = state.get_option('pkgconfig.relocatable')
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                       version, pcfile, conflicts, variables,
                                       unescaped_variables, False, dataonly,
@@ -741,7 +741,7 @@ class PkgConfigModule(NewExtensionModule):
                     self._metadata[lib.get_id()] = MetaData(
                         filebase, name, state.current_node)
         if self.devenv is None:
-            self.devenv = PkgConfigCLI.get_env(state.environment, mesonlib.MachineChoice.HOST, uninstalled=True)
+            self.devenv = PkgConfigInterface.get_env(state.environment, mesonlib.MachineChoice.HOST, uninstalled=True)
         return ModuleReturnValue(res, [res])
 
 

@@ -12,6 +12,15 @@ authors:
 This module provides support for finding and building extensions against
 python installations, be they python 2 or 3.
 
+If you want to build and package Python extension modules using tools
+compatible with [PEP-517](https://peps.python.org/pep-0517/), check out
+[meson-python](https://mesonbuild.com/meson-python/index.html).
+
+If you are building Python extension modules against a Python interpreter
+located in a venv or Conda environment, you probably want to set
+`python.install_env=auto`;
+see [Python module options](Builtin-options.md#python-module) for details.
+
 *Added 0.46.0*
 
 ## Functions
@@ -113,6 +122,8 @@ Additionally, the following diverge from [[shared_module]]'s default behavior:
   of Python that support this (the python headers define `PyMODINIT_FUNC` has
   default visibility).
 
+Note that Cython support uses `extension_module`, see [the reference for Cython](Cython.md).
+
 *since 0.63.0* `extension_module` automatically adds a dependency to the library
 if one is not explicitly provided. To support older versions, the user may need to
 add `dependencies : py_installation.dependency()`, see [[dependency]].
@@ -147,11 +158,8 @@ void py_installation.install_sources(list_of_files, ...)
 
 Install actual python sources (`.py`).
 
-All positional and keyword arguments are the same as for
-[[install_data]], with the addition of the following:
-
-*Since 0.60.0* `python.platlibdir` and `python.purelibdir` options can be used
-to control the default installation path. See [Python module options](Builtin-options.md#python-module).
+Source files to install are given as positional argument, in the same way as for
+[[install_data]]. Supported keyword arguments are:
 
 - `pure`: On some platforms, architecture independent files are
   expected to be placed in a separate directory. However, if the
@@ -165,6 +173,12 @@ to control the default installation path. See [Python module options](Builtin-op
 
 - `install_tag` *(since 0.60.0)*: A string used by `meson install --tags` command
   to install only a subset of the files. By default it has the tag `python-runtime`.
+
+- `preserve_path`: if `true`, disable stripping child-directories from data
+  files when installing. Default is `false`. *(since 0.64.0)*
+
+*Since 0.60.0* `python.platlibdir` and `python.purelibdir` options can be used
+to control the default installation path. See [Python module options](Builtin-options.md#python-module).
 
 #### `get_install_dir()`
 

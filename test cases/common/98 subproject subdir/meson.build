@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2016-2023 The Meson Developers
+# Copyright © 2024 Intel Corporation
+
 project('proj', 'c')
 subproject('sub')
 libSub = dependency('sub', fallback: ['sub', 'libSub'])
@@ -6,7 +10,19 @@ exe = executable('prog', 'prog.c', dependencies: libSub)
 test('subproject subdir', exe)
 
 # Verify the subproject has placed dependency override.
-dependency('sub-1.0')
+d = dependency('sub-1.0')
+
+# verify that the name is the overridden name
+assert(d.name() == 'sub-1.0', 'name was not properly set, should have been "sub-1.0", but was @0@'.format(d.name()))
+
+# Verify that when a dependency object is used for two overrides, the correct
+# name is used
+meson.override_dependency('new-dep', d)
+d2 = dependency('new-dep')
+assert(d2.name() == 'new-dep', 'name was not properly set, should have been "new-dep", but was @0@'.format(d2.name()))
+
+# And that the old dependency wasn't changed
+assert(d.name() == 'sub-1.0', 'original dependency was mutated.')
 
 # Verify we can now take 'sub' dependency without fallback, but only version 1.0.
 dependency('sub')

@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
@@ -176,7 +165,7 @@ class CMakeTraceParser:
     def parse(self, trace: T.Optional[str] = None) -> None:
         # First load the trace (if required)
         if not self.requires_stderr():
-            if not self.trace_file_path.exists and not self.trace_file_path.is_file():
+            if not self.trace_file_path.is_file():
                 raise CMakeException(f'CMake: Trace file "{self.trace_file_path!s}" not found')
             trace = self.trace_file_path.read_text(errors='ignore', encoding='utf-8')
         if not trace:
@@ -648,7 +637,7 @@ class CMakeTraceParser:
 
     def _cmake_target_link_libraries(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_link_libraries.html
-        self._parse_common_target_options('target_link_options', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', tline)
+        self._parse_common_target_options('target_link_libraries', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', tline)
 
     def _cmake_message(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/message.html

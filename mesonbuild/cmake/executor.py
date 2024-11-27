@@ -1,19 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2019 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# This class contains the basic functionality needed to run any interpreter
-# or an interpreter-based tool.
 from __future__ import annotations
 
 import subprocess as S
@@ -23,7 +10,8 @@ import re
 import os
 
 from .. import mlog
-from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows, OptionKey
+from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows
+from ..options import OptionKey
 from ..programs import find_external_program, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -64,7 +52,7 @@ class CMakeExecutor:
             self.cmakebin = None
             return
 
-        self.prefix_paths = self.environment.coredata.options[OptionKey('cmake_prefix_path', machine=self.for_machine)].value
+        self.prefix_paths = self.environment.coredata.optstore.get_value(OptionKey('cmake_prefix_path', machine=self.for_machine))
         if self.prefix_paths:
             self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]
 

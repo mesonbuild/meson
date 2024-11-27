@@ -1,24 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 import subprocess
 import re
 import os
+import platform
 import unittest
 
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx
+    MachineChoice, is_osx, version_compare
 )
 from mesonbuild.compilers import (
     detect_c_compiler
@@ -92,12 +82,31 @@ class DarwinTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    @unittest.skipIf(version_compare(platform.mac_ver()[0], '<10.7'), '-export_dynamic was added in 10.7')
+    def test_apple_lto_export_dynamic(self):
+        '''
+        Tests that -Wl,-export_dynamic is correctly added, when export_dynamic: true is set.
+        On macOS, this is relevant for LTO builds only.
+        '''
+        testdir = os.path.join(self.common_test_dir, '148 shared module resolving symbol in executable')
+        # Ensure that it builds even with LTO enabled
+        env = {'CFLAGS': '-flto'}
+        self.init(testdir, override_envvars=env)
+        self.build()
+        self.run_tests()
+
     def _get_darwin_versions(self, fname):
         fname = os.path.join(self.builddir, fname)
         out = subprocess.check_output(['otool', '-L', fname], universal_newlines=True)
         m = re.match(r'.*version (.*), current version (.*)\)', out.split('\n')[1])
         self.assertIsNotNone(m, msg=out)
         return m.groups()
+
+    def _get_darwin_rpaths(self, fname: str) -> T.List[str]:
+        out = subprocess.check_output(['otool', '-l', fname], universal_newlines=True)
+        pattern = re.compile(r'path (.*) \(offset \d+\)')
+        rpaths = pattern.findall(out)
+        return rpaths
 
     @skipIfNoPkgconfig
     def test_library_versioning(self):
@@ -151,5 +160,17 @@ class DarwinTests(BasePlatformTests):
 
     def test_darwin_get_object_archs(self):
         from mesonbuild.mesonlib import darwin_get_object_archs
-        archs = darwin_get_object_archs('/System/Library/CoreServices/Encodings/libSymbolConverter.dylib')
+        archs = darwin_get_object_archs('/bin/cat')
         self.assertEqual(archs, ['x86_64', 'aarch64'])
+
+    def test_darwin_meson_rpaths_removed_on_install(self):
+        testdir = os.path.join(self.darwin_test_dir, '1 rpath removal on install')
+        self.init(testdir)
+        self.build()
+        # Meson-created RPATHs are usually only valid in the build directory
+        rpaths = self._get_darwin_rpaths(os.path.join(self.builddir, 'libbar.dylib'))
+        self.assertListEqual(rpaths, ['@loader_path/foo'])
+        self.install()
+        # Those RPATHs are no longer valid and should not be present after installation
+        rpaths = self._get_darwin_rpaths(os.path.join(self.installdir, 'usr/lib/libbar.dylib'))
+        self.assertListEqual(rpaths, [])

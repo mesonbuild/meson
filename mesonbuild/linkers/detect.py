@@ -1,19 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 from __future__ import annotations
 
+from .base import RSPFileSyntax
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException,
@@ -51,12 +41,17 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     from . import linkers
     env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
 
+    if invoked_directly or comp_class.get_argument_syntax() == 'msvc':
+        rsp_syntax = RSPFileSyntax.MSVC
+    else:
+        rsp_syntax = RSPFileSyntax.GCC
+
     # Explicitly pass logo here so that we can get the version of link.exe
     if not use_linker_prefix or comp_class.LINKER_PREFIX is None:
         check_args = ['/logo', '--version']
     elif isinstance(comp_class.LINKER_PREFIX, str):
         check_args = [comp_class.LINKER_PREFIX + '/logo', comp_class.LINKER_PREFIX + '--version']
-    elif isinstance(comp_class.LINKER_PREFIX, list):
+    else: # list
         check_args = comp_class.LINKER_PREFIX + ['/logo'] + comp_class.LINKER_PREFIX + ['--version']
 
     check_args += env.coredata.get_external_link_args(for_machine, comp_class.language)
@@ -66,20 +61,24 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     if value is not None:
         override = comp_class.use_linker_args(value[0], comp_version)
         check_args += override
+    elif 'lld-link' in compiler:
+        override = comp_class.use_linker_args('lld-link', comp_version)
+        check_args += override
 
     if extra_args is not None:
         check_args.extend(extra_args)
 
     p, o, _ = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
-        if '(compatible with GNU linkers)' in o:
+        if 'compatible with GNU linkers' in o:
             return linkers.LLVMDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX,
                 override, version=search_version(o))
         elif not invoked_directly:
             return linkers.ClangClDynamicLinker(
                 for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
-                version=search_version(o), direct=False, machine=None)
+                version=search_version(o), direct=False, machine=None,
+                rsp_syntax=rsp_syntax)
 
     if value is not None and invoked_directly:
         compiler = value
@@ -90,7 +89,8 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         return linkers.ClangClDynamicLinker(
             for_machine, [],
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
-            exelist=compiler, version=search_version(o), direct=invoked_directly)
+            exelist=compiler, version=search_version(o), direct=invoked_directly,
+            rsp_syntax=rsp_syntax)
     elif 'OPTLINK' in o:
         # Optlink's stdout *may* begin with a \r character.
         return linkers.OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
@@ -105,7 +105,8 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         return linkers.MSVCDynamicLinker(
             for_machine, [], machine=target, exelist=compiler,
             prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
-            version=search_version(out), direct=invoked_directly)
+            version=search_version(out), direct=invoked_directly,
+            rsp_syntax=rsp_syntax)
     elif 'GNU coreutils' in o:
         import shutil
         fullpath = shutil.which(compiler[0])
@@ -149,7 +150,7 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
     v = search_version(o + e)
     linker: DynamicLinker
-    if 'LLD' in o.split('\n', maxsplit=1)[0]:
+    if 'LLD' in o.split('\n', maxsplit=1)[0] or 'tiarmlnk' in e:
         if isinstance(comp_class.LINKER_PREFIX, str):
             cmd = compiler + override + [comp_class.LINKER_PREFIX + '-v'] + extra_args
         else:
@@ -185,21 +186,6 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
             v = search_version(o)
 
         linker = linkers.LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
-    # first might be apple clang, second is for real gcc, the third is icc
-    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e:
-        if isinstance(comp_class.LINKER_PREFIX, str):
-            cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
-        else:
-            cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args
-        _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
-
-        for line in newerr.split('\n'):
-            if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
-                v = line.split('-')[1]
-                break
-        else:
-            __failed_to_detect_linker(compiler, check_args, o, e)
-        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'GNU' in o or 'GNU' in e:
         gnu_cls: T.Type[GnuDynamicLinker]
         # this is always the only thing on stdout, except for swift
@@ -229,6 +215,33 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         linker = linkers.AIXDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override,
             version=search_version(e))
+    elif o.startswith('zig ld'):
+        linker = linkers.ZigCCDynamicLinker(
+            compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+    # detect xtools first, bug #10805
+    elif 'xtools-' in o.split('\n', maxsplit=1)[0]:
+        xtools = o.split(' ', maxsplit=1)[0]
+        v = xtools.split('-', maxsplit=2)[1]
+        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+    # detect linker on MacOS - must be after other platforms because the
+    # "(use -v to see invocation)" will match clang on other platforms,
+    # but the rest of the checks will fail and call __failed_to_detect_linker.
+    # First might be apple clang, second is for real gcc, the third is icc.
+    # Note that "ld: unknown option: " sometimes instead is "ld: unknown options:".
+    elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option' in e:
+        if isinstance(comp_class.LINKER_PREFIX, str):
+            cmd = compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args
+        else:
+            cmd = compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args
+        _, newo, newerr = Popen_safe_logged(cmd, msg='Detecting Apple linker via')
+
+        for line in newerr.split('\n'):
+            if 'PROJECT:ld' in line or 'PROJECT:dyld' in line:
+                v = line.split('-')[1]
+                break
+        else:
+            __failed_to_detect_linker(compiler, check_args, o, e)
+        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     else:
         __failed_to_detect_linker(compiler, check_args, o, e)
     return linker

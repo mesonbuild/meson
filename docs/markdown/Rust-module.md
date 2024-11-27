@@ -3,7 +3,7 @@ short-description: Rust language integration module
 authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
-      years: [2020, 2021, 2022]
+      years: [2020, 2021, 2022, 2024]
 ...
 
 # Rust module
@@ -57,11 +57,16 @@ It takes the following keyword arguments
 - `input`: a list of Files, Strings, or CustomTargets. The first element is
   the header bindgen will parse, additional elements are dependencies.
 - `output`: the name of the output rust file
+- `output_inline_wrapper`: the name of the optional output c file containing
+  wrappers for static inline function. This requires `bindgen-0.65` or
+  newer (*since 1.3.0*).
 - `include_directories`: A list of `include_directories` or `string` objects,
   these are passed to clang as `-I` arguments *(string since 1.0.0)*
 - `c_args`: a list of string arguments to pass to clang untouched
 - `args`: a list of string arguments to pass to `bindgen` untouched.
 - `dependencies`: a list of `Dependency` objects to pass to the underlying clang call (*since 1.0.0*)
+- `language`: A literal string value of `c` or `cpp`. When set this will force bindgen to treat a source as the given language. Defaults to checking based on the input file extension. *(since 1.4.0)*
+- `bindgen_version`: a list of string version values. When set the found bindgen binary must conform to these constraints. *(since 1.4.0)*
 
 ```meson
 rust = import('unstable-rust')
@@ -103,5 +108,34 @@ were never turned on by Meson.
 
 ```ini
 [properties]
-bindgen_clang_arguments = ['--target', 'x86_64-linux-gnu']
+bindgen_clang_arguments = ['-target', 'x86_64-linux-gnu']
 ```
+
+### proc_macro()
+
+```meson
+rustmod.proc_macro(name, sources, ...)
+```
+
+*Since 1.3.0*
+
+This function creates a Rust `proc-macro` crate, similar to:
+```meson
+[[shared_library]](name, sources,
+  rust_crate_type: 'proc-macro',
+  native: true)
+```
+
+`proc-macro` targets can be passed to `link_with` keyword argument of other Rust
+targets.
+
+Only a subset of [[shared_library]] keyword arguments are allowed:
+- rust_args
+- rust_dependency_map
+- sources
+- dependencies
+- extra_files
+- link_args
+- link_depends
+- link_with
+- override_options

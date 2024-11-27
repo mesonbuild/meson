@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2016 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -44,6 +34,7 @@ known_cpu_families = (
     'arm',
     'avr',
     'c2000',
+    'c6000',
     'csky',
     'dspic',
     'e2k',
@@ -68,6 +59,7 @@ known_cpu_families = (
     'sh4',
     'sparc',
     'sparc64',
+    'sw_64',
     'wasm32',
     'wasm64',
     'x86',
@@ -86,6 +78,7 @@ CPU_FAMILIES_64_BIT = [
     'riscv64',
     's390x',
     'sparc64',
+    'sw_64',
     'wasm64',
     'x86_64',
 ]
@@ -96,6 +89,7 @@ ENV_VAR_COMPILER_MAP: T.Mapping[str, str] = {
     'c': 'CC',
     'cpp': 'CXX',
     'cs': 'CSC',
+    'cython': 'CYTHON',
     'd': 'DC',
     'fortran': 'FC',
     'objc': 'OBJC',
@@ -133,7 +127,6 @@ ENV_VAR_TOOL_MAP: T.Mapping[str, str] = {
     # Other tools
     'cmake': 'CMAKE',
     'qmake': 'QMAKE',
-    'pkgconfig': 'PKG_CONFIG',
     'pkg-config': 'PKG_CONFIG',
     'make': 'MAKE',
     'vapigen': 'VAPIGEN',
@@ -404,6 +397,20 @@ class BinaryTable:
                     raise mesonlib.MesonException(
                         f'Invalid type {command!r} for entry {name!r} in cross file')
                 self.binaries[name] = mesonlib.listify(command)
+            if 'pkgconfig' in self.binaries:
+                if 'pkg-config' not in self.binaries:
+                    mlog.deprecation('"pkgconfig" entry is deprecated and should be replaced by "pkg-config"', fatal=False)
+                    self.binaries['pkg-config'] = self.binaries['pkgconfig']
+                elif self.binaries['pkgconfig'] != self.binaries['pkg-config']:
+                    raise mesonlib.MesonException('Mismatched pkgconfig and pkg-config binaries in the machine file.')
+                else:
+                    # Both are defined with the same value, this is allowed
+                    # for backward compatibility.
+                    # FIXME: We should still print deprecation warning if the
+                    # project targets Meson >= 1.3.0, but we have no way to know
+                    # that here.
+                    pass
+                del self.binaries['pkgconfig']
 
     @staticmethod
     def detect_ccache() -> T.List[str]:

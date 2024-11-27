@@ -1,21 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 import re
 import unittest
 from itertools import chain
 from pathlib import Path
+from unittest import mock
 
 import mesonbuild.mlog
 import mesonbuild.depfile
@@ -24,12 +14,12 @@ import mesonbuild.dependencies.factory
 import mesonbuild.envconfig
 import mesonbuild.environment
 import mesonbuild.coredata
+import mesonbuild.options
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter
 from mesonbuild.ast import AstInterpreter
-from mesonbuild.mesonlib import (
-    MachineChoice, OptionKey
-)
+from mesonbuild.mesonlib import MachineChoice
+from mesonbuild.options import OptionKey
 from mesonbuild.compilers import (
     detect_c_compiler, detect_cpp_compiler
 )
@@ -149,8 +139,8 @@ class DataTests(unittest.TestCase):
             found_entries |= options
 
         self.assertEqual(found_entries, {
-            *(str(k.evolve(module=None)) for k in mesonbuild.coredata.BUILTIN_OPTIONS),
-            *(str(k.evolve(module=None)) for k in mesonbuild.coredata.BUILTIN_OPTIONS_PER_MACHINE),
+            *(str(k.without_module_prefix()) for k in mesonbuild.options.BUILTIN_OPTIONS),
+            *(str(k.without_module_prefix()) for k in mesonbuild.options.BUILTIN_OPTIONS_PER_MACHINE),
         })
 
         # Check that `buildtype` table inside `Core options` matches how
@@ -172,9 +162,9 @@ class DataTests(unittest.TestCase):
             else:
                 raise RuntimeError(f'Invalid debug value {debug!r} in row:\n{m.group()}')
             env.coredata.set_option(OptionKey('buildtype'), buildtype)
-            self.assertEqual(env.coredata.options[OptionKey('buildtype')].value, buildtype)
-            self.assertEqual(env.coredata.options[OptionKey('optimization')].value, opt)
-            self.assertEqual(env.coredata.options[OptionKey('debug')].value, debug)
+            self.assertEqual(env.coredata.optstore.get_value('buildtype'), buildtype)
+            self.assertEqual(env.coredata.optstore.get_value('optimization'), opt)
+            self.assertEqual(env.coredata.optstore.get_value('debug'), debug)
 
     def test_cpu_families_documented(self):
         with open("docs/markdown/Reference-tables.md", encoding='utf-8') as f:
@@ -211,7 +201,7 @@ class DataTests(unittest.TestCase):
             html = f.read().lower()
         self.assertIsNotNone(html)
         for f in Path('mesonbuild/modules').glob('*.py'):
-            if f.name in {'modtest.py', 'qt.py', '__init__.py'}:
+            if f.name.startswith('_') or f.name == 'modtest.py':
                 continue
             name = f'{f.stem}-module.html'
             name = name.replace('unstable_', '')
@@ -219,7 +209,10 @@ class DataTests(unittest.TestCase):
             name = name.replace('_', '-')
             self.assertIn(name, html)
 
-    @unittest.mock.patch.dict(os.environ)
+    @mock.patch.dict(os.environ)
+    @mock.patch.object(Interpreter, 'load_root_meson_file', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'sanity_check_ast', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'parse_project', mock.Mock(return_value=None))
     def test_vim_syntax_highlighting(self):
         '''
         Ensure that vim syntax highlighting files were updated for new
@@ -228,13 +221,16 @@ class DataTests(unittest.TestCase):
         # Disable unit test specific syntax
         del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
-        interp = Interpreter(FakeBuild(env), mock=True)
+        interp = Interpreter(FakeBuild(env))
         with open('data/syntax-highlighting/vim/syntax/meson.vim', encoding='utf-8') as f:
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
 
-    @unittest.mock.patch.dict(os.environ)
+    @mock.patch.dict(os.environ)
+    @mock.patch.object(Interpreter, 'load_root_meson_file', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'sanity_check_ast', mock.Mock(return_value=None))
+    @mock.patch.object(Interpreter, 'parse_project', mock.Mock(return_value=None))
     def test_all_functions_defined_in_ast_interpreter(self):
         '''
         Ensure that the all functions defined in the Interpreter are also defined
@@ -243,6 +239,6 @@ class DataTests(unittest.TestCase):
         # Disable unit test specific syntax
         del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
-        interp = Interpreter(FakeBuild(env), mock=True)
+        interp = Interpreter(FakeBuild(env))
         astint = AstInterpreter('.', '', '')
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))

@@ -11,7 +11,7 @@ pkgs=(
   ninja make git sudo fakeroot autoconf automake patch
   libelf gcc gcc-fortran gcc-objc vala rust bison flex cython go dlang-dmd
   mono boost qt5-base gtkmm3 gtest gmock protobuf gobject-introspection
-  itstool gtk3 java-environment=8 gtk-doc llvm clang sdl2 graphviz
+  itstool glib2-devel gtk3 java-environment=8 gtk-doc llvm clang sdl2 graphviz
   doxygen vulkan-validation-layers openssh mercurial gtk-sharp-2 qt5-tools
   libwmf cmake netcdf-fortran openmpi nasm gnustep-base gettext
   python-lxml hotdoc rust-bindgen qt6-base qt6-tools wayland wayland-protocols
@@ -40,6 +40,9 @@ pypy3 -m pip install "${base_python_pkgs[@]}"
 useradd -m $AUR_USER
 echo "${AUR_USER}:" | chpasswd -e
 echo "$AUR_USER      ALL = NOPASSWD: ALL" >> /etc/sudoers
+
+# fix installing packages from source, attempting to install debug info
+sed -i '/OPTIONS/{s|debug|!debug|}' /etc/makepkg.conf
 
 # Install yay
 su $AUR_USER -c 'cd; git clone https://aur.archlinux.org/yay.git'

@@ -1,16 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2021 The Meson development team
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 from __future__ import annotations
 
 from .base import DependencyTypeName, ExternalDependency, DependencyException
@@ -57,6 +47,7 @@ class ExtraFrameworkDependency(ExternalDependency):
             framework_path = self._get_framework_path(p, name)
             if framework_path is None:
                 continue
+            framework_name = framework_path.stem
             # We want to prefer the specified paths (in order) over the system
             # paths since these are "extra" frameworks.
             # For example, Python2's framework is in /System/Library/Frameworks and
@@ -64,11 +55,15 @@ class ExtraFrameworkDependency(ExternalDependency):
             # Python.framework. We need to know for sure that the framework was
             # found in the path we expect.
             allow_system = p in self.system_framework_paths
-            args = self.clib_compiler.find_framework(name, self.env, [p], allow_system)
+            args = self.clib_compiler.find_framework(framework_name, self.env, [p], allow_system)
             if args is None:
                 continue
             self.link_args = args
             self.framework_path = framework_path.as_posix()
+            # The search is done case-insensitively, so the found name may differ
+            # from the one that was requested. Setting the name ensures the correct
+            # one is used when linking on case-sensitive filesystems.
+            self.name = framework_name
             self.compile_args = ['-F' + self.framework_path]
             # We need to also add -I includes to the framework because all
             # cross-platform projects such as OpenGL, Python, Qt, GStreamer,
@@ -76,7 +71,7 @@ class ExtraFrameworkDependency(ExternalDependency):
             # https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html
             incdir = self._get_framework_include_path(framework_path)
             if incdir:
-                self.compile_args += ['-I' + incdir]
+                self.compile_args += ['-idirafter' + incdir]
             self.is_found = True
             return
 
@@ -84,12 +79,12 @@ class ExtraFrameworkDependency(ExternalDependency):
         p = Path(path)
         lname = name.lower()
         for d in p.glob('*.framework/'):
-            if lname == d.name.rsplit('.', 1)[0].lower():
+            if lname == d.stem.lower():
                 return d
         return None
 
     def _get_framework_latest_version(self, path: Path) -> str:
-        versions = []
+        versions: T.List[Version] = []
         for each in path.glob('Versions/*'):
             # macOS filesystems are usually case-insensitive
             if each.name.lower() == 'current':

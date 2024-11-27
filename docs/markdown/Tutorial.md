@@ -18,6 +18,8 @@ following command:
 sudo apt install libgtk-4-dev
 ```
 
+In addition, it is recommended to have the glib library with version 2.74 or higher.
+
 It is possible to build the GUI application on other platforms, such
 as Windows and macOS, but you need to install the needed dependencies.
 
@@ -147,7 +149,12 @@ int main(int argc, char **argv)
   GtkApplication *app;
   int status;
 
-  app = gtk_application_new("org.example.Example", G_APPLICATION_DEFAULT_FLAGS);
+#if GLIB_CHECK_VERSION(2, 74, 0)
+  app = gtk_application_new(NULL, G_APPLICATION_DEFAULT_FLAGS);
+#else
+  app = gtk_application_new(NULL, G_APPLICATION_FLAGS_NONE);
+#endif
+
   g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
   status = g_application_run(G_APPLICATION(app), argc, argv);
   g_object_unref(app);  // Free from memory when program terminates

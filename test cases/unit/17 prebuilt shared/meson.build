@@ -1,12 +1,16 @@
 project('prebuilt shared library', 'c')
 
-search_dir = get_option('search_dir')
-if search_dir == 'auto'
-  search_dir = meson.current_source_dir()
-endif
+if get_option('method') == 'find_library'
+  search_dir = get_option('search_dir')
+  if search_dir == 'auto'
+    search_dir = meson.current_source_dir()
+  endif
 
-cc = meson.get_compiler('c')
-shlib = cc.find_library('alexandria', dirs : search_dir)
+  cc = meson.get_compiler('c')
+  shlib = cc.find_library('alexandria', dirs : search_dir)
+else
+  shlib = dependency('alexandria', method: get_option('method'))
+endif
 
 exe = executable('patron', 'patron.c', dependencies : shlib)
 test('visitation', exe)

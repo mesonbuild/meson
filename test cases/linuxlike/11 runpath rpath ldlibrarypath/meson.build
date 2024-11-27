@@ -1,7 +1,5 @@
 project('runpath rpath ldlibrarypath', 'c')
 
-error('MESON_SKIP_TEST test disabled due to bug #1635.')
-
 libsrc = files('lib.c')
 
 subdir('lib1')

@@ -1,16 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 import glob, os, pathlib, shutil, subprocess, unittest
 
@@ -22,7 +11,7 @@ from .allplatformstests import git_init
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
-from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof
+from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof, is_windows
 from mesonbuild.modules.python import PythonModule
 
 class PythonTests(BasePlatformTests):
@@ -97,3 +86,32 @@ python = pymod.find_installation('python3', required: true)
         if shutil.which('python2') or PythonModule._get_win_pythonpath('python2'):
             raise self.skipTest('python2 installed, already tested')
         self._test_bytecompile()
+
+    def test_limited_api_linked_correct_lib(self):
+        if not is_windows():
+            return self.skipTest('Test only run on Windows.')
+
+        testdir = os.path.join(self.src_root, 'test cases', 'python', '9 extmodule limited api')
+
+        self.init(testdir)
+        self.build()
+
+        from importlib.machinery import EXTENSION_SUFFIXES
+        limited_suffix = EXTENSION_SUFFIXES[1]
+
+        limited_library_path = os.path.join(self.builddir, f'limited{limited_suffix}')
+        self.assertPathExists(limited_library_path)
+
+        limited_dep_name = 'python3.dll'
+        if shutil.which('dumpbin'):
+            # MSVC
+            output = subprocess.check_output(['dumpbin', '/DEPENDENTS', limited_library_path],
+                                            stderr=subprocess.STDOUT)
+            self.assertIn(limited_dep_name, output.decode())
+        elif shutil.which('objdump'):
+            # mingw
+            output = subprocess.check_output(['objdump', '-p', limited_library_path],
+                                             stderr=subprocess.STDOUT)
+            self.assertIn(limited_dep_name, output.decode())
+        else:
+            raise self.skipTest('Test needs either dumpbin(MSVC) or objdump(mingw).')
