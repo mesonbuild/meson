@@ -50,28 +50,34 @@ except ImportError:
 
 REQ_TIMEOUT = 30.0
 WRAPDB_UPSTREAM_HOSTNAME = 'wrapdb.mesonbuild.com'
+WRAPDB_UPSTREAM_ADDRESS = f'https://{WRAPDB_UPSTREAM_HOSTNAME}'
 
 ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
 
 PATCH = shutil.which('patch')
 
 @lru_cache(maxsize=None)
-def wrapdb_netloc() -> str:
+def wrapdb_source() -> str:
     try:
-        with Path('subprojects/wrapdb-mirrors.json').open('r', encoding='utf-8') as f:
-            mirrorlist = json.load(f)
-            version = mirrorlist['version']
+        with Path('subprojects/wrapdb-sources.json').open('r', encoding='utf-8') as f:
+            config = json.load(f)
+            version = config['version']
             if version > 1:
-                m = f'WrapDB mirrors file (v{version}) was created with the newer version of meson'
+                m = f'WrapDB sources file (v{version}) was created with a newer version of meson.'
                 raise WrapException(m)
-            return str(mirrorlist['mirrors'][0])
+            source = str(config['sources'][0])
+            url = urllib.parse.urlparse(source)
+            if not url.scheme:
+                m = f'WrapDB source address requires a protocol scheme, like `{WRAPDB_UPSTREAM_ADDRESS}`.'
+                raise WrapException(m)
+            return source
     except FileNotFoundError:
-        return WRAPDB_UPSTREAM_HOSTNAME
+        return WRAPDB_UPSTREAM_ADDRESS
 
 def is_trusted_subdomain(hostname: str) -> bool:
     trusted_subdomains = {
         WRAPDB_UPSTREAM_HOSTNAME,
-        urllib.parse.urlparse(f'//{wrapdb_netloc()}').hostname,
+        urllib.parse.urlparse(wrapdb_source()).hostname,
     }
     for entry in trusted_subdomains:
         if hostname.endswith(entry):
@@ -79,19 +85,23 @@ def is_trusted_subdomain(hostname: str) -> bool:
 
     return False
 
-def expand_wrapdburl(urlstr: str) -> urllib.parse.ParseResult:
-    """ raises WrapException if not whitelisted subdomain """
+def expand_wrapdburl(urlstr: str, allow_insecure: bool = False) -> urllib.parse.ParseResult:
     url = urllib.parse.urlparse(urlstr)
     if url.scheme == 'wrapdb':
         if url.netloc:
             raise WrapException(f'{urlstr} with wrapdb: scheme should not have a netloc')
-        url = url._replace(scheme='https', netloc=wrapdb_netloc())
+        # append wrapdb path on top of the source address
+        rel_path = url.path.lstrip('/')
+        url = urllib.parse.urlparse(urllib.parse.urljoin(wrapdb_source(), rel_path))
+
     if not url.hostname:
-        raise WrapException(f'{urlstr} is not a valid URL')
-    if not is_trusted_subdomain(url.hostname):
-        raise WrapException(f'{urlstr} is not a whitelisted WrapDB URL')
-    if has_ssl and not url.scheme == 'https':
-        raise WrapException(f'WrapDB did not have expected SSL https url, instead got {urlstr}')
+        if url.scheme not in {'file'}:
+            raise WrapException(f'{urlstr} is not a valid URL')
+    else:
+        if not is_trusted_subdomain(url.hostname):
+            raise WrapException(f'{urlstr} is not a whitelisted WrapDB URL')
+        if has_ssl and not allow_insecure and not url.scheme == 'https':
+            raise WrapException(f'WrapDB did not have expected SSL https url, instead got {urlstr}')
     return url
 
 def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool = False) -> 'http.client.HTTPResponse':
@@ -100,7 +110,7 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
     else:
         insecure_msg = ''
 
-    url = expand_wrapdburl(urlstring)
+    url = expand_wrapdburl(urlstring, allow_insecure)
     if has_ssl:
         urlstring_ = urllib.parse.urlunparse(url)
         try:
@@ -121,10 +131,16 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
         mlog.warning(f'SSL module not available in {sys.executable}: WrapDB traffic not authenticated.', once=True)
 
     # If we got this far, allow_insecure was manually passed
-    nossl_url = url._replace(scheme='http')
-    urlstring_ = urllib.parse.urlunparse(nossl_url)
+    if has_ssl:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+    else:
+        ctx = None
+        # e.g. https:// -> http://
+        urlstring_ = urlstring_.replace('s://', '://', 1)
     try:
-        return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urlstring_, timeout=REQ_TIMEOUT))
+        return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urlstring_, timeout=REQ_TIMEOUT, context=ctx))
     except OSError as excp:
         raise WrapException(f'WrapDB connection failed to {urlstring_} with error {excp}')
 

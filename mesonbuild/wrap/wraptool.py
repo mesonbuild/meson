@@ -194,7 +194,7 @@ def update_db(options: 'argparse.Namespace') -> None:
     data = get_releases_data(options.allow_insecure)
     Path('subprojects').mkdir(exist_ok=True)
     if options.source:
-        with Path('subprojects/wrapdb-source.json').open('w', encoding='utf-8') as f:
+        with Path('subprojects/wrapdb-sources.json').open('w', encoding='utf-8') as f:
             json.dump({
                 # don't guess how to preserve compatibility if stored format changes
                 "version": 1,
