@@ -60,13 +60,11 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     p.add_argument('project_path')
     p.set_defaults(wrap_func=promote)
 
-    p = subparsers.add_parser('set-db-mirror', help='Set WrapDB mirror address (RFC 3986 authority) to use')
-    p.add_argument('authority')
-    p.set_defaults(wrap_func=set_db_mirror)
-
     p = subparsers.add_parser('update-db', help='Update list of projects available in WrapDB (Since 0.61.0)')
     p.add_argument('--allow-insecure', default=False, action='store_true',
                    help='Allow insecure server connections.')
+    p.add_argument('source', default=None, nargs='?',
+                   help='WrapDB source URL')
     p.set_defaults(wrap_func=update_db)
 
 def list_projects(options: 'argparse.Namespace') -> None:
@@ -192,17 +190,16 @@ def status(options: 'argparse.Namespace') -> None:
         else:
             print('', name, f'not up to date. Have {current_branch} {current_revision}, but {latest_branch} {latest_revision} is available.')
 
-def set_db_mirror(options: 'argparse.Namespace') -> None:
-    Path('subprojects').mkdir(exist_ok=True)
-    with Path('subprojects/wrapdb-mirrors.json').open('w', encoding='utf-8') as f:
-        json.dump({
-            "version": 1, # If the stored format changes, don't want to guess how to preserve forward compatibility,
-            "mirrors": [options.authority],
-        }, f)
-
 def update_db(options: 'argparse.Namespace') -> None:
     data = get_releases_data(options.allow_insecure)
     Path('subprojects').mkdir(exist_ok=True)
+    if options.source:
+        with Path('subprojects/wrapdb-source.json').open('w', encoding='utf-8') as f:
+            json.dump({
+                # don't guess how to preserve compatibility if stored format changes
+                "version": 1,
+                "sources": [options.source],
+            }, f)
     with Path('subprojects/wrapdb.json').open('wb') as f:
         f.write(data)
 
