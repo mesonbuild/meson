@@ -2222,6 +2222,7 @@ class GnomeModule(ExtensionModule):
                 target = state.add_target(args, kwargs, build.SharedLibrary)
             glue = state.dependency('gtk4-android-glue')
             target.add_deps([glue])
+            target.add_introspection_flag('gnome:has-android-glue')
         else:
             target = state.add_target(args, kwargs, build.Executable)
         return ModuleReturnValue(target, [])

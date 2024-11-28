@@ -525,6 +525,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     build_always_stale: bool = False
     extra_files: T.List[File] = field(default_factory=list)
     override_options: InitVar[T.Optional[T.Dict[OptionKey, str]]] = None
+    introspection_flags: T.Optional[T.List[str]] = None
 
     @abc.abstractproperty
     def typename(self) -> str:
@@ -636,6 +637,12 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             # preserve myid for better debuggability
             return subdir_part + '@@' + my_id
         return my_id
+
+    def add_introspection_flag(self, flag: str) -> None:
+        if self.introspection_flags is None:
+            self.introspection_flags = [flag]
+        else:
+            self.introspection_flags.append(flag)
 
     def get_id(self) -> str:
         name = self.name
