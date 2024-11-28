@@ -50,8 +50,8 @@ class BasePlatformTests(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-        if is_windows():
-            cls.prefix = 'X:/usr'
+        #if is_windows():
+        #    cls.prefix = 'X:/usr'
         cls.maxDiff = None
         src_root = str(PurePath(__file__).parents[1])
         cls.src_root = src_root
