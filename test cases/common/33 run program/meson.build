@@ -59,14 +59,26 @@ if c.returncode() != 0
 endif
 
 py3 = import('python3').find_python()
-
-ret = run_command(py3, '-c', 'print("some output")', check: false)
+ret = run_command(
+    py3,
+    '-c',
+    'import sys; print("capture: true stdout"); print("capture: true stderr", file=sys.stderr)',
+    check: false,
+)
 assert(ret.returncode() == 0, 'failed to run python3: ' + ret.stderr())
-assert(ret.stdout() == 'some output\n', 'failed to run python3')
+assert(ret.stdout() == 'capture: true stdout\n', 'failed to run python3')
+assert(ret.stderr() == 'capture: true stderr\n', 'failed to run python3')
 
-ret = run_command(py3, '-c', 'print("some output")', check: false, capture: false)
+ret = run_command(
+    py3,
+    '-c',
+    'import sys; print("capture: false stdout"); print("capture: false stderr", file=sys.stderr)',
+    check: false,
+    capture: false,
+)
 assert(ret.returncode() == 0, 'failed to run python3: ' + ret.stderr())
 assert(ret.stdout() == '', 'stdout is "@0@" instead of empty'.format(ret.stdout()))
+assert(ret.stderr() == '', 'stderr is "@0@" instead of empty'.format(ret.stderr()))
 
 c_env = environment()
 c_env.append('CUSTOM_ENV_VAR', 'FOOBAR')
@@ -76,7 +88,7 @@ assert(ret.stdout() == 'FOOBAR\n', 'stdout is "@0@" instead of FOOBAR'.format(re
 
 dd = find_program('dd', required : false)
 if dd.found()
-  ret = run_command(dd, 'if=/dev/urandom', 'bs=10', 'count=1', check: false, capture: false)
+  ret = run_command(dd, 'if=/dev/urandom', 'bs=10', 'count=1', 'of=/dev/null', check: false, capture: false)
   assert(ret.returncode() == 0, 'failed to run dd: ' + ret.stderr())
   assert(ret.stdout() == '', 'stdout is "@0@" instead of empty'.format(ret.stdout()))
 endif

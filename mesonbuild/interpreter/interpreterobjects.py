@@ -248,18 +248,20 @@ class RunProcess(MesonInterpreterObject):
         child_env = os.environ.copy()
         child_env.update(menv)
         child_env = env.get_env(child_env)
-        stdout = subprocess.PIPE if self.capture else subprocess.DEVNULL
+        stdout = subprocess.PIPE if self.capture else None
+        stderr = subprocess.PIPE if self.capture else None
         mlog.debug('Running command:', mesonlib.join_args(command_array))
         try:
-            p, o, e = Popen_safe(command_array, stdout=stdout, env=child_env, cwd=cwd)
+            p, o, e = Popen_safe(command_array, stdout=stdout, stderr=stderr, env=child_env, cwd=cwd)
             if self.capture:
                 mlog.debug('--- stdout ---')
                 mlog.debug(o)
+                mlog.debug('--- stderr ---')
+                mlog.debug(e)
             else:
                 o = ''
-                mlog.debug('--- stdout disabled ---')
-            mlog.debug('--- stderr ---')
-            mlog.debug(e)
+                e = ''
+                mlog.debug('--- output disabled ---')
             mlog.debug('')
 
             if check and p.returncode != 0:
