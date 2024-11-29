@@ -16,12 +16,6 @@ from ..compilers.detect import defaults as compiler_names
 if T.TYPE_CHECKING:
     import argparse
 
-def has_for_build() -> bool:
-    for cenv in envconfig.ENV_VAR_COMPILER_MAP.values():
-        if os.environ.get(cenv + '_FOR_BUILD'):
-            return True
-    return False
-
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
@@ -35,6 +29,8 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
                         help='Generate a cross compilation file.')
     parser.add_argument('--native', default=False, action='store_true',
                         help='Generate a native compilation file.')
+    parser.add_argument('--use-for-build', default=False, action='store_true',
+                        help='Use _FOR_BUILD envvars.')
     parser.add_argument('--system', default=None,
                         help='Define system for cross compilation.')
     parser.add_argument('--subsystem', default=None,
@@ -421,12 +417,10 @@ def detect_missing_native_binaries(infos: MachineInfo) -> None:
             infos.binaries[toolname] = [exe]
 
 def detect_native_env(options: T.Any) -> MachineInfo:
-    use_for_build = has_for_build()
-    if use_for_build:
-        mlog.log('Using FOR_BUILD envvars for detection')
+    if options.use_for_build:
+        mlog.log('Using _FOR_BUILD envvars for detection (native file for use during cross compilation)')
         esuffix = '_FOR_BUILD'
     else:
-        mlog.log('Using regular envvars for detection.')
         esuffix = ''
     infos = detect_compilers_from_envvars(esuffix)
     detect_missing_native_compilers(infos)
@@ -443,6 +437,8 @@ def run(options: T.Any) -> None:
     mlog.notice('This functionality is experimental and subject to change.')
     detect_cross = options.cross
     if detect_cross:
+        if options.use_for_build:
+            sys.exit('--use-for-build only makes sense for --native, not --cross')
         infos = detect_cross_env(options)
         write_system_info = True
     else:
