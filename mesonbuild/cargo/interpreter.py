@@ -17,6 +17,7 @@ import os
 import shutil
 import collections
 import urllib.parse
+import itertools
 import typing as T
 
 from . import builder
@@ -546,8 +547,13 @@ class Interpreter:
     def _add_dependency(self, pkg: PackageState, depname: str) -> None:
         if depname in pkg.required_deps:
             return
+        dep = pkg.manifest.dependencies.get(depname)
+        if not dep:
+            if depname in itertools.chain(pkg.manifest.dev_dependencies, pkg.manifest.build_dependencies):
+                # FIXME: Not supported yet
+                return
+            raise MesonException(f'Dependency {depname} not defined in {pkg.manifest.package.name} manifest')
         pkg.required_deps.add(depname)
-        dep = pkg.manifest.dependencies[depname]
         dep_pkg, _ = self._fetch_package(dep.package, dep.api)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
@@ -580,9 +586,10 @@ class Interpreter:
                         pkg.optional_deps_features[depname].add(dep_f)
                 else:
                     self._add_dependency(pkg, depname)
-                    dep = pkg.manifest.dependencies[depname]
-                    dep_pkg = self._dep_package(dep)
-                    self._enable_feature(dep_pkg, dep_f)
+                    dep = pkg.manifest.dependencies.get(depname)
+                    if dep:
+                        dep_pkg = self._dep_package(dep)
+                        self._enable_feature(dep_pkg, dep_f)
             elif f.startswith('dep:'):
                 self._add_dependency(pkg, f[4:])
             else:
