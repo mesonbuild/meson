@@ -578,7 +578,10 @@ class Interpreter:
                         # This feature will be enabled only if that dependency
                         # is later added.
                         pkg.optional_deps_features[depname].add(dep_f)
-                else:
+                # Only enable features in dependencies if the dependency
+                # was added previously. The feature toggle does not imply a
+                # dependency exists, dev-dependencies are optional.
+                elif depname in pkg.manifest.dependencies:
                     self._add_dependency(pkg, depname)
                     dep = pkg.manifest.dependencies[depname]
                     dep_pkg = self._dep_package(dep)
