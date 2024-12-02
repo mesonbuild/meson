@@ -57,7 +57,7 @@ ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
 PATCH = shutil.which('patch')
 
 @lru_cache(maxsize=None)
-def wrapdb_source() -> str:
+def wrapdb_url() -> str:
     try:
         with Path('subprojects/wrapdb-sources.json').open('r', encoding='utf-8') as f:
             config = json.load(f)
@@ -77,7 +77,7 @@ def wrapdb_source() -> str:
 def is_trusted_subdomain(hostname: str) -> bool:
     trusted_subdomains = {
         WRAPDB_UPSTREAM_HOSTNAME,
-        urllib.parse.urlparse(wrapdb_source()).hostname,
+        urllib.parse.urlparse(wrapdb_url()).hostname,
     }
     for entry in trusted_subdomains:
         if hostname.endswith(entry):
@@ -92,7 +92,7 @@ def expand_wrapdburl(urlstr: str, allow_insecure: bool = False) -> urllib.parse.
             raise WrapException(f'{urlstr} with wrapdb: scheme should not have a netloc')
         # append wrapdb path on top of the source address
         rel_path = url.path.lstrip('/')
-        url = urllib.parse.urlparse(urllib.parse.urljoin(wrapdb_source(), rel_path))
+        url = urllib.parse.urlparse(urllib.parse.urljoin(wrapdb_url(), rel_path))
 
     if not url.hostname:
         if url.scheme not in {'file'}:

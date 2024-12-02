@@ -99,10 +99,11 @@ Automatic fetch of WrapDB subprojects can be disabled by removing the file
 
 ## Self-hosted Wrap database
 
-Should you wish to use a self-hosted, proxied, or an alternative Wrap database server (since version 1.X.X), you can configure the mirror address for use with your project:
+Should you wish to use a self-hosted, proxied, or an alternative Wrap database server (since version 1.X.X), you can configure server address for use with your project:
 
 ```console
-$ meson wrap update-db https://user:password@wrapdb.mydomain.invalid:8080/subdir/
+$ meson wrap set-sources https://user:password@wrapdb.mydomain.invalid:8080/subdir/
+$ meson wrap update-db
 $ meson wrap install zlib
 ```
 
