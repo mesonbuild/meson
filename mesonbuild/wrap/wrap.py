@@ -101,7 +101,7 @@ def expand_wrapdburl(urlstr: str, allow_insecure: bool = False) -> urllib.parse.
         if not is_trusted_subdomain(url.hostname):
             raise WrapException(f'{urlstr} is not a whitelisted WrapDB URL')
         if has_ssl and not allow_insecure and not url.scheme == 'https':
-            raise WrapException(f'WrapDB did not have expected SSL https url, instead got {urlstr}')
+            raise WrapException(f'WrapDB did not have expected SSL https url, instead got {urllib.parse.urlunparse(url)}')
     return url
 
 def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool = False) -> 'http.client.HTTPResponse':
