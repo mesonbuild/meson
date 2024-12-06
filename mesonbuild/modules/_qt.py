@@ -14,10 +14,10 @@ from . import ModuleReturnValue, ExtensionModule
 from .. import build
 from .. import options
 from .. import mlog
-from ..dependencies import find_external_dependency, Dependency, ExternalLibrary, InternalDependency
+from ..dependencies import DependencyMethods, find_external_dependency, Dependency, ExternalLibrary, InternalDependency
 from ..mesonlib import MesonException, File, FileMode, version_compare, Popen_safe
 from ..interpreter import extract_required_kwarg
-from ..interpreter.type_checking import INSTALL_DIR_KW, INSTALL_KW, NoneType
+from ..interpreter.type_checking import DEPENDENCY_METHOD_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs, typed_pos_args
 from ..programs import NonExistingExternalProgram
 
@@ -42,7 +42,7 @@ if T.TYPE_CHECKING:
         name: T.Optional[str]
         sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
-        method: str
+        method: DependencyMethods
 
     class UICompilerKwArgs(TypedDict):
 
@@ -50,7 +50,7 @@ if T.TYPE_CHECKING:
 
         sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
-        method: str
+        method: DependencyMethods
         preserve_paths: bool
 
     class MocCompilerKwArgs(TypedDict):
@@ -60,7 +60,7 @@ if T.TYPE_CHECKING:
         sources: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         headers: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
         extra_args: T.List[str]
-        method: str
+        method: DependencyMethods
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         preserve_paths: bool
@@ -79,12 +79,12 @@ if T.TYPE_CHECKING:
         moc_output_json: bool
         include_directories: T.List[T.Union[str, build.IncludeDirs]]
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
-        method: str
+        method: DependencyMethods
         preserve_paths: bool
 
     class HasToolKwArgs(kwargs.ExtractRequired):
 
-        method: str
+        method: DependencyMethods
         tools: T.List[Literal['moc', 'uic', 'rcc', 'lrelease', 'qmlcachegen', 'qmltyperegistrar']]
 
     class CompileTranslationsKwArgs(TypedDict):
@@ -92,7 +92,7 @@ if T.TYPE_CHECKING:
         build_by_default: bool
         install: bool
         install_dir: T.Optional[str]
-        method: str
+        method: DependencyMethods
         qresource: T.Optional[str]
         rcc_extra_arguments: T.List[str]
         ts_files: T.List[T.Union[str, File, build.GeneratedTypes]]
@@ -127,7 +127,7 @@ if T.TYPE_CHECKING:
         qml_qrc: T.Union[FileOrString, build.GeneratedTypes]
         extra_args: T.List[str]
         module_prefix: str
-        method: str
+        method: DependencyMethods
 
     class GenQmlTypeRegistrarKwArgs(TypedDict):
 
@@ -140,7 +140,7 @@ if T.TYPE_CHECKING:
         generate_qmltype: bool
         collected_json: T.Optional[T.Union[FileOrString, build.CustomTarget]]
         extra_args: T.List[str]
-        method: str
+        method: DependencyMethods
         install: bool
         install_dir: T.Optional[str]
 
@@ -148,7 +148,7 @@ if T.TYPE_CHECKING:
 
         target_name: str
         moc_json: T.Sequence[build.GeneratedList]
-        method: str
+        method: DependencyMethods
 
     class QmlModuleKwArgs(TypedDict):
 
@@ -174,7 +174,7 @@ if T.TYPE_CHECKING:
         generate_qmltype: bool
         cachegen: bool
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
-        method: str
+        method: DependencyMethods
         preserve_paths: bool
         install_dir: str
         install: bool
@@ -265,7 +265,7 @@ class QtBaseModule(ExtensionModule):
             if p.found():
                 self.tools[name] = p
 
-    def _detect_tools(self, state: ModuleState, method: str, required: bool = True) -> None:
+    def _detect_tools(self, state: ModuleState, method: DependencyMethods, required: bool = True) -> None:
         if self._tools_detected:
             return
         self._tools_detected = True
@@ -366,15 +366,15 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.has_tools',
+        DEPENDENCY_METHOD_KW,
         KwargInfo('required', (bool, options.UserFeatureOption), default=False),
-        KwargInfo('method', str, default='auto'),
         KwargInfo('tools', ContainerTypeInfo(list, str), listify=True,
                   default=['moc', 'uic', 'rcc', 'lrelease'],
                   validator=_list_in_set_validator(_set_of_qt_tools),
                   since='1.6.0'),
     )
     def has_tools(self, state: ModuleState, args: T.Tuple, kwargs: HasToolKwArgs) -> bool:
-        method = kwargs.get('method', 'auto')
+        method = kwargs['method']
         # We have to cast here because TypedDicts are invariant, even though
         # ExtractRequiredKwArgs is a subset of HasToolKwArgs, type checkers
         # will insist this is wrong
@@ -395,6 +395,7 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_resources',
+        DEPENDENCY_METHOD_KW,
         KwargInfo('name', (str, NoneType)),
         KwargInfo(
             'sources',
@@ -403,7 +404,6 @@ class QtBaseModule(ExtensionModule):
             required=True,
         ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('method', str, default='auto')
     )
     def compile_resources(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
         """Compile Qt resources files.
@@ -487,6 +487,7 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_ui',
+        DEPENDENCY_METHOD_KW,
         KwargInfo(
             'sources',
             ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList), allow_empty=False),
@@ -494,7 +495,6 @@ class QtBaseModule(ExtensionModule):
             required=True,
         ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('method', str, default='auto'),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
     )
     def compile_ui(self, state: ModuleState, args: T.Tuple, kwargs: UICompilerKwArgs) -> ModuleReturnValue:
@@ -526,6 +526,7 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_moc',
+        DEPENDENCY_METHOD_KW,
         KwargInfo(
             'sources',
             ContainerTypeInfo(list, (File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)),
@@ -539,7 +540,6 @@ class QtBaseModule(ExtensionModule):
             default=[]
         ),
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('method', str, default='auto'),
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
@@ -612,6 +612,7 @@ class QtBaseModule(ExtensionModule):
     # We can't use typed_pos_args here, the signature is ambiguous
     @typed_kwargs(
         'qt.preprocess',
+        DEPENDENCY_METHOD_KW,
         KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[], deprecated='0.59.0'),
         KwargInfo('qresources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
         KwargInfo('ui_files', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, default=[]),
@@ -620,7 +621,6 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.44.0'),
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
-        KwargInfo('method', str, default='auto'),
         KwargInfo('include_directories', ContainerTypeInfo(list, (build.IncludeDirs, str)), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         KwargInfo('preserve_paths', bool, default=False, since='1.4.0'),
@@ -677,9 +677,9 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_translations',
         KwargInfo('build_by_default', bool, default=False),
+        DEPENDENCY_METHOD_KW,
         INSTALL_KW,
         INSTALL_DIR_KW,
-        KwargInfo('method', str, default='auto'),
         KwargInfo('qresource', (str, NoneType), since='0.56.0'),
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
         KwargInfo('ts_files', ContainerTypeInfo(list, (str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[]),
@@ -1019,7 +1019,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('dependencies', ContainerTypeInfo(list, (Dependency, ExternalLibrary)), listify=True, default=[]),
         INSTALL_DIR_KW,
         INSTALL_KW,
-        KwargInfo('method', str, default='auto'),
+        DEPENDENCY_METHOD_KW,
         KwargInfo('preserve_paths', bool, default=False),
     )
     def qml_module(self, state: ModuleState, args: T.Tuple[str], kwargs: QmlModuleKwArgs) -> ModuleReturnValue:

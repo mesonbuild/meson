@@ -12,7 +12,7 @@ from typing_extensions import TypedDict, Literal, Protocol, NotRequired
 from .. import build
 from .. import options
 from ..compilers import Compiler
-from ..dependencies.base import Dependency, IncludeType
+from ..dependencies.base import Dependency, DependencyMethods, IncludeType
 from ..mesonlib import EnvironmentVariables, MachineChoice, File, FileMode, FileOrString
 from ..options import OptionKey
 from ..modules.cmake import CMakeSubprojectOptions
@@ -500,3 +500,4 @@ class FuncDependency(TypedDict):
     include_type: IncludeType
     language: T.Optional[str]
     main: bool
+    method: DependencyMethods

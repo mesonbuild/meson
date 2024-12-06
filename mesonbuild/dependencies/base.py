@@ -49,6 +49,7 @@ if T.TYPE_CHECKING:
         include_type: IncludeType
         language: T.Optional[str]
         main: bool
+        method: DependencyMethods
 
     _MissingCompilerBase = Compiler
 else:
@@ -102,12 +103,6 @@ class DependencyMethods(Enum):
     SYSCONFIG = 'sysconfig'
     # Specify using a "program"-config style tool
     CONFIG_TOOL = 'config-tool'
-    # For backwards compatibility
-    SDLCONFIG = 'sdlconfig'
-    CUPSCONFIG = 'cups-config'
-    PCAPCONFIG = 'pcap-config'
-    LIBWMFCONFIG = 'libwmf-config'
-    QMAKE = 'qmake'
     # Misc
     DUB = 'dub'
 
@@ -614,30 +609,7 @@ def strip_system_includedirs(environment: 'Environment', for_machine: MachineCho
     return [i for i in include_args if i not in exclude]
 
 def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: DependencyObjectKWs) -> T.List[DependencyMethods]:
-    method = T.cast('T.Union[DependencyMethods, str]', kwargs.get('method', 'auto'))
-    if isinstance(method, DependencyMethods):
-        return [method]
-    # TODO: try/except?
-    if method not in [e.value for e in DependencyMethods]:
-        raise DependencyException(f'method {method!r} is invalid')
-    method = DependencyMethods(method)
-
-    # Raise FeatureNew where appropriate
-    if method is DependencyMethods.CONFIG_TOOL:
-        # FIXME: needs to get a handle on the subproject
-        # FeatureNew.single_use('Configuration method "config-tool"', '0.44.0')
-        pass
-    # This sets per-tool config methods which are deprecated to to the new
-    # generic CONFIG_TOOL value.
-    if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
-                  DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
-        # FIXME: needs to get a handle on the subproject
-        #FeatureDeprecated.single_use(f'Configuration method {method.value}', '0.44', 'Use "config-tool" instead.')
-        method = DependencyMethods.CONFIG_TOOL
-    if method is DependencyMethods.QMAKE:
-        # FIXME: needs to get a handle on the subproject
-        # FeatureDeprecated.single_use('Configuration method "qmake"', '0.58', 'Use "config-tool" instead.')
-        method = DependencyMethods.CONFIG_TOOL
+    method = kwargs.get('method', DependencyMethods.AUTO)
 
     # Set the detection method. If the method is set to auto, use any available method.
     # If method is set to a specific string, allow only that detection method.
