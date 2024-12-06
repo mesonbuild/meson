@@ -861,4 +861,6 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('cmake_package_version', str, default='', since='0.57.0'),
     KwargInfo('components', ContainerTypeInfo(list, str), listify=True, default=[], since='0.54.0'),
     KwargInfo('fallback', (ContainerTypeInfo(list, str), str, NoneType), since='0.54.0'),
+    KwargInfo('include_type', str, default='preserve', since='0.52.0',
+              validator=in_set_validator({'system', 'non-system', 'preserve'})),
 ]
