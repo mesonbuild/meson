@@ -127,8 +127,6 @@ class CMakeDependency(ExternalDependency):
         self.cmakeinfo = cmakeinfo
 
         package_version = kwargs.get('cmake_package_version', '')
-        if not isinstance(package_version, str):
-            raise DependencyException('Keyword "cmake_package_version" must be a string.')
         components = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'components'))]  # type: ignore[arg-type]
         modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]  # type: ignore[arg-type]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]  # type: ignore[arg-type]
