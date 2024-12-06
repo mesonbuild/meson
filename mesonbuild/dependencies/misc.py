@@ -449,7 +449,7 @@ class IntlSystemDependency(SystemDependency):
             self.is_found = True
 
             if self.static:
-                if not self._add_sub_dependency(iconv_factory(env, self.for_machine, {'static': True})):  # type: ignore[typeddict-unknown-key]
+                if not self._add_sub_dependency(iconv_factory(env, self.for_machine, {'static': True})):
                     self.is_found = False
 
 
@@ -460,7 +460,7 @@ class OpensslSystemDependency(SystemDependency):
         dependency_kwargs: DependencyObjectKWs = {
             'method': DependencyMethods.SYSTEM,
             'static': self.static,
-        }  # type: ignore[typeddict-unknown-key]
+        }
         if not self.clib_compiler.has_header('openssl/ssl.h', '', env)[0]:
             return
 
@@ -573,7 +573,10 @@ def shaderc_factory(env: 'Environment',
         shared_libs = ['shaderc']
         static_libs = ['shaderc_combined', 'shaderc_static']
 
-        if kwargs.get('static', env.coredata.optstore.get_value_for(OptionKey('prefer_static'))):
+        static = kwargs.get('static')
+        if static is None:
+            static = T.cast('bool', env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
+        if static:
             c = [functools.partial(PkgConfigDependency, name, env, kwargs)
                  for name in static_libs + shared_libs]
         else:
