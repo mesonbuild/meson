@@ -491,3 +491,4 @@ class FuncDeclareDependency(TypedDict):
 class FuncDependency(TypedDict):
 
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
+    allow_fallback: T.Optional[bool]
