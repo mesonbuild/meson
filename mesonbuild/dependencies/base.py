@@ -54,6 +54,7 @@ if T.TYPE_CHECKING:
         native: MachineChoice
         optional_modules: T.List[str]
         private_headers: bool
+        required: bool
 
     _MissingCompilerBase = Compiler
 else:
@@ -409,7 +410,7 @@ class ExternalDependency(Dependency):
         if isinstance(version_reqs, str):
             version_reqs = [version_reqs]
         self.version_reqs = T.cast('T.Optional[T.List[str]]', version_reqs)
-        self.required = T.cast('bool', kwargs.get('required', True))
+        self.required = kwargs.get('required', True)
         self.silent = T.cast('bool', kwargs.get('silent', False))
         self.static = T.cast('bool', kwargs.get('static', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static'))))
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
