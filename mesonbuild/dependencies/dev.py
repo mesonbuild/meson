@@ -33,9 +33,6 @@ if T.TYPE_CHECKING:
     from ..interpreter.type_checking import PkgConfigDefineType
     from .base import DependencyObjectKWs
 
-    class JNISystemDependencyKW(DependencyObjectKWs):
-        version: T.Optional[str]
-
 
 def get_shared_library_suffix(environment: 'Environment', for_machine: MachineChoice) -> str:
     """This is only guaranteed to work for languages that compile to machine
@@ -557,7 +554,7 @@ class ZlibSystemDependency(SystemDependency):
 
 
 class JNISystemDependency(SystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__('jni', environment, kwargs)
 
         self.feature_since = ('0.62.0', '')
@@ -580,7 +577,7 @@ class JNISystemDependency(SystemDependency):
                 self.is_found = False
                 return
 
-        if 'version' in kwargs and not version_compare_many(self.version, kwargs['version'])[0]:
+        if kwargs.get('version') and not version_compare_many(self.version, kwargs['version'])[0]:
             mlog.error(f'Incorrect JDK version found ({self.version}), wanted {kwargs["version"]}')
             self.is_found = False
             return
@@ -685,7 +682,7 @@ packages['jni'] = JNISystemDependency
 
 
 class JDKSystemDependency(JNISystemDependency):
-    def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__(environment, kwargs)
 
         self.feature_since = ('0.59.0', '')
