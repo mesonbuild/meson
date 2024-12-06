@@ -127,7 +127,7 @@ class CMakeDependency(ExternalDependency):
         self.cmakeinfo = cmakeinfo
 
         package_version = kwargs.get('cmake_package_version', '')
-        components = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'components'))]  # type: ignore[arg-type]
+        components = [(x, True) for x in kwargs.get('components', [])]
         modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]  # type: ignore[arg-type]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]  # type: ignore[arg-type]
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in kwargs.get('cmake_module_path', [])]

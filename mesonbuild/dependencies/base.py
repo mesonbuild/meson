@@ -43,6 +43,7 @@ if T.TYPE_CHECKING:
         cmake_args: T.List[str]
         cmake_module_path: T.List[str]
         cmake_package_version: str
+        components: T.List[str]
 
     _MissingCompilerBase = Compiler
 else:
