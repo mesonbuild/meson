@@ -895,9 +895,17 @@ PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
     convertor=_pkgconfig_define_convertor,
 )
 
+INCLUDE_TYPE = KwargInfo(
+    'include_type',
+    str,
+    default='preserve',
+    since='0.52.0',
+    validator=in_set_validator({'system', 'non-system', 'preserve'})
+)
 
 DEPENDENCY_KWS: T.List[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
+    INCLUDE_TYPE,
     KwargInfo('allow_fallback', (bool, NoneType), since='0.56.0'),
     KwargInfo('cmake_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
     KwargInfo('cmake_module_path', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
