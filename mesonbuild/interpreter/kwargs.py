@@ -493,3 +493,4 @@ class FuncDependency(TypedDict):
     components: T.List[str]
     default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     fallback: T.Union[str, T.List[str], None]
+    include_type: Literal['system', 'non-system', 'preserve']
