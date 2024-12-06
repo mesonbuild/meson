@@ -117,7 +117,7 @@ class CMakeDependency(ExternalDependency):
         # Setup the trace parser
         self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir(), self.env)
 
-        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))  # type: ignore[arg-type]
+        cm_args = kwargs.get('cmake_args', [])
         cm_args = check_cmake_args(cm_args)
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
             CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info(cm_args)
