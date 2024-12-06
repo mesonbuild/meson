@@ -908,6 +908,7 @@ DEPENDENCY_METHOD_KW = KwargInfo(
 DEPENDENCY_KWS: T.List[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
     DEPENDENCY_METHOD_KW,
+    DISABLER_KW.evolve(since='0.49.0'),
     INCLUDE_TYPE,
     KwargInfo('allow_fallback', (bool, NoneType), since='0.56.0'),
     KwargInfo('cmake_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
