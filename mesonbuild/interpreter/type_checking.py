@@ -873,4 +873,5 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('optional_modules', ContainerTypeInfo(list, str), listify=True, default=[]),
     KwargInfo('private_headers', bool, default=False),
     NATIVE_KW,
+    REQUIRED_KW,
 ]
