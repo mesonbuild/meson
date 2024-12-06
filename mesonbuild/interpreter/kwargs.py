@@ -495,3 +495,4 @@ class FuncDependency(TypedDict):
     fallback: T.Union[str, T.List[str], None]
     include_type: Literal['system', 'non-system', 'preserve']
     language: T.Optional[str]  # TODO: use a shared literal?
+    main: bool
