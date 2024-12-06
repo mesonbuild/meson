@@ -110,6 +110,8 @@ import importlib
 import copy
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
+
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
@@ -1986,8 +1988,8 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         install = kwargs['install']
         install_mode = self._warn_kwarg_install_mode_sticky(kwargs['install_mode'])
-        install_dir = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
-        install_tag = [] if kwargs['install_tag'] is None else [kwargs['install_tag']]
+        install_dir: T.List[T.Union[str, Literal[False]]] = [] if kwargs['install_dir'] is None else [kwargs['install_dir']]
+        install_tag: T.List[T.Optional[str]] = [] if kwargs['install_tag'] is None else [kwargs['install_tag']]
         if install and not install_dir:
             raise InvalidArguments('vcs_tag: "install_dir" keyword argument must be set when "install" is true.')
 
