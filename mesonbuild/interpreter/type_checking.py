@@ -935,6 +935,7 @@ DEPENDENCY_METHOD_KW = KwargInfo(
 DEPENDENCY_KWS: T.List[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
     DEPENDENCY_METHOD_KW,
+    DISABLER_KW.evolve(since='0.49.0'),
     INCLUDE_TYPE,
     NATIVE_KW,
     REQUIRED_KW,
