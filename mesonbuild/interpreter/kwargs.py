@@ -503,3 +503,4 @@ class FuncDependency(TypedDict):
     method: DependencyMethods
     modules: T.List[str]
     native: MachineChoice
+    not_found_message: str
