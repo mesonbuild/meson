@@ -868,4 +868,5 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('main', bool, default=False),
     KwargInfo('method', str, default='auto', validator=in_set_validator({m.value for m in DependencyMethods}),
               since='0.40.0'),
+    KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[]),
 ]
