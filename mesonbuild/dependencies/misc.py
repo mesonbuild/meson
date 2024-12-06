@@ -458,7 +458,7 @@ class OpensslSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
 
         dependency_kwargs: DependencyObjectKWs = {
-            'method': 'system',
+            'method': DependencyMethods.SYSTEM,
             'static': self.static,
         }  # type: ignore[typeddict-unknown-key]
         if not self.clib_compiler.has_header('openssl/ssl.h', '', env)[0]:
