@@ -869,5 +869,6 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('method', str, default='auto', validator=in_set_validator({m.value for m in DependencyMethods}),
               since='0.40.0'),
     KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[]),
+    KwargInfo('not_found_message', str, default='', since='0.50.0'),
     NATIVE_KW,
 ]
