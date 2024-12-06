@@ -44,7 +44,7 @@ class CudaDependency(SystemDependency):
             # By default, we prefer to link the static CUDA runtime, since this is what nvcc also does by default:
             # https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#cudart-none-shared-static-cudart
             req_modules = ['cudart']
-            if kwargs.get('static', True):
+            if kwargs.get('static') is not False:
                 req_modules = ['cudart_static']
             self.requested_modules = req_modules + self.requested_modules
 
@@ -68,7 +68,10 @@ class CudaDependency(SystemDependency):
         self.libdir = os.path.join(self.cuda_path, self.target_path, arch_libdir)
         mlog.debug('CUDA library directory is', mlog.bold(self.libdir))
 
-        if 'static' not in kwargs:
+        # For legacy reasons cuda ignores the `prefer_static` option, and treats
+        # anything short of `static : false` as `static : true`. This is the
+        # opposite behavior of all other languages.
+        if kwargs.get('static') is None:
             self.libtype = LibType.PREFER_STATIC
 
         self.is_found = self._find_requested_libraries()
