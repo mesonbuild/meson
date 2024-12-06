@@ -1787,7 +1787,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                                       search_dirs=search_dirs)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
-    @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message'])
     @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @disablerIfNotFound
     @permittedKwargs(permitted_dependency_kwargs)
@@ -1801,9 +1800,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         default_options = kwargs.get('default_options')
         df = DependencyFallbacksHolder(self, names, kwargs['allow_fallback'], default_options)
         df.set_fallback(kwargs['fallback'])
-        not_found_message = kwargs.get('not_found_message', '')
-        if not isinstance(not_found_message, str):
-            raise InvalidArguments('The not_found_message must be a string.')
+        not_found_message = kwargs['not_found_message']
         try:
             d = df.lookup(kwargs)
         except Exception:
