@@ -1786,7 +1786,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                                       search_dirs=search_dirs)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
-    @FeatureNewKwargs('dependency', '0.52.0', ['include_type'])
     @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message'])
     @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
@@ -1815,7 +1814,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if not d.found() and not_found_message:
             self.message_impl([not_found_message])
         # Ensure the correct include type
-        if 'include_type' in kwargs:
+        if kwargs['include_type'] != 'preserve':
             wanted = kwargs['include_type']
             if not isinstance(wanted, str):
                 raise InvalidArguments('The `include_type` kwarg must be a string')
