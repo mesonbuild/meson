@@ -912,4 +912,6 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('cmake_package_version', str, default='', since='0.57.0'),
     KwargInfo('components', ContainerTypeInfo(list, str), listify=True, default=[], since='0.54.0'),
     KwargInfo('fallback', (ContainerTypeInfo(list, str), str, NoneType), since='0.54.0'),
+    KwargInfo('language', (str, NoneType), convertor=lambda x: x.lower() if x is not None else x,
+              validator=lambda x: 'Must be a valid language if set' if (x is not None and x not in compilers.all_languages) else None),
 ]
