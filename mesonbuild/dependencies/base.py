@@ -52,6 +52,7 @@ if T.TYPE_CHECKING:
         method: DependencyMethods
         modules: T.List[str]
         native: MachineChoice
+        optional_modules: T.List[str]
 
     _MissingCompilerBase = Compiler
 else:
