@@ -12,7 +12,7 @@ from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import UserFeatureOption
-from ..dependencies import Dependency, InternalDependency
+from ..dependencies import Dependency, DependencyMethods, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
 from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
                         EnvironmentVariables)
@@ -866,4 +866,6 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('language', (str, NoneType), convertor=lambda x: x.lower() if x is not None else x,
               validator=lambda x: 'Must be a valid language if set' if (x is not None and x not in compilers.all_languages) else None),
     KwargInfo('main', bool, default=False),
+    KwargInfo('method', str, default='auto', validator=in_set_validator({m.value for m in DependencyMethods}),
+              since='0.40.0'),
 ]
