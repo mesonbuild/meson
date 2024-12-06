@@ -497,3 +497,4 @@ class FuncDependency(TypedDict):
     language: T.Optional[str]  # TODO: use a shared literal?
     main: bool
     method: str
+    modules: T.List[str]
