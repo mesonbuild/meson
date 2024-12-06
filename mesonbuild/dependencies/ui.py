@@ -13,7 +13,7 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    Popen_safe, extract_as_list, version_compare_many
+    Popen_safe, version_compare_many
 )
 from ..environment import detect_cpu_family
 
@@ -61,7 +61,7 @@ class GnuStepDependency(ConfigToolDependency):
         super().__init__('gnustep', environment, kwargs, language='objc')
         if not self.is_found:
             return
-        self.modules = T.cast('T.List[str]', kwargs.get('modules', []))
+        self.modules = kwargs.get('modules', [])
         self.compile_args = self.filter_args(
             self.get_config_value(['--objc-flags'], 'compile_args'))
         self.link_args = self.weird_filter(self.get_config_value(
@@ -153,7 +153,7 @@ class WxDependency(ConfigToolDependency):
         super().__init__('WxWidgets', environment, kwargs, language='cpp')
         if not self.is_found:
             return
-        self.requested_modules = self.get_requested(kwargs)
+        self.requested_modules = kwargs.get('modules', [])
 
         extra_args = []
         if self.static:
@@ -170,16 +170,6 @@ class WxDependency(ConfigToolDependency):
         # this should be good, at least for now.
         self.compile_args = self.get_config_value(['--cxxflags'] + extra_args + self.requested_modules, 'compile_args')
         self.link_args = self.get_config_value(['--libs'] + extra_args + self.requested_modules, 'link_args')
-
-    @staticmethod
-    def get_requested(kwargs: DependencyObjectKWs) -> T.List[str]:
-        if 'modules' not in kwargs:
-            return []
-        candidates = T.cast('T.List[str]', extract_as_list(kwargs, 'modules'))  # type: ignore[arg-type]
-        for c in candidates:
-            if not isinstance(c, str):
-                raise DependencyException('wxwidgets module argument is not a string')
-        return candidates
 
 packages['wxwidgets'] = WxDependency
 

@@ -504,3 +504,4 @@ class FuncDependency(TypedDict):
     language: T.Optional[str]
     main: bool
     method: DependencyMethods
+    modules: T.List[str]
