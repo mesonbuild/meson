@@ -198,7 +198,7 @@ class CMakeToolchain:
         if compiler.get_argument_syntax() == 'msvc':
             return arg.startswith('/')
         else:
-            if compiler.exelist[0] == 'zig' and arg in {'ar', 'cc', 'c++', 'dlltool', 'lib', 'ranlib', 'objcopy', 'rc'}:
+            if os.path.basename(compiler.get_exe()) == 'zig' and arg in {'ar', 'cc', 'c++', 'dlltool', 'lib', 'ranlib', 'objcopy', 'rc'}:
                 return True
             return arg.startswith('-')
 

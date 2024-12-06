@@ -31,9 +31,19 @@ test(
   suite : ['foo'],
 )
 
+rust = import('rust')
+
+rustdoc = find_program('rustdoc', required: false)
+if rustdoc.found()
+  doclib = static_library('rust_doc_lib', ['doctest1.rs'], build_by_default : false)
+  rust.doctest('rust doctests', doclib,
+    protocol : 'rust',
+    suite : ['doctests'],
+  )
+endif
+
 exe = executable('rust_exe', ['test2.rs', 'test.rs'], build_by_default : false)
 
-rust = import('rust')
 rust.test('rust_test_from_exe', exe, should_fail : true)
 
 lib = static_library('rust_static', ['test.rs'], build_by_default : false, rust_crate_type : 'lib')
