@@ -269,13 +269,13 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         self.interpreter.coredata.deps[for_machine].put(identifier, dep)
         return dep
 
-    @disablerIfNotFound
     @noPosargs
     @typed_kwargs(
         'python_installation.dependency',
         *DEPENDENCY_KWS,
         KwargInfo('embed', bool, default=False, since='0.53.0'),
     )
+    @disablerIfNotFound
     def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Dependency':
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
