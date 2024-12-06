@@ -900,4 +900,5 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('cmake_module_path', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
     KwargInfo('cmake_package_version', str, default='', since='0.57.0'),
     KwargInfo('components', ContainerTypeInfo(list, str), listify=True, default=[], since='0.54.0'),
+    KwargInfo('fallback', (ContainerTypeInfo(list, str), str, NoneType), since='0.54.0'),
 ]

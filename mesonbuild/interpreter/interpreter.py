@@ -1801,10 +1801,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         names = [n for n in args[0] if n]
         if len(names) > 1:
             FeatureNew('dependency with more than one name', '0.60.0').use(self.subproject)
-        fallback = kwargs.get('fallback')
         default_options = kwargs.get('default_options')
         df = DependencyFallbacksHolder(self, names, kwargs['allow_fallback'], default_options)
-        df.set_fallback(fallback)
+        df.set_fallback(kwargs['fallback'])
         not_found_message = kwargs.get('not_found_message', '')
         if not isinstance(not_found_message, str):
             raise InvalidArguments('The not_found_message must be a string.')
