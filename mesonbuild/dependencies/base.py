@@ -50,6 +50,7 @@ if T.TYPE_CHECKING:
         language: T.Optional[str]
         main: bool
         method: DependencyMethods
+        modules: T.List[str]
 
     _MissingCompilerBase = Compiler
 else:
