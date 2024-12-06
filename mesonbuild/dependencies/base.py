@@ -48,6 +48,7 @@ if T.TYPE_CHECKING:
         components: T.List[str]
         include_type: IncludeType
         language: T.Optional[str]
+        main: bool
 
     _MissingCompilerBase = Compiler
 else:

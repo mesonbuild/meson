@@ -129,7 +129,7 @@ class GMockDependencySystem(SystemDependency):
         # want to avoid linking in main() from GTest
         gtest_kwargs = kwargs.copy()
         if self.main:
-            gtest_kwargs['main'] = False  # type: ignore[typeddict-unknown-key]
+            gtest_kwargs['main'] = False
 
         # GMock without GTest is pretty much useless
         # this also mimics the structure given in WrapDB,

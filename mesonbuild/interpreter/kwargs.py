@@ -501,3 +501,4 @@ class FuncDependency(TypedDict):
     fallback: T.Union[str, T.List[str], None]
     include_type: IncludeType
     language: T.Optional[str]
+    main: bool
