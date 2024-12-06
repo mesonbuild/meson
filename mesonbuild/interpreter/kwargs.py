@@ -496,3 +496,4 @@ class FuncDependency(TypedDict):
     include_type: Literal['system', 'non-system', 'preserve']
     language: T.Optional[str]  # TODO: use a shared literal?
     main: bool
+    method: str
