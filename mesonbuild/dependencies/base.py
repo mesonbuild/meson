@@ -53,6 +53,7 @@ if T.TYPE_CHECKING:
         modules: T.List[str]
         native: MachineChoice
         optional_modules: T.List[str]
+        private_headers: bool
 
     _MissingCompilerBase = Compiler
 else:
