@@ -249,7 +249,12 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         return '0x{:02x}{:02x}0000'.format(major, minor)
 
     def _dependency_method_impl(self, kwargs: TYPE_kwargs) -> Dependency:
-        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+        native = kwargs.get('native', False)
+        if isinstance(native, bool):
+            for_machine = MachineChoice.BUILD if native else MachineChoice.HOST
+        else:
+            assert isinstance(native, MachineChoice), 'for mypy'
+            for_machine = native
         identifier = get_dep_identifier(self._full_path(), kwargs)
 
         dep = self.interpreter.coredata.deps[for_machine].get(identifier)
