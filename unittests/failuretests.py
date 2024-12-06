@@ -212,7 +212,7 @@ class FailureTests(BasePlatformTests):
     def test_boost_notfound_dependency(self):
         # Can be run even if Boost is found or not
         self.assertMesonRaises("dependency('boost', modules : 1)",
-                               "module.*not a string")
+                               r"dependency keyword argument 'modules' was of type array\[int\] but should have been array\[str\]")
         self.assertMesonRaises("dependency('boost', modules : 'fail')",
                                f"(fail.*not found|{self.dnf})")
 
