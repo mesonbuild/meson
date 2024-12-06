@@ -16,7 +16,7 @@ from mesonbuild.interpreterbase.decorators import FeatureDeprecated
 
 from .. import mesonlib, mlog
 from ..environment import get_llvm_tool_names
-from ..mesonlib import version_compare, version_compare_many, search_version, stringlistify, extract_as_list
+from ..mesonlib import version_compare, version_compare_many, search_version
 from .base import DependencyException, DependencyMethods, detect_compiler, strip_system_includedirs, strip_system_libdirs, SystemDependency, ExternalDependency, DependencyTypeName
 from .cmake import CMakeDependency
 from .configtool import ConfigToolDependency
@@ -214,7 +214,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         self.provided_modules = self.get_config_value(['--components'], 'modules')
         modules = kwargs.get('modules', [])
         self.check_components(modules)
-        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))  # type: ignore[arg-type]
+        opt_modules = kwargs.get('optional_modules', [])
         self.check_components(opt_modules, required=False)
 
         cargs = mesonlib.OrderedSet(self.get_config_value(['--cppflags'], 'compile_args'))
@@ -387,7 +387,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
         self.llvm_modules = kwargs.get('modules', [])
-        self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))  # type: ignore[arg-type]
+        self.llvm_opt_modules = kwargs.get('optional_modules', [])
 
         for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
         compilers = env.coredata.compilers[for_machine]
