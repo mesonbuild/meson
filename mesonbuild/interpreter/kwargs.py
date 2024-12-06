@@ -507,3 +507,4 @@ class FuncDependency(TypedDict):
     native: MachineChoice
     not_found_message: str
     optional_modules: T.List[str]
+    private_headers: bool
