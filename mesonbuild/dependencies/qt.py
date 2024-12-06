@@ -261,9 +261,9 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         # is requested, add "">= 5, < 6", but if the user has ">= 5.6", don't
         # lose that.
         kwargs = kwargs.copy()
-        _vers = mesonlib.listify(kwargs.get('version', []))
+        _vers = kwargs.get('version', [])
         _vers.extend([f'>= {self.qtver}', f'< {int(self.qtver) + 1}'])
-        kwargs['version'] = _vers  # type: ignore[typeddict-unknown-key]
+        kwargs['version'] = _vers
 
         ConfigToolDependency.__init__(self, name, env, kwargs)
         if not self.found():

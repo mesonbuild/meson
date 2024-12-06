@@ -390,7 +390,7 @@ class CursesSystemDependency(SystemDependency):
                             self.version = f'{v_major}.{v_minor}'
 
                         # Check the version if possible, emit a warning if we can't
-                        req = T.cast('T.Iterable[str]', kwargs.get('version'))
+                        req = kwargs.get('version', [])
                         if req:
                             if self.version:
                                 self.is_found, *_ = mesonlib.version_compare_many(self.version, req)

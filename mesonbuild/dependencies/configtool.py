@@ -10,8 +10,6 @@ from .. import mlog
 import re
 import typing as T
 
-from mesonbuild import mesonlib
-
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter.type_checking import PkgConfigDefineType
@@ -49,11 +47,7 @@ class ConfigToolDependency(ExternalDependency):
         if 'version_arg' in kwargs:
             self.version_arg = kwargs['version_arg']  # type: ignore[typeddict-item]
 
-        req_version_raw = kwargs.get('version', None)
-        if req_version_raw is not None:
-            req_version = mesonlib.stringlistify(req_version_raw)
-        else:
-            req_version = []
+        req_version = kwargs.get('version', [])
         tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0), exclude_paths=exclude_paths)  # type: ignore[arg-type]
         self.config = tool
         self.is_found = self.report_config(version, req_version)
