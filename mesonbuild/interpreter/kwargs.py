@@ -491,7 +491,7 @@ class FuncDeclareDependency(TypedDict):
     version: T.Optional[str]
 
 
-class FuncDependency(TypedDict):
+class FuncDependency(ExtractRequired):
 
     allow_fallback: T.Optional[bool]
     cmake_args: T.List[str]

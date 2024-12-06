@@ -676,7 +676,7 @@ class BoostDependency(SystemDependency):
         # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
         # allows BoostDependency to find boost from Conan. See #5438
         try:
-            boost_pc = PkgConfigDependency('boost', self.env, {'required': False})  # type: ignore[typeddict-unknown-key]
+            boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
             if boost_pc.found():
                 boost_lib_dir = boost_pc.get_variable(pkgconfig='libdir')
                 boost_inc_dir = boost_pc.get_variable(pkgconfig='includedir')

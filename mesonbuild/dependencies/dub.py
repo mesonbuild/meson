@@ -84,8 +84,8 @@ class DubDependency(ExternalDependency):
         assert isinstance(_temp_comp, DCompiler)
         self.compiler = _temp_comp
 
-        if 'required' in kwargs:
-            self.required = T.cast('bool', kwargs.get('required'))
+        if kwargs.get('required') is not None:
+            self.required = kwargs['required']
 
         if DubDependency.class_dubbin is None and not DubDependency.class_dubbin_searched:
             DubDependency.class_dubbin = self._check_dub()

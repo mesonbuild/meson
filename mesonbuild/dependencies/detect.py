@@ -92,8 +92,6 @@ display_name_map = {
 def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyObjectKWs, candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
     assert name
     required = kwargs.get('required', True)
-    if not isinstance(required, bool):
-        raise DependencyException('Keyword "required" must be a boolean.')
     lname = name.lower()
     if lname not in _packages_accept_language and kwargs.get('language') is not None:
         raise DependencyException(f'{name} dependency does not accept "language" keyword argument')
