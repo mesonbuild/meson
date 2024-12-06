@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import collections, functools, importlib
+import enum
 import typing as T
 
 from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
@@ -66,6 +67,9 @@ def get_dep_identifier(name: str, kwargs: DependencyObjectKWs) -> 'TV_DepID':
             for i in value:
                 assert isinstance(i, str), i
             value = tuple(frozenset(listify(value)))
+        elif isinstance(value, enum.Enum):
+            value = value.value
+            assert isinstance(value, str), 'for mypy'
         else:
             assert value is None or isinstance(value, (str, bool, int)), value
         identifier = (*identifier, (key, value),)
@@ -90,8 +94,6 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
         raise DependencyException('Keyword "required" must be a boolean.')
-    if not isinstance(kwargs.get('method', ''), str):
-        raise DependencyException('Keyword "method" must be a string.')
     lname = name.lower()
     if lname not in _packages_accept_language and kwargs.get('language') is not None:
         raise DependencyException(f'{name} dependency does not accept "language" keyword argument')
@@ -175,10 +177,6 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
                                     kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
-    # First check if the method is valid
-    if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:  # type: ignore[typeddict-item]
-        raise DependencyException('method {!r} is invalid'.format(kwargs['method']))  # type: ignore[typeddict-item]
-
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:
@@ -197,25 +195,26 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
 
     candidates: T.List['DependencyGenerator'] = []
 
-    if kwargs.get('method', 'auto') == 'auto':
+    method = kwargs.get('method', DependencyMethods.AUTO)
+    if method is DependencyMethods.AUTO:
         # Just use the standard detection methods.
-        methods = ['pkg-config', 'extraframework', 'cmake']
+        methods = [DependencyMethods.PKGCONFIG, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE]
     else:
         # If it's explicitly requested, use that detection method (only).
-        methods = [kwargs['method']]  # type: ignore[typeddict-item]
+        methods = [method]
 
     # Exclusive to when it is explicitly requested
-    if 'dub' in methods:
+    if DependencyMethods.DUB in methods:
         from .dub import DubDependency
         candidates.append(functools.partial(DubDependency, name, env, kwargs))
 
     # Preferred first candidate for auto.
-    if 'pkg-config' in methods:
+    if DependencyMethods.PKGCONFIG in methods:
         from .pkgconfig import PkgConfigDependency
         candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
 
     # On OSX only, try framework dependency detector.
-    if 'extraframework' in methods:
+    if DependencyMethods.EXTRAFRAMEWORK in methods:
         if env.machines[for_machine].is_darwin():
             from .framework import ExtraFrameworkDependency
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
@@ -223,7 +222,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
     # Only use CMake:
     # - if it's explicitly requested
     # - as a last resort, since it might not work 100% (see #6113)
-    if 'cmake' in methods:
+    if DependencyMethods.CMAKE in methods:
         from .cmake import CMakeDependency
         candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
 

@@ -12,7 +12,7 @@ from ..build import (CustomTarget, BuildTarget,
                      CustomTargetIndex, ExtractedObjects, GeneratedList, IncludeDirs,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import OptionKey, UserFeatureOption
-from ..dependencies import Dependency, InternalDependency
+from ..dependencies import Dependency, DependencyMethods, InternalDependency
 from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken
 from ..mesonlib import (File, FileMode, MachineChoice, has_path_sep, listify, stringlistify,
                         EnvironmentVariables)
@@ -903,8 +903,38 @@ INCLUDE_TYPE = KwargInfo(
     validator=in_set_validator({'system', 'non-system', 'preserve'})
 )
 
+
+_DEPRECATED_DEPENDENCY_METHODS = frozenset(
+    {'sdlconfig', 'cups-config', 'pcap-config', 'libwmf-config', 'qmake'})
+
+
+def _dependency_method_convertor(value: str) -> DependencyMethods:
+    if value in _DEPRECATED_DEPENDENCY_METHODS:
+        return DependencyMethods.CONFIG_TOOL
+    return DependencyMethods(value)
+
+
+DEPENDENCY_METHOD_KW = KwargInfo(
+    'method',
+    str,
+    default='auto',
+    since='0.40.0',
+    validator=in_set_validator(
+        {m.value for m in DependencyMethods} | _DEPRECATED_DEPENDENCY_METHODS),
+    convertor=_dependency_method_convertor,
+    deprecated_values={
+        'sdlconfig': ('0.44.0', 'use config-tool instead'),
+        'cups-config': ('0.44.0', 'use config-tool instead'),
+        'pcap-config': ('0.44.0', 'use config-tool instead'),
+        'libwmf-config': ('0.44.0', 'use config-tool instead'),
+        'qmake': ('0.58.0', 'use config-tool instead'),
+    },
+)
+
+
 DEPENDENCY_KWS: T.List[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
+    DEPENDENCY_METHOD_KW,
     INCLUDE_TYPE,
     KwargInfo('allow_fallback', (bool, NoneType), since='0.56.0'),
     KwargInfo('cmake_args', ContainerTypeInfo(list, str), listify=True, default=[], since='0.50.0'),
