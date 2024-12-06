@@ -1787,7 +1787,6 @@ class Interpreter(InterpreterBase, HoldableObject):
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
     @FeatureNewKwargs('dependency', '0.49.0', ['disabler'])
     @disablerIfNotFound
-    @permittedKwargs(permitted_dependency_kwargs)
     @typed_pos_args('dependency', varargs=str, min_varargs=1)
     @typed_kwargs('dependency', *DEPENDENCY_KWS, allow_unknown=True)
     def func_dependency(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: kwtypes.FuncDependency) -> Dependency:
