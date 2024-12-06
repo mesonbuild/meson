@@ -46,8 +46,7 @@ def get_dep_identifier(name: str, kwargs: DependencyObjectKWs) -> 'TV_DepID':
     nkwargs = T.cast('DependencyObjectKWs', {k.name: k.default for k in DEPENDENCY_KWS})
     nkwargs.update(kwargs)
 
-    from ..interpreter import permitted_dependency_kwargs
-    assert len(permitted_dependency_kwargs) == 19, \
+    assert len(DEPENDENCY_KWS) == 20, \
            'Extra kwargs have been added to dependency(), please review if it makes sense to handle it here'
     for key, value in nkwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
