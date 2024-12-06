@@ -98,7 +98,12 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     # display the dependency name with correct casing
     display_name = display_name_map.get(lname, lname)
 
-    for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+    native = kwargs.get('native', False)
+    if isinstance(native, bool):
+        for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+    else:
+        assert isinstance(native, MachineChoice), 'for mypy'
+        for_machine = native
 
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 

@@ -377,7 +377,11 @@ class HasNativeKwarg:
         self.for_machine = self.get_for_machine_from_kwargs(kwargs)
 
     def get_for_machine_from_kwargs(self, kwargs: T.Dict[str, T.Any]) -> MachineChoice:
-        return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+        native = kwargs.get('native', False)
+        if isinstance(native, bool):
+            return MachineChoice.BUILD if native else MachineChoice.HOST
+        assert isinstance(native, MachineChoice), 'for mypy'
+        return native
 
 class ExternalDependency(Dependency, HasNativeKwarg):
     def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):

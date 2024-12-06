@@ -498,3 +498,4 @@ class FuncDependency(TypedDict):
     main: bool
     method: str
     modules: T.List[str]
+    native: MachineChoice
