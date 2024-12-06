@@ -498,3 +498,4 @@ class FuncDependency(TypedDict):
     default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     fallback: T.Union[str, T.List[str], None]
     include_type: IncludeType
+    language: T.Optional[str]
