@@ -510,3 +510,4 @@ class FuncDependency(ExtractRequired):
     optional_modules: T.List[str]
     private_headers: bool
     static: T.Optional[bool]
+    version: T.List[str]
