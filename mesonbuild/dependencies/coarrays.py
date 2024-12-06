@@ -35,8 +35,8 @@ def coarray_factory(env: 'Environment',
                     PkgConfigDependency, pkg, env, kwargs, language='fortran'))
 
         if DependencyMethods.CMAKE in methods:
-            if 'modules' not in kwargs:
-                kwargs['modules'] = 'OpenCoarrays::caf_mpi'  # type: ignore[typeddict-unknown-key]
+            if not kwargs.get('modules'):
+                kwargs['modules'] = ['OpenCoarrays::caf_mpi']
             candidates.append(functools.partial(
                 CMakeDependency, 'OpenCoarrays', env, kwargs, language='fortran'))
 

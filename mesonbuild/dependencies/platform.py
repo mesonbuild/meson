@@ -17,9 +17,7 @@ if T.TYPE_CHECKING:
 class AppleFrameworks(ExternalDependency):
     def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(DependencyTypeName('appleframeworks'), env, kwargs)
-        modules = T.cast('T.Union[None, str, T.List[str]]', kwargs.get('modules', []))
-        if isinstance(modules, str):
-            modules = [modules]
+        modules = kwargs.get('modules', [])
         if not modules:
             raise DependencyException("AppleFrameworks dependency requires at least one module.")
         self.frameworks = modules

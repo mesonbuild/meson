@@ -34,9 +34,6 @@ if T.TYPE_CHECKING:
     from .base import DependencyObjectKWs
 
     class JNISystemDependencyKW(DependencyObjectKWs):
-        modules: T.List[str]
-        # FIXME: When dependency() moves to typed Kwargs, this should inherit
-        # from its TypedDict type.
         version: T.Optional[str]
 
 
@@ -215,7 +212,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             return
 
         self.provided_modules = self.get_config_value(['--components'], 'modules')
-        modules = stringlistify(extract_as_list(kwargs, 'modules'))  # type: ignore[arg-type]
+        modules = kwargs.get('modules', [])
         self.check_components(modules)
         opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))  # type: ignore[arg-type]
         self.check_components(opt_modules, required=False)
@@ -389,7 +386,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
 class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))  # type: ignore[arg-type]
+        self.llvm_modules = kwargs.get('modules', [])
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))  # type: ignore[arg-type]
 
         compilers = None
@@ -575,7 +572,7 @@ class JNISystemDependency(SystemDependency):
         self.javac = environment.coredata.compilers[self.for_machine]['java']
         self.version = self.javac.version
 
-        modules: T.List[str] = mesonlib.listify(kwargs.get('modules', []))
+        modules = kwargs.get('modules', [])
         for module in modules:
             if module not in {'jvm', 'awt'}:
                 msg = f'Unknown JNI module ({module})'

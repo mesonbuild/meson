@@ -517,7 +517,7 @@ class ObjFWDependency(ConfigToolDependency):
         # TODO: Expose --framework-libs
         extra_flags = []
 
-        for module in mesonlib.stringlistify(mesonlib.extract_as_list(kwargs, 'modules')):  # type: ignore[arg-type]
+        for module in kwargs.get('modules', []):
             extra_flags.append('--package')
             extra_flags.append(module)
 
