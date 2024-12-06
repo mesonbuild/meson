@@ -146,7 +146,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
 def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
                  kwargs: DependencyObjectKWs, methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = T.cast('T.Optional[str]', kwargs.get('language'))
+    language = kwargs.get('language')
     candidates: T.List['DependencyGenerator'] = []
 
     if DependencyMethods.PKGCONFIG in methods:

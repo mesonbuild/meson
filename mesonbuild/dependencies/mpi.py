@@ -28,7 +28,7 @@ def mpi_factory(env: 'Environment',
                 for_machine: 'MachineChoice',
                 kwargs: DependencyObjectKWs,
                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = T.cast('T.Optional[str]', kwargs.get('language'))
+    language = kwargs.get('language')
     if language is None:
         language = 'c'
     if language not in {'c', 'cpp', 'fortran'}:

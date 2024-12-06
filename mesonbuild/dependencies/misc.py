@@ -30,7 +30,7 @@ def netcdf_factory(env: 'Environment',
                    for_machine: 'mesonlib.MachineChoice',
                    kwargs: DependencyObjectKWs,
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = T.cast('T.Optional[str]', kwargs.get('language'))
+    language = kwargs.get('language')
     if language is None:
         language = 'c'
     if language not in ('c', 'cpp', 'fortran'):
@@ -113,7 +113,7 @@ class OpenMPDependency(SystemDependency):
     }
 
     def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
-        language = T.cast('T.Optional[str]', kwargs.get('language'))
+        language = kwargs.get('language')
         super().__init__('openmp', environment, kwargs, language=language)
         self.is_found = False
         if self.clib_compiler.get_id() == 'nagfor':

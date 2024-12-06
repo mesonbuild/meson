@@ -47,6 +47,7 @@ if T.TYPE_CHECKING:
         cmake_package_version: str
         components: T.List[str]
         include_type: IncludeType
+        language: T.Optional[str]
 
     _MissingCompilerBase = Compiler
 else:

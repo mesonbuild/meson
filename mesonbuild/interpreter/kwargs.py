@@ -500,3 +500,4 @@ class FuncDependency(TypedDict):
     default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     fallback: T.Union[str, T.List[str], None]
     include_type: IncludeType
+    language: T.Optional[str]
