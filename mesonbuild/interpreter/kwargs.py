@@ -486,9 +486,10 @@ class FuncDeclareDependency(TypedDict):
 
 class FuncDependency(TypedDict):
 
-    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     allow_fallback: T.Optional[bool]
     cmake_args: T.List[str]
     cmake_module_path: T.List[str]
     cmake_package_version: str
     components: T.List[str]
+    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    fallback: T.Union[str, T.List[str], None]
