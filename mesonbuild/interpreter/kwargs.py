@@ -494,3 +494,4 @@ class FuncDependency(TypedDict):
     allow_fallback: T.Optional[bool]
     cmake_args: T.List[str]
     cmake_module_path: T.List[str]
+    cmake_package_version: str
