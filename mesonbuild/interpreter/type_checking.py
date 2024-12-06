@@ -914,4 +914,5 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
     KwargInfo('fallback', (ContainerTypeInfo(list, str), str, NoneType), since='0.54.0'),
     KwargInfo('language', (str, NoneType), convertor=lambda x: x.lower() if x is not None else x,
               validator=lambda x: 'Must be a valid language if set' if (x is not None and x not in compilers.all_languages) else None),
+    KwargInfo('main', bool, default=False),
 ]

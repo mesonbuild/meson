@@ -139,7 +139,7 @@ class _QtBase:
         if not self.requested_modules:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
 
-        self.qtmain = T.cast('bool', kwargs.get('main', False))
+        self.qtmain = kwargs.get('main', False)
         if not isinstance(self.qtmain, bool):
             raise DependencyException('"main" argument must be a boolean')
 
