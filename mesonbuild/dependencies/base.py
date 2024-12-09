@@ -58,6 +58,9 @@ if T.TYPE_CHECKING:
         static: T.Optional[bool]
         version: T.List[str]
 
+        # Only in the python dependency
+        embed: bool
+
     _MissingCompilerBase = Compiler
 else:
     _MissingCompilerBase = object
