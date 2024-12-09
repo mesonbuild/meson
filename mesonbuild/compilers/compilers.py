@@ -428,8 +428,8 @@ class CompileResult(HoldableObject):
     output_name: T.Optional[str] = field(default=None, init=False)
     cached: bool = field(default=False, init=False)
 
-
 class Compiler(HoldableObject, metaclass=abc.ABCMeta):
+
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
     ignore_libs: T.List[str] = []
@@ -1323,8 +1323,12 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         # TODO: using a TypeDict here would improve this
         raise EnvironmentException(f'{self.id} does not implement get_feature_args')
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
+    def get_prelink_args(self, target: BuildTarget, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
         raise EnvironmentException(f'{self.id} does not know how to do prelinking.')
+
+    def get_prelink_append_compile_args(self) -> bool:
+        """Controls whether compile args have to be used for prelinking or not"""
+        return False
 
     def rsp_file_syntax(self) -> 'RSPFileSyntax':
         """The format of the RSP file that this compiler supports.
@@ -1348,6 +1352,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
         return OptionKey(f'{self.language}_{basename}', machine=self.for_machine)
+
+    def get_object_suffix_override(self, target: BuildTarget, source: mesonlib.File) -> T.Optional[str]:
+        return None
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
