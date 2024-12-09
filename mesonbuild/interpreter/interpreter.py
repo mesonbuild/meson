@@ -62,6 +62,7 @@ from .type_checking import (
     OUTPUT_KW,
     DEFAULT_OPTIONS,
     DEPENDENCIES_KW,
+    DEPENDENCY_KWS,
     DEPENDS_KW,
     DEPEND_FILES_KW,
     DEPFILE_KW,
@@ -1789,7 +1790,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @disablerIfNotFound
     @permittedKwargs(permitted_dependency_kwargs)
     @typed_pos_args('dependency', varargs=str, min_varargs=1)
-    @typed_kwargs('dependency', DEFAULT_OPTIONS.evolve(since='0.38.0'), allow_unknown=True)
+    @typed_kwargs('dependency', *DEPENDENCY_KWS, allow_unknown=True)
     def func_dependency(self, node: mparser.BaseNode, args: T.Tuple[T.List[str]], kwargs: kwtypes.FuncDependency) -> Dependency:
         # Replace '' by empty list of names
         names = [n for n in args[0] if n]
