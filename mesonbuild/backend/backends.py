@@ -41,13 +41,14 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import StaticLinker
     from ..mesonlib import FileMode, FileOrString
 
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, NotRequired
 
     _ALL_SOURCES_TYPE = T.List[T.Union[File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]]
 
     class TargetIntrospectionData(TypedDict):
 
         language: str
+        machine: NotRequired[str]
         compiler: T.List[str]
         parameters: T.List[str]
         sources: T.List[str]
@@ -2039,6 +2040,12 @@ class Backend:
         commands += [input]
         return commands
 
+    def have_language(self, langname: str) -> bool:
+        for for_machine in MachineChoice:
+            if langname in self.environment.coredata.compilers[for_machine]:
+                return True
+        return False
+
     def compiler_to_generator(self, target: build.BuildTarget,
                               compiler: 'Compiler',
                               sources: _ALL_SOURCES_TYPE,
@@ -2049,9 +2056,8 @@ class Backend:
         Some backends don't support custom compilers. This is a convenience
         method to convert a Compiler to a Generator.
         '''
-        exelist = compiler.get_exelist()
-        exe = programs.ExternalProgram(exelist[0])
-        args = exelist[1:]
+        exe = programs.ExternalProgram(compiler.get_exe())
+        args = compiler.get_exe_args()
         commands = self.compiler_to_generator_args(target, compiler)
         generator = build.Generator(exe, args + commands.to_native(),
                                     [output_templ], depfile='@PLAINNAME@.d',
