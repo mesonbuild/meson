@@ -385,7 +385,11 @@ class HasNativeKwarg:
         self.for_machine = self.get_for_machine_from_kwargs(kwargs)
 
     def get_for_machine_from_kwargs(self, kwargs: T.Dict[str, T.Any]) -> MachineChoice:
-        return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+        native = kwargs.get('native', False)
+        if isinstance(native, bool):
+            return MachineChoice.BUILD if native else MachineChoice.HOST
+        assert isinstance(native, MachineChoice), 'for mypy'
+        return native
 
 class ExternalDependency(Dependency, HasNativeKwarg):
     def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
@@ -400,10 +404,13 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         self.version_reqs: T.Optional[T.List[str]] = version_reqs
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
-        self.static = kwargs.get('static', self.env.coredata.get_option(OptionKey('prefer_static')))
-        self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
-        if not isinstance(self.static, bool):
+        static = kwargs.get('static')
+        if static is None:
+            static = self.env.coredata.get_option(OptionKey('prefer_static'))
+        if not isinstance(static, bool):
             raise DependencyException('Static keyword must be boolean')
+        self.static = static
+        self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Is this dependency to be run on the build platform?
         HasNativeKwarg.__init__(self, kwargs)
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)

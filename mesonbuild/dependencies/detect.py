@@ -15,7 +15,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
 
-    TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
+    TV_DepIDEntry = T.Union[str, bool, int, None, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
     PackageTypes = T.Union[T.Type[ExternalDependency], DependencyFactory, WrappedFactoryFunc]
 
@@ -40,30 +40,35 @@ _packages_accept_language: T.Set[str] = set()
 
 def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
     identifier: 'TV_DepID' = (('name', name), )
-    from ..interpreter import permitted_dependency_kwargs
-    assert len(permitted_dependency_kwargs) == 19, \
+    from ..interpreter.type_checking import DEPENDENCY_KWS
+
+    assert len(DEPENDENCY_KWS) == 20, \
            'Extra kwargs have been added to dependency(), please review if it makes sense to handle it here'
-    for key, value in kwargs.items():
-        # 'version' is irrelevant for caching; the caller must check version matches
-        # 'native' is handled above with `for_machine`
-        # 'required' is irrelevant for caching; the caller handles it separately
-        # 'fallback' and 'allow_fallback' is not part of the cache because,
-        #     once a dependency has been found through a fallback, it should
-        #     be used for the rest of the Meson run.
-        # 'default_options' is only used in fallback case
-        # 'not_found_message' has no impact on the dependency lookup
-        # 'include_type' is handled after the dependency lookup
-        if key in {'version', 'native', 'required', 'fallback', 'allow_fallback', 'default_options',
-                   'not_found_message', 'include_type'}:
-            continue
+    # 'version' is irrelevant for caching; the caller must check version matches
+    # 'native' is handled above with `for_machine`
+    # 'required' is irrelevant for caching; the caller handles it separately
+    # 'fallback' and 'allow_fallback' is not part of the cache because,
+    #     once a dependency has been found through a fallback, it should
+    #     be used for the rest of the Meson run.
+    # 'default_options' is only used in fallback case
+    # 'not_found_message' has no impact on the dependency lookup
+    # 'include_type' is handled after the dependency lookup
+    # 'method' does not matter, we really only want one kind of a dependency
+    invalid_keys = {
+        'version', 'native', 'required', 'fallback', 'allow_fallback',
+        'default_options', 'not_found_message', 'include_type'}
+    valid_keys = [n for n in DEPENDENCY_KWS
+                  if n.name not in invalid_keys]
+    for dep in valid_keys:
+        value = kwargs.get(dep.name, dep.default)
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
             for i in value:
-                assert isinstance(i, str)
+                assert isinstance(i, str), i
             value = tuple(frozenset(listify(value)))
         else:
-            assert isinstance(value, (str, bool, int))
-        identifier = (*identifier, (key, value),)
+            assert value is None or isinstance(value, (str, bool, int)), value
+        identifier = (*identifier, (dep.name, value),)
     return identifier
 
 display_name_map = {
@@ -88,7 +93,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     if not isinstance(kwargs.get('method', ''), str):
         raise DependencyException('Keyword "method" must be a string.')
     lname = name.lower()
-    if lname not in _packages_accept_language and 'language' in kwargs:
+    if lname not in _packages_accept_language and kwargs.get('language') is not None:
         raise DependencyException(f'{name} dependency does not accept "language" keyword argument')
     if not isinstance(kwargs.get('version', ''), (str, list)):
         raise DependencyException('Keyword "Version" must be string or list.')
@@ -96,7 +101,12 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     # display the dependency name with correct casing
     display_name = display_name_map.get(lname, lname)
 
-    for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+    native = kwargs.get('native', False)
+    if isinstance(native, bool):
+        for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+    else:
+        assert isinstance(native, MachineChoice), 'for mypy'
+        for_machine = native
 
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
@@ -125,7 +135,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
             details = d.log_details()
             if details:
                 details = '(' + details + ') '
-            if 'language' in kwargs:
+            if kwargs.get('language') is not None:
                 details += 'for ' + d.language + ' '
 
             # if the dependency was found
