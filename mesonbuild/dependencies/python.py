@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: Apache-2.
 # Copyright 2022 The Meson development team
 
 from __future__ import annotations
@@ -484,7 +484,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
 
         PkgConfigDependency.__init__(self, pkg_name, environment, kwargs, extra_paths=pkgconfig_paths)
-        _PythonDependencyBase.__init__(self, installation, T.cast('bool', kwargs.get('embed', False)), for_machine)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
 
         if pkg_libdir and not self.is_found:
             mlog.debug(f'{pkg_name!r} could not be found in {pkg_libdir_origin}, '
@@ -512,7 +512,7 @@ class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase)
                  kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram',
                  for_machine: 'MachineChoice'):
         ExtraFrameworkDependency.__init__(self, name, environment, kwargs)
-        _PythonDependencyBase.__init__(self, installation, T.cast('bool', kwargs.get('embed', False)), for_machine)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
 
 
 class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
@@ -521,7 +521,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
                  kwargs: DependencyObjectKWs, installation: 'BasicPythonExternalProgram',
                  for_machine: 'MachineChoice'):
         SystemDependency.__init__(self, name, environment, kwargs)
-        _PythonDependencyBase.__init__(self, installation, T.cast('bool', kwargs.get('embed', False)), for_machine)
+        _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False), for_machine)
 
         # For most platforms, match pkg-config behavior. iOS is a special case;
         # check for that first, so that check takes priority over
@@ -569,7 +569,7 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
     # We can't use the factory_methods decorator here, as we need to pass the
     # extra installation argument
     methods = process_method_kw({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM}, kwargs)
-    embed = T.cast('bool', kwargs.get('embed', False))
+    embed = kwargs.get('embed', False)
     candidates: T.List['DependencyGenerator'] = []
     from_installation = installation is not None
     # When not invoked through the python module, default installation.

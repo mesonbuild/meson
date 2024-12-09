@@ -57,6 +57,7 @@ if T.TYPE_CHECKING:
         required: bool
         static: T.Optional[bool]
         version: T.List[str]
+        embed: bool
 
     _MissingCompilerBase = Compiler
 else:
