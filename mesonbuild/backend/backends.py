@@ -1795,7 +1795,7 @@ class Backend:
                                                   implib_install_dir, first_outdir_name,
                                                   False, {}, set(), '', install_mode,
                                                   t.subproject, optional=isinstance(t, build.SharedModule),
-                                                  tag='devel')
+                                                  tag='devel', out_fname = t.get_import_rename())
                             d.targets.append(i)
 
                         if not should_strip and t.get_debug_filename():
@@ -1804,7 +1804,7 @@ class Backend:
                                                   first_outdir_name,
                                                   False, {}, set(), '',
                                                   install_mode, t.subproject,
-                                                  optional=True, tag='devel')
+                                                  optional=True, tag='devel', out_fname = t.get_debug_rename())
                             d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
