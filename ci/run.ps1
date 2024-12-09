@@ -21,8 +21,8 @@ if ($env:arch -eq 'x64') {
     $env:Path = "C:\hostedtoolcache\windows\Python\3.7.9\x86;C:\hostedtoolcache\windows\Python\3.7.9\x86\Scripts;$env:Path"
 }
 
-# Also install clippy
-rustup component add clippy
+# Also install clippy and rustfmt for unittests
+rustup component add clippy rustfmt
 
 # Set the CI env var for the meson test framework
 $env:CI = '1'
