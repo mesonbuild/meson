@@ -1766,7 +1766,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_prebuilt_shared_lib(self):
         (cc, _, object_suffix, shared_suffix) = self.detect_prebuild_env()
-        tdir = os.path.join(self.unit_test_dir, '17 prebuilt shared')
+        tdir = self.copy_srcdir(os.path.join(self.unit_test_dir, '17 prebuilt shared'))
         source = os.path.join(tdir, 'alexandria.c')
         objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
         impfile = os.path.join(tdir, 'alexandria.lib')
