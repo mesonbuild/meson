@@ -40,10 +40,14 @@ _packages_accept_language: T.Set[str] = set()
 
 def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
     identifier: 'TV_DepID' = (('name', name), )
+    from ..interpreter.type_checking import DEPENDENCY_KWS
+    nkwargs = {k.name: k.default for k in DEPENDENCY_KWS}
+    nkwargs.update(kwargs)
+
     from ..interpreter import permitted_dependency_kwargs
     assert len(permitted_dependency_kwargs) == 19, \
            'Extra kwargs have been added to dependency(), please review if it makes sense to handle it here'
-    for key, value in kwargs.items():
+    for key, value in nkwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
         # 'native' is handled above with `for_machine`
         # 'required' is irrelevant for caching; the caller handles it separately
