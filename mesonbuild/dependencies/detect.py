@@ -15,7 +15,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
 
-    TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
+    TV_DepIDEntry = T.Union[str, bool, int, None, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
     PackageTypes = T.Union[T.Type[ExternalDependency], DependencyFactory, WrappedFactoryFunc]
 
@@ -62,7 +62,7 @@ def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
                 assert isinstance(i, str), i
             value = tuple(frozenset(listify(value)))
         else:
-            assert isinstance(value, (str, bool, int)), value
+            assert value is None or isinstance(value, (str, bool, int)), value
         identifier = (*identifier, (key, value),)
     return identifier
 
