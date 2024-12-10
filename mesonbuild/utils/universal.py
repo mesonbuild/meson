@@ -1257,6 +1257,9 @@ def do_replacement_cmake(regex: T.Pattern[str], line: str, at_only: bool,
         else:
             # Template variable to be replaced
             varname = match.group('variable')
+            if not varname:
+                varname = match.group('cmake_variable')
+
             var_str = ''
             if varname in confdata:
                 var, _ = confdata.get(varname)
@@ -1358,11 +1361,15 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
         ''', re.VERBOSE)
     else:
         regex = re.compile(r'''
-            (?:\\\\)+(?=\\?\$)  # Match multiple backslashes followed by a dollar sign
+            (?:\\\\)+(?=\\?(\$|@))  # Match multiple backslashes followed by a dollar sign or an @ symbol
             |                  # OR
             \\\${              # Match a backslash followed by a dollar sign and an opening curly brace
             |                  # OR
-            \${(?P<variable>[-a-zA-Z0-9_]+)}  # Match a variable enclosed in curly braces and capture the variable name
+            \${(?P<cmake_variable>[-a-zA-Z0-9_]+)}  # Match a variable enclosed in curly braces and capture the variable name
+            |                  # OR
+            (?<!\\)@(?P<variable>[-a-zA-Z0-9_]+)@  # Match a variable enclosed in @ symbols and capture the variable name; no matches beginning with '\@'
+            |                  # OR
+            (?P<escaped>\\@[-a-zA-Z0-9_]+\\@)  # Match an escaped variable enclosed in @ symbols
         ''', re.VERBOSE)
     return regex
 
