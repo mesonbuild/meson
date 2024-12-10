@@ -615,6 +615,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
                 ('1.1.0', 'generated sources as positional "objects" arguments')
         },
     ),
+    KwargInfo('build_subdir', str, default='', since='1.10.0')
 ]
 
 
