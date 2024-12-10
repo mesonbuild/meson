@@ -29,7 +29,9 @@ def netcdf_factory(env: 'Environment',
                    for_machine: 'mesonlib.MachineChoice',
                    kwargs: T.Dict[str, T.Any],
                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = kwargs.get('language', 'c')
+    language = kwargs.get('language')
+    if language is None:
+        language = 'c'
     if language not in ('c', 'cpp', 'fortran'):
         raise DependencyException(f'Language {language} is not supported with NetCDF.')
 
