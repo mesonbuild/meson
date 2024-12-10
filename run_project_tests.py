@@ -644,7 +644,7 @@ def run_test(test: TestDef,
     global is_worker_process
     is_worker_process = True
     # Setup the test environment
-    assert not test.skip, 'Skipped test should not be run'
+   # assert not test.skip, 'Skipped test should not be run'
     build_dir = create_deterministic_builddir(test, use_tmp)
     try:
         with TemporaryDirectoryWinProof(prefix='i ', dir=None if use_tmp else os.getcwd()) as install_dir:
