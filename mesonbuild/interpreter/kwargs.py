@@ -181,6 +181,7 @@ class CustomTarget(TypedDict):
     build_always: bool
     build_always_stale: T.Optional[bool]
     build_by_default: T.Optional[bool]
+    build_subdir: str
     capture: bool
     command: T.List[T.Union[str, build.BuildTargetTypes, ExternalProgram, File]]
     console: bool
@@ -309,6 +310,7 @@ class ConfigureFile(TypedDict):
     input: T.List[FileOrString]
     configuration: T.Optional[T.Union[T.Dict[str, T.Union[str, int, bool]], build.ConfigurationData]]
     macro_name: T.Optional[str]
+    build_subdir: str
 
 
 class Subproject(ExtractRequired):
