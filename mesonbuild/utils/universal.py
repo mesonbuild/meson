@@ -13,6 +13,7 @@ import sys
 import stat
 import time
 import abc
+import multiprocessing
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from functools import lru_cache, wraps
@@ -94,6 +95,7 @@ __all__ = [
     'default_sysconfdir',
     'detect_subprojects',
     'detect_vcs',
+    'determine_worker_count',
     'do_conf_file',
     'do_conf_str',
     'do_replacement',
@@ -473,6 +475,10 @@ def classify_unity_sources(compilers: T.Iterable['Compiler'], sources: T.Sequenc
     return compsrclist
 
 
+MACHINE_NAMES = ['build', 'host']
+MACHINE_PREFIXES = ['build.', '']
+
+
 class MachineChoice(enum.IntEnum):
 
     """Enum class representing one of the two abstract machine names used in
@@ -486,10 +492,10 @@ class MachineChoice(enum.IntEnum):
         return f'{self.get_lower_case_name()} machine'
 
     def get_lower_case_name(self) -> str:
-        return PerMachine('build', 'host')[self]
+        return MACHINE_NAMES[self.value]
 
     def get_prefix(self) -> str:
-        return PerMachine('build.', '')[self]
+        return MACHINE_PREFIXES[self.value]
 
 
 class PerMachine(T.Generic[_T]):
@@ -498,10 +504,7 @@ class PerMachine(T.Generic[_T]):
         self.host = host
 
     def __getitem__(self, machine: MachineChoice) -> _T:
-        return {
-            MachineChoice.BUILD:  self.build,
-            MachineChoice.HOST:   self.host,
-        }[machine]
+        return [self.build, self.host][machine.value]
 
     def __setitem__(self, machine: MachineChoice, val: _T) -> None:
         setattr(self, machine.get_lower_case_name(), val)
@@ -1084,6 +1087,31 @@ def default_sysconfdir() -> str:
         return 'settings'
     return 'etc'
 
+
+def determine_worker_count(varnames: T.Optional[T.List[str]] = None) -> int:
+    num_workers = 0
+    varnames = varnames or []
+    # Add MESON_NUM_PROCESSES last, so it will prevail if more than one
+    # variable is present.
+    varnames.append('MESON_NUM_PROCESSES')
+    for varname in varnames:
+        if varname in os.environ:
+            try:
+                num_workers = int(os.environ[varname])
+                if num_workers < 0:
+                    raise ValueError
+            except ValueError:
+                print(f'Invalid value in {varname}, using 1 thread.')
+                num_workers = 1
+
+    if num_workers == 0:
+        try:
+            # Fails in some weird environments such as Debian
+            # reproducible build.
+            num_workers = multiprocessing.cpu_count()
+        except Exception:
+            num_workers = 1
+    return num_workers
 
 def has_path_sep(name: str, sep: str = '/\\') -> bool:
     'Checks if any of the specified @sep path separators are in @name'
