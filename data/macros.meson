@@ -47,6 +47,6 @@
         %{nil}}
 
 %meson_buildrequires \
-     %{shrink: buildreq %{__meson} \
+     %{shrink: mesongenbuildreq %{__meson} \
     %{nil}}
     
