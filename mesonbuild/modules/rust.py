@@ -14,8 +14,9 @@ from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, 
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
 from ..compilers.compilers import are_asserts_disabled, lang_suffixes
 from ..interpreter.type_checking import (
-    DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW,
-    INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
+    DEPEND_FILES_KW, DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS,
+    TEST_KWS, OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType,
+    in_set_validator
 )
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..mesonlib import File
@@ -30,8 +31,9 @@ if T.TYPE_CHECKING:
     from ..interpreter.interpreter import SourceInputs, SourceOutputs
     from ..programs import OverrideProgram
     from ..interpreter.type_checking import SourcesVarargsType
+    from ..utils.universal import FileOrString
 
-    from typing_extensions import TypedDict, Literal
+    from typing_extensions import Literal, TypedDict
 
     class FuncTest(_kwargs.BaseTest):
 
@@ -52,6 +54,19 @@ if T.TYPE_CHECKING:
         language: T.Optional[Literal['c', 'cpp']]
         bindgen_version: T.List[str]
 
+    class FuncCBindgen(TypedDict):
+
+        config: str
+        language: Literal['c', 'cpp', 'cython']
+        depends: T.List[T.Union[CustomTarget, CustomTargetIndex]]
+        depend_files: T.List[FileOrString]
+
+
+def _cbindgen_config_validator(val: str) -> T.Optional[str]:
+    if os.path.splitext(val)[1] != '.toml':
+        return 'config file must be a .toml file'
+    return None
+
 
 class RustModule(ExtensionModule):
 
@@ -62,10 +77,13 @@ class RustModule(ExtensionModule):
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
         self._bindgen_bin: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
+        self._cbindgen_bin: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
+        self._cbindgen_has_depfile = False
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
             'proc_macro': self.proc_macro,
+            'cbindgen': self.cbindgen,
         })
 
     @typed_pos_args('rust.test', str, BuildTarget)
@@ -351,6 +369,87 @@ class RustModule(ExtensionModule):
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
         return target
+
+    @FeatureNew('rust.cbindgen', '1.5.0')
+    @typed_pos_args('rust.cbindgen', (File, StructuredSources, CustomTargetIndex, CustomTarget, str), str)
+    @typed_kwargs(
+        'rust.cbindgen',
+        KwargInfo('config', str, required=True, validator=_cbindgen_config_validator),
+        KwargInfo(
+            'language',
+            str,
+            default='c',
+            validator=in_set_validator({'c', 'cpp', 'cython'}),
+        ),
+        KwargInfo(
+            'depends',
+            ContainerTypeInfo(list, (CustomTarget, CustomTargetIndex)),
+            default=[],
+            listify=True,
+        ),
+        DEPEND_FILES_KW,
+    )
+    def cbindgen(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, CustomTarget, CustomTargetIndex, StructuredSources], str], kwargs: FuncCBindgen) -> ModuleReturnValue:
+        # TODO: should we allow GeneratedList here?
+
+        if self._cbindgen_bin is None:
+            self._cbindgen_bin = state.find_program('cbindgen')
+            self._cbindgen_has_depfile = mesonlib.version_compare(self._cbindgen_bin.get_version(self.interpreter), '>= 0.25')
+
+        _infile, outfile = args
+        infile = self.interpreter.source_strings_to_files([_infile])[0]
+        depends = T.cast('T.List[SourceOutputs]', kwargs['depends'].copy())
+
+        if isinstance(infile, StructuredSources):
+            ffile = infile.first_file()
+            if isinstance(ffile, GeneratedList):
+                raise mesonlib.MesonException(
+                    "Cannot generate binding for the outputs of generators. "
+                    "Please submit an issue if this is a problem for you.")
+            infile = ffile
+
+        if isinstance(infile, File):
+            name = infile.fname
+        else:
+            if len(infile.get_outputs()) != 1:
+                raise mesonlib.MesonException('Cannot pass a custom_target generating more than one output to rust.cbindgen, use custom_target[index] to select the output to generate bindings for')
+            name = infile.get_outputs()[0]
+
+        if os.path.dirname(outfile):
+            raise InvalidArguments('outfile name must not contain a path segment')
+
+        # Set the --profile flag based on meson's debug option
+        debug = state.get_option('debug')
+        assert isinstance(debug, bool), 'for mypy'
+
+        # Convert Meson's `cpp` to cbindgen's `c++`
+        lang: str = kwargs['language']
+        if lang == 'cpp':
+            lang = 'c++'
+
+        command = [
+            self._cbindgen_bin, '--output', '@OUTPUT@', '--config',
+            '@INPUT0@', '--quiet', '--lang', lang, '--cpp-compat',
+            '--profile', 'debug' if debug else 'release',
+        ]
+        if self._cbindgen_has_depfile:
+            command.extend(['--depfile', '@DEPFILE@'])
+        command.extend(['--', '@INPUT1@'])  # must be last
+
+        target = CustomTarget(
+            f'rustmod-cbindgen-{name}',
+            state.subdir,
+            state.subproject,
+            state.environment,
+            command,
+            [kwargs['config'], infile],
+            [outfile],
+            depfile=f'{name}.d',
+            depend_files=kwargs['depend_files'],
+            extra_depends=depends,
+        )
+
+        return ModuleReturnValue(target, [target])
 
 
 def initialize(interp: Interpreter) -> RustModule:
