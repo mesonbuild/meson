@@ -31,6 +31,7 @@ from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
+    CompileCheckResult,
 )
 
 if T.TYPE_CHECKING:
@@ -79,7 +80,7 @@ class CCompiler(CLikeCompiler, Compiler):
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
                           extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
-                          dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                          dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
         t = '''{prefix}
         #include <{header}>
@@ -398,13 +399,14 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
         std_opt.set_versions(stds)
         return opts
 
-    # Elbrus C compiler does not have lchmod, but there is only linker warning, not compiler error.
-    # So we should explicitly fail at this case.
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
+        # Elbrus C compiler does not have lchmod, but there is only linker
+        # warning, not compiler error.  So we should explicitly fail at this
+        # case.
         if funcname == 'lchmod':
-            return False, False
+            return CompileCheckResult(False)
         else:
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,

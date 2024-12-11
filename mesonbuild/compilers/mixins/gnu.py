@@ -17,7 +17,7 @@ import typing as T
 from ... import mesonlib
 from ... import mlog
 from ...options import OptionKey
-from mesonbuild.compilers.compilers import CompileCheckMode
+from ..compilers import CompileCheckMode, CompileCheckResult
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
@@ -593,7 +593,7 @@ class GnuCompiler(GnuLikeCompiler):
         return ['-fopenmp']
 
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
-                      mode: CompileCheckMode) -> T.Tuple[bool, bool]:
+                      mode: CompileCheckMode) -> CompileCheckResult:
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
@@ -603,7 +603,7 @@ class GnuCompiler(GnuLikeCompiler):
                 result = False
             if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stderr:
                 result = False
-        return result, p.cached
+        return CompileCheckResult(result, p.cached)
 
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         # GCC only warns about unknown or ignored attributes, so force an

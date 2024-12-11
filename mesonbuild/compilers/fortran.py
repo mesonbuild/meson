@@ -33,6 +33,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
+    from .compilers import CompileCheckResult
 
 
 class FortranCompiler(CLikeCompiler, Compiler):
@@ -49,7 +50,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> CompileCheckResult:
         raise MesonException('Fortran does not have "has_function" capability.\n'
                              'It is better to test if a Fortran capability is working like:\n\n'
                              "meson.get_compiler('fortran').links('block; end block; end program')\n\n"
@@ -107,10 +108,10 @@ class FortranCompiler(CLikeCompiler, Compiler):
         code = 'stop; end program'
         return self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> CompileCheckResult:
         return self._has_multi_arguments(args, env, 'stop; end program')
 
-    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> CompileCheckResult:
         return self._has_multi_link_arguments(args, env, 'stop; end program')
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
@@ -313,7 +314,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def has_header(self, hname: str, prefix: str, env: 'Environment', *,
                    extra_args: T.Union[None, T.List[str], T.Callable[['CompileCheckMode'], T.List[str]]] = None,
                    dependencies: T.Optional[T.List['Dependency']] = None,
-                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+                   disable_cache: bool = False) -> CompileCheckResult:
         '''
         Derived from mixins/clike.py:has_header, but without C-style usage of
         __has_include which breaks with GCC-Fortran 10:

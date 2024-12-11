@@ -56,7 +56,7 @@ class DlBuiltinDependency(BuiltinDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.62.0', "consider checking for `dlopen` with and without `find_library('dl')`")
 
-        if self.clib_compiler.has_function('dlopen', '#include <dlfcn.h>', env)[0]:
+        if self.clib_compiler.has_function('dlopen', '#include <dlfcn.h>', env).result:
             self.is_found = True
 
 
@@ -65,10 +65,10 @@ class DlSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.62.0', "consider checking for `dlopen` with and without `find_library('dl')`")
 
-        h = self.clib_compiler.has_header('dlfcn.h', '', env)
+        h = self.clib_compiler.has_header('dlfcn.h', '', env).result
         self.link_args = self.clib_compiler.find_library('dl', env, [], self.libtype)
 
-        if h[0] and self.link_args:
+        if h and self.link_args:
             self.is_found = True
 
 
@@ -132,7 +132,7 @@ class OpenMPDependency(SystemDependency):
         # Flang has omp_lib.h
         header_names = ('omp.h', 'omp_lib.h')
         for name in header_names:
-            if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
+            if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True).result:
                 self.is_found = True
                 break
         else:
@@ -350,8 +350,7 @@ class CursesSystemDependency(SystemDependency):
             l = self.clib_compiler.find_library(lib, env, [])
             if l:
                 for header in headers:
-                    h = self.clib_compiler.has_header(header, '', env)
-                    if h[0]:
+                    if self.clib_compiler.has_header(header, '', env).result:
                         self.is_found = True
                         self.link_args = l
                         # Not sure how to find version for non-ncurses curses
@@ -387,7 +386,7 @@ class IconvBuiltinDependency(BuiltinDependency):
         self.feature_since = ('0.60.0', "consider checking for `iconv_open` with and without `find_library('iconv')`")
         code = '''#include <iconv.h>\n\nint main() {\n    iconv_open("","");\n}''' # [ignore encoding] this is C, not python, Mr. Lint
 
-        if self.clib_compiler.links(code, env)[0]:
+        if self.clib_compiler.links(code, env).result:
             self.is_found = True
 
 
@@ -396,10 +395,10 @@ class IconvSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.60.0', "consider checking for `iconv_open` with and without find_library('iconv')")
 
-        h = self.clib_compiler.has_header('iconv.h', '', env)
+        h = self.clib_compiler.has_header('iconv.h', '', env).result
         self.link_args = self.clib_compiler.find_library('iconv', env, [], self.libtype)
 
-        if h[0] and self.link_args:
+        if h and self.link_args:
             self.is_found = True
 
 
@@ -409,7 +408,7 @@ class IntlBuiltinDependency(BuiltinDependency):
         self.feature_since = ('0.59.0', "consider checking for `ngettext` with and without `find_library('intl')`")
         code = '''#include <libintl.h>\n\nint main() {\n    gettext("Hello world");\n}'''
 
-        if self.clib_compiler.links(code, env)[0]:
+        if self.clib_compiler.links(code, env).result:
             self.is_found = True
 
 
@@ -418,10 +417,10 @@ class IntlSystemDependency(SystemDependency):
         super().__init__(name, env, kwargs)
         self.feature_since = ('0.59.0', "consider checking for `ngettext` with and without `find_library('intl')`")
 
-        h = self.clib_compiler.has_header('libintl.h', '', env)
+        h = self.clib_compiler.has_header('libintl.h', '', env).result
         self.link_args = self.clib_compiler.find_library('intl', env, [], self.libtype)
 
-        if h[0] and self.link_args:
+        if h and self.link_args:
             self.is_found = True
 
             if self.static:
@@ -437,7 +436,7 @@ class OpensslSystemDependency(SystemDependency):
             'method': 'system',
             'static': self.static,
         }
-        if not self.clib_compiler.has_header('openssl/ssl.h', '', env)[0]:
+        if not self.clib_compiler.has_header('openssl/ssl.h', '', env).result:
             return
 
         # openssl >= 3 only
@@ -469,7 +468,7 @@ class OpensslSystemDependency(SystemDependency):
                 if self._add_sub_dependency(libcrypto_factory(env, self.for_machine, dependency_kwargs)):
                     self.is_found = True
             elif name == 'libcrypto':
-                use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', env, dependencies=[self])[0]
+                use_threads = self.clib_compiler.has_header_symbol('openssl/opensslconf.h', 'OPENSSL_THREADS', '', env, dependencies=[self]).result
                 if not use_threads or self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
                     self.is_found = True
                 # only relevant on platforms where it is distributed with the libc, in which case it always succeeds
