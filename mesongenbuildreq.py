@@ -23,4 +23,7 @@ for lib, versions in deps.items() :
     version_str = ' ' + ' '.join(versions) if versions else ''
         
     # Generate BuildRequires line
-    print(f"BuildRequires: {prefix}({lib}){version_str}") 
+    buildreq = (f"BuildRequires: {prefix}({lib}){version_str}") 
+    if buildreq.split('=')[-1] == '' and '=' in buildreq :
+        buildreq = buildreq.split('=')[0]
+    print(buildreq)
