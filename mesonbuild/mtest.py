@@ -1834,9 +1834,10 @@ class TestHarness:
             raise RuntimeError('Test harness object can only be used once.')
         self.is_run = True
         tests = self.get_tests()
+        rebuild_only_tests = tests if self.options.args else []
         if not tests:
             return 0
-        if not self.options.no_rebuild and not rebuild_deps(self.ninja, self.options.wd, tests):
+        if not self.options.no_rebuild and not rebuild_deps(self.ninja, self.options.wd, rebuild_only_tests, self.options.benchmark):
             # We return 125 here in case the build failed.
             # The reason is that exit code 125 tells `git bisect run` that the current
             # commit should be skipped.  Thus users can directly use `meson test` to
@@ -2149,7 +2150,7 @@ def list_tests(th: TestHarness) -> bool:
         print(th.get_pretty_suite(t))
     return not tests
 
-def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) -> bool:
+def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation], benchmark: bool) -> bool:
     def convert_path_to_target(path: str) -> str:
         path = os.path.relpath(path, wd)
         if os.sep != '/':
@@ -2158,19 +2159,30 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
 
     assert len(ninja) > 0
 
-    depends: T.Set[str] = set()
     targets: T.Set[str] = set()
-    intro_targets: T.Dict[str, T.List[str]] = {}
-    for target in load_info_file(get_infodir(wd), kind='targets'):
-        intro_targets[target['id']] = [
-            convert_path_to_target(f)
-            for f in target['filename']]
-    for t in tests:
-        for d in t.depends:
-            if d in depends:
-                continue
-            depends.update(d)
-            targets.update(intro_targets[d])
+    if tests:
+        depends: T.Set[str] = set()
+        intro_targets: T.Dict[str, T.List[str]] = {}
+        for target in load_info_file(get_infodir(wd), kind='targets'):
+            intro_targets[target['id']] = [
+                convert_path_to_target(f)
+                for f in target['filename']]
+        for t in tests:
+            for d in t.depends:
+                if d in depends:
+                    continue
+                depends.update(d)
+                targets.update(intro_targets[d])
+    else:
+        if benchmark:
+            targets.add('meson-benchmark-prereq')
+        else:
+            targets.add('meson-test-prereq')
+
+    if not targets:
+        # We want to build minimal deps, but if the subset of targets have no
+        # deps then ninja falls back to 'all'.
+        return True
 
     ret = subprocess.run(ninja + ['-C', wd] + sorted(targets)).returncode
     if ret != 0:
