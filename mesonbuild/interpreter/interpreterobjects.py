@@ -580,13 +580,15 @@ class DependencyHolder(ObjectHolder[Dependency]):
         return self.held_object.generate_system_dependency(args[0] or 'system')
 
     @FeatureNew('dependency.as_link_whole', '0.56.0')
-    @noKwargs
     @noPosargs
-    def as_link_whole_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> Dependency:
+    @typed_kwargs(
+        'dependency.as_link_whole',
+        KwargInfo('recursive', bool, default=False, since='1.6.0'),
+    )
+    def as_link_whole_method(self, args: T.List[TYPE_var], kwargs: InternalDependencyAsKW) -> Dependency:
         if not isinstance(self.held_object, InternalDependency):
             raise InterpreterException('as_link_whole method is only supported on declare_dependency() objects')
-        new_dep = self.held_object.generate_link_whole_dependency()
-        return new_dep
+        return self.held_object.generate_link_whole_dependency(kwargs['recursive'])
 
     @FeatureNew('dependency.as_static', '1.6.0')
     @noPosargs
