@@ -135,7 +135,7 @@ class ClangCompiler(GnuLikeCompiler):
             return []
 
     def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
-        if isinstance(self.linker, (MSVCDynamicLinker)):
+        if isinstance(self.linker, (ClangClDynamicLinker, MSVCDynamicLinker)):
             # With MSVC, DLLs only export symbols that are explicitly exported,
             # so if a module defs file is specified, we use that to export symbols
             return ['-Wl,/DEF:' + defsfile]
