@@ -7,7 +7,7 @@ deps_json = \
         "introspect", \
         "--dependencies", \
         "meson.build"], \
-    capture_output=True).stdout \
+    capture_output=True).stdout) \
 deps = dict(zip( \
     [x['name'] for x in deps_json], \
     [x['version'] for x in deps_json])) 
