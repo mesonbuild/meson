@@ -1,16 +1,8 @@
 import subprocess 
 import json 
 import sys
-deps_json = \
-    json.loads(subprocess.run([ \
-        sys.argv[0], \
-        "introspect", \
-        "--dependencies", \
-        "meson.build"], \
-    capture_output=True).stdout) \
-deps = dict(zip( \
-    [x['name'] for x in deps_json], \
-    [x['version'] for x in deps_json])) 
+deps_json = json.loads(subprocess.run([sys.argv[0], "introspect", "--dependencies", "meson.build"], capture_output=True).stdout) 
+deps = dict(zip([x['name'] for x in deps_json],[x['version'] for x in deps_json])) 
 deps.pop('', None) 
 for lib, versions in deps.items() : 
      # Mapping for special cases 
@@ -24,7 +16,6 @@ for lib, versions in deps.items() :
         'fribidi': 'pkgconfig',
         # Add more mappings as needed
     }
-        
     # Determine the prefix
     prefix = pkg_map.get(lib, 'pkgconfig')
         
