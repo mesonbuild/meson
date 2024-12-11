@@ -7,7 +7,7 @@ deps.pop('', None)
 for lib, versions in deps.items() : 
      # Mapping for special cases 
     pkg_map = { 
-        'qt6': 'qmake',
+        'qt6': 'cmake',
         'KF6WindowSystem': 'cmake',
         'gtk+-3.0': 'pkgconfig',
         'dbus-1': 'pkgconfig',
