@@ -47,6 +47,6 @@
         %{nil}}
 
 %meson_buildrequires \
-     %{shrink: python3 ./buildreq.py %{__meson} \
+     %{shrink: buildreq %{__meson} \
     %{nil}}
     
