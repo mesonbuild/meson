@@ -6,7 +6,7 @@ from __future__ import annotations
 import collections, functools, importlib
 import typing as T
 
-from .base import ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
+from .base import ExternalDependency, DependencyException, NotFoundDependency
 
 from ..mesonlib import listify, MachineChoice, PerMachine
 from .. import mlog
@@ -89,8 +89,6 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
         raise DependencyException('Keyword "required" must be a boolean.')
-    if not isinstance(kwargs.get('method', ''), str):
-        raise DependencyException('Keyword "method" must be a string.')
     lname = name.lower()
     if lname not in _packages_accept_language and kwargs.get('language') is not None:
         raise DependencyException(f'{name} dependency does not accept "language" keyword argument')
@@ -174,10 +172,6 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
                                     kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:
-    # First check if the method is valid
-    if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
-        raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
-
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:
