@@ -21,6 +21,8 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
+    from typing_extensions import Literal
+
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
@@ -97,16 +99,6 @@ DependencyTypeName = T.NewType('DependencyTypeName', str)
 
 class Dependency(HoldableObject):
 
-    @classmethod
-    def _process_include_type_kw(cls, kwargs: T.Dict[str, T.Any]) -> str:
-        if 'include_type' not in kwargs:
-            return 'preserve'
-        if not isinstance(kwargs['include_type'], str):
-            raise DependencyException('The include_type kwarg must be a string type')
-        if kwargs['include_type'] not in ['preserve', 'system', 'non-system']:
-            raise DependencyException("include_type may only be one of ['preserve', 'system', 'non-system']")
-        return kwargs['include_type']
-
     def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
         # This allows two Dependencies to be compared even after being copied.
         # The purpose is to allow the name to be changed, but still have a proper comparison
@@ -123,7 +115,7 @@ class Dependency(HoldableObject):
         self.raw_link_args: T.Optional[T.List[str]] = None
         self.sources: T.List[T.Union[mesonlib.File, GeneratedTypes, 'StructuredSources']] = []
         self.extra_files: T.List[mesonlib.File] = []
-        self.include_type = self._process_include_type_kw(kwargs)
+        self.include_type = kwargs.get('include_type', 'preserve')
         self.ext_deps: T.List[Dependency] = []
         self.d_features: T.DefaultDict[str, T.List[T.Any]] = collections.defaultdict(list)
         self.featurechecks: T.List['FeatureCheckBase'] = []
@@ -256,9 +248,9 @@ class Dependency(HoldableObject):
             return default_value
         raise DependencyException(f'No default provided for dependency {self!r}, which is not pkg-config, cmake, or config-tool based.')
 
-    def generate_system_dependency(self, include_type: str) -> 'Dependency':
+    def generate_system_dependency(self, include_type: Literal['system', 'non-system', 'preserve']) -> 'Dependency':
         new_dep = copy.deepcopy(self)
-        new_dep.include_type = self._process_include_type_kw({'include_type': include_type})
+        new_dep.include_type = include_type
         return new_dep
 
     def get_as_static(self, recursive: bool) -> Dependency:
