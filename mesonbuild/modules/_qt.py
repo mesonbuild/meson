@@ -109,7 +109,7 @@ class QtBaseModule(ExtensionModule):
     _moc_supports_depfiles = False
     _set_of_qt_tools = {'moc', 'uic', 'rcc', 'lrelease'}
 
-    def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
+    def __init__(self, interpreter: Interpreter, qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
         self.qt_version = qt_version
         # It is important that this list does not change order as the order of
@@ -126,7 +126,7 @@ class QtBaseModule(ExtensionModule):
             'compile_moc': self.compile_moc,
         })
 
-    def compilers_detect(self, state: 'ModuleState', qt_dep: 'QtDependencyType') -> None:
+    def compilers_detect(self, state: ModuleState, qt_dep: QtDependencyType) -> None:
         """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
         wanted = f'== {qt_dep.version}'
 
@@ -169,7 +169,7 @@ class QtBaseModule(ExtensionModule):
             if p.found():
                 self.tools[name] = p
 
-    def _detect_tools(self, state: 'ModuleState', method: str, required: bool = True) -> None:
+    def _detect_tools(self, state: ModuleState, method: str, required: bool = True) -> None:
         if self._tools_detected:
             return
         self._tools_detected = True
@@ -197,7 +197,7 @@ class QtBaseModule(ExtensionModule):
             self.tools['lrelease'] = NonExistingExternalProgram(name='lrelease' + suffix)
 
     @staticmethod
-    def _qrc_nodes(state: 'ModuleState', rcc_file: 'FileOrString') -> T.Tuple[str, T.List[str]]:
+    def _qrc_nodes(state: ModuleState, rcc_file: FileOrString) -> T.Tuple[str, T.List[str]]:
         abspath: str
         if isinstance(rcc_file, str):
             abspath = os.path.join(state.environment.source_dir, state.subdir, rcc_file)
@@ -225,8 +225,8 @@ class QtBaseModule(ExtensionModule):
         except Exception:
             raise MesonException(f'Unable to parse resource file {abspath}')
 
-    def _parse_qrc_deps(self, state: 'ModuleState',
-                        rcc_file_: T.Union['FileOrString', build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]) -> T.List[File]:
+    def _parse_qrc_deps(self, state: ModuleState,
+                        rcc_file_: T.Union[FileOrString, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList]) -> T.List[File]:
         result: T.List[File] = []
         inputs: T.Sequence['FileOrString'] = []
         if isinstance(rcc_file_, (str, File)):
@@ -273,7 +273,7 @@ class QtBaseModule(ExtensionModule):
                   validator=_list_in_set_validator(_set_of_qt_tools),
                   since='1.6.0'),
     )
-    def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:
+    def has_tools(self, state: ModuleState, args: T.Tuple, kwargs: HasToolKwArgs) -> bool:
         method = kwargs.get('method', 'auto')
         # We have to cast here because TypedDicts are invariant, even though
         # ExtractRequiredKwArgs is a subset of HasToolKwArgs, type checkers
@@ -568,7 +568,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
         KwargInfo('ts_files', ContainerTypeInfo(list, (str, File, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)), listify=True, default=[]),
     )
-    def compile_translations(self, state: 'ModuleState', args: T.Tuple, kwargs: 'CompileTranslationsKwArgs') -> ModuleReturnValue:
+    def compile_translations(self, state: ModuleState, args: T.Tuple, kwargs: CompileTranslationsKwArgs) -> ModuleReturnValue:
         ts_files = kwargs['ts_files']
         if any(isinstance(s, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)) for s in ts_files):
             FeatureNew.single_use('qt.compile_translations: custom_target or generator for "ts_files" keyword argument',
