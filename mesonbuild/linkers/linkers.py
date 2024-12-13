@@ -748,10 +748,15 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
             return (args, rpath_dirs_to_remove)
 
         # Rpaths to use while linking must be absolute. These are not
-        # written to the binary. Needed only with GNU ld:
+        # written to the binary. Needed only with GNU ld, and only for
+        # versions before 2.28:
+        # https://sourceware.org/bugzilla/show_bug.cgi?id=20535
         # https://sourceware.org/bugzilla/show_bug.cgi?id=16936
         # Not needed on Windows or other platforms that don't use RPATH
         # https://github.com/mesonbuild/meson/issues/1897
+        #
+        # In 2.28 and on, $ORIGIN tokens inside of -rpath are respected,
+        # so we do not need to duplicate it in -rpath-link.
         #
         # In addition, this linker option tends to be quite long and some
         # compilers have trouble dealing with it. That's why we will include
@@ -762,8 +767,9 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         # ...instead of just one single looooong option, like this:
         #
         #   -Wl,-rpath-link,/path/to/folder1:/path/to/folder2:...
-        for p in rpath_paths:
-            args.extend(self._apply_prefix('-rpath-link,' + os.path.join(build_dir, p)))
+        if self.id in {'ld.bfd', 'ld.gold'} and mesonlib.version_compare(self.version, '<2.28'):
+            for p in rpath_paths:
+                args.extend(self._apply_prefix('-rpath-link,' + os.path.join(build_dir, p)))
 
         return (args, rpath_dirs_to_remove)
 
