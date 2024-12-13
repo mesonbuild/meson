@@ -388,9 +388,7 @@ class ExternalDependency(Dependency):
         static = kwargs.get('static')
         if static is None:
             static = self.env.coredata.get_option(OptionKey('prefer_static'))
-        if not isinstance(static, bool):
-            raise DependencyException('Static keyword must be boolean')
-        self.static = static
+        self.static = T.cast('bool', static)
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Is this dependency to be run on the build platform?
         self.for_machine = T.cast('MachineChoice', kwargs.get('native', MachineChoice.HOST))

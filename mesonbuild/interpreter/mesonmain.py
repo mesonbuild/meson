@@ -391,10 +391,7 @@ class MesonMain(MesonInterpreterObject):
         # We need the cast here as get_dep_identifier works on such a dict,
         # which FuncOverrideDependency is, but mypy can't figure that out
         nkwargs = T.cast('T.Dict[str, T.Any]', kwargs.copy())
-        if static is None:
-            del nkwargs['static']
-        else:
-            nkwargs['static'] = static
+        nkwargs['static'] = T.cast('T.Optional[bool]', static)
         identifier = dependencies.get_dep_identifier(name, nkwargs)
         for_machine = kwargs['native']
         override = self.build.dependency_overrides[for_machine].get(identifier)

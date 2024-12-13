@@ -551,7 +551,10 @@ def shaderc_factory(env: 'Environment',
         shared_libs = ['shaderc']
         static_libs = ['shaderc_combined', 'shaderc_static']
 
-        if kwargs.get('static', env.coredata.get_option(OptionKey('prefer_static'))):
+        static = T.cast('T.Optional[bool]', kwargs.get('static'))
+        if static is None:
+            static = T.cast('bool', env.coredata.get_option(OptionKey('prefer_static')))
+        if static:
             c = [functools.partial(PkgConfigDependency, name, env, kwargs)
                  for name in static_libs + shared_libs]
         else:
