@@ -213,7 +213,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             return
 
         self.provided_modules = self.get_config_value(['--components'], 'modules')
-        modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        modules = T.cast('T.List[str]', kwargs.get('modules', []))
         self.check_components(modules)
         opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         self.check_components(opt_modules, required=False)
@@ -387,7 +387,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
 class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
-        self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        self.llvm_modules = T.cast('T.List[str]', kwargs.get('modules', []))
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
 
         compilers = None
@@ -573,7 +573,7 @@ class JNISystemDependency(SystemDependency):
         self.javac = environment.coredata.compilers[self.for_machine]['java']
         self.version = self.javac.version
 
-        modules: T.List[str] = mesonlib.listify(kwargs.get('modules', []))
+        modules = T.cast('T.List[str]', kwargs.get('modules', []))
         for module in modules:
             if module not in {'jvm', 'awt'}:
                 msg = f'Unknown JNI module ({module})'

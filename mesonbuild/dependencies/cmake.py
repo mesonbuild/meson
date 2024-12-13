@@ -127,7 +127,7 @@ class CMakeDependency(ExternalDependency):
 
         package_version = T.cast('str', kwargs.get('cmake_package_version', ''))
         components = [(x, True) for x in T.cast('T.List[str]', kwargs.get('components', []))]
-        modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
+        modules = [(x, True) for x in T.cast('T.List[str]', kwargs.get('modules', []))]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
         cm_path = T.cast('T.List[str]', kwargs.get('cmake_module_path', []))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]

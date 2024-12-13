@@ -14,7 +14,7 @@ from .. import mlog
 from .. import mesonlib
 from ..compilers.compilers import CrossNoRunException
 from ..mesonlib import (
-    Popen_safe, extract_as_list, version_compare_many
+    Popen_safe, version_compare_many
 )
 from ..environment import detect_cpu_family
 
@@ -173,13 +173,7 @@ class WxDependency(ConfigToolDependency):
 
     @staticmethod
     def get_requested(kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        if 'modules' not in kwargs:
-            return []
-        candidates = extract_as_list(kwargs, 'modules')
-        for c in candidates:
-            if not isinstance(c, str):
-                raise DependencyException('wxwidgets module argument is not a string')
-        return candidates
+        return T.cast('T.List[str]', kwargs.get('modules', []))
 
 packages['wxwidgets'] = WxDependency
 

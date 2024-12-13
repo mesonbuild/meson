@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2017 The Meson development team
-# Copyright © 2021-2023 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -134,7 +134,7 @@ class _QtBase:
 
         self.private_headers = T.cast('bool', kwargs.get('private_headers', False))
 
-        self.requested_modules = mesonlib.stringlistify(mesonlib.extract_as_list(kwargs, 'modules'))
+        self.requested_modules = T.cast('T.List[str]', kwargs.get('modules', []))
         if not self.requested_modules:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
 

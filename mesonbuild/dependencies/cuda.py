@@ -277,7 +277,7 @@ class CudaDependency(SystemDependency):
         return self.cuda_path if self.cuda_path else ''
 
     def get_requested(self, kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        candidates = mesonlib.extract_as_list(kwargs, 'modules')
+        candidates = T.cast('T.List[str]', kwargs.get('modules', []))
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('CUDA module argument is not a string.')
