@@ -21,7 +21,7 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing_extensions import Literal, TypedDict
 
     from ..compilers.compilers import Compiler
     from ..environment import Environment
@@ -31,6 +31,44 @@ if T.TYPE_CHECKING:
         StaticLibrary, StructuredSources, ExtractedObjects, GeneratedTypes
     )
     from ..interpreter.type_checking import PkgConfigDefineType
+
+    # This must be kept in sync with the FuncDependency class in
+    # interpreter.type_checking
+    # They cannot share in anyway due to the way total works
+    class DependencyKWs(TypedDict, total=False):
+
+        # The following arguments to `dependency()` are used in the interpreter,
+        # and are not needed here:
+        # - allow_fallback
+        # - default_options
+        # - fallback
+        # - not_found_message
+
+        cmake_args: T.List[str]
+        cmake_module_path: T.List[str]
+        cmake_package_version: str
+        components: T.List[str]
+        embed: bool
+        include_type: Literal['system', 'non-system', 'preserve']
+        language: T.Optional[str]  # TODO: use a shared literal?
+        main: bool
+        method: str
+        modules: T.List[str]
+        native: MachineChoice
+        optional_modules: T.List[str]
+        private_headers: bool
+        required: bool
+        static: T.Optional[bool]
+        version: T.List[str]
+
+        # These options only exist as implementation details to Dependency
+        # classes, and are not available to the DSL
+        silent: bool
+        tools: T.List[str]
+        returncode_value: int
+        paths: T.List[str]
+        version_arg: str
+        skip_version: str
 
     _MissingCompilerBase = Compiler
 else:
@@ -99,7 +137,7 @@ DependencyTypeName = T.NewType('DependencyTypeName', str)
 
 class Dependency(HoldableObject):
 
-    def __init__(self, type_name: DependencyTypeName, kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, type_name: DependencyTypeName, kwargs: DependencyKWs) -> None:
         # This allows two Dependencies to be compared even after being copied.
         # The purpose is to allow the name to be changed, but still have a proper comparison
         self._id = uuid.uuid4().int
@@ -373,25 +411,23 @@ class InternalDependency(Dependency):
         return new_dep
 
 class ExternalDependency(Dependency):
-    def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
+    def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: DependencyKWs, language: T.Optional[str] = None):
         Dependency.__init__(self, type_name, kwargs)
         self.env = environment
         self.name = type_name # default
         self.is_found = False
         self.language = language
         version_reqs = kwargs.get('version', None)
-        if isinstance(version_reqs, str):
-            version_reqs = [version_reqs]
-        self.version_reqs: T.Optional[T.List[str]] = version_reqs
+        self.version_reqs = version_reqs
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
         static = kwargs.get('static')
         if static is None:
-            static = self.env.coredata.get_option(OptionKey('prefer_static'))
-        self.static = T.cast('bool', static)
+            static = T.cast('bool', self.env.coredata.get_option(OptionKey('prefer_static')))
+        self.static = static
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         # Is this dependency to be run on the build platform?
-        self.for_machine = T.cast('MachineChoice', kwargs.get('native', MachineChoice.HOST))
+        self.for_machine = kwargs.get('native', MachineChoice.HOST)
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
     def get_compiler(self) -> T.Union['MissingCompiler', 'Compiler']:
@@ -580,7 +616,7 @@ def strip_system_includedirs(environment: 'Environment', for_machine: MachineCho
     exclude = {f'-I{p}' for p in environment.get_compiler_system_include_dirs(for_machine)}
     return [i for i in include_args if i not in exclude]
 
-def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[str, T.Any]) -> T.List[DependencyMethods]:
+def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: DependencyKWs) -> T.List[DependencyMethods]:
     method: T.Union[DependencyMethods, str] = kwargs.get('method', 'auto')
     if isinstance(method, DependencyMethods):
         return [method]
@@ -646,7 +682,7 @@ class SystemDependency(ExternalDependency):
 
     """Dependency base for System type dependencies."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyKWs,
                  language: T.Optional[str] = None) -> None:
         super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
         self.name = name
@@ -660,7 +696,7 @@ class BuiltinDependency(ExternalDependency):
 
     """Dependency base for Builtin type dependencies."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyKWs,
                  language: T.Optional[str] = None) -> None:
         super().__init__(DependencyTypeName('builtin'), env, kwargs, language=language)
         self.name = name

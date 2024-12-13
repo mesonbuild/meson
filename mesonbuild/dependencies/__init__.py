@@ -105,7 +105,7 @@ should actually be added to `envconfig.Properties` and read in
 ```python
 class FooSystemDependency(ExternalDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: Environment, kwargs: DependencyKWs):
         super().__init__(name, environment, kwargs)
         root = environment.properties[self.for_machine].foo_root
         if root is None:

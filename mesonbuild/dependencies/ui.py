@@ -24,11 +24,12 @@ from .detect import packages
 from .factory import DependencyFactory
 
 if T.TYPE_CHECKING:
+    from .base import DependencyKWs
     from ..environment import Environment
 
 
 class GLDependencySystem(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyKWs) -> None:
         super().__init__(name, environment, kwargs)
 
         if self.env.machines[self.for_machine].is_darwin():
@@ -57,7 +58,7 @@ class GnuStepDependency(ConfigToolDependency):
     tools = ['gnustep-config']
     tool_name = 'gnustep-config'
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, environment: 'Environment', kwargs: DependencyKWs) -> None:
         super().__init__('gnustep', environment, kwargs, language='objc')
         if not self.is_found:
             return
@@ -136,7 +137,7 @@ class SDL2DependencyConfigTool(ConfigToolDependency):
     tools = ['sdl2-config']
     tool_name = 'sdl2-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -149,7 +150,7 @@ class WxDependency(ConfigToolDependency):
     tools = ['wx-config-3.0', 'wx-config-3.1', 'wx-config', 'wx-config-gtk3']
     tool_name = 'wx-config'
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, environment: 'Environment', kwargs: DependencyKWs):
         super().__init__('WxWidgets', environment, kwargs, language='cpp')
         if not self.is_found:
             return
@@ -172,14 +173,14 @@ class WxDependency(ConfigToolDependency):
         self.link_args = self.get_config_value(['--libs'] + extra_args + self.requested_modules, 'link_args')
 
     @staticmethod
-    def get_requested(kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        return T.cast('T.List[str]', kwargs.get('modules', []))
+    def get_requested(kwargs: DependencyKWs) -> T.List[str]:
+        return kwargs.get('modules', [])
 
 packages['wxwidgets'] = WxDependency
 
 class VulkanDependencySystem(SystemDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyKWs, language: T.Optional[str] = None) -> None:
         super().__init__(name, environment, kwargs, language=language)
 
         try:

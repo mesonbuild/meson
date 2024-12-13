@@ -17,6 +17,7 @@ from .detect import packages
 
 
 if T.TYPE_CHECKING:
+    from .base import DependencyKWs
     from ..environment import Environment
     from ..compilers import Compiler
 
@@ -26,7 +27,7 @@ class CudaDependency(SystemDependency):
 
     supported_languages = ['cpp', 'c', 'cuda'] # see also _default_language
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, environment: 'Environment', kwargs: DependencyKWs) -> None:
         compilers = environment.coredata.compilers[kwargs.get('native', mesonlib.MachineChoice.HOST)]
         language = self._detect_language(compilers)
         if language not in self.supported_languages:
@@ -276,8 +277,8 @@ class CudaDependency(SystemDependency):
     def log_info(self) -> str:
         return self.cuda_path if self.cuda_path else ''
 
-    def get_requested(self, kwargs: T.Dict[str, T.Any]) -> T.List[str]:
-        candidates = T.cast('T.List[str]', kwargs.get('modules', []))
+    def get_requested(self, kwargs: DependencyKWs) -> T.List[str]:
+        candidates = kwargs.get('modules', [])
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('CUDA module argument is not a string.')
