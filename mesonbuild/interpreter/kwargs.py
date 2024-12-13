@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 The Meson Developers
+# Copyright © 2021-2024 Intel Corporation
 # Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
@@ -484,6 +484,9 @@ class FuncDeclareDependency(TypedDict):
     version: T.Optional[str]
 
 
+# This must be kept in sync with the DependencyKws class in
+# dependencies.base
+# They cannot share in anyway due to the way total works
 class FuncDependency(ExtractRequired):
 
     allow_fallback: T.Optional[bool]

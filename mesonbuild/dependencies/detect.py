@@ -12,6 +12,7 @@ from ..mesonlib import listify, MachineChoice, PerMachine
 from .. import mlog
 
 if T.TYPE_CHECKING:
+    from .base import DependencyKWs
     from ..environment import Environment
     from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
 
@@ -38,7 +39,7 @@ class DependencyPackages(collections.UserDict):
 packages = DependencyPackages()
 _packages_accept_language: T.Set[str] = set()
 
-def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
+def get_dep_identifier(name: str, kwargs: DependencyKWs) -> 'TV_DepID':
     identifier: 'TV_DepID' = (('name', name), )
     from ..interpreter.type_checking import DEPENDENCY_KWS
 
@@ -85,7 +86,7 @@ display_name_map = {
     'wxwidgets': 'WxWidgets',
 }
 
-def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object], candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
+def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyKWs, candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
     assert name
     required = kwargs.get('required', True)
     lname = name.lower()
@@ -95,7 +96,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     # display the dependency name with correct casing
     display_name = display_name_map.get(lname, lname)
 
-    for_machine = T.cast('MachineChoice', kwargs.get('native', MachineChoice.HOST))
+    for_machine = kwargs.get('native', MachineChoice.HOST)
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
     # build a list of dependency methods to try
@@ -167,7 +168,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
-                                    kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:
+                                    kwargs: DependencyKWs) -> T.List['DependencyGenerator']:
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
     if lname in packages:

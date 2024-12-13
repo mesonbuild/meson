@@ -18,6 +18,7 @@ from .factory import factory_methods
 import typing as T
 
 if T.TYPE_CHECKING:
+    from .base import DependencyKWs
     from .factory import DependencyGenerator
     from ..environment import Environment
 
@@ -26,7 +27,7 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
 
     """Handle brokenness in the HDF5 pkg-config files."""
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyKWs, language: T.Optional[str] = None) -> None:
         language = language or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
@@ -77,7 +78,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
     version_arg = '-showconfig'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyKWs, language: T.Optional[str] = None) -> None:
         language = language or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
@@ -143,7 +144,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
 def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
-                 kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+                 kwargs: DependencyKWs, methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language')
     candidates: T.List['DependencyGenerator'] = []
 

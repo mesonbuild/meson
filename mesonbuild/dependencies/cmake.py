@@ -17,6 +17,7 @@ import textwrap
 import typing as T
 
 if T.TYPE_CHECKING:
+    from .base import DependencyKWs
     from ..cmake import CMakeTarget
     from ..environment import Environment
     from ..envconfig import MachineInfo
@@ -69,11 +70,11 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyKWs, language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
         # Gather a list of all languages to support
         self.language_list: T.List[str] = []
         if language is None or force_use_global_compilers:
-            for_machine = T.cast('MachineChoice', kwargs.get('native', MachineChoice.HOST))
+            for_machine = kwargs.get('native', MachineChoice.HOST)
             compilers = environment.coredata.compilers[for_machine]
             candidates = ['c', 'cpp', 'fortran', 'objc', 'objcxx']
             self.language_list += [x for x in candidates if x in compilers]
@@ -112,7 +113,7 @@ class CMakeDependency(ExternalDependency):
         # Setup the trace parser
         self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir(), self.env)
 
-        cm_args = T.cast('T.List[str]', kwargs.get('cmake_args', []))
+        cm_args = kwargs.get('cmake_args', [])
         cm_args = check_cmake_args(cm_args)
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
             CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info(cm_args)
@@ -121,11 +122,11 @@ class CMakeDependency(ExternalDependency):
             raise self._gen_exception('Unable to obtain CMake system information')
         self.cmakeinfo = cmakeinfo
 
-        package_version = T.cast('str', kwargs.get('cmake_package_version', ''))
-        components = [(x, True) for x in T.cast('T.List[str]', kwargs.get('components', []))]
-        modules = [(x, True) for x in T.cast('T.List[str]', kwargs.get('modules', []))]
-        modules += [(x, False) for x in T.cast('T.List[str]', kwargs.get('optional_modules', []))]
-        cm_path = T.cast('T.List[str]', kwargs.get('cmake_module_path', []))
+        package_version = kwargs.get('cmake_package_version', '')
+        components = [(x, True) for x in kwargs.get('components', [])]
+        modules = [(x, True) for x in kwargs.get('modules', [])]
+        modules += [(x, False) for x in kwargs.get('optional_modules', [])]
+        cm_path = kwargs.get('cmake_module_path', [])
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
         if cm_path:
             cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
@@ -640,7 +641,7 @@ class CMakeDependencyFactory:
         self.name = name
         self.modules = modules
 
-    def __call__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> CMakeDependency:
+    def __call__(self, name: str, env: Environment, kwargs: DependencyKWs, language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> CMakeDependency:
         if self.modules:
             kwargs['modules'] = self.modules
         return CMakeDependency(self.name or name, env, kwargs, language, force_use_global_compilers)
