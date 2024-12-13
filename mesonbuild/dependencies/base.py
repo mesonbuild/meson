@@ -372,18 +372,7 @@ class InternalDependency(Dependency):
             new_dep.ext_deps = [dep.get_as_shared(True) for dep in self.ext_deps]
         return new_dep
 
-class HasNativeKwarg:
-    def __init__(self, kwargs: T.Dict[str, T.Any]):
-        self.for_machine = self.get_for_machine_from_kwargs(kwargs)
-
-    def get_for_machine_from_kwargs(self, kwargs: T.Dict[str, T.Any]) -> MachineChoice:
-        native = kwargs.get('native', False)
-        if isinstance(native, bool):
-            return MachineChoice.BUILD if native else MachineChoice.HOST
-        assert isinstance(native, MachineChoice), 'for mypy'
-        return native
-
-class ExternalDependency(Dependency, HasNativeKwarg):
+class ExternalDependency(Dependency):
     def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
         Dependency.__init__(self, type_name, kwargs)
         self.env = environment
@@ -401,7 +390,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
         # Is this dependency to be run on the build platform?
-        HasNativeKwarg.__init__(self, kwargs)
+        self.for_machine = T.cast('MachineChoice', kwargs.get('native', MachineChoice.HOST))
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
     def get_compiler(self) -> T.Union['MissingCompiler', 'Compiler']:
