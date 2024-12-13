@@ -581,7 +581,7 @@ class JNISystemDependency(SystemDependency):
                 self.is_found = False
                 return
 
-        if 'version' in kwargs and not version_compare_many(self.version, kwargs['version']):
+        if kwargs.get('version') and not version_compare_many(self.version, kwargs['version']):
             mlog.error(f'Incorrect JDK version found ({self.version}), wanted {kwargs["version"]}')
             self.is_found = False
             return
