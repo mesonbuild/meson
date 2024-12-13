@@ -4,9 +4,6 @@ method = get_option('method')
 static = get_option('link-static')
 
 d = dependency('llvm', required : false, static : static)
-if not d.found()
-  error('MESON_SKIP_TEST llvm not found.')
-endif
 
 if method != 'config-tool' and d.version().startswith('17.0') and host_machine.system() == 'windows'
   # https://github.com/llvm/llvm-project/commit/e7fc7540daa9333f0be4f380fc9c619236d17f57#r130257253
