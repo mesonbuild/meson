@@ -796,6 +796,13 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     KwargInfo('vala_gir', (str, NoneType)),
     KwargInfo('vala_header', (str, NoneType)),
     KwargInfo('vala_vapi', (str, NoneType)),
+    KwargInfo(
+        'link_early_args',
+        (ContainerTypeInfo(list, str), NoneType),
+        listify=True,
+        default=[],
+        since='1.11.0',
+    ),
 ]
 
 def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:

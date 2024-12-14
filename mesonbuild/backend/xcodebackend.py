@@ -1315,6 +1315,10 @@ class XCodeBackend(backends.Backend):
 
                 generator_id += 1
 
+            # xcode backend does not support link_early_args
+            if isinstance(t, build.BuildTarget) and not isinstance(t, build.StaticLibrary) and t.link_early_args:
+                raise MesonException(f'XCode backend does not support link_early_args for {t.get_basename()}')
+
             ntarget_dict.add_item('name', tname)
             ntarget_dict.add_item('productName', tname)
             ntarget_dict.add_item('productReference', self.target_filemap[tname], tname)

@@ -1605,6 +1605,10 @@ class Vs2010Backend(backends.Backend):
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
 
+        # vs backend does not support link_early_args
+        if isinstance(target, build.BuildTarget) and not isinstance(target, build.StaticLibrary) and target.link_early_args:
+            raise MesonException(f'Visual Studio backend does not support link_early_args for {target.get_basename()}')
+
         if self.gen_lite:
             if not isinstance(target, build.BuildTarget):
                 # Since we're going to delegate all building to the one true meson build command, we don't need
