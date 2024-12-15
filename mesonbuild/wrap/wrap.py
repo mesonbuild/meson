@@ -74,7 +74,7 @@ def wrapdb_url() -> str:
     except FileNotFoundError:
         return WRAPDB_UPSTREAM_ADDRESS
 
-def is_trusted_subdomain(hostname: str) -> bool:
+def is_wrapdb_subdomain(hostname: str) -> bool:
     trusted_subdomains = {
         WRAPDB_UPSTREAM_HOSTNAME,
         urllib.parse.urlparse(wrapdb_url()).hostname,
@@ -98,7 +98,7 @@ def expand_wrapdburl(urlstr: str, allow_insecure: bool = False) -> urllib.parse.
         if url.scheme not in {'file'}:
             raise WrapException(f'{urlstr} is not a valid URL')
     else:
-        if not is_trusted_subdomain(url.hostname):
+        if not is_wrapdb_subdomain(url.hostname):
             raise WrapException(f'{urlstr} is not a whitelisted WrapDB URL')
         if has_ssl and not allow_insecure and not url.scheme == 'https':
             raise WrapException(f'WrapDB did not have expected SSL https url, instead got {urllib.parse.urlunparse(url)}')
@@ -161,7 +161,7 @@ def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: s
 
 def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
     u = urllib.parse.urlparse(patch_url)
-    if not is_trusted_subdomain(u.hostname):
+    if not is_wrapdb_subdomain(u.hostname):
         raise WrapException(f'URL {patch_url} does not seems to be a wrapdb patch')
     arr = u.path.strip('/').split('/')
     if arr[0] == 'v1':
@@ -733,7 +733,7 @@ class Resolver:
         h = hashlib.sha256()
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
         url = urllib.parse.urlparse(urlstring)
-        if url.hostname and is_trusted_subdomain(url.hostname):
+        if url.hostname and is_wrapdb_subdomain(url.hostname):
             resp = open_wrapdburl(urlstring, allow_insecure=self.allow_insecure, have_opt=self.wrap_frontend)
         elif WRAPDB_UPSTREAM_HOSTNAME in urlstring:
             raise WrapException(f'{urlstring} may be a WrapDB-impersonating URL')
