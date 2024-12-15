@@ -136,9 +136,8 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
     else:
-        ctx = None
-        # e.g. https:// -> http://
-        urlstring_ = urlstring_.replace('s://', '://', 1)
+        msg = f'Fix python installation or change WrapDB source address to an insecure alternative, e.g. `meson wrap set-sources http://{WRAPDB_UPSTREAM_HOSTNAME}`'
+        raise WrapException(f'SSL protocol requested: {msg}')
     try:
         return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urlstring_, timeout=REQ_TIMEOUT, context=ctx))
     except OSError as excp:
