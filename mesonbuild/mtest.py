@@ -14,7 +14,6 @@ import asyncio
 import datetime
 import enum
 import json
-import multiprocessing
 import os
 import pickle
 import platform
@@ -36,9 +35,9 @@ from . import mlog
 from .coredata import MesonVersionMismatchException, major_versions_differ
 from .coredata import version as coredata_version
 from .mesonlib import (MesonException, OrderedSet, RealPathAction,
-                       get_wine_shortpath, join_args, split_args, setup_vsenv)
+                       get_wine_shortpath, join_args, split_args, setup_vsenv,
+                       determine_worker_count)
 from .options import OptionKey
-from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
 from .backend.backends import TestProtocol, TestSerialisation
 
@@ -100,27 +99,6 @@ def uniwidth(s: str) -> int:
         result += UNIWIDTH_MAPPING[w]
     return result
 
-def determine_worker_count() -> int:
-    varname = 'MESON_TESTTHREADS'
-    num_workers = 0
-    if varname in os.environ:
-        try:
-            num_workers = int(os.environ[varname])
-            if num_workers < 0:
-                raise ValueError
-        except ValueError:
-            print(f'Invalid value in {varname}, using 1 thread.')
-            num_workers = 1
-
-    if num_workers == 0:
-        try:
-            # Fails in some weird environments such as Debian
-            # reproducible build.
-            num_workers = multiprocessing.cpu_count()
-        except Exception:
-            num_workers = 1
-    return num_workers
-
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -155,7 +133,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help="Run benchmarks instead of tests.")
     parser.add_argument('--logbase', default='testlog',
                         help="Base name for log file.")
-    parser.add_argument('-j', '--num-processes', default=determine_worker_count(), type=int,
+    parser.add_argument('-j', '--num-processes', default=determine_worker_count(['MESON_TESTTHREADS']), type=int,
                         help='How many parallel processes to use.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
                         help='Do not redirect stdout and stderr')
@@ -2158,10 +2136,14 @@ def rebuild_deps(ninja: T.List[str], wd: str, tests: T.List[TestSerialisation]) 
 
     assert len(ninja) > 0
 
+    targets_file = os.path.join(wd, 'meson-info/intro-targets.json')
+    with open(targets_file, encoding='utf-8') as fp:
+        targets_info = json.load(fp)
+
     depends: T.Set[str] = set()
     targets: T.Set[str] = set()
     intro_targets: T.Dict[str, T.List[str]] = {}
-    for target in load_info_file(get_infodir(wd), kind='targets'):
+    for target in targets_info:
         intro_targets[target['id']] = [
             convert_path_to_target(f)
             for f in target['filename']]
