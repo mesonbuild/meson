@@ -1123,21 +1123,23 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
 def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
     from . import d
 
-    c_compiler = detect_c_compiler(env, for_machine)
+    c_compiler = env.coredata.compilers[for_machine].get('c')
 
     # Ensure that the build machine information is based on probing the build
-    # machine with a compiler
-    if not env.is_cross_build(for_machine):
-        env.redetect_build_machine({'c': c_compiler})
+    # machine with a compiler. If we get a compiler for the cache then we can
+    # safely assume that this has already been done.
+    if not c_compiler:
+        c_compiler = detect_c_compiler(env, for_machine)
+        if not env.is_cross_build(for_machine):
+            env.redetect_build_machine({'c': c_compiler})
 
     info = env.machines[for_machine]
     arch = info.cpu_family
 
     # Detect the target architecture, required for proper architecture handling on Windows.
     # MSVC compiler is required for correct platform detection.
-    is_msvc = c_compiler.get_id() == 'msvc'
 
-    if is_msvc and arch == 'x86':
+    if c_compiler.get_id() == 'msvc' and arch == 'x86':
         arch = 'x86_mscoff'
 
     popen_exceptions = {}
