@@ -348,6 +348,8 @@ class TAPParser:
     plan: T.Optional[Plan] = None
     lineno = 0
     num_tests = 0
+    last_test = 0
+    highest_test = 0
     yaml_lineno: T.Optional[int] = None
     yaml_indent = ''
     state = _MAIN
@@ -418,10 +420,11 @@ class TAPParser:
                     yield self.Error('unexpected test after late plan')
                     self.found_late_test = True
                 self.num_tests += 1
-                num = self.num_tests if m.group(2) is None else int(m.group(2))
-                if num != self.num_tests:
-                    yield self.Error('out of order test numbers')
-                yield from self.parse_test(m.group(1) == 'ok', num,
+                self.last_test = self.last_test + 1 if m.group(2) is None else int(m.group(2))
+                self.highest_test = max(self.highest_test, self.last_test)
+                if self.plan and self.last_test > self.plan.num_tests:
+                    yield self.Error('test number exceeds maximum specified in test plan')
+                yield from self.parse_test(m.group(1) == 'ok', self.last_test,
                                            m.group(3), m.group(4), m.group(5))
                 self.state = self._AFTER_TEST
                 return
@@ -471,11 +474,21 @@ class TAPParser:
             if self.state == self._YAML:
                 yield self.Error(f'YAML block not terminated (started on line {self.yaml_lineno})')
 
-            if not self.bailed_out and self.plan and self.num_tests != self.plan.num_tests:
+            if self.bailed_out:
+                return
+
+            if self.plan and self.num_tests != self.plan.num_tests:
                 if self.num_tests < self.plan.num_tests:
                     yield self.Error(f'Too few tests run (expected {self.plan.num_tests}, got {self.num_tests})')
                 else:
                     yield self.Error(f'Too many tests run (expected {self.plan.num_tests}, got {self.num_tests})')
+                return
+
+            if self.highest_test != self.num_tests:
+                if self.highest_test < self.num_tests:
+                    yield self.Error(f'Duplicate test numbers (expected {self.num_tests}, got test numbered {self.highest_test}')
+                else:
+                    yield self.Error(f'Missing test numbers (expected {self.num_tests}, got test numbered {self.highest_test}')
 
 class TestLogger:
     def flush(self) -> None:
