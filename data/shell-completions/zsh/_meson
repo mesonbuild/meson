@@ -271,7 +271,7 @@ _arguments \
     'update:Update a project to its newest available version'
     'info:Show info about a wrap'
     'status:Show the status of your subprojects'
-    'set-source:Set WrapDB source URL'
+    'set-sources:Set WrapDB source URLs'
   )
 
   if (( CURRENT == 2 )); then
@@ -298,7 +298,7 @@ _arguments \
         # TODO: how do you figure out what wraps are provided by subprojects if
         # they haven't been fetched yet?
         _arguments '*:'
-      elif [[ $cmd == "set-source" ]]; then
+      elif [[ $cmd == "set-sources" ]]; then
         _arguments '*:'
       fi
     else

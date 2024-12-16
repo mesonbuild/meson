@@ -715,7 +715,7 @@ _meson-wrap() {
     list
     promote
     search
-    set-source
+    set-sources
     status
     update
     update-db
@@ -866,7 +866,7 @@ _meson-wrap-search() {
   COMPREPLY+=($(compgen -W '${wraps[*]}' -- "$cur"))
 }
 
-_meson-wrap-set-source() {
+_meson-wrap-set-sources() {
   shortopts=(
     h
   )
