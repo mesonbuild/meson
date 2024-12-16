@@ -1121,13 +1121,13 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
 
 def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
-    from . import c, d
+    from . import d
     info = env.machines[for_machine]
 
     # Detect the target architecture, required for proper architecture handling on Windows.
     # MSVC compiler is required for correct platform detection.
     c_compiler = {'c': detect_c_compiler(env, for_machine)}
-    is_msvc = isinstance(c_compiler['c'], c.VisualStudioCCompiler)
+    is_msvc = c_compiler['c'].get_id() == 'msvc'
     if not is_msvc:
         c_compiler = {}
 
