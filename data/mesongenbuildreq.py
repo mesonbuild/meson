@@ -2,8 +2,11 @@ import subprocess
 import json
 import sys
 deps_json = json.loads(subprocess.run([sys.argv[1], "introspect", "--dependencies", "meson.build"], capture_output=True).stdout)
-deps = dict(sorted(zip([x['name'] for x in deps_json],[x['version'] for x in deps_json])))
-deps.pop('', None)
+unsorted_deps = dict(zip([x['name'] for x in deps_json],[x['version'] for x in deps_json]))
+unsorted_deps.pop('', None)
+deps = {}
+for lib in list(unsorted_deps.keys()) :
+    deps[lib] = unsorted_deps[lib]
 for lib, versions in deps.items() :
      # Prepare version constraint
      version_str = ' ' + ' '.join(versions) if versions else ''
