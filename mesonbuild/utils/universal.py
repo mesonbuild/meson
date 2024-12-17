@@ -502,10 +502,10 @@ class MachineChoice(enum.IntEnum):
         return MACHINE_PREFIXES[self.value]
 
 
+@dataclasses.dataclass(eq=False, order=False)
 class PerMachine(T.Generic[_T]):
-    def __init__(self, build: _T, host: _T) -> None:
-        self.build = build
-        self.host = host
+    build: _T
+    host: _T
 
     def __getitem__(self, machine: MachineChoice) -> _T:
         return [self.build, self.host][machine.value]
@@ -513,7 +513,7 @@ class PerMachine(T.Generic[_T]):
     def __setitem__(self, machine: MachineChoice, val: _T) -> None:
         setattr(self, machine.get_lower_case_name(), val)
 
-    def miss_defaulting(self) -> "PerMachineDefaultable[T.Optional[_T]]":
+    def miss_defaulting(self) -> PerMachineDefaultable[T.Optional[_T]]:
         """Unset definition duplicated from their previous to None
 
         This is the inverse of ''default_missing''. By removing defaulted
@@ -531,10 +531,8 @@ class PerMachine(T.Generic[_T]):
         self.build = build
         self.host = host
 
-    def __repr__(self) -> str:
-        return f'PerMachine({self.build!r}, {self.host!r})'
 
-
+@dataclasses.dataclass(eq=False, order=False)
 class PerThreeMachine(PerMachine[_T]):
     """Like `PerMachine` but includes `target` too.
 
@@ -542,9 +540,8 @@ class PerThreeMachine(PerMachine[_T]):
     need to computer the `target` field so we don't bother overriding the
     `__getitem__`/`__setitem__` methods.
     """
-    def __init__(self, build: _T, host: _T, target: _T) -> None:
-        super().__init__(build, host)
-        self.target = target
+
+    target: _T
 
     def miss_defaulting(self) -> "PerThreeMachineDefaultable[T.Optional[_T]]":
         """Unset definition duplicated from their previous to None
@@ -566,15 +563,14 @@ class PerThreeMachine(PerMachine[_T]):
     def matches_build_machine(self, machine: MachineChoice) -> bool:
         return self.build == self[machine]
 
-    def __repr__(self) -> str:
-        return f'PerThreeMachine({self.build!r}, {self.host!r}, {self.target!r})'
 
-
+@dataclasses.dataclass(eq=False, order=False)
 class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
     """Extends `PerMachine` with the ability to default from `None`s.
     """
-    def __init__(self, build: T.Optional[_T] = None, host: T.Optional[_T] = None) -> None:
-        super().__init__(build, host)
+
+    build: T.Optional[_T] = None
+    host: T.Optional[_T] = None
 
     def default_missing(self) -> PerMachine[_T]:
         """Default host to build
@@ -584,9 +580,6 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
         """
         assert self.build is not None, 'Cannot fill in missing when all fields are empty'
         return PerMachine(self.build, self.host if self.host is not None else self.build)
-
-    def __repr__(self) -> str:
-        return f'PerMachineDefaultable({self.build!r}, {self.host!r})'
 
     @classmethod
     def default(cls, is_cross: bool, build: _T, host: _T) -> PerMachine[_T]:
@@ -603,11 +596,12 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
         return m.default_missing()
 
 
+@dataclasses.dataclass(eq=False, order=False)
 class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThreeMachine[T.Optional[_T]]):
     """Extends `PerThreeMachine` with the ability to default from `None`s.
     """
-    def __init__(self) -> None:
-        PerThreeMachine.__init__(self, None, None, None)
+
+    target: T.Optional[_T] = None
 
     def default_missing(self) -> PerThreeMachine[_T]:
         """Default host to build and target to host.
@@ -620,9 +614,6 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
         host = self.host if self.host is not None else self.build
         target = self.target if self.target is not None else host
         return PerThreeMachine(self.build, host, target)
-
-    def __repr__(self) -> str:
-        return f'PerThreeMachineDefaultable({self.build!r}, {self.host!r}, {self.target!r})'
 
 
 def is_sunos() -> bool:
