@@ -1034,4 +1034,4 @@ class Environment:
         """
         machines = self.machines.miss_defaulting()
         machines.build = detect_machine_info(compilers)
-        self.machines = machines.default_missing()
+        self.machines: mesonlib.PerThreeMachine[MachineInfo | None] = machines.default_missing()

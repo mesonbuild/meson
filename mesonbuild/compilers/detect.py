@@ -81,6 +81,20 @@ defaults['clang_static_linker'] = ['llvm-ar']
 defaults['nasm'] = ['nasm', 'yasm']
 
 
+def _get_c_compiler_helper(env: Environment, for_machine: MachineChoice) -> T.Optional[Compiler]:
+    c_compiler = env.coredata.compilers[for_machine].get('c')
+
+    # Ensure that the build machine information is based on probing the build
+    # machine with a compiler. If we get a compiler for the cache then we can
+    # safely assume that this has already been done.
+    if not c_compiler:
+        c_compiler = detect_c_compiler(env, for_machine)
+        if not env.is_cross_build(for_machine):
+            env.redetect_build_machine({'c': c_compiler})
+
+    return c_compiler
+
+
 def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
     lang_map: T.Dict[str, T.Callable[['Environment', MachineChoice], Compiler]] = {
         'c': detect_c_compiler,
@@ -1123,15 +1137,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
 def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
     from . import d
 
-    c_compiler = env.coredata.compilers[for_machine].get('c')
-
-    # Ensure that the build machine information is based on probing the build
-    # machine with a compiler. If we get a compiler for the cache then we can
-    # safely assume that this has already been done.
-    if not c_compiler:
-        c_compiler = detect_c_compiler(env, for_machine)
-        if not env.is_cross_build(for_machine):
-            env.redetect_build_machine({'c': c_compiler})
+    c_compiler = _get_c_compiler_helper(env, for_machine)
 
     info = env.machines[for_machine]
     arch = info.cpu_family
