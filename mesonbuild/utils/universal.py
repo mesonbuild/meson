@@ -402,13 +402,15 @@ class File(HoldableObject):
         return File(False, subdir, fname)
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def from_built_file(subdir: str, fname: str) -> 'File':
         return File(True, subdir, fname)
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def from_built_relative(relative: str) -> 'File':
         dirpart, fnamepart = os.path.split(relative)
-        return File(True, dirpart, fnamepart)
+        return File.from_built_file(dirpart, fnamepart)
 
     @staticmethod
     def from_absolute_file(fname: str) -> 'File':
