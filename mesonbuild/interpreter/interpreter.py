@@ -2539,7 +2539,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                                       follow_symlinks=kwargs['follow_symlinks'])
 
     def install_data_impl(self, sources: T.List[mesonlib.File], install_dir: str,
-                          install_mode: FileMode, rename: T.Optional[str],
+                          install_mode: FileMode, rename: T.Optional[T.List[str]],
                           tag: T.Optional[str],
                           install_data_type: T.Optional[str] = None,
                           preserve_path: bool = False,
