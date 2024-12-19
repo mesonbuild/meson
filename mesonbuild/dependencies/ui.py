@@ -12,7 +12,6 @@ import typing as T
 
 from .. import mlog
 from .. import mesonlib
-from ..compilers.compilers import CrossNoRunException
 from ..mesonlib import (
     Popen_safe, extract_as_list, version_compare_many
 )
@@ -235,31 +234,28 @@ class VulkanDependencySystem(SystemDependency):
                     self.link_args.append(lib)
 
         if self.is_found:
-            get_version = '''\
-#include <stdio.h>
-#include <vulkan/vulkan.h>
-
-int main() {
-    printf("%i.%i.%i", VK_VERSION_MAJOR(VK_HEADER_VERSION_COMPLETE),
-                       VK_VERSION_MINOR(VK_HEADER_VERSION_COMPLETE),
-                       VK_VERSION_PATCH(VK_HEADER_VERSION_COMPLETE));
-    return 0;
-}
-'''
             try:
-                run = self.clib_compiler.run(get_version, environment, extra_args=self.compile_args)
-            except CrossNoRunException:
-                run = None
-            if run and run.compiled and run.returncode == 0:
-                self.version = run.stdout
-            elif self.vulkan_sdk:
-                # fall back to heuristics: detect version number in path
-                # matches the default install path on Windows
-                match = re.search(rf'VulkanSDK{re.escape(os.path.sep)}([0-9]+(?:\.[0-9]+)+)', self.vulkan_sdk)
-                if match:
-                    self.version = match.group(1)
-                else:
-                    mlog.warning(f'Environment variable VULKAN_SDK={self.vulkan_sdk} is present, but Vulkan version could not be extracted.')
+                # VK_VERSION_* is deprecated and replaced by VK_API_VERSION_*. We'll continue to use the old one in
+                # order to support older Vulkan versions that don't have the new one yet, but we might have to update
+                # this code to also check VK_API_VERSION in the future if they decide to drop the old one at some point.
+                components = [str(self.clib_compiler.compute_int(f'VK_VERSION_{c}(VK_HEADER_VERSION_COMPLETE)',
+                                                                 low=0, high=None, guess=e,
+                                                                 prefix='#include <vulkan/vulkan.h>',
+                                                                 env=environment,
+                                                                 extra_args=None,
+                                                                 dependencies=None))
+                              # list containing vulkan version components and their expected value
+                              for c, e in [('MAJOR', 1), ('MINOR', 3), ('PATCH', None)]]
+                self.version = '.'.join(components)
+            except mesonlib.EnvironmentException:
+                if self.vulkan_sdk:
+                    # fall back to heuristics: detect version number in path
+                    # matches the default install path on Windows
+                    match = re.search(rf'VulkanSDK{re.escape(os.path.sep)}([0-9]+(?:\.[0-9]+)+)', self.vulkan_sdk)
+                    if match:
+                        self.version = match.group(1)
+                    else:
+                        mlog.warning(f'Environment variable VULKAN_SDK={self.vulkan_sdk} is present, but Vulkan version could not be extracted.')
 
 packages['gl'] = gl_factory = DependencyFactory(
     'gl',
