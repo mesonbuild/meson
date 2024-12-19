@@ -38,6 +38,7 @@ It also takes the following keyword arguments:
 
 - `dependencies`: a list of test-only Dependencies
 - `link_with`: a list of additional build Targets to link with (*since 1.2.0*)
+- `link_whole`: a list of additional build Targets to link with in their entirety (*since 1.8.0*)
 - `rust_args`: a list of extra arguments passed to the Rust compiler (*since 1.2.0*)
 
 This function  also accepts all of the keyword arguments accepted by the
@@ -59,6 +60,7 @@ It also takes the following keyword arguments:
 
 - `dependencies`: a list of test-only Dependencies
 - `link_with`: a list of additional build Targets to link with
+- `link_whole`: a list of additional build Targets to link with in their entirety
 - `rust_args`: a list of extra arguments passed to the Rust compiler
 
 The target is linked automatically into the doctests.
