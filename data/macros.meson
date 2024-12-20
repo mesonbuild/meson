@@ -45,3 +45,8 @@
         --num-processes %{_smp_build_ncpus} \
         --print-errorlogs \
         %{nil}}
+
+%meson_buildrequires \
+     %{shrink: python3 %{_rpmconfigdir}/mesongenbuildreq %{__meson} \
+    %{nil}}
+    
