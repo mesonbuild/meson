@@ -1043,6 +1043,8 @@ def default_prefix() -> str:
         return 'c:/'
     if is_haiku():
         return '/boot/system/non-packaged'
+    if 'HOMEBREW_PREFIX' in os.environ:
+        return os.environ['HOMEBREW_PREFIX']
     return '/usr/local'
 
 
