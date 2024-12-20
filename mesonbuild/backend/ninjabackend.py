@@ -3716,6 +3716,21 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_dep(list(self.all_structured_sources))
         self.add_build(elem)
 
+    def generate_rustdoc(self) -> None:
+        if 'rustdoc' in self.all_outputs or not self.have_language('rust'):
+            return
+
+        cmd = self.environment.get_build_command() + \
+            ['--internal', 'rustdoc', self.environment.build_dir]
+        elem = self.create_phony_target('rustdoc', 'CUSTOM_COMMAND', 'PHONY')
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('pool', 'console')
+        for crate in self.rust_crates.values():
+            if crate.crate_type in {'rlib', 'dylib', 'proc-macro'}:
+                elem.add_dep(crate.target_name)
+        elem.add_dep(list(self.all_structured_sources))
+        self.add_build(elem)
+
     def generate_scanbuild(self) -> None:
         if not environment.detect_scanbuild():
             return
@@ -3789,6 +3804,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.generate_clangformat()
         self.generate_clangtidy()
         self.generate_clippy()
+        self.generate_rustdoc()
         self.generate_tags('etags', 'TAGS')
         self.generate_tags('ctags', 'ctags')
         self.generate_tags('cscope', 'cscope')

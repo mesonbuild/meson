@@ -4917,6 +4917,24 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(res[data_type][file], details)
 
     @skip_if_not_language('rust')
+    @unittest.skipIf(not shutil.which('rustdoc'), 'Test requires rustdoc')
+    def test_rustdoc(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                testdir = os.path.join(tmpdir, 'a')
+                shutil.copytree(os.path.join(self.rust_test_dir, '9 unit tests'),
+                                testdir)
+                self.init(testdir)
+                self.build('rustdoc')
+        except PermissionError:
+            # When run under Windows CI, something (virus scanner?)
+            # holds on to the git files so cleaning up the dir
+            # fails sometimes.
+            pass
+
+    @skip_if_not_language('rust')
     @unittest.skipIf(not shutil.which('clippy-driver'), 'Test requires clippy-driver')
     def test_rust_clippy(self) -> None:
         if self.backend is not Backend.ninja:
