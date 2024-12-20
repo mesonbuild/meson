@@ -16,3 +16,13 @@ executable('lib1objs_as_dep', 'main.rs',
 executable('lib2objs_as_dep', 'main.rs',
   dependencies: dep2,
   link_with: lib1)
+
+lib12 = shared_library('dylib2objs', 'lib1-dylib.rs',
+  objects: lib2.extract_all_objects(recursive: false),
+  rust_abi: 'c')
+executable('dylib', 'main.rs', link_with: lib12)
+
+lib12 = shared_library('dylib2objs_as_dep', 'lib1-dylib.rs',
+  dependencies: dep2,
+  rust_abi: 'c')
+executable('dylib_as_dep', 'main.rs', link_with: lib12)
