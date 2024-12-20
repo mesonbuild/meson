@@ -2023,7 +2023,7 @@ class NinjaBackend(backends.Backend):
         args += target.get_extra_args('rust')
         return args
 
-    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: Compiler) -> T.Tuple[T.List[str], T.List[RustDep], T.List[str]]:
+    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: Compiler) -> T.Tuple[T.List[str], T.List[str], T.List[RustDep], T.List[str]]:
         deps: T.List[str] = []
         project_deps: T.List[RustDep] = []
         args: T.List[str] = []
@@ -2054,6 +2054,12 @@ class NinjaBackend(backends.Backend):
             if modifiers:
                 type_ += ':' + ','.join(modifiers)
             args.append(f'-l{type_}={libname}')
+
+        objs, od = self.flatten_object_list(target)
+        for o in objs:
+            args.append(f'-Clink-arg={o}')
+            deps.append(o)
+        fortran_order_deps = self.get_fortran_order_deps(od)
 
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
@@ -2140,7 +2146,7 @@ class NinjaBackend(backends.Backend):
         if isinstance(target, build.SharedLibrary) or has_shared_deps:
             args += self.get_build_rpath_args(target, rustc)
 
-        return deps, project_deps, args
+        return deps, fortran_order_deps, project_deps, args
 
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = T.cast('RustCompiler', target.compilers['rust'])
@@ -2164,7 +2170,7 @@ class NinjaBackend(backends.Backend):
         depfile = os.path.join(self.get_target_private_dir(target), target.name + '.d')
         args += self.get_rust_compiler_args(target, rustc, target.rust_crate_type, depfile)
 
-        deps, project_deps, deps_args = self.get_rust_compiler_deps_and_args(target, rustc)
+        deps, fortran_order_deps, project_deps, deps_args = self.get_rust_compiler_deps_and_args(target, rustc)
         args += deps_args
 
         proc_macro_dylib_path = None
@@ -2182,6 +2188,8 @@ class NinjaBackend(backends.Backend):
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
         if orderdeps:
             element.add_orderdep(orderdeps)
+        if fortran_order_deps:
+            element.add_orderdep(fortran_order_deps)
         if deps:
             # dependencies need to cause a relink, they're not just for ordering
             element.add_dep(deps)
@@ -2197,7 +2205,7 @@ class NinjaBackend(backends.Backend):
             rustdoc = rustc.get_rustdoc(self.environment)
             args = rustdoc.get_exe_args()
             args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
-            _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc)
+            _, _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc)
             args += deps_args
             target.doctests.cmd_args = args.to_native() + [main_rust_file] + target.doctests.cmd_args
 
