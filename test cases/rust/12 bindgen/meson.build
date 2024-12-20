@@ -7,6 +7,8 @@ project(
   meson_version : '>= 0.63',
   default_options : ['cpp_std=c++17'])
 
+bindgen_rust_target = '--rust-target=1.77'
+
 prog_bindgen = find_program('bindgen', required : false)
 if not prog_bindgen.found()
   error('MESON_SKIP_TEST bindgen not found')
@@ -27,7 +29,10 @@ add_global_arguments(['-DGLOBAL_ARG', compiler_specific_args], language : 'c')
 # valid. We must try to process a header file for this to work.
 #
 # See https://github.com/rust-lang/rust-bindgen/issues/1797
-result = run_command(prog_bindgen, 'include/other.h', check: false)
+result = run_command(prog_bindgen,
+                     bindgen_rust_target,
+                     'include/other.h',
+                     check : false)
 if result.returncode() != 0
   error('MESON_SKIP_TEST bindgen does not seem to work')
 endif
@@ -36,7 +41,10 @@ rust = import('unstable-rust')
 
 # Check version, this case is obviously impossible
 testcase expect_error('Program \'bindgen\' not found or not executable')
-  rust.bindgen(input : 'include/other.h', output : 'other.rs', bindgen_version : ['< 0.1', '> 10000'])
+  rust.bindgen(input : 'include/other.h',
+               output : 'other.rs',
+               bindgen_version : ['< 0.1', '> 10000'],
+               args : [bindgen_rust_target])
 endtestcase
 
 # This is to test the include_directories argument to bindgen
@@ -48,6 +56,7 @@ gen = rust.bindgen(
   input : 'src/header.h',
   output : 'header.rs',
   include_directories : 'include',
+  args : [bindgen_rust_target],
 )
 
 # see: https://github.com/mesonbuild/meson/issues/8160
@@ -83,6 +92,7 @@ gen2_h = custom_target(
 gen_rs = rust.bindgen(
   input : [gen_h, gen2_h],
   output : 'gen.rs',
+  args : [bindgen_rust_target],
 )
 
 f = configure_file(
@@ -106,6 +116,7 @@ if prog_bindgen.version().version_compare('>= 0.65')
     output : 'header3.rs',
     output_inline_wrapper : 'header3.c',
     include_directories : inc,
+    args : [bindgen_rust_target],
   )
   c_inline_wrapper = static_library('c_wrapper', gen3[1], include_directories: inc)
 
@@ -133,6 +144,7 @@ subdir('dependencies')
 gp = rust.bindgen(
   input : 'src/global-project.h',
   output : 'global-project.rs',
+  args : [bindgen_rust_target],
 )
 
 gp_lib = static_library('gp_lib', 'src/global.c')
@@ -150,6 +162,7 @@ cpp_lib = static_library('cpplib', 'src/impl.cpp')
 cpp_bind = rust.bindgen(
   input : 'src/header.hpp',
   output : 'generated-cpp.rs',
+  args : [bindgen_rust_target],
 )
 
 cpp_exe = executable(
