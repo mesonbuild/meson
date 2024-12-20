@@ -261,6 +261,7 @@ class MachineInfo(HoldableObject):
     endian: str
     kernel: T.Optional[str]
     subsystem: T.Optional[str]
+    exe_suffix: T.Optional[str]
 
     def __post_init__(self) -> None:
         self.is_64_bit: bool = self.cpu_family in CPU_FAMILIES_64_BIT
@@ -287,8 +288,9 @@ class MachineInfo(HoldableObject):
         system = literal['system']
         kernel = literal.get('kernel', None)
         subsystem = literal.get('subsystem', None)
+        exe_suffix = literal.get('exe_suffix', None)
 
-        return cls(system, cpu_family, literal['cpu'], endian, kernel, subsystem)
+        return cls(system, cpu_family, literal['cpu'], endian, kernel, subsystem, exe_suffix)
 
     def is_windows(self) -> bool:
         """
@@ -370,7 +372,9 @@ class MachineInfo(HoldableObject):
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
     def get_exe_suffix(self) -> str:
-        if self.is_windows() or self.is_cygwin():
+        if self.exe_suffix:
+            return self.exe_suffix
+        elif self.is_windows() or self.is_cygwin():
             return 'exe'
         else:
             return ''
