@@ -98,6 +98,8 @@ machine](#specifying-options-per-machine) section for details.
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
 | vsenv                                  | false         | Activate Visual Studio environment                             | no             | no                |
 
+(For the Rust language only, `warning_level=0` disables all warnings).
+
 #### Details for `backend`
 
 Several build file formats are supported as command runners to build the
