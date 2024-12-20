@@ -459,8 +459,9 @@ def _extra_deps_varname() -> str:
 
 
 class PackageState:
-    def __init__(self, manifest: Manifest) -> None:
+    def __init__(self, manifest: Manifest, downloaded: bool) -> None:
         self.manifest = manifest
+        self.downloaded = downloaded
         self.features: T.Set[str] = set()
         self.required_deps: T.Set[str] = set()
         self.optional_deps_features: T.Dict[str, T.Set[str]] = collections.defaultdict(set)
@@ -520,7 +521,10 @@ class Interpreter:
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', meson_depname))
         manifest = self._load_manifest(subdir)
-        pkg = PackageState(manifest)
+        downloaded = \
+            meson_depname in self.environment.wrap_resolver.wraps and \
+            self.environment.wrap_resolver.wraps[meson_depname].type is not None
+        pkg = PackageState(manifest, downloaded)
         self.packages[key] = pkg
         # Fetch required dependencies recursively.
         for depname, dep in manifest.dependencies.items():
@@ -602,6 +606,11 @@ class Interpreter:
         :param build: The AST builder
         :return: a list nodes
         """
+        default_options: T.List[mparser.BaseNode] = []
+        default_options.append(build.string(f'rust_std={pkg.manifest.package.edition}'))
+        if pkg.downloaded:
+            default_options.append(build.string('warning_level=0'))
+
         args: T.List[mparser.BaseNode] = []
         args.extend([
             build.string(pkg.manifest.package.name),
@@ -613,7 +622,7 @@ class Interpreter:
             # This will warn when when we generate deprecated code, which is helpful
             # for the upkeep of the module
             'meson_version': build.string(f'>= {coredata.stable_version}'),
-            'default_options': build.array([build.string(f'rust_std={pkg.manifest.package.edition}')]),
+            'default_options': build.array(default_options),
         }
         if pkg.manifest.package.license:
             kwargs['license'] = build.string(pkg.manifest.package.license)
