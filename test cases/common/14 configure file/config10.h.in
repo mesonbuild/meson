@@ -1,4 +1,0 @@
-/* Should both be the same */
-#define MESSAGE1 "@var@"
-#define MESSAGE2 "${var}"
-

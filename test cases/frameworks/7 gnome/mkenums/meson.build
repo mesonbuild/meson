@@ -140,9 +140,12 @@ test('enum test 5', enumexe5)
 
 # Generate template then use as input to mkenums
 
+# Simple trick to copy the file without substitutions, can be
+# removed when https://github.com/mesonbuild/meson/pull/3383 is fixed
 gen_h_template = configure_file(input: 'enums.h.in',
   output: 'enums6.h.in',
-  copy: true)
+  configuration: configuration_data(),
+  format: 'cmake')
 
 enums_h6 = gnome.mkenums('enums6',
   sources : 'meson-sample.h',
