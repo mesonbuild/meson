@@ -564,7 +564,12 @@ class Installer:
             if is_windows() or destdir != '' or not os.isatty(sys.stdout.fileno()) or not os.isatty(sys.stderr.fileno()):
                 # can't elevate to root except in an interactive unix environment *and* when not doing a destdir install
                 raise
-            rootcmd = os.environ.get('MESON_ROOT_CMD') or shutil.which('sudo') or shutil.which('doas')
+            rootcmd = (
+                os.environ.get('MESON_ROOT_CMD')
+                or shutil.which('sudo')
+                or shutil.which('doas')
+                or shutil.which('run0')
+            )
             pkexec = shutil.which('pkexec')
             if rootcmd is None and pkexec is not None and 'PKEXEC_UID' not in os.environ:
                 rootcmd = pkexec
