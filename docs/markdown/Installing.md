@@ -115,7 +115,7 @@ running `sudo meson install` will drop permissions and rebuild out of date
 targets as the original user, not as root.
 
 *(since 1.1.0)* Re-invoking as root will try to guess the user's preferred method for
-re-running commands as root. The order of precedence is: sudo, doas, pkexec
+re-running commands as root. The order of precedence is: sudo, doas, run0, pkexec
 (polkit). An elevation tool can be forced by setting `$MESON_ROOT_CMD`.
 
 ## DESTDIR support
