@@ -916,8 +916,13 @@ class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLike
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        # This has only been tested with version 19.0,
-        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
+        # This has only been tested with version 19.0, 2021.2.1, 2024.4.2 and 2025.0.1
+        if version_compare(self.version, '<2021.1.0'):
+            cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
+        else:
+            cpp_stds = ['none', 'c++14', 'c++17', 'c++latest']
+        if version_compare(self.version, '>=2024.1.0'):
+            cpp_stds += ['c++20']
         return self._get_options_impl(super().get_options(), cpp_stds)
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
