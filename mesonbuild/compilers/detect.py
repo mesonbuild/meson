@@ -79,6 +79,8 @@ defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 defaults['nasm'] = ['nasm', 'yasm']
+defaults['rgbasm'] = ['rgbasm']
+defaults['rgblink'] = ['rgblink']
 
 
 def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
@@ -98,6 +100,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
         'cython': detect_cython_compiler,
         'nasm': detect_nasm_compiler,
         'masm': detect_masm_compiler,
+        'rgbds': detect_rgbds_compiler,
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
@@ -1356,6 +1359,40 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         popen_exceptions[' '.join(comp + [arg])] = e
     _handle_exceptions(popen_exceptions, [comp])
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
+
+def detect_rgbds_compiler(env: Environment, for_machine: MachineChoice) -> Compiler:
+    from .asm import RgbdsCompiler
+    exelist = env.lookup_binary_entry(for_machine, 'rgbasm')
+    is_cross = env.is_cross_build(for_machine) # true, until Meson is ported to GB
+    info = env.machines[for_machine]
+    if exelist is None:
+        exelist = defaults['rgbasm']
+
+    try:
+        output = Popen_safe([exelist[0], '--version'])[1]
+    except OSError:
+        raise EnvironmentException('Could not execute RGBDS assembler "{}"'.format(''.join(exelist)))
+
+    version = search_version(output)
+    linker = _detect_rgblink(env, for_machine)
+    comp = RgbdsCompiler(exelist, version, for_machine, info, linker, env.exe_wrapper, is_cross)
+    env.coredata.add_lang_args(comp.language, RgbdsCompiler, for_machine, env)
+
+    return comp
+
+def _detect_rgblink(env: Environment, for_machine: MachineChoice) -> DynamicLinker:
+    from ..linkers.linkers import RgbdsLinker
+    exelist = env.lookup_binary_entry(for_machine, 'rgblink')
+    if exelist is None:
+        exelist = defaults['rgblink']
+
+    try:
+        output = Popen_safe([exelist[0], '--version'])[1]
+    except OSError:
+        raise EnvironmentException('Could not execute RGBDS linker"{}"'.format(''.join(exelist)))
+
+    version = search_version(output)
+    return RgbdsLinker(exelist, for_machine, '', [], version=version)
 
 # GNU/Clang defines and version
 # =============================

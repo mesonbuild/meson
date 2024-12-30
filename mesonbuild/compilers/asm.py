@@ -13,6 +13,7 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..envconfig import MachineInfo
+    from ..programs import ExternalProgram
 
 nasm_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
@@ -310,3 +311,44 @@ class MetrowerksAsmCompilerEmbeddedPowerPC(MetrowerksAsmCompiler):
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         if self.info.cpu_family not in {'ppc'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
+
+class RgbdsCompiler(Compiler):
+    language = 'rgbds'
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, info: MachineInfo,
+                 linker: DynamicLinker, exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 is_cross: bool = True):
+        super().__init__([], exelist, version, for_machine, info, linker, is_cross=is_cross)
+        self.id = 'rgbds'
+        self.exe_wrapper = exe_wrapper
+
+    def needs_static_linker(self) -> bool:
+        return True
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
+
+    def get_depfile_suffix(self) -> str:
+        return 'd'
+
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        if not path:
+            path = '.'
+        return ['-I' + path]
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return ['-M', outfile, '-MQ', outtarget]
+
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        if self.info.cpu_family != 'sm83':
+            raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
+
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
+                                               build_dir: str) -> T.List[str]:
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+        return parameter_list

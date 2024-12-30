@@ -15,6 +15,7 @@ pkgs=(
   doxygen vulkan-validation-layers openssh mercurial gtk-sharp-2 qt5-tools
   libwmf cmake netcdf-fortran openmpi nasm gnustep-base gettext
   python-lxml hotdoc rust-bindgen qt6-base qt6-tools wayland wayland-protocols
+  rgbds
   # cuda
 )
 
