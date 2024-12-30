@@ -77,7 +77,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
                 f.write(code)
                 return f.name
-        
+
         fname = write_file("option('intminmax', type: 'integer', value: 10, min: 0, max: 5)")
         self.assertRaisesRegex(MesonException, 'Value 10 for option "intminmax" is more than maximum value 5.',
                                interp.process, fname)
@@ -85,7 +85,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['one', 'four'])")
         self.assertRaisesRegex(MesonException, 'Value "four" for option "array" is not in allowed choices: "one, two, three"',
                                interp.process, fname)
-        
+
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['four', 'five', 'six'])")
         self.assertRaisesRegex(MesonException, 'Values "four, five, six" for option "array" are not in allowed choices: "one, two, three"',
                                interp.process, fname)
@@ -186,43 +186,50 @@ class PlatformAgnosticTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
 
         # Using parent as builddir should fail
-        self.builddir = os.path.dirname(self.builddir)
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testdir)
-        self.assertIn('cannot be a parent of source directory', cm.exception.stdout)
+        with self.subTest('parent directory'):
+            self.builddir = self.common_test_dir
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.init(testdir)
+            self.assertIn('cannot be a parent of source directory', cm.exception.stdout)
 
         # Reconfigure of empty builddir should work
-        self.new_builddir()
-        self.init(testdir, extra_args=['--reconfigure'])
+        with self.subTest('reconfigure empty build dir'):
+            self.new_builddir()
+            self.init(testdir, extra_args=['--reconfigure'])
 
         # Reconfigure of not empty builddir should work
-        self.new_builddir()
-        Path(self.builddir, 'dummy').touch()
-        self.init(testdir, extra_args=['--reconfigure'])
+        with self.subTest('Reconfigure with non-empty build dir'):
+            self.new_builddir()
+            Path(self.builddir, 'dummy').touch()
+            self.init(testdir, extra_args=['--reconfigure'])
 
         # Setup a valid builddir should update options but not reconfigure
-        self.assertEqual(self.getconf('buildtype'), 'debug')
-        o = self.init(testdir, extra_args=['-Dbuildtype=release'])
-        self.assertIn('Directory already configured', o)
-        self.assertNotIn('The Meson build system', o)
-        self.assertEqual(self.getconf('buildtype'), 'release')
+        with self.subTest('update without reconfigure'):
+            self.assertEqual(self.getconf('buildtype'), 'debug')
+            o = self.init(testdir, extra_args=['-Dbuildtype=release'])
+            self.assertIn('Directory already configured', o)
+            self.assertNotIn('The Meson build system', o)
+            self.assertEqual(self.getconf('buildtype'), 'release')
 
         # Wipe of empty builddir should work
-        self.new_builddir()
-        self.init(testdir, extra_args=['--wipe'])
+        with self.subTest('wipe empty builddir'):
+            self.new_builddir()
+            self.init(testdir, extra_args=['--wipe'])
 
         # Wipe of partial builddir should work
-        self.new_builddir()
-        Path(self.builddir, 'meson-private').mkdir()
-        Path(self.builddir, 'dummy').touch()
-        self.init(testdir, extra_args=['--wipe'])
+        with self.subTest('wipe partial builddir'):
+            self.new_builddir()
+            Path(self.builddir, 'meson-private').mkdir()
+            Path(self.builddir, 'dummy').touch()
+            self.init(testdir, extra_args=['--wipe'])
 
         # Wipe of not empty builddir should fail
-        self.new_builddir()
-        Path(self.builddir, 'dummy').touch()
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testdir, extra_args=['--wipe'])
-        self.assertIn('Directory is not empty', cm.exception.stdout)
+        with self.subTest('wipe not empty builddir'):
+            self.new_builddir()
+            Path(self.builddir, 'dummy').touch()
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.init(testdir, extra_args=['--wipe'])
+            self.assertIn('Directory is not empty', cm.exception.stdout)
 
     def test_scripts_loaded_modules(self):
         '''
@@ -281,9 +288,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_meson_package_cache_dir(self):
         # Copy testdir into temporary directory to not pollute meson source tree.
-        testdir = os.path.join(self.unit_test_dir, '118 meson package cache dir')
-        srcdir = os.path.join(self.builddir, 'srctree')
-        shutil.copytree(testdir, srcdir)
+        srcdir = self.copy_srcdir(os.path.join(self.unit_test_dir, '118 meson package cache dir'))
         builddir = os.path.join(srcdir, '_build')
         self.change_builddir(builddir)
         self.init(srcdir, override_envvars={'MESON_PACKAGE_CACHE_DIR': os.path.join(srcdir, 'cache_dir')})
@@ -325,7 +330,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             ('a.txt', '{a,b,c}.txt', True),
             ('a.txt', '*.{txt,tex,cpp}', True),
             ('a.hpp', '*.{txt,tex,cpp}', False),
-            
+
             ('a1.txt', 'a{0..9}.txt', True),
             ('a001.txt', 'a{0..9}.txt', True),
             ('a-1.txt', 'a{-10..10}.txt', True),

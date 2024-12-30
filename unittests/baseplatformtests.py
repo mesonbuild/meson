@@ -25,7 +25,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
+    is_cygwin, is_windows, join_args, split_args, windows_proof_rmtree, python_command
 )
 import mesonbuild.modules.pkgconfig
 
@@ -80,13 +80,19 @@ class BasePlatformTests(TestCase):
         cls.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
         cls.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
 
+        # Keep build directories inside the source tree on Windows and Cygwin so
+        # that virus scanners don't complain. On sensible OSes put it in the
+        # the temporary directory
+        force_tmpdir = os.environ.get('MESON_UNIT_TEST_FORCE_TMPDIR', '0') == '1'
+        cls._build_dir_root = None if force_tmpdir or not (is_windows() or is_cygwin()) else os.getcwd()
+
         # Misc stuff
         if cls.backend is Backend.ninja:
-            cls.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
+            cls.no_rebuild_stdout = {'ninja: no work to do.', 'samu: nothing to do'}
         else:
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
-            cls.no_rebuild_stdout = [f'UNKNOWN BACKEND {cls.backend.name!r}']
+            cls.no_rebuild_stdout = {f'UNKNOWN BACKEND {cls.backend.name!r}'}
         os.environ['COLUMNS'] = '80'
         os.environ['PYTHONIOENCODING'] = 'utf8'
 
@@ -96,34 +102,26 @@ class BasePlatformTests(TestCase):
         self.meson_cross_files = []
         self.new_builddir()
 
+    @property
+    def privatedir(self) -> str:
+        return os.path.join(self.builddir, 'meson-private')
+
+    @property
+    def distdir(self) -> str:
+        return os.path.join(self.builddir, 'meson-dist')
+
     def change_builddir(self, newdir):
         self.builddir = newdir
-        self.privatedir = os.path.join(self.builddir, 'meson-private')
         self.logdir = os.path.join(self.builddir, 'meson-logs')
         self.installdir = os.path.join(self.builddir, 'install')
-        self.distdir = os.path.join(self.builddir, 'meson-dist')
         self.mtest_command = self.meson_command + ['test', '-C', self.builddir]
         if os.path.islink(newdir):
             self.addCleanup(os.unlink, self.builddir)
         else:
             self.addCleanup(windows_proof_rmtree, self.builddir)
 
-    def new_builddir(self):
-        # Keep builddirs inside the source tree so that virus scanners
-        # don't complain
-        newdir = tempfile.mkdtemp(dir=os.getcwd())
-        # In case the directory is inside a symlinked directory, find the real
-        # path otherwise we might not find the srcdir from inside the builddir.
-        newdir = os.path.realpath(newdir)
-        self.change_builddir(newdir)
-
-    def new_builddir_in_tempdir(self):
-        # Can't keep the builddir inside the source tree for the umask tests:
-        # https://github.com/mesonbuild/meson/pull/5546#issuecomment-509666523
-        # And we can't do this for all tests because it causes the path to be
-        # a short-path which breaks other tests:
-        # https://github.com/mesonbuild/meson/pull/9497
-        newdir = tempfile.mkdtemp()
+    def new_builddir(self) -> None:
+        newdir = tempfile.mkdtemp(dir=self._build_dir_root)
         # In case the directory is inside a symlinked directory, find the real
         # path otherwise we might not find the srcdir from inside the builddir.
         newdir = os.path.realpath(newdir)
@@ -207,7 +205,6 @@ class BasePlatformTests(TestCase):
                 args += ['--native-file', f]
             for f in self.meson_cross_files:
                 args += ['--cross-file', f]
-        self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
                 returncode, out, err = run_configure_inprocess(['setup'] + self.meson_args + args + extra_args + build_and_src_dir_args, override_envvars)

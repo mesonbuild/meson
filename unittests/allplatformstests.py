@@ -1463,23 +1463,14 @@ class AllPlatformTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise SkipTest('Dist is only supported with Ninja')
 
-        try:
-            with tempfile.TemporaryDirectory() as tmpdir:
-                project_dir = os.path.join(tmpdir, 'a')
-                shutil.copytree(os.path.join(self.unit_test_dir, '35 dist script'),
-                                project_dir)
-                git_init(project_dir)
-                self.init(project_dir)
-                self.build('dist')
+        project_dir = self.copy_srcdir(os.path.join(self.unit_test_dir, '35 dist script'))
+        git_init(project_dir)
+        self.init(project_dir)
+        self.build('dist')
 
-                self.new_builddir()
-                self.init(project_dir, extra_args=['-Dsub:broken_dist_script=false'])
-                self._run(self.meson_command + ['dist', '--include-subprojects'], workdir=self.builddir)
-        except PermissionError:
-            # When run under Windows CI, something (virus scanner?)
-            # holds on to the git files so cleaning up the dir
-            # fails sometimes.
-            pass
+        self.new_builddir()
+        self.init(project_dir, extra_args=['-Dsub:broken_dist_script=false'])
+        self._run(self.meson_command + ['dist', '--include-subprojects'], workdir=self.builddir)
 
     def create_dummy_subproject(self, project_dir, name):
         path = os.path.join(project_dir, 'subprojects', name)
@@ -1538,26 +1529,26 @@ class AllPlatformTests(BasePlatformTests):
             self.assertPathDoesNotExist(zip_checksumfile)
             # update a source file timestamp; dist should succeed anyway
             os.utime(distexe_c)
+            self.addCleanup(windows_proof_rm, bz_distfile)
+            self.addCleanup(windows_proof_rm, bz_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'bztar'],
                       workdir=self.builddir)
             self.assertPathExists(bz_distfile)
             self.assertPathExists(bz_checksumfile)
+            self.addCleanup(windows_proof_rm, gz_distfile)
+            self.addCleanup(windows_proof_rm, gz_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'gztar'],
                       workdir=self.builddir)
             self.assertPathExists(gz_distfile)
             self.assertPathExists(gz_checksumfile)
+            self.addCleanup(windows_proof_rm, zip_distfile)
+            self.addCleanup(windows_proof_rm, zip_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'zip'],
                       workdir=self.builddir)
             self.assertPathExists(zip_distfile)
             self.assertPathExists(zip_checksumfile)
-            os.remove(xz_distfile)
-            os.remove(xz_checksumfile)
-            os.remove(bz_distfile)
-            os.remove(bz_checksumfile)
-            os.remove(gz_distfile)
-            os.remove(gz_checksumfile)
-            os.remove(zip_distfile)
-            os.remove(zip_checksumfile)
+            self.addCleanup(windows_proof_rm, xz_distfile)
+            self.addCleanup(windows_proof_rm, xz_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'xztar,bztar,gztar,zip'],
                       workdir=self.builddir)
             self.assertPathExists(xz_distfile)
@@ -1601,6 +1592,8 @@ class AllPlatformTests(BasePlatformTests):
                 subproject_dir = os.path.join(project_dir, 'subprojects', 'samerepo')
                 self.new_builddir()
                 self.init(subproject_dir)
+                self.addCleanup(windows_proof_rm, xz_distfile)
+                self.addCleanup(windows_proof_rm, xz_checksumfile)
                 self.build('dist')
                 xz_distfile = os.path.join(self.distdir, 'samerepo-1.0.tar.xz')
                 xz_checksumfile = xz_distfile + '.sha256sum'
@@ -1701,6 +1694,7 @@ class AllPlatformTests(BasePlatformTests):
             cmd += ['/nologo', '/Fo' + objectfile, '/c', source] + extra_args
         else:
             cmd += ['-c', source, '-o', objectfile] + extra_args
+        self.addCleanup(windows_proof_rm, objectfile)
         subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def test_prebuilt_object(self):
@@ -1709,12 +1703,9 @@ class AllPlatformTests(BasePlatformTests):
         source = os.path.join(tdir, 'source.c')
         objectfile = os.path.join(tdir, 'prebuilt.' + object_suffix)
         self.pbcompile(compiler, source, objectfile)
-        try:
-            self.init(tdir)
-            self.build()
-            self.run_tests()
-        finally:
-            os.unlink(objectfile)
+        self.init(tdir)
+        self.build()
+        self.run_tests()
 
     def build_static_lib(self, compiler, linker, source, objectfile, outfile, extra_args=None):
         if extra_args is None:
@@ -1725,10 +1716,8 @@ class AllPlatformTests(BasePlatformTests):
         link_cmd += linker.get_output_args(outfile)
         link_cmd += [objectfile]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
-        try:
-            subprocess.check_call(link_cmd)
-        finally:
-            os.unlink(objectfile)
+        self.addCleanup(windows_proof_rm, outfile)
+        subprocess.check_call(link_cmd)
 
     def test_prebuilt_static_lib(self):
         (cc, stlinker, object_suffix, _) = self.detect_prebuild_env()
@@ -1738,12 +1727,9 @@ class AllPlatformTests(BasePlatformTests):
         stlibfile = os.path.join(tdir, 'libdir/libbest.a')
         self.build_static_lib(cc, stlinker, source, objectfile, stlibfile)
         # Run the test
-        try:
-            self.init(tdir)
-            self.build()
-            self.run_tests()
-        finally:
-            os.unlink(stlibfile)
+        self.init(tdir)
+        self.build()
+        self.run_tests()
 
     def build_shared_lib(self, compiler, source, objectfile, outfile, impfile, extra_args=None):
         if extra_args is None:
@@ -1759,10 +1745,10 @@ class AllPlatformTests(BasePlatformTests):
             if not is_osx():
                 link_cmd += ['-Wl,-soname=' + os.path.basename(outfile)]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
-        try:
-            subprocess.check_call(link_cmd)
-        finally:
-            os.unlink(objectfile)
+        self.addCleanup(windows_proof_rm, outfile)
+        if compiler.get_argument_syntax() == 'msvc':
+            self.addCleanup(windows_proof_rm, impfile)
+        subprocess.check_call(link_cmd)
 
     def test_prebuilt_shared_lib(self):
         (cc, _, object_suffix, shared_suffix) = self.detect_prebuild_env()
@@ -1786,8 +1772,6 @@ class AllPlatformTests(BasePlatformTests):
                     if os.path.splitext(fname)[1] not in {'.c', '.h'}:
                         os.unlink(fname)
             self.addCleanup(cleanup)
-        else:
-            self.addCleanup(os.unlink, shlibfile)
 
         # Run the test
         self.init(tdir)
@@ -2001,8 +1985,6 @@ class AllPlatformTests(BasePlatformTests):
             self.build()
             self.run_tests()
         finally:
-            os.unlink(stlibfile)
-            os.unlink(shlibfile)
             if is_windows():
                 # Clean up all the garbage MSVC writes in the
                 # source tree.
@@ -2197,8 +2179,8 @@ class AllPlatformTests(BasePlatformTests):
 
         # Test that old options are changed to the new defaults if they are not valid
         real_options = str(testdir / 'meson_options.txt')
-        self.addCleanup(os.unlink, real_options)
 
+        self.addCleanup(windows_proof_rm, real_options)
         shutil.copy(options1, real_options)
         self.init(str(testdir))
         self.mac_ci_delay()
@@ -3016,6 +2998,8 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_introspect_projectinfo_subprojects(self):
         testdir = os.path.join(self.common_test_dir, '98 subproject subdir')
+        self.addCleanup(windows_proof_rmtree, os.path.join(testdir, 'subprojects/subsubsub-1.0'))
+        self.addCleanup(windows_proof_rm, os.path.join(testdir, 'subprojects/subsubsub.wrap'))
         self.init(testdir)
         res = self.introspect('--projectinfo')
         expected = {
@@ -3108,35 +3092,30 @@ class AllPlatformTests(BasePlatformTests):
         badheader = os.path.join(testdir, 'header_orig_h')
         goodheader = os.path.join(testdir, 'header_expected_h')
         includefile = os.path.join(testdir, '.clang-format-include')
-        try:
-            shutil.copyfile(badfile, testfile)
-            shutil.copyfile(badheader, testheader)
-            self.init(testdir)
-            self.assertNotEqual(Path(testfile).read_text(encoding='utf-8'),
-                                Path(goodfile).read_text(encoding='utf-8'))
-            self.assertNotEqual(Path(testheader).read_text(encoding='utf-8'),
-                                Path(goodheader).read_text(encoding='utf-8'))
+        shutil.copyfile(badfile, testfile)
+        self.addCleanup(windows_proof_rm, testfile)
+        shutil.copyfile(badheader, testheader)
+        self.addCleanup(windows_proof_rm, testheader)
+        self.init(testdir)
+        self.assertNotEqual(Path(testfile).read_text(encoding='utf-8'),
+                            Path(goodfile).read_text(encoding='utf-8'))
+        self.assertNotEqual(Path(testheader).read_text(encoding='utf-8'),
+                            Path(goodheader).read_text(encoding='utf-8'))
 
-            # test files are not in git so this should do nothing
-            self.run_target('clang-format')
-            self.assertNotEqual(Path(testfile).read_text(encoding='utf-8'),
-                                Path(goodfile).read_text(encoding='utf-8'))
-            self.assertNotEqual(Path(testheader).read_text(encoding='utf-8'),
-                                Path(goodheader).read_text(encoding='utf-8'))
+        # test files are not in git so this should do nothing
+        self.run_target('clang-format')
+        self.assertNotEqual(Path(testfile).read_text(encoding='utf-8'),
+                            Path(goodfile).read_text(encoding='utf-8'))
+        self.assertNotEqual(Path(testheader).read_text(encoding='utf-8'),
+                            Path(goodheader).read_text(encoding='utf-8'))
 
-            # Add an include file to reformat everything
-            with open(includefile, 'w', encoding='utf-8') as f:
-                f.write('*')
-            self.run_target('clang-format')
-            self.assertEqual(Path(testheader).read_text(encoding='utf-8'),
-                             Path(goodheader).read_text(encoding='utf-8'))
-        finally:
-            if os.path.exists(testfile):
-                os.unlink(testfile)
-            if os.path.exists(testheader):
-                os.unlink(testheader)
-            if os.path.exists(includefile):
-                os.unlink(includefile)
+        # Add an include file to reformat everything
+        with open(includefile, 'w', encoding='utf-8') as f:
+            f.write('*')
+        self.addCleanup(windows_proof_rm, includefile)
+        self.run_target('clang-format')
+        self.assertEqual(Path(testheader).read_text(encoding='utf-8'),
+                            Path(goodheader).read_text(encoding='utf-8'))
 
     @skipIfNoExecutable('clang-tidy')
     def test_clang_tidy(self):
@@ -4997,6 +4976,7 @@ class AllPlatformTests(BasePlatformTests):
         symlinked_subproject = os.path.join(testdir, 'subprojects', 'symlinked_subproject')
         if not os.path.exists(subproject_dir):
             os.mkdir(subproject_dir)
+        self.addCleanup(windows_proof_rmtree, subproject_dir)
         try:
             os.symlink(subproject, symlinked_subproject)
         except OSError:
