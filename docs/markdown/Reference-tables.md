@@ -213,22 +213,23 @@ Meson natively.
 These are the parameter names for passing language specific arguments
 to your build target.
 
-| Language      | compiler name | linker name       |
-| ------------- | ------------- | ----------------- |
-| C             | c_args        | c_link_args       |
-| C++           | cpp_args      | cpp_link_args     |
-| C#            | cs_args       | cs_link_args      |
-| CUDA          | cuda_args     | cuda_link_args    |
-| D             | d_args        | d_link_args       |
-| Fortran       | fortran_args  | fortran_link_args |
-| Java          | java_args     | java_link_args    |
-| Objective C   | objc_args     | objc_link_args    |
-| Objective C++ | objcpp_args   | objcpp_link_args  |
-| Rust          | rust_args     | rust_link_args    |
-| Vala          | vala_args     | vala_link_args    |
-| Cython        | cython_args   | cython_link_args  |
-| NASM          | nasm_args     | N/A               |
-| MASM          | masm_args     | N/A               |
+| Language      | compiler name  | linker name       |
+| ------------- | -------------- | ----------------- |
+| C             | c_args         | c_link_args       |
+| C++           | cpp_args       | cpp_link_args     |
+| C#            | cs_args        | cs_link_args      |
+| CUDA          | cuda_args      | cuda_link_args    |
+| D             | d_args         | d_link_args       |
+| Fortran       | fortran_args   | fortran_link_args |
+| Java          | java_args      | java_link_args    |
+| Objective C   | objc_args      | objc_link_args    |
+| Objective C++ | objcpp_args    | objcpp_link_args  |
+| Rust          | rust_args      | rust_link_args    |
+| Vala          | vala_args      | vala_link_args    |
+| Cython        | cython_args    | cython_link_args  |
+| NASM          | nasm_args      | N/A               |
+| MASM          | masm_args      | N/A               |
+| Linear ASM    | linearasm_args | N/A               |
 
 All these `<lang>_*` options are specified per machine. See in
 [specifying options per

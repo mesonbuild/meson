@@ -69,6 +69,7 @@ lang_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
     'cython': ('pyx', ),
     'nasm': ('asm', 'nasm',),
     'masm': ('masm',),
+    'linearasm': ('sa',),
 }
 all_languages = lang_suffixes.keys()
 c_cpp_suffixes = {'h'}
