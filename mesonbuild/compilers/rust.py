@@ -69,7 +69,7 @@ class RustCompiler(Compiler):
     id = 'rustc'
 
     _WARNING_LEVELS: T.Dict[str, T.List[str]] = {
-        '0': ['-A', 'warnings'],
+        '0': ['--cap-lints', 'allow'],
         '1': [],
         '2': [],
         '3': ['-W', 'warnings'],

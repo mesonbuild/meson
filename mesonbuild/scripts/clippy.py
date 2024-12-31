@@ -41,14 +41,23 @@ class ClippyDriver:
 
                 cmdlist = list(clippy)
                 prev = None
+                lints_cap = None
                 for arg in src_block['parameters']:
-                    if prev:
+                    if prev == '--cap-lints':
+                        cmdlist.append(prev)
+                        lints_cap = arg
+                        prev = None
+                    elif prev:
                         prev = None
                         continue
-                    elif arg in {'--emit', '--out-dir'}:
+                    if arg in {'--emit', '--out-dir', '--cap-lints'}:
                         prev = arg
                     else:
                         cmdlist.append(arg)
+
+                # no use in running clippy if it wouldn't print anything anyway
+                if lints_cap == 'allow':
+                    break
 
                 cmdlist.extend(src_block['sources'])
                 # the default for --emit is to go all the way to linking,
