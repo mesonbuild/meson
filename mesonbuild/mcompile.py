@@ -91,6 +91,7 @@ class ParsedTargetName:
             'alias',
             'run',
             'jar',
+            'bundle',
         }
         return type in allowed_types
 
