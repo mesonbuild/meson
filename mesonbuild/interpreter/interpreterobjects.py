@@ -1110,6 +1110,12 @@ class SharedModuleHolder(BuildTargetHolder[build.SharedModule]):
 class JarHolder(BuildTargetHolder[build.Jar]):
     pass
 
+class AppBundleHolder(BuildTargetHolder[build.AppBundle]):
+    pass
+
+class FrameworkBundleHolder(BuildTargetHolder[build.FrameworkBundle]):
+    pass
+
 class CustomTargetIndexHolder(ObjectHolder[build.CustomTargetIndex]):
     def __init__(self, target: build.CustomTargetIndex, interp: 'Interpreter'):
         super().__init__(target, interp)
