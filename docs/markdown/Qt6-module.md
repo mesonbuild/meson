@@ -69,6 +69,8 @@ It takes no positional arguments, and the following keyword arguments:
     directory. For instance, when a file called `subdir/one.input` is processed
     it generates a file `{target private directory}/subdir/one.out` when `true`,
     and `{target private directory}/one.out` when `false` (default).
+  - `output_json` bool: *New in 1.7.0*. If `true`, generates additionnaly a
+    JSON representation which may be used by external tools such as qmltyperegistrar
 
 ## preprocess
 
@@ -111,6 +113,8 @@ This method takes the following keyword arguments:
    directory. For instance, when a file called `subdir/one.input` is processed
    it generates a file `{target private directory}/subdir/one.out` when `true`,
    and `{target private directory}/one.out` when `false` (default).
+ - `moc_output_json` bool: *New in 1.7.0*. If `true`, generates additionally a
+   JSON representation which may be used by external tools such as qmltyperegistrar
 
 It returns an array of targets and sources to pass to a compilation target.
 
@@ -160,6 +164,81 @@ This method takes the following keyword arguments:
   are `moc`, `uic`, `rcc` and `lrelease`. By default `tools` is set to `['moc',
   'uic', 'rcc', 'lrelease']`
 
+## qml_module
+
+*New in 1.7.0*
+
+This function requires one positional argument: the URI of the module as dotted
+identifier string. For instance `Foo.Bar`
+
+This method takes the following keyword arguments:
+
+  - `version`: string: the module version in the form `Major.Minor` with an
+    optional `.Patch`. For instance `1.0`
+  - `qml_sources` (File | string | custom_target | custom_target index | generator_output)[]:
+     A list of qml to be embedded in the module
+  - `qml_singletons` (File | string | custom_target | custom_target index | generator_output)[]:
+     A list of qml to be embedded in the module and marked as singletons
+  - `qml_internals` (File | string | custom_target | custom_target index | generator_output)[]:
+     A list of qml to be embedded in the module and marked as internal files
+  - `resources_prefix` string: By default `resources_prefix` is set to
+    `qt/qml`. Prefix resources in the generated QRC with the given prefix
+  - `imports`: string[]: List of other QML modules imported by this module. Version
+    can be specified as `Module/1.0` or `Module/auto`. See qmldir documentation
+  - `optional_imports`: string[]: List of other QML modules that may be imported by this
+    module. See `imports` for expected format and qmldir documentation
+  - `default_imports`: string[]: List QML modules that may be loaded by
+    tooling. See `imports` for expected format and qmldir documentation
+  - `depends_imports`: string[]: List of QML extra dependencies that may not be
+    imported by QML, such as dependencies existing in C++ code. See `imports` for
+    expected format and qmldir documentation
+  - `designer_supported` bool: If `true` specifies that the module supports Qt
+    Quick Designer
+  - `moc_headers` (File | string | custom_target | custom_target index | generator_output)[]:
+     A list of headers to be transpiled into .cpp files. See [Qt
+     documentation](https://doc.qt.io/qt-6/qtqml-cppintegration-definetypes.html)
+     regarding how to register C++ class as Qml elements. Note: due to some
+     limitations of qmltyperegistrar, all headers that declare QML types need to
+     be accessible in the project's include path.
+  - `namespace`: str: optional C++ namespace for plugin and generation code
+  - `typeinfo`: str: optional name for the generated qmltype file, by default it
+    will be generated as `{target_name}.qmltype`
+  - `rcc_extra_arguments`: string[]: Extra arguments to pass directly to `qt-rcc`
+  - `moc_extra_arguments`: string[]: Extra arguments to pass directly to `qt-moc`
+  - `qmlcachegen_extra_arguments`: string[]: Extra arguments to pass directly to
+    `qmlcachegen`
+  - `qmltyperegistrar_extra_arguments`: string[]: Extra arguments to pass directly to
+    `qmltyperegistrar`
+  - `generate_qmldir`: bool: If `true` (default) auto generate the `qmldir` file
+  - `generate_qmltype`: bool: If `true` (default) auto generate `qmltype` file
+  - `cachegen`: bool: If `true` (default) preprocess QML and JS files with
+    qmlcachegen
+  - `method` string: The method to use to detect Qt, see [[dependency]]
+  - `preserve_paths` bool: If `true`, specifies that the output
+    files need to maintain their directory structure inside the target temporary
+    directory. For instance, when a file called `subdir/one.input` is processed
+    it generates a file `{target private directory}/subdir/one.out` when `true`,
+    and `{target private directory}/one.out` when `false` (default).
+  - `dependencies`: dependency objects whose include directories are used by
+    moc.
+  - `include_directories` (string | IncludeDirectory)[]: A list of `include_directory()`
+    objects used when transpiling the .moc files
+  - `install` bool: when true, this target is installed during the install step (optional).
+  - `install_dir` string: directory to install to (optional).
+
+
+Note: Qt uses static initialization to register its resources, if you're
+building a static library you may need to call these entry points
+explicitly. For a module `Foo.Bar42` the generated resources are `Foo_Bar42`
+and `qmlcache_Foo_Bar42` when qmlcache is used, they can be imported using
+`Q_INIT_RESOURCE`. All non-alphanumeric characters from the module name are
+replaced with `_`. Type registration may be invoked explicitly using
+`extern void qml_register_types_Foo_Bar42()`.
+
+See [Qt documentation](https://doc.qt.io/qt-6/resources.html#explicit-loading-and-unloading-of-embedded-resources)
+for more information
+
+
 ## Dependencies
 
 See [Qt dependencies](Dependencies.md#qt)
@@ -200,4 +279,3 @@ lang_cpp = qt6.compile_translations(qresource: 'lang.qrc')
 executable('myprog', 'main.cpp', lang_cpp,
            dependencies: qt6_dep)
 ```
-
