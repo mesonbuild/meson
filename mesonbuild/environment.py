@@ -946,6 +946,14 @@ class Environment:
         "Install dir for the static library"
         return self.get_libdir()
 
+    def get_app_dir(self) -> str:
+        """Install dir for application bundles"""
+        return f"{self.get_prefix()}/Applications"
+
+    def get_framework_dir(self) -> str:
+        """Install dir for framework bundles"""
+        return f"{self.get_prefix()}/Library/Frameworks"
+
     def get_prefix(self) -> str:
         return self.coredata.get_option(OptionKey('prefix'))
 
