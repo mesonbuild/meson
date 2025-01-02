@@ -402,6 +402,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.SharedModule: OBJ.SharedModuleHolder,
             build.Executable: OBJ.ExecutableHolder,
             build.Jar: OBJ.JarHolder,
+            build.AppBundle: OBJ.AppBundleHolder,
+            build.FrameworkBundle: OBJ.FrameworkBundleHolder,
             build.CustomTarget: OBJ.CustomTargetHolder,
             build.CustomTargetIndex: OBJ.CustomTargetIndexHolder,
             build.Generator: OBJ.GeneratorHolder,
@@ -3745,7 +3747,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     def create_build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
                             kwargs: T.Dict[str, TYPE_var], targetclass: T.Type[BT],
                             shared_library_only: bool) -> BT:
-        if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
+        if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary,
+                               build.Jar, build.AppBundle, build.FrameworkBundle}:
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
 
@@ -3812,11 +3815,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                             node=node)
                     outputs.update(o)
 
-        if targetclass is build.Executable:
+        if targetclass is build.Executable or targetclass is build.AppBundle:
             nkwargs = self.__convert_executable_kwargs(node, kwargs)
         elif targetclass is build.StaticLibrary:
             nkwargs = self.__convert_static_library_kwargs(node, kwargs)
-        elif targetclass is build.SharedLibrary:
+        elif targetclass is build.SharedLibrary or targetclass is build.FrameworkBundle:
             nkwargs = self.__convert_shared_library_kwargs(node, kwargs)
         elif targetclass is build.SharedModule:
             nkwargs = self.__convert_shared_module_kwargs(node, kwargs)
