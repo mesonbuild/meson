@@ -949,7 +949,11 @@ class NinjaBackend(backends.Backend):
         self.scan_fortran_module_outputs(target)
 
         # Generate rules for building the remaining source files in this target
-        outname = self.get_target_filename(target)
+        if isinstance(target, build.BundleTargetBase):
+            outname = os.path.join(self.get_target_private_dir(target), target.get_executable_name())
+        else:
+            outname = self.get_target_filename(target)
+
         obj_list = []
         is_unity = self.is_unity(target)
         header_deps = []
@@ -1116,6 +1120,9 @@ class NinjaBackend(backends.Backend):
             if target.aix_so_archive:
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
+
+        if isinstance(target, build.BundleTargetBase):
+            self.generate_bundle_target(target, elem.outfilenames[0])
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
         if not self.ninja_has_dyndeps:
