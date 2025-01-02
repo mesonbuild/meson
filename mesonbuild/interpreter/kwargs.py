@@ -516,6 +516,25 @@ class Library(BuildTarget, _SharedLibMixin, _StaticLibMixin, _LibraryMixin, _Lin
     masm_shared_args: NotRequired[T.List[str]]
 
 
+class BundleShared(TypedDict):
+
+    bundle_resources: T.Optional[build.StructuredSources]
+    bundle_contents: T.Optional[build.StructuredSources]
+    bundle_extra_binaries: T.List[build.BuildTargetTypes]
+    info_plist: T.Optional[T.Union[str, File, build.CustomTarget, build.CustomTargetIndex]]
+
+
+class AppBundle(Executable, BundleShared):
+
+    bundle_exe_dir_name: T.Optional[str]
+    bundle_layout: T.Optional[str]
+
+
+class FrameworkBundle(SharedLibrary, BundleShared):
+
+    pass
+
+
 class _JarMixin(TypedDict):
 
     main_class: str
