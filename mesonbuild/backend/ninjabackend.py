@@ -23,6 +23,7 @@ from .. import modules
 from .. import mesonlib
 from .. import build
 from .. import mlog
+from .. import nsbundle
 from .. import compilers
 from .. import tooldetect
 from ..arglist import CompilerArgs
@@ -1526,6 +1527,100 @@ class NinjaBackend(backends.Backend):
         # Create introspection information
         self.create_target_source_introspection(target, compiler, compile_args, src_list, gen_src_list)
 
+    def generate_bundle_target(self, target: build.BundleTargetBase, main_exe: str) -> None:
+        bi: nsbundle.BundleInfo = target.get_bundle_info()
+
+        main_exe_dir, main_exe_fname = os.path.split(main_exe)
+        bundle_rel = self.get_target_filename(target)
+
+        presets_path = os.path.join(self.get_target_private_dir(target), 'Presets', 'Info.plist')
+        presets_fullpath = os.path.join(self.environment.get_build_dir(), presets_path)
+        os.makedirs(os.path.dirname(presets_fullpath), exist_ok=True)
+
+        with open(presets_fullpath, 'wb') as fp:
+            import plistlib
+
+            d = bi.get_configured_info_dict()
+            plistlib.dump(d, fp)
+
+        presets_file = File(True, *os.path.split(presets_path))
+
+        if bi.info_dict_file:
+            info_plist = self.generate_merge_plist(target, 'Info.plist', [presets_file, bi.info_dict_file])
+        else:
+            info_plist = presets_file
+
+        layout = build.StructuredSources()
+        layout.sources[str(bi.get_executable_folder_path())] += [File(True, main_exe_dir, main_exe_fname)]
+        layout.sources[str(bi.get_infoplist_path())] += [info_plist]
+
+        if bi.resources is not None:
+            for k, v in bi.resources.sources.items():
+                layout.sources[str(bi.get_unlocalized_resources_folder_path() / k)] += v
+
+        if bi.contents is not None:
+            for k, v in bi.contents.sources.items():
+                layout.sources[str(bi.get_contents_folder_path() / k)] += v
+
+        if bi.headers is not None:
+            for k, v in bi.headers.sources.items():
+                layout.sources[str(bi.get_public_headers_folder_path() / k)] += v
+
+        if bi.extra_binaries is not None:
+            for v in bi.extra_binaries:
+                layout.sources[str(bi.get_executable_folder_path())] += v
+
+        for file in layout.as_list():
+            if isinstance(file, GeneratedList):
+                self.generate_genlist_for_target(file, target)
+
+        elem = NinjaBuildElement(self.all_outputs, bundle_rel, 'phony', [])
+        elem.add_orderdep(self.__generate_sources_structure(Path(bundle_rel), layout, target=target)[0])
+
+        # Create links for versioned bundles (frameworks only)
+        def make_relative_link(src: PurePath, dst: PurePath):
+            src_rel = src.relative_to(dst.parent, walk_up=True)
+            dst_path = Path(bundle_rel) / dst
+            elem.add_orderdep(str(dst_path))
+            self._generate_symlink_target(str(src_rel), dst_path)
+
+        contents_dir = bi.get_contents_folder_path()
+
+        for path in bi.get_paths_to_link_contents():
+            can_link_whole_dir = True
+
+            for d in layout.sources.keys():
+                if PurePath(d).is_relative_to(path):
+                    can_link_whole_dir = False
+                    break
+
+            if can_link_whole_dir:
+                make_relative_link(contents_dir, path)
+            else:
+                names = set()
+
+                for d in layout.sources.keys():
+                    d = PurePath(d)
+
+                    if not d.parent.is_relative_to(contents_dir):
+                        continue
+
+                    d = d.relative_to(contents_dir).parts[0]
+                    names.add(d)
+
+                for file in layout.sources[str(contents_dir)]:
+                    if isinstance(file, File):
+                        names.add(PurePath(file.fname).parts[0])
+                    else:
+                        names.update(file.get_outputs())
+
+                for n in names:
+                    assert n != '.'
+
+                    make_relative_link(contents_dir / n, path / n)
+
+        self.add_build(elem)
+
     def generate_cs_resource_tasks(self, target) -> T.Tuple[T.List[str], T.List[str]]:
         args = []
         deps = []
@@ -1923,6 +2018,7 @@ class NinjaBackend(backends.Backend):
 
     def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources,
                                      main_file_ext: T.Union[str, T.Tuple[str, ...]] = tuple(),
+                                     target: T.Optional[build.Target] = None,
                                      ) -> T.Tuple[T.List[str], T.Optional[str]]:
         first_file: T.Optional[str] = None
         orderdeps: T.List[str] = []
@@ -1936,11 +2032,19 @@ class NinjaBackend(backends.Backend):
                     if first_file is None and out_s.endswith(main_file_ext):
                         first_file = out_s
                 else:
+                    if isinstance(file, GeneratedList):
+                        if target is None:
+                            raise MesonBugException('Encountered GeneratedList in StructuredSources with None target')
+
+                        srcdir = Path(self.get_target_private_dir(target))
+                    else:
+                        srcdir = Path(file.subdir)
+
                     for f in file.get_outputs():
                         out = root / path / f
                         out_s = str(out)
                         orderdeps.append(out_s)
-                        self._generate_copy_target(str(Path(file.subdir) / f), out)
+                        self._generate_copy_target(str(srcdir / f), out)
                         if first_file is None and out_s.endswith(main_file_ext):
                             first_file = out_s
         return orderdeps, first_file
@@ -4076,6 +4180,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     if self.environment.machines[t.for_machine].is_aix():
                         linker, stdlib_args = t.get_clink_dynamic_linker_and_stdlibs()
                         t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
+
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
                 # Add an import library if shared library in OS/2 for build all
