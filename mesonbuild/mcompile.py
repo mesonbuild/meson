@@ -91,6 +91,9 @@ class ParsedTargetName:
             'alias',
             'run',
             'jar',
+            'nsapp',
+            'nsframework',
+            'nsbundle',
         }
         return type in allowed_types
 

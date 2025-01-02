@@ -424,6 +424,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.SharedModule: OBJ.SharedModuleHolder,
             build.Executable: OBJ.ExecutableHolder,
             build.Jar: OBJ.JarHolder,
+            build.AppBundle: OBJ.AppBundleHolder,
+            build.FrameworkBundle: OBJ.FrameworkBundleHolder,
             build.CustomTarget: OBJ.CustomTargetHolder,
             build.CustomTargetIndex: OBJ.CustomTargetIndexHolder,
             build.Generator: OBJ.GeneratorHolder,
@@ -3419,16 +3421,17 @@ class Interpreter(InterpreterBase, HoldableObject):
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
         kwargs['extra_files'] = self.source_strings_to_files(kwargs['extra_files'])
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
+        if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary,
+                               build.Jar, build.AppBundle, build.FrameworkBundle}:
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
         self.__process_language_args(kwargs)
-        if targetclass is build.StaticLibrary:
+        if issubclass(targetclass, build.StaticLibrary):
             for lang in compilers.all_languages - {'java'}:
                 deps, args = self.__convert_file_args(kwargs.get(f'{lang}_static_args', []))
                 kwargs['language_args'][lang].extend(args)
                 kwargs['depend_files'].extend(deps)
-        elif targetclass is build.SharedLibrary:
+        elif issubclass(targetclass, build.SharedLibrary):
             for lang in compilers.all_languages - {'java'}:
                 deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))
                 kwargs['language_args'][lang].extend(args)
@@ -3474,7 +3477,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
 
-        if targetclass is build.Executable:
+        if issubclass(targetclass, build.Executable):
             kwargs = T.cast('kwtypes.Executable', kwargs)
             if kwargs['gui_app'] is not None:
                 if kwargs['win_subsystem'] is not None:
