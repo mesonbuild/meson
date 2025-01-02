@@ -954,7 +954,11 @@ class NinjaBackend(backends.Backend):
         self.generate_generator_list_rules(target)
 
         # Generate rules for building the remaining source files in this target
-        outname = self.get_target_filename(target)
+        if isinstance(target, build.AppBundle):
+            outname = os.path.join(self.get_target_private_dir(target), target.get_binary_name())
+        else:
+            outname = self.get_target_filename(target)
+
         obj_list = []
         is_unity = target.is_unity
         header_deps = []
@@ -1102,6 +1106,9 @@ class NinjaBackend(backends.Backend):
             if target.aix_so_archive:
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
+
+        if isinstance(target, build.AppBundle):
+            self.generate_bundle_target(target, elem)
 
     def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
         if not self.ninja_has_dyndeps:
@@ -1486,6 +1493,57 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         # Create introspection information
         self.create_target_source_introspection(target, compiler, compile_args, src_list, gen_src_list)
+
+    def generate_bundle_target(self, target: build.AppBundle, bin_elem: NinjaBuildElement) -> None:
+        main_binary = bin_elem.outfilenames[0]
+        main_binary_dir, main_binary_fname = os.path.split(main_binary)
+        bundle_rel = self.get_target_filename(target)
+
+        presets_path = os.path.join(self.get_target_private_dir(target), 'Presets', 'Info.plist')
+        presets_fullpath = os.path.join(self.environment.get_build_dir(), presets_path)
+        os.makedirs(os.path.dirname(presets_fullpath), exist_ok=True)
+
+        with open(presets_fullpath, 'wb') as fp:
+            import plistlib
+
+            dict = {
+                'CFBundleExecutable': main_binary_fname,
+                'CFBundleInfoDictionaryVersion': '6.0',
+                'CFBundlePackageType': 'APPL',
+                'NSPrincipalClass': target.default_principal_class,
+            }
+            plistlib.dump(dict, fp)
+
+        presets_file = File(True, *os.path.split(presets_path))
+
+        if target.info_plist:
+            info_plist = self.generate_merge_plist(target, 'Info.plist', [presets_file, target.info_plist])
+        else:
+            info_plist = presets_file
+
+        layout = build.StructuredSources()
+        layout.sources[target.bin_root] += [File(True, main_binary_dir, main_binary_fname)]
+        layout.sources[target.info_root] += [info_plist]
+
+        if target.bundle_resources is not None:
+            for k, v in target.bundle_resources.sources.items():
+                layout.sources[os.path.join(target.resources_root, k)] += v
+
+        if target.bundle_contents is not None:
+            for k, v in target.bundle_contents.sources.items():
+                layout.sources[os.path.join(target.contents_root, k)] += v
+
+        if target.bundle_extra_binaries is not None:
+            for k, v in target.bundle_extra_binaries.sources.items():
+                layout.sources[os.path.join(target.bin_root, k)] += v
+
+        for file in layout.as_list():
+            if isinstance(file, GeneratedList):
+                self.generate_genlist_for_target(file, target)
+
+        elem = NinjaBuildElement(self.all_outputs, bundle_rel, 'phony', [])
+        elem.add_orderdep(self.__generate_sources_structure(Path(bundle_rel), layout, target=target)[0])
+        self.add_build(elem)
 
     def generate_cs_resource_tasks(self, target) -> T.Tuple[T.List[str], T.List[str]]:
         args = []
@@ -1872,7 +1930,7 @@ class NinjaBackend(backends.Backend):
         elem.add_orderdep(instr)
         self.add_build(elem)
 
-    def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources) -> T.Tuple[T.List[str], T.Optional[str]]:
+    def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources, target: T.Optional[build.Target] = None) -> T.Tuple[T.List[str], T.Optional[str]]:
         first_file: T.Optional[str] = None
         orderdeps: T.List[str] = []
         for path, files in structured_sources.sources.items():
@@ -1884,10 +1942,18 @@ class NinjaBackend(backends.Backend):
                     if first_file is None:
                         first_file = str(out)
                 else:
+                    if isinstance(file, GeneratedList):
+                        if target is None:
+                            raise MesonBugException('Encountered GeneratedList in StructuredSources with None target')
+
+                        srcdir = Path(self.get_target_private_dir(target))
+                    else:
+                        srcdir = Path(file.subdir)
+
                     for f in file.get_outputs():
                         out = root / path / f
                         orderdeps.append(str(out))
-                        self._generate_copy_target(str(Path(file.subdir) / f), out)
+                        self._generate_copy_target(str(srcdir / f), out)
                         if first_file is None:
                             first_file = str(out)
         return orderdeps, first_file
@@ -3822,6 +3888,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     if self.environment.machines[t.for_machine].is_aix():
                         linker, stdlib_args = t.get_clink_dynamic_linker_and_stdlibs()
                         t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
+
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
             elem = NinjaBuildElement(self.all_outputs, targ, 'phony', targetlist)
