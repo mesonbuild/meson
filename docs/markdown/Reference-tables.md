@@ -286,6 +286,7 @@ which are supported by GCC, Clang, and other compilers.
 | const                       |
 | constructor                 |
 | constructor_priority        |
+| counted_by⁸                 |
 | deprecated                  |
 | destructor                  |
 | error                       |
@@ -340,6 +341,8 @@ which are supported by GCC, Clang, and other compilers.
 ⁶ *New in 1.1.0*
 
 ⁷ *New in 1.5.0*
+
+⁸ *New in 1.6.0*
 
 ### MSVC __declspec
 
