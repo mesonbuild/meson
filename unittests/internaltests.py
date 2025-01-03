@@ -674,6 +674,36 @@ class InternalTests(unittest.TestCase):
                         for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
                             self.assertNotIn(f'lib{lib}.a', link_arg, msg=link_args)
 
+    def test_program_version(self):
+        if is_windows():
+            return
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            script_path = Path(tmpdir) / 'script'
+            script_path.write_text('#!/bin/sh\necho "$1"\n', encoding='utf-8')
+            script_path.chmod(0o755)
+
+            for output, expected in {
+                    '': None,
+                    '1': None,
+                    '1.2.4': '1.2.4',
+                    '1 1.2.4': '1.2.4',
+                    'foo version 1.2.4': '1.2.4',
+                    'foo 1.2.4.': '1.2.4',
+                    'foo 1.2.4': '1.2.4',
+                    'foo 1.2.4 bar': '1.2.4',
+                    '50 5.4.0': '5.4.0',
+                    'This is perl 5, version 40, subversion 0 (v5.40.0)': '5.40.0',
+                    'git version 2.48.0.rc1': '2.48.0',
+            }.items():
+                prog = ExternalProgram('script', command=[script_path, output], silent=True)
+
+                if expected is None:
+                    with self.assertRaisesRegex(MesonException, 'Could not find a version number'):
+                        prog.get_version()
+                else:
+                    self.assertEqual(prog.get_version(), expected)
+
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
         for (a, b, result) in [
