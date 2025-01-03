@@ -113,7 +113,10 @@ class ExternalProgram(mesonlib.HoldableObject):
             output = o.strip()
             if not output:
                 output = e.strip()
-            match = re.search(r'([0-9][0-9\.]+)', output)
+
+            match = re.search(r'([0-9](\.[0-9]+)+)', output)
+            if not match:
+                match = re.search(r'([0-9][0-9\.]+)', output)
             if not match:
                 raise mesonlib.MesonException(f'Could not find a version number in output of {raw_cmd!r}')
             self.cached_version = match.group(1)
