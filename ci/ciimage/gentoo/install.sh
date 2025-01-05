@@ -23,10 +23,16 @@ pkgs_stable=(
   dev-util/bindgen
 
   dev-libs/elfutils
+  dev-libs/protobuf
+
+  # modules
   dev-util/gdbus-codegen
+  dev-util/glib-utils
   dev-libs/gobject-introspection
   dev-util/itstool
-  dev-libs/protobuf
+  dev-util/wayland-scanner
+  dev-libs/wayland-protocols
+  dev-libs/wayland
 
   # custom deps
   dev-libs/boost
@@ -39,14 +45,20 @@ pkgs_stable=(
   dev-cpp/gtest
   sci-libs/hdf5
   dev-qt/linguist-tools
+  dev-qt/qtwidgets:5
   llvm-core/llvm
   dev-qt/qttools
+  net-print/cups
+  dev-util/vulkan-headers
+  media-libs/vulkan-loader
 
   # misc
   app-admin/sudo
   app-text/doxygen
   sys-devel/bison
   sys-devel/gettext
+  # needed by vala
+  x11-libs/gtk+
 
   # TODO: vulkan-validation-layers
   # TODO: cuda
@@ -59,9 +71,6 @@ pkgs_stable=(
   #dev-libs/wayland
   #dev-libs/wayland-protocols
   #dev-python/pypy3
-  #dev-qt/qtbase:6
-  #dev-qt/qtcore:5
-  #dev-qt/qttools:6
   #dev-vcs/mercurial
   #gnustep-base/gnustep-base
   #media-gfx/graphviz
@@ -99,9 +108,15 @@ mkdir /etc/portage/binrepos.conf || true
 mkdir /etc/portage/profile || true
 cat <<-EOF > /etc/portage/package.use/ci
 	dev-cpp/gtkmm X
+	media-libs/libglvnd X
+	x11-libs/cairo X
+	x11-libs/libxkbcommon X
 	dev-lang/rust clippy rustfmt
 	dev-lang/rust-bin clippy rustfmt
 	dev-libs/boost python
+
+	# slimmed binpkg, nomesa
+	media-libs/libsdl2 -opengl -wayland -alsa -dbus -gles2 -udev -vulkan
 
 	# Some of these settings are needed just to get the binpkg but
 	# aren't negative to have anyway
