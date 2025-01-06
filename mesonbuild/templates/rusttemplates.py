@@ -65,6 +65,7 @@ rust.test('{test_name}', shlib)
   dependencies : dependencies,
   link_with : shlib,
 )
+meson.override_dependency('{project_name}', {ltoken}_dep)
 '''
 
 hello_rust_template = '''

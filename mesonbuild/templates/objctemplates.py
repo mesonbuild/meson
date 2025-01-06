@@ -89,6 +89,7 @@ test('{test_name}', test_exe)
   dependencies : dependencies,
   link_with : shlib,
 )
+meson.override_dependency('{project_name}', {ltoken}_dep)
 
 # Make this library usable from the system's
 # package manager.

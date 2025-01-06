@@ -109,6 +109,7 @@ test('{test_name}', test_jar)
   dependencies : dependencies,
   link_with : jarlib,
 )
+meson.override_dependency('{project_name}', {ltoken}_dep)
 '''
 
 

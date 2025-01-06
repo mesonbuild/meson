@@ -104,6 +104,7 @@ test('{test_name}', test_exe)
   dependencies : dependencies,
   link_with : stlib,
 )
+meson.override_dependency('{project_name}', {ltoken}_dep)
 
 '''
 
