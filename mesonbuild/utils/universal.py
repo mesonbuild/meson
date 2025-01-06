@@ -24,6 +24,7 @@ import textwrap
 import pickle
 import errno
 import json
+import dataclasses
 
 from mesonbuild import mlog
 from .core import MesonException, HoldableObject
@@ -756,40 +757,50 @@ def windows_detect_native_arch() -> str:
             raise EnvironmentException('Unable to detect native OS architecture')
     return arch
 
-def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
+@dataclasses.dataclass
+class VcsData:
+    name: str
+    cmd: str
+    repo_dir: str
+    get_rev: T.List[str]
+    rev_regex: str
+    dep: str
+    wc_dir: T.Optional[str] = None
+
+def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[VcsData]:
     vcs_systems = [
-        {
-            'name': 'git',
-            'cmd': 'git',
-            'repo_dir': '.git',
-            'get_rev': 'git describe --dirty=+ --always',
-            'rev_regex': '(.*)',
-            'dep': '.git/logs/HEAD'
-        },
-        {
-            'name': 'mercurial',
-            'cmd': 'hg',
-            'repo_dir': '.hg',
-            'get_rev': 'hg id -i',
-            'rev_regex': '(.*)',
-            'dep': '.hg/dirstate'
-        },
-        {
-            'name': 'subversion',
-            'cmd': 'svn',
-            'repo_dir': '.svn',
-            'get_rev': 'svn info',
-            'rev_regex': 'Revision: (.*)',
-            'dep': '.svn/wc.db'
-        },
-        {
-            'name': 'bazaar',
-            'cmd': 'bzr',
-            'repo_dir': '.bzr',
-            'get_rev': 'bzr revno',
-            'rev_regex': '(.*)',
-            'dep': '.bzr'
-        },
+        VcsData(
+            name = 'git',
+            cmd = 'git',
+            repo_dir = '.git',
+            get_rev = ['git', 'describe', '--dirty=+', '--always'],
+            rev_regex = '(.*)',
+            dep = '.git/logs/HEAD',
+        ),
+        VcsData(
+            name = 'mercurial',
+            cmd = 'hg',
+            repo_dir = '.hg',
+            get_rev = ['hg', 'id', '-i'],
+            rev_regex = '(.*)',
+            dep= '.hg/dirstate',
+        ),
+        VcsData(
+            name = 'subversion',
+            cmd = 'svn',
+            repo_dir = '.svn',
+            get_rev = ['svn', 'info'],
+            rev_regex = 'Revision: (.*)',
+            dep = '.svn/wc.db',
+        ),
+        VcsData(
+            name = 'bazaar',
+            cmd = 'bzr',
+            repo_dir = '.bzr',
+            get_rev = ['bzr', 'revno'],
+            rev_regex = '(.*)',
+            dep = '.bzr',
+        ),
     ]
     if isinstance(source_dir, str):
         source_dir = Path(source_dir)
@@ -800,8 +811,10 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
     parent_paths_and_self.appendleft(source_dir)
     for curdir in parent_paths_and_self:
         for vcs in vcs_systems:
-            if Path.is_dir(curdir.joinpath(vcs['repo_dir'])) and shutil.which(vcs['cmd']):
-                vcs['wc_dir'] = str(curdir)
+            repodir = vcs.repo_dir
+            cmd = vcs.cmd
+            if curdir.joinpath(repodir).is_dir() and shutil.which(cmd):
+                vcs.wc_dir = str(curdir)
                 return vcs
     return None
 
