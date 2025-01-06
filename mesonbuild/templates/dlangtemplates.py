@@ -24,13 +24,19 @@ int main(string[] args) {{
 }}
 '''
 
-hello_d_meson_template = '''project('{project_name}', 'd',
-    version : '{version}',
-    meson_version : '>= {meson_version}',
-    default_options: ['warning_level=3'])
+hello_d_meson_template = '''project(
+  '{project_name}',
+  'd',
+  version : '{version}',
+  meson_version : '>= {meson_version}',
+  default_options : ['warning_level=3'],
+)
 
-exe = executable('{exe_name}', '{source_name}',
-  install : true)
+exe = executable(
+  '{exe_name}',
+  '{source_name}',
+  install : true,
+)
 
 test('basic', exe)
 '''
@@ -63,32 +69,43 @@ int main(string[] args) {{
 }}
 '''
 
-lib_d_meson_template = '''project('{project_name}', 'd',
+lib_d_meson_template = '''project(
+  '{project_name}',
+  'd',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : ['warning_level=3'])
+  default_options : ['warning_level=3'],
+)
 
-stlib = static_library('{lib_name}', '{source_file}',
+stlib = static_library(
+  '{lib_name}',
+  '{source_file}',
   install : true,
   gnu_symbol_visibility : 'hidden',
 )
 
-test_exe = executable('{test_exe_name}', '{test_source_file}',
-  link_with : stlib)
+test_exe = executable(
+  '{test_exe_name}',
+  '{test_source_file}',
+  link_with : stlib,
+)
 test('{test_name}', test_exe)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
-  include_directories: include_directories('.'),
-  link_with : stlib)
+  include_directories : include_directories('.'),
+  link_with : stlib,
+)
 
 # Make this library usable from the Dlang
 # build system.
 dlang_mod = import('dlang')
-if find_program('dub', required: false).found()
-  dlang_mod.generate_dub_file(meson.project_name().to_lower(), meson.source_root(),
+if find_program('dub', required : false).found()
+  dlang_mod.generate_dub_file(
+    meson.project_name().to_lower(),
+    meson.source_root(),
     name : meson.project_name(),
-    license: meson.project_license(),
+    license : meson.project_license(),
     sourceFiles : '{source_file}',
     description : 'Meson sample project.',
     version : '{version}',

@@ -9,26 +9,38 @@ import typing as T
 if T.TYPE_CHECKING:
     from ..minit import Arguments
 
-meson_executable_template = '''project('{project_name}', {language},
+meson_executable_template = '''project(
+  '{project_name}',
+  {language},
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : [{default_options}])
+  default_options : [{default_options}],
+)
 
-executable('{executable}',
-           {sourcespec},{depspec}
-           install : true)
+executable(
+  '{executable}',
+  {sourcespec},{depspec}
+  install : true,
+)
+
 '''
 
 
-meson_jar_template = '''project('{project_name}', '{language}',
+meson_jar_template = '''project(
+  '{project_name}',
+  '{language}',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : [{default_options}])
+  default_options : [{default_options}],
+)
 
-jar('{executable}',
-    {sourcespec},{depspec}
-    main_class: '{main_class}',
-    install : true)
+jar(
+  '{executable}',
+  {sourcespec},{depspec}
+  main_class : '{main_class}',
+  install : true,
+)
+
 '''
 
 

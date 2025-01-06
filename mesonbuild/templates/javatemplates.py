@@ -24,14 +24,20 @@ public class {class_name} {{
 
 '''
 
-hello_java_meson_template = '''project('{project_name}', 'java',
+hello_java_meson_template = '''project(
+  '{project_name}',
+  'java',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : ['warning_level=3'])
+  default_options : ['warning_level=3'],
+)
 
-exe = jar('{exe_name}', '{source_name}',
+exe = jar(
+  '{exe_name}',
+  '{source_name}',
   main_class : '{exe_name}',
-  install : true)
+  install : true,
+)
 
 test('basic', exe)
 '''
@@ -65,25 +71,34 @@ public class {class_test} {{
 
 '''
 
-lib_java_meson_template = '''project('{project_name}', 'java',
+lib_java_meson_template = '''project(
+  '{project_name}',
+  'java',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : ['warning_level=3'])
+  default_options : ['warning_level=3'],
+)
 
-jarlib = jar('{class_name}', '{source_file}',
+jarlib = jar(
+  '{class_name}',
+  '{source_file}',
   main_class : '{class_name}',
   install : true,
 )
 
-test_jar = jar('{class_test}', '{test_source_file}',
+test_jar = jar(
+  '{class_test}',
+  '{test_source_file}',
   main_class : '{class_test}',
-  link_with : jarlib)
+  link_with : jarlib,
+)
 test('{test_name}', test_jar)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
-  include_directories: include_directories('.'),
-  link_with : jarlib)
+  include_directories : include_directories('.'),
+  link_with : jarlib,
+)
 '''
 
 

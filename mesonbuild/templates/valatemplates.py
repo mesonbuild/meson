@@ -12,17 +12,24 @@ hello_vala_template = '''void main (string[] args) {{
 }}
 '''
 
-hello_vala_meson_template = '''project('{project_name}', 'vala',
+hello_vala_meson_template = '''project(
+  '{project_name}',
+  'vala',
   meson_version : '>= {meson_version}',
-  version : '{version}')
+  version : '{version}',
+)
 
 dependencies = [
-    dependency('glib-2.0'),
-    dependency('gobject-2.0'),
+  dependency('glib-2.0'),
+  dependency('gobject-2.0'),
 ]
 
-exe = executable('{exe_name}', '{source_name}', dependencies : dependencies,
-  install : true)
+exe = executable(
+  '{exe_name}',
+  '{source_name}',
+  dependencies : dependencies,
+  install : true,
+)
 
 test('basic', exe)
 '''
@@ -48,30 +55,42 @@ public void main() {{
 }}
 '''
 
-lib_vala_meson_template = '''project('{project_name}', 'vala',
+lib_vala_meson_template = '''project(
+  '{project_name}',
+  'vala',
   meson_version : '>= {meson_version}',
-  version : '{version}')
+  version : '{version}',
+)
 
 dependencies = [
-    dependency('glib-2.0'),
-    dependency('gobject-2.0'),
+  dependency('glib-2.0'),
+  dependency('gobject-2.0'),
 ]
 
 # These arguments are only used to build the shared library
 # not the executables that use the library.
-shlib = shared_library('foo', '{source_file}',
-               dependencies: dependencies,
-               install: true,
-               install_dir: [true, true, true])
+shlib = shared_library(
+  'foo',
+  '{source_file}',
+  dependencies : dependencies,
+  install : true,
+  install_dir : [true, true, true],
+)
 
-test_exe = executable('{test_exe_name}', '{test_source_file}', dependencies : dependencies,
-  link_with : shlib)
+test_exe = executable(
+  '{test_exe_name}',
+  '{test_source_file}',
+  dependencies : dependencies,
+  link_with : shlib,
+)
 test('{test_name}', test_exe)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
-  include_directories: include_directories('.'),
-  link_with : shlib)
+  include_directories : include_directories('.'),
+  link_with : shlib,
+)
+
 '''
 
 

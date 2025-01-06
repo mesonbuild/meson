@@ -52,29 +52,38 @@ int main(int argc, char **argv) {{
 }}
 '''
 
-lib_c_meson_template = '''project('{project_name}', 'c',
+lib_c_meson_template = '''project(
+  '{project_name}',
+  'c',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : ['warning_level=3'])
+  default_options : ['warning_level=3'],
+)
 
 # These arguments are only used to build the shared library
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
-shlib = shared_library('{lib_name}', '{source_file}',
+shlib = shared_library(
+  '{lib_name}',
+  '{source_file}',
   install : true,
   c_args : lib_args,
   gnu_symbol_visibility : 'hidden',
 )
 
-test_exe = executable('{test_exe_name}', '{test_source_file}',
-  link_with : shlib)
+test_exe = executable(
+  '{test_exe_name}',
+  '{test_source_file}',
+  link_with : shlib,
+)
 test('{test_name}', test_exe)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
-  include_directories: include_directories('.'),
-  link_with : shlib)
+  include_directories : include_directories('.'),
+  link_with : shlib,
+)
 
 # Make this library usable from the system's
 # package manager.
@@ -105,13 +114,19 @@ int main(int argc, char **argv) {{
 }}
 '''
 
-hello_c_meson_template = '''project('{project_name}', 'c',
+hello_c_meson_template = '''project(
+  '{project_name}',
+  'c',
   meson_version : '>= {meson_version}',
   version : '{version}',
-  default_options : ['warning_level=3'])
+  default_options : ['warning_level=3'],
+)
 
-exe = executable('{exe_name}', '{source_name}',
-  install : true)
+exe = executable(
+  '{exe_name}',
+  '{source_name}',
+  install : true,
+)
 
 test('basic', exe)
 '''

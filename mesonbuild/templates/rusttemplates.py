@@ -37,21 +37,29 @@ mod tests {{
 '''
 
 
-lib_rust_meson_template = '''project('{project_name}', 'rust',
+lib_rust_meson_template = '''project(
+  '{project_name}',
+  'rust',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : ['rust_std=2021', 'warning_level=3'])
+  default_options : ['rust_std=2021', 'warning_level=3'],
+)
 
 rust = import('rust')
 
-shlib = static_library('{lib_name}', '{source_file}', install : true)
+shlib = static_library(
+  '{lib_name}',
+  '{source_file}',
+  install : true,
+)
 
 rust.test('{test_name}', shlib)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
-  include_directories: include_directories('.'),
-  link_with : shlib)
+  include_directories : include_directories('.'),
+  link_with : shlib,
+)
 '''
 
 hello_rust_template = '''
@@ -61,13 +69,19 @@ fn main() {{
 }}
 '''
 
-hello_rust_meson_template = '''project('{project_name}', 'rust',
+hello_rust_meson_template = '''project(
+  '{project_name}',
+  'rust',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : ['rust_std=2021', 'warning_level=3'])
+  default_options : ['rust_std=2021', 'warning_level=3'],
+)
 
-exe = executable('{exe_name}', '{source_name}',
-  install : true)
+exe = executable(
+  '{exe_name}',
+  '{source_name}',
+  install : true,
+)
 
 test('basic', exe)
 '''

@@ -24,13 +24,19 @@ public class {class_name} {{
 
 '''
 
-hello_cs_meson_template = '''project('{project_name}', 'cs',
+hello_cs_meson_template = '''project(
+  '{project_name}',
+  'cs',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : ['warning_level=3'])
+  default_options : ['warning_level=3'],
+)
 
-exe = executable('{exe_name}', '{source_name}',
-  install : true)
+exe = executable(
+  '{exe_name}',
+  '{source_name}',
+  install : true,
+)
 
 test('basic', exe)
 '''
@@ -62,23 +68,32 @@ public class {class_test} {{
 
 '''
 
-lib_cs_meson_template = '''project('{project_name}', 'cs',
+lib_cs_meson_template = '''project(
+  '{project_name}',
+  'cs',
   version : '{version}',
   meson_version : '>= {meson_version}',
-  default_options : ['warning_level=3'])
+  default_options : ['warning_level=3'],
+)
 
-stlib = shared_library('{lib_name}', '{source_file}',
+stlib = shared_library(
+  '{lib_name}',
+  '{source_file}',
   install : true,
 )
 
-test_exe = executable('{test_exe_name}', '{test_source_file}',
-  link_with : stlib)
+test_exe = executable(
+  '{test_exe_name}',
+  '{test_source_file}',
+  link_with : stlib,
+)
 test('{test_name}', test_exe)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
-  include_directories: include_directories('.'),
-  link_with : stlib)
+  include_directories : include_directories('.'),
+  link_with : stlib,
+)
 
 '''
 
