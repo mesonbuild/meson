@@ -21,7 +21,7 @@ hello_vala_meson_template = '''project(
 
 dependencies = [
   dependency('glib-2.0'),
-  dependency('gobject-2.0'),
+  dependency('gobject-2.0'),{dependencies}
 ]
 
 exe = executable(
@@ -64,7 +64,7 @@ lib_vala_meson_template = '''project(
 
 dependencies = [
   dependency('glib-2.0'),
-  dependency('gobject-2.0'),
+  dependency('gobject-2.0'),{dependencies}
 ]
 
 # These arguments are only used to build the shared library
@@ -88,6 +88,7 @@ test('{test_name}', test_exe)
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
+  dependencies : dependencies,
   link_with : shlib,
 )
 

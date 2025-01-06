@@ -60,6 +60,9 @@ lib_objcpp_meson_template = '''project(
   default_options : ['warning_level=3'],
 )
 
+dependencies = [{dependencies}
+]
+
 # These arguments are only used to build the shared library
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
@@ -69,12 +72,14 @@ shlib = shared_library(
   '{source_file}',
   install : true,
   objcpp_args : lib_args,
+  dependencies : dependencies,
   gnu_symbol_visibility : 'hidden',
 )
 
 test_exe = executable(
   '{test_exe_name}',
   '{test_source_file}',
+  dependencies : dependencies,
   link_with : shlib,
 )
 test('{test_name}', test_exe)
@@ -82,6 +87,7 @@ test('{test_name}', test_exe)
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
+  dependencies : dependencies,
   link_with : shlib,
 )
 
@@ -122,9 +128,13 @@ hello_objcpp_meson_template = '''project(
   default_options : ['warning_level=3'],
 )
 
+dependencies = [{dependencies}
+]
+
 exe = executable(
   '{exe_name}',
   '{source_name}',
+  dependencies : dependencies,
   install : true,
 )
 

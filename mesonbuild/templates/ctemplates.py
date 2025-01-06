@@ -64,17 +64,22 @@ lib_c_meson_template = '''project(
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
+dependencies = [{dependencies}
+]
+
 shlib = shared_library(
   '{lib_name}',
   '{source_file}',
   install : true,
   c_args : lib_args,
   gnu_symbol_visibility : 'hidden',
+  dependencies : dependencies,
 )
 
 test_exe = executable(
   '{test_exe_name}',
   '{test_source_file}',
+  dependencies : dependencies,
   link_with : shlib,
 )
 test('{test_name}', test_exe)
@@ -82,6 +87,7 @@ test('{test_name}', test_exe)
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
+  dependencies : dependencies,
   link_with : shlib,
 )
 
@@ -122,9 +128,13 @@ hello_c_meson_template = '''project(
   default_options : ['warning_level=3'],
 )
 
+dependencies = [{dependencies}
+]
+
 exe = executable(
   '{exe_name}',
   '{source_name}',
+  dependencies : dependencies,
   install : true,
 )
 

@@ -32,10 +32,14 @@ hello_java_meson_template = '''project(
   default_options : ['warning_level=3'],
 )
 
+dependencies = [{dependencies}
+]
+
 exe = jar(
   '{exe_name}',
   '{source_name}',
   main_class : '{exe_name}',
+  dependencies : dependencies,
   install : true,
 )
 
@@ -79,9 +83,13 @@ lib_java_meson_template = '''project(
   default_options : ['warning_level=3'],
 )
 
+dependencies = [{dependencies}
+]
+
 jarlib = jar(
   '{class_name}',
   '{source_file}',
+  dependencies : dependencies,
   main_class : '{class_name}',
   install : true,
 )
@@ -90,6 +98,7 @@ test_jar = jar(
   '{class_test}',
   '{test_source_file}',
   main_class : '{class_test}',
+  dependencies : dependencies,
   link_with : jarlib,
 )
 test('{test_name}', test_jar)
@@ -97,6 +106,7 @@ test('{test_name}', test_jar)
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
+  dependencies : dependencies,
   link_with : jarlib,
 )
 '''

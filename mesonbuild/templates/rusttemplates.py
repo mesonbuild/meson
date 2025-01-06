@@ -47,9 +47,13 @@ lib_rust_meson_template = '''project(
 
 rust = import('rust')
 
+dependencies = [{dependencies}
+]
+
 shlib = static_library(
   '{lib_name}',
   '{source_file}',
+  dependencies : dependencies,
   install : true,
 )
 
@@ -58,6 +62,7 @@ rust.test('{test_name}', shlib)
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
+  dependencies : dependencies,
   link_with : shlib,
 )
 '''
@@ -77,9 +82,13 @@ hello_rust_meson_template = '''project(
   default_options : ['rust_std=2021', 'warning_level=3'],
 )
 
+dependencies = [{dependencies}
+]
+
 exe = executable(
   '{exe_name}',
   '{source_name}',
+  dependencies : dependencies,
   install : true,
 )
 

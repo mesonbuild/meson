@@ -32,10 +32,14 @@ hello_cs_meson_template = '''project(
   default_options : ['warning_level=3'],
 )
 
+dependencies = [{dependencies}
+]
+
 exe = executable(
   '{exe_name}',
   '{source_name}',
   install : true,
+  dependencies : dependencies,
 )
 
 test('basic', exe)
@@ -76,15 +80,20 @@ lib_cs_meson_template = '''project(
   default_options : ['warning_level=3'],
 )
 
+dependencies = [{dependencies}
+]
+
 stlib = shared_library(
   '{lib_name}',
   '{source_file}',
+  dependencies : dependencies,
   install : true,
 )
 
 test_exe = executable(
   '{test_exe_name}',
   '{test_source_file}',
+  dependencies : dependencies,
   link_with : stlib,
 )
 test('{test_name}', test_exe)
@@ -92,6 +101,7 @@ test('{test_name}', test_exe)
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
+  dependencies : dependencies,
   link_with : stlib,
 )
 

@@ -29,10 +29,14 @@ hello_cpp_meson_template = '''project(
   default_options : ['warning_level=3', 'cpp_std=c++14'],
 )
 
+dependencies = [{dependencies}
+]
+
 exe = executable(
   '{exe_name}',
   '{source_name}',
   install : true,
+  dependencies : dependencies,
 )
 
 test('basic', exe)
@@ -107,6 +111,9 @@ lib_cpp_meson_template = '''project(
   default_options : ['warning_level=3', 'cpp_std=c++14'],
 )
 
+dependencies = [{dependencies}
+]
+
 # These arguments are only used to build the shared library
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
@@ -117,11 +124,13 @@ shlib = shared_library(
   install : true,
   cpp_args : lib_args,
   gnu_symbol_visibility : 'hidden',
+  dependencies : dependencies,
 )
 
 test_exe = executable(
   '{test_exe_name}',
   '{test_source_file}',
+  dependencies : dependencies,
   link_with : shlib,
 )
 test('{test_name}', test_exe)
@@ -129,6 +138,7 @@ test('{test_name}', test_exe)
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
+  dependencies : dependencies,
   link_with : shlib,
 )
 

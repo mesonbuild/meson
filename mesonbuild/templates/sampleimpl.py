@@ -23,6 +23,7 @@ class SampleImpl(metaclass=abc.ABCMeta):
         self.capitalized_token = self.lowercase_token.capitalize()
         self.meson_version = '1.0.0'
         self.force = args.force
+        self.dependencies = args.deps.split(',') if args.deps else []
 
     @abc.abstractmethod
     def create_executable(self) -> None:
@@ -62,6 +63,9 @@ class SampleImpl(metaclass=abc.ABCMeta):
     def source_ext(self) -> str:
         pass
 
+    def _format_dependencies(self) -> str:
+        return ''.join(f"\n  dependency('{d}')," for d in self.dependencies)
+
 
 class ClassImpl(SampleImpl):
 
@@ -79,7 +83,8 @@ class ClassImpl(SampleImpl):
                                                        exe_name=self.name,
                                                        source_name=source_name,
                                                        version=self.version,
-                                                       meson_version=self.meson_version))
+                                                       meson_version=self.meson_version,
+                                                       dependencies=self._format_dependencies()))
 
     def create_library(self) -> None:
         lib_name = f'{self.capitalized_token}.{self.source_ext}'
@@ -96,6 +101,7 @@ class ClassImpl(SampleImpl):
                   'test_name': self.lowercase_token,
                   'version': self.version,
                   'meson_version': self.meson_version,
+                  'dependencies': self._format_dependencies(),
                   }
         if not os.path.exists(lib_name):
             with open(lib_name, 'w', encoding='utf-8') as f:
@@ -123,7 +129,8 @@ class FileImpl(SampleImpl):
                                                        exe_name=self.name,
                                                        source_name=source_name,
                                                        version=self.version,
-                                                       meson_version=self.meson_version))
+                                                       meson_version=self.meson_version,
+                                                       dependencies=self._format_dependencies()))
 
     def lib_kwargs(self) -> T.Dict[str, str]:
         """Get Language specific keyword arguments
@@ -145,6 +152,7 @@ class FileImpl(SampleImpl):
             'test_name': self.lowercase_token,
             'version': self.version,
             'meson_version': self.meson_version,
+            'dependencies': self._format_dependencies(),
         }
 
     def create_library(self) -> None:
