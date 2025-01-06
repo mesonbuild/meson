@@ -34,7 +34,15 @@ posargs:
 varargs:
   name: language
   type: str
-  description: The languages that Meson should initialize.
+  description: |
+    Languages that are required for Meson to initialize for both the host and
+    build machines.
+
+    NOTE: If a project can depend on Meson >= 1.9.0 it should strongly consider
+    using the `host_machine_languages` and `build_machine_languages` keyword
+    arguments instead, as most projects likely do not need all of (or any) build
+    machine compilers, and only host machine compilers. This can make building
+    the project easier as only one toolchain is then required.
 
 kwargs:
   default_options:
@@ -124,3 +132,24 @@ kwargs:
       use the default value. It should be noted that this keyword
       argument is ignored inside subprojects. There can be only one
       subproject dir and it is set in the top level Meson file.
+
+  host_machine_languages:
+    type: str | list[str]
+    since: 1.9.0
+    description: |
+      Programming languages that Meson needs to initialize for the host machine.
+
+      When cross compiling, a project may not need to build and binaries to run
+      on the build machine, and as such likely doesn't want to initialize a
+      toolchain for that platform. This is particularly true on Windows, because
+      MSVC is very difficult to configure this way.
+
+  build_machine_languages:
+    type: str | list[str]
+    since: 1.9.0
+    description: |
+      Programming languages that Meson needs to initialize for the build
+      machine.
+
+      If a project needs to build binaries to run at build time, such as
+      code generators.
