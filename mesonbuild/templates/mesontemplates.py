@@ -61,5 +61,6 @@ def create_meson_build(options: Arguments) -> None:
                           sourcespec=sourcespec,
                           depspec=depspec,
                           default_options=formatted_default_options)
-    open('meson.build', 'w', encoding='utf-8').write(content)
+    with open('meson.build', 'w', encoding='utf-8') as f:
+        f.write(content)
     print('Generated meson.build file:\n\n' + content)
