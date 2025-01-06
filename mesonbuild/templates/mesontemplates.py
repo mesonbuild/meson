@@ -51,24 +51,15 @@ def create_meson_build(options: Arguments) -> None:
         depspec += ',\n              '.join(f"dependency('{x}')"
                                             for x in options.deps.split(','))
         depspec += '],'
-    if options.language != 'java':
-        content = meson_executable_template.format(project_name=options.name,
-                                                   language=options.language,
-                                                   version=options.version,
-                                                   meson_version='1.0.0',
-                                                   executable=options.executable,
-                                                   sourcespec=sourcespec,
-                                                   depspec=depspec,
-                                                   default_options=formatted_default_options)
-    else:
-        content = meson_jar_template.format(project_name=options.name,
-                                            language=options.language,
-                                            version=options.version,
-                                            meson_version='1.0.0' if options.language != 'rust' else '1.3.0',
-                                            executable=options.executable,
-                                            main_class=options.name,
-                                            sourcespec=sourcespec,
-                                            depspec=depspec,
-                                            default_options=formatted_default_options)
+    tmpl = meson_executable_template if options.language != 'java' else meson_jar_template
+    content = tmpl.format(project_name=options.name,
+                          language=options.language,
+                          version=options.version,
+                          meson_version='1.0.0' if options.language != 'rust' else '1.3.0',
+                          main_class=options.name,
+                          executable=options.executable,
+                          sourcespec=sourcespec,
+                          depspec=depspec,
+                          default_options=formatted_default_options)
     open('meson.build', 'w', encoding='utf-8').write(content)
     print('Generated meson.build file:\n\n' + content)
