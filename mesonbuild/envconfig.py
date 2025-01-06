@@ -57,6 +57,7 @@ known_cpu_families = (
     's390',
     's390x',
     'sh4',
+    'sm83',
     'sparc',
     'sparc64',
     'sw_64',
