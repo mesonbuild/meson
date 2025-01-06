@@ -8,6 +8,9 @@ import typing as T
 
 from mesonbuild.templates.sampleimpl import FileImpl
 
+if T.TYPE_CHECKING:
+    from ..minit import Arguments
+
 
 lib_rust_template = '''#![crate_name = "{crate_file}"]
 
@@ -35,7 +38,8 @@ mod tests {{
 
 
 lib_rust_meson_template = '''project('{project_name}', 'rust',
-  version : '{version}', meson_version: '>=1.3.0',
+  version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['rust_std=2021', 'warning_level=3'])
 
 rust = import('rust')
@@ -58,7 +62,8 @@ fn main() {{
 '''
 
 hello_rust_meson_template = '''project('{project_name}', 'rust',
-  version : '{version}', meson_version: '>=1.3.0',
+  version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['rust_std=2021', 'warning_level=3'])
 
 exe = executable('{exe_name}', '{source_name}',
@@ -76,6 +81,10 @@ class RustProject(FileImpl):
     lib_template = lib_rust_template
     lib_test_template = None
     lib_meson_template = lib_rust_meson_template
+
+    def __init__(self, args: Arguments):
+        super().__init__(args)
+        self.meson_version = '1.3.0'
 
     def lib_kwargs(self) -> T.Dict[str, str]:
         kwargs = super().lib_kwargs()

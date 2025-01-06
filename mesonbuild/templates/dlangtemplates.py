@@ -26,6 +26,7 @@ int main(string[] args) {{
 
 hello_d_meson_template = '''project('{project_name}', 'd',
     version : '{version}',
+    meson_version : '>= {meson_version}',
     default_options: ['warning_level=3'])
 
 exe = executable('{exe_name}', '{source_name}',
@@ -64,6 +65,7 @@ int main(string[] args) {{
 
 lib_d_meson_template = '''project('{project_name}', 'd',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['warning_level=3'])
 
 stlib = static_library('{lib_name}', '{source_file}',

@@ -20,6 +20,7 @@ class SampleImpl(metaclass=abc.ABCMeta):
         self.lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         self.uppercase_token = self.lowercase_token.upper()
         self.capitalized_token = self.lowercase_token.capitalize()
+        self.meson_version = '1.0.0'
 
     @abc.abstractmethod
     def create_executable(self) -> None:
@@ -67,7 +68,8 @@ class ClassImpl(SampleImpl):
             f.write(self.exe_meson_template.format(project_name=self.name,
                                                    exe_name=self.name,
                                                    source_name=source_name,
-                                                   version=self.version))
+                                                   version=self.version,
+                                                   meson_version=self.meson_version))
 
     def create_library(self) -> None:
         lib_name = f'{self.capitalized_token}.{self.source_ext}'
@@ -83,6 +85,7 @@ class ClassImpl(SampleImpl):
                   'lib_name': self.lowercase_token,
                   'test_name': self.lowercase_token,
                   'version': self.version,
+                  'meson_version': self.meson_version,
                   }
         with open(lib_name, 'w', encoding='utf-8') as f:
             f.write(self.lib_template.format(**kwargs))
@@ -105,7 +108,8 @@ class FileImpl(SampleImpl):
             f.write(self.exe_meson_template.format(project_name=self.name,
                                                    exe_name=self.name,
                                                    source_name=source_name,
-                                                   version=self.version))
+                                                   version=self.version,
+                                                   meson_version=self.meson_version))
 
     def lib_kwargs(self) -> T.Dict[str, str]:
         """Get Language specific keyword arguments
@@ -126,6 +130,7 @@ class FileImpl(SampleImpl):
             'lib_name': self.lowercase_token,
             'test_name': self.lowercase_token,
             'version': self.version,
+            'meson_version': self.meson_version,
         }
 
     def create_library(self) -> None:

@@ -26,6 +26,7 @@ public class {class_name} {{
 
 hello_java_meson_template = '''project('{project_name}', 'java',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['warning_level=3'])
 
 exe = jar('{exe_name}', '{source_name}',
@@ -66,6 +67,7 @@ public class {class_test} {{
 
 lib_java_meson_template = '''project('{project_name}', 'java',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['warning_level=3'])
 
 jarlib = jar('{class_name}', '{source_file}',

@@ -54,6 +54,7 @@ int main(int argc, char **argv) {{
 
 lib_c_meson_template = '''project('{project_name}', 'c',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['warning_level=3'])
 
 # These arguments are only used to build the shared library
@@ -105,6 +106,7 @@ int main(int argc, char **argv) {{
 '''
 
 hello_c_meson_template = '''project('{project_name}', 'c',
+  meson_version : '>= {meson_version}',
   version : '{version}',
   default_options : ['warning_level=3'])
 

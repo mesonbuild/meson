@@ -11,6 +11,7 @@ if T.TYPE_CHECKING:
 
 meson_executable_template = '''project('{project_name}', {language},
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : [{default_options}])
 
 executable('{executable}',
@@ -21,6 +22,7 @@ executable('{executable}',
 
 meson_jar_template = '''project('{project_name}', '{language}',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : [{default_options}])
 
 jar('{executable}',
@@ -54,6 +56,7 @@ def create_meson_build(options: Arguments) -> None:
         content = meson_executable_template.format(project_name=options.name,
                                                    language=language,
                                                    version=options.version,
+                                                   meson_version='1.0.0',
                                                    executable=options.executable,
                                                    sourcespec=sourcespec,
                                                    depspec=depspec,
@@ -62,6 +65,7 @@ def create_meson_build(options: Arguments) -> None:
         content = meson_jar_template.format(project_name=options.name,
                                             language=options.language,
                                             version=options.version,
+                                            meson_version='1.0.0' if options.language != 'rust' else '1.3.0',
                                             executable=options.executable,
                                             main_class=options.name,
                                             sourcespec=sourcespec,

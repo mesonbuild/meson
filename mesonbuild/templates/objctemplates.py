@@ -54,6 +54,7 @@ int main(int argc, char **argv) {{
 
 lib_objc_meson_template = '''project('{project_name}', 'objc',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['warning_level=3'])
 
 # These arguments are only used to build the shared library
@@ -106,6 +107,7 @@ int main(int argc, char **argv) {{
 
 hello_objc_meson_template = '''project('{project_name}', 'objc',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['warning_level=3'])
 
 exe = executable('{exe_name}', '{source_name}',

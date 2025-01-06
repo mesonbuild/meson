@@ -13,6 +13,7 @@ hello_vala_template = '''void main (string[] args) {{
 '''
 
 hello_vala_meson_template = '''project('{project_name}', ['c', 'vala'],
+  meson_version : '>= {meson_version}',
   version : '{version}')
 
 dependencies = [
@@ -48,6 +49,7 @@ public void main() {{
 '''
 
 lib_vala_meson_template = '''project('{project_name}', ['c', 'vala'],
+  meson_version : '>= {meson_version}',
   version : '{version}')
 
 dependencies = [

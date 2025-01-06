@@ -39,6 +39,7 @@ end program
 
 lib_fortran_meson_template = '''project('{project_name}', 'fortran',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['warning_level=3'])
 
 # These arguments are only used to build the shared library
@@ -83,6 +84,7 @@ end program
 
 hello_fortran_meson_template = '''project('{project_name}', 'fortran',
   version : '{version}',
+  meson_version : '>= {meson_version}',
   default_options : ['warning_level=3'])
 
 exe = executable('{exe_name}', '{source_name}',
