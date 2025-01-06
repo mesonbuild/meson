@@ -97,12 +97,9 @@ install_headers('{header_file}', subdir : '{header_dir}')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
-  name : '{project_name}',
-  filebase : '{ltoken}',
+  shlib,
   description : 'Meson sample project.',
   subdirs : '{header_dir}',
-  libraries : shlib,
-  version : '{version}',
 )
 '''
 

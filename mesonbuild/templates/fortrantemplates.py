@@ -79,12 +79,9 @@ meson.override_dependency('{project_name}', {ltoken}_dep)
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
-  name : '{project_name}',
-  filebase : '{ltoken}',
+  shlib,
   description : 'Meson sample project.',
   subdirs : '{header_dir}',
-  libraries : shlib,
-  version : '{version}',
 )
 '''
 
