@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import abc
+import os
 import re
 import typing as T
 
@@ -21,6 +22,7 @@ class SampleImpl(metaclass=abc.ABCMeta):
         self.uppercase_token = self.lowercase_token.upper()
         self.capitalized_token = self.lowercase_token.capitalize()
         self.meson_version = '1.0.0'
+        self.force = args.force
 
     @abc.abstractmethod
     def create_executable(self) -> None:
@@ -67,15 +69,17 @@ class ClassImpl(SampleImpl):
 
     def create_executable(self) -> None:
         source_name = f'{self.capitalized_token}.{self.source_ext}'
-        with open(source_name, 'w', encoding='utf-8') as f:
-            f.write(self.exe_template.format(project_name=self.name,
-                                             class_name=self.capitalized_token))
-        with open('meson.build', 'w', encoding='utf-8') as f:
-            f.write(self.exe_meson_template.format(project_name=self.name,
-                                                   exe_name=self.name,
-                                                   source_name=source_name,
-                                                   version=self.version,
-                                                   meson_version=self.meson_version))
+        if not os.path.exists(source_name):
+            with open(source_name, 'w', encoding='utf-8') as f:
+                f.write(self.exe_template.format(project_name=self.name,
+                                                 class_name=self.capitalized_token))
+        if self.force or not os.path.exists('meson.build'):
+            with open('meson.build', 'w', encoding='utf-8') as f:
+                f.write(self.exe_meson_template.format(project_name=self.name,
+                                                       exe_name=self.name,
+                                                       source_name=source_name,
+                                                       version=self.version,
+                                                       meson_version=self.meson_version))
 
     def create_library(self) -> None:
         lib_name = f'{self.capitalized_token}.{self.source_ext}'
@@ -93,13 +97,15 @@ class ClassImpl(SampleImpl):
                   'version': self.version,
                   'meson_version': self.meson_version,
                   }
-        with open(lib_name, 'w', encoding='utf-8') as f:
-            f.write(self.lib_template.format(**kwargs))
-        if self.lib_test_template:
+        if not os.path.exists(lib_name):
+            with open(lib_name, 'w', encoding='utf-8') as f:
+                f.write(self.lib_template.format(**kwargs))
+        if self.lib_test_template and not os.path.exists(test_name):
             with open(test_name, 'w', encoding='utf-8') as f:
                 f.write(self.lib_test_template.format(**kwargs))
-        with open('meson.build', 'w', encoding='utf-8') as f:
-            f.write(self.lib_meson_template.format(**kwargs))
+        if self.force or not os.path.exists('meson.build'):
+            with open('meson.build', 'w', encoding='utf-8') as f:
+                f.write(self.lib_meson_template.format(**kwargs))
 
 
 class FileImpl(SampleImpl):
@@ -108,14 +114,16 @@ class FileImpl(SampleImpl):
 
     def create_executable(self) -> None:
         source_name = f'{self.lowercase_token}.{self.source_ext}'
-        with open(source_name, 'w', encoding='utf-8') as f:
-            f.write(self.exe_template.format(project_name=self.name))
-        with open('meson.build', 'w', encoding='utf-8') as f:
-            f.write(self.exe_meson_template.format(project_name=self.name,
-                                                   exe_name=self.name,
-                                                   source_name=source_name,
-                                                   version=self.version,
-                                                   meson_version=self.meson_version))
+        if not os.path.exists(source_name):
+            with open(source_name, 'w', encoding='utf-8') as f:
+                f.write(self.exe_template.format(project_name=self.name))
+        if self.force or not os.path.exists('meson.build'):
+            with open('meson.build', 'w', encoding='utf-8') as f:
+                f.write(self.exe_meson_template.format(project_name=self.name,
+                                                       exe_name=self.name,
+                                                       source_name=source_name,
+                                                       version=self.version,
+                                                       meson_version=self.meson_version))
 
     def lib_kwargs(self) -> T.Dict[str, str]:
         """Get Language specific keyword arguments
@@ -143,13 +151,15 @@ class FileImpl(SampleImpl):
         lib_name = f'{self.lowercase_token}.{self.source_ext}'
         test_name = f'{self.lowercase_token}_test.{self.source_ext}'
         kwargs = self.lib_kwargs()
-        with open(lib_name, 'w', encoding='utf-8') as f:
-            f.write(self.lib_template.format(**kwargs))
-        if self.lib_test_template:
+        if not os.path.exists(lib_name):
+            with open(lib_name, 'w', encoding='utf-8') as f:
+                f.write(self.lib_template.format(**kwargs))
+        if self.lib_test_template and not os.path.exists(test_name):
             with open(test_name, 'w', encoding='utf-8') as f:
                 f.write(self.lib_test_template.format(**kwargs))
-        with open('meson.build', 'w', encoding='utf-8') as f:
-            f.write(self.lib_meson_template.format(**kwargs))
+        if self.force or not os.path.exists('meson.build'):
+            with open('meson.build', 'w', encoding='utf-8') as f:
+                f.write(self.lib_meson_template.format(**kwargs))
 
 
 class FileHeaderImpl(FileImpl):
@@ -172,5 +182,6 @@ class FileHeaderImpl(FileImpl):
     def create_library(self) -> None:
         super().create_library()
         kwargs = self.lib_kwargs()
-        with open(kwargs['header_file'], 'w', encoding='utf-8') as f:
-            f.write(self.lib_header_template.format_map(kwargs))
+        if not os.path.exists(kwargs['header_file']):
+            with open(kwargs['header_file'], 'w', encoding='utf-8') as f:
+                f.write(self.lib_header_template.format_map(kwargs))
