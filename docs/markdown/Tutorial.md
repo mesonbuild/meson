@@ -46,7 +46,7 @@ Then we create a Meson build description and put it in a file called
 `meson.build` in the same directory. Its contents are the following.
 
 ```meson
-project('tutorial', 'c')
+project('tutorial', host_machine_languages : 'c')
 executable('demo', 'main.c')
 ```
 
@@ -160,7 +160,7 @@ Then we edit the Meson file, instructing it to find and use the GTK+
 libraries.
 
 ```meson
-project('tutorial', 'c')
+project('tutorial', host_machine_languages : 'c')
 gtkdep = dependency('gtk+-3.0')
 executable('demo', 'main.c', dependencies : gtkdep)
 ```

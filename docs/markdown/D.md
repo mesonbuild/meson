@@ -9,7 +9,7 @@ Meson has support for compiling D programs. A minimal `meson.build`
 file for D looks like this:
 
 ```meson
-project('myapp', 'd')
+project('myapp', host_machine_languages : 'd')
 
 executable('myapp', 'app.d')
 ```
@@ -22,7 +22,7 @@ feature for conditional compilation, you can use it using the
 `d_module_versions` target property:
 
 ```meson
-project('myapp', 'd')
+project('myapp', host_machine_languages : 'd')
 executable('myapp', 'app.d', d_module_versions: ['Demo', 'FeatureA'])
 ```
 
@@ -31,7 +31,7 @@ conditions are compiled automatically in debug builds, and extra
 identifiers can be added with the `d_debug` argument:
 
 ```meson
-project('myapp', 'd')
+project('myapp', host_machine_languages : 'd')
 executable('myapp', 'app.d', d_debug: [3, 'DebugFeatureA'])
 ```
 
@@ -66,7 +66,7 @@ GNU D compiler does not have this feature.
 
 This is an example for using D unittests with Meson:
 ```meson
-project('myapp_tested', 'd')
+project('myapp_tested', host_machine_languages : 'd')
 
 myapp_src = ['app.d', 'alpha.d', 'beta.d']
 executable('myapp', myapp_src)
@@ -84,7 +84,7 @@ find the dependency once it is installed.
 
 This is an example on how to build a D shared library:
 ```meson
-project('mylib', 'd', version: '1.2.0')
+project('mylib', host_machine_languages : 'd', version: '1.2.0')
 
 project_soversion = 0
 glib_dep = dependency('glib-2.0')
@@ -121,7 +121,7 @@ confusing errors.
 This is an example of how to use the D library we just built and
 installed in an application:
 ```meson
-project('myapp', 'd')
+project('myapp', host_machine_languages : 'd')
 
 mylib_dep = dependency('mylib', version: '>= 1.2.0')
 myapp_src = ['app.d', 'alpha.d', 'beta.d']

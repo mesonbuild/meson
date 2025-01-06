@@ -33,7 +33,7 @@ As an example, suppose we have a simple project that provides a shared
 library. Its `meson.build` would look like this.
 
 ```meson
-project('libsimple', 'c')
+project('libsimple', host_machine_languages : 'c')
 
 inc = include_directories('include')
 libsimple = shared_library('simple',
@@ -108,7 +108,7 @@ Then copy `libsimple` into `subprojects` directory.
 Your project's `meson.build` should look like this.
 
 ```meson
-project('my_project', 'cpp')
+project('my_project', host_machine_languages : 'cpp')
 
 libsimple_proj = subproject('libsimple')
 libsimple_dep = libsimple_proj.get_variable('libsimple_dep')
@@ -135,7 +135,7 @@ Here's how you would use system libraries and fall back to embedding sources
 if the dependency is not available.
 
 ```meson
-project('my_project', 'cpp')
+project('my_project', host_machine_languages : 'cpp')
 
 libsimple_dep = dependency('libsimple', required : false)
 
@@ -166,7 +166,7 @@ method described above.
 Using this shortcut the build definition would look like this.
 
 ```meson
-project('my_project', 'cpp')
+project('my_project', host_machine_languages : 'cpp')
 
 libsimple_dep = dependency('libsimple', fallback : ['libsimple', 'libsimple_dep'])
 
