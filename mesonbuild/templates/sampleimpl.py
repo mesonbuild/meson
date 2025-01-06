@@ -30,27 +30,33 @@ class SampleImpl(metaclass=abc.ABCMeta):
     def create_library(self) -> None:
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def exe_template(self) -> str:
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def exe_meson_template(self) -> str:
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def lib_template(self) -> str:
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def lib_test_template(self) -> T.Optional[str]:
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def lib_meson_template(self) -> str:
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def source_ext(self) -> str:
         pass
 
@@ -148,11 +154,13 @@ class FileImpl(SampleImpl):
 
 class FileHeaderImpl(FileImpl):
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def header_ext(self) -> str:
         pass
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def lib_header_template(self) -> str:
         pass
 
