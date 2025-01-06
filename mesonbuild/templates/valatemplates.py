@@ -12,7 +12,7 @@ hello_vala_template = '''void main (string[] args) {{
 }}
 '''
 
-hello_vala_meson_template = '''project('{project_name}', ['c', 'vala'],
+hello_vala_meson_template = '''project('{project_name}', 'vala',
   meson_version : '>= {meson_version}',
   version : '{version}')
 
@@ -48,7 +48,7 @@ public void main() {{
 }}
 '''
 
-lib_vala_meson_template = '''project('{project_name}', ['c', 'vala'],
+lib_vala_meson_template = '''project('{project_name}', 'vala',
   meson_version : '>= {meson_version}',
   version : '{version}')
 

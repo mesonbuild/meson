@@ -52,9 +52,8 @@ def create_meson_build(options: Arguments) -> None:
                                             for x in options.deps.split(','))
         depspec += '],'
     if options.language != 'java':
-        language = f"'{options.language}'" if options.language != 'vala' else ['c', 'vala']
         content = meson_executable_template.format(project_name=options.name,
-                                                   language=language,
+                                                   language=options.language,
                                                    version=options.version,
                                                    meson_version='1.0.0',
                                                    executable=options.executable,
