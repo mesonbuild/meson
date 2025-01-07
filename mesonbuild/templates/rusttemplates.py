@@ -50,20 +50,20 @@ rust = import('rust')
 dependencies = [{dependencies}
 ]
 
-shlib = static_library(
+lib = static_library(
   '{lib_name}',
   '{source_file}',
   dependencies : dependencies,
   install : true,
 )
 
-rust.test('{test_name}', shlib)
+rust.test('{test_name}', lib)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
   dependencies : dependencies,
-  link_with : shlib,
+  link_with : lib,
 )
 meson.override_dependency('{project_name}', {ltoken}_dep)
 '''

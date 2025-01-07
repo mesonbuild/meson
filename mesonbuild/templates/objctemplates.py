@@ -3,8 +3,12 @@
 # Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
+import typing as T
 
 from mesonbuild.templates.sampleimpl import FileHeaderImpl
+
+if T.TYPE_CHECKING:
+    from ..minit import Arguments
 
 
 lib_h_template = '''#pragma once
@@ -67,11 +71,11 @@ dependencies = [{dependencies}
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
-shlib = shared_library(
+lib = library(
   '{lib_name}',
   '{source_file}',
   install : true,
-  objc_args : lib_args,
+  objc_shared_args : lib_args,
   dependencies : dependencies,
   gnu_symbol_visibility : 'hidden',
 )
@@ -80,14 +84,14 @@ test_exe = executable(
   '{test_exe_name}',
   '{test_source_file}',
   dependencies : dependencies,
-  link_with : shlib)
+  link_with : lib)
 test('{test_name}', test_exe)
 
 # Make this library usable as a Meson subproject.
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
   dependencies : dependencies,
-  link_with : shlib,
+  link_with : lib,
 )
 meson.override_dependency('{project_name}', {ltoken}_dep)
 
@@ -97,7 +101,7 @@ install_headers('{header_file}', subdir : '{header_dir}')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
-  shlib,
+  lib,
   description : 'Meson sample project.',
   subdirs : '{header_dir}',
 )
@@ -149,3 +153,7 @@ class ObjCProject(FileHeaderImpl):
     lib_header_template = lib_h_template
     lib_test_template = lib_objc_test_template
     lib_meson_template = lib_objc_meson_template
+
+    def __init__(self, args: Arguments):
+        super().__init__(args)
+        self.meson_version = '1.3.0'

@@ -3,8 +3,12 @@
 # Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
+import typing as T
 
 from mesonbuild.templates.sampleimpl import FileImpl
+
+if T.TYPE_CHECKING:
+    from ..minit import Arguments
 
 lib_fortran_template = '''
 ! This procedure will not be exported and is not
@@ -52,11 +56,11 @@ lib_args = ['-DBUILDING_{utoken}']
 dependencies = [{dependencies}
 ]
 
-shlib = shared_library(
+lib = library(
   '{lib_name}',
   '{source_file}',
   install : true,
-  fortran_args : lib_args,
+  fortran_shared_args : lib_args,
   gnu_symbol_visibility : 'hidden',
   dependencies : dependencies,
 )
@@ -64,7 +68,7 @@ shlib = shared_library(
 test_exe = executable(
   '{test_exe_name}',
   '{test_source_file}',
-  link_with : shlib,
+  link_with : lib,
   dependencies : dependencies,
 )
 test('{test_name}', test_exe)
@@ -73,13 +77,13 @@ test('{test_name}', test_exe)
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
   dependencies : dependencies,
-  link_with : shlib,
+  link_with : lib,
 )
 meson.override_dependency('{project_name}', {ltoken}_dep)
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
-  shlib,
+  lib,
   description : 'Meson sample project.',
   subdirs : '{header_dir}',
 )
@@ -125,3 +129,7 @@ class FortranProject(FileImpl):
     lib_template = lib_fortran_template
     lib_meson_template = lib_fortran_meson_template
     lib_test_template = lib_fortran_test_template
+
+    def __init__(self, args: Arguments):
+        super().__init__(args)
+        self.meson_version = '1.3.0'

@@ -69,7 +69,7 @@ dependencies = [
 
 # These arguments are only used to build the shared library
 # not the executables that use the library.
-shlib = shared_library(
+lib = shared_library(
   'foo',
   '{source_file}',
   dependencies : dependencies,
@@ -81,7 +81,7 @@ test_exe = executable(
   '{test_exe_name}',
   '{test_source_file}',
   dependencies : dependencies,
-  link_with : shlib,
+  link_with : lib,
 )
 test('{test_name}', test_exe)
 
@@ -89,7 +89,7 @@ test('{test_name}', test_exe)
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
   dependencies : dependencies,
-  link_with : shlib,
+  link_with : lib,
 )
 meson.override_dependency('{project_name}', {ltoken}_dep)
 

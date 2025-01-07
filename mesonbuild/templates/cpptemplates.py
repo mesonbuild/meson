@@ -3,9 +3,12 @@
 # Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
+import typing as T
 
 from mesonbuild.templates.sampleimpl import FileHeaderImpl
 
+if T.TYPE_CHECKING:
+    from ..minit import Arguments
 
 hello_cpp_template = '''#include <iostream>
 
@@ -118,11 +121,11 @@ dependencies = [{dependencies}
 # not the executables that use the library.
 lib_args = ['-DBUILDING_{utoken}']
 
-shlib = shared_library(
+lib = library(
   '{lib_name}',
   '{source_file}',
   install : true,
-  cpp_args : lib_args,
+  cpp_shared_args : lib_args,
   gnu_symbol_visibility : 'hidden',
   dependencies : dependencies,
 )
@@ -131,7 +134,7 @@ test_exe = executable(
   '{test_exe_name}',
   '{test_source_file}',
   dependencies : dependencies,
-  link_with : shlib,
+  link_with : lib,
 )
 test('{test_name}', test_exe)
 
@@ -139,7 +142,7 @@ test('{test_name}', test_exe)
 {ltoken}_dep = declare_dependency(
   include_directories : include_directories('.'),
   dependencies : dependencies,
-  link_with : shlib,
+  link_with : lib,
 )
 meson.override_dependency('{project_name}', {ltoken}_dep)
 
@@ -149,7 +152,7 @@ install_headers('{header_file}', subdir : '{header_dir}')
 
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
-  shlib,
+  lib,
   description : 'Meson sample project.',
   subdirs : '{header_dir}',
 )
@@ -166,3 +169,7 @@ class CppProject(FileHeaderImpl):
     lib_header_template = lib_hpp_template
     lib_test_template = lib_cpp_test_template
     lib_meson_template = lib_cpp_meson_template
+
+    def __init__(self, args: Arguments):
+        super().__init__(args)
+        self.meson_version = '1.3.0'
