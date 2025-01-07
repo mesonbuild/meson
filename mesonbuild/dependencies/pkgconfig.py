@@ -258,9 +258,12 @@ class PkgConfigCLI(PkgConfigInterface):
         key = OptionKey('pkg_config_path', machine=self.for_machine)
         extra_paths: T.List[str] = self.env.coredata.optstore.get_value(key)[:]
         if uninstalled:
-            uninstalled_path = Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix()
-            if uninstalled_path not in extra_paths:
-                extra_paths.insert(0, uninstalled_path)
+            bpath = self.env.get_build_dir()
+            if bpath is not None:
+                # uninstalled can only be used if a build dir exists.
+                uninstalled_path = Path(bpath, 'meson-uninstalled').as_posix()
+                if uninstalled_path not in extra_paths:
+                    extra_paths.insert(0, uninstalled_path)
         env.set('PKG_CONFIG_PATH', extra_paths)
         sysroot = self.env.properties[self.for_machine].get_sys_root()
         if sysroot:
