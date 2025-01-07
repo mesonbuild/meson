@@ -1364,7 +1364,8 @@ class BuildTarget(Target):
                                                               [],
                                                               dep.get_compile_args(),
                                                               dep.get_link_args(),
-                                                              [], [], [], [], [], {}, [], [], [])
+                                                              [], [], [], [], [], {}, [], [], [],
+                                                              dep.name)
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)
