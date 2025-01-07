@@ -164,6 +164,15 @@ python3 -m pip install "${base_python_pkgs[@]}"
 
 echo "source /etc/profile" >> /ci/env_vars.sh
 
+# For inexplicable reasons, Gentoo only packages valac as valac-$(version) so
+# no software can locate it. Parse the installed version out of portage and
+# export it to meson.
+VALA_VER=$(portageq best_version / dev-lang/vala)
+VALA_VER=${VALA_VER#dev-lang/vala-}
+VALA_VER=${VALA_VER%.*}
+echo "export VALAC=/usr/bin/valac-${VALA_VER}" >> /ci/env_vars.sh
+echo "export VAPIGEN=/usr/bin/vapigen-${VALA_VER}" >> /ci/env_vars.sh
+
 # Cleanup to avoid including large contents in the docker image.
 # We don't need cache files that are side artifacts of installing packages.
 # We also don't need the gentoo tree -- the official docker image doesn't
