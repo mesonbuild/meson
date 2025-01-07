@@ -626,7 +626,7 @@ class InternalTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
-            env = get_fake_env()
+            env = get_fake_env(bdir='.')
             compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
             env.coredata.optstore.set_value_object(OptionKey('c_link_args'), FakeCompilerOptions())

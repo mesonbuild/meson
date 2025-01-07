@@ -128,6 +128,8 @@ class PkgConfigCLI(PkgConfigInterface):
         self._detect_pkgbin(pkgbin)
         if self.pkgbin and not silent:
             mlog.log('Found pkg-config:', mlog.green('YES'), mlog.bold(f'({self.pkgbin.get_path()})'), mlog.blue(self.pkgbin_version))
+        if self.env.get_build_dir() is None:
+            raise MesonException('Build dir missing from enviroment object.')
 
     def found(self) -> bool:
         return bool(self.pkgbin)
