@@ -123,7 +123,7 @@ class ExternalProgram(mesonlib.HoldableObject):
             if not output:
                 output = e.strip()
 
-            match = re.search(r'([0-9](\.[0-9]+)+)', output)
+            match = re.search(r'([0-9]+(\.[0-9]+)+)', output)
             if not match:
                 match = re.search(r'([0-9][0-9\.]+)', output)
             if not match:

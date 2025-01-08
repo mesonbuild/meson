@@ -689,6 +689,7 @@ class InternalTests(unittest.TestCase):
                     'foo 1.2.4.': '1.2.4',
                     'foo 1.2.4': '1.2.4',
                     'foo 1.2.4 bar': '1.2.4',
+                    'foo 10.0.0': '10.0.0',
                     '50 5.4.0': '5.4.0',
                     'This is perl 5, version 40, subversion 0 (v5.40.0)': '5.40.0',
                     'git version 2.48.0.rc1': '2.48.0',
