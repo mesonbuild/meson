@@ -226,6 +226,9 @@ class NinjaRule:
         self.refcount = 0
         self.rsprefcount = 0
         self.rspfile_quote_style = rspfile_quote_style
+        self.command_str = ' '.join([self._quoter(x) for x in self.command + self.args])
+        self.var_refs = [m for m in re.finditer(r'(\${\w+}|\$\w+)?[^$]*', self.command_str)
+                         if m.start(1) != -1]
 
         if self.depfile == '$DEPFILE':
             self.depfile += '_UNQUOTED'
@@ -262,7 +265,7 @@ class NinjaRule:
                 outfile.write(' rspfile = $out.rsp\n')
                 outfile.write(' rspfile_content = {}\n'.format(' '.join([self._quoter(x, rspfile_quote_func) for x in rspfile_args])))
             else:
-                outfile.write(' command = {}\n'.format(' '.join([self._quoter(x) for x in self.command + self.args])))
+                outfile.write(' command = {}\n'.format(self.command_str))
             if self.deps:
                 outfile.write(f' deps = {self.deps}\n')
             if self.depfile:
@@ -289,18 +292,16 @@ class NinjaRule:
         ninja_vars['out'] = [outfiles]
 
         # expand variables in command
-        command = ' '.join([self._quoter(x) for x in self.command + self.args])
-        estimate = len(command)
-        for m in re.finditer(r'(\${\w+}|\$\w+)?[^$]*', command):
-            if m.start(1) != -1:
-                estimate -= m.end(1) - m.start(1)
-                chunk = m.group(1)
-                if chunk[1] == '{':
-                    chunk = chunk[2:-1]
-                else:
-                    chunk = chunk[1:]
-                chunk = ninja_vars.get(chunk, []) # undefined ninja variables are empty
-                estimate += len(' '.join(chunk))
+        estimate = len(self.command_str)
+        for m in self.var_refs:
+            estimate -= m.end(1) - m.start(1)
+            chunk = m.group(1)
+            if chunk[1] == '{':
+                chunk = chunk[2:-1]
+            else:
+                chunk = chunk[1:]
+            chunk = ninja_vars.get(chunk, []) # undefined ninja variables are empty
+            estimate += len(' '.join(chunk))
 
         # determine command length
         return estimate
