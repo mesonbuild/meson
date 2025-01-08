@@ -1500,7 +1500,7 @@ class BuildTarget(Target):
         if not self.uses_rust() and links_with_rust_abi:
             raise InvalidArguments(f'Try to link Rust ABI library {t.name!r} with a non-Rust target {self.name!r}')
         if self.for_machine is not t.for_machine and (not links_with_rust_abi or t.rust_crate_type != 'proc-macro'):
-            msg = f'Tried to tied to mix a {t.for_machine} library ("{t.name}") with a {self.for_machine} target "{self.name}"'
+            msg = f'Tried to mix a {t.for_machine} library ("{t.name}") with a {self.for_machine} target "{self.name}"'
             if self.environment.is_cross_build():
                 raise InvalidArguments(msg + ' This is not possible in a cross build.')
             else:
