@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -351,6 +351,7 @@ class NinjaBuildElement:
         if name == 'DEPFILE':
             self.elems.append((name + '_UNQUOTED', elems))
 
+    @mesonlib.lazy_property
     def _should_use_rspfile(self) -> bool:
         # 'phony' is a rule built-in to ninja
         if self.rulename == 'phony':
@@ -368,7 +369,7 @@ class NinjaBuildElement:
 
     def count_rule_references(self) -> None:
         if self.rulename != 'phony':
-            if self._should_use_rspfile():
+            if self._should_use_rspfile:
                 self.rule.rsprefcount += 1
             else:
                 self.rule.refcount += 1
@@ -381,7 +382,7 @@ class NinjaBuildElement:
         implicit_outs = ' '.join([ninja_quote(i, True) for i in self.implicit_outfilenames])
         if implicit_outs:
             implicit_outs = ' | ' + implicit_outs
-        use_rspfile = self._should_use_rspfile()
+        use_rspfile = self._should_use_rspfile
         if use_rspfile:
             rulename = self.rulename + '_RSP'
             mlog.debug(f'Command line for building {self.outfilenames} is long, using a response file')
