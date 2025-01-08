@@ -130,6 +130,7 @@ __all__ = [
     'is_wsl',
     'iter_regexin_iter',
     'join_args',
+    'lazy_property',
     'listify',
     'listify_array_value',
     'partition',
@@ -2379,3 +2380,22 @@ def first(iter: T.Iterable[_T], predicate: T.Callable[[_T], bool]) -> T.Optional
         if predicate(i):
             return i
     return None
+
+
+class lazy_property(T.Generic[_T]):
+    """Descriptor that replaces the function it wraps with the value generated.
+
+    This property will only be calculated the first time it's queried, and will
+    be cached and the cached value used for subsequent calls.
+
+    This works by shadowing itself with the calculated value, in the instance.
+    Due to Python's MRO that means that the calculated value will be found
+    before this property, speeding up subsequent lookups.
+    """
+    def __init__(self, func: T.Callable[[T.Any], _T]):
+        self.__func = func
+
+    def __get__(self, instance: object, cls: T.Type) -> _T:
+        value = self.__func(instance)
+        setattr(instance, self.__func.__name__, value)
+        return value
