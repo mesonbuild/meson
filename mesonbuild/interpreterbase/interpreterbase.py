@@ -655,8 +655,6 @@ class InterpreterBase:
                 raise mesonlib.MesonBugException(f'set_variable in InterpreterBase called with a non InterpreterObject {variable} of type {type(variable).__name__}')
         if not isinstance(varname, str):
             raise InvalidCode('First argument to set_variable must be a string.')
-        if re.match('[_a-zA-Z][_0-9a-zA-Z]*$', varname) is None:
-            raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
             raise InvalidCode(f'Tried to overwrite internal variable "{varname}"')
         self.variables[varname] = variable

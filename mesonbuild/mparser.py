@@ -94,6 +94,9 @@ class Token(T.Generic[TV_TokenTypes]):
             return self.tid == other.tid
         return NotImplemented
 
+
+IDENT_RE = re.compile('[_a-zA-Z][_0-9a-zA-Z]*')
+
 class Lexer:
     def __init__(self, code: str):
         if code.startswith(codecs.BOM_UTF8.decode('utf-8')):
@@ -113,7 +116,7 @@ class Lexer:
             ('whitespace', re.compile(r'[ \t]+')),
             ('multiline_fstring', re.compile(r"f'''(.|\n)*?'''", re.M)),
             ('fstring', re.compile(r"f'([^'\\]|(\\.))*'")),
-            ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
+            ('id', IDENT_RE),
             ('number', re.compile(r'0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|0|[1-9]\d*')),
             ('eol_cont', re.compile(r'\\[ \t]*(#.*)?\n')),
             ('eol', re.compile(r'\n')),

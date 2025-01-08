@@ -3520,6 +3520,8 @@ class Interpreter(InterpreterBase, HoldableObject):
     @noSecondLevelHolderResolving
     def func_set_variable(self, node: mparser.BaseNode, args: T.Tuple[str, object], kwargs: 'TYPE_kwargs') -> None:
         varname, value = args
+        if mparser.IDENT_RE.fullmatch(varname) is None:
+            raise InvalidCode('Invalid variable name: ' + varname)
         self.set_variable(varname, value, holderify=True)
 
     @typed_pos_args('get_variable', (str, Disabler), optargs=[object])
