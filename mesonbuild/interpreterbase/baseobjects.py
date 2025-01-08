@@ -15,15 +15,10 @@ from abc import ABCMeta
 from contextlib import AbstractContextManager
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol, TypeAlias
+    from typing_extensions import TypeAlias
 
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
-
-    __T = T.TypeVar('__T', bound='TYPE_var', contravariant=True)
-
-    class OperatorCall(Protocol[__T]):
-        def __call__(self, other: __T) -> 'TYPE_var': ...
 
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
@@ -34,6 +29,8 @@ TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
 TYPE_kwargs = T.Dict[str, TYPE_var]
 TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
+TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
+TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
 
 SubProject = T.NewType('SubProject', str)
 
@@ -43,12 +40,12 @@ class InterpreterObject:
             str,
             T.Callable[[T.List[TYPE_var], TYPE_kwargs], TYPE_var]
         ] = {}
-        self.operators: T.Dict[MesonOperator, 'OperatorCall'] = {}
+        self.operators: T.Dict[MesonOperator, TYPE_op_func] = {}
         self.trivial_operators: T.Dict[
             MesonOperator,
             T.Tuple[
                 T.Union[T.Type, T.Tuple[T.Type, ...]],
-                'OperatorCall'
+                TYPE_op_func
             ]
         ] = {}
         # Current node set during a method call. This can be used as location
@@ -58,8 +55,8 @@ class InterpreterObject:
 
         # Some default operators supported by all objects
         self.operators.update({
-            MesonOperator.EQUALS: self.op_equals,
-            MesonOperator.NOT_EQUALS: self.op_not_equals,
+            MesonOperator.EQUALS: self.__class__.op_equals,
+            MesonOperator.NOT_EQUALS: self.__class__.op_not_equals,
         })
 
     # The type of the object that can be printed to the user
@@ -88,9 +85,10 @@ class InterpreterObject:
                 raise MesonBugException(f'The unary operator `{operator.value}` of {self.display_name()} was passed the object {other} of type {type(other).__name__}')
             if op[0] is not None and not isinstance(other, op[0]):
                 raise InvalidArguments(f'The `{operator.value}` operator of {self.display_name()} does not accept objects of type {type(other).__name__} ({other})')
-            return op[1](other)
+            return op[1](self, other)
         if operator in self.operators:
-            return self.operators[operator](other)
+            return self.operators[operator](self, other)
+
         raise InvalidCode(f'Object {self} of type {self.display_name()} does not support the `{operator.value}` operator.')
 
     # Default comparison operator support
