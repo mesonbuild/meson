@@ -240,6 +240,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
                 return linkers.MetrowerksStaticLinkerARM(linker)
             else:
                 return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker)
+        if 'TASKING VX-toolset' in err:
+            return linkers.TaskingStaticLinker(linker)
         if p.returncode == 0:
             return linkers.ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
@@ -604,6 +606,23 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
 
             return cls(
                 ccache, compiler, compiler_version, for_machine, is_cross, info,
+                full_version=full_version, linker=linker)
+        if 'TASKING VX-toolset' in err:
+            cls = c.TaskingCCompiler
+            lnk = linkers.TaskingLinker
+
+            tasking_ver_match = re.search(r'v([0-9]+)\.([0-9]+)r([0-9]+) Build ([0-9]+)', err)
+            assert tasking_ver_match is not None, 'for mypy'
+            tasking_version = '.'.join(x for x in tasking_ver_match.groups() if x is not None)
+
+            env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+            ld = env.lookup_binary_entry(for_machine, cls.language + '_ld')
+            if ld is None:
+                raise MesonException(f'{cls.language}_ld was not properly defined in your cross file')
+
+            linker = lnk(ld, for_machine, version=tasking_version)
+            return cls(
+                ccache, compiler, tasking_version, for_machine, is_cross, info,
                 full_version=full_version, linker=linker)
 
     _handle_exceptions(popen_exceptions, compilers)

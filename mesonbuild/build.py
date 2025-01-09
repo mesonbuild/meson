@@ -2019,6 +2019,8 @@ class Executable(BuildTarget):
             elif ('c' in self.compilers and self.compilers['c'].get_id() in {'mwccarm', 'mwcceppc'} or
                   'cpp' in self.compilers and self.compilers['cpp'].get_id() in {'mwccarm', 'mwcceppc'}):
                 self.suffix = 'nef'
+            elif ('c' in self.compilers and self.compilers['c'].get_id() == 'tasking'):
+                self.suffix = 'elf'
             else:
                 self.suffix = machine.get_exe_suffix()
         self.filename = self.name
@@ -2174,7 +2176,10 @@ class StaticLibrary(BuildTarget):
                 elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
             else:
-                self.suffix = 'a'
+                if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking':
+                    self.suffix = 'ma' if self.options.get_value('b_lto') and not self.prelink else 'a'
+                else:
+                    self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs[0] = self.filename
 

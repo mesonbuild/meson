@@ -49,6 +49,7 @@ These are return values of the `get_id` (Compiler family) and
 | armasm    | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) | |
 | mwasmarm        | Metrowerks Assembler for Embedded ARM | |
 | mwasmeppc       | Metrowerks Assembler for Embedded PowerPC | |
+| tasking         | TASKING VX-toolset     | |
 
 ## Linker ids
 
@@ -80,6 +81,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | ccomp      | CompCert used as the linker driver          |
 | mwldarm    | The Metrowerks Linker with the ARM interface, used with mwccarm only |
 | mwldeppc   | The Metrowerks Linker with the PowerPC interface, used with mwcceppc only |
+| tasking    | TASKING VX-toolset                          |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
@@ -139,6 +141,7 @@ set in the cross file.
 | wasm64              | 64 bit Webassembly       |
 | x86                 | 32 bit x86 processor     |
 | x86_64              | 64 bit x86 processor     |
+| tricore             | Tricore 32 bit processor |
 
 
 Any cpu family not listed in the above list is not guaranteed to
