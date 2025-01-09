@@ -250,6 +250,7 @@ class RunCommand(TypedDict):
 
     check: bool
     capture: T.Optional[bool]
+    console: T.Optional[bool]
     env: EnvironmentVariables
 
 
