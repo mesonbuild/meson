@@ -33,7 +33,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         Tests that find_program() with a relative path does not find the program
         in current workdir.
         '''
-        testdir = os.path.join(self.unit_test_dir, '100 relative find program')
+        testdir = os.path.join(self.unit_test_dir, '101 relative find program')
         self.init(testdir, workdir=testdir)
 
     def test_invalid_option_names(self):
@@ -92,11 +92,11 @@ class PlatformAgnosticTests(BasePlatformTests):
                                interp.process, fname)
 
     def test_python_dependency_without_pkgconfig(self):
-        testdir = os.path.join(self.unit_test_dir, '102 python without pkgconfig')
+        testdir = os.path.join(self.unit_test_dir, '103 python without pkgconfig')
         self.init(testdir, override_envvars={'PKG_CONFIG': 'notfound'})
 
     def test_debug_function_outputs_to_meson_log(self):
-        testdir = os.path.join(self.unit_test_dir, '104 debug function')
+        testdir = os.path.join(self.unit_test_dir, '105 debug function')
         log_msg = 'This is an example debug output, should only end up in debug log'
         output = self.init(testdir)
 
@@ -108,7 +108,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn(log_msg, mesonlog)
 
     def test_new_subproject_reconfigure(self):
-        testdir = os.path.join(self.unit_test_dir, '108 new subproject on reconfigure')
+        testdir = os.path.join(self.unit_test_dir, '109 new subproject on reconfigure')
         self.init(testdir)
         self.build()
 
@@ -267,7 +267,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         thing to do as new features are added, but keeping track of them is
         good.
         '''
-        testdir = os.path.join(self.unit_test_dir, '116 empty project')
+        testdir = os.path.join(self.unit_test_dir, '117 empty project')
 
         self.init(testdir)
         self._run(self.meson_command + ['--internal', 'regenerate', '--profile-self', testdir, self.builddir])
@@ -282,7 +282,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_meson_package_cache_dir(self):
         # Copy testdir into temporary directory to not pollute meson source tree.
-        testdir = os.path.join(self.unit_test_dir, '118 meson package cache dir')
+        testdir = os.path.join(self.unit_test_dir, '119 meson package cache dir')
         srcdir = os.path.join(self.builddir, 'srctree')
         shutil.copytree(testdir, srcdir)
         builddir = os.path.join(srcdir, '_build')
@@ -291,7 +291,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_cmake_openssl_not_found_bug(self):
         """Issue #12098"""
-        testdir = os.path.join(self.unit_test_dir, '119 openssl cmake bug')
+        testdir = os.path.join(self.unit_test_dir, '120 openssl cmake bug')
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
@@ -401,7 +401,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn(f'Did you mean to run meson from the directory: "{testdir}"?', out)
 
     def test_reconfigure_base_options(self):
-        testdir = os.path.join(self.unit_test_dir, '122 reconfigure base options')
+        testdir = os.path.join(self.unit_test_dir, '123 reconfigure base options')
         out = self.init(testdir, extra_args=['-Db_ndebug=true'])
         self.assertIn('\nMessage: b_ndebug: true\n', out)
         self.assertIn('\nMessage: c_std: c89\n', out)
@@ -511,7 +511,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertEqual(self.getconf('subproject:new_option'), True)
 
     def test_mtest_rebuild_deps(self):
-        testdir = os.path.join(self.unit_test_dir, '106 underspecified mtest')
+        testdir = os.path.join(self.unit_test_dir, '107 underspecified mtest')
         self.init(testdir)
 
         with self.assertRaises(subprocess.CalledProcessError):
