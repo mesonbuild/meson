@@ -6,7 +6,7 @@ if not dub_exe.found()
 endif
 
 dub_ver = dub_exe.version()
-if dub_ver.version_compare('>1.31.1') and dub_ver.version_compare('<1.35.0')
+if dub_ver.version_compare('>1.31.1', '<1.35.0')
   error('MESON_SKIP_TEST: Incompatible Dub version')
 endif
 
