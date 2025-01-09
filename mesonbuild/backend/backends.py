@@ -825,6 +825,7 @@ class Backend:
         return tuple(result)
 
     @staticmethod
+    @lru_cache(maxsize=None)
     def canonicalize_filename(fname: str) -> str:
         parts = Path(fname).parts
         hashed = ''
