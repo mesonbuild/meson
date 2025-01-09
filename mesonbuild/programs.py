@@ -145,6 +145,7 @@ class ExternalProgram(Program):
             if interpreter:
                 res = interpreter.run_command_impl((self, [self.version_arg]),
                                                    {'capture': True,
+                                                    'console': False,
                                                     'check': True,
                                                     'env': mesonlib.EnvironmentVariables()},
                                                    True)
