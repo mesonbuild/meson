@@ -500,7 +500,12 @@ class Backend:
                     objs, d = self._flatten_object_list(obj.target, obj.objlist, proj_dir_to_build_root)
                     obj_list.extend(objs)
                     deps.extend(d)
-                obj_list.extend(self._determine_ext_objs(obj, proj_dir_to_build_root))
+                new_objs = self._determine_ext_objs(obj)
+                if proj_dir_to_build_root:
+                    for o in new_objs:
+                        obj_list.append(os.path.join(proj_dir_to_build_root, o))
+                else:
+                    obj_list.extend(new_objs)
                 deps.append(obj.target)
             else:
                 raise MesonException('Unknown data type in object list.')
@@ -884,7 +889,7 @@ class Backend:
             return os.path.join(targetdir, ret)
         return ret
 
-    def _determine_ext_objs(self, extobj: 'build.ExtractedObjects', proj_dir_to_build_root: str) -> T.List[str]:
+    def _determine_ext_objs(self, extobj: 'build.ExtractedObjects') -> T.List[str]:
         result: T.List[str] = []
 
         targetdir = self.get_target_private_dir(extobj.target)
@@ -910,7 +915,7 @@ class Backend:
                 compiler = extobj.target.compilers[lang]
                 if compiler.get_argument_syntax() == 'msvc':
                     objname = self.get_msvc_pch_objname(lang, pch)
-                    result.append(os.path.join(proj_dir_to_build_root, targetdir, objname))
+                    result.append(os.path.join(targetdir, objname))
 
         # extobj could contain only objects and no sources
         if not sources:
@@ -937,8 +942,7 @@ class Backend:
         for osrc in sources:
             compiler = get_compiler_for_source(extobj.target.compilers.values(), osrc)
             objname = self.object_filename_from_source(extobj.target, compiler, osrc, targetdir)
-            objpath = os.path.join(proj_dir_to_build_root, objname)
-            result.append(objpath)
+            result.append(objname)
 
         return result
 
