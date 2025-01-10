@@ -1797,13 +1797,9 @@ class BuildTarget(Target):
         elif isinstance(path, File):
             # When passing a generated file.
             self.vs_module_defs = path
-        elif isinstance(path, (CustomTarget, CustomTargetIndex)):
+        else:
             # When passing output of a Custom Target
             self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
-        else:
-            raise InvalidArguments(
-                'vs_module_defs must be either a string, '
-                'a file object, a Custom Target, or a Custom Target Index')
         self.process_link_depends(path)
 
     def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments,
@@ -2049,8 +2045,6 @@ class Executable(BuildTarget):
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
-        if not isinstance(self.export_dynamic, bool):
-            raise InvalidArguments('"export_dynamic" keyword argument must be a boolean')
         self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
