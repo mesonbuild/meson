@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -3392,12 +3392,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         # backwards compatibility anyway
         sources = [s for s in sources
                    if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))]
-
-        # due to lack of type checking, these are "allowed" for legacy reasons
-        if not isinstance(kwargs['install'], bool):
-            FeatureBroken.single_use('install kwarg with non-boolean value', '1.3.0', self.subproject,
-                                     'This was never intended to work, and is essentially the same as using `install: true` regardless of value.',
-                                     node)
 
         sources = self.source_strings_to_files(sources)
         objs = kwargs['objects']

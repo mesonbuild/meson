@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 
 """Helpers for strict type checking."""
 
@@ -13,7 +13,7 @@ from ..build import (CustomTarget, BuildTarget,
                      BothLibraries, SharedLibrary, StaticLibrary, Jar, Executable, StructuredSources)
 from ..options import UserFeatureOption
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo
+from ..interpreterbase.decorators import KwargInfo, ContainerTypeInfo, FeatureBroken
 from ..mesonlib import (File, FileMode, MachineChoice, listify, has_path_sep,
                         EnvironmentVariables)
 from ..options import OptionKey
@@ -28,6 +28,7 @@ if T.TYPE_CHECKING:
     from ..build import ObjectTypes
     from ..interpreterbase import TYPE_var
     from ..mesonlib import EnvInitValueType
+    from ..interpreterbase.decorators import FeatureCheckBase
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
     PkgConfigDefineType = T.Optional[T.Tuple[T.Tuple[str, str], ...]]
@@ -562,13 +563,25 @@ def _objects_validator(vals: T.List[ObjectTypes]) -> T.Optional[str]:
     return None
 
 
+def _target_install_feature_validator(val: object) -> T.Iterable[FeatureCheckBase]:
+    # due to lack of type checking, these are "allowed" for legacy reasons
+    if not isinstance(val, bool):
+        yield FeatureBroken('install kwarg with non-boolean value', '1.3.0',
+                            'This was never intended to work, and is essentially the same as using `install: true` regardless of value.')
+
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
     KwargInfo('build_by_default', bool, default=True, since='0.38.0'),
     KwargInfo('extra_files', ContainerTypeInfo(list, (str, File)), default=[], listify=True),
     # Accursed. We allow this for backwards compat and warn in the interpreter.
-    KwargInfo('install', object, default=False),
+    KwargInfo(
+        'install',
+        object,
+        default=False,
+        feature_validator=_target_install_feature_validator,
+    ),
     INSTALL_MODE_KW,
     KwargInfo('implicit_include_directories', bool, default=True, since='0.42.0'),
     NATIVE_KW,
