@@ -570,6 +570,10 @@ def _target_install_feature_validator(val: object) -> T.Iterable[FeatureCheckBas
                             'This was never intended to work, and is essentially the same as using `install: true` regardless of value.')
 
 
+def _target_install_convertor(val: object) -> bool:
+    return bool(val)
+
+
 # Applies to all build_target like classes
 _ALL_TARGET_KWS: T.List[KwargInfo] = [
     OVERRIDE_OPTIONS_KW,
@@ -580,6 +584,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
         'install',
         object,
         default=False,
+        convertor=_target_install_convertor,
         feature_validator=_target_install_feature_validator,
     ),
     INSTALL_MODE_KW,
