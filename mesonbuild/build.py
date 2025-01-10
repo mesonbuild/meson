@@ -1288,8 +1288,6 @@ class BuildTarget(Target):
                 raise InvalidArguments(f'Tried to add non-existing extra file {i}.')
             self.extra_files.append(i)
         self.install_rpath: str = kwargs.get('install_rpath', '')
-        if not isinstance(self.install_rpath, str):
-            raise InvalidArguments('Install_rpath is not a string.')
         self.build_rpath = kwargs.get('build_rpath', '')
         resources = extract_as_list(kwargs, 'resources')
         for r in resources:
