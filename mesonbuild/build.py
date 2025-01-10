@@ -1301,8 +1301,6 @@ class BuildTarget(Target):
             self.suffix = name_suffix
             self.name_suffix_set = True
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
-        if not isinstance(self.implicit_include_directories, bool):
-            raise InvalidArguments('Implicit_include_directories must be a boolean.')
         self.gnu_symbol_visibility = kwargs.get('gnu_symbol_visibility', '')
         self.rust_dependency_map = kwargs.get('rust_dependency_map', {})
 
