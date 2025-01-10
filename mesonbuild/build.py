@@ -1291,8 +1291,6 @@ class BuildTarget(Target):
         if not isinstance(self.install_rpath, str):
             raise InvalidArguments('Install_rpath is not a string.')
         self.build_rpath = kwargs.get('build_rpath', '')
-        if not isinstance(self.build_rpath, str):
-            raise InvalidArguments('Build_rpath is not a string.')
         resources = extract_as_list(kwargs, 'resources')
         for r in resources:
             if not isinstance(r, str):
