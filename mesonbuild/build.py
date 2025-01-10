@@ -1336,12 +1336,7 @@ class BuildTarget(Target):
             if self.gnu_symbol_visibility not in permitted:
                 raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.gnu_symbol_visibility, ', '.join(permitted)))
 
-        rust_dependency_map = kwargs.get('rust_dependency_map', {})
-        if not isinstance(rust_dependency_map, dict):
-            raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary.')
-        if any(not isinstance(v, str) for v in rust_dependency_map.values()):
-            raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
-        self.rust_dependency_map = rust_dependency_map
+        self.rust_dependency_map = kwargs.get('rust_dependency_map', {})
 
         self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode')
 
