@@ -78,7 +78,6 @@ if T.TYPE_CHECKING:
         dependencies: T.List[dependencies.Dependency]
         extra_files: T.List[File]
         gnu_symbol_visibility: Literal['default', 'internal', 'hidden', 'protected', 'inlineshidden', '']
-        gui_app: bool
         implicit_include_directories: bool
         include_directories: T.List[IncludeDirs]
         install: bool
@@ -1236,8 +1235,6 @@ class BuildTarget(Target):
         self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
         if not isinstance(self, Executable):
             # build_target will always populate these as `None`, which is fine
-            if kwargs.get('gui_app') is not None:
-                raise InvalidArguments('Argument gui_app can only be used on executables.')
             if kwargs.get('win_subsystem') is not None:
                 raise InvalidArguments('Argument win_subsystem can only be used on executables.')
         extra_files = extract_as_list(kwargs, 'extra_files')
