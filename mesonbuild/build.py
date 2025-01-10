@@ -124,6 +124,11 @@ if T.TYPE_CHECKING:
         soversion: str
         darwin_versions: T.Tuple[str, str]
 
+    class StaticLibraryKeywordArguments(BuildTargetKeywordArguments, total=False):
+
+        pic: bool
+        prelink: bool
+        rust_abi: T.Optional[RustAbi]
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -2196,8 +2201,8 @@ class StaticLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs):
-        self.prelink = T.cast('bool', kwargs.get('prelink', False))
+            kwargs: StaticLibraryKeywordArguments):
+        self.prelink = kwargs.get('prelink', False)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
 
@@ -2260,7 +2265,7 @@ class StaticLibrary(BuildTarget):
     def type_suffix(self):
         return "@sta"
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: StaticLibraryKeywordArguments) -> None:
         super().process_kwargs(kwargs)
 
         rust_abi = kwargs.get('rust_abi')
