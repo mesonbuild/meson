@@ -723,7 +723,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
 
-        self.set_option_overrides(self.parse_overrides(kwargs))
+        self.set_option_overrides(kwargs.get('override_options', {}))
 
     def is_compiler_option_hack(self, key):
         # FIXME this method must be deleted when OptionsView goes away.
@@ -750,26 +750,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         # TODO: if it's possible to annotate get_option or validate_option_value
         # in the future we might be able to remove the cast here
         return T.cast('T.Union[str, int, bool]', self.options.get_value(key))
-
-    @staticmethod
-    def parse_overrides(kwargs: BuildTargetKeywordArguments) -> T.Dict[OptionKey, str]:
-        opts = kwargs.get('override_options', [])
-
-        # In this case we have an already parsed and ready to go dictionary
-        # provided by typed_kwargs
-        if isinstance(opts, dict):
-            return T.cast('T.Dict[OptionKey, str]', opts)
-
-        result: T.Dict[OptionKey, str] = {}
-        overrides = stringlistify(opts)
-        for o in overrides:
-            if '=' not in o:
-                raise InvalidArguments('Overrides must be of form "key=value"')
-            k, v = o.split('=', 1)
-            key = OptionKey.from_string(k.strip())
-            v = v.strip()
-            result[key] = v
-        return result
 
     def is_linkable_target(self) -> bool:
         return False
