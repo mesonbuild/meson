@@ -122,6 +122,12 @@ if T.TYPE_CHECKING:
         vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
         rust_abi: T.Optional[RustAbi]
 
+    class SharedLibraryKeywordArguments(SharedModuleKeywordArguments, total=False):
+
+        version: str
+        soversion: str
+        darwin_versions: T.Tuple[str, str]
+
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
     'windows': ('', 'lib'),
@@ -2666,20 +2672,20 @@ class SharedLibrary(BuildTarget):
         if create_debug_file:
             self.debug_filename = os.path.splitext(self.filename)[0] + '.pdb'
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: SharedLibraryKeywordArguments) -> None:
         super().process_kwargs(kwargs)
 
         if not self.environment.machines[self.for_machine].is_android():
             # Shared library version
-            self.ltversion = T.cast('T.Optional[str]', kwargs.get('version'))
-            self.soversion = T.cast('T.Optional[str]', kwargs.get('soversion'))
+            self.ltversion = kwargs.get('version')
+            self.soversion = kwargs.get('soversion')
             if self.soversion is None and self.ltversion is not None:
                 # library version is defined, get the soversion from that
                 # We replicate what Autotools does here and take the first
                 # number of the version by default.
                 self.soversion = self.ltversion.split('.')[0]
             # macOS, iOS and tvOS dylib compatibility_version and current_version
-            self.darwin_versions = T.cast('T.Optional[T.Tuple[str, str]]', kwargs.get('darwin_versions'))
+            self.darwin_versions = kwargs.get('darwin_versions')
             if self.darwin_versions is None and self.soversion is not None:
                 # If unspecified, pick the soversion
                 self.darwin_versions = (self.soversion, self.soversion)
