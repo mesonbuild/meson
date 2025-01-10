@@ -49,6 +49,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
+    from .interpreter.kwargs import RustAbi
 
     GeneratedTypes: TypeAlias = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes: TypeAlias = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
@@ -115,6 +116,11 @@ if T.TYPE_CHECKING:
         export_dynamic: bool
         pie: bool
         vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+
+    class SharedModuleKeywordArguments(BuildTargetKeywordArguments, total=False):
+
+        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        rust_abi: T.Optional[RustAbi]
 
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),

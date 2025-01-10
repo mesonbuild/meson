@@ -19,8 +19,8 @@ from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
-if T.TYPE_CHECKING:
-    TestArgs = T.Union[str, File, build.Target, ExternalProgram]
+TestArgs = T.Union[str, File, build.Target, ExternalProgram]
+RustAbi = Literal['rust', 'c']
 
 class FuncAddProjectArgs(TypedDict):
 
@@ -382,7 +382,7 @@ class _BuildTarget(_BaseBuildTarget):
 
 class _LibraryMixin(TypedDict):
 
-    rust_abi: T.Optional[Literal['c', 'rust']]
+    rust_abi: T.Optional[RustAbi]
 
 
 class Executable(_BuildTarget):
