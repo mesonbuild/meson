@@ -48,6 +48,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
+    from .interpreter.kwargs import RustAbi
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
@@ -111,6 +112,11 @@ if T.TYPE_CHECKING:
         export_dynamic: bool
         pie: bool
         vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+
+    class SharedModuleKeywordArguments(BuildTargetKeywordArguments, total=False):
+
+        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        rust_abi: T.Optional[RustAbi]
 
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
@@ -1770,7 +1776,7 @@ class BuildTarget(Target):
                                      'use shared_library() with `override_options: [\'b_lundef=false\']` instead.')
                     link_target.force_soname = True
 
-    def process_vs_module_defs_kw(self, kwargs: ExecutableKeywordArguments) -> None:
+    def process_vs_module_defs_kw(self, kwargs: T.Union[ExecutableKeywordArguments, SharedModuleKeywordArguments]) -> None:
         path = kwargs.get('vs_module_defs')
         if path is None:
             return
@@ -2574,7 +2580,7 @@ class SharedModule(SharedLibrary):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs):
+            kwargs: SharedModuleKeywordArguments):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
