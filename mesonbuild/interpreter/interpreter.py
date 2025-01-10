@@ -3541,11 +3541,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             elif kwargs['export_dynamic']:
                 if kwargs['implib'] is False:
                     raise InvalidArguments('"implib" keyword" must not be false if "export_dynamic" is set and not false.')
-                kwargs['implib'] = True
             if kwargs['export_dynamic'] is None:
                 kwargs['export_dynamic'] = False
-            if kwargs['implib'] is None:
-                kwargs['implib'] = False
+            if isinstance(kwargs['implib'], bool):
+                kwargs['implib'] = None
 
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
