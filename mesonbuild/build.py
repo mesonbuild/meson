@@ -112,7 +112,7 @@ if T.TYPE_CHECKING:
 
     class ExecutableKeywordArguments(BuildTargetKeywordArguments, total=False):
 
-        implib: T.Union[str, bool, None]
+        implib: T.Optional[str]
         export_dynamic: bool
         pie: bool
         vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
@@ -2227,9 +2227,7 @@ class Executable(BuildTarget):
         self.export_dynamic = kwargs.get('export_dynamic', False)
         if not isinstance(self.export_dynamic, bool):
             raise InvalidArguments('"export_dynamic" keyword argument must be a boolean')
-        self.implib = kwargs.get('implib')
-        if not isinstance(self.implib, (bool, str, type(None))):
-            raise InvalidArguments('"export_dynamic" keyword argument must be a boolean or string')
+        self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
         # Remember that this exe was returned by `find_program()` through an override
@@ -2283,9 +2281,7 @@ class Executable(BuildTarget):
 
         # If using export_dynamic, set the import library name
         if self.export_dynamic:
-            implib_basename = self.name + '.exe'
-            if isinstance(self.implib, str):
-                implib_basename = self.implib
+            implib_basename = self.implib_name or self.name + '.exe'
             if machine.is_windows() or machine.is_cygwin():
                 if self.get_using_msvc():
                     self.import_filename = f'{implib_basename}.lib'
