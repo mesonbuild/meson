@@ -1281,13 +1281,6 @@ class BuildTarget(Target):
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
         self.gnu_symbol_visibility = kwargs.get('gnu_symbol_visibility', '')
-        if not isinstance(self.gnu_symbol_visibility, str):
-            raise InvalidArguments('GNU symbol visibility must be a string.')
-        if self.gnu_symbol_visibility != '':
-            permitted = ['default', 'internal', 'hidden', 'protected', 'inlineshidden']
-            if self.gnu_symbol_visibility not in permitted:
-                raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.gnu_symbol_visibility, ', '.join(permitted)))
-
         self.rust_dependency_map = kwargs.get('rust_dependency_map', {})
 
     @T.overload
