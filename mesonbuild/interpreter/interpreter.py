@@ -3460,12 +3460,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         sources = [s for s in sources
                    if not isinstance(s, (build.BuildTarget, build.ExtractedObjects))]
 
-        # due to lack of type checking, these are "allowed" for legacy reasons
-        if not isinstance(kwargs['install'], bool):
-            FeatureBroken.single_use('install kwarg with non-boolean value', '1.3.0', self.subproject,
-                                     'This was never intended to work, and is essentially the same as using `install: true` regardless of value.',
-                                     node)
-
         sources = self.source_strings_to_files(sources)
         objs = kwargs['objects']
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
