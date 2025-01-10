@@ -1292,30 +1292,14 @@ class BuildTarget(Target):
             if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing resource {r}.')
         self.resources = resources
-        if kwargs.get('name_prefix') is not None:
-            name_prefix = kwargs['name_prefix']
-            if isinstance(name_prefix, list):
-                if name_prefix:
-                    raise InvalidArguments('name_prefix array must be empty to signify default.')
-            else:
-                if not isinstance(name_prefix, str):
-                    raise InvalidArguments('name_prefix must be a string.')
-                self.prefix = name_prefix
-                self.name_prefix_set = True
-        if kwargs.get('name_suffix') is not None:
-            name_suffix = kwargs['name_suffix']
-            if isinstance(name_suffix, list):
-                if name_suffix:
-                    raise InvalidArguments('name_suffix array must be empty to signify default.')
-            else:
-                if not isinstance(name_suffix, str):
-                    raise InvalidArguments('name_suffix must be a string.')
-                if name_suffix == '':
-                    raise InvalidArguments('name_suffix should not be an empty string. '
-                                           'If you want meson to use the default behaviour '
-                                           'for each platform pass `[]` (empty array)')
-                self.suffix = name_suffix
-                self.name_suffix_set = True
+        name_prefix = kwargs.get('name_prefix')
+        if name_prefix is not None:
+            self.prefix = name_prefix
+            self.name_prefix_set = True
+        name_suffix = kwargs.get('name_suffix')
+        if name_suffix is not None:
+            self.suffix = name_suffix
+            self.name_suffix_set = True
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')

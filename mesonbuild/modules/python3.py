@@ -50,7 +50,7 @@ class Python3Module(ExtensionModule):
             # On Windows the extension is pyd for some unexplainable reason.
             suffix = 'pyd'
         else:
-            suffix = []
+            suffix = None
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
         return self.interpreter.build_target(state.current_node, args, kwargs, SharedModule)
