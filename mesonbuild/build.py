@@ -61,6 +61,50 @@ if T.TYPE_CHECKING:
         import_dirs: T.List[IncludeDirs]
         versions: T.List[T.Union[str, int]]
 
+    class BuildTargetKeywordArguments(TypedDict, total=False):
+
+        # The use of Sequence[str] here is intentional to get the generally
+        # undesirable behavior of Sequence[str]
+
+        build_by_default: bool
+        build_rpath: str
+        c_pch: T.Sequence[str]
+        cpp_pch: T.Sequence[str]
+        d_debug: T.List[T.Union[str, int]]
+        d_import_dirs: T.List[IncludeDirs]
+        d_module_versions: T.List[T.Union[str, int]]
+        d_unittest: bool
+        dependencies: T.List[dependencies.Dependency]
+        extra_files: T.List[File]
+        gnu_symbol_visibility: Literal['default', 'internal', 'hidden', 'protected', 'inlineshidden', '']
+        gui_app: bool
+        implicit_include_directories: bool
+        include_directories: T.List[IncludeDirs]
+        install: bool
+        install_dir: T.List[T.Union[str, Literal[False]]]
+        install_mode: FileMode
+        install_rpath: str
+        install_tag: T.List[str]
+        language_args: T.DefaultDict[str, T.List[str]]
+        link_args: T.List[str]
+        link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]
+        link_language: str
+        link_whole: T.Sequence[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]
+        link_with: T.List[BuildTargetTypes]
+        name_prefix: T.Optional[str]
+        name_suffix: T.Optional[str]
+        native: MachineChoice
+        override_options: T.Dict[OptionKey, str]
+        resources: T.List[str]
+        rust_crate_type: str  # Literal?
+        rust_dependency_map: T.Dict[str, str]
+        vala_gir: str
+        vala_header: str
+        vala_vapi: str
+        win_subsystem: str
+
+        _allow_no_sources: bool
+
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
 lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
@@ -644,7 +688,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return self.construct_id_from_path(
             self.subdir, name, self.type_suffix())
 
-    def process_kwargs_base(self, kwargs: T.Dict[str, T.Any]) -> None:
+    def process_kwargs_base(self, kwargs: BuildTargetKeywordArguments) -> None:
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
             if not isinstance(self.build_by_default, bool):
@@ -684,7 +728,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return T.cast('T.Union[str, int, bool]', self.options.get_value(key))
 
     @staticmethod
-    def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
+    def parse_overrides(kwargs: BuildTargetKeywordArguments) -> T.Dict[OptionKey, str]:
         opts = kwargs.get('override_options', [])
 
         # In this case we have an already parsed and ready to go dictionary
@@ -737,7 +781,7 @@ class BuildTarget(Target):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs: T.Dict[str, T.Any]):
+            kwargs: BuildTargetKeywordArguments):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
         self.all_compilers = compilers
         self.compilers: OrderedDict[str, Compiler] = OrderedDict()
@@ -1128,7 +1172,7 @@ class BuildTarget(Target):
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
         return self.install_mode
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
         self.process_kwargs_base(kwargs)
         self.original_kwargs = kwargs
 
@@ -1194,8 +1238,9 @@ class BuildTarget(Target):
             if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing resource {r}.')
         self.resources = resources
-        if kwargs.get('name_prefix') is not None:
-            name_prefix = kwargs['name_prefix']
+        # TODO: the wallrus operator would reduce some pain here
+        name_prefix = kwargs.get('name_prefix')
+        if name_prefix is not None:
             if isinstance(name_prefix, list):
                 if name_prefix:
                     raise InvalidArguments('name_prefix array must be empty to signify default.')
@@ -1204,8 +1249,8 @@ class BuildTarget(Target):
                     raise InvalidArguments('name_prefix must be a string.')
                 self.prefix = name_prefix
                 self.name_prefix_set = True
-        if kwargs.get('name_suffix') is not None:
-            name_suffix = kwargs['name_suffix']
+        name_suffix = kwargs.get('name_suffix')
+        if name_suffix is not None:
             if isinstance(name_suffix, list):
                 if name_suffix:
                     raise InvalidArguments('name_suffix array must be empty to signify default.')
@@ -1739,25 +1784,28 @@ class BuildTarget(Target):
                 'a file object, a Custom Target, or a Custom Target Index')
         self.process_link_depends(path)
 
-    def extract_targets_as_list(self, kwargs: T.Dict[str, T.Union[LibTypes, T.Sequence[LibTypes]]], key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
-        bl_type = self.environment.coredata.get_option(OptionKey('default_both_libraries'))
+    def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments,
+                                key: T.Literal['link_with', 'link_whole']) -> T.List[BuildTargetTypes]:
+        _bl_type = self.environment.coredata.get_option(OptionKey('default_both_libraries'))
+        assert _bl_type in {'static', 'shared', 'auto'}, 'unexpected default_both_libraries'
+        bl_type = T.cast('Literal["static", "shared", "auto"]', _bl_type)
         if bl_type == 'auto':
             if isinstance(self, StaticLibrary):
                 bl_type = 'static'
             elif isinstance(self, SharedLibrary):
                 bl_type = 'shared'
 
-        self_libs: T.List[LibTypes] = self.link_targets if key == 'link_with' else self.link_whole_targets
+        self_libs = self.link_targets if key == 'link_with' else self.link_whole_targets
 
-        lib_list = []
+        lib_list: T.List[BuildTargetTypes] = []
         for lib in listify(kwargs.get(key, [])) + self_libs:
-            if isinstance(lib, (Target, BothLibraries)):
+            if isinstance(lib, (BuildTarget, BothLibraries)):
                 lib_list.append(lib.get(bl_type))
             else:
                 lib_list.append(lib)
         return lib_list
 
-    def get(self, lib_type: T.Literal['static', 'shared', 'auto']) -> LibTypes:
+    def get(self, lib_type: T.Literal['static', 'shared', 'auto']) -> BuildTargetTypes:
         """Base case used by BothLibraries"""
         return self
 
@@ -2845,9 +2893,9 @@ class CompileTarget(BuildTarget):
                  dependencies: T.List[dependencies.Dependency],
                  depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]):
         compilers = {compiler.get_language(): compiler}
-        kwargs = {
+        kwargs: BuildTargetKeywordArguments = {
             'build_by_default': False,
-            'language_args': {compiler.language: compile_args},
+            'language_args': defaultdict(list, {compiler.language: compile_args}),
             'include_directories': include_directories,
             'dependencies': dependencies,
         }
