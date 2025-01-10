@@ -1857,13 +1857,9 @@ class BuildTarget(Target):
         elif isinstance(path, File):
             # When passing a generated file.
             self.vs_module_defs = path
-        elif isinstance(path, (CustomTarget, CustomTargetIndex)):
+        else:
             # When passing output of a Custom Target
             self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
-        else:
-            raise InvalidArguments(
-                'vs_module_defs must be either a string, '
-                'a file object, a Custom Target, or a Custom Target Index')
         self.process_link_depends(path)
 
     def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
