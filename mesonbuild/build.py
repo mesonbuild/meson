@@ -1284,14 +1284,7 @@ class BuildTarget(Target):
             self.extra_files.append(i)
         self.install_rpath: str = kwargs.get('install_rpath', '')
         self.build_rpath = kwargs.get('build_rpath', '')
-        resources = extract_as_list(kwargs, 'resources')
-        for r in resources:
-            if not isinstance(r, str):
-                raise InvalidArguments('Resource argument is not a string.')
-            trial = os.path.join(self.environment.get_source_dir(), self.subdir, r)
-            if not os.path.isfile(trial):
-                raise InvalidArguments(f'Tried to add non-existing resource {r}.')
-        self.resources = resources
+        self.resources = kwargs.get('resources', [])
         name_prefix = kwargs.get('name_prefix')
         if name_prefix is not None:
             self.prefix = name_prefix
