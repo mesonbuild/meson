@@ -26,7 +26,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..build import BuildTargetTypes, IncludeDirs, LibTypes
+    from ..build import BuildTargetTypes, ExecutableKeywordArguments, IncludeDirs, LibTypes
     from ..compilers.rust import RustCompiler
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
@@ -179,7 +179,7 @@ class RustModule(ExtensionModule):
         tkwargs['args'] = extra_args + ['--test', '--format', 'pretty']
         tkwargs['protocol'] = 'rust'
 
-        new_target_kwargs = base_target.original_kwargs.copy()
+        new_target_kwargs = T.cast('ExecutableKeywordArguments', base_target.original_kwargs.copy())
         del new_target_kwargs['rust_crate_type']
         for kw in ('pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions'):
             if kw in new_target_kwargs:
@@ -201,8 +201,7 @@ class RustModule(ExtensionModule):
             name, base_target.subdir, state.subproject, base_target.for_machine,
             sources, base_target.structured_sources,
             base_target.objects, base_target.environment, base_target.compilers,
-            new_target_kwargs
-        )
+            new_target_kwargs)
         return new_target, tkwargs
 
     @typed_pos_args('rust.test', str, BuildTarget)
