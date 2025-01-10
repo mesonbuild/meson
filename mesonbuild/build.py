@@ -817,7 +817,7 @@ class BuildTarget(Target):
         self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
         self.depend_files: T.List[File] = []
-        self.link_depends = []
+        self.link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]] = []
         self.added_deps = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -1102,7 +1102,7 @@ class BuildTarget(Target):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
-    def process_link_depends(self, sources):
+    def process_link_depends(self, sources: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]) -> None:
         """Process the link_depends keyword argument.
 
         This is designed to handle strings, Files, and the output of Custom
@@ -1111,19 +1111,14 @@ class BuildTarget(Target):
         generated twice, since the output needs to be passed to the ld_args and
         link_depends.
         """
-        sources = listify(sources)
         for s in sources:
             if isinstance(s, File):
                 self.link_depends.append(s)
             elif isinstance(s, str):
                 self.link_depends.append(
                     File.from_source_file(self.environment.source_dir, self.subdir, s))
-            elif hasattr(s, 'get_outputs'):
-                self.link_depends.append(s)
             else:
-                raise InvalidArguments(
-                    'Link_depends arguments must be strings, Files, '
-                    'or a Custom Target, or lists thereof.')
+                self.link_depends.append(s)
 
     def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']]) -> ExtractedObjects:
         sources_set = set(self.sources)
@@ -1780,7 +1775,7 @@ class BuildTarget(Target):
         else:
             # When passing output of a Custom Target
             self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
-        self.process_link_depends(path)
+        self.process_link_depends([path])
 
     def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments,
                                 key: T.Literal['link_with', 'link_whole']) -> T.List[BuildTargetTypes]:
