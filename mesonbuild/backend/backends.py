@@ -889,6 +889,7 @@ class Backend:
             return os.path.join(targetdir, ret)
         return ret
 
+    @lru_cache(maxsize=None)
     def _determine_ext_objs(self, extobj: 'build.ExtractedObjects') -> T.List[str]:
         result: T.List[str] = []
 
