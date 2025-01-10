@@ -105,6 +105,14 @@ if T.TYPE_CHECKING:
 
         _allow_no_sources: bool
 
+    class ExecutableKeywordArguments(BuildTargetKeywordArguments, total=False):
+
+        implib: T.Union[str, bool, None]
+        export_dynamic: bool
+        pie: bool
+        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+
+
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
 lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
@@ -1762,11 +1770,11 @@ class BuildTarget(Target):
                                      'use shared_library() with `override_options: [\'b_lundef=false\']` instead.')
                     link_target.force_soname = True
 
-    def process_vs_module_defs_kw(self, kwargs: T.Dict[str, T.Any]) -> None:
-        if kwargs.get('vs_module_defs') is None:
+    def process_vs_module_defs_kw(self, kwargs: ExecutableKeywordArguments) -> None:
+        path = kwargs.get('vs_module_defs')
+        if path is None:
             return
 
-        path: T.Union[str, File, CustomTarget, CustomTargetIndex] = kwargs['vs_module_defs']
         if isinstance(path, str):
             if os.path.isabs(path):
                 self.vs_module_defs = File.from_absolute_file(path)
@@ -2018,7 +2026,7 @@ class Executable(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs):
+            kwargs: ExecutableKeywordArguments):
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.optstore:
             kwargs['pie'] = environment.coredata.optstore.get_value(key)
@@ -2108,7 +2116,7 @@ class Executable(BuildTarget):
                 name += '_' + self.suffix
             self.debug_filename = name + '.pdb'
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: ExecutableKeywordArguments) -> None:
         super().process_kwargs(kwargs)
 
         self.rust_crate_type = kwargs.get('rust_crate_type') or 'bin'
