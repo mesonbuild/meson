@@ -715,8 +715,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def process_kwargs_base(self, kwargs: BuildTargetKeywordArguments) -> None:
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
-            if not isinstance(self.build_by_default, bool):
-                raise InvalidArguments('build_by_default must be a boolean value.')
 
         if not self.build_by_default and kwargs.get('install', False):
             # For backward compatibility, if build_by_default is not explicitly
