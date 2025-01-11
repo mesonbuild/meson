@@ -1206,9 +1206,8 @@ class BuildTarget(Target):
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
-        extra_files = extract_as_list(kwargs, 'extra_files')
+        extra_files = kwargs.get('extra_files', [])
         for i in extra_files:
-            assert isinstance(i, File)
             if i in self.extra_files:
                 continue
             trial = os.path.join(self.environment.get_source_dir(), i.subdir, i.fname)
