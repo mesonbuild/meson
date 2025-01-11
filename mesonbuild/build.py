@@ -1271,11 +1271,13 @@ class BuildTarget(Target):
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
-        extra_files = extract_as_list(kwargs, 'extra_files')
+        extra_files = kwargs.get('extra_files', [])
         for i in extra_files:
-            assert isinstance(i, File)
+            # TODO: use an OrderedSet instead of a list?
             if i in self.extra_files:
                 continue
+            # TODO: this prevents built `File` objects from being used as
+            # extra_files.
             trial = os.path.join(self.environment.get_source_dir(), i.subdir, i.fname)
             if not os.path.isfile(trial):
                 raise InvalidArguments(f'Tried to add non-existing extra file {i}.')
