@@ -318,6 +318,17 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
 
+    @skip_if_not_base_option('b_sanitize')
+    def test_cpp_with_address_and_leak_sanitizer(self):
+        if is_cygwin():
+            raise SkipTest('asan not available on Cygwin')
+        if is_openbsd():
+            raise SkipTest('-fsanitize=address is not supported on OpenBSD')
+
+        testdir = os.path.join(self.common_test_dir, '2 cpp')
+        self.init(testdir, extra_args=['-Db_sanitize=address,leak', '-Db_lundef=false'])
+        self.build()
+
     def test_qt5dependency_no_lrelease(self):
         '''
         Test that qt5 detection with qmake works. This can't be an ordinary
