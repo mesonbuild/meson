@@ -669,6 +669,9 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_outputs(self) -> T.List[str]:
         return []
 
+    def can_output_be_directory(self, output: str) -> bool:
+        return False
+
     def should_install(self) -> bool:
         return False
 
@@ -2911,6 +2914,9 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
 
     def get_outputs(self) -> T.List[str]:
         return self.outputs
+
+    def can_output_be_directory(self, output: str) -> bool:
+        return True
 
     def get_filename(self) -> str:
         return self.outputs[0]
