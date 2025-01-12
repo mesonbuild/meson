@@ -19,10 +19,14 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Language
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import ProgramVersionFunc
+    from ..interpreter.type_checking import SourcesVarargsType
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..programs import Program
     from ..dependencies import Dependency
     from ..options import ElementaryOptionValues
+
+BT = T.TypeVar('BT', bound=build.BuildTarget)
+
 
 class ModuleState:
     """Object passed to all module methods.
@@ -168,6 +172,14 @@ class ModuleState:
 
     def add_language(self, lang: Language, for_machine: MachineChoice) -> None:
         self._interpreter.add_languages([lang], True, for_machine)
+
+    # TODO: is this fine?
+    def create_build_target(self, targetclass: T.Type[BT], args: T.Tuple[str, SourcesVarargsType],
+                            kwargs: T.Dict[str, TYPE_var]) -> BT:
+        """
+        Instantiate (but don't add) a target deriving from BuildTarget.
+        """
+        return self._interpreter.create_build_target(self.current_node, args, kwargs, targetclass)
 
 class ModuleObject(HoldableObject):
     """Base class for all objects returned by modules
