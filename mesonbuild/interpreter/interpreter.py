@@ -138,6 +138,8 @@ if T.TYPE_CHECKING:
 
     TestClass = T.TypeVar('TestClass', bound=Test)
 
+BT = T.TypeVar('BT', bound=build.BuildTarget)
+
 def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None]) -> T.Optional[str]:
     if isinstance(value, list):
         if len(value) != 1:
@@ -3315,6 +3317,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         if idname not in self.coredata.target_guids:
             self.coredata.target_guids[idname] = str(uuid.uuid4()).upper()
 
+        if isinstance(tobj, build.BuildTarget):
+            self.project_args_frozen = True
+
     @FeatureNew('both_libraries', '0.46.0')
     def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary, shared_library_only=False)
@@ -3733,6 +3738,13 @@ class Interpreter(InterpreterBase, HoldableObject):
                      targetclass: T.Type[T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]],
                      shared_library_only: bool = True
                      ) -> T.Union[build.Executable, build.StaticLibrary, build.SharedModule, build.SharedLibrary, build.Jar]:
+        target = self.create_build_target(node, args, kwargs, targetclass, shared_library_only)
+        self.add_target(target.name, target)
+        return target
+
+    def create_build_target(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType],
+                            kwargs: T.Dict[str, TYPE_var], targetclass: T.Type[BT],
+                            shared_library_only: bool) -> BT:
         if targetclass not in {build.Executable, build.SharedLibrary, build.SharedModule, build.StaticLibrary, build.Jar}:
             mlog.debug('Unknown target type:', str(targetclass))
             raise RuntimeError('Unreachable code')
@@ -3820,9 +3832,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             FeatureNew.single_use('objects in Rust targets', '1.8.0', self.subproject)
         if targetclass is build.SharedLibrary:
             target.shared_library_only = shared_library_only
-
-        self.add_target(name, target)
-        self.project_args_frozen = True
         return target
 
     def add_stdlib_info(self, target):
