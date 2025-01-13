@@ -1281,10 +1281,6 @@ class BuildTarget(Target):
                                            'for each platform pass `[]` (empty array)')
                 self.suffix = name_suffix
                 self.name_suffix_set = True
-        if isinstance(self, StaticLibrary):
-            self.pic = self._extract_pic_pie(kwargs, 'pic')
-        if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
-            self.pie = self._extract_pic_pie(kwargs, 'pie')
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
@@ -1303,9 +1299,15 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
-    def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: Literal['pic', 'pie']) -> bool:
-        # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
-        # PIC is always on for Windows (all code is position-independent
+    @T.overload
+    def _extract_pic_pie(self, kwargs: StaticLibraryKeywordArguments, arg: Literal['pic', 'pie']) -> bool: ...
+
+    @T.overload
+    def _extract_pic_pie(self, kwargs: ExecutableKeywordArguments, arg: Literal['pie']) -> bool: ...
+
+    def _extract_pic_pie(self,
+                         kwargs: T.Union[StaticLibraryKeywordArguments, ExecutableKeywordArguments],
+                         arg: Literal['pic', 'pie']) -> bool:
         # since library loading is done differently)
         m = self.environment.machines[self.for_machine]
         assert m is not None, 'for mypy'
@@ -1322,10 +1324,12 @@ class BuildTarget(Target):
             mlog.warning(f"Use the '{arg}' kwarg instead of passing '-f{arg}' manually to {self.name!r}")
             return True
 
+        val = kwargs.get(arg)
+        if val is not None:
+            return T.cast('bool', val)
+
         k = OptionKey('b_pie' if arg == 'pie' else 'b_staticpic')
-        if kwargs.get(arg) is not None:
-            return T.cast('bool', kwargs[arg])
-        elif k in self.environment.coredata.optstore:
+        if k in self.environment.coredata.optstore:
             return self.environment.coredata.optstore.get_value(k)
         return False
 
@@ -2029,9 +2033,6 @@ class Executable(BuildTarget):
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs: ExecutableKeywordArguments):
-        key = OptionKey('b_pie')
-        if 'pie' not in kwargs and key in environment.coredata.optstore:
-            kwargs['pie'] = environment.coredata.optstore.get_value(key)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
@@ -2114,6 +2115,7 @@ class Executable(BuildTarget):
 
     def process_kwargs(self, kwargs: ExecutableKeywordArguments) -> None:
         super().process_kwargs(kwargs)
+        self.pie = self._extract_pic_pie(kwargs, 'pie')
 
         self.rust_crate_type = kwargs.get('rust_crate_type') or 'bin'
         if self.rust_crate_type != 'bin':
@@ -2246,6 +2248,10 @@ class StaticLibrary(BuildTarget):
 
     def process_kwargs(self, kwargs: StaticLibraryKeywordArguments) -> None:
         super().process_kwargs(kwargs)
+
+        self.pic = self._extract_pic_pie(kwargs, 'pic')
+        if not self.pic:
+            self.pie = self._extract_pic_pie(kwargs, 'pie')
 
         rust_abi = kwargs.get('rust_abi')
         rust_crate_type = kwargs.get('rust_crate_type')
