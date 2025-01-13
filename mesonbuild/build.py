@@ -1534,8 +1534,6 @@ class BuildTarget(Target):
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
         ids: T.List['IncludeDirs'] = []
         for a in args:
-            if not isinstance(a, IncludeDirs):
-                raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
         if set_is_system is None:
             set_is_system = 'preserve'
