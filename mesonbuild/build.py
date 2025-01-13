@@ -1378,15 +1378,12 @@ class BuildTarget(Target):
 
         k = OptionKey(option)
         if kwargs.get(arg) is not None:
-            val = kwargs[arg]
+            return kwargs[arg]
         elif k in self.environment.coredata.optstore:
             val = self.environment.coredata.optstore.get_value_for(k)
-        else:
-            val = False
-
-        if not isinstance(val, bool):
-            raise InvalidArguments(f'Argument {arg} to {self.name!r} must be boolean')
-        return val
+            assert isinstance(val, bool), 'for mypy'
+            return val
+        return False
 
     def get_filename(self) -> str:
         return self.filename
