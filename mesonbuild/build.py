@@ -1282,20 +1282,9 @@ class BuildTarget(Target):
                 self.suffix = name_suffix
                 self.name_suffix_set = True
         if isinstance(self, StaticLibrary):
-            # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
-            # PIC is always on for Windows (all code is position-independent
-            # since library loading is done differently)
-            m = self.environment.machines[self.for_machine]
-            if m.is_darwin() or m.is_windows():
-                self.pic = True
-            else:
-                self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
+            self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
         if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
-            # Executables must be PIE on Android
-            if self.environment.machines[self.for_machine].is_android():
-                self.pie = True
-            else:
-                self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
+            self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
@@ -1315,6 +1304,18 @@ class BuildTarget(Target):
         self.rust_dependency_map = rust_dependency_map
 
     def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
+        # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
+        # PIC is always on for Windows (all code is position-independent
+        # since library loading is done differently)
+        m = self.environment.machines[self.for_machine]
+        assert m is not None, 'for mypy'
+        if arg == 'pic' and (m.is_darwin() or m.is_windows()):
+            return True
+
+        # Executables must be PIE on Android
+        if arg == 'pie' and m.is_android():
+            return True
+
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
