@@ -1282,9 +1282,9 @@ class BuildTarget(Target):
                 self.suffix = name_suffix
                 self.name_suffix_set = True
         if isinstance(self, StaticLibrary):
-            self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
+            self.pic = self._extract_pic_pie(kwargs, 'pic')
         if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
-            self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
+            self.pie = self._extract_pic_pie(kwargs, 'pie')
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
@@ -1303,7 +1303,7 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
-    def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
+    def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: Literal['pic', 'pie']) -> bool:
         # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
         # PIC is always on for Windows (all code is position-independent
         # since library loading is done differently)
@@ -1322,7 +1322,7 @@ class BuildTarget(Target):
             mlog.warning(f"Use the '{arg}' kwarg instead of passing '-f{arg}' manually to {self.name!r}")
             return True
 
-        k = OptionKey(option)
+        k = OptionKey('b_pie' if arg == 'pie' else 'b_staticpic')
         if kwargs.get(arg) is not None:
             return T.cast('bool', kwargs[arg])
         elif k in self.environment.coredata.optstore:
