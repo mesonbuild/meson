@@ -341,9 +341,7 @@ class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 class AppleClangCPPCompiler(AppleCompilerMixin, ClangCPPCompiler):
 
     _CPP23_VERSION = '>=13.0.0'
-    # TODO: We don't know which XCode version will include LLVM 17 yet, so
-    # use something absurd.
-    _CPP26_VERSION = '>=99.0.0'
+    _CPP26_VERSION = '>=16.0.0'
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
