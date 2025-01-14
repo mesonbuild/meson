@@ -44,7 +44,6 @@ pkgs_stable=(
   # misc
   app-admin/sudo
   app-text/doxygen
-  sys-apps/fakeroot
   sys-devel/bison
   sys-devel/gettext
 
