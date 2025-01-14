@@ -11,7 +11,7 @@ pkgs=(
   mono-core gtkmm3-devel gtest gmock protobuf-devel wxGTK3-3_2-devel gobject-introspection-devel
   itstool gtk3-devel java-17-openjdk-devel gtk-doc llvm-devel clang-devel libSDL2-devel graphviz-devel zlib-devel zlib-devel-static
   #hdf5-devel netcdf-devel libscalapack2-openmpi3-devel libscalapack2-gnu-openmpi3-hpc-devel openmpi3-devel
-  doxygen vulkan-devel vulkan-validationlayers openssh mercurial gtk-sharp3-complete gtk-sharp2-complete libpcap-devel libgpgme-devel
+  doxygen vulkan-devel vulkan-validationlayers openssh mercurial libpcap-devel libgpgme-devel
   libqt5-qtbase-devel libqt5-qttools-devel libqt5-linguist libqt5-qtbase-private-headers-devel
   qt6-declarative-devel  qt6-base-devel qt6-tools qt6-tools-linguist qt6-declarative-tools qt6-core-private-devel
   libwmf-devel valgrind cmake nasm gnustep-base-devel gettext-tools gettext-runtime gettext-csharp ncurses-devel
