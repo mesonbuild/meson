@@ -1414,6 +1414,8 @@ class NinjaBackend(backends.Backend):
                                 extra='restat = 1'))
         self.add_rule(NinjaRule('COPY_FILE', self.environment.get_build_command() + ['--internal', 'copy'],
                                 ['$in', '$out'], 'Copying $in to $out'))
+        self.add_rule(NinjaRule('SYMLINK_FILE', self.environment.get_build_command() + ['--internal', 'symlink'],
+                                ['$TARGET', '$out'], 'Creating symlink $out -> $TARGET'))
         self.add_rule(NinjaRule('MERGE_PLIST', self.environment.get_build_command() + ['--internal', 'merge-plist'],
                                 ['$out', '$in'], 'Merging plist $in to $out'))
 
@@ -1911,6 +1913,12 @@ class NinjaBackend(backends.Backend):
             instr = src
         elem = NinjaBuildElement(self.all_outputs, [str(output)], 'COPY_FILE', [instr])
         elem.add_orderdep(instr)
+        self.add_build(elem)
+
+    def _generate_symlink_target(self, src: str, output: Path) -> None:
+        """Create a target to create a symbolic link."""
+        elem = NinjaBuildElement(self.all_outputs, [str(output)], 'SYMLINK_FILE', [])
+        elem.add_item('TARGET', src)
         self.add_build(elem)
 
     def __generate_sources_structure(self, root: Path, structured_sources: build.StructuredSources,
