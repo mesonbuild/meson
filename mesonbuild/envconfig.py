@@ -382,6 +382,12 @@ class MachineInfo(HoldableObject):
         """Machine is IRIX?"""
         return self.system.startswith('irix')
 
+    def is_wasm(self) -> bool:
+        """
+        Machine is WASM?
+        """
+        return self.system.startswith('wasm') or self.system == 'emscripten'
+
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
