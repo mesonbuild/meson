@@ -29,6 +29,7 @@ from .mesonlib import (
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
     unwrap,
 )
+from .nsbundle import BundleInfo, BundleType
 from .options import OptionKey
 
 from .compilers import (
@@ -3395,6 +3396,21 @@ class Jar(BuildTarget):
 
     def get_default_install_dir(self) -> T.Tuple[str, str]:
         return self.environment.get_jar_dir(), '{jardir}'
+
+
+class BundleTargetBase(Target):
+    @abc.abstractmethod
+    def get_bundle_info(self) -> BundleInfo:
+        pass
+
+    @abc.abstractmethod
+    def get_bundle_type(self) -> BundleType:
+        pass
+
+    @abc.abstractmethod
+    def get_executable_name(self) -> str:
+        pass
+
 
 @dataclass(eq=False)
 class CustomTargetIndex(CustomTargetBase, HoldableObject):
