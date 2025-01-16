@@ -3193,6 +3193,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         results: T.List['SourceOutputs'] = []
         for s in sources:
             if isinstance(s, str):
+                if s.endswith(' '):
+                    raise MesonException(f'{s!r} ends with a space. This is probably an error.')
                 if not strict and s.startswith(self.environment.get_build_dir()):
                     results.append(s)
                     mlog.warning(f'Source item {s!r} cannot be converted to File object, because it is a generated file. '
