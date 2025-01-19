@@ -203,6 +203,7 @@ gnu_common_warning_args: T.Dict[str, T.List[str]] = {
 #   -Wdeclaration-after-statement
 #   -Wtraditional
 #   -Wtraditional-conversion
+#   -Wunsuffixed-float-constants
 gnu_c_warning_args: T.Dict[str, T.List[str]] = {
     "0.0.0": [
         "-Wbad-function-cast",
@@ -216,9 +217,6 @@ gnu_c_warning_args: T.Dict[str, T.List[str]] = {
     ],
     "4.1.0": [
         "-Wc++-compat",
-    ],
-    "4.5.0": [
-        "-Wunsuffixed-float-constants",
     ],
 }
 
