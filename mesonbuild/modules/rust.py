@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2020-2024 Intel Corporation
+# Copyright © 2020-2025 Intel Corporation
 
 from __future__ import annotations
 import itertools
@@ -23,7 +23,7 @@ from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..build import IncludeDirs, LibTypes
+    from ..build import IncludeDirs, LibTypes, ExecutableKeywordArguments, BuildTargetTypes
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
@@ -164,11 +164,12 @@ class RustModule(ExtensionModule):
         # one
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
-        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
+        # We have to cast here because lists are invariant, and kwargs['link_with'] is a subset of new_targeT_kwargs['link_with']
+        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + T.cast('T.List[BuildTargetTypes]', kwargs['link_with'])
         del new_target_kwargs['rust_crate_type']
         for kw in ['pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions']:
             if kw in new_target_kwargs:
-                del new_target_kwargs[kw]
+                del new_target_kwargs[kw]  # type: ignore[misc]
 
         lang_args = base_target.extra_args.copy()
         lang_args['rust'] = base_target.extra_args['rust'] + kwargs['rust_args'] + ['--test']
@@ -181,7 +182,7 @@ class RustModule(ExtensionModule):
             name, base_target.subdir, state.subproject, base_target.for_machine,
             sources, base_target.structured_sources,
             base_target.objects, base_target.environment, base_target.compilers,
-            new_target_kwargs
+            T.cast('ExecutableKeywordArguments', new_target_kwargs)
         )
 
         test = self.interpreter.make_test(
