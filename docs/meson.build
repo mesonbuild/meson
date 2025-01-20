@@ -1,7 +1,7 @@
 project('Meson documentation', version: '1.0')
 
 yaml_modname = get_option('unsafe_yaml') ? 'yaml' : 'strictyaml'
-py = import('python').find_installation('python3', modules: [yaml_modname, 'aiohttp'], required: false)
+py = import('python').find_installation('python3', modules: [yaml_modname], required: false)
 if not py.found()
     error(f'Cannot build documentation without yaml support')
 endif
