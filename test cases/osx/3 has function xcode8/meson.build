@@ -12,7 +12,7 @@ sdk_args = ['-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/M
 args_10_12 = ['-mmacosx-version-min=10.13'] + sdk_args
 
 # Test requires XCode 8 which has the MacOSX 10.12 SDK
-if cc.version().version_compare('>=8.0') and cc.version().version_compare('<8.1')
+if cc.version().version_compare('>=8.0', '<8.1')
   if cc.has_function('clock_gettime', args : args_10_11, prefix : '#include <time.h>')
     error('Should not have found clock_gettime via <time.h> when targeting Mac OS X 10.11')
   endif

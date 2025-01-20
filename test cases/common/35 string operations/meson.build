@@ -79,6 +79,11 @@ assert(not version_number.version_compare('!=1.2.8'), 'Version_compare neq broke
 assert(version_number.version_compare('<2.0'), 'Version_compare major less broken')
 assert(version_number.version_compare('>0.9'), 'Version_compare major greater broken')
 
+assert(version_number.version_compare('>1.2', '<1.3'))
+assert(not version_number.version_compare('>1.2', '>1.3'))
+assert(not version_number.version_compare('<1.2', '<1.3'))
+assert(version_number.version_compare('>1.0', '>1.2'))
+
 assert(' spaces	tabs	'.strip() == 'spaces	tabs', 'Spaces and tabs badly stripped')
 assert('''
 multiline string	'''.strip() == '''multiline string''', 'Newlines badly stripped')
