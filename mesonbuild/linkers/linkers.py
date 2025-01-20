@@ -720,8 +720,10 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         # In order to avoid relinking for RPATH removal, the binary needs to contain just
         # enough space in the ELF header to hold the final installation RPATH.
         paths = ':'.join(all_paths)
-        if len(paths) < len(install_rpath):
-            padding = 'X' * (len(install_rpath) - len(paths))
+        paths_length = len(paths.encode('utf-8'))
+        install_rpath_length = len(install_rpath.encode('utf-8'))
+        if paths_length < install_rpath_length:
+            padding = 'X' * (install_rpath_length - paths_length)
             if not paths:
                 paths = padding
             else:
@@ -1488,8 +1490,10 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # In order to avoid relinking for RPATH removal, the binary needs to contain just
         # enough space in the ELF header to hold the final installation RPATH.
         paths = ':'.join(all_paths)
-        if len(paths) < len(install_rpath):
-            padding = 'X' * (len(install_rpath) - len(paths))
+        paths_length = len(paths.encode('utf-8'))
+        install_rpath_length = len(install_rpath.encode('utf-8'))
+        if paths_length < install_rpath_length:
+            padding = 'X' * (install_rpath_length - paths_length)
             if not paths:
                 paths = padding
             else:
