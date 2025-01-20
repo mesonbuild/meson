@@ -427,6 +427,34 @@ foreach h : check_headers
 endforeach
 ```
 
+## DIA SDK
+
+*(added 1.6.0)*
+
+Microsoft's Debug Interface Access SDK (DIA SDK) is available only on Windows,
+when using msvc, clang-cl or clang compiler from Microsoft Visual Studio.
+
+The DIA SDK runtime is not statically linked to target. The default usage
+method requires the runtime DLL (msdiaXXX.dll) to be manually registered in the
+OS with `regsrv32.exe` command, so it can be loaded using `CoCreateInstance`
+Windows function.
+
+Alternatively, you can use meson to copy the DIA runtime DLL to your build
+directory, and load it dynamically using `NoRegCoCreate` function provided by
+the DIA SDK. To facilitate this, you can read DLL path from dependency's
+variable 'dll' and use fs module to copy it. Example:
+
+```meson
+dia = dependency('diasdk', required: true)
+fs = import('fs')
+fs.copyfile(dia.get_variable('dll'))
+
+conf = configuration_data()
+conf.set('msdia_dll_name', fs.name(dia_dll_name))
+```
+
+Only the major version is available (eg. version is `14` for msdia140.dll).
+
 ## dl (libdl)
 
 *(added 0.62.0)*
@@ -448,17 +476,17 @@ providing them instead.
 GCC will use OpenCoarrays if present to implement coarrays, while Intel and NAG
 use internal coarray support.
 
-## GPGME
-
-*(added 0.51.0)*
-
-`method` may be `auto`, `config-tool` or `pkg-config`.
-
 ## GL
 
 This finds the OpenGL library in a way appropriate to the platform.
 
 `method` may be `auto`, `pkg-config` or `system`.
+
+## GPGME
+
+*(added 0.51.0)*
+
+`method` may be `auto`, `config-tool` or `pkg-config`.
 
 ## GTest and GMock
 
@@ -649,6 +677,14 @@ language-specific, you must specify the requested language using the
 
 Meson uses pkg-config to find NetCDF.
 
+## NumPy
+
+*(added 1.4.0)*
+
+`method` may be `auto`, `pkg-config`, or `config-tool`.
+`dependency('numpy')` supports regular use of the NumPy C API.
+Use of `numpy.f2py` for binding Fortran code isn't yet supported.
+
 ## ObjFW
 
 *(added 1.5.0)*
@@ -693,14 +729,6 @@ The `language` keyword may used.
 *(added 0.62.0)*
 
 `method` may be `auto`, `pkg-config`, `system` or `cmake`.
-
-## NumPy
-
-*(added 1.4.0)*
-
-`method` may be `auto`, `pkg-config`, or `config-tool`.
-`dependency('numpy')` supports regular use of the NumPy C API.
-Use of `numpy.f2py` for binding Fortran code isn't yet supported.
 
 ## pcap
 
@@ -858,34 +886,6 @@ version.
 `method` may be `auto`, `pkg-config`, `cmake`, or `system`.
 
 *New in 0.54.0* the `system` method.
-
-## DIA SDK
-
-*(added 1.6.0)*
-
-Microsoft's Debug Interface Access SDK (DIA SDK) is available only on Windows,
-when using msvc, clang-cl or clang compiler from Microsoft Visual Studio.
-
-The DIA SDK runtime is not statically linked to target. The default usage
-method requires the runtime DLL (msdiaXXX.dll) to be manually registered in the
-OS with `regsrv32.exe` command, so it can be loaded using `CoCreateInstance`
-Windows function.
-
-Alternatively, you can use meson to copy the DIA runtime DLL to your build
-directory, and load it dynamically using `NoRegCoCreate` function provided by
-the DIA SDK. To facilitate this, you can read DLL path from dependency's
-variable 'dll' and use fs module to copy it. Example:
-
-```meson
-dia = dependency('diasdk', required: true)
-fs = import('fs')
-fs.copyfile(dia.get_variable('dll'))
-
-conf = configuration_data()
-conf.set('msdia_dll_name', fs.name(dia_dll_name))
-```
-
-Only the major version is available (eg. version is `14` for msdia140.dll).
 
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the
