@@ -327,6 +327,12 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         if not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
             self.link_args = []
 
+        # But not Apple, because it's a framework
+        if self.env.machines.host.is_darwin() and 'PYTHONFRAMEWORKPREFIX' in self.variables:
+            framework_prefix = self.variables['PYTHONFRAMEWORKPREFIX']
+            # Add rpath, will be de-duplicated if necessary
+            if framework_prefix.startswith('/Applications/Xcode.app/'):
+                self.link_args += ['-rpath,' + framework_prefix]
 
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
