@@ -41,12 +41,13 @@ class PkgConfigInterface:
         PkgConfigInterface.pkg_bin_per_machine[for_machine] = pkg_bin
 
     @staticmethod
-    def instance(env: Environment, for_machine: MachineChoice, silent: bool) -> T.Optional[PkgConfigInterface]:
+    def instance(env: Environment, for_machine: MachineChoice, silent: bool,
+                 extra_paths: T.Optional[T.List[str]] = None) -> T.Optional[PkgConfigInterface]:
         '''Return a pkg-config implementation singleton'''
         for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
         impl = PkgConfigInterface.class_impl[for_machine]
         if impl is False:
-            impl = PkgConfigCLI(env, for_machine, silent, PkgConfigInterface.pkg_bin_per_machine[for_machine])
+            impl = PkgConfigCLI(env, for_machine, silent, PkgConfigInterface.pkg_bin_per_machine[for_machine], extra_paths)
             if not impl.found():
                 impl = None
             if not impl and not silent:
@@ -55,7 +56,9 @@ class PkgConfigInterface:
         return impl
 
     @staticmethod
-    def _cli(env: Environment, for_machine: MachineChoice, silent: bool = False) -> T.Optional[PkgConfigCLI]:
+    def _cli(env: Environment, for_machine: MachineChoice,
+             extra_paths: T.Optional[T.List[str]] = None,
+             silent: bool = False) -> T.Optional[PkgConfigCLI]:
         '''Return the CLI pkg-config implementation singleton
         Even when we use another implementation internally, external tools might
         still need the CLI implementation.
@@ -66,15 +69,16 @@ class PkgConfigInterface:
         if impl and not isinstance(impl, PkgConfigCLI):
             impl = PkgConfigInterface.class_cli_impl[for_machine]
             if impl is False:
-                impl = PkgConfigCLI(env, for_machine, silent, PkgConfigInterface.pkg_bin_per_machine[for_machine])
+                impl = PkgConfigCLI(env, for_machine, silent, PkgConfigInterface.pkg_bin_per_machine[for_machine], extra_paths)
                 if not impl.found():
                     impl = None
                 PkgConfigInterface.class_cli_impl[for_machine] = impl
         return T.cast('T.Optional[PkgConfigCLI]', impl) # Trust me, mypy
 
     @staticmethod
-    def get_env(env: Environment, for_machine: MachineChoice, uninstalled: bool = False) -> EnvironmentVariables:
-        cli = PkgConfigInterface._cli(env, for_machine)
+    def get_env(env: Environment, for_machine: MachineChoice, uninstalled: bool = False,
+                extra_paths: T.Optional[T.List[str]] = None) -> EnvironmentVariables:
+        cli = PkgConfigInterface._cli(env, for_machine, extra_paths)
         return cli._get_env(uninstalled) if cli else EnvironmentVariables()
 
     @staticmethod
@@ -123,11 +127,13 @@ class PkgConfigCLI(PkgConfigInterface):
     '''pkg-config CLI implementation'''
 
     def __init__(self, env: Environment, for_machine: MachineChoice, silent: bool,
-                 pkgbin: T.Optional[ExternalProgram] = None) -> None:
+                 pkgbin: T.Optional[ExternalProgram] = None,
+                 extra_paths: T.Optional[T.List[str]] = None) -> None:
         super().__init__(env, for_machine)
         self._detect_pkgbin(pkgbin)
         if self.pkgbin and not silent:
             mlog.log('Found pkg-config:', mlog.green('YES'), mlog.bold(f'({self.pkgbin.get_path()})'), mlog.blue(self.pkgbin_version))
+        self.extra_paths = extra_paths or []
 
     def found(self) -> bool:
         return bool(self.pkgbin)
@@ -258,7 +264,7 @@ class PkgConfigCLI(PkgConfigInterface):
         key = OptionKey('pkg_config_path', machine=self.for_machine)
         pathlist = self.env.coredata.optstore.get_value_for(key)
         assert isinstance(pathlist, list)
-        extra_paths: T.List[str] = pathlist[:]
+        extra_paths: T.List[str] = pathlist + self.extra_paths
         if uninstalled:
             bpath = self.env.get_build_dir()
             if bpath is not None:
@@ -297,11 +303,13 @@ class PkgConfigCLI(PkgConfigInterface):
 class PkgConfigDependency(ExternalDependency):
 
     def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None) -> None:
+                 language: T.Optional[str] = None,
+                 extra_paths: T.Optional[T.List[str]] = None) -> None:
         super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
-        pkgconfig = PkgConfigInterface.instance(self.env, self.for_machine, self.silent)
+        self.extra_paths = extra_paths or []
+        pkgconfig = PkgConfigInterface.instance(self.env, self.for_machine, self.silent, self.extra_paths)
         if not pkgconfig:
             msg = f'Pkg-config for machine {self.for_machine} not found. Giving up.'
             if self.required:

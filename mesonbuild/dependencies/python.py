@@ -8,7 +8,7 @@ from pathlib import Path
 import typing as T
 
 from .. import mesonlib, mlog
-from .base import process_method_kw, DependencyException, DependencyMethods, DependencyTypeName, ExternalDependency, SystemDependency
+from .base import process_method_kw, DependencyException, DependencyMethods, ExternalDependency, SystemDependency
 from .configtool import ConfigToolDependency
 from .detect import packages
 from .factory import DependencyFactory
@@ -115,6 +115,15 @@ class BasicPythonExternalProgram(ExternalProgram):
             'version': '0.0',
         }
         self.pure: bool = True
+
+    @property
+    def version(self) -> str:
+        if self.build_config:
+            value = self.build_config['language']['version']
+        else:
+            value = self.info['variables'].get('LDVERSION') or self.info['version']
+        assert isinstance(value, str)
+        return value
 
     def _check_version(self, version: str) -> bool:
         if self.name == 'python2':
@@ -357,19 +366,26 @@ class _PythonDependencyBase(_Base):
 
 class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
-    def __init__(self, name: str, environment: 'Environment',
-                 kwargs: T.Dict[str, T.Any], installation: 'BasicPythonExternalProgram',
-                 libpc: bool = False):
-        if libpc:
-            mlog.debug(f'Searching for {name!r} via pkgconfig lookup in LIBPC')
-        else:
-            mlog.debug(f'Searching for {name!r} via fallback pkgconfig lookup in default paths')
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any],
+                 installation: 'BasicPythonExternalProgram', embed: bool):
+        pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
+        pkg_name = f'python-{installation.version}{pkg_embed}'
 
-        PkgConfigDependency.__init__(self, name, environment, kwargs)
+        if installation.build_config:
+            pkg_libdir = installation.build_config['c_api']['pkgconfig_path']
+            pkg_libdir_origin = 'c_api.pkgconfig_path from the Python build config'
+        else:
+            pkg_libdir = installation.info['variables'].get('LIBPC')
+            pkg_libdir_origin = 'LIBPC' if pkg_libdir else 'the default paths'
+        mlog.debug(f'Searching for {pkg_libdir!r} via pkgconfig lookup in {pkg_libdir_origin}')
+        pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
+
+        PkgConfigDependency.__init__(self, pkg_name, environment, kwargs, extra_paths=pkgconfig_paths)
         _PythonDependencyBase.__init__(self, installation, kwargs.get('embed', False))
 
-        if libpc and not self.is_found:
-            mlog.debug(f'"python-{self.version}" could not be found in LIBPC, this is likely due to a relocated python installation')
+        if pkg_libdir and not self.is_found:
+            mlog.debug(f'{pkg_name!r} could not be found in {pkg_libdir_origin}, '
+                        'this is likely due to a relocated python installation')
 
         # pkg-config files are usually accurate starting with python 3.8
         if not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
@@ -444,51 +460,9 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
         installation = BasicPythonExternalProgram('python3', mesonlib.python_command)
         installation.sanity()
 
-    if installation.build_config:
-        pkg_version = installation.build_config['language']['version']
-    else:
-        pkg_version = installation.info['variables'].get('LDVERSION') or installation.info['version']
-
     if DependencyMethods.PKGCONFIG in methods:
         if from_installation:
-            if installation.build_config:
-                pkg_libdir = installation.build_config['c_api']['pkgconfig_path']
-            else:
-                pkg_libdir = installation.info['variables'].get('LIBPC')
-            pkg_embed = '-embed' if embed and mesonlib.version_compare(installation.info['version'], '>=3.8') else ''
-            pkg_name = f'python-{pkg_version}{pkg_embed}'
-
-            # If python-X.Y.pc exists in LIBPC, we will try to use it
-            def wrap_in_pythons_pc_dir(name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                                       installation: 'BasicPythonExternalProgram') -> 'ExternalDependency':
-                if not pkg_libdir:
-                    # there is no LIBPC, so we can't search in it
-                    empty = ExternalDependency(DependencyTypeName('pkgconfig'), env, {})
-                    empty.name = 'python'
-                    return empty
-
-                old_pkg_libdir = os.environ.pop('PKG_CONFIG_LIBDIR', None)
-                old_pkg_path = os.environ.pop('PKG_CONFIG_PATH', None)
-                os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
-                try:
-                    return PythonPkgConfigDependency(name, env, kwargs, installation, True)
-                finally:
-                    def set_env(name: str, value: str) -> None:
-                        if value is not None:
-                            os.environ[name] = value
-                        elif name in os.environ:
-                            del os.environ[name]
-                    set_env('PKG_CONFIG_LIBDIR', old_pkg_libdir)
-                    set_env('PKG_CONFIG_PATH', old_pkg_path)
-
-            # Otherwise this doesn't fulfill the interface requirements
-            wrap_in_pythons_pc_dir.log_tried = PythonPkgConfigDependency.log_tried  # type: ignore[attr-defined]
-
-            candidates.append(functools.partial(wrap_in_pythons_pc_dir, pkg_name, env, kwargs, installation))
-            # We only need to check both, if a python install has a LIBPC. It might point to the wrong location,
-            # e.g. relocated / cross compilation, but the presence of LIBPC indicates we should definitely look for something.
-            if pkg_libdir is not None:
-                candidates.append(functools.partial(PythonPkgConfigDependency, pkg_name, env, kwargs, installation))
+            candidates.append(functools.partial(PythonPkgConfigDependency, env, kwargs, installation, embed))
         else:
             candidates.append(functools.partial(PkgConfigDependency, 'python3', env, kwargs))
 
@@ -497,7 +471,7 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
 
     if DependencyMethods.EXTRAFRAMEWORK in methods:
         nkwargs = kwargs.copy()
-        if mesonlib.version_compare(pkg_version, '>= 3'):
+        if mesonlib.version_compare(installation.version, '>= 3'):
             # There is a python in /System/Library/Frameworks, but that's python 2.x,
             # Python 3 will always be in /Library
             nkwargs['paths'] = ['/Library/Frameworks']
