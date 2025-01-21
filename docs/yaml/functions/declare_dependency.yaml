@@ -3,10 +3,12 @@ returns: dep
 description: |
   This function returns a [[@dep]] object that
   behaves like the return value of [[dependency]] but is
-  internal to the current build. The main use case for this is in
+  internal to the current build. One use case for this is in
   subprojects. This allows a subproject to easily specify how it should
   be used. This makes it interchangeable with the same dependency that
-  is provided externally by the system.
+  is provided externally by the system. Another common use case is to
+  declare project targets as dependencies so they may be used as
+  dependencies of other build targets.
 
 kwargs:
   compile_args:
@@ -49,7 +51,7 @@ kwargs:
     description: |
       extra files to add to targets.
       mostly used for IDE integration.
-      
+
   version:
     type: str
     description: |
