@@ -1433,7 +1433,8 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  prefix: T.Union[str, T.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True):
-        super().__init__(['xilink.exe'], for_machine, '', always_args, version=version)
+        super().__init__(exelist or ['xilink.exe'], for_machine,
+                         prefix, always_args, machine=machine, version=version, direct=direct)
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
