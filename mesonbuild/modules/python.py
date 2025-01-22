@@ -107,7 +107,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
 
 _PURE_KW = KwargInfo('pure', (bool, NoneType))
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
-_LIMITED_API_KW = KwargInfo('limited_api', str, default='', since='1.3.0')
+_LIMITED_API_KW = KwargInfo('limited_api', str, default='inherit', since='1.3.0')
 _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
 class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
@@ -162,7 +162,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         new_deps = mesonlib.extract_as_list(kwargs, 'dependencies')
         pydep = next((dep for dep in new_deps if isinstance(dep, _PythonDependencyBase)), None)
         if pydep is None:
-            pydep = self._dependency_method_impl({})
+            pydep = self._dependency_method_impl({'limited_api': kwargs.pop('limited_api', '')})
             if not pydep.found():
                 raise mesonlib.MesonException('Python dependency not found')
             new_deps.append(pydep)
@@ -170,22 +170,9 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
                                   '0.63.0', self.subproject, 'use python_installation.dependency()',
                                   self.current_node)
 
-        limited_api_version = kwargs.pop('limited_api')
         allow_limited_api = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api'))
-        if limited_api_version != '' and allow_limited_api:
-
+        if pydep.limited_api != '' and allow_limited_api:
             target_suffix = self.limited_api_suffix
-
-            limited_api_version_hex = self._convert_api_version_to_py_version_hex(limited_api_version, pydep.version)
-            limited_api_definition = f'-DPy_LIMITED_API={limited_api_version_hex}'
-
-            new_c_args = mesonlib.extract_as_list(kwargs, 'c_args')
-            new_c_args.append(limited_api_definition)
-            kwargs['c_args'] = new_c_args
-
-            new_cpp_args = mesonlib.extract_as_list(kwargs, 'cpp_args')
-            new_cpp_args.append(limited_api_definition)
-            kwargs['cpp_args'] = new_cpp_args
 
             # On Windows, the limited API DLL is python3.dll, not python3X.dll.
             for_machine = kwargs['native']
