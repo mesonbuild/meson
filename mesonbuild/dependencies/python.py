@@ -173,6 +173,8 @@ class _PythonDependencyBase(_Base):
         if mesonlib.is_windows() and self.is_freethreaded:
             self.compile_args += ['-DPy_GIL_DISABLED']
 
+        self.limited_api: str = ''
+
     def find_libpy(self, environment: 'Environment') -> None:
         if self.is_pypy:
             if self.major_version == 3:

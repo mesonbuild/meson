@@ -251,6 +251,15 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         return '0x{:02x}{:02x}0000'.format(major, minor)
 
     def _dependency_method_impl(self, kwargs: TYPE_kwargs) -> Dependency:
+
+        # Need to early resolve an inherited limited_api to an actual version
+        # for cache key purposes
+        limited_api_version = kwargs.get('limited_api', '')
+        if limited_api_version == 'inherit':
+            limited_api_version = self.limited_api
+            kwargs = kwargs.copy()
+            kwargs['limited_api'] = limited_api_version
+
         for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
         identifier = get_dep_identifier(self._full_path(), kwargs)
 
@@ -263,14 +272,24 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         candidates = python_factory(self.interpreter.environment, for_machine, new_kwargs, self.held_object)
         dep = find_external_dependency('python', self.interpreter.environment, new_kwargs, candidates)
 
+        allow_limited_api = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api'))
+        if limited_api_version != '' and allow_limited_api:
+            limited_api_version_hex = self._convert_api_version_to_py_version_hex(limited_api_version, dep.version)
+            dep.limited_api = limited_api_version
+            dep.compile_args.append(f'-DPy_LIMITED_API={limited_api_version_hex}')
+
         self.interpreter.coredata.deps[for_machine].put(identifier, dep)
         return dep
 
     @disablerIfNotFound
-    @permittedKwargs(permitted_dependency_kwargs | {'embed'})
+    @permittedKwargs(permitted_dependency_kwargs | {'embed', 'limited_api'})
     @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
+    @FeatureNewKwargs('python_installation.dependency', '1.7.0', ['limited_api'])
     @noPosargs
     def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Dependency':
+        if 'limited_api' not in kwargs:
+            kwargs['limited_api'] = 'inherit'
+
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
