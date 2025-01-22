@@ -105,6 +105,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             'version': '0.0',
         }
         self.pure: bool = True
+        self.limited_api: T.Optional[str] = None
 
     def _check_version(self, version: str) -> bool:
         if self.name == 'python2':

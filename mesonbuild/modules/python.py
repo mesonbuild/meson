@@ -48,6 +48,7 @@ if T.TYPE_CHECKING:
         disabler: bool
         modules: T.List[str]
         pure: T.Optional[bool]
+        limited_api: T.Optional[str]
 
     class ExtensionModuleKw(SharedModuleKw):
 
@@ -120,6 +121,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         self.limited_api_suffix = info['limited_api_suffix']
         self.paths = info['paths']
         self.pure = python.pure
+        self.limited_api = python.limited_api
         self.platlib_install_path = os.path.join(prefix, python.platlib)
         self.purelib_install_path = os.path.join(prefix, python.purelib)
         self.version = info['version']
@@ -481,6 +483,7 @@ class PythonModule(ExtensionModule):
         KwargInfo('disabler', bool, default=False, since='0.49.0'),
         KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[], since='0.51.0'),
         _PURE_KW.evolve(default=True, since='0.64.0'),
+        _LIMITED_API_KW.evolve(default='', since='1.7.0')
     )
     def find_installation(self, state: 'ModuleState', args: T.Tuple[T.Optional[str]],
                           kwargs: 'FindInstallationKw') -> MaybePythonProg:
@@ -548,6 +551,7 @@ class PythonModule(ExtensionModule):
             assert isinstance(python, PythonExternalProgram), 'for mypy'
             python = copy.copy(python)
             python.pure = kwargs['pure']
+            python.limited_api = kwargs['limited_api']
             return python
 
         raise mesonlib.MesonBugException('Unreachable code was reached (PythonModule.find_installation).')
