@@ -47,7 +47,7 @@ if T.TYPE_CHECKING:
 else:
     CompilerMixinBase = object
 
-_ALL_STDS = ['c89', 'c9x', 'c90', 'c99', 'c1x', 'c11', 'c17', 'c18', 'c2x', 'c23']
+_ALL_STDS = ['c89', 'c9x', 'c90', 'c99', 'c1x', 'c11', 'c17', 'c18', 'c2x', 'c23', 'c2y']
 _ALL_STDS += [f'gnu{std[1:]}' for std in _ALL_STDS]
 _ALL_STDS += ['iso9899:1990', 'iso9899:199409', 'iso9899:1999', 'iso9899:2011', 'iso9899:2017', 'iso9899:2018']
 
@@ -115,6 +115,7 @@ class _ClangCStds(CompilerMixinBase):
     _C18_VERSION = '>=8.0.0'
     _C2X_VERSION = '>=9.0.0'
     _C23_VERSION = '>=18.0.0'
+    _C2Y_VERSION = '>=19.0.0'
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
@@ -129,6 +130,8 @@ class _ClangCStds(CompilerMixinBase):
             stds += ['c2x']
         if version_compare(self.version, self._C23_VERSION):
             stds += ['c23']
+        if version_compare(self.version, self._C2Y_VERSION):
+            stds += ['c2y']
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
