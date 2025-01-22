@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import functools, json, os, textwrap
+import functools, json, os, sys, textwrap
 from pathlib import Path
 import typing as T
 
@@ -74,6 +74,93 @@ class NumPyConfigToolDependency(ConfigToolDependency):
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
 
 
+class PythonBuildConfig:
+    """PEP 739 build-details.json config file."""
+
+    """Schema version currently implemented."""
+    IMPLEMENTED_VERSION: T.Final[str] = '1.0'
+    """Path keys — may be relative, need to be expanded."""
+    _PATH_KEYS = (
+        'base_interpreter',
+        'libpython.dynamic',
+        'libpython.dynamic_stableabi',
+        'libpython.static',
+        'c_api.headers',
+        'c_api.pkgconfig_path',
+    )
+
+    def __init__(self, path: str) -> None:
+        self._path = Path(path)
+
+        try:
+            self._data = json.loads(self._path.read_text(encoding='utf8'))
+        except OSError as e:
+            raise DependencyException(f'Failed to read python.build_config: {e}') from e
+
+        self._validate_data()
+        self._expand_paths()
+
+    def __getitem__(self, key: str) -> T.Any:
+        value = self._data
+        for part in key.split('.'):
+            value = value[part]
+        return value
+
+    def __contains__(self, key: str) -> bool:
+        try:
+            self[key]
+        except KeyError:
+            return False
+        else:
+            return True
+
+    def get(self, key: str, default: T.Any = None) -> T.Any:
+        try:
+            self[key]
+        except KeyError:
+            return default
+
+    def _validate_data(self) -> None:
+        schema_version = self._data['schema_version']
+        if mesonlib.version_compare(schema_version, '< 1.0'):
+            raise DependencyException(f'Invalid schema_version in python.build_config: {schema_version}')
+        if mesonlib.version_compare(schema_version, '>= 2.0'):
+            raise DependencyException(
+                f'Unsupported schema_version {schema_version!r} in python.build_config, '
+                f'but we only implement support for {self.IMPLEMENTED_VERSION!r}'
+            )
+        # Schema version that we currently understand
+        if mesonlib.version_compare(schema_version, f'> {self.IMPLEMENTED_VERSION}'):
+            mlog.log(
+                f'python.build_config has schema_version {schema_version!r}, '
+                f'but we only implement support for {self.IMPLEMENTED_VERSION!r}, '
+                'new functionality might be missing'
+            )
+
+    def _expand_paths(self) -> None:
+        """Expand relative path (they're relative to base_prefix)."""
+        for key in self._PATH_KEYS:
+            if key not in self:
+                continue
+            parent, _, child = key.rpartition('.')
+            container = self[parent] if parent else self._data
+            path = Path(container[child])
+            if not path.is_absolute():
+                container[child] = os.fspath(self.base_prefix / path)
+
+    @property
+    def config_path(self) -> Path:
+        return self._path
+
+    @mesonlib.lazy_property
+    def base_prefix(self) -> Path:
+        path = Path(self._data['base_prefix'])
+        if path.is_absolute():
+            return path
+        # Non-absolute paths are relative to the build config directory
+        return self.config_path.parent / path
+
+
 class BasicPythonExternalProgram(ExternalProgram):
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  ext_prog: T.Optional[ExternalProgram] = None,
@@ -87,14 +174,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             self.cached_version = None
             self.version_arg = '--version'
 
-        self.build_config = None
-
-        if build_config_path:
-            try:
-                with open(build_config_path, encoding='utf8') as f:
-                    self.build_config = json.load(f)
-            except OSError as e:
-                raise DependencyException(f'Failed to read python.build_config: {e}') from e
+        self.build_config = PythonBuildConfig(build_config_path) if build_config_path else None
 
         # We want strong key values, so we always populate this with bogus data.
         # Otherwise to make the type checkers happy we'd have to do .get() for
