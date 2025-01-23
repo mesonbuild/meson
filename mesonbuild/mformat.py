@@ -961,6 +961,14 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help='meson source files'
     )
 
+def get_meson_format(sources: T.List[Path]) -> T.Optional[Path]:
+    for src_file in sources:
+        for parent in src_file.resolve().parents:
+            target = parent / 'meson.format'
+            if target.is_file():
+                return target
+    return None
+
 def run(options: argparse.Namespace) -> int:
     if options.output and len(options.sources) != 1:
         raise MesonException('--output argument implies having exactly one source file')
@@ -974,10 +982,10 @@ def run(options: argparse.Namespace) -> int:
         raise MesonException('--inplace argument is not compatible with stdin input')
 
     sources: T.List[Path] = options.sources.copy() or [Path(build_filename)]
+
     if not options.configuration:
-        default_config_path = sources[0].parent / 'meson.format'
-        if default_config_path.exists():
-            options.configuration = default_config_path
+        options.configuration = get_meson_format(sources)
+
     formatter = Formatter(options.configuration, options.editor_config, options.recursive)
 
     while sources:
