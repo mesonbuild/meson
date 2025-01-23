@@ -277,6 +277,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
     _C18_VERSION = '>=8.0.0'
     _C2X_VERSION = '>=9.0.0'
     _C23_VERSION = '>=14.0.0'
+    _C2Y_VERSION = '>=15.0.0'
     _INVALID_PCH_VERSION = ">=3.4.0"
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
@@ -306,6 +307,8 @@ class GnuCCompiler(GnuCompiler, CCompiler):
             stds += ['c2x']
         if version_compare(self.version, self._C23_VERSION):
             stds += ['c23']
+        if version_compare(self.version, self._C2Y_VERSION):
+            stds += ['c2y']
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
