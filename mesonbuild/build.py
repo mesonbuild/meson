@@ -1109,7 +1109,10 @@ class BuildTarget(Target):
     def get_link_dep_subdirs(self) -> T.AbstractSet[str]:
         result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
-            if not isinstance(i, StaticLibrary):
+            if isinstance(i, FrameworkBundle):
+                result.add(str(pathlib.PurePath() / i.get_subdir() / i.get_filename() /
+                               i.get_bundle_info().get_executable_folder_path()))
+            elif not isinstance(i, StaticLibrary):
                 result.add(i.get_subdir())
             result.update(i.get_link_dep_subdirs())
         return result
