@@ -3185,7 +3185,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 d = d.rel_to_builddir(self.build_to_src)
             elif not self.has_dir_part(d):
                 d = os.path.join(self.get_target_private_dir(target), d)
-            ninja_element.add_dep(d)
+            ninja_element.add_orderdep(d)
 
     def has_dir_part(self, fname: FileOrString) -> bool:
         # FIXME FIXME: The usage of this is a terrible and unreliable hack
