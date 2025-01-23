@@ -3394,6 +3394,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if not self.use_dyndeps_for_fortran():
             for i in self.get_fortran_module_deps(target, compiler):
                 element.add_dep(i)
+
+        for lt in itertools.chain(target.link_targets, target.link_whole_targets):
+            # Linking against frameworks also pulls in its headers, therefore wait for it to be assembled. This is not
+            # exactly ideal, since it will also wait for the library to be linked, but it's better than no dep at all.
+            # TODO: check whether linking against framework is possible when only headers have been installed into the
+            # bundle
+            if isinstance(lt, build.FrameworkBundle):
+                element.add_orderdep(self.get_target_filename(lt))
+
         if dep_file:
             element.add_item('DEPFILE', dep_file)
         if compiler.get_language() == 'cuda':
@@ -3829,6 +3838,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                                            self.get_target_dir(target))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
+
+        if isinstance(target, build.BundleTargetBase):
+            target_slashname_workaround_dir = str(PurePath() / target_slashname_workaround_dir / target.get_filename() /
+                                                  target.get_bundle_info().get_executable_folder_path())
+
         (rpath_args, target.rpath_dirs_to_remove) = (
             linker.build_rpath_args(self.environment.get_build_dir(),
                                     target_slashname_workaround_dir,
