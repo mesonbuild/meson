@@ -332,6 +332,12 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
 
         return []
 
+    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
+        args = super().get_pch_use_args(pch_dir, header)
+        if version_compare(self.version, '>=11'):
+            return ['-fpch-instantiate-templates'] + args
+        return args
+
 
 class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 
