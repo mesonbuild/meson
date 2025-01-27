@@ -269,7 +269,10 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         # In case of cross builds just always relink. In theory we could
         # determine the correct toolset, but we would need to use the correct
         # `nm`, `readelf`, etc, from the cross info which requires refactoring.
-        dummy_syms(outfilename)
+        if cross_host == 'windows' and os.path.isfile(impfilename):
+            windows_syms(impfilename, outfilename)
+        else:
+            dummy_syms(outfilename)
     elif mesonlib.is_linux() or mesonlib.is_hurd():
         gnu_syms(libfilename, outfilename)
     elif mesonlib.is_osx():
