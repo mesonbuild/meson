@@ -1698,14 +1698,24 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
                          extra_paths: T.Optional[T.List[str]] = None
                          ) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        # Extract rpath information from target
+        rpath_paths = target.determine_rpath_dirs()
+        install_rpath = target.install_rpath
+        build_rpath = target.build_rpath
+
         all_paths: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
+        rpath_dirs_to_remove: T.Set[bytes] = set()
         # install_rpath first, followed by other paths, and the system path last
-        if target.install_rpath != '':
-            all_paths.add(target.install_rpath)
-        if target.build_rpath != '':
-            all_paths.add(target.build_rpath)
-        for p in target.determine_rpath_dirs():
-            all_paths.add(os.path.join(build_dir, p))
+        if install_rpath != '':
+            all_paths.add(install_rpath)
+        if build_rpath != '':
+            all_paths.add(build_rpath)
+            for p in build_rpath.split(':'):
+                rpath_dirs_to_remove.add(p.encode('utf8'))
+        for p in rpath_paths:
+            path = os.path.join(build_dir, p)
+            all_paths.add(path)
+            rpath_dirs_to_remove.add(path.encode('utf8'))
         # We should consider allowing the $LIBPATH environment variable
         # to override sys_path.
         sys_path = self.environment.get_compiler_system_lib_dirs(self.for_machine)
@@ -1720,7 +1730,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                     all_paths.add(p)
         if extra_paths:
             all_paths.update(extra_paths)
-        return (self._apply_prefix('-blibpath:' + ':'.join(all_paths)), set())
+        return (self._apply_prefix('-blibpath:' + ':'.join(all_paths)), rpath_dirs_to_remove)
 
     def thread_flags(self) -> T.List[str]:
         return ['-pthread']

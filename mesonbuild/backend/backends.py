@@ -144,6 +144,7 @@ class TargetInstallData:
     # TODO: install_mode should just always be a FileMode object
     install_mode: T.Optional['FileMode']
     subproject: str
+    system: str
     optional: bool = False
     tag: T.Optional[str] = None
     can_strip: bool = False
@@ -1749,7 +1750,8 @@ class Backend:
                                           first_outdir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode, t.subproject,
-                                          tag=tag, can_strip=can_strip)
+                                          tag=tag, can_strip=can_strip,
+                                          system=self.environment.machines[t.for_machine].system)
                     d.targets.append(i)
 
                     for alias, to, tag in t.get_aliases():
@@ -1774,7 +1776,8 @@ class Backend:
                                                   implib_install_dir, first_outdir_name,
                                                   False, {}, set(), '', install_mode,
                                                   t.subproject, optional=isinstance(t, build.SharedModule),
-                                                  tag='devel')
+                                                  tag='devel',
+                                                  system=self.environment.machines[t.for_machine].system)
                             d.targets.append(i)
 
                         if not should_strip and t.get_debug_filename():
@@ -1783,7 +1786,8 @@ class Backend:
                                                   first_outdir_name,
                                                   False, {}, set(), '',
                                                   install_mode, t.subproject,
-                                                  optional=True, tag='devel')
+                                                  optional=True, tag='devel',
+                                                  system=self.environment.machines[t.for_machine].system)
                             d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
@@ -1794,7 +1798,8 @@ class Backend:
                         f = os.path.join(self.get_target_dir(t), output)
                         i = TargetInstallData(f, outdir, outdir_name, False, {}, set(), None,
                                               install_mode, t.subproject,
-                                              tag=tag)
+                                              tag=tag,
+                                              system=self.environment.machines[t.for_machine].system)
                         d.targets.append(i)
             elif isinstance(t, build.CustomTarget):
                 # If only one install_dir is specified, assume that all
@@ -1815,7 +1820,8 @@ class Backend:
                             i = TargetInstallData(f, first_outdir, first_outdir_name,
                                                   False, {}, set(), None, install_mode,
                                                   t.subproject, optional=not t.build_by_default,
-                                                  tag=tag)
+                                                  tag=tag,
+                                                  system=self.environment.machines[t.for_machine].system)
                             d.targets.append(i)
                 else:
                     for output, outdir, outdir_name, tag in zip(t.get_outputs(), outdirs, install_dir_names, t.install_tag):
@@ -1827,7 +1833,8 @@ class Backend:
                         i = TargetInstallData(f, outdir, outdir_name,
                                               False, {}, set(), None, install_mode,
                                               t.subproject, optional=not t.build_by_default,
-                                              tag=tag)
+                                              tag=tag,
+                                              system=self.environment.machines[t.for_machine].system)
                         d.targets.append(i)
 
     def generate_custom_install_script(self, d: InstallData) -> None:
