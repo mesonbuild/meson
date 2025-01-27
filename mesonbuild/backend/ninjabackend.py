@@ -3296,6 +3296,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_shsym(self, target) -> None:
         target_file = self.get_target_filename(target)
+        if isinstance(target, build.SharedLibrary) and target.aix_so_archive:
+            if self.environment.machines[target.for_machine].is_aix():
+                linker, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
+                target.get_outputs()[0] = linker.get_archive_name(target.get_outputs()[0])
+                target_file = target.get_outputs()[0]
+                target_file = os.path.join(self.get_target_dir(target), target_file)
         symname = self.get_target_shsym_filename(target)
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
         # The library we will actually link to, which is an import library on Windows (not the DLL)
