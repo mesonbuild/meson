@@ -1358,6 +1358,8 @@ class OptionStore:
         is_first_invocation = True
         spcall_default_options = self.hacky_mchackface_back_to_list(spcall_default_options)
         project_default_options = self.hacky_mchackface_back_to_list(project_default_options)
+        if isinstance(spcall_default_options, str):
+            spcall_default_options = [spcall_default_options]
         for o in itertools.chain(project_default_options, spcall_default_options):
             keystr, valstr = o.split('=', 1)
             key = OptionKey.from_string(keystr)

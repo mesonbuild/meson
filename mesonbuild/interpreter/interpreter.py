@@ -299,7 +299,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
-            self.default_project_options = default_project_options.copy()
+            self.default_project_options = default_project_options if isinstance(default_project_options, str) else default_project_options.copy()
             if isinstance(default_project_options, dict):
                 pass
         else:
