@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import hashlib
+import hashlib, io, sys
 
 from .. import mparser
 from .. import environment
@@ -1463,10 +1463,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         class ExpectErrorObject(ContextManagerObject):
             def __init__(self, msg: str, how: str, subproject: str) -> None:
                 super().__init__(subproject)
+                self.old_stdout = sys.stdout
+                sys.stdout = self.new_stdout = io.StringIO()
                 self.msg = msg
                 self.how = how
 
             def __exit__(self, exc_type, exc_val, exc_tb):
+                sys.stdout = self.old_stdout
+                for l in self.new_stdout.getvalue().splitlines():
+                    if 'ERROR:' in l:
+                        print(l.replace('ERROR', 'ERROR (msbuild proof)'))
+                    else:
+                        print(l)
                 if exc_val is None:
                     raise InterpreterException('Expecting an error but code block succeeded')
                 if isinstance(exc_val, mesonlib.MesonException):
