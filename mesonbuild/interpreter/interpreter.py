@@ -906,10 +906,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         try:
             subdir, method = r.resolve(subp_name, force_method)
         except wrap.WrapException as e:
+            if force_method is not None:
+                prefix = force_method.title() + ' subproject'
+            else:
+                prefix = 'Subproject'
+            msg = [prefix, mlog.bold(subp_name), 'is buildable:', mlog.red('NO')]
             if not required:
                 mlog.log(e)
-                mlog.log('Subproject ', mlog.bold(subp_name), 'is buildable:', mlog.red('NO'), '(disabling)')
+                mlog.log(*msg, '(disabling)')
                 return self.disabled_subproject(subp_name, exception=e)
+            mlog.error(*msg)
             raise e
 
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
