@@ -207,7 +207,7 @@ def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str]:
     # var which is the list of library paths MSVC will search for import
     # libraries while linking.
     for lib in (['lib'], get_tool('llvm-lib')):
-        output, e = call_tool_nowarn(lib + ['-list', impfilename])
+        output, e = call_tool_nowarn(lib + ['-list', '-nologo', impfilename])
         if output:
             # The output is a list of DLLs that each symbol exported by the import
             # library is available in. We only build import libraries that point to
