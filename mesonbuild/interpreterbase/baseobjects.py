@@ -31,6 +31,8 @@ TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
 TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
 TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
+TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var]
+
 
 SubProject = T.NewType('SubProject', str)
 
@@ -45,16 +47,22 @@ class InterpreterObject:
 
     OPERATORS: T.Dict[MesonOperator, TYPE_op_func] = {}
 
+    METHODS: T.Dict[
+        str,
+        TYPE_method_func,
+    ] = {}
+
     def __init_subclass__(cls: T.Type[InterpreterObject], **kwargs: T.Any) -> None:
         super().__init_subclass__(**kwargs)
         saved_trivial_operators = cls.TRIVIAL_OPERATORS
 
+        cls.METHODS = {}
         cls.OPERATORS = {}
         cls.TRIVIAL_OPERATORS = {}
 
-        # Compute inherited operators according to the Python resolution order
-        # Reverse the result of mro() because update() will overwrite operators
-        # that are set by the superclass with those that are set by the subclass
+        # Compute inherited operators and methods according to the Python resolution
+        # order.  Reverse the result of mro() because update() will overwrite entries
+        # that are set by the superclass with those that are set by the subclass.
         for superclass in reversed(cls.mro()[1:]):
             if superclass is InterpreterObject:
                 # InterpreterObject cannot use @InterpreterObject.operator because
@@ -65,13 +73,25 @@ class InterpreterObject:
                 })
 
             elif issubclass(superclass, InterpreterObject):
+                cls.METHODS.update(superclass.METHODS)
                 cls.OPERATORS.update(superclass.OPERATORS)
                 cls.TRIVIAL_OPERATORS.update(superclass.TRIVIAL_OPERATORS)
 
         for name, method in cls.__dict__.items():
+            if hasattr(method, 'meson_method'):
+                cls.METHODS[method.meson_method] = method
             if hasattr(method, 'meson_operator'):
                 cls.OPERATORS[method.meson_operator] = method
         cls.TRIVIAL_OPERATORS.update(saved_trivial_operators)
+
+    @staticmethod
+    def method(name: str) -> T.Callable[[TV_func], TV_func]:
+        '''Decorator that tags a Python method as the implementation of a method
+           for the Meson interpreter'''
+        def decorator(f: TV_func) -> TV_func:
+            f.meson_method = name    # type: ignore[attr-defined]
+            return f
+        return decorator
 
     @staticmethod
     def operator(op: MesonOperator) -> T.Callable[[TV_func], TV_func]:
@@ -102,13 +122,20 @@ class InterpreterObject:
                 args: T.List[TYPE_var],
                 kwargs: TYPE_kwargs
             ) -> TYPE_var:
-        if method_name in self.methods:
-            method = self.methods[method_name]
+        if method_name in self.METHODS:
+            method = self.METHODS[method_name]
             if not getattr(method, 'no-args-flattening', False):
                 args = flatten(args)
             if not getattr(method, 'no-second-level-holder-flattening', False):
                 args, kwargs = resolve_second_level_holders(args, kwargs)
-            return method(args, kwargs)
+            return method(self, args, kwargs)
+        if method_name in self.methods:
+            bound_method = self.methods[method_name]
+            if not getattr(bound_method, 'no-args-flattening', False):
+                args = flatten(args)
+            if not getattr(bound_method, 'no-second-level-holder-flattening', False):
+                args, kwargs = resolve_second_level_holders(args, kwargs)
+            return bound_method(args, kwargs)
         raise InvalidCode(f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.')
 
     def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
