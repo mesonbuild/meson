@@ -23,8 +23,6 @@ from ...interpreterbase import (
 from ...mparser import PlusAssignmentNode
 
 if T.TYPE_CHECKING:
-    # Object holders need the actual interpreter
-    from ...interpreter import Interpreter
     from ...interpreterbase import TYPE_kwargs
 
 class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
@@ -35,14 +33,6 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
         MesonOperator.IN: (object, lambda obj, x: x in obj.held_object),
         MesonOperator.NOT_IN: (object, lambda obj, x: x not in obj.held_object),
     }
-
-    def __init__(self, obj: T.List[TYPE_var], interpreter: 'Interpreter') -> None:
-        super().__init__(obj, interpreter)
-        self.methods.update({
-            'contains': self.contains_method,
-            'length': self.length_method,
-            'get': self.get_method,
-        })
 
     def display_name(self) -> str:
         return 'array'
@@ -59,6 +49,7 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
     @noArgsFlattening
     @noKwargs
     @typed_pos_args('array.contains', object)
+    @InterpreterObject.method('contains')
     def contains_method(self, args: T.Tuple[object], kwargs: TYPE_kwargs) -> bool:
         def check_contains(el: T.List[TYPE_var]) -> bool:
             for element in el:
@@ -73,12 +64,14 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
 
     @noKwargs
     @noPosargs
+    @InterpreterObject.method('length')
     def length_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> int:
         return len(self.held_object)
 
     @noArgsFlattening
     @noKwargs
     @typed_pos_args('array.get', int, optargs=[object])
+    @InterpreterObject.method('get')
     def get_method(self, args: T.Tuple[int, T.Optional[TYPE_var]], kwargs: TYPE_kwargs) -> TYPE_var:
         index = args[0]
         if index < -len(self.held_object) or index >= len(self.held_object):
