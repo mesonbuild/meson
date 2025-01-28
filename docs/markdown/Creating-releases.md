@@ -34,7 +34,7 @@ then create a `SHA-256` checksum file next to the archive.
 ## Modifying the dist directory before creating the archive
 
 Modification to the checked out files like generating files or
-setting version info can be done by dist scripts.
+setting version info can be done with dist scripts.
 Make a script run during `meson dist` with this:
 ```meson
 [[#meson.add_dist_script]]('distscript.sh')
