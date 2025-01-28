@@ -1481,6 +1481,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 super().__init__(subproject)
                 self.old_stdout = sys.stdout
                 sys.stdout = self.new_stdout = io.StringIO()
+                sys.stdout.colorize_console = getattr(self.old_stdout, 'colorize_console', None)
                 self.msg = msg
                 self.how = how
 
