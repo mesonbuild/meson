@@ -101,7 +101,6 @@ printf "%s\n" ${pkgs_latest[@]} >> /etc/portage/package.accept_keywords/meson
 cat /etc/portage/package.accept_keywords/meson
 
 cat <<-EOF > /etc/portage/package.accept_keywords/misc
-	dev-lang/python-exec
 	dev-lang/python
 EOF
 
