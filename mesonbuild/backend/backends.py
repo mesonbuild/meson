@@ -829,7 +829,9 @@ class Backend:
     @staticmethod
     @lru_cache(maxsize=None)
     def canonicalize_filename(fname: str) -> str:
-        parts = Path(fname).parts
+        if os.path.altsep is not None:
+            fname = fname.replace(os.path.altsep, os.path.sep)
+        parts = fname.split(os.path.sep)
         hashed = ''
         if len(parts) > 5:
             temp = '/'.join(parts[-5:])
