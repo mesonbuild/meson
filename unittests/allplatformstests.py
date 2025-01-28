@@ -4483,12 +4483,15 @@ class AllPlatformTests(BasePlatformTests):
 
             # The compiler either invokes the linker or doesn't. Act accordingly.
             with mock.patch.object(cc_type, 'INVOKES_LINKER', True):
+                env.coredata.get_external_link_args.cache_clear()
                 cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True, '')
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
 
+
             ## And one that doesn't
             #with mock.patch.object(cc_type, 'INVOKES_LINKER', False):
+            #    env.coredata.get_external_link_args.cache_clear()
             #    cc =  detect_compiler_for(env, 'c', MachineChoice.HOST, True, '')
             #    link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
             #    self.assertEqual(sorted(link_args), sorted(['-flto']))
