@@ -84,7 +84,7 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
             self.create_option(options.UserComboOption,
                                OptionKey('c_std', machine=self.for_machine),
                                'C language standard to use',
-                               ['none', 'c89', 'c99', 'c11', 'c17', 'gnu89', 'gnu99', 'gnu11', 'gnu17'],
+                               ['none', 'c89', 'c99', 'c11', 'c17', 'c23', 'c2x', 'gnu89', 'gnu99', 'gnu11', 'gnu17', 'gnu23', 'gnu2x'],
                                'none'),
         )
 
