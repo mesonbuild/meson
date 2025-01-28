@@ -1463,7 +1463,7 @@ class Vs2010Backend(backends.Backend):
                         if self.environment.is_source(src):
                             target_private_dir = self.relpath(self.get_target_private_dir(t),
                                                               self.get_target_dir(t))
-                            rel_obj = self.object_filename_from_source(t, src, target_private_dir)
+                            rel_obj = self.object_filename_from_source(t, compiler, src, target_private_dir)
                             extra_link_args.append(rel_obj)
 
                     extra_link_args.extend(self.flatten_object_list(t))
