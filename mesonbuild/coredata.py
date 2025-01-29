@@ -19,6 +19,7 @@ from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
     stringlistify,
+    default_prefix,
     pickle_load
 )
 
@@ -34,7 +35,6 @@ import typing as T
 if T.TYPE_CHECKING:
     import argparse
     from typing_extensions import Protocol
-    from typing import Any
 
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
@@ -43,7 +43,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import UserOption, ElementaryOptionValues
+    from .options import ElementaryOptionValues
 
     class SharedCMDOptions(Protocol):
 
@@ -226,7 +226,7 @@ class CMakeStateCache:
     def items(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
         return iter(self.__cache.items())
 
-    def update(self, language: str, variables: T.Dict[str, T.List[str]]):
+    def update(self, language: str, variables: T.Dict[str, T.List[str]]) -> None:
         if language not in self.__cache:
             self.__cache[language] = {}
         self.__cache[language].update(variables)
@@ -257,7 +257,7 @@ class CoreData:
         self.regen_guid = str(uuid.uuid4()).upper()
         self.install_guid = str(uuid.uuid4()).upper()
         self.meson_command = meson_command
-        self.target_guids = {}
+        self.target_guids: T.Dict[str, str] = {}
         self.version = version
         self.optstore = options.OptionStore()
         self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
@@ -413,7 +413,7 @@ class CoreData:
                 self.add_builtin_option(self.optstore, key.evolve(subproject=subproject, machine=for_machine), opt)
 
     @staticmethod
-    def add_builtin_option(opts_map: 'MutableKeyedOptionDictType', key: OptionKey,
+    def add_builtin_option(opts_map: options.OptionStore, key: OptionKey,
                            opt: 'options.BuiltinOption') -> None:
         if key.subproject:
             if opt.yielding:
@@ -422,11 +422,13 @@ class CoreData:
             value = opts_map.get_value(key.as_root())
         else:
             value = None
-        if key.has_module_prefix():
-            modulename = key.get_module_prefix()
-            opts_map.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
+
+        inited = T.cast('options.AnyOptionType', opt.init_option(key, value, default_prefix()))
+        modulename = key.get_module_prefix()
+        if modulename is not None:
+            opts_map.add_module_option(modulename, key, inited)
         else:
-            opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
+            opts_map.add_system_option(key, inited)
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
@@ -444,8 +446,8 @@ class CoreData:
 
     def get_option(self, key: OptionKey) -> ElementaryOptionValues:
         try:
-            v = self.optstore.get_value(key)
-            return v
+            v = self.optstore.get_value_object(key)
+            return v.value
         except KeyError:
             pass
 
@@ -687,9 +689,9 @@ class CoreData:
         # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
         options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
-        for k, v in default_options.items():
+        for k, v_ in default_options.items():
             if not subproject or k.subproject == subproject:
-                options[k] = v
+                options[k] = v_
         options.update(env.options)
         env.options = options
 
@@ -914,22 +916,17 @@ class OptionsView(abc.Mapping):
 
     # TODO: the typing here could be made more explicit using a TypeDict from
     # python 3.8 or typing_extensions
-    original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, UserOption[Any]]']
+    original_options: T.Union[KeyedOptionDictType, T.Dict[OptionKey, options.AnyOptionType]]
     subproject: T.Optional[str] = None
-    overrides: T.Optional[T.Mapping[OptionKey, ElementaryOptionValues]] = dataclasses.field(default_factory=dict)
+    overrides: T.MutableMapping[OptionKey, ElementaryOptionValues] = dataclasses.field(default_factory=dict)
 
     def __getitem__(self, key: OptionKey) -> options.UserOption:
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
         if not isinstance(self.original_options, options.OptionStore):
-            # This is only used by CUDA currently.
-            # This entire class gets removed when option refactor
-            # is finished.
-            if '_' in key.name or key.lang is not None:
-                is_project_option = False
-            else:
-                sys.exit(f'FAIL {key}.')
+            assert '_' in key.name
+            is_project_option = False
         else:
             is_project_option = self.original_options.is_project_option(key)
         if not is_project_option:
@@ -960,7 +957,7 @@ class OptionsView(abc.Mapping):
             key = OptionKey(key)
         return self[key].value
 
-    def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues):
+    def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues) -> None:
         if isinstance(key, str):
             key = OptionKey(key)
         self.overrides[key] = value
