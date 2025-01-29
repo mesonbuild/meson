@@ -47,6 +47,7 @@ pkgs_stable=(
   dev-qt/linguist-tools
   dev-qt/qtwidgets:5
   llvm-core/llvm
+  dev-qt/qtdeclarative:6
   dev-qt/qttools
   net-print/cups
   dev-util/vulkan-headers
