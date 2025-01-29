@@ -946,9 +946,13 @@ class OptionsView(abc.Mapping):
                 else:
                     opt = self.original_options[key2]
         else:
-            opt = self.original_options[key]
+            assert isinstance(self.original_options, options.OptionStore), 'for mypy'
+            opt = self.original_options.get_value_object(key)
             if opt.yielding:
                 opt = self.original_options.get(key.as_root(), opt)
+
+        assert opt is not None, 'for mypy'
+
         if self.overrides:
             override_value = self.overrides.get(key.as_root())
             if override_value is not None:
