@@ -99,7 +99,7 @@ class CCompiler(CLikeCompiler, Compiler):
         opts = super().get_options()
         key = self.form_compileropt_key('std')
         opts.update({
-            key: options.UserStdOption('C', ALL_STDS),
+            key: options.UserStdOption('c', ALL_STDS),
         })
         return opts
 
