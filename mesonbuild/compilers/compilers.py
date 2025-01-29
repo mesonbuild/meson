@@ -1370,7 +1370,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       env: 'Environment') -> dict[OptionKey, options.UserOption[T.Any]]:
+                       env: 'Environment') -> dict[OptionKey, options.AnyOptionType]:
     """Retrieve options that apply to all compilers for a given language."""
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey(f'{lang}_args', machine=for_machine)
@@ -1402,6 +1402,6 @@ def get_global_options(lang: str,
         # autotools compatibility.
         largs.extend_value(comp_options)
 
-    opts: dict[OptionKey, options.UserOption[T.Any]] = {argkey: cargs, largkey: largs}
+    opts: dict[OptionKey, options.AnyOptionType] = {argkey: cargs, largkey: largs}
 
     return opts
