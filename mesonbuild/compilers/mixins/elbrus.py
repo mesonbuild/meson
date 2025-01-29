@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
-        std = options.get_value(OptionKey(f'{self.language}_std', machine=self.for_machine))
+        std = options.get_value_safe(OptionKey(f'{self.language}_std', machine=self.for_machine), str)
         if std != 'none':
             args.append('-std=' + std)
         return args

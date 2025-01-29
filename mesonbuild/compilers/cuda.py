@@ -684,7 +684,7 @@ class CudaCompiler(Compiler):
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
             key = self.form_compileropt_key('std')
-            std = options.get_value(key)
+            std = options.get_value_safe(key, str)
             if std != 'none':
                 args.append('--std=' + std)
 

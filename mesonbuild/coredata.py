@@ -43,7 +43,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import ElementaryOptionValues
+    from .options import ElementaryOptionTypes, ElementaryOptionValues
 
     class SharedCMDOptions(Protocol):
 
@@ -467,7 +467,7 @@ class CoreData:
                 assert isinstance(value, str), 'for mypy'
                 value = self.sanitize_prefix(value)
             else:
-                prefix = self.optstore.get_value('prefix')
+                prefix = self.optstore.get_value_safe('prefix', str)
                 value = self.sanitize_dir_option_value(prefix, key, value)
 
         try:
@@ -524,7 +524,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.optstore.get_value('buildtype')
+        value = self.optstore.get_value_safe('buildtype', str)
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -543,8 +543,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.optstore.get_value('optimization')
-        actual_debug = self.optstore.get_value('debug')
+        actual_opt = self.optstore.get_value_safe('optimization', str)
+        actual_debug = self.optstore.get_value_safe('debug', bool)
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -924,7 +924,7 @@ class OptionsView(abc.Mapping):
     subproject: T.Optional[str] = None
     overrides: T.MutableMapping[OptionKey, ElementaryOptionValues] = dataclasses.field(default_factory=dict)
 
-    def __getitem__(self, key: OptionKey) -> options.UserOption:
+    def __getitem__(self, key: OptionKey) -> options.AnyOptionType:
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
@@ -960,10 +960,15 @@ class OptionsView(abc.Mapping):
                 opt.set_value(override_value)
         return opt
 
-    def get_value(self, key: T.Union[str, OptionKey]):
+    def get_value(self, key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             key = OptionKey(key)
         return self[key].value
+
+    def get_value_safe(self, key: T.Union[OptionKey, str], type_: T.Type[ElementaryOptionTypes]) -> ElementaryOptionTypes:
+        v = self.get_value(key)
+        assert isinstance(v, type_), 'for mypy'
+        return v
 
     def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues) -> None:
         if isinstance(key, str):

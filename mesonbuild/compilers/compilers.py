@@ -271,7 +271,7 @@ def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
 def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '_T') -> '_T':
     """Get the value of an option, or the fallback value."""
     try:
-        v: '_T' = options.get_value(opt)
+        v = T.cast('_T', options.get_value(opt))
     except (KeyError, AttributeError):
         return fallback
 
@@ -301,11 +301,11 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.get_colorout_args(options.get_value(OptionKey('b_colorout')))
+        args += compiler.get_colorout_args(options.get_value_safe(OptionKey('b_colorout'), str))
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.sanitizer_compile_args(options.get_value(OptionKey('b_sanitize')))
+        args += compiler.sanitizer_compile_args(options.get_value_safe(OptionKey('b_sanitize'), str))
     except (KeyError, AttributeError):
         pass
     try:
@@ -330,8 +330,8 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
         args.append('-fembed-bitcode')
     try:
         try:
-            crt_val = options.get_value(OptionKey('b_vscrt'))
-            buildtype = options.get_value(OptionKey('buildtype'))
+            crt_val = options.get_value_safe(OptionKey('b_vscrt'), str)
+            buildtype = options.get_value_safe(OptionKey('buildtype'), str)
             args += compiler.get_crt_compile_args(crt_val, buildtype)
         except AttributeError:
             pass
@@ -359,7 +359,7 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except (KeyError, AttributeError):
         pass
     try:
-        args += linker.sanitizer_link_args(options.get_value('b_sanitize'))
+        args += linker.sanitizer_link_args(options.get_value_safe('b_sanitize', str))
     except (KeyError, AttributeError):
         pass
     try:
@@ -398,8 +398,8 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
 
     try:
         try:
-            crt_val = options.get_value(OptionKey('b_vscrt'))
-            buildtype = options.get_value(OptionKey('buildtype'))
+            crt_val = options.get_value_safe(OptionKey('b_vscrt'), str)
+            buildtype = options.get_value_safe(OptionKey('buildtype'), str)
             args += linker.get_crt_link_args(crt_val, buildtype)
         except AttributeError:
             pass

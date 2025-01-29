@@ -37,6 +37,7 @@ if T.TYPE_CHECKING:
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
+    ElementaryOptionTypes = T.TypeVar('ElementaryOptionTypes', int, bool, str, T.List[str])
 
     class ArgparseKWs(TypedDict, total=False):
 
@@ -756,8 +757,13 @@ class OptionStore:
     def get_value_object(self, key: T.Union[OptionKey, str]) -> AnyOptionType:
         return self.d[self.ensure_key(key)]
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> 'T.Any':
+    def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
         return self.get_value_object(key).value
+
+    def get_value_safe(self, key: T.Union[OptionKey, str], type_: T.Type[ElementaryOptionTypes]) -> ElementaryOptionTypes:
+        v = self.get_value_object(key).value
+        assert isinstance(v, type_), 'for mypy'
+        return v
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_key(key)

@@ -376,8 +376,8 @@ class CLikeCompiler(Compiler):
             # linking with static libraries since MSVC won't select a CRT for
             # us in that case and will error out asking us to pick one.
             try:
-                crt_val = env.coredata.optstore.get_value('b_vscrt')
-                buildtype = env.coredata.optstore.get_value('buildtype')
+                crt_val = env.coredata.optstore.get_value_safe('b_vscrt', str)
+                buildtype = env.coredata.optstore.get_value_safe('buildtype', str)
                 cargs += self.get_crt_compile_args(crt_val, buildtype)
             except (KeyError, AttributeError):
                 pass

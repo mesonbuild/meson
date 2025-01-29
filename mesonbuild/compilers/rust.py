@@ -254,7 +254,7 @@ class RustCompiler(Compiler):
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
         key = self.form_compileropt_key('std')
-        std = options.get_value(key)
+        std = options.get_value_safe(key, str)
         if std != 'none':
             args.append('--edition=' + std)
         return args

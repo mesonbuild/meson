@@ -77,7 +77,7 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
 
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options.get_value(self.form_compileropt_key('std'))
+        std = options.get_value_safe(self.form_compileropt_key('std'), str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -111,7 +111,7 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
 
     def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options.get_value(self.form_compileropt_key('std'))
+        std = options.get_value_safe(self.form_compileropt_key('std'), str)
         if std != 'none':
             args.append('-std=' + std)
         return args
