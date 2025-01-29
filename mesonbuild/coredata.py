@@ -481,14 +481,15 @@ class CoreData:
                 if v in opt.deprecated:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is deprecated')
         elif isinstance(opt.deprecated, dict):
-            def replace(v):
+            arr: T.List[str] = []
+            for v in opt.listify(value):
                 newvalue = opt.deprecated.get(v)
                 if newvalue is not None:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is replaced by {newvalue!r}')
-                    return newvalue
-                return v
-            newvalue = [replace(v) for v in opt.listify(value)]
-            value = ','.join(newvalue)
+                    arr.append(newvalue)
+                else:
+                    arr.append(v)
+            value = ','.join(arr)
         elif isinstance(opt.deprecated, str):
             # Option is deprecated and replaced by another. Note that a project
             # option could be replaced by a built-in or module option, which is
