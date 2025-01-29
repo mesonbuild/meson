@@ -254,7 +254,7 @@ BASE_OPTIONS: T.Mapping[OptionKey, BaseOption] = {
                                      choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
 }
 
-base_options = {key: base_opt.init_option(key) for key, base_opt in BASE_OPTIONS.items()}
+base_options = {key: T.cast('options.AnyOptionType', base_opt.init_option(key)) for key, base_opt in BASE_OPTIONS.items()}
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
                    option: OptionKey) -> bool:
