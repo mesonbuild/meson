@@ -9,7 +9,7 @@ import typing as T
 from enum import Enum
 
 from . import mesonlib
-from .mesonlib import EnvironmentException, HoldableObject, lazy_property
+from .mesonlib import EnvironmentException, HoldableObject
 from . import mlog
 from pathlib import Path
 
@@ -266,6 +266,23 @@ class MachineInfo(HoldableObject):
     def __post_init__(self) -> None:
         self.is_64_bit: bool = self.cpu_family in CPU_FAMILIES_64_BIT
 
+        self.is_windows: bool = self.system == 'windows'
+        self.is_cygwin: bool = self.system == 'cygwin'
+        self.is_linux: bool = self.system == 'linux'
+        # Machine is Darwin (iOS/tvOS/OS X)?
+        self.is_darwin: bool = self.system in {'darwin', 'ios', 'tvos'}
+        self.is_android: bool = self.system == 'android'
+        self.is_haiku: bool = self.system == 'haiku'
+        self.is_netbsd: bool = self.system == 'netbsd'
+        self.is_openbsd: bool = self.system == 'openbsd'
+        self.is_dragonflybsd: bool = self.system == 'dragonfly'
+        self.is_freebsd: bool = self.system == 'freebsd'
+        # Machine is illumos or Solaris?
+        self.is_sunos: bool = self.system == 'sunos'
+        self.is_hurd: bool = self.system == 'gnu'
+        self.is_aix: bool = self.system == 'aix'
+        self.is_irix: bool = self.system.startswith('irix')
+
     def __repr__(self) -> str:
         return f'<MachineInfo: {self.system} {self.cpu_family} ({self.cpu})>'
 
@@ -291,99 +308,10 @@ class MachineInfo(HoldableObject):
 
         return cls(system, cpu_family, literal['cpu'], endian, kernel, subsystem)
 
-    @lazy_property
-    def is_windows(self) -> bool:
-        """
-        Machine is windows?
-        """
-        return self.system == 'windows'
-
-    @lazy_property
-    def is_cygwin(self) -> bool:
-        """
-        Machine is cygwin?
-        """
-        return self.system == 'cygwin'
-
-    @lazy_property
-    def is_linux(self) -> bool:
-        """
-        Machine is linux?
-        """
-        return self.system == 'linux'
-
-    @lazy_property
-    def is_darwin(self) -> bool:
-        """
-        Machine is Darwin (iOS/tvOS/OS X)?
-        """
-        return self.system in {'darwin', 'ios', 'tvos'}
-
-    @lazy_property
-    def is_android(self) -> bool:
-        """
-        Machine is Android?
-        """
-        return self.system == 'android'
-
-    @lazy_property
-    def is_haiku(self) -> bool:
-        """
-        Machine is Haiku?
-        """
-        return self.system == 'haiku'
-
-    @lazy_property
-    def is_netbsd(self) -> bool:
-        """
-        Machine is NetBSD?
-        """
-        return self.system == 'netbsd'
-
-    @lazy_property
-    def is_openbsd(self) -> bool:
-        """
-        Machine is OpenBSD?
-        """
-        return self.system == 'openbsd'
-
-    @lazy_property
-    def is_dragonflybsd(self) -> bool:
-        """Machine is DragonflyBSD?"""
-        return self.system == 'dragonfly'
-
-    @lazy_property
-    def is_freebsd(self) -> bool:
-        """Machine is FreeBSD?"""
-        return self.system == 'freebsd'
-
-    @lazy_property
-    def is_sunos(self) -> bool:
-        """Machine is illumos or Solaris?"""
-        return self.system == 'sunos'
-
-    @lazy_property
-    def is_hurd(self) -> bool:
-        """
-        Machine is GNU/Hurd?
-        """
-        return self.system == 'gnu'
-
-    @lazy_property
-    def is_aix(self) -> bool:
-        """
-        Machine is aix?
-        """
-        return self.system == 'aix'
-
-    @lazy_property
-    def is_irix(self) -> bool:
-        """Machine is IRIX?"""
-        return self.system.startswith('irix')
-
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
+
     def get_exe_suffix(self) -> str:
         if self.is_windows or self.is_cygwin:
             return 'exe'

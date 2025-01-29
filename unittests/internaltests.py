@@ -596,12 +596,16 @@ class InternalTests(unittest.TestCase):
         else:
             self._test_all_naming(cc, env, patterns, 'linux')
             env.machines.host.system = 'openbsd'
+            env.machines.host.__post_init__()
             self._test_all_naming(cc, env, patterns, 'openbsd')
             env.machines.host.system = 'darwin'
+            env.machines.host.__post_init__()
             self._test_all_naming(cc, env, patterns, 'darwin')
             env.machines.host.system = 'cygwin'
+            env.machines.host.__post_init__()
             self._test_all_naming(cc, env, patterns, 'cygwin')
             env.machines.host.system = 'windows'
+            env.machines.host.__post_init__()
             self._test_all_naming(cc, env, patterns, 'windows-mingw')
 
     @skipIfNoPkgconfig
