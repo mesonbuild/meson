@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -1668,7 +1668,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     # the host machine.
     def find_program_impl(self, args: T.List[mesonlib.FileOrString],
                           for_machine: MachineChoice = MachineChoice.HOST,
-                          default_options: T.Optional[T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]] = None,
+                          default_options: T.Optional[T.Dict[OptionKey, options.ElementaryOptionValues]] = None,
                           required: bool = True, silent: bool = True,
                           wanted: T.Union[str, T.List[str]] = '',
                           search_dirs: T.Optional[T.List[str]] = None,
@@ -1699,7 +1699,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return progobj
 
     def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
-                       default_options: T.Optional[T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]],
+                       default_options: T.Optional[T.Dict[OptionKey, options.ElementaryOptionValues]],
                        required: bool,
                        search_dirs: T.Optional[T.List[str]],
                        wanted: T.Union[str, T.List[str]],
@@ -1767,7 +1767,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return True
 
     def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
-                              default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]],
+                              default_options: T.Dict[OptionKey, options.ElementaryOptionValues],
                               required: bool, extra_info: T.List[mlog.TV_Loggable]
                               ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',

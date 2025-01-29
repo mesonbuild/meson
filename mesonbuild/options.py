@@ -36,6 +36,7 @@ if T.TYPE_CHECKING:
         'UserBooleanOption', 'UserComboOption', 'UserFeatureOption',
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
+    ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
 
     class ArgparseKWs(TypedDict, total=False):
 
