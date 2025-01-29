@@ -1263,7 +1263,7 @@ class BuildTarget(Target):
         if kwargs.get(arg) is not None:
             val = T.cast('bool', kwargs[arg])
         elif k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore.get_value(k)
+            val = self.environment.coredata.optstore.get_value_safe(k, bool)
         else:
             val = False
 
@@ -1974,7 +1974,7 @@ class Executable(BuildTarget):
             kwargs):
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.optstore:
-            kwargs['pie'] = environment.coredata.optstore.get_value(key)
+            kwargs['pie'] = environment.coredata.optstore.get_value_safe(key, bool)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
@@ -2178,7 +2178,7 @@ class StaticLibrary(BuildTarget):
                     self.suffix = 'a'
             else:
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking':
-                    self.suffix = 'ma' if self.options.get_value('b_lto') and not self.prelink else 'a'
+                    self.suffix = 'ma' if self.options.get_value_safe('b_lto', bool) and not self.prelink else 'a'
                 else:
                     self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix

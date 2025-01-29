@@ -638,7 +638,7 @@ class NinjaBackend(backends.Backend):
             outfile.write('# Do not edit by hand.\n\n')
             outfile.write('ninja_required_version = 1.8.2\n\n')
 
-            num_pools = self.environment.coredata.optstore.get_value('backend_max_links')
+            num_pools = self.environment.coredata.optstore.get_value_safe('backend_max_links', int)
             if num_pools > 0:
                 outfile.write(f'''pool link_pool
   depth = {num_pools}
@@ -672,7 +672,7 @@ class NinjaBackend(backends.Backend):
             mlog.log_timestamp("Dist generated")
             key = OptionKey('b_coverage')
             if (key in self.environment.coredata.optstore and
-                    self.environment.coredata.optstore.get_value(key)):
+                    self.environment.coredata.optstore.get_value_safe(key, bool)):
                 gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = environment.find_coverage_tools(self.environment.coredata)
                 mlog.debug(f'Using {gcovr_exe} ({gcovr_version}), {lcov_exe} and {llvm_cov_exe} for code coverage')
                 if gcovr_exe or (lcov_exe and genhtml_exe):
@@ -2301,7 +2301,7 @@ class NinjaBackend(backends.Backend):
         return options
 
     def generate_static_link_rules(self) -> None:
-        num_pools = self.environment.coredata.optstore.get_value('backend_max_links')
+        num_pools = self.environment.coredata.optstore.get_value_safe('backend_max_links', int)
         if 'java' in self.environment.coredata.compilers.host:
             self.generate_java_link()
         for for_machine in MachineChoice:
@@ -2349,7 +2349,7 @@ class NinjaBackend(backends.Backend):
             self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=pool))
 
     def generate_dynamic_link_rules(self) -> None:
-        num_pools = self.environment.coredata.optstore.get_value('backend_max_links')
+        num_pools = self.environment.coredata.optstore.get_value_safe('backend_max_links', int)
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
             for langname, compiler in complist.items():
@@ -3724,7 +3724,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if extra_arg:
             target_name += f'-{extra_arg}'
             extra_args.append(f'--{extra_arg}')
-        colorout = self.environment.coredata.optstore.get_value('b_colorout') \
+        # TODO: fallback parameter
+        colorout = self.environment.coredata.optstore.get_value_safe('b_colorout', str) \
             if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
         extra_args.extend(['--color', colorout])
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
@@ -3820,8 +3821,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if ctlist:
             elem.add_dep(self.generate_custom_target_clean(ctlist))
 
+        # TODO: fallback parameter
         if OptionKey('b_coverage') in self.environment.coredata.optstore and \
-           self.environment.coredata.optstore.get_value('b_coverage'):
+           self.environment.coredata.optstore.get_value_safe('b_coverage', bool):
             self.generate_gcov_clean()
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')

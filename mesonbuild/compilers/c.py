@@ -440,7 +440,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
         key = self.form_compileropt_key('std')
-        std = options.get_value(key)
+        std = options.get_value_safe(key, str)
         # As of MVSC 16.8, /std:c11 and /std:c17 are the only valid C standard options.
         if std == 'c11':
             args.append('/std:c11')
@@ -461,7 +461,7 @@ class ClangClCCompiler(ClangCStds, ClangClCompiler, VisualStudioLikeCCompilerMix
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         key = self.form_compileropt_key('std')
-        std = options.get_value(key)
+        std = options.get_value_safe(key, str)
         if std != "none":
             return [f'/clang:-std={std}']
         return []
@@ -561,7 +561,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
         key = self.form_compileropt_key('std')
-        std = options.get_value(key)
+        std = options.get_value_safe(key, str)
         if std == 'c89':
             args.append('-lang=c')
         elif std == 'c99':

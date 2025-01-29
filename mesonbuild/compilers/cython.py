@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021-2024 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 from __future__ import annotations
 
 """Abstraction for Cython language compilers."""
@@ -88,10 +88,10 @@ class CythonCompiler(Compiler):
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
         key = self.form_compileropt_key('version')
-        version = options.get_value(key)
+        version = options.get_value_safe(key, str)
         args.append(f'-{version}')
         key = self.form_compileropt_key('language')
-        lang = options.get_value(key)
+        lang = options.get_value_safe(key, str)
         if lang == 'cpp':
             args.append('--cplus')
         return args

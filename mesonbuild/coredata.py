@@ -18,7 +18,6 @@ from .mesonlib import (
     MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    stringlistify,
     default_prefix,
     pickle_load
 )
@@ -154,8 +153,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins.get_value(self.__pkg_conf_key)),
-            DependencyCacheType.CMAKE: stringlistify(self.__builtins.get_value(self.__cmake_key)),
+            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value_safe(self.__pkg_conf_key, list),
+            DependencyCacheType.CMAKE: self.__builtins.get_value_safe(self.__cmake_key, list),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
@@ -586,12 +585,12 @@ class CoreData:
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value(key))
+        return self.optstore.get_value_safe(key, list)
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value(key))
+        return self.optstore.get_value_safe(key, list)
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
         for key, value in project_options.items():

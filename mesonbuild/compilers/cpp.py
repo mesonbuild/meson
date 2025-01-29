@@ -276,7 +276,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         non_msvc_eh_options(options.get_value_safe(key, str), args)
 
         key = self.form_compileropt_key('debugstl')
-        if options.get_value(key):
+        if options.get_value_safe(key, bool):
             args.append('-D_GLIBCXX_DEBUG=1')
 
             # We can't do _LIBCPP_DEBUG because it's unreliable unless libc++ was built with it too:
@@ -286,7 +286,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
                 args.append('-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG')
 
         key = self.form_compileropt_key('rtti')
-        if not options.get_value(key):
+        if not options.get_value_safe(key, bool):
             args.append('-fno-rtti')
 
         return args
@@ -624,7 +624,7 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         non_msvc_eh_options(options.get_value_safe(key, str), args)
 
         key = self.form_compileropt_key('debugstl')
-        if options.get_value(key):
+        if options.get_value_safe(key, bool):
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
@@ -696,11 +696,11 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
                 'gnu++03': 'gnu++98'
             }
             args.append('-std=' + remap_cpp03.get(std, std))
-        if options.get_value(key.evolve('eh')) == 'none':
+        if options.get_value_safe(key.evolve('eh'), str) == 'none':
             args.append('-fno-exceptions')
-        if not options.get_value(key.evolve('rtti')):
+        if not options.get_value_safe(key.evolve('rtti'), bool):
             args.append('-fno-rtti')
-        if options.get_value(key.evolve('debugstl')):
+        if options.get_value_safe(key.evolve('debugstl'), bool):
             args.append('-D_GLIBCXX_DEBUG=1')
         return args
 
@@ -775,7 +775,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         else:
             args.append('/EH' + eh)
 
-        if not options.get_value(self.form_compileropt_key('rtti')):
+        if not options.get_value_safe(self.form_compileropt_key('rtti'), bool):
             args.append('/GR-')
 
         permissive, ver = self.VC_VERSION_MAP[options.get_value_safe(key, str)]
@@ -806,7 +806,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         # (i.e., after VS2015U3)
         # if one is using anything before that point, one cannot set the standard.
         key = self.form_compileropt_key('std')
-        if options.get_value(key) in {'vc++11', 'c++11'}:
+        if options.get_value_safe(key, str) in {'vc++11', 'c++11'}:
             mlog.warning(self.id, 'does not support C++11;',
                          'attempting best effort; setting the standard to C++14',
                          once=True, fatal=False)
@@ -814,7 +814,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
             # deepcopy since we're messing with members, and we can't simply
             # copy the members because the option proxy doesn't support it.
             options = copy.deepcopy(options)
-            if options.get_value(key) == 'vc++11':
+            if options.get_value_safe(key, str) == 'vc++11':
                 options.set_value(key, 'vc++14')
             else:
                 options.set_value(key,  'c++14')
@@ -853,7 +853,7 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         key = self.form_compileropt_key('std')
-        if options.get_value(key) != 'none' and version_compare(self.version, '<19.00.24210'):
+        if options.get_value_safe(key, str) != 'none' and version_compare(self.version, '<19.00.24210'):
             mlog.warning('This version of MSVC does not support cpp_std arguments', fatal=False)
             options = copy.copy(options)
             options.set_value(key, 'none')
@@ -934,7 +934,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
         key = self.form_compileropt_key('std')
-        std = options.get_value(key)
+        std = options.get_value_safe(key, str)
         if std == 'c++11':
             args.append('--cpp11')
         elif std == 'c++03':
