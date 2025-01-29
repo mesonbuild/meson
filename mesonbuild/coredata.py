@@ -460,10 +460,11 @@ class CoreData:
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
-    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
+    def set_option(self, key: OptionKey, value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
         dirty = False
         if self.optstore.is_builtin_option(key):
             if key.name == 'prefix':
+                assert isinstance(value, str), 'for mypy'
                 value = self.sanitize_prefix(value)
             else:
                 prefix = self.optstore.get_value('prefix')
@@ -510,6 +511,7 @@ class CoreData:
         dirty |= changed
 
         if key.name == 'buildtype':
+            assert isinstance(value, str), 'for mypy'
             dirty |= self._set_others_from_buildtype(value)
 
         return dirty
