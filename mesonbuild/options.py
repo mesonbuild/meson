@@ -760,10 +760,18 @@ class OptionStore:
     def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
         return self.get_value_object(key).value
 
-    def get_value_safe(self, key: T.Union[OptionKey, str], type_: T.Type[ElementaryOptionTypes]) -> ElementaryOptionTypes:
-        v = self.get_value_object(key).value
-        assert isinstance(v, type_), 'for mypy'
-        return v
+    def get_value_safe(self, key: T.Union[OptionKey, str],
+                       type_: T.Type[ElementaryOptionTypes],
+                       fallback: T.Optional[ElementaryOptionTypes] = None,
+                       ) -> ElementaryOptionTypes:
+        try:
+            v = self.get_value_object(key).value
+            assert isinstance(v, type_), 'for mypy'
+            return v
+        except KeyError:
+            if fallback is not None:
+                return fallback
+            raise
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_key(key)

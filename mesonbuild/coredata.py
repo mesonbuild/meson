@@ -964,10 +964,18 @@ class OptionsView(abc.Mapping):
             key = OptionKey(key)
         return self[key].value
 
-    def get_value_safe(self, key: T.Union[OptionKey, str], type_: T.Type[ElementaryOptionTypes]) -> ElementaryOptionTypes:
-        v = self.get_value(key)
-        assert isinstance(v, type_), 'for mypy'
-        return v
+    def get_value_safe(self, key: T.Union[OptionKey, str],
+                       type_: T.Type[ElementaryOptionTypes],
+                       fallback: T.Optional[ElementaryOptionTypes] = None,
+                       ) -> ElementaryOptionTypes:
+        try:
+            v = self.get_value(key)
+            assert isinstance(v, type_), 'for mypy'
+            return v
+        except KeyError:
+            if fallback is not None:
+                return fallback
+            raise
 
     def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues) -> None:
         if isinstance(key, str):

@@ -266,19 +266,6 @@ def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
         return False
 
 
-# TODO: replace with fallback parameter in get_value_safe
-def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '_T') -> '_T':
-    """Get the value of an option, or the fallback value."""
-    try:
-        v = T.cast('_T', options.get_value(opt))
-    except (KeyError, AttributeError):
-        return fallback
-
-    assert isinstance(v, type(fallback)), f'Should have {type(fallback)!r} but was {type(v)!r}'
-    # Mypy doesn't understand that the above assert ensures that v is type _T
-    return v
-
-
 def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
     """Should debug assertions be disabled
 
@@ -295,8 +282,8 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     try:
         if options.get_value_safe(OptionKey('b_lto'), bool):
             args.extend(compiler.get_lto_compile_args(
-                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
-                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default')))
+                threads=options.get_value_safe(OptionKey('b_lto_threads'), int, 0),
+                mode=options.get_value_safe(OptionKey('b_lto_mode'), str, 'default')))
     except (KeyError, AttributeError):
         pass
     try:
@@ -347,13 +334,13 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
                 args.extend(linker.get_werror_args())
 
             thinlto_cache_dir = None
-            if get_option_value(options, OptionKey('b_thinlto_cache'), False):
-                thinlto_cache_dir = get_option_value(options, OptionKey('b_thinlto_cache_dir'), '')
+            if options.get_value_safe(OptionKey('b_thinlto_cache'), bool, False):
+                thinlto_cache_dir = options.get_value_safe(OptionKey('b_thinlto_cache_dir'), str, '')
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
             args.extend(linker.get_lto_link_args(
-                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
-                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default'),
+                threads=options.get_value_safe(OptionKey('b_lto_threads'), int, 0),
+                mode=options.get_value_safe(OptionKey('b_lto_mode'), str, 'default'),
                 thinlto_cache_dir=thinlto_cache_dir))
     except (KeyError, AttributeError):
         pass

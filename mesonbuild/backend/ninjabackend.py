@@ -3724,9 +3724,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if extra_arg:
             target_name += f'-{extra_arg}'
             extra_args.append(f'--{extra_arg}')
-        # TODO: fallback parameter
-        colorout = self.environment.coredata.optstore.get_value_safe('b_colorout', str) \
-            if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
+        colorout = self.environment.coredata.optstore.get_value_safe('b_colorout', str, 'always')
         extra_args.extend(['--color', colorout])
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
@@ -3821,9 +3819,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if ctlist:
             elem.add_dep(self.generate_custom_target_clean(ctlist))
 
-        # TODO: fallback parameter
-        if OptionKey('b_coverage') in self.environment.coredata.optstore and \
-           self.environment.coredata.optstore.get_value_safe('b_coverage', bool):
+        if self.environment.coredata.optstore.get_value_safe('b_coverage', bool, False):
             self.generate_gcov_clean()
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')
