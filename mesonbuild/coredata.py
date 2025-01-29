@@ -815,10 +815,11 @@ def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     config = CmdLineFileParser()
 
     properties: OrderedDict[str, str] = OrderedDict()
+    # XXX: this is an abuse of repr()
     if options.cross_file:
-        properties['cross_file'] = options.cross_file
+        properties['cross_file'] = repr(options.cross_file)
     if options.native_file:
-        properties['native_file'] = options.native_file
+        properties['native_file'] = repr(options.native_file)
 
     config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
     config['properties'] = properties
