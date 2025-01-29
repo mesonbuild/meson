@@ -1808,19 +1808,17 @@ class BuildTarget(Target):
         self.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
         return tuple(result)
 
-    @staticmethod
-    def _libdir_is_system(libdir: str, compilers: T.Mapping[str, Compiler], env: environment.Environment) -> bool:
-        libdir = os.path.normpath(libdir)
-        for cc in compilers.values():
-            if libdir in cc.get_library_dirs(env):
-                return True
-        return False
-
     @lru_cache(maxsize=None)
     def rpaths_for_non_system_absolute_shared_libraries(self, exclude_system: bool = True) -> ImmutableListProtocol[str]:
         paths: OrderedSet[str] = OrderedSet()
         srcdir = self.environment.get_source_dir()
 
+        system_dirs = set()
+        if exclude_system:
+            for cc in self.compilers.values():
+                system_dirs.update(cc.get_library_dirs(self.environment))
+
+        external_rpaths = self.get_external_rpath_dirs()
         build_to_src = relpath(self.environment.get_source_dir(),
                                self.environment.get_build_dir())
 
@@ -1828,24 +1826,27 @@ class BuildTarget(Target):
             if dep.type_name not in {'library', 'pkgconfig', 'cmake'}:
                 continue
             for libpath in dep.link_args:
+                if libpath.startswith('-'):
+                    continue
                 # For all link args that are absolute paths to a library file, add RPATH args
                 if not os.path.isabs(libpath):
                     continue
-                libdir = os.path.dirname(libpath)
-                if exclude_system and self._libdir_is_system(libdir, self.compilers, self.environment):
-                    # No point in adding system paths.
-                    continue
-                # Don't remove rpaths specified in LDFLAGS.
-                if libdir in self.get_external_rpath_dirs():
-                    continue
+                libdir, libname = os.path.split(libpath)
                 # Windows doesn't support rpaths, but we use this function to
                 # emulate rpaths by setting PATH
                 # .dll is there for mingw gcc
                 # .so's may be extended with version information, e.g. libxyz.so.1.2.3
                 if not (
-                    os.path.splitext(libpath)[1] in {'.dll', '.lib', '.so', '.dylib'}
-                    or re.match(r'.+\.so(\.|$)', os.path.basename(libpath))
+                    libname.endswith(('.dll', '.lib', '.so', '.dylib'))
+                    or '.so.' in libname
                 ):
+                    continue
+
+                # Don't remove rpaths specified in LDFLAGS.
+                if libdir in external_rpaths:
+                    continue
+                if system_dirs and os.path.normpath(libdir) in system_dirs:
+                    # No point in adding system paths.
                     continue
 
                 if is_parent_path(srcdir, libdir):
@@ -1870,33 +1871,38 @@ class BuildTarget(Target):
                 pass
         return self.get_rpath_dirs_from_link_args(args)
 
-    @staticmethod
-    def get_rpath_dirs_from_link_args(args: T.List[str]) -> T.Set[str]:
+    # Match rpath formats:
+    # -Wl,-rpath=
+    # -Wl,-rpath,
+    _rpath_regex = re.compile(r'-Wl,-rpath[=,]([^,]+)')
+    # Match solaris style compat runpath formats:
+    # -Wl,-R
+    # -Wl,-R,
+    _runpath_regex = re.compile(r'-Wl,-R[,]?([^,]+)')
+    # Match symbols formats:
+    # -Wl,--just-symbols=
+    # -Wl,--just-symbols,
+    _symbols_regex = re.compile(r'-Wl,--just-symbols[=,]([^,]+)')
+
+    @classmethod
+    def get_rpath_dirs_from_link_args(cls, args: T.List[str]) -> T.Set[str]:
         dirs: T.Set[str] = set()
-        # Match rpath formats:
-        # -Wl,-rpath=
-        # -Wl,-rpath,
-        rpath_regex = re.compile(r'-Wl,-rpath[=,]([^,]+)')
-        # Match solaris style compat runpath formats:
-        # -Wl,-R
-        # -Wl,-R,
-        runpath_regex = re.compile(r'-Wl,-R[,]?([^,]+)')
-        # Match symbols formats:
-        # -Wl,--just-symbols=
-        # -Wl,--just-symbols,
-        symbols_regex = re.compile(r'-Wl,--just-symbols[=,]([^,]+)')
+
         for arg in args:
-            rpath_match = rpath_regex.match(arg)
+            if not arg.startswith('-Wl,'):
+                continue
+
+            rpath_match = cls._rpath_regex.match(arg)
             if rpath_match:
                 for dir in rpath_match.group(1).split(':'):
                     dirs.add(dir)
-            runpath_match = runpath_regex.match(arg)
+            runpath_match = cls._runpath_regex.match(arg)
             if runpath_match:
                 for dir in runpath_match.group(1).split(':'):
                     # The symbols arg is an rpath if the path is a directory
                     if os.path.isdir(dir):
                         dirs.add(dir)
-            symbols_match = symbols_regex.match(arg)
+            symbols_match = cls._symbols_regex.match(arg)
             if symbols_match:
                 for dir in symbols_match.group(1).split(':'):
                     # Prevent usage of --just-symbols to specify rpath
