@@ -1023,7 +1023,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
-            prefix = self.coredata.optstore.get_value_safe('prefix', str)
+            prefix = self.coredata.optstore.get_value('prefix', str)
 
             from ..modules.cmake import CMakeSubprojectOptions
             options = kwargs.get('options') or CMakeSubprojectOptions()
@@ -3112,9 +3112,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         if OptionKey('b_sanitize') not in self.coredata.optstore:
             return
-        if (self.coredata.optstore.get_value_safe('b_lundef', bool) and
-                self.coredata.optstore.get_value_safe('b_sanitize', str) != 'none'):
-            value = self.coredata.optstore.get_value_safe('b_sanitize', str)
+        if (self.coredata.optstore.get_value('b_lundef', bool) and
+                self.coredata.optstore.get_value('b_sanitize', str) != 'none'):
+            value = self.coredata.optstore.get_value('b_sanitize', str)
             mlog.warning(textwrap.dedent(f'''\
                     Trying to use {value} sanitizer on Clang with b_lundef.
                     This will probably not work.

@@ -684,7 +684,7 @@ class CudaCompiler(Compiler):
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
             key = self.form_compileropt_key('std')
-            std = options.get_value_safe(key, str)
+            std = options.get_value(key, str)
             if std != 'none':
                 args.append('--std=' + std)
 
@@ -804,7 +804,7 @@ class CudaCompiler(Compiler):
 
     def get_ccbin_args(self, ccoptions: 'KeyedOptionDictType') -> T.List[str]:
         key = self.form_compileropt_key('ccbindir')
-        ccbindir = ccoptions.get_value_safe(key, str)
+        ccbindir = ccoptions.get_value(key, str)
         if ccbindir:
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
         else:

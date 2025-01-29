@@ -261,7 +261,7 @@ def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
     try:
         if option not in boptions:
             return False
-        return options.get_value_safe(option, bool)  # could also be str?
+        return options.get_value(option, bool)  # could also be str?
     except KeyError:
         return False
 
@@ -272,30 +272,30 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
     :param options: OptionDictionary
     :return: whether to disable assertions or not
     """
-    return (options.get_value_safe('b_ndebug', str) == 'true' or
-            (options.get_value_safe('b_ndebug', str) == 'if-release' and
-             options.get_value_safe('buildtype', str) in {'release', 'plain'}))
+    return (options.get_value('b_ndebug', str) == 'true' or
+            (options.get_value('b_ndebug', str) == 'if-release' and
+             options.get_value('buildtype', str) in {'release', 'plain'}))
 
 
 def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     try:
-        if options.get_value_safe(OptionKey('b_lto'), bool):
+        if options.get_value(OptionKey('b_lto'), bool):
             args.extend(compiler.get_lto_compile_args(
-                threads=options.get_value_safe(OptionKey('b_lto_threads'), int, 0),
-                mode=options.get_value_safe(OptionKey('b_lto_mode'), str, 'default')))
+                threads=options.get_value(OptionKey('b_lto_threads'), int, 0),
+                mode=options.get_value(OptionKey('b_lto_mode'), str, 'default')))
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.get_colorout_args(options.get_value_safe(OptionKey('b_colorout'), str))
+        args += compiler.get_colorout_args(options.get_value(OptionKey('b_colorout'), str))
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.sanitizer_compile_args(options.get_value_safe(OptionKey('b_sanitize'), str))
+        args += compiler.sanitizer_compile_args(options.get_value(OptionKey('b_sanitize'), str))
     except (KeyError, AttributeError):
         pass
     try:
-        pgo_val = options.get_value_safe(OptionKey('b_pgo'), str)
+        pgo_val = options.get_value(OptionKey('b_pgo'), str)
         if pgo_val == 'generate':
             args.extend(compiler.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -303,7 +303,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     except (KeyError, AttributeError):
         pass
     try:
-        if options.get_value_safe(OptionKey('b_coverage'), bool):
+        if options.get_value(OptionKey('b_coverage'), bool):
             args += compiler.get_coverage_args()
     except (KeyError, AttributeError):
         pass
@@ -316,8 +316,8 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
         args.append('-fembed-bitcode')
     try:
         try:
-            crt_val = options.get_value_safe(OptionKey('b_vscrt'), str)
-            buildtype = options.get_value_safe(OptionKey('buildtype'), str)
+            crt_val = options.get_value(OptionKey('b_vscrt'), str)
+            buildtype = options.get_value(OptionKey('buildtype'), str)
             args += compiler.get_crt_compile_args(crt_val, buildtype)
         except AttributeError:
             pass
@@ -329,27 +329,27 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
                        is_shared_module: bool, build_dir: str) -> T.List[str]:
     args: T.List[str] = []
     try:
-        if options.get_value_safe('b_lto', bool):
-            if options.get_value_safe('werror', bool):
+        if options.get_value('b_lto', bool):
+            if options.get_value('werror', bool):
                 args.extend(linker.get_werror_args())
 
             thinlto_cache_dir = None
-            if options.get_value_safe(OptionKey('b_thinlto_cache'), bool, False):
-                thinlto_cache_dir = options.get_value_safe(OptionKey('b_thinlto_cache_dir'), str, '')
+            if options.get_value(OptionKey('b_thinlto_cache'), bool, False):
+                thinlto_cache_dir = options.get_value(OptionKey('b_thinlto_cache_dir'), str, '')
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
             args.extend(linker.get_lto_link_args(
-                threads=options.get_value_safe(OptionKey('b_lto_threads'), int, 0),
-                mode=options.get_value_safe(OptionKey('b_lto_mode'), str, 'default'),
+                threads=options.get_value(OptionKey('b_lto_threads'), int, 0),
+                mode=options.get_value(OptionKey('b_lto_mode'), str, 'default'),
                 thinlto_cache_dir=thinlto_cache_dir))
     except (KeyError, AttributeError):
         pass
     try:
-        args += linker.sanitizer_link_args(options.get_value_safe('b_sanitize', str))
+        args += linker.sanitizer_link_args(options.get_value('b_sanitize', str))
     except (KeyError, AttributeError):
         pass
     try:
-        pgo_val = options.get_value_safe('b_pgo', str)
+        pgo_val = options.get_value('b_pgo', str)
         if pgo_val == 'generate':
             args.extend(linker.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -357,7 +357,7 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except (KeyError, AttributeError):
         pass
     try:
-        if options.get_value_safe('b_coverage', bool):
+        if options.get_value('b_coverage', bool):
             args += linker.get_coverage_link_args()
     except (KeyError, AttributeError):
         pass
@@ -384,8 +384,8 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
 
     try:
         try:
-            crt_val = options.get_value_safe(OptionKey('b_vscrt'), str)
-            buildtype = options.get_value_safe(OptionKey('buildtype'), str)
+            crt_val = options.get_value(OptionKey('b_vscrt'), str)
+            buildtype = options.get_value(OptionKey('buildtype'), str)
             args += linker.get_crt_link_args(crt_val, buildtype)
         except AttributeError:
             pass

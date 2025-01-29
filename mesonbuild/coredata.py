@@ -153,8 +153,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value_safe(self.__pkg_conf_key, list),
-            DependencyCacheType.CMAKE: self.__builtins.get_value_safe(self.__cmake_key, list),
+            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value(self.__pkg_conf_key, list),
+            DependencyCacheType.CMAKE: self.__builtins.get_value(self.__cmake_key, list),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
@@ -418,7 +418,7 @@ class CoreData:
             if opt.yielding:
                 # This option is global and not per-subproject
                 return
-            value = opts_map.get_value(key.as_root())
+            value = opts_map.get_value_unsafe(key.as_root())
         else:
             value = None
 
@@ -466,7 +466,7 @@ class CoreData:
                 assert isinstance(value, str), 'for mypy'
                 value = self.sanitize_prefix(value)
             else:
-                prefix = self.optstore.get_value_safe('prefix', str)
+                prefix = self.optstore.get_value('prefix', str)
                 value = self.sanitize_dir_option_value(prefix, key, value)
 
         try:
@@ -523,7 +523,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.optstore.get_value_safe('buildtype', str)
+        value = self.optstore.get_value('buildtype', str)
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -542,8 +542,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.optstore.get_value_safe('optimization', str)
-        actual_debug = self.optstore.get_value_safe('debug', bool)
+        actual_opt = self.optstore.get_value('optimization', str)
+        actual_debug = self.optstore.get_value('debug', bool)
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -585,12 +585,12 @@ class CoreData:
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        return self.optstore.get_value_safe(key, list)
+        return self.optstore.get_value(key, list)
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return self.optstore.get_value_safe(key, list)
+        return self.optstore.get_value(key, list)
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
         for key, value in project_options.items():
@@ -959,17 +959,17 @@ class OptionsView(abc.Mapping):
                 opt.set_value(override_value)
         return opt
 
-    def get_value(self, key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
+    def get_value_unsafe(self, key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             key = OptionKey(key)
         return self[key].value
 
-    def get_value_safe(self, key: T.Union[OptionKey, str],
-                       type_: T.Type[ElementaryOptionTypes],
-                       fallback: T.Optional[ElementaryOptionTypes] = None,
-                       ) -> ElementaryOptionTypes:
+    def get_value(self, key: T.Union[OptionKey, str],
+                  type_: T.Type[ElementaryOptionTypes],
+                  fallback: T.Optional[ElementaryOptionTypes] = None,
+                  ) -> ElementaryOptionTypes:
         try:
-            v = self.get_value(key)
+            v = self.get_value_unsafe(key)
             assert isinstance(v, type_), 'for mypy'
             return v
         except KeyError:

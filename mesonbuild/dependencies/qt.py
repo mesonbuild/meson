@@ -298,7 +298,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         # Use the buildtype by default, but look at the b_vscrt option if the
         # compiler supports it.
         is_debug = self.env.coredata.get_option(OptionKey('buildtype')) == 'debug'
-        if self.env.coredata.optstore.get_value_safe('b_vscrt', str, '') in {'mdd', 'mtd'}:
+        if self.env.coredata.optstore.get_value('b_vscrt', str, '') in {'mdd', 'mtd'}:
             is_debug = True
         modules_lib_suffix = _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], is_debug)
 

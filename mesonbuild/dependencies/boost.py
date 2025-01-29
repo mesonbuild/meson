@@ -581,8 +581,8 @@ class BoostDependency(SystemDependency):
         # MSVC is very picky with the library tags
         vscrt = ''
         try:
-            crt_val = self.env.coredata.optstore.get_value_safe('b_vscrt', str)
-            buildtype = self.env.coredata.optstore.get_value_safe('buildtype', str)
+            crt_val = self.env.coredata.optstore.get_value('b_vscrt', str)
+            buildtype = self.env.coredata.optstore.get_value('buildtype', str)
             vscrt = self.clib_compiler.get_crt_compile_args(crt_val, buildtype)[0]
         except (KeyError, IndexError, AttributeError):
             pass

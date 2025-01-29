@@ -287,7 +287,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
         key = self.form_compileropt_key('std')
-        std = options.get_value_safe(key, str)
+        std = options.get_value(key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -421,7 +421,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
         key = self.form_compileropt_key('std')
-        std = options.get_value_safe(key, str)
+        std = options.get_value(key, str)
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         if std != 'none':
             args.append('-stand=' + stds[std])
@@ -475,7 +475,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
         key = self.form_compileropt_key('std')
-        std = options.get_value_safe(key, str)
+        std = options.get_value(key, str)
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         if std != 'none':
             args.append('/stand:' + stds[std])
