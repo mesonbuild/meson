@@ -25,7 +25,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    is_cygwin, join_args, split_args, windows_proof_rmtree, python_command
+    join_args, split_args, windows_proof_rmtree, python_command
 )
 import mesonbuild.modules.pkgconfig
 

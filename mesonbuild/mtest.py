@@ -16,7 +16,6 @@ import enum
 import json
 import os
 import pickle
-import platform
 import random
 import re
 import signal
@@ -34,7 +33,7 @@ from . import environment
 from . import mlog
 from .coredata import MesonVersionMismatchException, major_versions_differ
 from .coredata import version as coredata_version
-from .mesonlib import (MesonException, OrderedSet, RealPathAction,
+from .mesonlib import (MesonException, OrderedSet, Platform, RealPathAction,
                        get_wine_shortpath, join_args, split_args, setup_vsenv,
                        determine_worker_count)
 from .options import OptionKey
@@ -82,14 +81,6 @@ UNENCODABLE_XML_CHRS_RE = re.compile('([' + ''.join(UNENCODABLE_XML_CHR_RANGES) 
 
 RUST_TEST_RE = re.compile(r'^test (?!result)(.*) \.\.\. (.*)$')
 RUST_DOCTEST_RE = re.compile(r'^(.*?) - (.*? |)\(line (\d+)\)')
-
-
-def is_windows() -> bool:
-    platname = platform.system().lower()
-    return platname == 'windows'
-
-def is_cygwin() -> bool:
-    return sys.platform == 'cygwin'
 
 UNIWIDTH_MAPPING = {'F': 2, 'H': 1, 'W': 2, 'Na': 1, 'N': 1, 'A': 1}
 def uniwidth(s: str) -> int:
@@ -206,7 +197,7 @@ def returncode_to_status(retcode: int) -> str:
 
 # TODO for Windows
 sh_quote: T.Callable[[str], str] = lambda x: x
-if not is_windows():
+if not Platform.is_windows:
     sh_quote = shlex.quote
 
 def env_tuple_to_str(env: T.Iterable[T.Tuple[str, str]]) -> str:
@@ -1225,7 +1216,7 @@ async def read_decode(reader: asyncio.StreamReader,
             await queue.put(None)
 
 def run_with_mono(fname: str) -> bool:
-    return fname.endswith('.exe') and not (is_windows() or is_cygwin())
+    return fname.endswith('.exe') and not (Platform.is_windows or Platform.is_cygwin)
 
 def check_testdata(objs: T.List[TestSerialisation]) -> T.List[TestSerialisation]:
     if not isinstance(objs, list):
@@ -1339,7 +1330,7 @@ class TestSubprocess:
         # to roll our own.
         p = self._process
         try:
-            if is_windows():
+            if Platform.is_windows:
                 subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
             else:
                 # Send a termination signal to the process group that setsid()
@@ -1481,7 +1472,7 @@ class SingleTestRunner:
                            'found. Please check the command and/or add it to PATH.')
                     raise TestException(msg.format(self.test.exe_wrapper.name))
                 return self.test.exe_wrapper.get_command() + self.test.fname
-        elif self.test.cmd_is_built and not self.test.cmd_is_exe and is_windows():
+        elif self.test.cmd_is_built and not self.test.cmd_is_exe and Platform.is_windows:
             test_cmd = ExternalProgram._shebang_to_cmd(self.test.fname[0])
             if test_cmd is not None:
                 test_cmd += self.test.fname[1:]
@@ -1549,9 +1540,9 @@ class SingleTestRunner:
                                                  stderr=stderr,
                                                  env=env,
                                                  cwd=cwd,
-                                                 preexec_fn=preexec_fn if not is_windows() else None)
+                                                 preexec_fn=preexec_fn if not Platform.is_windows else None)
         return TestSubprocess(p, stdout=stdout, stderr=stderr,
-                              postwait_fn=postwait_fn if not is_windows() else None)
+                              postwait_fn=postwait_fn if not Platform.is_windows else None)
 
     async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
         if self.console_mode is ConsoleUser.INTERACTIVE:

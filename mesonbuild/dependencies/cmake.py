@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
-from ..mesonlib import is_windows, MesonException, PerMachine, stringlistify, extract_as_list
+from ..mesonlib import Platform, MesonException, PerMachine, stringlistify, extract_as_list
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, resolve_cmake_trace_targets, cmake_is_debug
 from .. import mlog
 import importlib.resources
@@ -188,7 +188,7 @@ class CMakeDependency(ExternalDependency):
             return None
 
         def process_paths(l: T.List[str]) -> T.Set[str]:
-            if is_windows():
+            if Platform.is_windows:
                 # Cannot split on ':' on Windows because its in the drive letter
                 tmp = [x.split(os.pathsep) for x in l]
             else:

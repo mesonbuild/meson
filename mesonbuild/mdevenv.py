@@ -9,7 +9,7 @@ import typing as T
 
 from pathlib import Path
 from . import build, minstall
-from .mesonlib import (EnvironmentVariables, MesonException, join_args, is_windows, setup_vsenv,
+from .mesonlib import (EnvironmentVariables, MesonException, join_args, Platform, setup_vsenv,
                        get_wine_shortpath, MachineChoice, relpath)
 from .options import OptionKey
 from . import mlog
@@ -102,7 +102,7 @@ def add_gdb_auto_load(autoload_path: Path, gdb_helper: str, fname: Path) -> None
     destdir = autoload_path / fname.parent
     destdir.mkdir(parents=True, exist_ok=True)
     try:
-        if is_windows():
+        if Platform.is_windows:
             shutil.copy(gdb_helper, str(destdir / os.path.basename(gdb_helper)))
         else:
             os.symlink(gdb_helper, str(destdir / os.path.basename(gdb_helper)))
@@ -196,7 +196,7 @@ def run(options: argparse.Namespace) -> int:
         # Prefer $SHELL in a MSYS2 bash despite it being Windows
         if shell_env and os.path.exists(shell_env):
             args = [shell_env]
-        elif is_windows():
+        elif Platform.is_windows:
             shell = get_windows_shell()
             if not shell:
                 mlog.warning('Failed to determine Windows shell, fallback to cmd.exe')

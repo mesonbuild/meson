@@ -13,7 +13,7 @@ from .. import options
 from .. import mlog
 from ..mesonlib import (
     EnvironmentException, Popen_safe,
-    is_windows, LibType, version_compare
+    Platform, LibType, version_compare
 )
 from ..options import OptionKey
 from .compilers import Compiler
@@ -677,7 +677,7 @@ class CudaCompiler(Compiler):
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
-        if not is_windows():
+        if not Platform.is_windows:
             key = self.form_compileropt_key('std')
             std = options.get_value(key)
             if std != 'none':

@@ -98,7 +98,7 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                 lcov_subpoject_exclude.append(os.path.join(subproject_root, '*'))
             if use_llvm_cov:
                 # Create a shim to allow using llvm-cov as a gcov tool.
-                if mesonlib.is_windows():
+                if mesonlib.Platform.is_windows:
                     llvm_cov_shim_path = os.path.join(log_dir, 'llvm-cov.bat')
                     with open(llvm_cov_shim_path, 'w', encoding='utf-8') as llvm_cov_bat:
                         llvm_cov_bat.write(f'@"{llvm_cov_exe}" gcov %*')

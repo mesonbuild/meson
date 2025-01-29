@@ -16,7 +16,7 @@ from unittest import mock
 
 from mesonbuild.compilers import detect_c_compiler, compiler_from_language
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, is_cygwin, EnvironmentException, MachineChoice,
+    MachineChoice, Platform, EnvironmentException, MachineChoice,
     OrderedSet
 )
 from mesonbuild.options import OptionKey
@@ -158,7 +158,7 @@ def chdir(path: str) -> T.Iterator[None]:
 
 
 def get_dynamic_section_entry(fname: str, entry: str) -> T.Optional[str]:
-    if is_cygwin() or is_osx():
+    if Platform.is_cygwin or Platform.is_osx:
         raise unittest.SkipTest('Test only applicable to ELF platforms')
 
     try:

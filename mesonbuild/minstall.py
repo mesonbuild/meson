@@ -17,8 +17,8 @@ import re
 
 from . import build, environment
 from .backend.backends import InstallData
-from .mesonlib import (MesonException, Popen_safe, RealPathAction, is_windows,
-                       is_aix, setup_vsenv, pickle_load, is_osx)
+from .mesonlib import (MesonException, Popen_safe, RealPathAction, Platform,
+                       setup_vsenv, pickle_load)
 from .options import OptionKey
 from .scripts import depfixer, destdir_join
 from .scripts.meson_exe import run_exe
@@ -203,7 +203,7 @@ def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str
         sanitize_permissions(path, default_umask)
         return
     # No chown() on Windows, and must set one of owner/group
-    if not is_windows() and (mode.owner is not None or mode.group is not None):
+    if not Platform.is_windows and (mode.owner is not None or mode.group is not None):
         try:
             set_chown(path, mode.owner, mode.group, follow_symlinks=False)
         except PermissionError as e:
@@ -561,7 +561,7 @@ class Installer:
                     self.log('Preserved {} unchanged files, see {} for the full list'
                              .format(self.preserved_file_count, os.path.normpath(self.lf.name)))
         except PermissionError:
-            if is_windows() or destdir != '' or not os.isatty(sys.stdout.fileno()) or not os.isatty(sys.stderr.fileno()):
+            if Platform.is_windows or destdir != '' or not os.isatty(sys.stdout.fileno()) or not os.isatty(sys.stderr.fileno()):
                 # can't elevate to root except in an interactive unix environment *and* when not doing a destdir install
                 raise
             rootcmd = (
@@ -599,7 +599,7 @@ class Installer:
 
     def do_strip(self, strip_bin: T.List[str], fname: str, outname: str) -> None:
         self.log(f'Stripping target {fname!r}.')
-        if is_osx():
+        if Platform.is_osx:
             # macOS expects dynamic objects to be stripped with -x maximum.
             # To also strip the debug info, -S must be added.
             # See: https://www.unix.com/man-page/osx/1/strip/
@@ -725,7 +725,7 @@ class Installer:
             # install the archive in which the shared library exists. The below code does the same.
             # We change the .so files having lt_version or so_version to archive file install.
             # If .so does not exist then it means it is in the archive. Otherwise it is a .so that exists.
-            if is_aix():
+            if Platform.is_aix:
                 if not os.path.exists(t.fname) and '.so' in t.fname:
                     t.fname = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', t.fname.replace('.so', '.a'))
             if not self.should_install(t):
@@ -796,7 +796,7 @@ def rebuild_all(wd: str, backend: str) -> bool:
         return False
 
     def drop_privileges() -> T.Tuple[T.Optional[EnvironOrDict], T.Optional[T.Callable[[], None]]]:
-        if not is_windows() and os.geteuid() == 0:
+        if not Platform.is_windows and os.geteuid() == 0:
             import pwd
             env = os.environ.copy()
 

@@ -81,7 +81,7 @@ def extract_search_dirs(kwargs: 'kwargs.ExtractSearchDirs') -> T.List[str]:
     search_dirs_str = mesonlib.stringlistify(kwargs.get('dirs', []))
     search_dirs = [Path(d).expanduser() for d in search_dirs_str]
     for d in search_dirs:
-        if mesonlib.is_windows() and d.root.startswith('\\'):
+        if mesonlib.Platform.is_windows and d.root.startswith('\\'):
             # a Unix-path starting with `/` that is not absolute on Windows.
             # discard without failing for end-user ease of cross-platform directory arrays
             continue

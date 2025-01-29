@@ -7,7 +7,7 @@ import sys, os
 import subprocess
 import shutil
 import argparse
-from ..mesonlib import MesonException, Popen_safe, is_windows, is_cygwin, split_args
+from ..mesonlib import MesonException, Popen_safe, Platform, split_args
 from . import destdir_join
 import typing as T
 
@@ -47,7 +47,7 @@ def gtkdoc_run_check(cmd: T.List[str], cwd: str, library_paths: T.Optional[T.Lis
         library_paths = []
 
     env = dict(os.environ)
-    if is_windows() or is_cygwin():
+    if Platform.is_windows or Platform.is_cygwin:
         if 'PATH' in env:
             library_paths.extend(env['PATH'].split(os.pathsep))
         env['PATH'] = os.pathsep.join(library_paths)
@@ -56,7 +56,7 @@ def gtkdoc_run_check(cmd: T.List[str], cwd: str, library_paths: T.Optional[T.Lis
             library_paths.extend(env['LD_LIBRARY_PATH'].split(os.pathsep))
         env['LD_LIBRARY_PATH'] = os.pathsep.join(library_paths)
 
-    if is_windows():
+    if Platform.is_windows:
         cmd.insert(0, sys.executable)
 
     # Put stderr into stdout since we want to print it out anyway.

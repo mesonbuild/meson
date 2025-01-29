@@ -10,7 +10,7 @@ import zipapp
 import sysconfig
 from pathlib import Path
 
-from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
+from mesonbuild.mesonlib import windows_proof_rmtree, python_command, Platform
 from mesonbuild.coredata import version as meson_version
 
 scheme = None
@@ -111,7 +111,7 @@ class CommandTests(unittest.TestCase):
         stdo = self._run(meson_command + [self.testdir, builddir])
         self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
         # Symlink to meson.py
-        if is_windows():
+        if Platform.is_windows:
             # Symlinks require admin perms
             return
         os.chdir(str(self.src_root))
@@ -170,7 +170,7 @@ class CommandTests(unittest.TestCase):
         meson_command = python_command + meson_setup + self.meson_args
         stdo = self._run(meson_command + [self.testdir, builddir])
         self.assertMesonCommandIs(stdo.split('\n')[0], resolved_meson_command)
-        if is_windows():
+        if Platform.is_windows:
             # Next part requires a shell
             return
         # `meson` is a wrapper to `meson.real`
@@ -189,7 +189,7 @@ class CommandTests(unittest.TestCase):
         raise unittest.SkipTest('NOT IMPLEMENTED')
 
     def test_meson_zipapp(self):
-        if is_windows():
+        if Platform.is_windows:
             raise unittest.SkipTest('NOT IMPLEMENTED')
         source = Path(__file__).resolve().parent
         target = self.tmpdir / 'meson.pyz'

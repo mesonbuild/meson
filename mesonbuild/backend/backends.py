@@ -350,7 +350,7 @@ class Backend:
         if isinstance(target, build.SharedLibrary):
             link_lib = target.get_import_filename() or target.get_filename()
             # In AIX, if we archive .so, the blibpath must link to archived shared library otherwise to the .so file.
-            if mesonlib.is_aix() and target.aix_so_archive:
+            if mesonlib.Platform.is_aix and target.aix_so_archive:
                 link_lib = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', link_lib.replace('.so', '.a'))
             return Path(self.get_target_dir(target), link_lib).as_posix()
         elif isinstance(target, build.StaticLibrary):
@@ -587,7 +587,7 @@ class Backend:
         else:
             if exe_cmd[0].endswith('.jar'):
                 exe_cmd = ['java', '-jar'] + exe_cmd
-            elif exe_cmd[0].endswith('.exe') and not (mesonlib.is_windows() or mesonlib.is_cygwin() or mesonlib.is_wsl()):
+            elif exe_cmd[0].endswith('.exe') and not (mesonlib.Platform.is_windows or mesonlib.Platform.is_cygwin or mesonlib.Platform.is_wsl):
                 exe_cmd = ['mono'] + exe_cmd
             exe_wrapper = None
 

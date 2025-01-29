@@ -28,9 +28,9 @@ import mesonbuild.coredata
 import mesonbuild.machinefile
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    BuildDirLock, MachineChoice, is_windows, is_osx, is_cygwin, is_dragonflybsd,
-    is_sunos, windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
-    relpath, is_linux, git, search_version, do_conf_file, do_conf_str, default_prefix,
+    BuildDirLock, MachineChoice, Platform,
+    windows_proof_rmtree, python_command, version_compare, split_args, quote_arg,
+    relpath, git, search_version, do_conf_file, do_conf_str, default_prefix,
     MesonException, EnvironmentException,
     windows_proof_rm
 )
@@ -230,7 +230,7 @@ class AllPlatformTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '87 default options')
         # on Windows, /someabs is *not* an absolute path
-        prefix = 'x:/someabs' if is_windows() else '/someabs'
+        prefix = 'x:/someabs' if Platform.is_windows else '/someabs'
         libdir = 'libdir'
         extra_args = ['--prefix=' + prefix,
                       # This can just be a relative path, but we want to test
@@ -251,14 +251,14 @@ class AllPlatformTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         # libdir being inside prefix is ok
-        if is_windows():
+        if Platform.is_windows:
             args = ['--prefix', 'x:/opt', '--libdir', 'x:/opt/lib32']
         else:
             args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
         self.init(testdir, extra_args=args)
         self.wipe()
         # libdir not being inside prefix is ok too
-        if is_windows():
+        if Platform.is_windows:
             args = ['--prefix', 'x:/usr', '--libdir', 'x:/opt/lib32']
         else:
             args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
@@ -266,7 +266,7 @@ class AllPlatformTests(BasePlatformTests):
         self.wipe()
         # libdir can be outside prefix even when set via mesonconf
         self.init(testdir)
-        if is_windows():
+        if Platform.is_windows:
             self.setconf('-Dlibdir=x:/opt', will_build=False)
         else:
             self.setconf('-Dlibdir=/opt', will_build=False)
@@ -379,7 +379,7 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         static_linker = detect_static_linker(env, cc)
-        if is_windows():
+        if Platform.is_windows:
             raise SkipTest('https://github.com/mesonbuild/meson/issues/1526')
         if not isinstance(static_linker, linkers.ArLinker):
             raise SkipTest('static linker is not `ar`')
@@ -1070,7 +1070,7 @@ class AllPlatformTests(BasePlatformTests):
         ar = linkers.ArLinker
         lib = linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
-        if not is_windows() and platform.machine().lower() != 'e2k':
+        if not Platform.is_windows and platform.machine().lower() != 'e2k':
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -1111,9 +1111,9 @@ class AllPlatformTests(BasePlatformTests):
             # Check compiler type
             if isinstance(cc, gnu):
                 self.assertIsInstance(linker, ar)
-                if is_osx():
+                if Platform.is_osx:
                     self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
-                elif is_sunos():
+                elif Platform.is_sunos:
                     self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
                 else:
                     self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
@@ -1122,27 +1122,27 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertIsInstance(cc.linker, linkers.ClangClDynamicLinker)
             if isinstance(cc, clang):
                 self.assertIsInstance(linker, ar)
-                if is_osx():
+                if Platform.is_osx:
                     self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
-                elif is_windows():
+                elif Platform.is_windows:
                     # This is clang, not clang-cl. This can be either an
                     # ld-like linker of link.exe-like linker (usually the
                     # former for msys2, the latter otherwise)
                     self.assertIsInstance(cc.linker, (linkers.MSVCDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
-                elif is_sunos():
+                elif Platform.is_sunos:
                     self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
                 else:
                     self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, intel):
                 self.assertIsInstance(linker, ar)
-                if is_osx():
+                if Platform.is_osx:
                     self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
-                elif is_windows():
+                elif Platform.is_windows:
                     self.assertIsInstance(cc.linker, linkers.XilinkDynamicLinker)
                 else:
                     self.assertIsInstance(cc.linker, linkers.GnuDynamicLinker)
             if isinstance(cc, msvc):
-                self.assertTrue(is_windows())
+                self.assertTrue(Platform.is_windows)
                 self.assertIsInstance(linker, lib)
                 self.assertEqual(cc.id, 'msvc')
                 self.assertTrue(hasattr(cc, 'is_64'))
@@ -1349,7 +1349,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        if detect_c_compiler(env, MachineChoice.HOST).get_id() == 'clang' and is_windows():
+        if detect_c_compiler(env, MachineChoice.HOST).get_id() == 'clang' and Platform.is_windows:
             raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args='-Db_lto=true')
@@ -1364,7 +1364,7 @@ class AllPlatformTests(BasePlatformTests):
         cc = detect_c_compiler(env, MachineChoice.HOST)
         extra_args: T.List[str] = []
         if cc.get_id() == 'clang':
-            if is_windows():
+            if Platform.is_windows:
                 raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'] + extra_args)
@@ -1392,7 +1392,7 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest('Only clang currently supports thinLTO')
         if cc.linker.id not in {'ld.lld', 'ld.gold', 'ld64', 'lld-link'}:
             raise SkipTest('thinLTO requires ld.lld, ld.gold, ld64, or lld-link')
-        elif is_windows():
+        elif Platform.is_windows:
             raise SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_mode=thin', '-Db_lto_threads=8', '-Dc_args=-Werror=unused-command-line-argument'])
@@ -1617,7 +1617,7 @@ class AllPlatformTests(BasePlatformTests):
         are relocatable and ensures that builds are reproducible since the
         build directory won't get embedded into the built binaries.
         '''
-        if is_windows() or is_cygwin():
+        if Platform.is_windows or Platform.is_cygwin:
             raise SkipTest('Windows PE/COFF binaries do not use RPATH')
         testdir = os.path.join(self.common_test_dir, '39 library chain')
         self.init(testdir)
@@ -1625,7 +1625,7 @@ class AllPlatformTests(BasePlatformTests):
         for each in ('prog', 'subdir/liblib1.so', ):
             rpath = get_rpath(os.path.join(self.builddir, each))
             self.assertTrue(rpath, f'Rpath could not be determined for {each}.')
-            if is_dragonflybsd():
+            if Platform.is_dragonflybsd:
                 # DragonflyBSD will prepend /usr/lib/gccVERSION to the rpath,
                 # so ignore that.
                 self.assertTrue(rpath.startswith('/usr/lib/gcc'))
@@ -1637,7 +1637,7 @@ class AllPlatformTests(BasePlatformTests):
         # These two don't link to anything else, so they do not need an rpath entry.
         for each in ('subdir/subdir2/liblib2.so', 'subdir/subdir3/liblib3.so'):
             rpath = get_rpath(os.path.join(self.builddir, each))
-            if is_dragonflybsd():
+            if Platform.is_dragonflybsd:
                 # The rpath should be equal to /usr/lib/gccVERSION
                 self.assertTrue(rpath.startswith('/usr/lib/gcc'))
                 self.assertEqual(len(rpath.split(':')), 1)
@@ -1672,13 +1672,13 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
         stlinker = detect_static_linker(env, cc)
-        if is_windows():
+        if Platform.is_windows:
             object_suffix = 'obj'
             shared_suffix = 'dll'
-        elif is_cygwin():
+        elif Platform.is_cygwin:
             object_suffix = 'o'
             shared_suffix = 'dll'
-        elif is_osx():
+        elif Platform.is_osx:
             object_suffix = 'o'
             shared_suffix = 'dylib'
         else:
@@ -1756,7 +1756,7 @@ class AllPlatformTests(BasePlatformTests):
             if not (compiler.info.is_windows() or compiler.info.is_cygwin() or compiler.info.is_darwin()):
                 extra_args += ['-fPIC']
             link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
-            if not is_osx():
+            if not Platform.is_osx:
                 link_cmd += ['-Wl,-soname=' + os.path.basename(outfile)]
         self.pbcompile(compiler, source, objectfile, extra_args=extra_args)
         try:
@@ -1772,13 +1772,13 @@ class AllPlatformTests(BasePlatformTests):
         impfile = os.path.join(tdir, 'alexandria.lib')
         if cc.get_argument_syntax() == 'msvc':
             shlibfile = os.path.join(tdir, 'alexandria.' + shared_suffix)
-        elif is_cygwin():
+        elif Platform.is_cygwin:
             shlibfile = os.path.join(tdir, 'cygalexandria.' + shared_suffix)
         else:
             shlibfile = os.path.join(tdir, 'libalexandria.' + shared_suffix)
         self.build_shared_lib(cc, source, objectfile, shlibfile, impfile)
 
-        if is_windows():
+        if Platform.is_windows:
             def cleanup() -> None:
                 """Clean up all the garbage MSVC writes in the source tree."""
 
@@ -1803,7 +1803,7 @@ class AllPlatformTests(BasePlatformTests):
             impfile = os.path.join(d, 'alexandria.lib')
             if cc.get_argument_syntax() == 'msvc':
                 shlibfile = os.path.join(d, 'alexandria.' + shared_suffix)
-            elif is_cygwin():
+            elif Platform.is_cygwin:
                 shlibfile = os.path.join(d, 'cygalexandria.' + shared_suffix)
             else:
                 shlibfile = os.path.join(d, 'libalexandria.' + shared_suffix)
@@ -1829,7 +1829,7 @@ class AllPlatformTests(BasePlatformTests):
                 if cc.get_argument_syntax() == 'msvc':
                     shlibfile = os.path.join(d, 'alexandria.' + shared_suffix)
                     linkfile = impfile  # MSVC links against the *.lib instead of the *.dll
-                elif is_cygwin():
+                elif Platform.is_cygwin:
                     shlibfile = os.path.join(d, 'cygalexandria.' + shared_suffix)
                     linkfile = shlibfile
                 else:
@@ -1871,7 +1871,7 @@ class AllPlatformTests(BasePlatformTests):
                 if cc.get_argument_syntax() == 'msvc':
                     shlibfile = os.path.join(d, 'alexandria.' + shared_suffix)
                     linkfile = impfile  # MSVC links against the *.lib instead of the *.dll
-                elif is_cygwin():
+                elif Platform.is_cygwin:
                     shlibfile = os.path.join(d, 'cygalexandria.' + shared_suffix)
                     linkfile = shlibfile
                 else:
@@ -1926,7 +1926,7 @@ class AllPlatformTests(BasePlatformTests):
             impfile = os.path.join(libdir, 'alexandria.lib')
             if cc.get_argument_syntax() == 'msvc':
                 shlibfile = os.path.join(libdir, 'alexandria.' + shared_suffix)
-            elif is_cygwin():
+            elif Platform.is_cygwin:
                 shlibfile = os.path.join(libdir, 'cygalexandria.' + shared_suffix)
             else:
                 shlibfile = os.path.join(libdir, 'libalexandria.' + shared_suffix)
@@ -1988,7 +1988,7 @@ class AllPlatformTests(BasePlatformTests):
         impfile = os.path.join(testdir, 'foo.lib')
         if cc.get_argument_syntax() == 'msvc':
             shlibfile = os.path.join(testdir, 'foo.' + shext)
-        elif is_cygwin():
+        elif Platform.is_cygwin:
             shlibfile = os.path.join(testdir, 'cygfoo.' + shext)
         else:
             shlibfile = os.path.join(testdir, 'libfoo.' + shext)
@@ -2003,7 +2003,7 @@ class AllPlatformTests(BasePlatformTests):
         finally:
             os.unlink(stlibfile)
             os.unlink(shlibfile)
-            if is_windows():
+            if Platform.is_windows:
                 # Clean up all the garbage MSVC writes in the
                 # source tree.
                 for fname in glob(os.path.join(testdir, 'foo.*')):
@@ -2185,7 +2185,7 @@ class AllPlatformTests(BasePlatformTests):
     # Call this method before file operations in appropriate places
     # to make things work.
     def mac_ci_delay(self):
-        if is_osx() and is_ci():
+        if Platform.is_osx and is_ci():
             import time
             time.sleep(1)
 
@@ -2386,13 +2386,13 @@ class AllPlatformTests(BasePlatformTests):
 
         # The D template fails under mac CI and we don't know why.
         # Patches welcome
-        if is_osx():
+        if Platform.is_osx:
             langs = [l for l in langs if l != 'd']
 
         for lang in langs:
             for target_type in ('executable', 'library'):
                 with self.subTest(f'Language: {lang}; type: {target_type}'):
-                    if is_windows() and lang == 'fortran' and target_type == 'library':
+                    if Platform.is_windows and lang == 'fortran' and target_type == 'library':
                         # non-Gfortran Windows Fortran compilers do not do shared libraries in a Fortran standard way
                         # see "test cases/fortran/6 dynamic"
                         fc = detect_compiler_for(env, 'fortran', MachineChoice.HOST, True, '')
@@ -2456,7 +2456,7 @@ class AllPlatformTests(BasePlatformTests):
                     exception_raised = True
         self.assertTrue(exception_raised, 'Double locking did not raise exception.')
 
-    @skipIf(is_osx(), 'Test not applicable to OSX')
+    @skipIf(Platform.is_osx, 'Test not applicable to OSX')
     def test_check_module_linking(self):
         """
         Test that link_with: a shared module issues a warning
@@ -2875,7 +2875,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(opts['optimization'], 'g')
 
     @skipIfNoPkgconfig
-    @skipIf(is_windows(), 'Help needed with fixing this test on windows')
+    @skipIf(Platform.is_windows, 'Help needed with fixing this test on windows')
     def test_native_dep_pkgconfig(self):
         testdir = os.path.join(self.unit_test_dir,
                                '45 native dep pkgconfig var')
@@ -2902,7 +2902,7 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Dstart_native=true'], override_envvars=env)
 
     @skipIfNoPkgconfig
-    @skipIf(is_windows(), 'Help needed with fixing this test on windows')
+    @skipIf(Platform.is_windows, 'Help needed with fixing this test on windows')
     def test_pkg_config_libdir(self):
         testdir = os.path.join(self.unit_test_dir,
                                '45 native dep pkgconfig var')
@@ -3144,7 +3144,7 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest(f'Clang-tidy is for now only supported on Ninja, not {self.backend.name}')
         if shutil.which('c++') is None:
             raise SkipTest('Clang-tidy breaks when ccache is used and "c++" not in path.')
-        if is_osx():
+        if Platform.is_osx:
             raise SkipTest('Apple ships a broken clang-tidy that chokes on -pipe.')
         testdir = os.path.join(self.unit_test_dir, '68 clang-tidy')
         dummydir = os.path.join(testdir, 'dummydir.h')
@@ -3159,7 +3159,7 @@ class AllPlatformTests(BasePlatformTests):
             raise SkipTest(f'Clang-tidy is for now only supported on Ninja, not {self.backend.name}')
         if shutil.which('c++') is None:
             raise SkipTest('Clang-tidy breaks when ccache is used and "c++" not in path.')
-        if is_osx():
+        if Platform.is_osx:
             raise SkipTest('Apple ships a broken clang-tidy that chokes on -pipe.')
         testdir = os.path.join(self.unit_test_dir, '68 clang-tidy')
 
@@ -3796,7 +3796,7 @@ class AllPlatformTests(BasePlatformTests):
         """Test the meson compile command."""
 
         def get_exe_name(basename: str) -> str:
-            if is_windows():
+            if Platform.is_windows:
                 return f'{basename}.exe'
             else:
                 return basename
@@ -3804,11 +3804,11 @@ class AllPlatformTests(BasePlatformTests):
         def get_shared_lib_name(basename: str) -> str:
             if mesonbuild.environment.detect_msys2_arch():
                 return f'lib{basename}.dll'
-            elif is_windows():
+            elif Platform.is_windows:
                 return f'{basename}.dll'
-            elif is_cygwin():
+            elif Platform.is_cygwin:
                 return f'cyg{basename}.dll'
-            elif is_osx():
+            elif Platform.is_osx:
                 return f'lib{basename}.dylib'
             else:
                 return f'lib{basename}.so'
@@ -4149,7 +4149,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(values['properties']['rel_to_file'], os.path.join(os.path.dirname(crossfile2), 'tool'))
         self.assertEqual(values['properties']['no_escaping'], os.path.join(f'@{os.path.dirname(crossfile2)}@', 'tool'))
 
-    @skipIf(is_windows(), 'Directory cleanup fails for some reason')
+    @skipIf(Platform.is_windows, 'Directory cleanup fails for some reason')
     def test_wrap_git(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             srcdir = os.path.join(tmpdir, 'src')
@@ -4198,7 +4198,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
-    @skipUnless(is_linux() and (re.search('^i.86$|^x86$|^x64$|^x86_64$|^amd64$', platform.processor()) is not None),
+    @skipUnless(Platform.is_linux and (re.search('^i.86$|^x86$|^x64$|^x86_64$|^amd64$', platform.processor()) is not None),
         'Requires ASM compiler for x86 or x86_64 platform currently only available on Linux CI runners')
     def test_nostdlib(self):
         testdir = os.path.join(self.unit_test_dir, '77 nostdlib')
@@ -4477,16 +4477,16 @@ class AllPlatformTests(BasePlatformTests):
         def shared_lib_name(name):
             if cc.get_id() in {'msvc', 'clang-cl'}:
                 return f'bin/{name}.dll'
-            elif is_windows():
+            elif Platform.is_windows:
                 return f'bin/lib{name}.dll'
-            elif is_cygwin():
+            elif Platform.is_cygwin:
                 return f'bin/cyg{name}.dll'
-            elif is_osx():
+            elif Platform.is_osx:
                 return f'lib/lib{name}.dylib'
             return f'lib/lib{name}.so'
 
         def exe_name(name):
-            if is_windows() or is_cygwin():
+            if Platform.is_windows or Platform.is_cygwin:
                 return f'{name}.exe'
             return name
 
@@ -4534,7 +4534,7 @@ class AllPlatformTests(BasePlatformTests):
                 Path(installpath, 'usr/otherbin'),
                 Path(installpath, 'usr/otherbin/app-otherdir.pdb'),
             }
-        elif is_windows() or is_cygwin():
+        elif Platform.is_windows or Platform.is_cygwin:
             expected_devel |= {
                 Path(installpath, 'usr/lib/libboth.dll.a'),
                 Path(installpath, 'usr/lib/libboth2.dll.a'),
@@ -4558,11 +4558,11 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/' + shared_lib_name('both2')),
         }
 
-        if is_windows() or is_cygwin():
+        if Platform.is_windows or Platform.is_cygwin:
             expected_runtime |= {
                 Path(installpath, 'usr/' + shared_lib_name('versioned_shared-1')),
             }
-        elif is_osx():
+        elif Platform.is_osx:
             expected_runtime |= {
                 Path(installpath, 'usr/' + shared_lib_name('versioned_shared.1')),
             }
@@ -4588,7 +4588,7 @@ class AllPlatformTests(BasePlatformTests):
             Path(installpath, 'usr/' + shared_lib_name('bothcustom')),
         }
 
-        if is_windows() or is_cygwin():
+        if Platform.is_windows or Platform.is_cygwin:
             expected_custom |= {Path(installpath, 'usr/bin')}
         else:
             expected_runtime |= {Path(installpath, 'usr/lib')}

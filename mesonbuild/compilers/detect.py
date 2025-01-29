@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
-    search_version, is_windows, Popen_safe, Popen_safe_logged, windows_proof_rm,
+    search_version, Platform, Popen_safe, Popen_safe_logged, windows_proof_rm,
 )
 from ..envconfig import BinaryTable
 from .. import mlog
@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
 defaults: T.Dict[str, T.List[str]] = {}
 
 # List of potential compilers.
-if is_windows():
+if Platform.is_windows:
     # Intel C and C++ compiler is icl on Windows, but icc and icpc elsewhere.
     # Search for icl before cl, since Intel "helpfully" provides a
     # cl.exe that returns *exactly the same thing* that Microsoft's
@@ -177,16 +177,16 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [[f'{llvm_ar[0]}-{suffix}'], llvm_ar] + default_linkers
         elif compiler.language == 'd':
             # Prefer static linkers over linkers used by D compilers
-            if is_windows():
+            if Platform.is_windows:
                 trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker'], compiler.get_linker_exelist()]
             else:
                 trials = default_linkers
         elif compiler.id == 'intel-cl' and compiler.language == 'c': # why not cpp? Is this a bug?
             # Intel has its own linker that acts like Microsoft's lib
             trials = [['xilib']]
-        elif is_windows() and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
+        elif Platform.is_windows and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
             trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
-        elif is_windows() and compiler.id == 'nasm':
+        elif Platform.is_windows and compiler.id == 'nasm':
             # This may well be LINK.EXE if it's under a MSVC environment
             trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']] + default_linkers
         else:
@@ -1307,7 +1307,7 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
-        if comp == ['nasm'] and is_windows() and not shutil.which(comp[0]):
+        if comp == ['nasm'] and Platform.is_windows and not shutil.which(comp[0]):
             # nasm is not in PATH on Windows by default
             default_path = os.path.join(os.environ['ProgramFiles'], 'NASM')
             comp[0] = shutil.which(comp[0], path=default_path) or comp[0]

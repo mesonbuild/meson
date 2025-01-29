@@ -72,7 +72,7 @@ def cmd_quote(arg: str) -> str:
 
 # How ninja executes command lines differs between Unix and Windows
 # (see https://ninja-build.org/manual.html#ref_rule_command)
-if mesonlib.is_windows():
+if mesonlib.Platform.is_windows:
     quote_func = cmd_quote
     execute_wrapper = ['cmd', '/c']  # unused
     rmfile_prefix = ['del', '/f', '/s', '/q', '{}', '&&']
@@ -96,7 +96,7 @@ def get_rsp_threshold() -> int:
     above which a response file should be used.  May be overridden for
     debugging by setting environment variable MESON_RSP_THRESHOLD.'''
 
-    if mesonlib.is_windows():
+    if mesonlib.Platform.is_windows:
         # Usually 32k, but some projects might use cmd.exe,
         # and that has a limit of 8k.
         limit = 8192
@@ -405,7 +405,7 @@ class NinjaBuildElement:
         # do not require quoting, unless explicitly specified, which is necessary for
         # the csc compiler.
         line = line.replace('\\', '/')
-        if mesonlib.is_windows():
+        if mesonlib.Platform.is_windows:
             # Support network paths as backslash, otherwise they are interpreted as
             # arguments for compile/link commands when using MSVC
             line = ' '.join(
@@ -550,7 +550,7 @@ class NinjaBackend(backends.Backend):
             # IFort / masm on windows is MSVC like, but doesn't have /showincludes
             if compiler.language in {'fortran', 'masm'}:
                 continue
-            if compiler.id == 'pgi' and mesonlib.is_windows():
+            if compiler.id == 'pgi' and mesonlib.Platform.is_windows:
                 # for the purpose of this function, PGI doesn't act enough like MSVC
                 return open(tempfilename, 'a', encoding='utf-8')
             if compiler.get_argument_syntax() == 'msvc':
@@ -2339,7 +2339,7 @@ class NinjaBackend(backends.Backend):
             #        them out to fix this properly on Windows. See:
             # https://github.com/mesonbuild/meson/issues/1517
             # https://github.com/mesonbuild/meson/issues/1526
-            if isinstance(static_linker, ArLikeLinker) and not mesonlib.is_windows():
+            if isinstance(static_linker, ArLikeLinker) and not mesonlib.Platform.is_windows:
                 # `ar` has no options to overwrite archives. It always appends,
                 # which is never what we want. Delete an existing library first if
                 # it exists. https://github.com/mesonbuild/meson/issues/1355
@@ -2423,7 +2423,7 @@ class NinjaBackend(backends.Backend):
         args = ['$ARGS', '$in']
         description = 'Compiling C Sharp target $out'
         self.add_rule(NinjaRule(rule, command, args, description,
-                                rspable=mesonlib.is_windows(),
+                                rspable=mesonlib.Platform.is_windows,
                                 rspfile_quote_style=compiler.rsp_file_syntax()))
 
     def generate_vala_compile_rules(self, compiler) -> None:
@@ -2478,7 +2478,7 @@ class NinjaBackend(backends.Backend):
         if self.use_dyndeps_for_fortran():
             return
         rule = f'FORTRAN_DEP_HACK{crstr}'
-        if mesonlib.is_windows():
+        if mesonlib.Platform.is_windows:
             cmd = ['cmd', '/C']
         else:
             cmd = ['true']

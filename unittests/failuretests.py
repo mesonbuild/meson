@@ -11,7 +11,7 @@ import typing as T
 from contextlib import contextmanager
 
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, windows_proof_rmtree, windows_proof_rm
+    MachineChoice, Platform, windows_proof_rmtree, windows_proof_rm
 )
 from mesonbuild.compilers import (
     detect_objc_compiler, detect_objcpp_compiler
@@ -157,14 +157,14 @@ class FailureTests(BasePlatformTests):
             self.assertMesonRaises(contents, match)
 
     def test_apple_frameworks_dependency(self):
-        if not is_osx():
+        if not Platform.is_osx:
             raise unittest.SkipTest('only run on macOS')
         self.assertMesonRaises("dependency('appleframeworks')",
                                "requires at least one module")
 
     def test_extraframework_dependency_method(self):
         code = "dependency('metal', method : 'extraframework')"
-        if not is_osx():
+        if not Platform.is_osx:
             self.assertMesonRaises(code, self.dnf)
         else:
             # metal framework is always available on macOS
@@ -382,7 +382,7 @@ class FailureTests(BasePlatformTests):
                                "meson.override_dependency('foo', declare_dependency())",
                                """Tried to override dependency 'foo' which has already been resolved or overridden""")
 
-    @unittest.skipIf(is_windows(), 'zlib is not available on Windows')
+    @unittest.skipIf(Platform.is_windows, 'zlib is not available on Windows')
     def test_override_resolved_dependency(self):
         self.assertMesonRaises("dependency('zlib')\n" +
                                "meson.override_dependency('zlib', declare_dependency())",

@@ -12,7 +12,7 @@ from .. import mesonlib
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
-    EnvironmentException, version_compare, is_windows
+    EnvironmentException, version_compare, Platform
 )
 from ..options import OptionKey
 
@@ -786,7 +786,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
         # We use `mesonlib.is_windows` here because we want to know what the
         # build machine is, not the host machine. This really means we would
         # have the Environment not the MachineInfo in the compiler.
-        return RSPFileSyntax.MSVC if is_windows() else RSPFileSyntax.GCC
+        return RSPFileSyntax.MSVC if Platform.is_windows else RSPFileSyntax.GCC
 
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):

@@ -490,7 +490,7 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
             #
             # (There should probably be a way to turn this off for more complex
             # cases which don't fit this)
-            if mesonlib.is_windows():
+            if mesonlib.Platform.is_windows:
                 if how != "re":
                     sub = r'\\'
                 else:
@@ -666,7 +666,7 @@ def _run_test(test: TestDef,
     # Configure in-process
     gen_args = ['setup']
     if 'prefix' not in test.do_not_set_opts:
-        gen_args += ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
+        gen_args += ['--prefix', 'x:/usr'] if mesonlib.Platform.is_windows else ['--prefix', '/usr']
     if 'libdir' not in test.do_not_set_opts:
         gen_args += ['--libdir', 'lib']
     gen_args += [test.path.as_posix(), test_build_dir] + backend_flags + extra_args
@@ -1018,7 +1018,7 @@ def skip_dont_care(t: TestDef) -> bool:
     if not t.category.endswith('frameworks'):
         return True
 
-    if mesonlib.is_osx() and '6 gettext' in str(t.path):
+    if mesonlib.Platform.is_osx and '6 gettext' in str(t.path):
         return True
 
     return False
@@ -1067,13 +1067,13 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     if backend is not Backend.ninja:
         return True
-    if mesonlib.is_windows():
+    if mesonlib.Platform.is_windows:
         if has_broken_rustc():
             return True
     return False
 
 def should_skip_wayland() -> bool:
-    if mesonlib.is_windows() or mesonlib.is_osx():
+    if mesonlib.Platform.is_windows or mesonlib.Platform.is_osx:
         return True
     if not shutil.which('wayland-scanner'):
         return True
@@ -1120,9 +1120,9 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('failing-build', 'failing build'),
         TestCategory('failing-test',  'failing test'),
         TestCategory('keyval', 'keyval'),
-        TestCategory('platform-osx', 'osx', not mesonlib.is_osx()),
-        TestCategory('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
-        TestCategory('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
+        TestCategory('platform-osx', 'osx', not mesonlib.Platform.is_osx),
+        TestCategory('platform-windows', 'windows', not mesonlib.Platform.is_windows and not mesonlib.Platform.is_cygwin),
+        TestCategory('platform-linux', 'linuxlike', mesonlib.Platform.is_osx or mesonlib.Platform.is_windows),
         TestCategory('java', 'java', backend is not Backend.ninja or not have_java()),
         TestCategory('C#', 'csharp', skip_csharp(backend)),
         TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
@@ -1669,10 +1669,10 @@ if __name__ == '__main__':
     if options.native_file:
         options.extra_args += ['--native-file', options.native_file]
 
-    if not mesonlib.is_windows():
+    if not mesonlib.Platform.is_windows:
         scan_test_data_symlinks()
     clear_transitive_files()
-    if not mesonlib.is_windows():
+    if not mesonlib.Platform.is_windows:
         setup_symlinks()
     mesonlib.set_meson_command(get_meson_script())
 

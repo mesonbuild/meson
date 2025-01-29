@@ -6,9 +6,7 @@ import shutil
 import unittest
 import platform
 
-from mesonbuild.mesonlib import (
-    is_windows, is_cygwin
-)
+from mesonbuild.mesonlib import Platform
 from mesonbuild.mesonlib import MesonException
 
 
@@ -25,7 +23,7 @@ class BaseLinuxCrossTests(BasePlatformTests):
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
 
-@unittest.skipUnless(not is_windows() and should_run_cross_arm_tests(), "requires ability to cross compile to ARM")
+@unittest.skipUnless(not Platform.is_windows and should_run_cross_arm_tests(), "requires ability to cross compile to ARM")
 class LinuxCrossArmTests(BaseLinuxCrossTests):
     '''
     Tests that cross-compilation to Linux/ARM works
@@ -116,9 +114,9 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
 
 
 def should_run_cross_mingw_tests():
-    return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
+    return shutil.which('x86_64-w64-mingw32-gcc') and not (Platform.is_windows or Platform.is_cygwin)
 
-@unittest.skipUnless(not is_windows() and should_run_cross_mingw_tests(), "requires ability to cross compile with MinGW")
+@unittest.skipUnless(not Platform.is_windows and should_run_cross_mingw_tests(), "requires ability to cross compile with MinGW")
 class LinuxCrossMingwTests(BaseLinuxCrossTests):
     '''
     Tests that cross-compilation to Windows/MinGW works

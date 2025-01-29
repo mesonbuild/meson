@@ -8,7 +8,7 @@ import platform
 import unittest
 
 from mesonbuild.mesonlib import (
-    MachineChoice, is_osx, version_compare
+    MachineChoice, Platform, version_compare
 )
 from mesonbuild.compilers import (
     detect_c_compiler
@@ -22,7 +22,7 @@ from run_tests import (
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
-@unittest.skipUnless(is_osx(), "requires Darwin")
+@unittest.skipUnless(Platform.is_osx, "requires Darwin")
 class DarwinTests(BasePlatformTests):
     '''
     Tests that should run on macOS
