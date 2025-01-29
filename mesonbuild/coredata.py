@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2024 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import UserOption
+    from .options import UserOption, ElementaryOptionValues
 
     class SharedCMDOptions(Protocol):
 
@@ -442,7 +442,7 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
-    def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool]:
+    def get_option(self, key: OptionKey) -> ElementaryOptionValues:
         try:
             v = self.optstore.get_value(key)
             return v
@@ -916,7 +916,7 @@ class OptionsView(abc.Mapping):
     # python 3.8 or typing_extensions
     original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, UserOption[Any]]']
     subproject: T.Optional[str] = None
-    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = dataclasses.field(default_factory=dict)
+    overrides: T.Optional[T.Mapping[OptionKey, ElementaryOptionValues]] = dataclasses.field(default_factory=dict)
 
     def __getitem__(self, key: OptionKey) -> options.UserOption:
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
@@ -960,7 +960,7 @@ class OptionsView(abc.Mapping):
             key = OptionKey(key)
         return self[key].value
 
-    def set_value(self, key: T.Union[str, OptionKey], value: T.Union[str, int, bool, T.List[str]]):
+    def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues):
         if isinstance(key, str):
             key = OptionKey(key)
         self.overrides[key] = value
