@@ -214,17 +214,17 @@ class CudaDependency(SystemDependency):
         arch = detect_cpu_family(self.env.coredata.compilers.host)
         machine = self.env.machines[self.for_machine]
         msg = '{} architecture is not supported in {} version of the CUDA Toolkit.'
-        if machine.is_windows():
+        if machine.is_windows:
             libdirs = {'x86': 'Win32', 'x86_64': 'x64'}
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'Windows'))
             return os.path.join('lib', libdirs[arch])
-        elif machine.is_linux():
+        elif machine.is_linux:
             libdirs = {'x86_64': 'lib64', 'ppc64': 'lib', 'aarch64': 'lib64', 'loongarch64': 'lib64'}
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'Linux'))
             return libdirs[arch]
-        elif machine.is_darwin():
+        elif machine.is_darwin:
             libdirs = {'x86_64': 'lib64'}
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'macOS'))
@@ -239,7 +239,7 @@ class CudaDependency(SystemDependency):
             args = self.clib_compiler.find_library(module, self.env, [self.libdir])
             if module == 'cudart_static' and self.language != 'cuda':
                 machine = self.env.machines[self.for_machine]
-                if machine.is_linux():
+                if machine.is_linux:
                     # extracted by running
                     #   nvcc -v foo.o
                     args += ['-lrt', '-lpthread', '-ldl']
@@ -254,7 +254,7 @@ class CudaDependency(SystemDependency):
         return all_found
 
     def _is_windows(self) -> bool:
-        return self.env.machines[self.for_machine].is_windows()
+        return self.env.machines[self.for_machine].is_windows
 
     @T.overload
     def _report_dependency_error(self, msg: str) -> None: ...

@@ -321,7 +321,7 @@ class CMakeDependency(ExternalDependency):
                     return True
 
             # Mac framework support
-            if machine.is_darwin():
+            if machine.is_darwin:
                 for j in [f'{lname}.framework', f'{lname}.app']:
                     for k in content:
                         if k[1] != j:

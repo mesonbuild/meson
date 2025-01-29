@@ -1753,7 +1753,7 @@ class AllPlatformTests(BasePlatformTests):
                 '/NOLOGO', '/DLL', '/DEBUG', '/IMPLIB:' + impfile,
                 '/OUT:' + outfile, objectfile]
         else:
-            if not (compiler.info.is_windows() or compiler.info.is_cygwin() or compiler.info.is_darwin()):
+            if not (compiler.info.is_windows or compiler.info.is_cygwin or compiler.info.is_darwin):
                 extra_args += ['-fPIC']
             link_cmd = compiler.get_exelist() + ['-shared', '-o', outfile, objectfile]
             if not Platform.is_osx:

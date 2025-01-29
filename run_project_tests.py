@@ -140,7 +140,7 @@ class InstalledFile:
         p = Path(self.path)
         canonical_compiler = compiler
         if ((compiler in ['clang-cl', 'intel-cl']) or
-                (env.machines.host.is_windows() and compiler in {'pgi', 'dmd', 'ldc'})):
+                (env.machines.host.is_windows and compiler in {'pgi', 'dmd', 'ldc'})):
             canonical_compiler = 'msvc'
 
         python_suffix = python.info['suffix']
@@ -156,8 +156,8 @@ class InstalledFile:
         matches = {
             'msvc': canonical_compiler == 'msvc',
             'gcc': canonical_compiler != 'msvc',
-            'cygwin': env.machines.host.is_cygwin(),
-            '!cygwin': not env.machines.host.is_cygwin(),
+            'cygwin': env.machines.host.is_cygwin,
+            '!cygwin': not env.machines.host.is_cygwin,
         }.get(self.platform or '', True)
         if not matches:
             return None
@@ -176,17 +176,17 @@ class InstalledFile:
                 return p.with_suffix(python_limited_suffix)
             if self.typ == 'py_implib':
                 p = p.with_suffix(python_suffix)
-                if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+                if env.machines.host.is_windows and canonical_compiler == 'msvc':
                     return p.with_suffix('.lib')
-                elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                elif env.machines.host.is_windows or env.machines.host.is_cygwin:
                     return p.with_suffix('.dll.a')
                 else:
                     return None
             if self.typ == 'py_limited_implib':
                 p = p.with_suffix(python_limited_suffix)
-                if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+                if env.machines.host.is_windows and canonical_compiler == 'msvc':
                     return p.with_suffix('.lib')
-                elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                elif env.machines.host.is_windows or env.machines.host.is_cygwin:
                     return p.with_suffix('.dll.a')
                 else:
                     return None
@@ -195,7 +195,7 @@ class InstalledFile:
         elif self.typ in {'file', 'dir', 'link'}:
             return p
         elif self.typ == 'shared_lib':
-            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            if env.machines.host.is_windows or env.machines.host.is_cygwin:
                 # Windows only has foo.dll and foo-X.dll
                 if len(self.version) > 1:
                     return None
@@ -204,7 +204,7 @@ class InstalledFile:
                 return p.with_suffix('.dll')
 
             p = p.with_name(f'lib{p.name}')
-            if env.machines.host.is_darwin():
+            if env.machines.host.is_darwin:
                 # MacOS only has libfoo.dylib and libfoo.X.dylib
                 if len(self.version) > 1:
                     return None
@@ -222,19 +222,19 @@ class InstalledFile:
         elif self.typ == 'exe':
             if 'mwcc' in canonical_compiler:
                 return p.with_suffix('.nef')
-            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            elif env.machines.host.is_windows or env.machines.host.is_cygwin:
                 return p.with_suffix('.exe')
         elif self.typ == 'pdb':
             if self.version:
                 p = p.with_name('{}-{}'.format(p.name, self.version[0]))
             return p.with_suffix('.pdb') if has_pdb else None
         elif self.typ in {'implib', 'implibempty'}:
-            if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+            if env.machines.host.is_windows and canonical_compiler == 'msvc':
                 # only MSVC doesn't generate empty implibs
                 if self.typ == 'implibempty' and compiler == 'msvc':
                     return None
                 return p.parent / (re.sub(r'^lib', '', p.name) + '.lib')
-            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            elif env.machines.host.is_windows or env.machines.host.is_cygwin:
                 return p.with_suffix('.dll.a')
             else:
                 return None
@@ -354,14 +354,14 @@ def setup_commands(optbackend: str) -> None:
 # TODO try to eliminate or at least reduce this function
 def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Environment) -> str:
     if '?lib' in fname:
-        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
-        elif env.machines.host.is_windows():
+        elif env.machines.host.is_windows:
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/lib\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'lib\1.dll', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
-        elif env.machines.host.is_cygwin():
+        elif env.machines.host.is_cygwin:
             fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/cyg\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
@@ -370,20 +370,20 @@ def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Envi
             fname = re.sub(r'\?lib', 'lib', fname)
 
     if fname.endswith('?so'):
-        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/(?:lib|)([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif env.machines.host.is_windows():
+        elif env.machines.host.is_windows:
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif env.machines.host.is_cygwin():
+        elif env.machines.host.is_cygwin:
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/lib([^/]*?)\?so$', r'/cyg\1.dll', fname)
             fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif env.machines.host.is_darwin():
+        elif env.machines.host.is_darwin:
             return fname[:-3] + '.dylib'
         else:
             return fname[:-3] + '.so'

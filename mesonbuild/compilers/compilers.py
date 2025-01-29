@@ -1112,7 +1112,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_largefile_args(self) -> T.List[str]:
         '''Enable transparent large-file-support for 32-bit UNIX systems'''
-        if not (self.get_argument_syntax() == 'msvc' or self.info.is_darwin()):
+        if not (self.get_argument_syntax() == 'msvc' or self.info.is_darwin):
             # Enable large-file support unconditionally on all platforms other
             # than macOS and MSVC. macOS is now 64-bit-only so it doesn't
             # need anything special, and MSVC doesn't have automatic LFS.

@@ -1224,13 +1224,13 @@ class BuildTarget(Target):
             # PIC is always on for Windows (all code is position-independent
             # since library loading is done differently)
             m = self.environment.machines[self.for_machine]
-            if m.is_darwin() or m.is_windows():
+            if m.is_darwin or m.is_windows:
                 self.pic = True
             else:
                 self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
         if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
             # Executables must be PIE on Android
-            if self.environment.machines[self.for_machine].is_android():
+            if self.environment.machines[self.for_machine].is_android:
                 self.pie = True
             else:
                 self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
@@ -1700,10 +1700,10 @@ class BuildTarget(Target):
         '''
         for link_target in self.link_targets:
             if isinstance(link_target, SharedModule) and not link_target.force_soname:
-                if self.environment.machines[self.for_machine].is_darwin():
+                if self.environment.machines[self.for_machine].is_darwin:
                     raise MesonException(
                         f'target {self.name} links against shared module {link_target.name}. This is not permitted on OSX')
-                elif self.environment.machines[self.for_machine].is_android() and isinstance(self, SharedModule):
+                elif self.environment.machines[self.for_machine].is_android and isinstance(self, SharedModule):
                     # Android requires shared modules that use symbols from other shared modules to
                     # be linked before they can be dlopen()ed in the correct order. Not doing so
                     # leads to a missing symbol error: https://github.com/android/ndk/issues/201
@@ -2002,7 +2002,7 @@ class Executable(BuildTarget):
             self.prefix = ''
         if not hasattr(self, 'suffix'):
             # Executable for Windows or C#/Mono
-            if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
+            if machine.is_windows or machine.is_cygwin or 'cs' in self.compilers:
                 self.suffix = 'exe'
             elif machine.system.startswith('wasm') or machine.system == 'emscripten':
                 self.suffix = 'js'
@@ -2039,14 +2039,14 @@ class Executable(BuildTarget):
             implib_basename = self.name + '.exe'
             if isinstance(self.implib, str):
                 implib_basename = self.implib
-            if machine.is_windows() or machine.is_cygwin():
+            if machine.is_windows or machine.is_cygwin:
                 if self.get_using_msvc():
                     self.import_filename = f'{implib_basename}.lib'
                 else:
                     self.import_filename = f'lib{implib_basename}.a'
 
         create_debug_file = (
-            machine.is_windows()
+            machine.is_windows
             and ('cs' in self.compilers or self.uses_rust() or self.get_using_msvc())
             # .pdb file is created only when debug symbols are enabled
             and self.environment.coredata.get_option(OptionKey("debug"))
@@ -2323,7 +2323,7 @@ class SharedLibrary(BuildTarget):
         # C, C++, Swift, Vala
         # Only Windows uses a separate import library for linking
         # For all other targets/platforms import_filename stays None
-        elif self.environment.machines[self.for_machine].is_windows():
+        elif self.environment.machines[self.for_machine].is_windows:
             suffix = 'dll'
             if self.uses_rust():
                 # Shared library is of the form foo.dll
@@ -2350,7 +2350,7 @@ class SharedLibrary(BuildTarget):
                 self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
             else:
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif self.environment.machines[self.for_machine].is_cygwin():
+        elif self.environment.machines[self.for_machine].is_cygwin:
             suffix = 'dll'
             # Shared library is of the form cygfoo.dll
             # (ld --dll-search-prefix=cyg is the default)
@@ -2362,7 +2362,7 @@ class SharedLibrary(BuildTarget):
                 self.filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
             else:
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif self.environment.machines[self.for_machine].is_darwin():
+        elif self.environment.machines[self.for_machine].is_darwin:
             prefix = 'lib'
             suffix = 'dylib'
             # On macOS, the filename can only contain the major version
@@ -2372,7 +2372,7 @@ class SharedLibrary(BuildTarget):
             else:
                 # libfoo.dylib
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
-        elif self.environment.machines[self.for_machine].is_android():
+        elif self.environment.machines[self.for_machine].is_android:
             prefix = 'lib'
             suffix = 'so'
             # Android doesn't support shared_library versioning
@@ -2405,7 +2405,7 @@ class SharedLibrary(BuildTarget):
     def process_kwargs(self, kwargs):
         super().process_kwargs(kwargs)
 
-        if not self.environment.machines[self.for_machine].is_android():
+        if not self.environment.machines[self.for_machine].is_android:
             # Shared library version
             self.ltversion = T.cast('T.Optional[str]', kwargs.get('version'))
             self.soversion = T.cast('T.Optional[str]', kwargs.get('soversion'))

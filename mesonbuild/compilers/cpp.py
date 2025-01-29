@@ -253,7 +253,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
                                'STL debug mode',
                                False),
         )
-        if self.info.is_windows() or self.info.is_cygwin():
+        if self.info.is_windows or self.info.is_cygwin:
             self.update_options(
                 opts,
                 self.create_option(options.UserArrayOption,
@@ -290,7 +290,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         return args
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        if self.info.is_windows() or self.info.is_cygwin():
+        if self.info.is_windows or self.info.is_cygwin:
             # without a typedict mypy can't understand this.
             key = self.form_compileropt_key('winlibs')
             libs = options.get_value(key).copy()
@@ -458,7 +458,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
                                'STL debug mode',
                                False),
         )
-        if self.info.is_windows() or self.info.is_cygwin():
+        if self.info.is_windows or self.info.is_cygwin:
             self.update_options(
                 opts,
                 self.create_option(options.UserArrayOption,
@@ -489,7 +489,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
         return args
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        if self.info.is_windows() or self.info.is_cygwin():
+        if self.info.is_windows or self.info.is_cygwin:
             # without a typedict mypy can't understand this.
             key = self.form_compileropt_key('winlibs')
             libs = options.get_value(key).copy()

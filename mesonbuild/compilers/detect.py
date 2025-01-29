@@ -463,7 +463,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             else:
                 cls = c.ClangCCompiler if lang == 'c' else cpp.ClangCPPCompiler
 
-            if 'windows' in out or env.machines[for_machine].is_windows():
+            if 'windows' in out or env.machines[for_machine].is_windows:
                 # If we're in a MINGW context this actually will use a gnu
                 # style ld, but for clang on "real" windows we'll use
                 # either link.exe or lld-link.exe
@@ -814,7 +814,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
 
             def _get_linker_try_windows(cls: T.Type['Compiler']) -> T.Optional['DynamicLinker']:
                 linker = None
-                if 'windows' in out or env.machines[for_machine].is_windows():
+                if 'windows' in out or env.machines[for_machine].is_windows:
                     # If we're in a MINGW context this actually will use a gnu
                     # style ld, but for flang on "real" windows we'll use
                     # either link.exe or lld-link.exe
@@ -914,7 +914,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
                 comp = objc.AppleClangObjCCompiler if lang == 'objc' else objcpp.AppleClangObjCPPCompiler
             else:
                 comp = objc.ClangObjCCompiler if lang == 'objc' else objcpp.ClangObjCPPCompiler
-            if 'windows' in out or env.machines[for_machine].is_windows():
+            if 'windows' in out or env.machines[for_machine].is_windows:
                 # If we're in a MINGW context this actually will use a gnu style ld
                 try:
                     linker = guess_win_linker(env, compiler, comp, version, for_machine)
@@ -1196,7 +1196,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             os.close(o)
 
             try:
-                if info.is_windows() or info.is_cygwin():
+                if info.is_windows or info.is_cygwin:
                     objfile = os.path.basename(f)[:-1] + 'obj'
                     extra_args = [f]
                     if is_cross:
@@ -1241,7 +1241,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             arch_arg = '-m64' if arch == 'x86_64' else '-m32'
 
             try:
-                if info.is_windows() or info.is_cygwin():
+                if info.is_windows or info.is_cygwin:
                     objfile = os.path.basename(f)[:-1] + 'obj'
                     linker = guess_win_linker(env,
                                               exelist, cls, full_version, for_machine,

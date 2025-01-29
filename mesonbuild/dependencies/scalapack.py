@@ -65,7 +65,7 @@ class MKLPkgConfigDependency(PkgConfigDependency):
         super().__init__(name, env, kwargs, language=language)
 
         # Doesn't work with gcc on windows, but does on Linux
-        if (not self.__mklroot or (env.machines[self.for_machine].is_windows()
+        if (not self.__mklroot or (env.machines[self.for_machine].is_windows
                                    and self.clib_compiler.id == 'gcc')):
             self.is_found = False
 
@@ -98,7 +98,7 @@ class MKLPkgConfigDependency(PkgConfigDependency):
     def _set_libs(self) -> None:
         super()._set_libs()
 
-        if self.env.machines[self.for_machine].is_windows():
+        if self.env.machines[self.for_machine].is_windows:
             suffix = '.lib'
         elif self.static:
             suffix = '.a'
@@ -121,7 +121,7 @@ class MKLPkgConfigDependency(PkgConfigDependency):
                 i = j + 1
             elif j > 3:
                 break
-        if self.env.machines[self.for_machine].is_windows() or self.static:
+        if self.env.machines[self.for_machine].is_windows or self.static:
             self.link_args.insert(
                 i, str(libdir / ('mkl_scalapack_lp64' + suffix))
             )

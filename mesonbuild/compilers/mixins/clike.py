@@ -977,10 +977,10 @@ class CLikeCompiler(Compiler):
         '''
         m = env.machines[self.for_machine]
         # Darwin always uses the underscore prefix, not matter what
-        if m.is_darwin():
+        if m.is_darwin:
             return True
         # Windows uses the underscore prefix on x86 (32bit) only
-        if m.is_windows() or m.is_cygwin():
+        if m.is_windows or m.is_cygwin:
             return m.cpu_family == 'x86'
         return None
 
@@ -1008,7 +1008,7 @@ class CLikeCompiler(Compiler):
         for p in prefixes:
             for s in suffixes:
                 patterns.append(p + '{}.' + s)
-        if shared and env.machines[self.for_machine].is_openbsd():
+        if shared and env.machines[self.for_machine].is_openbsd:
             # Shared libraries on OpenBSD can be named libfoo.so.X.Y:
             # https://www.openbsd.org/faq/ports/specialtopics.html#SharedLibs
             #
@@ -1035,9 +1035,9 @@ class CLikeCompiler(Compiler):
         else:
             prefixes = ['lib', '']
         # Library suffixes and prefixes
-        if env.machines[self.for_machine].is_darwin():
+        if env.machines[self.for_machine].is_darwin:
             shlibext = ['dylib', 'so']
-        elif env.machines[self.for_machine].is_windows():
+        elif env.machines[self.for_machine].is_windows:
             # FIXME: .lib files can be import or static so we should read the
             # file, figure out which one it is, and reject the wrong kind.
             if isinstance(self, VisualStudioLikeCompiler):
@@ -1046,7 +1046,7 @@ class CLikeCompiler(Compiler):
                 shlibext = ['dll.a', 'lib', 'dll']
             # Yep, static libraries can also be foo.lib
             stlibext += ['lib']
-        elif env.machines[self.for_machine].is_cygwin():
+        elif env.machines[self.for_machine].is_cygwin:
             shlibext = ['dll', 'dll.a']
             prefixes = ['cyg'] + prefixes
         elif self.id.lower() in {'c6000', 'c2000', 'ti'}:
@@ -1110,7 +1110,7 @@ class CLikeCompiler(Compiler):
         for p in paths:
             if p.is_file():
 
-                if env.machines.host.is_darwin() and env.machines.build.is_darwin():
+                if env.machines.host.is_darwin and env.machines.build.is_darwin:
                     # Run `lipo` and check if the library supports the arch we want
                     archs = mesonlib.darwin_get_object_archs(str(p))
                     if not archs or env.machines.host.cpu_family not in archs:
@@ -1268,7 +1268,7 @@ class CLikeCompiler(Compiler):
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?
         host_m = env.machines[self.for_machine]
-        if host_m.is_haiku() or host_m.is_darwin():
+        if host_m.is_haiku or host_m.is_darwin:
             return []
         return ['-pthread']
 
@@ -1334,7 +1334,7 @@ class CLikeCompiler(Compiler):
         # Just assume that if we're not on windows that dllimport and dllexport
         # don't work
         m = env.machines[self.for_machine]
-        if not (m.is_windows() or m.is_cygwin()):
+        if not (m.is_windows or m.is_cygwin):
             if name in {'dllimport', 'dllexport'}:
                 return False, False
 

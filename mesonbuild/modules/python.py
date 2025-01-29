@@ -187,7 +187,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
             # On Windows, the limited API DLL is python3.dll, not python3X.dll.
             for_machine = kwargs['native']
-            if self.interpreter.environment.machines[for_machine].is_windows():
+            if self.interpreter.environment.machines[for_machine].is_windows:
                 pydep_copy = copy.copy(pydep)
                 pydep_copy.find_libpy_windows(self.env, limited_api=True)
                 if not pydep_copy.found():

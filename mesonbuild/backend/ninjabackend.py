@@ -1099,7 +1099,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
-        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix():
+        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix:
             if target.aix_so_archive:
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
@@ -1281,7 +1281,7 @@ class NinjaBackend(backends.Backend):
             if not hasattr(target, 'compilers'):
                 continue
             for compiler in target.compilers.values():
-                if compiler.get_id() == 'clang' and not compiler.info.is_darwin():
+                if compiler.get_id() == 'clang' and not compiler.info.is_darwin:
                     use_llvm_cov = True
                     break
         elem.add_item('COMMAND', self.environment.get_build_command() +
@@ -2390,7 +2390,7 @@ class NinjaBackend(backends.Backend):
 
                 options = self._rsp_options(compiler)
                 self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
-            if self.environment.machines[for_machine].is_aix() and complist:
+            if self.environment.machines[for_machine].is_aix and complist:
                 rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))
                 description = 'Archiving AIX shared library'
                 cmdlist = compiler.get_command_to_archive_shlib()
@@ -3297,7 +3297,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_shsym(self, target) -> None:
         target_file = self.get_target_filename(target)
         if isinstance(target, build.SharedLibrary) and target.aix_so_archive:
-            if self.environment.machines[target.for_machine].is_aix():
+            if self.environment.machines[target.for_machine].is_aix:
                 linker, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
                 target.get_outputs()[0] = linker.get_archive_name(target.get_outputs()[0])
                 target_file = target.get_outputs()[0]
@@ -3361,7 +3361,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # libraries (such as SDL2) add -mwindows to their link flags.
             m = self.environment.machines[target.for_machine]
 
-            if m.is_windows() or m.is_cygwin():
+            if m.is_windows or m.is_cygwin:
                 commands += linker.get_win_subsystem_args(target.win_subsystem)
         return commands
 
@@ -3815,7 +3815,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 # they are all built
                 #Add archive file if shared library in AIX for build all.
                 if isinstance(t, build.SharedLibrary) and t.aix_so_archive:
-                    if self.environment.machines[t.for_machine].is_aix():
+                    if self.environment.machines[t.for_machine].is_aix:
                         linker, stdlib_args = t.get_clink_dynamic_linker_and_stdlibs()
                         t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))

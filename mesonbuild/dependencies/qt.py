@@ -71,16 +71,16 @@ def get_qmake_host_libexecs(qvars: T.Dict[str, str]) -> T.Optional[str]:
 def _get_modules_lib_suffix(version: str, info: 'MachineInfo', is_debug: bool) -> str:
     """Get the module suffix based on platform and debug type."""
     suffix = ''
-    if info.is_windows():
+    if info.is_windows:
         if is_debug:
             suffix += 'd'
         if version.startswith('4'):
             suffix += '4'
-    if info.is_darwin():
+    if info.is_darwin:
         if is_debug:
             suffix += '_debug'
     if mesonlib.version_compare(version, '>= 5.14.0'):
-        if info.is_android():
+        if info.is_android:
             if info.cpu_family == 'x86':
                 suffix += '_x86'
             elif info.cpu_family == 'x86_64':
@@ -203,7 +203,7 @@ class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta)
                     mod.compile_args.append('-I' + directory)
             self._add_sub_dependency([lambda: mod])
 
-        if self.env.machines[self.for_machine].is_windows() and self.qtmain:
+        if self.env.machines[self.for_machine].is_windows and self.qtmain:
             # Check if we link with debug binaries
             debug_lib_name = self.qtpkgname + 'Core' + _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], True)
             is_debug = False
@@ -279,7 +279,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
             qvars[k] = v
         # Qt on macOS uses a framework, but Qt for iOS/tvOS does not
         xspec = qvars.get('QMAKE_XSPEC', '')
-        if self.env.machines.host.is_darwin() and not any(s in xspec for s in ['ios', 'tvos']):
+        if self.env.machines.host.is_darwin and not any(s in xspec for s in ['ios', 'tvos']):
             mlog.debug("Building for macOS, looking for framework")
             self._framework_detect(qvars, self.requested_modules, kwargs)
             # Sometimes Qt is built not as a framework (for instance, when using conan pkg manager)
@@ -332,7 +332,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
                 break
             self.link_args.append(libfile)
 
-        if self.env.machines[self.for_machine].is_windows() and self.qtmain:
+        if self.env.machines[self.for_machine].is_windows and self.qtmain:
             if not self._link_with_qt_winmain(is_debug, libdir):
                 self.is_found = False
 

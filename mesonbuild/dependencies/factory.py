@@ -111,7 +111,7 @@ class DependencyFactory:
         """
         # Extra frameworks are only valid for macOS and other apple products
         if (method is DependencyMethods.EXTRAFRAMEWORK and
-                not env.machines[for_machine].is_darwin()):
+                not env.machines[for_machine].is_darwin):
             return False
         return True
 

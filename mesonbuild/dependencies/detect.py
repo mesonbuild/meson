@@ -211,7 +211,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
 
     # On OSX only, try framework dependency detector.
     if 'extraframework' in methods:
-        if env.machines[for_machine].is_darwin():
+        if env.machines[for_machine].is_darwin:
             from .framework import ExtraFrameworkDependency
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
 

@@ -9,7 +9,7 @@ import typing as T
 from enum import Enum
 
 from . import mesonlib
-from .mesonlib import EnvironmentException, HoldableObject
+from .mesonlib import EnvironmentException, HoldableObject, lazy_property
 from . import mlog
 from pathlib import Path
 
@@ -291,78 +291,92 @@ class MachineInfo(HoldableObject):
 
         return cls(system, cpu_family, literal['cpu'], endian, kernel, subsystem)
 
+    @lazy_property
     def is_windows(self) -> bool:
         """
         Machine is windows?
         """
         return self.system == 'windows'
 
+    @lazy_property
     def is_cygwin(self) -> bool:
         """
         Machine is cygwin?
         """
         return self.system == 'cygwin'
 
+    @lazy_property
     def is_linux(self) -> bool:
         """
         Machine is linux?
         """
         return self.system == 'linux'
 
+    @lazy_property
     def is_darwin(self) -> bool:
         """
         Machine is Darwin (iOS/tvOS/OS X)?
         """
         return self.system in {'darwin', 'ios', 'tvos'}
 
+    @lazy_property
     def is_android(self) -> bool:
         """
         Machine is Android?
         """
         return self.system == 'android'
 
+    @lazy_property
     def is_haiku(self) -> bool:
         """
         Machine is Haiku?
         """
         return self.system == 'haiku'
 
+    @lazy_property
     def is_netbsd(self) -> bool:
         """
         Machine is NetBSD?
         """
         return self.system == 'netbsd'
 
+    @lazy_property
     def is_openbsd(self) -> bool:
         """
         Machine is OpenBSD?
         """
         return self.system == 'openbsd'
 
+    @lazy_property
     def is_dragonflybsd(self) -> bool:
         """Machine is DragonflyBSD?"""
         return self.system == 'dragonfly'
 
+    @lazy_property
     def is_freebsd(self) -> bool:
         """Machine is FreeBSD?"""
         return self.system == 'freebsd'
 
+    @lazy_property
     def is_sunos(self) -> bool:
         """Machine is illumos or Solaris?"""
         return self.system == 'sunos'
 
+    @lazy_property
     def is_hurd(self) -> bool:
         """
         Machine is GNU/Hurd?
         """
         return self.system == 'gnu'
 
+    @lazy_property
     def is_aix(self) -> bool:
         """
         Machine is aix?
         """
         return self.system == 'aix'
 
+    @lazy_property
     def is_irix(self) -> bool:
         """Machine is IRIX?"""
         return self.system.startswith('irix')
@@ -371,19 +385,19 @@ class MachineInfo(HoldableObject):
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
     def get_exe_suffix(self) -> str:
-        if self.is_windows() or self.is_cygwin():
+        if self.is_windows or self.is_cygwin:
             return 'exe'
         else:
             return ''
 
     def get_object_suffix(self) -> str:
-        if self.is_windows():
+        if self.is_windows:
             return 'obj'
         else:
             return 'o'
 
     def libdir_layout_is_win(self) -> bool:
-        return self.is_windows() or self.is_cygwin()
+        return self.is_windows or self.is_cygwin
 
 class BinaryTable:
 
