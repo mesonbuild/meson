@@ -809,6 +809,9 @@ class OptionStore:
     def __repr__(self) -> str:
         return repr(self.d)
 
+    def __iter__(self) -> T.Iterator[OptionKey]:
+        return iter(self.d)
+
     def keys(self) -> T.KeysView[OptionKey]:
         return self.d.keys()
 
