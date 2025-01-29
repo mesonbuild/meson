@@ -16,13 +16,13 @@ from pathlib import Path
 
 from .baseplatformtests import BasePlatformTests
 from .helpers import is_ci
-from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, is_linux, python_command, windows_proof_rmtree
+from mesonbuild.mesonlib import EnvironmentVariables, ExecutableSerialisation, MesonException, Platform, python_command, windows_proof_rmtree
 from mesonbuild.mformat import Formatter, match_path
 from mesonbuild.optinterpreter import OptionInterpreter, OptionException
 from mesonbuild.options import OptionStore
 from run_tests import Backend
 
-@skipIf(is_ci() and not is_linux(), "Run only on fast platforms")
+@skipIf(is_ci() and not Platform.is_linux, "Run only on fast platforms")
 class PlatformAgnosticTests(BasePlatformTests):
     '''
     Tests that does not need to run on all platforms during CI

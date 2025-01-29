@@ -23,8 +23,8 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_openbsd, is_haiku,
-    is_sunos, windows_proof_rmtree, version_compare, is_linux,
+    MachineChoice, Platform,
+    windows_proof_rmtree, version_compare,
     EnvironmentException
 )
 from mesonbuild.options import OptionKey
@@ -85,7 +85,7 @@ def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[
         return version_compare(compiler.version, apple_minver)
     return version_compare(compiler.version, minver)
 
-@skipUnless(not is_windows(), "requires something Unix-like")
+@skipUnless(not Platform.is_windows, "requires something Unix-like")
 class LinuxlikeTests(BasePlatformTests):
     '''
     Tests that should run on Linux, macOS, and *BSD
@@ -125,7 +125,7 @@ class LinuxlikeTests(BasePlatformTests):
         is true and not when it is false. This can't be an ordinary test case
         because we need to inspect the compiler database.
         '''
-        if is_windows() or is_cygwin() or is_osx():
+        if Platform.is_windows or Platform.is_cygwin or Platform.is_osx:
             raise SkipTest('PIC not relevant')
 
         testdir = os.path.join(self.common_test_dir, '3 static')
@@ -204,7 +204,7 @@ class LinuxlikeTests(BasePlatformTests):
             'Libs.private': '-lcustom2 -L${libdir} -llibinternal',
             'Cflags': '-I${includedir} -pthread -DCUSTOM',
         }
-        if is_osx() or is_haiku():
+        if Platform.is_osx or Platform.is_haiku:
             expected['Cflags'] = expected['Cflags'].replace('-pthread ', '')
         with open(os.path.join(privatedir2, 'dependency-test.pc'), encoding='utf-8') as f:
             matched_lines = 0
@@ -220,14 +220,14 @@ class LinuxlikeTests(BasePlatformTests):
 
         cmd = [PKG_CONFIG, 'requires-test']
         out = self._run(cmd + ['--print-requires'], override_envvars=env).strip().split('\n')
-        if not is_openbsd():
+        if not Platform.is_openbsd:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
         else:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo>=1.0', 'libhello']))
 
         cmd = [PKG_CONFIG, 'requires-private-test']
         out = self._run(cmd + ['--print-requires-private'], override_envvars=env).strip().split('\n')
-        if not is_openbsd():
+        if not Platform.is_openbsd:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
         else:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo>=1.0', 'libhello']))
@@ -257,7 +257,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
 
         os.environ['PKG_CONFIG_LIBDIR'] = os.path.join(self.builddir, 'meson-uninstalled')
-        if is_cygwin():
+        if Platform.is_cygwin:
             os.environ['PATH'] += os.pathsep + self.builddir
 
         self.new_builddir()
@@ -309,9 +309,9 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skip_if_not_base_option('b_sanitize')
     def test_generate_gir_with_address_sanitizer(self):
-        if is_cygwin():
+        if Platform.is_cygwin:
             raise SkipTest('asan not available on Cygwin')
-        if is_openbsd():
+        if Platform.is_openbsd:
             raise SkipTest('-fsanitize=address is not supported on OpenBSD')
 
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
@@ -376,7 +376,7 @@ class LinuxlikeTests(BasePlatformTests):
         return [f for f in files if not f.endswith('.p')]
 
     def _test_soname_impl(self, libpath, install):
-        if is_cygwin() or is_osx():
+        if Platform.is_cygwin or Platform.is_osx:
             raise SkipTest('Test only applicable to ELF and linuxlike sonames')
 
         testdir = os.path.join(self.unit_test_dir, '1 soname')
@@ -590,7 +590,7 @@ class LinuxlikeTests(BasePlatformTests):
         Test that files installed by these tests have the correct permissions.
         Can't be an ordinary test because our installed_files.txt is very basic.
         '''
-        if is_cygwin():
+        if Platform.is_cygwin:
             self.new_builddir_in_tempdir()
         # Test file modes
         testdir = os.path.join(self.common_test_dir, '12 data')
@@ -644,7 +644,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that files are installed with correct permissions using install_mode.
         '''
-        if is_cygwin():
+        if Platform.is_cygwin:
             self.new_builddir_in_tempdir()
         testdir = os.path.join(self.common_test_dir, '190 install_mode')
         self.init(testdir)
@@ -684,7 +684,7 @@ class LinuxlikeTests(BasePlatformTests):
         install umask of 022, regardless of the umask at time the worktree
         was checked out or the build was executed.
         '''
-        if is_cygwin():
+        if Platform.is_cygwin:
             self.new_builddir_in_tempdir()
         # Copy source tree to a temporary directory and change permissions
         # there to simulate a checkout with umask 002.
@@ -774,7 +774,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertNotIn('-Werror', c98_comp)
 
     def test_run_installed(self):
-        if is_cygwin() or is_osx():
+        if Platform.is_cygwin or Platform.is_osx:
             raise SkipTest('LD_LIBRARY_PATH and RPATH not applicable')
 
         testdir = os.path.join(self.unit_test_dir, '7 run installed')
@@ -866,7 +866,7 @@ class LinuxlikeTests(BasePlatformTests):
         install = self.introspect('--installed')
         install = {os.path.basename(k): v for k, v in install.items()}
         print(install)
-        if is_osx():
+        if Platform.is_osx:
             the_truth = {
                 'libmodule.dylib': '/usr/lib/libmodule.dylib',
                 'libnoversion.dylib': '/usr/lib/libnoversion.dylib',
@@ -905,7 +905,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertSetEqual(the_truth_2, set(t['install_filename']))
 
     def test_build_rpath(self):
-        if is_cygwin():
+        if Platform.is_cygwin:
             raise SkipTest('Windows PE/COFF binaries do not use RPATH')
         testdir = os.path.join(self.unit_test_dir, '10 build_rpath')
         self.init(testdir)
@@ -927,7 +927,7 @@ class LinuxlikeTests(BasePlatformTests):
         manually specified rpath comes second and additional rpath elements (from
         pkg-config files) come last
         '''
-        if is_cygwin():
+        if Platform.is_cygwin:
             raise SkipTest('Windows PE/COFF binaries do not use RPATH')
         testdir = os.path.join(self.unit_test_dir, '89 pkgconfig build rpath order')
         self.init(testdir, override_envvars={'PKG_CONFIG_PATH': testdir})
@@ -944,9 +944,9 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipIfNoPkgconfig
     def test_global_rpath(self):
-        if is_cygwin():
+        if Platform.is_cygwin:
             raise SkipTest('Windows PE/COFF binaries do not use RPATH')
-        if is_osx():
+        if Platform.is_osx:
             raise SkipTest('Global RPATHs via LDFLAGS not yet supported on MacOS (does anybody need it?)')
 
         testdir = os.path.join(self.unit_test_dir, '79 global-rpath')
@@ -993,9 +993,9 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
-        if is_cygwin():
+        if Platform.is_cygwin:
             raise SkipTest('asan not available on Cygwin')
-        if is_openbsd():
+        if Platform.is_openbsd:
             raise SkipTest('-fsanitize=address is not supported on OpenBSD')
 
         testdir = os.path.join(self.common_test_dir, '13 pch')
@@ -1014,7 +1014,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         crossfile.write(textwrap.dedent(f'''\
             [binaries]
-            c = '{shutil.which('gcc' if is_sunos() else 'cc')}'
+            c = '{shutil.which('gcc' if Platform.is_sunos else 'cc')}'
             ar = '{shutil.which('ar')}'
             strip = '{shutil.which('strip')}'
             sometool.py = ['{tool_path}']
@@ -1101,7 +1101,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.build(override_envvars=myenv)
             myenv = os.environ.copy()
             myenv['LD_LIBRARY_PATH'] = ':'.join([lib_dir, myenv.get('LD_LIBRARY_PATH', '')])
-            if is_cygwin():
+            if Platform.is_cygwin:
                 bin_dir = os.path.join(tempdirname, 'bin')
                 myenv['PATH'] = bin_dir + os.pathsep + myenv['PATH']
             self.assertTrue(os.path.isdir(lib_dir))
@@ -1233,7 +1233,7 @@ class LinuxlikeTests(BasePlatformTests):
         myenv['PKG_CONFIG_PATH'] = _prepend_pkg_config_path(self.privatedir)
         stdo = subprocess.check_output([PKG_CONFIG, '--libs-only-l', 'libsomething'], env=myenv)
         deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
-        if is_windows() or is_cygwin() or is_osx() or is_openbsd():
+        if Platform.is_windows or Platform.is_cygwin or Platform.is_osx or Platform.is_openbsd:
             # On Windows, libintl is a separate library
             deps.append(b'-lintl')
         self.assertEqual(set(deps), set(stdo.split()))
@@ -1279,11 +1279,11 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that the rpaths are always listed in a deterministic order.
         '''
-        if is_cygwin():
+        if Platform.is_cygwin:
             raise SkipTest('rpath are not used on Cygwin')
         testdir = os.path.join(self.unit_test_dir, '41 rpath order')
         self.init(testdir)
-        if is_osx():
+        if Platform.is_osx:
             rpathre = re.compile(r'-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
         else:
             rpathre = re.compile(r'-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
@@ -1337,13 +1337,13 @@ class LinuxlikeTests(BasePlatformTests):
         self.build(override_envvars=env)
         # test uninstalled
         self.run_tests(override_envvars=env)
-        if not (is_osx() or is_linux()):
+        if not (Platform.is_osx or Platform.is_linux):
             return
         # test running after installation
         self.install(use_destdir=False)
         prog = os.path.join(self.installdir, 'bin', 'prog')
         self._run([prog])
-        if not is_osx():
+        if not Platform.is_osx:
             # Rest of the workflow only works on macOS
             return
         out = self._run(['otool', '-L', prog])
@@ -1391,7 +1391,7 @@ class LinuxlikeTests(BasePlatformTests):
                 if 'build dprovidertest:' in line:
                     self.assertIn('/libtestprovider.a', line)
 
-        if is_osx():
+        if Platform.is_osx:
             # macOS's ld do not supports `--whole-archive`, skip build & run
             return
 
@@ -1447,7 +1447,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.install(use_destdir=False)
         prog = os.path.join(self.installdir, 'bin', 'client')
         env3 = {}
-        if is_cygwin():
+        if Platform.is_cygwin:
             env3['PATH'] = os.path.join(val1prefix, 'bin') + \
                 os.pathsep + \
                 os.path.join(val2prefix, 'bin') + \
@@ -1490,7 +1490,7 @@ class LinuxlikeTests(BasePlatformTests):
     @skipIfNoPkgconfigDep('gmodule-2.0')
     def test_ldflag_dedup(self):
         testdir = os.path.join(self.unit_test_dir, '51 ldflagdedup')
-        if is_cygwin() or is_osx():
+        if Platform.is_cygwin or Platform.is_osx:
             raise SkipTest('Not applicable on Cygwin or OSX.')
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
@@ -1574,7 +1574,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipIfNoPkgconfig
     def test_static_link(self):
-        if is_cygwin():
+        if Platform.is_cygwin:
             raise SkipTest("Cygwin doesn't support LD_LIBRARY_PATH.")
 
         # Build some libraries and install them
@@ -1597,7 +1597,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.run_tests()
 
     def _check_ld(self, check: str, name: str, lang: str, expected: str) -> None:
-        if is_sunos():
+        if Platform.is_sunos:
             raise SkipTest('Solaris currently cannot override the linker.')
         if not shutil.which(check):
             raise SkipTest(f'Could not find {check}.')
@@ -1653,7 +1653,7 @@ class LinuxlikeTests(BasePlatformTests):
     def test_ld_environment_variable_d(self):
         # At least for me, ldc defaults to gold, and gdc defaults to bfd, so
         # let's pick lld, which isn't the default for either (currently)
-        if is_osx():
+        if Platform.is_osx:
             expected = 'ld64'
         else:
             expected = 'ld.lld'
@@ -1734,7 +1734,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Prelinking currently only works on recently new GNU toolchains.
         # Skip everything else. When support for other toolchains is added,
         # remove limitations as necessary.
-        if 'clang' in os.environ.get('CC', 'dummy') and not is_osx():
+        if 'clang' in os.environ.get('CC', 'dummy') and not Platform.is_osx:
             raise SkipTest('Prelinking not supported with Clang.')
         testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -1786,14 +1786,14 @@ class LinuxlikeTests(BasePlatformTests):
         # If so, we can test that cmake works with "gcc -m32"
         self.do_one_test_with_nativefile('../cmake/1 basic', "['gcc', '-m32']")
 
-    @skipUnless(is_linux() or is_osx(), 'Test only applicable to Linux and macOS')
+    @skipUnless(Platform.is_linux or Platform.is_osx, 'Test only applicable to Linux and macOS')
     def test_install_strip(self):
         testdir = os.path.join(self.unit_test_dir, '104 strip')
         self.init(testdir)
         self.build()
 
         destdir = self.installdir + self.prefix
-        if is_linux():
+        if Platform.is_linux:
             lib = os.path.join(destdir, self.libdir, 'liba.so')
         else:
             lib = os.path.join(destdir, self.libdir, 'liba.dylib')
@@ -1801,7 +1801,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         # Check we have debug symbols by default
         self._run(install_cmd, workdir=self.builddir)
-        if is_linux():
+        if Platform.is_linux:
             # file can detect stripped libraries on linux
             stdout = self._run(['file', '-b', lib])
             self.assertIn('not stripped', stdout)
@@ -1815,7 +1815,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         # Check debug symbols got removed with --strip
         self._run(install_cmd + ['--strip'], workdir=self.builddir)
-        if is_linux():
+        if Platform.is_linux:
             stdout = self._run(['file', '-b', lib])
             self.assertNotIn('not stripped', stdout)
         else:
@@ -1842,7 +1842,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.run_tests()
         self.assertNotIn('Traceback', e.exception.output)
 
-    @skipUnless(is_linux(), "Ninja file differs on different platforms")
+    @skipUnless(Platform.is_linux, "Ninja file differs on different platforms")
     def test_complex_link_cases(self):
         testdir = os.path.join(self.unit_test_dir, '115 complex link cases')
         self.init(testdir)

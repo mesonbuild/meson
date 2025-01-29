@@ -30,13 +30,13 @@ class GLDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__(name, environment, kwargs)
 
-        if self.env.machines[self.for_machine].is_darwin():
+        if self.env.machines[self.for_machine].is_darwin:
             self.is_found = True
             # FIXME: Use AppleFrameworks dependency
             self.link_args = ['-framework', 'OpenGL']
             # FIXME: Detect version using self.clib_compiler
             return
-        elif self.env.machines[self.for_machine].is_windows():
+        elif self.env.machines[self.for_machine].is_windows:
             self.is_found = True
             # FIXME: Use self.clib_compiler.find_library()
             self.link_args = ['-lopengl32']
@@ -200,7 +200,7 @@ class VulkanDependencySystem(SystemDependency):
             lib_name = 'vulkan'
             lib_dir = 'lib'
             inc_dir = 'include'
-            if mesonlib.is_windows():
+            if mesonlib.Platform.is_windows:
                 lib_name = 'vulkan-1'
                 lib_dir = 'Lib32'
                 inc_dir = 'Include'

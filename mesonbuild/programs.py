@@ -45,7 +45,7 @@ class ExternalProgram(mesonlib.HoldableObject):
         self.version_arg = '--version'
         if command is not None:
             self.command = mesonlib.listify(command)
-            if mesonlib.is_windows():
+            if mesonlib.Platform.is_windows:
                 cmd = self.command[0]
                 args = self.command[1:]
                 # Check whether the specified cmd is a path to a script, in
@@ -197,7 +197,7 @@ class ExternalProgram(mesonlib.HoldableObject):
                 # the single argument to pass to that command. So we must split
                 # exactly once.
                 commands = first_line[2:].split('#')[0].strip().split(maxsplit=1)
-                if mesonlib.is_windows():
+                if mesonlib.Platform.is_windows:
                     # Windows does not have UNIX paths so remove them,
                     # but don't remove Windows paths
                     if commands[0].startswith('/'):
@@ -207,7 +207,7 @@ class ExternalProgram(mesonlib.HoldableObject):
                     # Windows does not ship python3.exe, but we know the path to it
                     if len(commands) > 0 and commands[0] == 'python3':
                         commands = mesonlib.python_command + commands[1:]
-                elif mesonlib.is_haiku():
+                elif mesonlib.Platform.is_haiku:
                     # Haiku does not have /usr, but a lot of scripts assume that
                     # /usr/bin/env always exists. Detect that case and run the
                     # script with the interpreter after it.
@@ -231,7 +231,7 @@ class ExternalProgram(mesonlib.HoldableObject):
     def _is_executable(self, path: str) -> bool:
         suffix = os.path.splitext(path)[-1].lower()[1:]
         execmask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-        if mesonlib.is_windows():
+        if mesonlib.Platform.is_windows:
             if suffix in self.windows_exts:
                 return True
         elif os.stat(path).st_mode & execmask:
@@ -250,7 +250,7 @@ class ExternalProgram(mesonlib.HoldableObject):
             # b) we are on windows so they can't be directly executed.
             return self._shebang_to_cmd(trial)
         else:
-            if mesonlib.is_windows():
+            if mesonlib.Platform.is_windows:
                 for ext in self.windows_exts:
                     trial_ext = f'{trial}.{ext}'
                     if os.path.exists(trial_ext):
@@ -316,13 +316,13 @@ class ExternalProgram(mesonlib.HoldableObject):
             return [None]
         # Do a standard search in PATH
         path = os.environ.get('PATH', os.defpath)
-        if mesonlib.is_windows() and path:
+        if mesonlib.Platform.is_windows and path:
             path = self._windows_sanitize_path(path)
         if exclude_paths:
             paths = OrderedSet(path.split(os.pathsep)).difference(exclude_paths)
             path = os.pathsep.join(paths)
         command = shutil.which(name, path=path)
-        if mesonlib.is_windows():
+        if mesonlib.Platform.is_windows:
             return self._search_windows_special_cases(name, command, exclude_paths)
         # On UNIX-like platforms, shutil.which() is enough to find
         # all executables whether in PATH or with an absolute path

@@ -54,10 +54,10 @@ class NasmCompiler(Compiler):
 
     def get_always_args(self) -> T.List[str]:
         cpu = '64' if self.info.is_64_bit else '32'
-        if self.info.is_windows() or self.info.is_cygwin():
+        if self.info.is_windows or self.info.is_cygwin:
             plat = 'win'
             define = f'WIN{cpu}'
-        elif self.info.is_darwin():
+        elif self.info.is_darwin:
             plat = 'macho'
             define = 'MACHO'
         else:
@@ -122,7 +122,7 @@ class NasmCompiler(Compiler):
     # require this, otherwise it'll fail to find
     # _WinMain or _DllMainCRTStartup.
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        if not self.info.is_windows():
+        if not self.info.is_windows:
             return []
         return self.crt_args[self.get_crt_val(crt_val, buildtype)]
 
@@ -140,9 +140,9 @@ class YasmCompiler(NasmCompiler):
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         if is_debug:
-            if self.info.is_windows() and self.links_with_msvc:
+            if self.info.is_windows and self.links_with_msvc:
                 return ['-g', 'cv8']
-            elif self.info.is_darwin():
+            elif self.info.is_darwin:
                 return ['-g', 'null']
             else:
                 return ['-g', 'dwarf2']

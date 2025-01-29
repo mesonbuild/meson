@@ -12,7 +12,7 @@ from .. import mesonlib
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
-    EnvironmentException, version_compare, is_windows
+    EnvironmentException, version_compare, Platform
 )
 from ..options import OptionKey
 
@@ -163,7 +163,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         return []
 
     def get_pic_args(self) -> T.List[str]:
-        if self.info.is_windows():
+        if self.info.is_windows:
             return []
         return ['-fPIC']
 
@@ -178,7 +178,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        if self.info.is_windows():
+        if self.info.is_windows:
             return ([], set())
 
         # GNU ld, solaris ld, and lld acting like GNU ld
@@ -217,9 +217,9 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         for arg in args:
             # Translate OS specific arguments first.
             osargs: T.List[str] = []
-            if info.is_windows():
+            if info.is_windows:
                 osargs = cls.translate_arg_to_windows(arg)
-            elif info.is_darwin():
+            elif info.is_darwin:
                 osargs = cls._translate_arg_to_osx(arg)
             if osargs:
                 dcargs.extend(osargs)
@@ -307,7 +307,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                     continue
 
                 # linker flag such as -L=/DEBUG must pass through
-                if info.is_windows() and link_id == 'link' and suffix.startswith('/'):
+                if info.is_windows and link_id == 'link' and suffix.startswith('/'):
                     dcargs.append(arg)
                     continue
 
@@ -373,7 +373,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         return clike_debug_args[is_debug] + ddebug_args
 
     def _get_crt_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        if not self.info.is_windows():
+        if not self.info.is_windows:
             return []
         return self.mscrt_args[self.get_crt_val(crt_val, buildtype)]
 
@@ -404,7 +404,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
     def get_allow_undefined_link_args(self) -> T.List[str]:
         args = self.linker.get_allow_undefined_args()
-        if self.info.is_darwin():
+        if self.info.is_darwin:
             # On macOS we're passing these options to the C compiler, but
             # they're linker options and need -Wl, so clang/gcc knows what to
             # do with them. I'm assuming, but don't know for certain, that
@@ -473,7 +473,7 @@ class DCompiler(Compiler):
         return 'deps'
 
     def get_pic_args(self) -> T.List[str]:
-        if self.info.is_windows():
+        if self.info.is_windows:
             return []
         return ['-fPIC']
 
@@ -553,7 +553,7 @@ class DCompiler(Compiler):
     def _get_target_arch_args(self) -> T.List[str]:
         # LDC2 on Windows targets to current OS architecture, but
         # it should follow the target specified by the MSVC toolchain.
-        if self.info.is_windows():
+        if self.info.is_windows:
             if self.is_cross:
                 return [f'-mtriple={self.arch}-windows-msvc']
             elif self.arch == 'x86_64':
@@ -703,7 +703,7 @@ class GnuDCompiler(GnuCompiler, DCompiler):
 
     def get_linker_always_args(self) -> T.List[str]:
         args = super().get_linker_always_args()
-        if self.info.is_windows():
+        if self.info.is_windows:
             return args
         return args + ['-shared-libphobos']
 
@@ -773,7 +773,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def get_linker_always_args(self) -> T.List[str]:
         args = super().get_linker_always_args()
-        if self.info.is_windows():
+        if self.info.is_windows:
             return args
         return args + ['-link-defaultlib-shared']
 
@@ -786,7 +786,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
         # We use `mesonlib.is_windows` here because we want to know what the
         # build machine is, not the host machine. This really means we would
         # have the Environment not the MachineInfo in the compiler.
-        return RSPFileSyntax.MSVC if is_windows() else RSPFileSyntax.GCC
+        return RSPFileSyntax.MSVC if Platform.is_windows else RSPFileSyntax.GCC
 
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
@@ -810,7 +810,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
         return []
 
     def get_std_exe_link_args(self) -> T.List[str]:
-        if self.info.is_windows():
+        if self.info.is_windows:
             # DMD links against D runtime only when main symbol is found,
             # so these needs to be inserted when linking static D libraries.
             if self.arch == 'x86_64':
@@ -822,7 +822,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def get_std_shared_lib_link_args(self) -> T.List[str]:
         libname = 'libphobos2.so'
-        if self.info.is_windows():
+        if self.info.is_windows:
             if self.arch == 'x86_64':
                 libname = 'phobos64.lib'
             elif self.arch == 'x86_mscoff':
@@ -835,7 +835,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
         # DMD32 and DMD64 on 64-bit Windows defaults to 32-bit (OMF).
         # Force the target to 64-bit in order to stay consistent
         # across the different platforms.
-        if self.info.is_windows():
+        if self.info.is_windows:
             if self.arch == 'x86_64':
                 return ['-m64']
             elif self.arch == 'x86_mscoff':
@@ -859,7 +859,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def get_linker_always_args(self) -> T.List[str]:
         args = super().get_linker_always_args()
-        if self.info.is_windows():
+        if self.info.is_windows:
             return args
         return args + ['-defaultlib=phobos2', '-debuglib=phobos2']
 

@@ -350,7 +350,7 @@ class Backend:
         if isinstance(target, build.SharedLibrary):
             link_lib = target.get_import_filename() or target.get_filename()
             # In AIX, if we archive .so, the blibpath must link to archived shared library otherwise to the .so file.
-            if mesonlib.is_aix() and target.aix_so_archive:
+            if mesonlib.Platform.is_aix and target.aix_so_archive:
                 link_lib = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', link_lib.replace('.so', '.a'))
             return Path(self.get_target_dir(target), link_lib).as_posix()
         elif isinstance(target, build.StaticLibrary):
@@ -572,7 +572,7 @@ class Backend:
                 cmd_args.append(c)
 
         machine = self.environment.machines[exe_for_machine]
-        if machine.is_windows() or machine.is_cygwin():
+        if machine.is_windows or machine.is_cygwin:
             extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
         else:
             extra_paths = []
@@ -587,7 +587,7 @@ class Backend:
         else:
             if exe_cmd[0].endswith('.jar'):
                 exe_cmd = ['java', '-jar'] + exe_cmd
-            elif exe_cmd[0].endswith('.exe') and not (mesonlib.is_windows() or mesonlib.is_cygwin() or mesonlib.is_wsl()):
+            elif exe_cmd[0].endswith('.exe') and not (mesonlib.Platform.is_windows or mesonlib.Platform.is_cygwin or mesonlib.Platform.is_wsl):
                 exe_cmd = ['mono'] + exe_cmd
             exe_wrapper = None
 
@@ -1248,7 +1248,7 @@ class Backend:
             is_cross = self.environment.is_cross_build(test_for_machine)
             exe_wrapper = self.environment.get_exe_wrapper()
             machine = self.environment.machines[exe.for_machine]
-            if machine.is_windows() or machine.is_cygwin():
+            if machine.is_windows or machine.is_cygwin:
                 extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = list(exe.get_transitive_build_target_deps())
@@ -1284,7 +1284,7 @@ class Backend:
                     raise MesonException('Bad object in test command.')
 
             t_env = copy.deepcopy(t.env)
-            if not machine.is_windows() and not machine.is_cygwin() and not machine.is_darwin():
+            if not machine.is_windows and not machine.is_cygwin and not machine.is_darwin:
                 ld_lib_path_libs: T.Set[build.SharedLibrary] = set()
                 for d in depends:
                     if isinstance(d, build.BuildTarget):
@@ -2017,7 +2017,7 @@ class Backend:
                 # so they get used by default instead of searching on system when
                 # in developer environment.
                 extra_paths.add(tdir)
-                if host_machine.is_windows() or host_machine.is_cygwin():
+                if host_machine.is_windows or host_machine.is_cygwin:
                     # On windows we cannot rely on rpath to run executables from build
                     # directory. We have to add in PATH the location of every DLL needed.
                     library_paths.update(self.determine_windows_extra_paths(t, []))

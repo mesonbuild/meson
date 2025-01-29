@@ -184,7 +184,7 @@ class BlocksDependency(SystemDependency):
         self.name = 'blocks'
         self.is_found = False
 
-        if self.env.machines[self.for_machine].is_darwin():
+        if self.env.machines[self.for_machine].is_darwin:
             self.compile_args = []
             self.link_args = []
         else:
@@ -540,7 +540,7 @@ def curses_factory(env: 'Environment',
     # There are path handling problems with these methods on msys, and they
     # don't apply to windows otherwise (cygwin is handled separately from
     # windows)
-    if not env.machines[for_machine].is_windows():
+    if not env.machines[for_machine].is_windows:
         if DependencyMethods.CONFIG_TOOL in methods:
             candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
 

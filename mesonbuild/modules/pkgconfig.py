@@ -701,10 +701,10 @@ class PkgConfigModule(NewExtensionModule):
         pcfile = filebase + '.pc'
         pkgroot = pkgroot_name = kwargs['install_dir'] or default_install_dir
         if pkgroot is None:
-            if mesonlib.is_freebsd():
+            if mesonlib.Platform.is_freebsd:
                 pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(OptionKey('prefix'))), 'libdata', 'pkgconfig')
                 pkgroot_name = os.path.join('{prefix}', 'libdata', 'pkgconfig')
-            elif mesonlib.is_haiku():
+            elif mesonlib.Platform.is_haiku:
                 pkgroot = os.path.join(_as_str(state.environment.coredata.get_option(OptionKey('prefix'))), 'develop', 'lib', 'pkgconfig')
                 pkgroot_name = os.path.join('{prefix}', 'develop', 'lib', 'pkgconfig')
             else:

@@ -247,7 +247,7 @@ class PkgConfigCLI(PkgConfigInterface):
             return None
         except PermissionError:
             msg = f'Found pkg-config {command_as_string!r} but didn\'t have permissions to run it.'
-            if not self.env.machines.build.is_windows():
+            if not self.env.machines.build.is_windows:
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None
@@ -342,7 +342,7 @@ class PkgConfigDependency(ExternalDependency):
         with / like /home/foo so leave them as-is so that the user gets an
         error/warning from the compiler/linker.
         '''
-        if not self.env.machines.build.is_windows():
+        if not self.env.machines.build.is_windows:
             return args.copy()
         converted = []
         for arg in args:
@@ -562,7 +562,7 @@ class PkgConfigDependency(ExternalDependency):
 
         # Darwin uses absolute paths where possible; since the libtool files never
         # contain absolute paths, use the libdir field
-        if self.env.machines[self.for_machine].is_darwin():
+        if self.env.machines[self.for_machine].is_darwin:
             dlbasename = os.path.basename(dlname)
             libdir = self.extract_libdir_field(la_file)
             if libdir is None:

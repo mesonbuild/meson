@@ -16,7 +16,7 @@ import mesonbuild.environment
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_cygwin, python_command, version_compare,
+    MachineChoice, Platform, python_command, version_compare,
     EnvironmentException
 )
 from mesonbuild.options import OptionKey
@@ -35,7 +35,7 @@ from run_tests import (
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
-@skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
+@skipUnless(Platform.is_windows or Platform.is_cygwin, "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
     '''
     Tests that should run on Cygwin, MinGW, and MSVC
@@ -45,7 +45,7 @@ class WindowsTests(BasePlatformTests):
         super().setUp()
         self.platform_test_dir = os.path.join(self.src_root, 'test cases/windows')
 
-    @skipIf(is_cygwin(), 'Test only applicable to Windows')
+    @skipIf(Platform.is_cygwin, 'Test only applicable to Windows')
     @mock.patch.dict(os.environ)
     def test_find_program(self):
         '''
@@ -175,7 +175,7 @@ class WindowsTests(BasePlatformTests):
             return
         self.build()
 
-    @skipIf(is_cygwin(), 'Test only applicable to Windows')
+    @skipIf(Platform.is_cygwin, 'Test only applicable to Windows')
     def test_genvslite(self):
         # The test framework itself might be forcing a specific, non-ninja backend across a set of tests, which
         # includes this test. E.g. -
@@ -450,7 +450,7 @@ class WindowsTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Dtest-failure=true'])
         self.assertRaises(subprocess.CalledProcessError, self.build)
 
-    @unittest.skipIf(is_cygwin(), "Needs visual studio")
+    @unittest.skipIf(Platform.is_cygwin, "Needs visual studio")
     def test_vsenv_option(self):
         if self.backend is not Backend.ninja:
             raise SkipTest('Only ninja backend is valid for test')

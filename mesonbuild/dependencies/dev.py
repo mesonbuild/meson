@@ -45,9 +45,9 @@ def get_shared_library_suffix(environment: 'Environment', for_machine: MachineCh
     code, not for languages like C# that use a bytecode and always end in .dll
     """
     m = environment.machines[for_machine]
-    if m.is_windows():
+    if m.is_windows:
         return '.dll'
-    elif m.is_darwin():
+    elif m.is_darwin:
         return '.dylib'
     return '.so'
 
@@ -533,8 +533,8 @@ class ZlibSystemDependency(SystemDependency):
 
         # I'm not sure this is entirely correct. What if we're cross compiling
         # from something to macOS?
-        if ((m.is_darwin() and isinstance(self.clib_compiler, (AppleClangCCompiler, AppleClangCPPCompiler))) or
-                m.is_freebsd() or m.is_dragonflybsd() or m.is_android()):
+        if ((m.is_darwin and isinstance(self.clib_compiler, (AppleClangCCompiler, AppleClangCPPCompiler))) or
+                m.is_freebsd or m.is_dragonflybsd or m.is_android):
             # No need to set includes,
             # on macos xcode/clang will do that for us.
             # on freebsd zlib.h is in /usr/include
@@ -592,7 +592,7 @@ class JNISystemDependency(SystemDependency):
         self.java_home = environment.properties[self.for_machine].get_java_home()
         if not self.java_home:
             self.java_home = pathlib.Path(shutil.which(self.javac.exelist[0])).resolve().parents[1]
-            if m.is_darwin():
+            if m.is_darwin:
                 problem_java_prefix = pathlib.Path('/System/Library/Frameworks/JavaVM.framework/Versions')
                 if problem_java_prefix in self.java_home.parents:
                     res = subprocess.run(['/usr/libexec/java_home', '--failfast', '--arch', m.cpu_family],
@@ -618,7 +618,7 @@ class JNISystemDependency(SystemDependency):
         self.compile_args.append(f'-I{java_home_include / platform_include_dir}')
 
         if modules:
-            if m.is_windows():
+            if m.is_windows:
                 java_home_lib = self.java_home / 'lib'
                 java_home_lib_server = java_home_lib
             else:
@@ -666,21 +666,21 @@ class JNISystemDependency(SystemDependency):
         platform-dependent directory that must be on the target's include path in addition to the
         parent `include/` directory.
         '''
-        if m.is_linux():
+        if m.is_linux:
             return 'linux'
-        elif m.is_windows():
+        elif m.is_windows:
             return 'win32'
-        elif m.is_darwin():
+        elif m.is_darwin:
             return 'darwin'
-        elif m.is_sunos():
+        elif m.is_sunos:
             return 'solaris'
-        elif m.is_freebsd():
+        elif m.is_freebsd:
             return 'freebsd'
-        elif m.is_netbsd():
+        elif m.is_netbsd:
             return 'netbsd'
-        elif m.is_openbsd():
+        elif m.is_openbsd:
             return 'openbsd'
-        elif m.is_dragonflybsd():
+        elif m.is_dragonflybsd:
             return 'dragonfly'
 
         return None

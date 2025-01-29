@@ -11,7 +11,7 @@ from .allplatformstests import git_init
 from .baseplatformtests import BasePlatformTests
 from .helpers import *
 
-from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof, is_windows
+from mesonbuild.mesonlib import MachineChoice, TemporaryDirectoryWinProof, Platform
 from mesonbuild.modules.python import PythonModule
 
 class PythonTests(BasePlatformTests):
@@ -88,7 +88,7 @@ python = pymod.find_installation('python3', required: true)
         self._test_bytecompile()
 
     def test_limited_api_linked_correct_lib(self):
-        if not is_windows():
+        if not Platform.is_windows:
             return self.skipTest('Test only run on Windows.')
 
         testdir = os.path.join(self.src_root, 'test cases', 'python', '9 extmodule limited api')

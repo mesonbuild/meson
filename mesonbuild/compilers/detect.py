@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
-    search_version, is_windows, Popen_safe, Popen_safe_logged, windows_proof_rm,
+    search_version, Platform, Popen_safe, Popen_safe_logged, windows_proof_rm,
 )
 from ..envconfig import BinaryTable
 from .. import mlog
@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
 defaults: T.Dict[str, T.List[str]] = {}
 
 # List of potential compilers.
-if is_windows():
+if Platform.is_windows:
     # Intel C and C++ compiler is icl on Windows, but icc and icpc elsewhere.
     # Search for icl before cl, since Intel "helpfully" provides a
     # cl.exe that returns *exactly the same thing* that Microsoft's
@@ -177,16 +177,16 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             trials = [[f'{llvm_ar[0]}-{suffix}'], llvm_ar] + default_linkers
         elif compiler.language == 'd':
             # Prefer static linkers over linkers used by D compilers
-            if is_windows():
+            if Platform.is_windows:
                 trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker'], compiler.get_linker_exelist()]
             else:
                 trials = default_linkers
         elif compiler.id == 'intel-cl' and compiler.language == 'c': # why not cpp? Is this a bug?
             # Intel has its own linker that acts like Microsoft's lib
             trials = [['xilib']]
-        elif is_windows() and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
+        elif Platform.is_windows and compiler.id == 'pgi': # this handles cpp / nvidia HPC, in addition to just c/fortran
             trials = [['ar']]  # For PGI on Windows, "ar" is just a wrapper calling link/lib.
-        elif is_windows() and compiler.id == 'nasm':
+        elif Platform.is_windows and compiler.id == 'nasm':
             # This may well be LINK.EXE if it's under a MSVC environment
             trials = [defaults['vs_static_linker'], defaults['clang_cl_static_linker']] + default_linkers
         else:
@@ -463,7 +463,7 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             else:
                 cls = c.ClangCCompiler if lang == 'c' else cpp.ClangCPPCompiler
 
-            if 'windows' in out or env.machines[for_machine].is_windows():
+            if 'windows' in out or env.machines[for_machine].is_windows:
                 # If we're in a MINGW context this actually will use a gnu
                 # style ld, but for clang on "real" windows we'll use
                 # either link.exe or lld-link.exe
@@ -814,7 +814,7 @@ def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> C
 
             def _get_linker_try_windows(cls: T.Type['Compiler']) -> T.Optional['DynamicLinker']:
                 linker = None
-                if 'windows' in out or env.machines[for_machine].is_windows():
+                if 'windows' in out or env.machines[for_machine].is_windows:
                     # If we're in a MINGW context this actually will use a gnu
                     # style ld, but for flang on "real" windows we'll use
                     # either link.exe or lld-link.exe
@@ -914,7 +914,7 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
                 comp = objc.AppleClangObjCCompiler if lang == 'objc' else objcpp.AppleClangObjCPPCompiler
             else:
                 comp = objc.ClangObjCCompiler if lang == 'objc' else objcpp.ClangObjCPPCompiler
-            if 'windows' in out or env.machines[for_machine].is_windows():
+            if 'windows' in out or env.machines[for_machine].is_windows:
                 # If we're in a MINGW context this actually will use a gnu style ld
                 try:
                     linker = guess_win_linker(env, compiler, comp, version, for_machine)
@@ -1196,7 +1196,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             os.close(o)
 
             try:
-                if info.is_windows() or info.is_cygwin():
+                if info.is_windows or info.is_cygwin:
                     objfile = os.path.basename(f)[:-1] + 'obj'
                     extra_args = [f]
                     if is_cross:
@@ -1241,7 +1241,7 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
             arch_arg = '-m64' if arch == 'x86_64' else '-m32'
 
             try:
-                if info.is_windows() or info.is_cygwin():
+                if info.is_windows or info.is_cygwin:
                     objfile = os.path.basename(f)[:-1] + 'obj'
                     linker = guess_win_linker(env,
                                               exelist, cls, full_version, for_machine,
@@ -1307,7 +1307,7 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 
     popen_exceptions: T.Dict[str, Exception] = {}
     for comp in compilers:
-        if comp == ['nasm'] and is_windows() and not shutil.which(comp[0]):
+        if comp == ['nasm'] and Platform.is_windows and not shutil.which(comp[0]):
             # nasm is not in PATH on Windows by default
             default_path = os.path.join(os.environ['ProgramFiles'], 'NASM')
             comp[0] = shutil.which(comp[0], path=default_path) or comp[0]

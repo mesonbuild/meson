@@ -187,7 +187,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
             # On Windows, the limited API DLL is python3.dll, not python3X.dll.
             for_machine = kwargs['native']
-            if self.interpreter.environment.machines[for_machine].is_windows():
+            if self.interpreter.environment.machines[for_machine].is_windows:
                 pydep_copy = copy.copy(pydep)
                 pydep_copy.find_libpy_windows(self.env, limited_api=True)
                 if not pydep_copy.found():
@@ -447,7 +447,7 @@ class PythonModule(ExtensionModule):
             tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
             python = PythonExternalProgram(display_name, ext_prog=tmp_python)
 
-            if not python.found() and mesonlib.is_windows():
+            if not python.found() and mesonlib.Platform.is_windows:
                 pythonpath = self._get_win_pythonpath(name_or_path)
                 if pythonpath is not None:
                     name_or_path = pythonpath

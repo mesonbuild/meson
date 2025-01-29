@@ -140,7 +140,7 @@ class InstalledFile:
         p = Path(self.path)
         canonical_compiler = compiler
         if ((compiler in ['clang-cl', 'intel-cl']) or
-                (env.machines.host.is_windows() and compiler in {'pgi', 'dmd', 'ldc'})):
+                (env.machines.host.is_windows and compiler in {'pgi', 'dmd', 'ldc'})):
             canonical_compiler = 'msvc'
 
         python_suffix = python.info['suffix']
@@ -156,8 +156,8 @@ class InstalledFile:
         matches = {
             'msvc': canonical_compiler == 'msvc',
             'gcc': canonical_compiler != 'msvc',
-            'cygwin': env.machines.host.is_cygwin(),
-            '!cygwin': not env.machines.host.is_cygwin(),
+            'cygwin': env.machines.host.is_cygwin,
+            '!cygwin': not env.machines.host.is_cygwin,
         }.get(self.platform or '', True)
         if not matches:
             return None
@@ -176,17 +176,17 @@ class InstalledFile:
                 return p.with_suffix(python_limited_suffix)
             if self.typ == 'py_implib':
                 p = p.with_suffix(python_suffix)
-                if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+                if env.machines.host.is_windows and canonical_compiler == 'msvc':
                     return p.with_suffix('.lib')
-                elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                elif env.machines.host.is_windows or env.machines.host.is_cygwin:
                     return p.with_suffix('.dll.a')
                 else:
                     return None
             if self.typ == 'py_limited_implib':
                 p = p.with_suffix(python_limited_suffix)
-                if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+                if env.machines.host.is_windows and canonical_compiler == 'msvc':
                     return p.with_suffix('.lib')
-                elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                elif env.machines.host.is_windows or env.machines.host.is_cygwin:
                     return p.with_suffix('.dll.a')
                 else:
                     return None
@@ -195,7 +195,7 @@ class InstalledFile:
         elif self.typ in {'file', 'dir', 'link'}:
             return p
         elif self.typ == 'shared_lib':
-            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            if env.machines.host.is_windows or env.machines.host.is_cygwin:
                 # Windows only has foo.dll and foo-X.dll
                 if len(self.version) > 1:
                     return None
@@ -204,7 +204,7 @@ class InstalledFile:
                 return p.with_suffix('.dll')
 
             p = p.with_name(f'lib{p.name}')
-            if env.machines.host.is_darwin():
+            if env.machines.host.is_darwin:
                 # MacOS only has libfoo.dylib and libfoo.X.dylib
                 if len(self.version) > 1:
                     return None
@@ -222,19 +222,19 @@ class InstalledFile:
         elif self.typ == 'exe':
             if 'mwcc' in canonical_compiler:
                 return p.with_suffix('.nef')
-            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            elif env.machines.host.is_windows or env.machines.host.is_cygwin:
                 return p.with_suffix('.exe')
         elif self.typ == 'pdb':
             if self.version:
                 p = p.with_name('{}-{}'.format(p.name, self.version[0]))
             return p.with_suffix('.pdb') if has_pdb else None
         elif self.typ in {'implib', 'implibempty'}:
-            if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+            if env.machines.host.is_windows and canonical_compiler == 'msvc':
                 # only MSVC doesn't generate empty implibs
                 if self.typ == 'implibempty' and compiler == 'msvc':
                     return None
                 return p.parent / (re.sub(r'^lib', '', p.name) + '.lib')
-            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+            elif env.machines.host.is_windows or env.machines.host.is_cygwin:
                 return p.with_suffix('.dll.a')
             else:
                 return None
@@ -354,14 +354,14 @@ def setup_commands(optbackend: str) -> None:
 # TODO try to eliminate or at least reduce this function
 def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Environment) -> str:
     if '?lib' in fname:
-        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
-        elif env.machines.host.is_windows():
+        elif env.machines.host.is_windows:
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/lib\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'lib\1.dll', fname)
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
-        elif env.machines.host.is_cygwin():
+        elif env.machines.host.is_cygwin:
             fname = re.sub(r'lib/\?lib(.*)\.so$', r'bin/cyg\1.dll', fname)
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/cyg\1.', fname)
             fname = re.sub(r'\?lib(.*)\.dll$', r'cyg\1.dll', fname)
@@ -370,20 +370,20 @@ def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Envi
             fname = re.sub(r'\?lib', 'lib', fname)
 
     if fname.endswith('?so'):
-        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+        if env.machines.host.is_windows and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/(?:lib|)([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif env.machines.host.is_windows():
+        elif env.machines.host.is_windows:
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif env.machines.host.is_cygwin():
+        elif env.machines.host.is_cygwin:
             fname = re.sub(r'lib/([^/]*)\?so$', r'bin/\1.dll', fname)
             fname = re.sub(r'/lib([^/]*?)\?so$', r'/cyg\1.dll', fname)
             fname = re.sub(r'/([^/]*?)\?so$', r'/\1.dll', fname)
             return fname
-        elif env.machines.host.is_darwin():
+        elif env.machines.host.is_darwin:
             return fname[:-3] + '.dylib'
         else:
             return fname[:-3] + '.so'
@@ -490,7 +490,7 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
             #
             # (There should probably be a way to turn this off for more complex
             # cases which don't fit this)
-            if mesonlib.is_windows():
+            if mesonlib.Platform.is_windows:
                 if how != "re":
                     sub = r'\\'
                 else:
@@ -666,7 +666,7 @@ def _run_test(test: TestDef,
     # Configure in-process
     gen_args = ['setup']
     if 'prefix' not in test.do_not_set_opts:
-        gen_args += ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
+        gen_args += ['--prefix', 'x:/usr'] if mesonlib.Platform.is_windows else ['--prefix', '/usr']
     if 'libdir' not in test.do_not_set_opts:
         gen_args += ['--libdir', 'lib']
     gen_args += [test.path.as_posix(), test_build_dir] + backend_flags + extra_args
@@ -1018,7 +1018,7 @@ def skip_dont_care(t: TestDef) -> bool:
     if not t.category.endswith('frameworks'):
         return True
 
-    if mesonlib.is_osx() and '6 gettext' in str(t.path):
+    if mesonlib.Platform.is_osx and '6 gettext' in str(t.path):
         return True
 
     return False
@@ -1067,13 +1067,13 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     if backend is not Backend.ninja:
         return True
-    if mesonlib.is_windows():
+    if mesonlib.Platform.is_windows:
         if has_broken_rustc():
             return True
     return False
 
 def should_skip_wayland() -> bool:
-    if mesonlib.is_windows() or mesonlib.is_osx():
+    if mesonlib.Platform.is_windows or mesonlib.Platform.is_osx:
         return True
     if not shutil.which('wayland-scanner'):
         return True
@@ -1120,9 +1120,9 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('failing-build', 'failing build'),
         TestCategory('failing-test',  'failing test'),
         TestCategory('keyval', 'keyval'),
-        TestCategory('platform-osx', 'osx', not mesonlib.is_osx()),
-        TestCategory('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
-        TestCategory('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
+        TestCategory('platform-osx', 'osx', not mesonlib.Platform.is_osx),
+        TestCategory('platform-windows', 'windows', not mesonlib.Platform.is_windows and not mesonlib.Platform.is_cygwin),
+        TestCategory('platform-linux', 'linuxlike', mesonlib.Platform.is_osx or mesonlib.Platform.is_windows),
         TestCategory('java', 'java', backend is not Backend.ninja or not have_java()),
         TestCategory('C#', 'csharp', skip_csharp(backend)),
         TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
@@ -1669,10 +1669,10 @@ if __name__ == '__main__':
     if options.native_file:
         options.extra_args += ['--native-file', options.native_file]
 
-    if not mesonlib.is_windows():
+    if not mesonlib.Platform.is_windows:
         scan_test_data_symlinks()
     clear_transitive_files()
-    if not mesonlib.is_windows():
+    if not mesonlib.Platform.is_windows:
         setup_symlinks()
     mesonlib.set_meson_command(get_meson_script())
 

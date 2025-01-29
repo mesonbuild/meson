@@ -34,15 +34,14 @@ from mesonbuild.linkers import linkers
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
-    LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
-    is_cygwin, is_openbsd, search_version, MesonException, python_command,
+    LibType, MachineChoice, Platform, Version,
+    search_version, MesonException, python_command,
 )
 from mesonbuild.options import OptionKey
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface, PkgConfigCLI
 from mesonbuild.programs import ExternalProgram
 import mesonbuild.modules.pkgconfig
-from mesonbuild import utils
 
 
 from run_tests import (
@@ -583,26 +582,30 @@ class InternalTests(unittest.TestCase):
                                       'static': msvc_static}}
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
-        if is_osx():
+        if Platform.is_osx:
             self._test_all_naming(cc, env, patterns, 'darwin')
-        elif is_cygwin():
+        elif Platform.is_cygwin:
             self._test_all_naming(cc, env, patterns, 'cygwin')
-        elif is_windows():
+        elif Platform.is_windows:
             if cc.get_argument_syntax() == 'msvc':
                 self._test_all_naming(cc, env, patterns, 'windows-msvc')
             else:
                 self._test_all_naming(cc, env, patterns, 'windows-mingw')
-        elif is_openbsd():
+        elif Platform.is_openbsd:
             self._test_all_naming(cc, env, patterns, 'openbsd')
         else:
             self._test_all_naming(cc, env, patterns, 'linux')
             env.machines.host.system = 'openbsd'
+            env.machines.host.__post_init__()
             self._test_all_naming(cc, env, patterns, 'openbsd')
             env.machines.host.system = 'darwin'
+            env.machines.host.__post_init__()
             self._test_all_naming(cc, env, patterns, 'darwin')
             env.machines.host.system = 'cygwin'
+            env.machines.host.__post_init__()
             self._test_all_naming(cc, env, patterns, 'cygwin')
             env.machines.host.system = 'windows'
+            env.machines.host.__post_init__()
             self._test_all_naming(cc, env, patterns, 'windows-mingw')
 
     @skipIfNoPkgconfig
@@ -613,7 +616,7 @@ class InternalTests(unittest.TestCase):
         https://github.com/mesonbuild/meson/issues/3951
         '''
         def create_static_lib(name):
-            if not is_osx():
+            if not Platform.is_osx:
                 name.open('w', encoding='utf-8').close()
                 return
             src = name.with_suffix('.c')
@@ -848,7 +851,7 @@ class InternalTests(unittest.TestCase):
     def test_split_args(self):
         split_args = mesonbuild.mesonlib.split_args
         join_args = mesonbuild.mesonlib.join_args
-        if is_windows():
+        if Platform.is_windows:
             test_data = [
                 # examples from https://docs.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments
                 (r'"a b c" d e', ['a b c', 'd', 'e'], True),
@@ -912,7 +915,7 @@ class InternalTests(unittest.TestCase):
     def test_quote_arg(self):
         split_args = mesonbuild.mesonlib.split_args
         quote_arg = mesonbuild.mesonlib.quote_arg
-        if is_windows():
+        if Platform.is_windows:
             test_data = [
                 ('', '""'),
                 ('arg1', 'arg1'),

@@ -47,7 +47,7 @@ class PGICompiler(Compiler):
 
     def get_pic_args(self) -> T.List[str]:
         # PGI -fPIC is Linux only.
-        if self.info.is_linux():
+        if self.info.is_linux:
             return ['-fPIC']
         return []
 

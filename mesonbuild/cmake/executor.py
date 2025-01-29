@@ -10,7 +10,7 @@ import re
 import os
 
 from .. import mlog
-from ..mesonlib import PerMachine, Popen_safe, version_compare, is_windows
+from ..mesonlib import PerMachine, Popen_safe, version_compare, Platform
 from ..options import OptionKey
 from ..programs import find_external_program, NonExistingExternalProgram
 
@@ -108,7 +108,7 @@ class CMakeExecutor:
             return None
         except PermissionError:
             msg = 'Found CMake {!r} but didn\'t have permissions to run it.'.format(' '.join(cmd))
-            if not is_windows():
+            if not Platform.is_windows:
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None

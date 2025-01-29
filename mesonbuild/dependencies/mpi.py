@@ -57,7 +57,7 @@ def mpi_factory(env: 'Environment',
         tool_names = [t for t in tool_names if t]  # remove empty environment variables
 
         if compiler_is_intel:
-            if env.machines[for_machine].is_windows():
+            if env.machines[for_machine].is_windows:
                 nwargs['returncode_value'] = 3
 
             if language == 'c':
@@ -79,7 +79,7 @@ def mpi_factory(env: 'Environment',
         candidates.append(functools.partial(
             MPIConfigToolDependency, tool_names[0], env, nwargs, language=language))
 
-    if DependencyMethods.SYSTEM in methods and env.machines[for_machine].is_windows():
+    if DependencyMethods.SYSTEM in methods and env.machines[for_machine].is_windows:
         candidates.append(functools.partial(
             MSMPIDependency, 'msmpi', env, kwargs, language=language))
 
@@ -222,7 +222,7 @@ class MSMPIDependency(SystemDependency):
             self.is_found = False
             return
         # MSMPI is only for windows, obviously
-        if not self.env.machines[self.for_machine].is_windows():
+        if not self.env.machines[self.for_machine].is_windows:
             return
 
         incdir = os.environ.get('MSMPI_INC')

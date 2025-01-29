@@ -110,24 +110,6 @@ __all__ = [
     'get_wine_shortpath',
     'git',
     'has_path_sep',
-    'is_aix',
-    'is_android',
-    'is_ascii_string',
-    'is_cygwin',
-    'is_debianlike',
-    'is_dragonflybsd',
-    'is_freebsd',
-    'is_haiku',
-    'is_hurd',
-    'is_irix',
-    'is_linux',
-    'is_netbsd',
-    'is_openbsd',
-    'is_osx',
-    'is_qnx',
-    'is_sunos',
-    'is_windows',
-    'is_wsl',
     'iter_regexin_iter',
     'join_args',
     'lazy_property',
@@ -136,6 +118,7 @@ __all__ = [
     'partition',
     'path_is_in_root',
     'pickle_load',
+    'Platform',
     'Popen_safe',
     'Popen_safe_logged',
     'quiet_git',
@@ -260,7 +243,7 @@ def check_direntry_issues(direntry_array: T.Union[T.Iterable[T.Union[str, bytes]
     # There is no way to reset both the preferred encoding and the filesystem
     # encoding, so we can just warn about it.
     e = locale.getpreferredencoding()
-    if e.upper() != 'UTF-8' and not is_windows():
+    if e.upper() != 'UTF-8' and not Platform.is_windows:
         if isinstance(direntry_array, (str, bytes)):
             direntry_array = [direntry_array]
         for de in direntry_array:
@@ -629,68 +612,6 @@ class PerThreeMachineDefaultable(PerMachineDefaultable[T.Optional[_T]], PerThree
         return f'PerThreeMachineDefaultable({self.build!r}, {self.host!r}, {self.target!r})'
 
 
-def is_sunos() -> bool:
-    return platform.system().lower() == 'sunos'
-
-
-def is_osx() -> bool:
-    return platform.system().lower() == 'darwin'
-
-
-def is_linux() -> bool:
-    return platform.system().lower() == 'linux'
-
-
-def is_android() -> bool:
-    return platform.system().lower() == 'android'
-
-
-def is_haiku() -> bool:
-    return platform.system().lower() == 'haiku'
-
-
-def is_openbsd() -> bool:
-    return platform.system().lower() == 'openbsd'
-
-
-def is_windows() -> bool:
-    platname = platform.system().lower()
-    return platname == 'windows'
-
-def is_wsl() -> bool:
-    return is_linux() and 'microsoft' in platform.release().lower()
-
-def is_cygwin() -> bool:
-    return sys.platform == 'cygwin'
-
-
-def is_debianlike() -> bool:
-    return os.path.isfile('/etc/debian_version')
-
-
-def is_dragonflybsd() -> bool:
-    return platform.system().lower() == 'dragonfly'
-
-
-def is_netbsd() -> bool:
-    return platform.system().lower() == 'netbsd'
-
-
-def is_freebsd() -> bool:
-    return platform.system().lower() == 'freebsd'
-
-def is_irix() -> bool:
-    return platform.system().startswith('irix')
-
-def is_hurd() -> bool:
-    return platform.system().lower() == 'gnu'
-
-def is_qnx() -> bool:
-    return platform.system().lower() == 'qnx'
-
-def is_aix() -> bool:
-    return platform.system().lower() == 'aix'
-
 @lru_cache(maxsize=None)
 def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     '''
@@ -1026,7 +947,7 @@ def search_version(text: str) -> str:
 
 
 def default_libdir() -> str:
-    if is_debianlike():
+    if Platform.is_debianlike:
         try:
             pc = subprocess.Popen(['dpkg-architecture', '-qDEB_HOST_MULTIARCH'],
                                   stdout=subprocess.PIPE,
@@ -1037,7 +958,7 @@ def default_libdir() -> str:
                 return 'lib/' + archpath
         except Exception:
             pass
-    if is_freebsd() or is_irix():
+    if Platform.is_freebsd or Platform.is_irix:
         return 'lib'
     if os.path.isdir('/usr/lib64') and not os.path.islink('/usr/lib64'):
         return 'lib64'
@@ -1045,58 +966,58 @@ def default_libdir() -> str:
 
 
 def default_libexecdir() -> str:
-    if is_haiku():
+    if Platform.is_haiku:
         return 'lib'
     # There is no way to auto-detect this, so it must be set at build time
     return 'libexec'
 
 
 def default_prefix() -> str:
-    if is_windows():
+    if Platform.is_windows:
         return 'c:/'
-    if is_haiku():
+    if Platform.is_haiku:
         return '/boot/system/non-packaged'
     return '/usr/local'
 
 
 def default_datadir() -> str:
-    if is_haiku():
+    if Platform.is_haiku:
         return 'data'
     return 'share'
 
 
 def default_includedir() -> str:
-    if is_haiku():
+    if Platform.is_haiku:
         return 'develop/headers'
     return 'include'
 
 
 def default_infodir() -> str:
-    if is_haiku():
+    if Platform.is_haiku:
         return 'documentation/info'
     return 'share/info'
 
 
 def default_localedir() -> str:
-    if is_haiku():
+    if Platform.is_haiku:
         return 'data/locale'
     return 'share/locale'
 
 
 def default_mandir() -> str:
-    if is_haiku():
+    if Platform.is_haiku:
         return 'documentation/man'
     return 'share/man'
 
 
 def default_sbindir() -> str:
-    if is_haiku():
+    if Platform.is_haiku:
         return 'bin'
     return 'sbin'
 
 
 def default_sysconfdir() -> str:
-    if is_haiku():
+    if Platform.is_haiku:
         return 'settings'
     return 'etc'
 
@@ -1126,85 +1047,13 @@ def determine_worker_count(varnames: T.Optional[T.List[str]] = None) -> int:
             num_workers = 1
     return num_workers
 
+
 def has_path_sep(name: str, sep: str = '/\\') -> bool:
     'Checks if any of the specified @sep path separators are in @name'
     for each in sep:
         if each in name:
             return True
     return False
-
-
-if is_windows():
-    # shlex.split is not suitable for splitting command line on Window (https://bugs.python.org/issue1724822);
-    # shlex.quote is similarly problematic. Below are "proper" implementations of these functions according to
-    # https://docs.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments and
-    # https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
-
-    _whitespace = ' \t\n\r'
-    _find_unsafe_char = re.compile(fr'[{_whitespace}"]').search
-
-    def quote_arg(arg: str) -> str:
-        if arg and not _find_unsafe_char(arg):
-            return arg
-
-        result = '"'
-        num_backslashes = 0
-        for c in arg:
-            if c == '\\':
-                num_backslashes += 1
-            else:
-                if c == '"':
-                    # Escape all backslashes and the following double quotation mark
-                    num_backslashes = num_backslashes * 2 + 1
-
-                result += num_backslashes * '\\' + c
-                num_backslashes = 0
-
-        # Escape all backslashes, but let the terminating double quotation
-        # mark we add below be interpreted as a metacharacter
-        result += (num_backslashes * 2) * '\\' + '"'
-        return result
-
-    def split_args(cmd: str) -> T.List[str]:
-        result: T.List[str] = []
-        arg = ''
-        num_backslashes = 0
-        num_quotes = 0
-        in_quotes = False
-        for c in cmd:
-            if c == '\\':
-                num_backslashes += 1
-            else:
-                if c == '"' and not num_backslashes % 2:
-                    # unescaped quote, eat it
-                    arg += (num_backslashes // 2) * '\\'
-                    num_quotes += 1
-                    in_quotes = not in_quotes
-                elif c in _whitespace and not in_quotes:
-                    if arg or num_quotes:
-                        # reached the end of the argument
-                        result.append(arg)
-                        arg = ''
-                        num_quotes = 0
-                else:
-                    if c == '"':
-                        # escaped quote
-                        num_backslashes = (num_backslashes - 1) // 2
-
-                    arg += num_backslashes * '\\' + c
-
-                num_backslashes = 0
-
-        if arg or num_quotes:
-            result.append(arg)
-
-        return result
-else:
-    def quote_arg(arg: str) -> str:
-        return shlex.quote(arg)
-
-    def split_args(cmd: str) -> T.List[str]:
-        return shlex.split(cmd)
 
 
 def join_args(args: T.Iterable[str]) -> str:
@@ -2399,3 +2248,151 @@ class lazy_property(T.Generic[_T]):
         value = self.__func(instance)
         setattr(instance, self.__func.__name__, value)
         return value
+
+
+class MetaPlatform(type):
+
+    @lazy_property
+    def is_sunos(cls) -> bool:
+        return platform.system().lower() == 'sunos'
+
+    @lazy_property
+    def is_osx(cls) -> bool:
+        return platform.system().lower() == 'darwin'
+
+    @lazy_property
+    def is_linux(cls) -> bool:
+        return platform.system().lower() == 'linux'
+
+    @lazy_property
+    def is_android(cls) -> bool:
+        return platform.system().lower() == 'android'
+
+    @lazy_property
+    def is_haiku(cls) -> bool:
+        return platform.system().lower() == 'haiku'
+
+    @lazy_property
+    def is_openbsd(cls) -> bool:
+        return platform.system().lower() == 'openbsd'
+
+    @lazy_property
+    def is_windows(cls) -> bool:
+        return platform.system().lower() == 'windows'
+
+    @lazy_property
+    def is_wsl(cls) -> bool:
+        return cls.is_linux and 'microsoft' in platform.release().lower()
+
+    @lazy_property
+    def is_cygwin(cls) -> bool:
+        return sys.platform == 'cygwin'
+
+    @lazy_property
+    def is_debianlike(cls) -> bool:
+        return os.path.isfile('/etc/debian_version')
+
+    @lazy_property
+    def is_dragonflybsd(cls) -> bool:
+        return platform.system().lower() == 'dragonfly'
+
+    @lazy_property
+    def is_netbsd(cls) -> bool:
+        return platform.system().lower() == 'netbsd'
+
+    @lazy_property
+    def is_freebsd(cls) -> bool:
+        return platform.system().lower() == 'freebsd'
+
+    @lazy_property
+    def is_irix(cls) -> bool:
+        return platform.system().startswith('irix')
+
+    @lazy_property
+    def is_hurd(cls) -> bool:
+        return platform.system().lower() == 'gnu'
+
+    @lazy_property
+    def is_qnx(cls) -> bool:
+        return platform.system().lower() == 'qnx'
+
+    @lazy_property
+    def is_aix(cls) -> bool:
+        return platform.system().lower() == 'aix'
+
+
+class Platform(metaclass=MetaPlatform):
+    ...
+
+
+if Platform.is_windows:
+    # shlex.split is not suitable for splitting command line on Window (https://bugs.python.org/issue1724822);
+    # shlex.quote is similarly problematic. Below are "proper" implementations of these functions according to
+    # https://docs.microsoft.com/en-us/cpp/c-language/parsing-c-command-line-arguments and
+    # https://blogs.msdn.microsoft.com/twistylittlepassagesallalike/2011/04/23/everyone-quotes-command-line-arguments-the-wrong-way/
+
+    _whitespace = ' \t\n\r'
+    _find_unsafe_char = re.compile(fr'[{_whitespace}"]').search
+
+    def quote_arg(arg: str) -> str:
+        if arg and not _find_unsafe_char(arg):
+            return arg
+
+        result = '"'
+        num_backslashes = 0
+        for c in arg:
+            if c == '\\':
+                num_backslashes += 1
+            else:
+                if c == '"':
+                    # Escape all backslashes and the following double quotation mark
+                    num_backslashes = num_backslashes * 2 + 1
+
+                result += num_backslashes * '\\' + c
+                num_backslashes = 0
+
+        # Escape all backslashes, but let the terminating double quotation
+        # mark we add below be interpreted as a metacharacter
+        result += (num_backslashes * 2) * '\\' + '"'
+        return result
+
+    def split_args(cmd: str) -> T.List[str]:
+        result: T.List[str] = []
+        arg = ''
+        num_backslashes = 0
+        num_quotes = 0
+        in_quotes = False
+        for c in cmd:
+            if c == '\\':
+                num_backslashes += 1
+            else:
+                if c == '"' and not num_backslashes % 2:
+                    # unescaped quote, eat it
+                    arg += (num_backslashes // 2) * '\\'
+                    num_quotes += 1
+                    in_quotes = not in_quotes
+                elif c in _whitespace and not in_quotes:
+                    if arg or num_quotes:
+                        # reached the end of the argument
+                        result.append(arg)
+                        arg = ''
+                        num_quotes = 0
+                else:
+                    if c == '"':
+                        # escaped quote
+                        num_backslashes = (num_backslashes - 1) // 2
+
+                    arg += num_backslashes * '\\' + c
+
+                num_backslashes = 0
+
+        if arg or num_quotes:
+            result.append(arg)
+
+        return result
+else:
+    def quote_arg(arg: str) -> str:
+        return shlex.quote(arg)
+
+    def split_args(cmd: str) -> T.List[str]:
+        return shlex.split(cmd)

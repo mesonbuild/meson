@@ -72,7 +72,7 @@ def cmd_quote(arg: str) -> str:
 
 # How ninja executes command lines differs between Unix and Windows
 # (see https://ninja-build.org/manual.html#ref_rule_command)
-if mesonlib.is_windows():
+if mesonlib.Platform.is_windows:
     quote_func = cmd_quote
     execute_wrapper = ['cmd', '/c']  # unused
     rmfile_prefix = ['del', '/f', '/s', '/q', '{}', '&&']
@@ -96,7 +96,7 @@ def get_rsp_threshold() -> int:
     above which a response file should be used.  May be overridden for
     debugging by setting environment variable MESON_RSP_THRESHOLD.'''
 
-    if mesonlib.is_windows():
+    if mesonlib.Platform.is_windows:
         # Usually 32k, but some projects might use cmd.exe,
         # and that has a limit of 8k.
         limit = 8192
@@ -405,7 +405,7 @@ class NinjaBuildElement:
         # do not require quoting, unless explicitly specified, which is necessary for
         # the csc compiler.
         line = line.replace('\\', '/')
-        if mesonlib.is_windows():
+        if mesonlib.Platform.is_windows:
             # Support network paths as backslash, otherwise they are interpreted as
             # arguments for compile/link commands when using MSVC
             line = ' '.join(
@@ -550,7 +550,7 @@ class NinjaBackend(backends.Backend):
             # IFort / masm on windows is MSVC like, but doesn't have /showincludes
             if compiler.language in {'fortran', 'masm'}:
                 continue
-            if compiler.id == 'pgi' and mesonlib.is_windows():
+            if compiler.id == 'pgi' and mesonlib.Platform.is_windows:
                 # for the purpose of this function, PGI doesn't act enough like MSVC
                 return open(tempfilename, 'a', encoding='utf-8')
             if compiler.get_argument_syntax() == 'msvc':
@@ -1099,7 +1099,7 @@ class NinjaBackend(backends.Backend):
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
-        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix():
+        if isinstance(target, build.SharedLibrary) and self.environment.machines[target.for_machine].is_aix:
             if target.aix_so_archive:
                 elem = NinjaBuildElement(self.all_outputs, linker.get_archive_name(outname), 'AIX_LINKER', [outname])
                 self.add_build(elem)
@@ -1281,7 +1281,7 @@ class NinjaBackend(backends.Backend):
             if not hasattr(target, 'compilers'):
                 continue
             for compiler in target.compilers.values():
-                if compiler.get_id() == 'clang' and not compiler.info.is_darwin():
+                if compiler.get_id() == 'clang' and not compiler.info.is_darwin:
                     use_llvm_cov = True
                     break
         elem.add_item('COMMAND', self.environment.get_build_command() +
@@ -2339,7 +2339,7 @@ class NinjaBackend(backends.Backend):
             #        them out to fix this properly on Windows. See:
             # https://github.com/mesonbuild/meson/issues/1517
             # https://github.com/mesonbuild/meson/issues/1526
-            if isinstance(static_linker, ArLikeLinker) and not mesonlib.is_windows():
+            if isinstance(static_linker, ArLikeLinker) and not mesonlib.Platform.is_windows:
                 # `ar` has no options to overwrite archives. It always appends,
                 # which is never what we want. Delete an existing library first if
                 # it exists. https://github.com/mesonbuild/meson/issues/1355
@@ -2390,7 +2390,7 @@ class NinjaBackend(backends.Backend):
 
                 options = self._rsp_options(compiler)
                 self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
-            if self.environment.machines[for_machine].is_aix() and complist:
+            if self.environment.machines[for_machine].is_aix and complist:
                 rule = 'AIX_LINKER{}'.format(self.get_rule_suffix(for_machine))
                 description = 'Archiving AIX shared library'
                 cmdlist = compiler.get_command_to_archive_shlib()
@@ -2423,7 +2423,7 @@ class NinjaBackend(backends.Backend):
         args = ['$ARGS', '$in']
         description = 'Compiling C Sharp target $out'
         self.add_rule(NinjaRule(rule, command, args, description,
-                                rspable=mesonlib.is_windows(),
+                                rspable=mesonlib.Platform.is_windows,
                                 rspfile_quote_style=compiler.rsp_file_syntax()))
 
     def generate_vala_compile_rules(self, compiler) -> None:
@@ -2478,7 +2478,7 @@ class NinjaBackend(backends.Backend):
         if self.use_dyndeps_for_fortran():
             return
         rule = f'FORTRAN_DEP_HACK{crstr}'
-        if mesonlib.is_windows():
+        if mesonlib.Platform.is_windows:
             cmd = ['cmd', '/C']
         else:
             cmd = ['true']
@@ -3297,7 +3297,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_shsym(self, target) -> None:
         target_file = self.get_target_filename(target)
         if isinstance(target, build.SharedLibrary) and target.aix_so_archive:
-            if self.environment.machines[target.for_machine].is_aix():
+            if self.environment.machines[target.for_machine].is_aix:
                 linker, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
                 target.get_outputs()[0] = linker.get_archive_name(target.get_outputs()[0])
                 target_file = target.get_outputs()[0]
@@ -3361,7 +3361,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # libraries (such as SDL2) add -mwindows to their link flags.
             m = self.environment.machines[target.for_machine]
 
-            if m.is_windows() or m.is_cygwin():
+            if m.is_windows or m.is_cygwin:
                 commands += linker.get_win_subsystem_args(target.win_subsystem)
         return commands
 
@@ -3815,7 +3815,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 # they are all built
                 #Add archive file if shared library in AIX for build all.
                 if isinstance(t, build.SharedLibrary) and t.aix_so_archive:
-                    if self.environment.machines[t.for_machine].is_aix():
+                    if self.environment.machines[t.for_machine].is_aix:
                         linker, stdlib_args = t.get_clink_dynamic_linker_and_stdlibs()
                         t.get_outputs()[0] = linker.get_archive_name(t.get_outputs()[0])
                 targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))

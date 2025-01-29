@@ -13,7 +13,7 @@ classes for those cases.
 
 import typing as T
 
-from ...mesonlib import EnvironmentException, MesonException, is_windows
+from ...mesonlib import EnvironmentException, MesonException, Platform
 
 if T.TYPE_CHECKING:
     from ...coredata import KeyedOptionDictType
@@ -44,7 +44,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
         return []
 
     def can_linker_accept_rsp(self) -> bool:
-        return is_windows()
+        return Platform.is_windows
 
     def get_linker_exelist(self) -> T.List[str]:
         return self.exelist.copy()

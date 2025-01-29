@@ -270,31 +270,31 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         # determine the correct toolset, but we would need to use the correct
         # `nm`, `readelf`, etc, from the cross info which requires refactoring.
         dummy_syms(outfilename)
-    elif mesonlib.is_linux() or mesonlib.is_hurd():
+    elif mesonlib.Platform.is_linux or mesonlib.Platform.is_hurd:
         gnu_syms(libfilename, outfilename)
-    elif mesonlib.is_osx():
+    elif mesonlib.Platform.is_osx:
         osx_syms(libfilename, outfilename)
-    elif mesonlib.is_openbsd():
+    elif mesonlib.Platform.is_openbsd:
         openbsd_syms(libfilename, outfilename)
-    elif mesonlib.is_freebsd():
+    elif mesonlib.Platform.is_freebsd:
         freebsd_syms(libfilename, outfilename)
-    elif mesonlib.is_netbsd():
+    elif mesonlib.Platform.is_netbsd:
         freebsd_syms(libfilename, outfilename)
-    elif mesonlib.is_windows():
+    elif mesonlib.Platform.is_windows:
         if os.path.isfile(impfilename):
             windows_syms(impfilename, outfilename)
         else:
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.
             dummy_syms(outfilename)
-    elif mesonlib.is_cygwin():
+    elif mesonlib.Platform.is_cygwin:
         if os.path.isfile(impfilename):
             cygwin_syms(impfilename, outfilename)
         else:
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.
             dummy_syms(outfilename)
-    elif mesonlib.is_sunos():
+    elif mesonlib.Platform.is_sunos:
         solaris_syms(libfilename, outfilename)
     else:
         if not os.path.exists(TOOL_WARNING_FILE):

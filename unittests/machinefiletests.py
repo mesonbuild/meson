@@ -26,9 +26,7 @@ import mesonbuild.modules.gnome
 from mesonbuild import mesonlib
 from mesonbuild import machinefile
 
-from mesonbuild.mesonlib import (
-    MachineChoice, is_windows, is_osx, is_cygwin, is_haiku, is_sunos
-)
+from mesonbuild.mesonlib import MachineChoice, Platform
 from mesonbuild.compilers import (
     detect_swift_compiler, compiler_from_language
 )
@@ -94,7 +92,7 @@ class NativeFileTests(BasePlatformTests):
         filename = os.path.join(dir_ or self.builddir, f'binary_wrapper{self.current_wrapper}.py')
         extra_args = extra_args or {}
         self.current_wrapper += 1
-        if is_haiku():
+        if Platform.is_haiku:
             chbang = '#!/bin/env python3'
         else:
             chbang = '#!/usr/bin/env python3'
@@ -129,7 +127,7 @@ class NativeFileTests(BasePlatformTests):
                     main()
                 '''.format(binary)))
 
-        if not is_windows():
+        if not Platform.is_windows:
             os.chmod(filename, 0o755)
             return filename
 
@@ -163,7 +161,7 @@ class NativeFileTests(BasePlatformTests):
             '-Dcase=find_program'])
 
     # This test hangs on cygwin.
-    @skipIf(os.name != 'posix' or is_cygwin(), 'Uses fifos, which are not available on non Unix OSes.')
+    @skipIf(os.name != 'posix' or Platform.is_cygwin, 'Uses fifos, which are not available on non Unix OSes.')
     def test_native_file_is_pipe(self):
         fifo = os.path.join(self.builddir, 'native.file')
         os.mkfifo(fifo)
@@ -214,12 +212,12 @@ class NativeFileTests(BasePlatformTests):
         self._simple_test('python3', 'python3')
 
     def test_python_module(self):
-        if is_windows():
+        if Platform.is_windows:
             # Bat adds extra crap to stdout, so the version check logic in the
             # python module breaks. This is fine on other OSes because they
             # don't need the extra indirection.
             raise SkipTest('bat indirection breaks internal sanity checks.')
-        elif is_osx():
+        elif Platform.is_osx:
             binary = 'python'
         else:
             binary = 'python2'
@@ -238,7 +236,7 @@ class NativeFileTests(BasePlatformTests):
                 raise SkipTest('Not running Python 2 tests because dev packages not installed.')
         self._simple_test('python', binary, entry='python')
 
-    @skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
+    @skipIf(Platform.is_windows, 'Setting up multiple compilers on windows is hard')
     @skip_if_env_set('CC')
     def test_c_compiler(self):
         def cb(comp):
@@ -251,7 +249,7 @@ class NativeFileTests(BasePlatformTests):
             return 'gcc', 'gcc'
         self.helper_for_compiler('c', cb)
 
-    @skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
+    @skipIf(Platform.is_windows, 'Setting up multiple compilers on windows is hard')
     @skip_if_env_set('CXX')
     def test_cpp_compiler(self):
         def cb(comp):
@@ -341,7 +339,7 @@ class NativeFileTests(BasePlatformTests):
                 if shutil.which('ifort'):
                     # There is an ICC for windows (windows build, linux host),
                     # but we don't support that ATM so let's not worry about it.
-                    if is_windows():
+                    if Platform.is_windows:
                         return 'ifort', 'intel-cl'
                     return 'ifort', 'intel'
                 elif shutil.which('flang'):
@@ -676,12 +674,12 @@ class CrossFileTests(BasePlatformTests):
 
     def _cross_file_generator(self, *, needs_exe_wrapper: bool = False,
                               exe_wrapper: T.Optional[T.List[str]] = None) -> str:
-        if is_windows():
+        if Platform.is_windows:
             raise SkipTest('Cannot run this test on non-mingw/non-cygwin windows')
 
         return textwrap.dedent(f"""\
             [binaries]
-            c = '{shutil.which('gcc' if is_sunos() else 'cc')}'
+            c = '{shutil.which('gcc' if Platform.is_sunos else 'cc')}'
             ar = '{shutil.which('ar')}'
             strip = '{shutil.which('strip')}'
             exe_wrapper = {str(exe_wrapper) if exe_wrapper is not None else '[]'}
@@ -759,7 +757,7 @@ class CrossFileTests(BasePlatformTests):
     # (most commonly in Debian autopkgtests) then the mocking won't work.
     @skipIf('MESON_EXE' in os.environ, 'MESON_EXE is defined, cannot use mocking.')
     def test_cross_file_system_paths(self):
-        if is_windows():
+        if Platform.is_windows:
             raise SkipTest('system crossfile paths not defined for Windows (yet)')
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')

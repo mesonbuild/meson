@@ -10,7 +10,7 @@ import locale
 
 from .. import mlog
 from .core import MesonException
-from .universal import is_windows, windows_detect_native_arch
+from .universal import Platform, windows_detect_native_arch
 
 
 __all__ = [
@@ -30,7 +30,7 @@ SET
 # set it to be runnable. In this way Meson can be directly invoked
 # from any shell, VS Code etc.
 def _setup_vsenv(force: bool) -> bool:
-    if not is_windows():
+    if not Platform.is_windows:
         return False
     if os.environ.get('OSTYPE') == 'cygwin':
         return False

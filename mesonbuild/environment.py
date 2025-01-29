@@ -359,9 +359,9 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     For x86 it might return 'x86', 'i686' or some such.
     Do some canonicalization.
     """
-    if mesonlib.is_windows():
+    if mesonlib.Platform.is_windows:
         trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx() or mesonlib.is_aix():
+    elif mesonlib.Platform.is_freebsd or mesonlib.Platform.is_netbsd or mesonlib.Platform.is_openbsd or mesonlib.Platform.is_qnx or mesonlib.Platform.is_aix:
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
@@ -425,9 +425,9 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     return trial
 
 def detect_cpu(compilers: CompilersDict) -> str:
-    if mesonlib.is_windows():
+    if mesonlib.Platform.is_windows:
         trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_aix():
+    elif mesonlib.Platform.is_freebsd or mesonlib.Platform.is_netbsd or mesonlib.Platform.is_openbsd or mesonlib.Platform.is_aix:
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
@@ -759,7 +759,7 @@ class Environment:
                 # these may contain duplicates, which must be removed, else
                 # a duplicates-in-array-option warning arises.
                 if keyname == 'cmake_prefix_path':
-                    if self.machines[for_machine].is_windows():
+                    if self.machines[for_machine].is_windows:
                         # Cannot split on ':' on Windows because its in the drive letter
                         _p_env = p_env.split(os.pathsep)
                     else:
@@ -923,7 +923,7 @@ class Environment:
         "Install dir for the shared library"
         m = self.machines.host
         # Windows has no RPATH or similar, so DLLs must be next to EXEs.
-        if m.is_windows() or m.is_cygwin():
+        if m.is_windows or m.is_cygwin:
             return self.get_bindir()
         return self.get_libdir()
 
@@ -1005,7 +1005,7 @@ class Environment:
 
     def get_env_for_paths(self, library_paths: T.Set[str], extra_paths: T.Set[str]) -> mesonlib.EnvironmentVariables:
         env = mesonlib.EnvironmentVariables()
-        need_wine = not self.machines.build.is_windows() and self.machines.host.is_windows()
+        need_wine = not self.machines.build.is_windows and self.machines.host.is_windows
         if need_wine:
             # Executable paths should be in both PATH and WINEPATH.
             # - Having them in PATH makes bash completion find it,
@@ -1015,9 +1015,9 @@ class Environment:
         if library_paths:
             if need_wine:
                 env.prepend('WINEPATH', list(library_paths), separator=';')
-            elif self.machines.host.is_windows() or self.machines.host.is_cygwin():
+            elif self.machines.host.is_windows or self.machines.host.is_cygwin:
                 extra_paths.update(library_paths)
-            elif self.machines.host.is_darwin():
+            elif self.machines.host.is_darwin:
                 env.prepend('DYLD_LIBRARY_PATH', list(library_paths))
             else:
                 env.prepend('LD_LIBRARY_PATH', list(library_paths))

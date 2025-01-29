@@ -84,7 +84,7 @@ def guess_backend(backend_str: str, msbuild_exe: str) -> T.Tuple['Backend', T.Li
     # Auto-detect backend if unspecified
     backend_flags = []
     if backend_str is None:
-        if msbuild_exe is not None and (mesonlib.is_windows() and not _using_intelcl()):
+        if msbuild_exe is not None and (mesonlib.Platform.is_windows and not _using_intelcl()):
             backend_str = 'vs' # Meson will auto-detect VS version to use
         else:
             backend_str = 'ninja'
@@ -110,7 +110,7 @@ def _using_intelcl() -> bool:
     Sufficient evidence of intent is that user is working in the Intel compiler
     shell environment, otherwise this function returns False
     """
-    if not mesonlib.is_windows():
+    if not mesonlib.Platform.is_windows:
         return False
     # handle where user tried to "blank" MKLROOT and left space(s)
     if not os.environ.get('MKLROOT', '').strip():
@@ -178,7 +178,7 @@ if 'MESON_EXE' in os.environ:
 else:
     meson_exe = None
 
-if mesonlib.is_windows() or mesonlib.is_cygwin():
+if mesonlib.Platform.is_windows or mesonlib.Platform.is_cygwin:
     exe_suffix = '.exe'
 else:
     exe_suffix = ''
@@ -352,7 +352,7 @@ def main():
     _, backend_flags = guess_backend(options.backend, shutil.which('msbuild'))
     no_unittests = options.no_unittests
     # Running on a developer machine? Be nice!
-    if not mesonlib.is_windows() and not mesonlib.is_haiku() and 'CI' not in os.environ:
+    if not mesonlib.Platform.is_windows and not mesonlib.Platform.is_haiku and 'CI' not in os.environ:
         os.nice(20)
     # Appveyor sets the `platform` environment variable which completely messes
     # up building with the vs2010 and vs2015 backends.

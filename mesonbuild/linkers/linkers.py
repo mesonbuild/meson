@@ -36,7 +36,7 @@ class StaticLinker:
         """
         Determines whether the linker can accept arguments using the @rsp syntax.
         """
-        return mesonlib.is_windows()
+        return mesonlib.Platform.is_windows
 
     def get_base_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         """Like compilers.get_base_link_args, but for the static linker."""
@@ -156,7 +156,7 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_accepts_rsp(self) -> bool:
         # rsp files are only used when building on Windows because we want to
         # avoid issues with quoting and max argument length
-        return mesonlib.is_windows()
+        return mesonlib.Platform.is_windows
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
         """The format of the RSP file that this compiler supports.
@@ -387,8 +387,8 @@ class ArLinker(ArLikeLinker, StaticLinker):
         # on Mac OS X, Solaris, or illumos, so don't build them on those OSes.
         # OS X ld rejects with: "file built for unknown-unsupported file format"
         # illumos/Solaris ld rejects with: "unknown file type"
-        if is_thin and not env.machines[self.for_machine].is_darwin() \
-          and not env.machines[self.for_machine].is_sunos():
+        if is_thin and not env.machines[self.for_machine].is_darwin \
+          and not env.machines[self.for_machine].is_sunos:
             return self.std_thin_args
         else:
             return self.std_args
@@ -419,7 +419,7 @@ class DLinker(StaticLinker):
         return ['-of=' + target]
 
     def get_linker_always_args(self) -> T.List[str]:
-        if mesonlib.is_windows():
+        if mesonlib.Platform.is_windows:
             if self.arch == 'x86_64':
                 return ['-m64']
             elif self.arch == 'x86_mscoff' and self.id == 'dmd':
@@ -657,7 +657,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
 
     def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
         m = env.machines[self.for_machine]
-        if m.is_windows() or m.is_cygwin():
+        if m.is_windows or m.is_cygwin:
             return self._apply_prefix('--export-all-symbols')
         return self._apply_prefix('-export-dynamic')
 
@@ -665,7 +665,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         return self._apply_prefix('--out-implib=' + implibname)
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:
-        if env.machines[self.for_machine].is_haiku():
+        if env.machines[self.for_machine].is_haiku:
             return []
         return ['-pthread']
 
@@ -678,7 +678,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         m = env.machines[self.for_machine]
-        if m.is_windows() or m.is_cygwin():
+        if m.is_windows or m.is_cygwin:
             # For PE/COFF the soname argument has no effect
             return []
         sostr = '' if soversion is None else '.' + soversion
@@ -688,7 +688,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         m = env.machines[self.for_machine]
-        if m.is_windows() or m.is_cygwin():
+        if m.is_windows or m.is_cygwin:
             return ([], set())
         if not rpath_paths and not install_rpath and not build_rpath:
             return ([], set())
@@ -709,7 +709,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
                 rpath_dirs_to_remove.add(p.encode('utf8'))
 
         # TODO: should this actually be "for (dragonfly|open)bsd"?
-        if mesonlib.is_dragonflybsd() or mesonlib.is_openbsd():
+        if mesonlib.Platform.is_dragonflybsd or mesonlib.Platform.is_openbsd:
             # This argument instructs the compiler to record the value of
             # ORIGIN in the .dynamic section of the elf. On Linux this is done
             # by default, but is not on dragonfly/openbsd for some reason. Without this
@@ -733,7 +733,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         # TODO: should this actually be "for solaris/sunos"?
         # NOTE: Remove the zigcc check once zig support "-rpath-link"
         # See https://github.com/ziglang/zig/issues/18713
-        if mesonlib.is_sunos() or self.id == 'ld.zigcc':
+        if mesonlib.Platform.is_sunos or self.id == 'ld.zigcc':
             return (args, rpath_dirs_to_remove)
 
         # Rpaths to use while linking must be absolute. These are not
@@ -1255,16 +1255,16 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_std_shared_lib_args(self) -> T.List[str]:
         # PGI -shared is Linux only.
-        if mesonlib.is_windows():
+        if mesonlib.Platform.is_windows:
             return ['-Bdynamic', '-Mmakedll']
-        elif mesonlib.is_linux():
+        elif mesonlib.Platform.is_linux:
             return ['-shared']
         return []
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        if not env.machines[self.for_machine].is_windows():
+        if not env.machines[self.for_machine].is_windows:
             return (['-R' + os.path.join(build_dir, p) for p in rpath_paths], set())
         return ([], set())
 

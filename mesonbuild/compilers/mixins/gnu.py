@@ -361,18 +361,18 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         self.base_options = {
             OptionKey(o) for o in ['b_pch', 'b_lto', 'b_pgo', 'b_coverage',
                                    'b_ndebug', 'b_staticpic', 'b_pie']}
-        if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
+        if not (self.info.is_windows or self.info.is_cygwin or self.info.is_openbsd):
             self.base_options.add(OptionKey('b_lundef'))
-        if not self.info.is_windows() or self.info.is_cygwin():
+        if not self.info.is_windows or self.info.is_cygwin:
             self.base_options.add(OptionKey('b_asneeded'))
-        if not self.info.is_hurd():
+        if not self.info.is_hurd:
             self.base_options.add(OptionKey('b_sanitize'))
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
         self.can_compile_suffixes.add('sx')
 
     def get_pic_args(self) -> T.List[str]:
-        if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin():
+        if self.info.is_windows or self.info.is_cygwin or self.info.is_darwin:
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
@@ -413,7 +413,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             raise RuntimeError('Module definitions file should be str')
         # On Windows targets, .def files may be specified on the linker command
         # line like an object file.
-        if self.info.is_windows() or self.info.is_cygwin():
+        if self.info.is_windows or self.info.is_cygwin:
             return [defsfile]
         # For other targets, discard the .def file.
         return []

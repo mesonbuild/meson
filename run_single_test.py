@@ -13,7 +13,7 @@ import pathlib
 import typing as T
 
 from mesonbuild import mlog
-from mesonbuild.mesonlib import is_windows
+from mesonbuild.mesonlib import Platform
 from run_tests import handle_meson_skip_test
 from run_project_tests import TestDef, load_test_json, run_test, BuildStep
 from run_project_tests import setup_commands, detect_system_compiler, detect_tools
@@ -46,7 +46,7 @@ def main() -> None:
     parser.add_argument('--quick', action='store_true', help='Skip some compiler and tool checking')
     args = T.cast('ArgumentType', parser.parse_args())
 
-    if not is_windows():
+    if not Platform.is_windows:
         scan_test_data_symlinks()
         setup_symlinks()
     setup_commands(args.backend)
