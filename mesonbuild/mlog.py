@@ -30,10 +30,6 @@ if T.TYPE_CHECKING:
     TV_Loggable = T.Union[str, 'AnsiDecorator', StringProtocol]
     TV_LoggableList = T.List[TV_Loggable]
 
-def is_windows() -> bool:
-    platname = platform.system().lower()
-    return platname == 'windows'
-
 def _windows_ansi() -> bool:
     # windll only exists on windows, so mypy will get mad
     from ctypes import windll, byref  # type: ignore
@@ -51,6 +47,7 @@ def _windows_ansi() -> bool:
 
 _in_ci = 'CI' in os.environ
 _ci_is_github = 'GITHUB_ACTIONS' in os.environ
+_is_windows = platform.system().lower() == 'windows'
 
 
 class _Severity(enum.Enum):
@@ -121,7 +118,7 @@ class _Logger:
             pager_cmd = shlex.split(os.environ['PAGER'])
         else:
             less = shutil.which('less')
-            if not less and is_windows():
+            if not less and _is_windows:
                 git = shutil.which('git')
                 if git:
                     path = Path(git).parents[1] / 'usr' / 'bin'
@@ -388,7 +385,7 @@ class _Logger:
         if _colorize_console is not None:
             return _colorize_console
         try:
-            if is_windows():
+            if _is_windows:
                 _colorize_console = os.isatty(output.fileno()) and _windows_ansi()
             else:
                 _colorize_console = os.isatty(output.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
@@ -402,7 +399,7 @@ class _Logger:
         # connected to stdout and turn off ANSI escape processing. Call this after
         # running a subprocess to ensure we turn it on again.
         output = sys.stderr if self.log_to_stderr else sys.stdout
-        if is_windows():
+        if _is_windows:
             try:
                 delattr(output, 'colorize_console')
             except AttributeError:
