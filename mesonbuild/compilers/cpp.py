@@ -390,7 +390,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
                           'everything': ['-Weverything']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CPPCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         self.update_options(
             opts,
@@ -545,7 +545,7 @@ class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
         PGICompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CPPCompiler.get_options(self)
+        opts = super().get_options()
         cppstd_choices = [
             'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23',
             'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++20'
@@ -567,7 +567,7 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         ElbrusCompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CPPCompiler.get_options(self)
+        opts = super().get_options()
 
         cpp_stds = ['c++98']
         if version_compare(self.version, '>=1.20.00'):
@@ -649,7 +649,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
                           'everything': default_warn_args + ['-Wextra']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CPPCompiler.get_options(self)
+        opts = super().get_options()
         # Every Unix compiler under the sun seems to accept -std=c++03,
         # with the exception of ICC. Instead of preventing the user from
         # globally requesting C++03, we transparently remap it to C++98
@@ -923,7 +923,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
         ArmCompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CPPCompiler.get_options(self)
+        opts = super().get_options()
         std_opt = self.form_compileropt_key('std')
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c++03', 'c++11'])
@@ -984,7 +984,7 @@ class TICPPCompiler(TICompiler, CPPCompiler):
         TICompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CPPCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -1027,7 +1027,7 @@ class MetrowerksCPPCompilerARM(MetrowerksCompiler, CPPCompiler):
         return mwccarm_instruction_set_args.get(instruction_set, None)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CPPCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         opts[key].choices = ['none']
         return opts
@@ -1056,7 +1056,7 @@ class MetrowerksCPPCompilerEmbeddedPowerPC(MetrowerksCompiler, CPPCompiler):
         return mwcceppc_instruction_set_args.get(instruction_set, None)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CPPCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         opts[key].choices = ['none']
         return opts
