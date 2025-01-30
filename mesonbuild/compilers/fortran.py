@@ -273,7 +273,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
                           'everything': default_warn_args + ['-Wextra', '-Wpedantic', '-fimplicit-none']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = FortranCompiler.get_options(self)
+        opts = super().get_options()
         fortran_stds = ['legacy', 'f95', 'f2003']
         if version_compare(self.version, '>=4.4.0'):
             fortran_stds += ['f2008']
@@ -335,7 +335,7 @@ class ElbrusFortranCompiler(ElbrusCompiler, FortranCompiler):
         ElbrusCompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = FortranCompiler.get_options(self)
+        opts = super().get_options()
         fortran_stds = ['f95', 'f2003', 'f2008', 'gnu', 'legacy', 'f2008ts']
         key = self.form_compileropt_key('std')
         opts[key].choices = ['none'] + fortran_stds
@@ -415,7 +415,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
                           'everything': ['-warn', 'all']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = FortranCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         opts[key].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
         return opts
@@ -470,7 +470,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
                           'everything': ['/warn:all']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = FortranCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         opts[key].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
         return opts

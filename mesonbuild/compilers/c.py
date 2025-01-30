@@ -214,7 +214,7 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
                           'everything': ['-Weverything']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -313,7 +313,7 @@ class NvidiaHPC_CCompiler(PGICompiler, CCompiler):
         PGICompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         cppstd_choices = ['c89', 'c90', 'c99', 'c11', 'c17', 'c18']
         std_opt = opts[self.form_compileropt_key('std')]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -332,7 +332,7 @@ class ElbrusCCompiler(ElbrusCompiler, CCompiler):
         ElbrusCompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         stds = ['c89', 'c9x', 'c99', 'gnu89', 'gnu9x', 'gnu99']
         stds += ['iso9899:1990', 'iso9899:199409', 'iso9899:1999']
         if version_compare(self.version, '>=1.20.00'):
@@ -379,7 +379,7 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
                           'everything': default_warn_args + ['-Wextra']}
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         stds = ['c89', 'c99']
         if version_compare(self.version, '>=16.0.0'):
             stds += ['c11']
@@ -536,7 +536,7 @@ class ArmCCompiler(ArmCompiler, CCompiler):
         ArmCompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -566,7 +566,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
         return ['-nologo']
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -614,7 +614,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
         Xc16Compiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -660,7 +660,7 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
         CompCertCompiler.__init__(self)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -698,7 +698,7 @@ class TICCompiler(TICompiler, CCompiler):
         return []
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         key = self.form_compileropt_key('std')
         std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
@@ -738,7 +738,7 @@ class MetrowerksCCompilerARM(MetrowerksCompiler, CCompiler):
         return mwccarm_instruction_set_args.get(instruction_set, None)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         c_stds = ['c99']
         key = self.form_compileropt_key('std')
         opts[key].choices = ['none'] + c_stds
@@ -768,7 +768,7 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
         return mwcceppc_instruction_set_args.get(instruction_set, None)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        opts = CCompiler.get_options(self)
+        opts = super().get_options()
         c_stds = ['c99']
         key = self.form_compileropt_key('std')
         opts[key].choices = ['none'] + c_stds
