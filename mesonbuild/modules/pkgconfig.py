@@ -507,7 +507,10 @@ class PkgConfigModule(NewExtensionModule):
                     if optname == 'prefix':
                         ofile.write('prefix={}\n'.format(self._escape(prefix)))
                     else:
-                        dirpath = PurePath(_as_str(coredata.get_option(OptionKey(optname))))
+                        if optname == 'libdir':
+                            dirpath = PurePath(state.environment.get_import_lib_dir())
+                        else:
+                            dirpath = PurePath(_as_str(coredata.get_option(OptionKey(optname))))
                         ofile.write('{}={}\n'.format(optname, self._escape('${prefix}' / dirpath)))
             if uninstalled and not dataonly:
                 ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
