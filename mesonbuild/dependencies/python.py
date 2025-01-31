@@ -332,7 +332,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
             framework_prefix = self.variables['PYTHONFRAMEWORKPREFIX']
             # Add rpath, will be de-duplicated if necessary
             if framework_prefix.startswith('/Applications/Xcode.app/'):
-                self.link_args += ['-rpath,' + framework_prefix]
+                self.link_args += ['-Wl,-rpath,' + framework_prefix]
 
 class PythonFrameworkDependency(ExtraFrameworkDependency, _PythonDependencyBase):
 
