@@ -65,7 +65,7 @@ python = pymod.find_installation('python3', required: true)
                 realfile = os.path.join(root, file)
                 if file.endswith('.py'):
                     # FIXME: relpath must be adjusted for windows path behaviour
-                    if hasattr(sys, "pycache_prefix"):
+                    if getattr(sys, "pycache_prefix", None) is not None:
                         root = os.path.join(sys.pycache_prefix, os.path.relpath(root, '/'))
                     else:
                         root = os.path.join(root, '__pycache__')
