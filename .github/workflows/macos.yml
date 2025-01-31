@@ -32,12 +32,10 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
     - run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest pytest-xdist pytest-subtests fastjsonschema coverage
+        export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+        /usr/bin/python3 -m pip install --upgrade pip
+        /usr/bin/python3 -m pip install pytest pytest-xdist pytest-subtests fastjsonschema coverage
     - run: brew install pkg-config ninja llvm qt@5
     - env:
         CPPFLAGS: "-I/opt/homebrew/include"
@@ -48,12 +46,14 @@ jobs:
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
-        export PATH="$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/llvm/bin:$PATH"
-        export PKG_CONFIG_PATH="/opt/homebrew/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
-        ./tools/run_with_cov.py ./run_unittests.py
+        export PATH="$HOME/Library/Python/3.9/bin:$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/llvm/bin:$PATH"
+        export PKG_CONFIG_PATH="/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/Current/lib/pkgconfig:/opt/homebrew/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
+        /usr/bin/python3 ./tools/run_with_cov.py ./run_unittests.py
 
     - name: Aggregate coverage reports
-      run: ./ci/combine_cov.sh
+      run: |
+        export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+        ./ci/combine_cov.sh
 
     - name: Upload coverage report
       uses: codecov/codecov-action@v3
