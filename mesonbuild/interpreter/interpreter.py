@@ -462,6 +462,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.SharedModule: OBJ.SharedModuleHolder,
             build.Executable: OBJ.ExecutableHolder,
             build.Jar: OBJ.JarHolder,
+            build.BundleTarget: OBJ.BundleTargetHolder,
             build.CustomTarget: OBJ.CustomTargetHolder,
             build.CustomTargetIndex: OBJ.CustomTargetIndexHolder,
             build.Generator: OBJ.GeneratorHolder,
