@@ -309,6 +309,8 @@ class Backend:
             filename = t.get_outputs()[0]
         elif isinstance(t, build.CustomTargetIndex):
             filename = t.get_outputs()[0]
+        elif isinstance(t, build.BundleTarget):
+            filename = t.get_filename()
         else:
             assert isinstance(t, build.BuildTarget), t
             filename = t.get_filename()

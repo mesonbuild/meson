@@ -3288,6 +3288,75 @@ class BundleTargetBase(Target):
         pass
 
 
+class BundleTarget(BundleTargetBase):
+    def __init__(self, name: str, subdir: str, subproject: str, environment: environment.Environment, main_exe: T.Union[Executable, SharedLibrary], bundle_type: BundleType):
+        super().__init__(name, subdir, subproject, True, main_exe.for_machine, environment)
+
+        self.main_exe: T.Union[Executable, SharedLibrary] = main_exe
+        self.bundle_type: BundleType = bundle_type
+        self.install_dir: T.Optional[str] = None
+
+        self.bundle_info: BundleInfo = BundleInfo(self)
+
+        if bundle_type == BundleType.APPLICATION:
+            assert isinstance(main_exe, Executable)
+        elif bundle_type == BundleType.FRAMEWORK:
+            assert isinstance(main_exe, SharedLibrary)
+
+    def __repr__(self):
+        repr_str = "<{0} {1}: {2}>"
+        return repr_str.format(self.__class__.__name__, self.get_id(), self.get_filename())
+
+    def __str__(self):
+        return f"{self.name}"
+
+    def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
+        if self.bundle_type == BundleType.APPLICATION:
+            return self.environment.get_app_dir(), '{appdir}'
+        elif self.bundle_type == BundleType.FRAMEWORK:
+            return self.environment.get_framework_dir(), '{frameworkdir}'
+        else:
+            return (None, None)
+
+    def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
+        return self.install_dir
+
+    def type_suffix(self) -> str:
+        if self.bundle_type == BundleType.APPLICATION:
+            return '@nsapp'
+        elif self.bundle_type == BundleType.FRAMEWORK:
+            return '@nsframework'
+        else:
+            return '@nsbundle'
+
+    @property
+    def typename(self) -> str:
+        if self.bundle_type == BundleType.APPLICATION:
+            return 'nsapp'
+        elif self.bundle_type == BundleType.FRAMEWORK:
+            return 'nsframework'
+        else:
+            return 'nsbundle'
+
+    def get_bundle_info(self) -> BundleInfo:
+        return self.bundle_info
+
+    def get_bundle_type(self) -> BundleType:
+        return self.bundle_type
+
+    def get_executable_name(self) -> str:
+        return self.main_exe.get_filename()
+
+    def get_filename(self) -> str:
+        return self.bundle_info.get_wrapper_name()
+
+    def can_output_be_directory(self, output: str) -> bool:
+        return output == self.get_filename()
+
+    def get_outputs(self) -> T.List[str]:
+        return [self.get_filename()]
+
+
 @dataclass(eq=False)
 class CustomTargetIndex(CustomTargetBase, HoldableObject):
 
