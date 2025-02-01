@@ -466,6 +466,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.Jar: OBJ.JarHolder,
             build.AppBundle: OBJ.AppBundleHolder,
             build.FrameworkBundle: OBJ.FrameworkBundleHolder,
+            build.BundleTarget: OBJ.BundleTargetHolder,
             build.CustomTarget: OBJ.CustomTargetHolder,
             build.CustomTargetIndex: OBJ.CustomTargetIndexHolder,
             build.Generator: OBJ.GeneratorHolder,
