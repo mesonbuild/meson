@@ -1151,6 +1151,9 @@ class AppBundleHolder(BuildTargetHolder[build.AppBundle]):
 class FrameworkBundleHolder(BuildTargetHolder[build.FrameworkBundle]):
     pass
 
+class BundleTargetHolder(ObjectHolder[build.BundleTarget]):
+    pass
+
 class CustomTargetIndexHolder(ObjectHolder[build.CustomTargetIndex]):
     def __init__(self, target: build.CustomTargetIndex, interp: 'Interpreter'):
         super().__init__(target, interp)
