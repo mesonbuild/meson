@@ -879,6 +879,8 @@ class NinjaBackend(backends.Backend):
             self.generate_custom_target(target)
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target)
+        if isinstance(target, build.BundleTarget):
+            return self.generate_bundle_target3(target)
         compiled_sources: T.List[str] = []
         source2object: T.Dict[str, str] = {}
         name = target.get_id()
@@ -1607,6 +1609,10 @@ class NinjaBackend(backends.Backend):
                     make_relative_link(contents_dir / n, path / n)
 
         self.add_build(elem)
+
+    def generate_bundle_target3(self, target: build.BundleTarget) -> None:
+        main_exe = os.path.join(self.get_target_dir(target.main_exe), target.main_exe.get_filename())
+        self.generate_bundle_target(target, main_exe)
 
     def generate_cs_resource_tasks(self, target) -> T.Tuple[T.List[str], T.List[str]]:
         args = []
