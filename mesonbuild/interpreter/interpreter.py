@@ -416,6 +416,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             build.Jar: OBJ.JarHolder,
             build.AppBundle: OBJ.AppBundleHolder,
             build.FrameworkBundle: OBJ.FrameworkBundleHolder,
+            build.BundleTarget: OBJ.BundleTargetHolder,
             build.CustomTarget: OBJ.CustomTargetHolder,
             build.CustomTargetIndex: OBJ.CustomTargetIndexHolder,
             build.Generator: OBJ.GeneratorHolder,
@@ -472,7 +473,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         for v in invalues:
             if isinstance(v, ObjectHolder):
                 raise InterpreterException('Modules must not return ObjectHolders')
-            if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
+            if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget, build.BundleTarget)):
                 self.add_target(v.name, v)
             elif isinstance(v, list):
                 self.process_new_values(v)
