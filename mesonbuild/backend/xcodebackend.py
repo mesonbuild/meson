@@ -6,6 +6,7 @@ from __future__ import annotations
 import functools, uuid, os, operator, re
 import typing as T
 
+from ..dependencies.platform import AppleFrameworks
 from . import backends
 from .. import build
 from .. import mesonlib
@@ -550,7 +551,7 @@ class XCodeBackend(backends.Backend):
         self.native_frameworks_fileref = {}
         for t in self.build_targets.values():
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks' and dep.found():
+                if dep.found() and isinstance(dep, AppleFrameworks):
                     for f in dep.frameworks:
                         self.native_frameworks[f] = self.gen_id()
                         self.native_frameworks_fileref[f] = self.gen_id()
@@ -714,7 +715,7 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_build_file(self, objects_dict: PbxDict) -> None:
         for tname, t in self.build_targets.items():
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks' and dep.found():
+                if dep.found() and isinstance(dep, AppleFrameworks):
                     for f in dep.frameworks:
                         fw_dict = PbxDict()
                         fwkey = self.native_frameworks[f]
@@ -870,7 +871,7 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_file_reference(self, objects_dict: PbxDict) -> None:
         for tname, t in self.build_targets.items():
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks' and dep.found():
+                if dep.found() and isinstance(dep, AppleFrameworks):
                     for f in dep.frameworks:
                         fw_dict = PbxDict()
                         framework_fileref = self.native_frameworks_fileref[f]
@@ -1039,7 +1040,7 @@ class XCodeBackend(backends.Backend):
             file_list = PbxArray()
             bt_dict.add_item('files', file_list)
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks' and dep.found():
+                if dep.found() and isinstance(dep, AppleFrameworks):
                     for f in dep.frameworks:
                         file_list.add_item(self.native_frameworks[f], f'{f}.framework in Frameworks')
             bt_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
@@ -1087,7 +1088,7 @@ class XCodeBackend(backends.Backend):
 
         for tar in self.build_targets.values():
             for dep in tar.get_external_deps():
-                if dep.name == 'appleframeworks' and dep.found():
+                if dep.found() and isinstance(dep, AppleFrameworks):
                     for f in dep.frameworks:
                         frameworks_children.add_item(self.native_frameworks_fileref[f], f)
 
