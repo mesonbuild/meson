@@ -26,7 +26,7 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect, lang_suffixes
 from ..mesonlib import (
-    File, MachineChoice, MesonException, OrderedSet,
+    File, MachineChoice, MesonException, OrderedSet, MesonBugException,
     ExecutableSerialisation, EnvironmentException,
     classify_unity_sources, get_compiler_for_source
 )
@@ -393,10 +393,10 @@ class Backend:
             return os.path.join(self.build_to_src, target_dir)
         return self.build_to_src
 
-    def get_target_private_dir(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]) -> str:
+    def get_target_private_dir(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, build.RunTarget]) -> str:
         return os.path.join(self.get_target_filename(target, warn_multi_output=False) + '.p')
 
-    def get_target_private_dir_abs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]) -> str:
+    def get_target_private_dir_abs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, build.RunTarget]) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
 
     @lru_cache(maxsize=None)
@@ -1486,7 +1486,7 @@ class Backend:
             libs.extend(self.get_custom_target_provided_by_generated_source(t))
         return libs
 
-    def get_custom_target_sources(self, target: build.CustomTarget) -> T.List[str]:
+    def get_custom_target_sources(self, target: T.Union[build.CustomTarget, build.RunTarget]) -> T.List[str]:
         '''
         Custom target sources can be of various object types; strings, File,
         BuildTarget, even other CustomTargets.
@@ -1576,8 +1576,10 @@ class Backend:
         return incs
 
     def eval_custom_target_command(
-            self, target: build.CustomTarget, absolute_outputs: bool = False) -> \
-            T.Tuple[T.List[str], T.List[str], T.List[str]]:
+            self,
+            target: T.Union[build.CustomTarget, build.RunTarget],
+            absolute_outputs: bool = False
+            ) -> T.Tuple[T.List[str], T.List[str], T.List[str]]:
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
@@ -1614,6 +1616,8 @@ class Backend:
                 if '@CURRENT_SOURCE_DIR@' in i:
                     i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.subdir))
                 if '@DEPFILE@' in i:
+                    if isinstance(target, build.RunTarget):
+                        raise MesonBugException('run_target should not have allowed @DEPFILE@')
                     if target.depfile is None:
                         msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
                               'keyword argument.'
