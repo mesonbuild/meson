@@ -2172,6 +2172,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException(f'Tried to use non-existing executable {i.name!r}')
         if isinstance(all_args[0], str):
             all_args[0] = self.find_program_impl([all_args[0]])
+
+        if '@DEPFILE@' in all_args:
+            raise InterpreterException('run_target does not have support for @DEPFILE@')
+
         name = args[0]
         tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, self.environment,
                              kwargs['env'])
