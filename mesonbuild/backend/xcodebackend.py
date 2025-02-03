@@ -1747,7 +1747,8 @@ class XCodeBackend(backends.Backend):
                         # It is unclear what is the cwd when xcode runs. -I. does not seem to
                         # add the root build dir to the search path. So add an absolute path instead.
                         # This may break reproducible builds, in which case patches are welcome.
-                        cti_args = self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
+                        cti_args.append('-I{}'.format(os.path.join(self.environment.source_dir, target.subdir)))
+                        cti_args.append('-I{}'.format(os.path.join(self.environment.build_dir, target.subdir)))
                     # Xcode cannot handle separate compilation flags for C and ObjectiveC. They are both
                     # put in OTHER_CFLAGS. Same with C++ and ObjectiveC++.
                     if lang == 'objc':
