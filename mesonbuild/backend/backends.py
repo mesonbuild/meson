@@ -378,7 +378,10 @@ class Backend:
             dirname = 'meson-out'
         return dirname
 
-    def get_target_dir_relative_to(self, t: build.Target, o: build.Target) -> str:
+    def get_target_dir_relative_to(self,
+                                   t: T.Union[build.Target, build.CustomTargetIndex],
+                                   o: T.Union[build.Target, build.CustomTargetIndex],
+                                   ) -> str:
         '''Get a target dir relative to another target's directory'''
         target_dir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))
         othert_dir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(o))
