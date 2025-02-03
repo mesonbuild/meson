@@ -3311,6 +3311,10 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.target.get_custom_install_dir()
 
+    def get_basename(self) -> str:
+        return self.target.get_basename()
+
+
 class ConfigurationData(HoldableObject):
     def __init__(self, initial_values: T.Optional[T.Union[
                 T.Dict[str, T.Tuple[T.Union[str, int, bool], T.Optional[str]]],
