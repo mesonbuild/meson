@@ -745,7 +745,7 @@ class Vs2010Backend(backends.Backend):
             # enough to emit the references to the other projects for them to
             # be built/run/..., if necessary.
             assert isinstance(target, build.AliasTarget)
-            assert len(depend_files) == 0
+            assert not depend_files
         else:
             assert not isinstance(target, build.AliasTarget)
 
@@ -1005,7 +1005,7 @@ class Vs2010Backend(backends.Backend):
                 return c
         # No source files, only objects, but we still need a compiler, so
         # return a found compiler
-        if len(target.objects) > 0:
+        if target.objects:
             for lang, c in self.environment.coredata.compilers[target.for_machine].items():
                 if lang in {'c', 'cpp'}:
                     return c
@@ -1407,7 +1407,7 @@ class Vs2010Backend(backends.Backend):
             else:  # 'sc' or 'default'
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
 
-        if len(target_args) > 0:
+        if target_args:
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
@@ -1551,13 +1551,13 @@ class Vs2010Backend(backends.Backend):
         for lib in self.get_custom_target_provided_libraries(target):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
 
-        if len(extra_link_args) > 0:
+        if extra_link_args:
             extra_link_args.append('%(AdditionalOptions)')
             ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
-        if len(additional_libpaths) > 0:
+        if additional_libpaths:
             additional_libpaths.insert(0, '%(AdditionalLibraryDirectories)')
             ET.SubElement(link, 'AdditionalLibraryDirectories').text = ';'.join(additional_libpaths)
-        if len(additional_links) > 0:
+        if additional_links:
             additional_links.append('%(AdditionalDependencies)')
             ET.SubElement(link, 'AdditionalDependencies').text = ';'.join(additional_links)
         ofile = ET.SubElement(link, 'OutputFile')
@@ -1737,7 +1737,7 @@ class Vs2010Backend(backends.Backend):
                     pch_sources[lang] = (pch[0], None, lang, None)
 
         previous_includes: T.List[str] = []
-        if len(headers) + len(gen_hdrs) + len(target.extra_files) + len(pch_sources) > 0:
+        if headers or gen_hdrs or target.extra_files or pch_sources:
             if self.gen_lite and gen_hdrs:
                 # Although we're constructing our .vcxproj under our '..._vs' directory, we want to reference generated files
                 # in our concrete build directories (e.g. '..._debug'), where generated files will exist after building.
@@ -1761,7 +1761,7 @@ class Vs2010Backend(backends.Backend):
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=path)
 
         previous_sources: T.List[str] = []
-        if len(sources) + len(gen_src) + len(pch_sources) > 0:
+        if sources or gen_src or pch_sources:
             if self.gen_lite:
                 # Get data to fill in intellisense fields for sources that can't reference the project-wide values
                 defs_paths_opts_per_lang_and_buildtype = get_non_primary_lang_intellisense_fields(
@@ -1833,7 +1833,7 @@ class Vs2010Backend(backends.Backend):
         explicit_link_gen_objs = [obj for obj in gen_objs if not obj.endswith(('.obj', '.res'))]
 
         previous_objects: T.List[str] = []
-        if len(objects) + len(additional_objects) + len(explicit_link_gen_objs) > 0:
+        if objects or additional_objects or explicit_link_gen_objs:
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
                 relpath = os.path.join(proj_to_build_root, s.rel_to_builddir(self.build_to_src))
