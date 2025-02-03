@@ -33,6 +33,8 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
 
     Project: TypeAlias = T.Tuple[str, PurePath, str, MachineChoice]
+    PchSources: TypeAlias = T.Tuple[str, T.Optional[str], str, T.Optional[str]]
+
 
 def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]) -> backends.Backend:
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -828,23 +830,23 @@ class Vs2010Backend(backends.Backend):
             return 'cpp'
         raise MesonException(f'Could not guess language from source file {src}.')
 
-    def add_pch(self, pch_sources, lang, inc_cl) -> None:
+    def add_pch(self, pch_sources: T.Dict[str, PchSources], lang: str, inc_cl: ET.Element) -> None:
         if lang in pch_sources:
             self.use_pch(pch_sources, lang, inc_cl)
 
-    def create_pch(self, pch_sources, lang, inc_cl) -> None:
+    def create_pch(self, pch_sources: T.Dict[str, PchSources], lang: str, inc_cl: ET.Element) -> None:
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
         pch.text = 'Create'
         self.add_pch_files(pch_sources, lang, inc_cl)
 
-    def use_pch(self, pch_sources, lang, inc_cl) -> None:
+    def use_pch(self, pch_sources: T.Dict[str, PchSources], lang: str, inc_cl: ET.Element) -> None:
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
         pch.text = 'Use'
         header = self.add_pch_files(pch_sources, lang, inc_cl)
         pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
         pch_include.text = header + ';%(ForcedIncludeFiles)'
 
-    def add_pch_files(self, pch_sources, lang, inc_cl):
+    def add_pch_files(self, pch_sources: T.Dict[str, PchSources], lang: str, inc_cl: ET.Element) -> str:
         header = os.path.basename(pch_sources[lang][0])
         pch_file = ET.SubElement(inc_cl, 'PrecompiledHeaderFile')
         # When USING PCHs, MSVC will not do the regular include
@@ -1712,7 +1714,7 @@ class Vs2010Backend(backends.Backend):
             else:
                 return False
 
-        pch_sources = {}
+        pch_sources: T.Dict[str, PchSources] = {}
         if self.target_uses_pch(target):
             for lang in ['c', 'cpp']:
                 pch = target.get_pch(lang)
@@ -1726,11 +1728,11 @@ class Vs2010Backend(backends.Backend):
                     else:
                         src = os.path.join(proj_to_src_dir, pch[1])
                         pch_header_dir = None
-                    pch_sources[lang] = [pch[0], src, lang, pch_header_dir]
+                    pch_sources[lang] = (pch[0], src, lang, pch_header_dir)
                 else:
                     # I don't know whether its relevant but let's handle other compilers
                     # used with a vs backend
-                    pch_sources[lang] = [pch[0], None, lang, None]
+                    pch_sources[lang] = (pch[0], None, lang, None)
 
         previous_includes: T.List[str] = []
         if len(headers) + len(gen_hdrs) + len(target.extra_files) + len(pch_sources) > 0:
