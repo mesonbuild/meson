@@ -1107,7 +1107,7 @@ class Backend:
                 commands += compiler.get_include_args(priv_dir, False)
         return commands
 
-    def build_target_link_arguments(self, compiler: 'Compiler', deps: T.List[build.Target]) -> T.List[str]:
+    def build_target_link_arguments(self, compiler: Compiler, deps: T.Iterable[build.BuildTargetTypes]) -> T.List[str]:
         args: T.List[str] = []
         for d in deps:
             if not d.is_linkable_target():
