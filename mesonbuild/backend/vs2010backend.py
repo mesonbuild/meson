@@ -34,6 +34,7 @@ if T.TYPE_CHECKING:
 
     Project: TypeAlias = T.Tuple[str, PurePath, str, MachineChoice]
     PchSources: TypeAlias = T.Tuple[str, T.Optional[str], str, T.Optional[str]]
+    FileType = T.TypeVar('FileType', File, str)
 
 
 def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]) -> backends.Backend:
@@ -587,15 +588,16 @@ class Vs2010Backend(backends.Backend):
 
     def split_sources(
             self,
-            srclist: T.Sequence[T.Union[str, File]]
-            ) -> T.Tuple[T.List[mesonlib.FileOrString], T.List[mesonlib.FileOrString],
-                         T.List[mesonlib.FileOrString], T.List[str]]:
-        sources: T.List[mesonlib.FileOrString] = []
-        headers: T.List[mesonlib.FileOrString] = []
-        objects: T.List[mesonlib.FileOrString] = []
+            srclist: T.Iterable[FileType],
+            ) -> T.Tuple[T.List[FileType], T.List[FileType],
+                         T.List[FileType], T.List[str]]:
+        sources: T.List[FileType] = []
+        headers: T.List[FileType] = []
+        objects: T.List[FileType] = []
         languages: T.List[str] = []
         if isinstance(srclist, str):
-            srclist = [srclist]
+            # This is fine, mypy doesn't seem to understand it though
+            srclist = iter([srclist])
         for i in srclist:
             if self.environment.is_header(i):
                 headers.append(i)
@@ -1746,9 +1748,9 @@ class Vs2010Backend(backends.Backend):
                 relpath = os.path.join(proj_to_build_root, h.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_includes):
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
-            for h in gen_hdrs:
-                if path_normalize_add(h, previous_includes):
-                    ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
+            for g in gen_hdrs:
+                if path_normalize_add(g, previous_includes):
+                    ET.SubElement(inc_hdrs, 'CLInclude', Include=g)
             for h in target.extra_files:
                 relpath = os.path.join(proj_to_build_root, h.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_includes):
@@ -1758,7 +1760,7 @@ class Vs2010Backend(backends.Backend):
                 if path_normalize_add(path, previous_includes):
                     ET.SubElement(inc_hdrs, 'CLInclude', Include=path)
 
-        previous_sources = []
+        previous_sources: T.List[str] = []
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             if self.gen_lite:
                 # Get data to fill in intellisense fields for sources that can't reference the project-wide values
@@ -1786,18 +1788,18 @@ class Vs2010Backend(backends.Backend):
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
                         ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
                             self.object_filename_from_source(target, compiler, s)
-            for s in gen_src:
-                if path_normalize_add(s, previous_sources):
-                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
+            for g in gen_src:
+                if path_normalize_add(g, previous_sources):
+                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=g)
                     if self.gen_lite:
-                        self.add_project_nmake_defs_incs_and_opts(inc_cl, s, defs_paths_opts_per_lang_and_buildtype, platform)
+                        self.add_project_nmake_defs_incs_and_opts(inc_cl, g, defs_paths_opts_per_lang_and_buildtype, platform)
                     else:
-                        lang = Vs2010Backend.lang_from_source_file(s)
+                        lang = Vs2010Backend.lang_from_source_file(g)
                         self.add_pch(pch_sources, lang, inc_cl)
                         self.add_additional_options(lang, inc_cl, file_args)
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                        s = File.from_built_file(target.get_subdir(), s)
+                        s = File.from_built_file(target.get_subdir(), g)
                         ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
                             self.object_filename_from_source(target, compiler, s)
             for lang, pch_headers in pch_sources.items():
@@ -1819,7 +1821,7 @@ class Vs2010Backend(backends.Backend):
                         self.add_include_dirs(lang, inc_cl, inc_dirs)
                         # XXX: Do we need to set the object file name here too?
 
-        additional_objects = []
+        additional_objects: T.List[str] = []
         for o in self.flatten_object_list(target, proj_to_build_root)[0]:
             assert isinstance(o, str)
             additional_objects.append(o)
@@ -1837,9 +1839,9 @@ class Vs2010Backend(backends.Backend):
                 relpath = os.path.join(proj_to_build_root, s.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_objects):
                     ET.SubElement(inc_objs, 'Object', Include=relpath)
-            for s in additional_objects + explicit_link_gen_objs:
-                if path_normalize_add(s, previous_objects):
-                    ET.SubElement(inc_objs, 'Object', Include=s)
+            for f in additional_objects + explicit_link_gen_objs:
+                if path_normalize_add(f, previous_objects):
+                    ET.SubElement(inc_objs, 'Object', Include=f)
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)

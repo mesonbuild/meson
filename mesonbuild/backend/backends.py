@@ -40,7 +40,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter import Interpreter, Test
     from ..linkers.linkers import StaticLinker
-    from ..mesonlib import FileMode, FileOrString
+    from ..mesonlib import FileMode
 
     from typing_extensions import TypedDict, NotRequired
 
@@ -851,10 +851,9 @@ class Backend:
             self,
             target: build.BuildTargetTypes,
             compiler: Compiler,
-            source: 'FileOrString',
+            source: File,
             targetdir: T.Optional[str] = None
             ) -> str:
-        assert isinstance(source, mesonlib.File)
         if isinstance(target, build.CompileTarget):
             return target.sources_map[source]
         build_dir = self.environment.get_build_dir()
@@ -912,7 +911,7 @@ class Backend:
                 raw_sources.append(File.from_built_relative(path))
 
         # Filter out headers and all non-source files
-        sources: T.List['FileOrString'] = []
+        sources: T.List[File] = []
         for s in raw_sources:
             if self.environment.is_source(s):
                 sources.append(s)
