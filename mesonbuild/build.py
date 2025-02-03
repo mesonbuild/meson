@@ -283,15 +283,15 @@ class Build:
         Needed for tracking whether a modules options needs to be exposed to the user.
         """
 
-    def get_build_targets(self):
-        build_targets = OrderedDict()
+    def get_build_targets(self) -> T.Dict[str, BuildTarget]:
+        build_targets: T.Dict[str, BuildTarget] = {}
         for name, t in self.targets.items():
             if isinstance(t, BuildTarget):
                 build_targets[name] = t
         return build_targets
 
-    def get_custom_targets(self):
-        custom_targets = OrderedDict()
+    def get_custom_targets(self) -> T.Dict[str, CustomTarget]:
+        custom_targets: T.Dict[str, CustomTarget] = {}
         for name, t in self.targets.items():
             if isinstance(t, CustomTarget):
                 custom_targets[name] = t
