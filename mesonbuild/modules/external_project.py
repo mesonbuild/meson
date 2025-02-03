@@ -6,6 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 import os
 import shlex
+import shutil
 import subprocess
 import typing as T
 
@@ -19,7 +20,7 @@ from ..interpreterbase import FeatureNew
 from ..interpreter.type_checking import ENV_KW, DEPENDS_KW
 from ..interpreterbase.decorators import ContainerTypeInfo, KwargInfo, typed_kwargs, typed_pos_args
 from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
-                        get_variable_regex, do_replacement, join_args, relpath)
+                        get_variable_regex, do_replacement, join_args)
 from ..options import OptionKey
 
 if T.TYPE_CHECKING:
@@ -89,18 +90,28 @@ class ExternalProject(NewExtensionModule):
         self.includedir = Path(_i)
         self.name = self.src_dir.name
 
-        # On Windows if the prefix is "c:/foo" and DESTDIR is "c:/bar", `make`
-        # will install files into "c:/bar/c:/foo" which is an invalid path.
-        # Work around that issue by removing the drive from prefix.
-        if self.prefix.drive:
-            self.prefix = Path(relpath(self.prefix, self.prefix.drive))
+        self.prefix = self._cygpath_convert(self.prefix)
 
         # self.prefix is an absolute path, so we cannot append it to another path.
-        self.rel_prefix = Path(relpath(self.prefix, self.prefix.root))
+        # On Windows (where cygpath is not applied),
+        # if the prefix is "c:/foo" and DESTDIR is "c:/bar",
+        # `make` will install files into "c:/bar/c:/foo" which is an invalid path.
+        # This also removes the drive letter from the prefix to workaround the issue.
+        self.rel_prefix = self.prefix.relative_to(self.prefix.anchor)
 
         self._configure(state)
 
         self.targets = self._create_targets(extra_depends)
+
+    def _cygpath_convert(self, winpath: Path) -> Path:
+        # On Cygwin, MSYS2 and GitBash, the configure command and the prefix
+        # should be converted to unix style path like "/c/foo" by cygpath command,
+        # because the colon in the drive letter breaks many configure scripts.
+        # Do nothing on other environment where cygpath is not available.
+        if winpath.drive and shutil.which('cygpath'):
+            _p, o, _e = Popen_safe(['cygpath', '-u', winpath.as_posix()])
+            return Path(o.strip('\n'))
+        return winpath
 
     def _configure(self, state: 'ModuleState') -> None:
         if self.configure_command == 'waf':
@@ -116,6 +127,8 @@ class ExternalProject(NewExtensionModule):
             configure_path = Path(self.src_dir, self.configure_command)
             configure_prog = state.find_program(configure_path.as_posix())
             configure_cmd = configure_prog.get_command()
+            if len(configure_cmd) >= 2 and configure_cmd[-1] == configure_path.as_posix():
+                configure_cmd = configure_cmd[:-1] + [self._cygpath_convert(configure_path).as_posix()]
             workdir = self.build_dir
             self.make = state.find_program('make').get_command()
 
