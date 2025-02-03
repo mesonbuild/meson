@@ -210,7 +210,7 @@ class RustCompiler(Compiler):
         rustc_rpath_args = []
         for arg in args:
             rustc_rpath_args.append('-C')
-            rustc_rpath_args.append('link-arg=' + arg + ':' + self.get_target_libdir())
+            rustc_rpath_args.append(f'link-arg={arg}:{self.get_target_libdir()}')
         return rustc_rpath_args, to_remove
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
