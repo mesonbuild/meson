@@ -356,6 +356,7 @@ class Vs2010Backend(backends.Backend):
                     if isinstance(ldep, build.CustomTargetIndex):
                         all_deps[ldep.get_id()] = ldep.target
                     elif isinstance(ldep, File):
+                        # XXX: this this true? What if the file `is_built`?
                         # Already built, no target references needed
                         pass
                     else:
