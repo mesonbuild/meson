@@ -36,6 +36,7 @@ modules = [
     'mesonbuild/backend/vs2010backend.py',
     'mesonbuild/backend/vs2017backend.py',
     'mesonbuild/backend/vs2019backend.py',
+    'mesonbuild/backend/vs2022backend.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/depfile.py',
     'mesonbuild/envconfig.py',
