@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
+# Copyright © 2025 Intel Corporation
 
 from __future__ import annotations
 import copy
@@ -1839,7 +1840,7 @@ class Vs2010Backend(backends.Backend):
                 relpath = os.path.join(proj_to_build_root, s.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_objects):
                     ET.SubElement(inc_objs, 'Object', Include=relpath)
-            for f in additional_objects + explicit_link_gen_objs:
+            for f in itertools.chain(additional_objects, explicit_link_gen_objs):
                 if path_normalize_add(f, previous_objects):
                     ET.SubElement(inc_objs, 'Object', Include=f)
 
