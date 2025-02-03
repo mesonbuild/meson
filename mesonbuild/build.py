@@ -3254,6 +3254,10 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def name(self) -> str:
         return f'{self.target.name}[{self.output}]'
 
+    @property
+    def depend_files(self) -> T.List[File]:
+        return self.target.depend_files
+
     def __repr__(self):
         return '<CustomTargetIndex: {!r}[{}]>'.format(self.target, self.output)
 
