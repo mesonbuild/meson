@@ -342,7 +342,7 @@ class Backend:
                 curdir = '.'
         return compiler.get_include_args(curdir, False)
 
-    def get_target_filename_for_linking(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> T.Optional[str]:
+    def get_target_filename_for_linking(self, target: build.BuildTargetTypes) -> T.Optional[str]:
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
         # file is called an import library, and we want to link against that.
@@ -361,7 +361,7 @@ class Backend:
             return Path(self.get_target_dir(target), target.get_filename()).as_posix()
         elif isinstance(target, build.Executable):
             if target.import_filename:
-                return Path(self.get_target_dir(target), target.get_import_filename()).as_posix()
+                return Path(self.get_target_dir(target), target.import_filename).as_posix()
             else:
                 return None
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
