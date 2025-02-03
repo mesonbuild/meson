@@ -3092,6 +3092,10 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def get_option(self, key: OptionKey) -> ElementaryOptionValues:
         return self.target.get_option(key)
 
+    def get_basename(self) -> str:
+        return self.target.get_basename()
+
+
 class ConfigurationData(HoldableObject):
     def __init__(self, initial_values: T.Optional[T.Union[
                 T.Dict[str, T.Tuple[T.Union[str, int, bool], T.Optional[str]]],
