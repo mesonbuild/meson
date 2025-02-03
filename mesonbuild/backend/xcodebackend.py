@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
     from ..build import BuildTarget
     from ..compilers import Compiler
     from ..interpreter import Interpreter
+    from ..linkers.linkers import StaticLinker
 
 INDENT = '\t'
 XCODETYPEMAP: T.Mapping[str, str] = {
@@ -1657,11 +1658,14 @@ class XCodeBackend(backends.Backend):
             ldargs += target.link_args
             # Swift is special. Again. You can't mix Swift with other languages
             # in the same target. Thus for Swift we only use
+            linker: T.Union[Compiler, StaticLinker]
             if is_swift:
                 linker = target.compilers['swift']
             else:
                 linker = self.determine_linker_and_stdlib_args(target)[0]
             if not isinstance(target, build.StaticLibrary):
+                # linker can only be StaticLinker if build.StaticLibrary
+                linker = T.cast('Compiler', linker)
                 ldargs += self.build.get_project_link_args(linker, target.subproject, target.for_machine)
                 ldargs += self.build.get_global_link_args(linker, target.for_machine)
             cargs: T.List[str] = []
@@ -1698,8 +1702,10 @@ class XCodeBackend(backends.Backend):
                     else:
                         raise RuntimeError(o)
             if isinstance(target, build.SharedModule):
+                linker = T.cast('Compiler', linker)
                 ldargs += linker.get_std_shared_module_link_args(target.get_options())
             elif isinstance(target, build.SharedLibrary):
+                linker = T.cast('Compiler', linker)
                 ldargs += linker.get_std_shared_lib_link_args()
             ldstr = ' '.join(ldargs)
             valid = self.buildconfmap[target_name][buildtype]
