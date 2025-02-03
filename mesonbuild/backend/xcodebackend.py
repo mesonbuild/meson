@@ -755,6 +755,10 @@ class XCodeBackend(backends.Backend):
                     o = os.path.join(o.subdir, o.fname)
                 elif isinstance(o, str):
                     o = os.path.join(t.subdir, o)
+
+                if not isinstance(o, str):
+                    raise MesonException('We don\'t support CustomTarget or GeneratedList here. Patches welcome.')
+
                 idval = self.buildfile_ids[(tname, o)]
                 k = (tname, o)
                 fileref = self.fileref_ids[k]
@@ -1155,8 +1159,10 @@ class XCodeBackend(backends.Backend):
                 continue
             if isinstance(o, mesonlib.File):
                 o = os.path.join(o.subdir, o.fname)
-            else:
+            elif isinstance(o, str):
                 o = os.path.join(t.subdir, o)
+            else:
+                raise MesonException('We do not handle generated objects with XCode. Patches Welcome')
             target_children.add_item(self.fileref_ids[(tid, o)], o)
         for e_ in t.extra_files:
             e = os.path.join(e_.subdir, e_.fname)
