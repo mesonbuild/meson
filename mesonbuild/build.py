@@ -723,7 +723,7 @@ class BuildTarget(Target):
         self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
         self.depend_files: T.List[File] = []
-        self.link_depends = []
+        self.link_depends: T.List[T.Union[File, CustomTarget, CustomTargetIndex, BuildTarget]] = []
         self.added_deps = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -1027,7 +1027,7 @@ class BuildTarget(Target):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
-    def process_link_depends(self, sources):
+    def process_link_depends(self, sources: T.Iterable[T.Union[str, File, CustomTarget, CustomTargetIndex, BuildTarget]]) -> None:
         """Process the link_depends keyword argument.
 
         This is designed to handle strings, Files, and the output of Custom
