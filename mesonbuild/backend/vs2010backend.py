@@ -453,7 +453,7 @@ class Vs2010Backend(backends.Backend):
                 target = self.build.targets[prj[0]]
                 lang = 'default'
                 if hasattr(target, 'compilers') and target.compilers:
-                    for lang_out in target.compilers.keys():
+                    for lang_out in target.compilers:
                         lang = lang_out
                         break
                 prj_line = prj_templ % (
@@ -913,7 +913,7 @@ class Vs2010Backend(backends.Backend):
         # defs/dirs/opts that are set for the nominal 'primary' src type.
         ext = src.split('.')[-1]
         lang = compilers.compilers.SUFFIX_TO_LANG.get(ext, None)
-        if lang in defs_paths_opts_per_lang_and_buildtype.keys():
+        if lang in defs_paths_opts_per_lang_and_buildtype:
             # This is a non-primary src type for which can't simply reference the project's nmake fields;
             # we must laboriously fill in the fields for all buildtypes.
             for buildtype in coredata.get_genvs_default_buildtype_list():
@@ -1065,7 +1065,7 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += sargs
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
-        for lang in file_args.keys():
+        for lang in file_args:
             _args = target.get_option(OptionKey(f'{lang}_args', machine=target.for_machine))
             assert isinstance(_args, list), 'for mypy'
             file_args[lang].extend(_args)
