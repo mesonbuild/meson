@@ -1445,8 +1445,8 @@ class Backend:
             newargs.append(arg)
         return newargs
 
-    def get_build_by_default_targets(self) -> 'T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]':
-        result: 'T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]' = OrderedDict()
+    def get_build_by_default_targets(self) -> T.Dict[str, T.Union[build.BuildTarget, build.CustomTarget]]:
+        result: T.Dict[str, T.Union[build.BuildTarget, build.CustomTarget]] = {}
         # Get all build and custom targets that must be built by default
         for name, b in self.build.get_targets().items():
             if b.build_by_default:
