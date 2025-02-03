@@ -51,6 +51,7 @@ if T.TYPE_CHECKING:
     # A generic type for pickle_load. This allows any type that has either a
     # .version or a .environment to be passed.
     _PL = T.TypeVar('_PL', bound=T.Union[_EnvPickleLoadable, _VerPickleLoadable])
+    FileTypes = T.TypeVar('FileTypes', 'File', str, T.Union['File', str])
 
 FileOrString = T.Union['File', str]
 
@@ -472,8 +473,8 @@ def get_compiler_for_source(compilers: T.Iterable['Compiler'], src: 'FileOrStrin
     raise MesonException(f'No specified compiler can handle file {src!s}')
 
 
-def classify_unity_sources(compilers: T.Iterable['Compiler'], sources: T.Sequence['FileOrString']) -> T.Dict['Compiler', T.List['FileOrString']]:
-    compsrclist: T.Dict['Compiler', T.List['FileOrString']] = {}
+def classify_unity_sources(compilers: T.Iterable[Compiler], sources: T.Iterable[FileTypes]) -> T.Dict[Compiler, T.List[FileTypes]]:
+    compsrclist: T.Dict['Compiler', T.List[FileTypes]] = {}
     for src in sources:
         comp = get_compiler_for_source(compilers, src)
         if comp not in compsrclist:
