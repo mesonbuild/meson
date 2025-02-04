@@ -116,6 +116,6 @@ def parse_machine_files(filenames: T.List[str], sourcedir: str, builddir: str) -
 
 
 class MachineFileStore:
-    def __init__(self, native_files: T.Optional[T.List[str]], cross_files: T.Optional[T.List[str]], source_dir: str, build_dir):
+    def __init__(self, native_files: T.Optional[T.List[str]], cross_files: T.Optional[T.List[str]], source_dir: str, build_dir: str):
         self.native = parse_machine_files(native_files if native_files is not None else [], source_dir, build_dir)
         self.cross = parse_machine_files(cross_files if cross_files is not None else [], source_dir, build_dir)

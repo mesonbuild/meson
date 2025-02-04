@@ -101,11 +101,7 @@ def get_rsp_threshold() -> int:
         # and that has a limit of 8k.
         limit = 8192
     else:
-<<<<<<< HEAD
-        # Unix-like OSes usualy have very large command line limits, (On Linux,
-=======
         # Unix-like OSes usually have very large command line limits, (On Linux,
->>>>>>> 1.7.0
         # for example, this is limited by the kernel's MAX_ARG_STRLEN). However,
         # some programs place much lower limits, notably Wine which enforces a
         # 32k limit like Windows. Therefore, we limit the command line to 32k.
@@ -299,20 +295,6 @@ class NinjaRule:
         ninja_vars['out'] = [outfiles]
 
         # expand variables in command
-<<<<<<< HEAD
-        command = ' '.join([self._quoter(x) for x in self.command + self.args])
-        estimate = len(command)
-        for m in re.finditer(r'(\${\w+}|\$\w+)?[^$]*', command):
-            if m.start(1) != -1:
-                estimate -= m.end(1) - m.start(1)
-                chunk = m.group(1)
-                if chunk[1] == '{':
-                    chunk = chunk[2:-1]
-                else:
-                    chunk = chunk[1:]
-                chunk = ninja_vars.get(chunk, []) # undefined ninja variables are empty
-                estimate += len(' '.join(chunk))
-=======
         estimate = len(self.command_str)
         for m in self.var_refs:
             estimate -= m.end(1) - m.start(1)
@@ -323,7 +305,6 @@ class NinjaRule:
                 chunk = chunk[1:]
             chunk = ninja_vars.get(chunk, []) # undefined ninja variables are empty
             estimate += len(' '.join(chunk))
->>>>>>> 1.7.0
 
         # determine command length
         return estimate
