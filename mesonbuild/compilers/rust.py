@@ -241,6 +241,12 @@ class RustCompiler(Compiler):
             'none',
             choices=['none', '2015', '2018', '2021', '2024'])
 
+        key = self.form_compileropt_key('dynamic_std')
+        opts[key] = options.UserBooleanOption(
+            self.make_option_name(key),
+            'Whether to link Rust build targets to a dynamic libstd',
+            False)
+
         return opts
 
     def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
