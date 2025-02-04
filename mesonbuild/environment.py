@@ -273,7 +273,7 @@ class Environment:
 
         for section, values in config.items():
             if ':' in section:
-                section_subproject, section = section.split(':')
+                section_subproject, section = section.split(':', 1)
             else:
                 section_subproject = ''
             if section == 'built-in options':
@@ -290,6 +290,13 @@ class Environment:
                     # Project options are always for the host machine
                     key = self.mfilestr2key(strk, section, section_subproject, machine)
                     self.options[key] = v
+            elif ':' in section:
+                correct_subproject, correct_section = section.split(':')[-2:]
+                raise MesonException(
+                    'Subproject options should always be set as '
+                    '`[subproject:section]`, even if the options are from a '
+                    'nested subproject. '
+                    f'Replace `[{section_subproject}:{section}]` with `[{correct_subproject}:{correct_section}]`')
 
     def _set_default_options_from_env(self) -> None:
         opts: T.List[T.Tuple[str, str]] = (
