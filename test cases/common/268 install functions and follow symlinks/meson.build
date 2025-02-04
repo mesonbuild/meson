@@ -1,5 +1,9 @@
 project('install_data following symlinks')
 
+if build_machine.system() == 'windows'
+    error('MESON_SKIP_TEST symlinks (typically) do not work on Windows.')
+endif
+
 install_data(
   'foo/link1',
   install_dir: get_option('datadir') / 'followed',

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright © 2021 The Meson Developers
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
 """Keyword Argument type annotations."""
@@ -38,7 +38,7 @@ class BaseTest(TypedDict):
 
     """Shared base for the Rust module."""
 
-    args: T.List[T.Union[str, File, build.Target]]
+    args: T.List[T.Union[str, File, build.Target, ExternalProgram]]
     should_fail: bool
     timeout: int
     workdir: T.Optional[str]
@@ -71,7 +71,7 @@ class ExtractRequired(TypedDict):
     """Keyword Arguments consumed by the `extract_required_kwargs` function.
 
     Any function that uses the `required` keyword argument which accepts either
-    a boolean or a feature option should inherit it's arguments from this class.
+    a boolean or a feature option should inherit its arguments from this class.
     """
 
     required: T.Union[bool, options.UserFeatureOption]
@@ -211,6 +211,7 @@ class Project(TypedDict):
     meson_version: T.Optional[str]
     default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
     license: T.List[str]
+    license_files: T.List[str]
     subproject_dir: str
 
 
@@ -267,6 +268,7 @@ class DependencyGetVariable(TypedDict):
     pkgconfig: T.Optional[str]
     configtool: T.Optional[str]
     internal: T.Optional[str]
+    system: T.Optional[str]
     default_value: T.Optional[str]
     pkgconfig_define: PkgConfigDefineType
 
@@ -284,6 +286,10 @@ class VcsTag(TypedDict):
                           build.ExtractedObjects, build.GeneratedList, ExternalProgram, File]]
     output: T.List[str]
     replace_string: str
+    install: bool
+    install_tag: T.Optional[str]
+    install_dir: T.Optional[str]
+    install_mode: FileMode
 
 
 class ConfigureFile(TypedDict):

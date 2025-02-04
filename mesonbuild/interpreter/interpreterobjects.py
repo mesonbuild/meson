@@ -41,6 +41,10 @@ if T.TYPE_CHECKING:
 
         separator: str
 
+    class InternalDependencyAsKW(TypedDict):
+
+        recursive: bool
+
 _ERROR_MSG_KW: KwargInfo[T.Optional[str]] = KwargInfo('error_message', (str, NoneType))
 
 
@@ -462,6 +466,8 @@ class DependencyHolder(ObjectHolder[Dependency]):
                              'include_type': self.include_type_method,
                              'as_system': self.as_system_method,
                              'as_link_whole': self.as_link_whole_method,
+                             'as_static': self.as_static_method,
+                             'as_shared': self.as_shared_method,
                              })
 
     def found(self) -> bool:
@@ -539,6 +545,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
         KwargInfo('pkgconfig', (str, NoneType)),
         KwargInfo('configtool', (str, NoneType)),
         KwargInfo('internal', (str, NoneType), since='0.54.0'),
+        KwargInfo('system', (str, NoneType), since='1.6.0'),
         KwargInfo('default_value', (str, NoneType)),
         PKGCONFIG_DEFINE_KW,
     )
@@ -555,6 +562,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
             pkgconfig=kwargs['pkgconfig'] or default_varname,
             configtool=kwargs['configtool'] or default_varname,
             internal=kwargs['internal'] or default_varname,
+            system=kwargs['system'] or default_varname,
             default_value=kwargs['default_value'],
             pkgconfig_define=kwargs['pkgconfig_define'],
         )
@@ -579,6 +587,28 @@ class DependencyHolder(ObjectHolder[Dependency]):
             raise InterpreterException('as_link_whole method is only supported on declare_dependency() objects')
         new_dep = self.held_object.generate_link_whole_dependency()
         return new_dep
+
+    @FeatureNew('dependency.as_static', '1.6.0')
+    @noPosargs
+    @typed_kwargs(
+        'dependency.as_static',
+        KwargInfo('recursive', bool, default=False),
+    )
+    def as_static_method(self, args: T.List[TYPE_var], kwargs: InternalDependencyAsKW) -> Dependency:
+        if not isinstance(self.held_object, InternalDependency):
+            raise InterpreterException('as_static method is only supported on declare_dependency() objects')
+        return self.held_object.get_as_static(kwargs['recursive'])
+
+    @FeatureNew('dependency.as_shared', '1.6.0')
+    @noPosargs
+    @typed_kwargs(
+        'dependency.as_shared',
+        KwargInfo('recursive', bool, default=False),
+    )
+    def as_shared_method(self, args: T.List[TYPE_var], kwargs: InternalDependencyAsKW) -> Dependency:
+        if not isinstance(self.held_object, InternalDependency):
+            raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
+        return self.held_object.get_as_shared(kwargs['recursive'])
 
 _EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
 
@@ -753,7 +783,7 @@ class Test(MesonInterpreterObject):
                  exe: T.Union[ExternalProgram, build.Executable, build.CustomTarget, build.CustomTargetIndex],
                  depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
                  is_parallel: bool,
-                 cmd_args: T.List[T.Union[str, mesonlib.File, build.Target]],
+                 cmd_args: T.List[T.Union[str, mesonlib.File, build.Target, ExternalProgram]],
                  env: mesonlib.EnvironmentVariables,
                  should_fail: bool, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int, verbose: bool):
@@ -813,26 +843,23 @@ class SubprojectHolder(MesonInterpreterObject):
     def found(self) -> bool:
         return not isinstance(self.held_object, NullSubprojectInterpreter)
 
-    @noKwargs
-    @noArgsFlattening
     @unholder_return
-    def get_variable_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Get_variable takes one or two arguments.')
+    def get_variable(self, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
         if isinstance(self.held_object, NullSubprojectInterpreter):  # == not self.found()
             raise InterpreterException(f'Subproject "{self.subdir}" disabled can\'t get_variable on it.')
-        varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('Get_variable first argument must be a string.')
+        varname, fallback = args
         try:
             return self.held_object.variables[varname]
         except KeyError:
-            pass
+            if fallback is not None:
+                return self.held_object._holderify(fallback)
+            raise InvalidArguments(f'Requested variable "{varname}" not found.')
 
-        if len(args) == 2:
-            return self.held_object._holderify(args[1])
-
-        raise InvalidArguments(f'Requested variable "{varname}" not found.')
+    @noKwargs
+    @typed_pos_args('subproject.get_variable', str, optargs=[object])
+    @noArgsFlattening
+    def get_variable_method(self, args: T.Tuple[str, T.Optional[str]], kwargs: TYPE_kwargs) -> T.Union[TYPE_var, InterpreterObject]:
+        return self.get_variable(args, kwargs)
 
 class ModuleObjectHolder(ObjectHolder[ModuleObject]):
     def method_call(self, method_name: str, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:
@@ -942,7 +969,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
                 extract_all_objects called without setting recursive
                 keyword argument. Meson currently defaults to
                 non-recursive to maintain backward compatibility but
-                the default will be changed in the future.
+                the default will be changed in meson 2.0.
             ''')
         )
     )
@@ -974,8 +1001,6 @@ class SharedLibraryHolder(BuildTargetHolder[build.SharedLibrary]):
 
 class BothLibrariesHolder(BuildTargetHolder[build.BothLibraries]):
     def __init__(self, libs: build.BothLibraries, interp: 'Interpreter'):
-        # FIXME: This build target always represents the shared library, but
-        # that should be configurable.
         super().__init__(libs, interp)
         self.methods.update({'get_shared_lib': self.get_shared_lib_method,
                              'get_static_lib': self.get_static_lib_method,
@@ -990,12 +1015,16 @@ class BothLibrariesHolder(BuildTargetHolder[build.BothLibraries]):
     @noPosargs
     @noKwargs
     def get_shared_lib_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.SharedLibrary:
-        return self.held_object.shared
+        lib = copy.copy(self.held_object.shared)
+        lib.both_lib = None
+        return lib
 
     @noPosargs
     @noKwargs
     def get_static_lib_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.StaticLibrary:
-        return self.held_object.static
+        lib = copy.copy(self.held_object.static)
+        lib.both_lib = None
+        return lib
 
 class SharedModuleHolder(BuildTargetHolder[build.SharedModule]):
     pass

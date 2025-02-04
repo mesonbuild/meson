@@ -133,7 +133,7 @@ class Builder:
 
         :param lhs: The left hand side of the equal
         :param rhs: the right hand side of the equal
-        :return: A compraison node
+        :return: A comparison node
         """
         return mparser.ComparisonNode('==', lhs, self._symbol('=='), rhs)
 
@@ -142,7 +142,7 @@ class Builder:
 
         :param lhs: The left hand side of the "!="
         :param rhs: the right hand side of the "!="
-        :return: A compraison node
+        :return: A comparison node
         """
         return mparser.ComparisonNode('!=', lhs, self._symbol('!='), rhs)
 
@@ -151,7 +151,7 @@ class Builder:
 
         :param lhs: The left hand side of the "in"
         :param rhs: the right hand side of the "in"
-        :return: A compraison node
+        :return: A comparison node
         """
         return mparser.ComparisonNode('in', lhs, self._symbol('in'), rhs)
 
@@ -160,7 +160,7 @@ class Builder:
 
         :param lhs: The left hand side of the "not in"
         :param rhs: the right hand side of the "not in"
-        :return: A compraison node
+        :return: A comparison node
         """
         return mparser.ComparisonNode('notin', lhs, self._symbol('not in'), rhs)
 

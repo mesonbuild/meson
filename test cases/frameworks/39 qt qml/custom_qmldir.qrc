@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="/qt/qml/My/Module4">
+    <file alias="qmldir">custom_qmldir</file>
+  </qresource>
+</RCC>

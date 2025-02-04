@@ -22,7 +22,7 @@ methods:
 
 - name: cpu
   returns: str
-  description: Returns a more specific CPU name, such as `i686`, `amd64`, etc.
+  description: Returns a more specific CPU name, such as `i686`, `armv8l`, etc.
 
 - name: system
   returns: str
@@ -35,3 +35,24 @@ methods:
 - name: endian
   returns: str
   description: returns `'big'` on big-endian systems and `'little'` on little-endian systems.
+
+- name: kernel
+  returns: str
+  since: 1.2.0
+  description: |
+    Returns the name of the Operating System Kernel, such as `linux`, `xnu`, and
+    `nt`. [See here for more complete
+    list](Reference-tables.md#kernel-names-since-120) These are more specific
+    than `system`. If this cannot be detected (for the build machine), or is not
+    set in the cross file (for the host machine when cross compiling), calling
+    this method is fatal.
+
+- name: subsystem
+  returns: str
+  since: 1.2.0
+  description: |
+    Returns the variant of the operating system, such as `ios` and `tvos`.  [See
+    here for more complete list](Reference-tables.md#kernel-names-since-120)
+    These are more specific than `system`. If this cannot be detected (for the
+    build machine), or is not set in the cross file (for the host machine when
+    cross compiling), calling this method is fatal.

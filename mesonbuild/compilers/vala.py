@@ -11,9 +11,9 @@ from .. import mesonlib
 from ..mesonlib import EnvironmentException, version_compare, LibType
 from ..options import OptionKey
 from .compilers import CompileCheckMode, Compiler
-from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
+    from ..arglist import CompilerArgs
     from ..coredata import KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -31,6 +31,7 @@ class ValaCompiler(Compiler):
         self.version = version
         self.base_options = {OptionKey('b_colorout')}
         self.force_link = False
+        self._has_color_support = version_compare(self.version, '>=0.37.1')
 
     def needs_static_linker(self) -> bool:
         return False # Because compiles into C.
@@ -80,7 +81,7 @@ class ValaCompiler(Compiler):
         return ['--fatal-warnings']
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
-        if version_compare(self.version, '>=0.37.1'):
+        if self._has_color_support:
             return ['--color=' + colortype]
         return []
 

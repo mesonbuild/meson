@@ -31,8 +31,8 @@ jobs:
   unittests-appleclang:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
     - run: |
@@ -81,7 +81,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     # Avoid picking up an older version of LLVM that does not work.
     - run: brew update
     # github actions overwrites brew's python. Force it to reassert itself, by running in a separate step.
@@ -110,7 +110,9 @@ jobs:
         # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
       run: |
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
-        export PATH="$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/llvm/bin:/opt/homebrew/opt/ncurses/bin:$PATH"
+        # Append LLVM's bin directory to PATH to prioritise Apple Clang over Homebrew Clang.
+        # We need this to avoid objfw test failures.
+        export PATH="$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/ncurses/bin:$PATH:/opt/homebrew/opt/llvm/bin"
         export PKG_CONFIG_PATH="/opt/homebrew/opt/qt@5/lib/pkgconfig:/opt/homebrew/opt/lapack/lib/pkgconfig:/opt/homebrew/opt/ncurses/lib/pkgconfig:$PKG_CONFIG_PATH"
         ./tools/run_with_cov.py ./run_project_tests.py --backend=ninja
 
@@ -132,8 +134,8 @@ jobs:
     env:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
     - run: python -m pip install -e .
@@ -145,13 +147,13 @@ jobs:
     - run: ln -sfn /usr/local/Cellar/qt@4/4.8.7_6.reinstall /usr/local/Cellar/qt@4/4.8.7_6
     - run: meson setup "test cases/frameworks/4 qt" build -Drequired=qt4
     - run: meson compile -C build
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: Qt4_Mac_build
         path: build/meson-logs/meson-log.txt
     - run: meson test -C build -v
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: Qt4_Mac_test

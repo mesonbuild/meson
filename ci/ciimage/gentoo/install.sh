@@ -20,8 +20,7 @@ pkgs_stable=(
   dev-lang/vala
   dev-lang/python:2.7
   dev-java/openjdk-bin
-  # requires rustfmt, bin rebuild (TODO: file bug)
-  #dev-util/bindgen
+  dev-util/bindgen
 
   dev-libs/elfutils
   dev-util/gdbus-codegen
@@ -40,13 +39,11 @@ pkgs_stable=(
   sci-libs/hdf5
   dev-qt/linguist-tools
   sys-devel/llvm
-  # qt6 unstable
-  #dev-qt/qttools
+  dev-qt/qttools
 
   # misc
   app-admin/sudo
   app-text/doxygen
-  sys-apps/fakeroot
   sys-devel/bison
   sys-devel/gettext
 
@@ -105,8 +102,16 @@ mkdir /etc/portage/binrepos.conf || true
 mkdir /etc/portage/profile || true
 cat <<-EOF > /etc/portage/package.use/ci
 	dev-cpp/gtkmm X
-
+	dev-lang/rust clippy rustfmt
+	dev-lang/rust-bin clippy rustfmt
 	dev-libs/boost python
+
+	# Some of these settings are needed just to get the binpkg but
+	# aren't negative to have anyway
+	sys-devel/gcc ada d
+	>=sys-devel/gcc-13 ada objc objc++
+	sys-devel/gcc pgo lto
+
 	sys-libs/zlib static-libs
 EOF
 
@@ -158,3 +163,11 @@ install_python_packages
 python3 -m pip install "${base_python_pkgs[@]}"
 
 echo "source /etc/profile" >> /ci/env_vars.sh
+
+# Cleanup to avoid including large contents in the docker image.
+# We don't need cache files that are side artifacts of installing packages.
+# We also don't need the gentoo tree -- the official docker image doesn't
+# either, and expects you to use emerge-webrsync once you need it.
+rm -rf /var/cache/binpkgs
+rm -rf /var/cache/distfiles
+rm -rf /var/db/repos/gentoo

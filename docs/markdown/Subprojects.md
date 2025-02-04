@@ -300,7 +300,7 @@ types. Multiple types can be set as comma separated list e.g. `--types
 git,file`.
 
 *Since 0.56.0* If the subcommand fails on any subproject an error code
-is returned at the end instead of retuning success.
+is returned at the end instead of returning success.
 
 ### Download subprojects
 

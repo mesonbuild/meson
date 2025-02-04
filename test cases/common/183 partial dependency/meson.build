@@ -1,4 +1,4 @@
-# Copyright © 2018 Intel Corporation
+# Copyright © 2018-2024 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,3 +15,6 @@
 project('partial dependency', ['c', 'cpp'])
 
 subdir('declare_dependency')
+
+dep_zlib = dependency('zlib', required : false)
+subdir('external_dependency', if_found : dep_zlib)

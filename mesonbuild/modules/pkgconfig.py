@@ -127,7 +127,7 @@ class DependenciesHelper:
                          'to generate() method instead of first positional '
                          'argument.', 'Adding', mlog.bold(data.display_name),
                          'to "Requires" field, but this is a deprecated '
-                         'behaviour that will change in a future version '
+                         'behaviour that will change in version 2.0 '
                          'of Meson. Please report the issue if this '
                          'warning cannot be avoided in your case.',
                          location=data.location)
@@ -195,6 +195,13 @@ class DependenciesHelper:
                 if obj.found():
                     if obj.objects:
                         raise mesonlib.MesonException('.pc file cannot refer to individual object files.')
+
+                    # Ensure BothLibraries are resolved:
+                    if self.pub_libs and isinstance(self.pub_libs[0], build.StaticLibrary):
+                        obj = obj.get_as_static(recursive=True)
+                    else:
+                        obj = obj.get_as_shared(recursive=True)
+
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
                     self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)

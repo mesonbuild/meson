@@ -53,9 +53,9 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
 
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
-    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
+    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,-rpath,', '-Wl,-rpath-link,')
     dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
-    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
+    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread', '-Wl,--export-dynamic')
 
     def to_native(self, copy: bool = False) -> T.List[str]:
         # This seems to be allowed, but could never work?
@@ -478,6 +478,21 @@ class CLikeCompiler(Compiler):
         if isinstance(guess, int):
             if self._compile_int(f'{expression} == {guess}', prefix, env, extra_args, dependencies):
                 return guess
+
+        # Try to expand the expression and evaluate it on the build machines compiler
+        if self.language in env.coredata.compilers.build:
+            try:
+                expanded, _ = self.get_define(expression, prefix, env, extra_args, dependencies, False)
+                evaluate_expanded = f'''
+                #include <stdio.h>
+                #include <stdint.h>
+                int main(void) {{ int expression = {expanded}; printf("%d", expression); return 0; }}'''
+                run = env.coredata.compilers.build[self.language].run(evaluate_expanded, env)
+                if run and run.compiled and run.returncode == 0:
+                    if self._compile_int(f'{expression} == {run.stdout}', prefix, env, extra_args, dependencies):
+                        return int(run.stdout)
+            except mesonlib.EnvironmentException:
+                pass
 
         # If no bounds are given, compute them in the limit of int32
         maxint = 0x7fffffff
@@ -1037,8 +1052,8 @@ class CLikeCompiler(Compiler):
         elif env.machines[self.for_machine].is_cygwin():
             shlibext = ['dll', 'dll.a']
             prefixes = ['cyg'] + prefixes
-        elif self.id.lower() == 'c6000' or self.id.lower() == 'ti':
-            # TI C6000 compiler can use both extensions for static or dynamic libs.
+        elif self.id.lower() in {'c6000', 'c2000', 'ti'}:
+            # TI C28x compilers can use both extensions for static or dynamic libs.
             stlibext = ['a', 'lib']
             shlibext = ['dll', 'so']
         else:

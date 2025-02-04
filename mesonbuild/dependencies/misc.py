@@ -51,6 +51,27 @@ def netcdf_factory(env: 'Environment',
 packages['netcdf'] = netcdf_factory
 
 
+class AtomicBuiltinDependency(BuiltinDependency):
+    def __init__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.7.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
+
+        if self.clib_compiler.has_function('atomic_flag_clear', '#include <stdatomic.h>', env)[0]:
+            self.is_found = True
+
+
+class AtomicSystemDependency(SystemDependency):
+    def __init__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.7.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
+
+        h = self.clib_compiler.has_header('stdatomic.h', '', env)
+        self.link_args = self.clib_compiler.find_library('atomic', env, [], self.libtype)
+
+        if h[0] and self.link_args:
+            self.is_found = True
+
+
 class DlBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
@@ -312,7 +333,14 @@ class CursesConfigToolDependency(ConfigToolDependency):
     tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
-        super().__init__(name, env, kwargs, language)
+        exclude_paths = None
+        # macOS mistakenly ships /usr/bin/ncurses5.4-config and a man page for
+        # it, but none of the headers or libraries. Ignore /usr/bin because it
+        # can only contain this broken configtool script.
+        # Homebrew is /usr/local or /opt/homebrew.
+        if env.machines.build and env.machines.build.system == 'darwin':
+            exclude_paths = ['/usr/bin']
+        super().__init__(name, env, kwargs, language, exclude_paths=exclude_paths)
         if not self.is_found:
             return
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
@@ -556,6 +584,13 @@ def shaderc_factory(env: 'Environment',
     return candidates
 packages['shaderc'] = shaderc_factory
 
+
+packages['atomic'] = atomic_factory = DependencyFactory(
+    'atomic',
+    [DependencyMethods.SYSTEM, DependencyMethods.BUILTIN],
+    system_class=AtomicSystemDependency,
+    builtin_class=AtomicBuiltinDependency,
+)
 
 packages['cups'] = cups_factory = DependencyFactory(
     'cups',

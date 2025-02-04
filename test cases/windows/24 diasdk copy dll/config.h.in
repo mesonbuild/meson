@@ -1,0 +1,3 @@
+#pragma once
+
+#define MSDIA_DLL_NAME L"@msdia_dll_name@"

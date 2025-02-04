@@ -6,7 +6,6 @@ from __future__ import annotations
 import re
 import typing as T
 
-from . import coredata
 from . import options
 from . import mesonlib
 from .options import OptionKey
@@ -16,6 +15,7 @@ from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, type
 from .interpreter.type_checking import NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
+    from . import coredata
     from .interpreterbase import TYPE_var, TYPE_kwargs
     from .interpreterbase import SubProject
     from typing_extensions import TypedDict, Literal

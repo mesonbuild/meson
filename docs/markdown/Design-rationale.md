@@ -236,7 +236,7 @@ Above we mentioned precompiled headers as a feature not supported by
 other build systems. Here's how you would use them.
 
 ```meson
-project('pch demo', 'cxx')
+project('pch demo', 'cpp')
 executable('myapp', 'myapp.cpp', pch : 'pch/myapp.hh')
 ```
 

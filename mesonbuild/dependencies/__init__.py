@@ -195,6 +195,7 @@ packages.defaults.update({
     'zlib': 'dev',
     'jni': 'dev',
     'jdk': 'dev',
+    'diasdk': 'dev',
 
     'boost': 'boost',
     'cuda': 'cuda',
@@ -219,6 +220,7 @@ packages.defaults.update({
     'shaderc': 'misc',
     'iconv': 'misc',
     'intl': 'misc',
+    'atomic': 'misc',
     'dl': 'misc',
     'openssl': 'misc',
     'libcrypto': 'misc',

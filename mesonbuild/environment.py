@@ -45,6 +45,7 @@ if T.TYPE_CHECKING:
 
     from .compilers import Compiler
     from .wrap.wrap import Resolver
+    from . import cargo
 
     CompilersDict = T.Dict[str, Compiler]
 
@@ -275,6 +276,32 @@ def detect_clangformat() -> T.List[str]:
             return [path]
     return []
 
+def detect_clangtidy() -> T.List[str]:
+    """ Look for clang-tidy binary on build platform
+
+    Return: a single-element list of the found clang-tidy binary ready to be
+        passed to Popen()
+    """
+    tools = get_llvm_tool_names('clang-tidy')
+    for tool in tools:
+        path = shutil.which(tool)
+        if path is not None:
+            return [path]
+    return []
+
+def detect_clangapply() -> T.List[str]:
+    """ Look for clang-apply-replacements binary on build platform
+
+    Return: a single-element list of the found clang-apply-replacements binary
+        ready to be passed to Popen()
+    """
+    tools = get_llvm_tool_names('clang-apply-replacements')
+    for tool in tools:
+        path = shutil.which(tool)
+        if path is not None:
+            return [path]
+    return []
+
 def detect_windows_arch(compilers: CompilersDict) -> str:
     """
     Detecting the 'native' architecture of Windows is not a trivial task. We
@@ -309,7 +336,7 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
     for compiler in compilers.values():
         if compiler.id == 'msvc' and (compiler.target in {'x86', '80x86'}):
             return 'x86'
-        if compiler.id == 'clang-cl' and compiler.target == 'x86':
+        if compiler.id == 'clang-cl' and (compiler.target in {'x86', 'i686'}):
             return 'x86'
         if compiler.id == 'gcc' and compiler.has_builtin_define('__i386__'):
             return 'x86'
@@ -329,7 +356,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     """
     Python is inconsistent in its platform module.
     It returns different values for the same cpu.
-    For x86 it might return 'x86', 'i686' or somesuch.
+    For x86 it might return 'x86', 'i686' or some such.
     Do some canonicalization.
     """
     if mesonlib.is_windows():
@@ -450,6 +477,7 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
                                         'darwin': 'xnu',
                                         'dragonfly': 'dragonfly',
                                         'haiku': 'haiku',
+                                        'gnu': 'gnu',
                                         }
 
 def detect_kernel(system: str) -> T.Optional[str]:
@@ -466,7 +494,7 @@ def detect_kernel(system: str) -> T.Optional[str]:
             raise MesonException('Failed to run "/usr/bin/uname -o"')
         out = out.lower().strip()
         if out not in {'illumos', 'solaris'}:
-            mlog.warning(f'Got an unexpected value for kernel on a SunOS derived platform, expcted either "illumos" or "solaris", but got "{out}".'
+            mlog.warning(f'Got an unexpected value for kernel on a SunOS derived platform, expected either "illumos" or "solaris", but got "{out}".'
                          "Please open a Meson issue with the OS you're running and the value detected for your kernel.")
             return None
         return out
@@ -660,6 +688,8 @@ class Environment:
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
+        # Store a global state of Cargo dependencies
+        self.cargo: T.Optional[cargo.Interpreter] = None
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
@@ -696,7 +726,7 @@ class Environment:
                     key = OptionKey.from_string(k)
                     # If we're in the cross file, and there is a `build.foo` warn about that. Later we'll remove it.
                     if machine is MachineChoice.HOST and key.machine is not machine:
-                        mlog.deprecation('Setting build machine options in cross files, please use a native file instead, this will be removed in meson 0.60', once=True)
+                        mlog.deprecation('Setting build machine options in cross files, please use a native file instead, this will be removed in meson 2.0', once=True)
                     if key.subproject:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
                     self.options[key.evolve(subproject=subproject, machine=machine)] = v
@@ -961,6 +991,8 @@ class Environment:
         value = self.properties[for_machine].get('needs_exe_wrapper', None)
         if value is not None:
             return value
+        if not self.is_cross_build():
+            return False
         return not machine_info_can_run(self.machines[for_machine])
 
     def get_exe_wrapper(self) -> T.Optional[ExternalProgram]:
@@ -970,3 +1002,25 @@ class Environment:
 
     def has_exe_wrapper(self) -> bool:
         return self.exe_wrapper and self.exe_wrapper.found()
+
+    def get_env_for_paths(self, library_paths: T.Set[str], extra_paths: T.Set[str]) -> mesonlib.EnvironmentVariables:
+        env = mesonlib.EnvironmentVariables()
+        need_wine = not self.machines.build.is_windows() and self.machines.host.is_windows()
+        if need_wine:
+            # Executable paths should be in both PATH and WINEPATH.
+            # - Having them in PATH makes bash completion find it,
+            #   and make running "foo.exe" find it when wine-binfmt is installed.
+            # - Having them in WINEPATH makes "wine foo.exe" find it.
+            library_paths.update(extra_paths)
+        if library_paths:
+            if need_wine:
+                env.prepend('WINEPATH', list(library_paths), separator=';')
+            elif self.machines.host.is_windows() or self.machines.host.is_cygwin():
+                extra_paths.update(library_paths)
+            elif self.machines.host.is_darwin():
+                env.prepend('DYLD_LIBRARY_PATH', list(library_paths))
+            else:
+                env.prepend('LD_LIBRARY_PATH', list(library_paths))
+        if extra_paths:
+            env.prepend('PATH', list(extra_paths))
+        return env

@@ -1335,15 +1335,18 @@ class GnomeModule(ExtensionModule):
             for i, m in enumerate(media):
                 m_dir = os.path.dirname(m)
                 m_install_dir = os.path.join(l_install_dir, m_dir)
+                try:
+                    m_file: T.Optional[mesonlib.File] = mesonlib.File.from_source_file(state.environment.source_dir, l_subdir, m)
+                except MesonException:
+                    m_file = None
+
                 l_data: T.Union[build.Data, build.SymlinkData]
-                if symlinks:
+                if symlinks and not m_file:
                     link_target = os.path.join(os.path.relpath(c_install_dir, start=m_install_dir), m)
                     l_data = build.SymlinkData(link_target, os.path.basename(m),
                                                m_install_dir, state.subproject, install_tag='doc')
                 else:
-                    try:
-                        m_file = mesonlib.File.from_source_file(state.environment.source_dir, l_subdir, m)
-                    except MesonException:
+                    if not m_file:
                         m_file = media_files[i]
                     l_data = build.Data([m_file], m_install_dir, m_install_dir,
                                         mesonlib.FileMode(), state.subproject, install_tag='doc')

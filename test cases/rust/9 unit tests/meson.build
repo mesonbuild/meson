@@ -1,4 +1,4 @@
-project('rust unit tests', 'rust')
+project('rust unit tests', 'rust', meson_version: '>=1.2.0')
 
 t = executable(
   'rust_test',
@@ -31,9 +31,22 @@ test(
   suite : ['foo'],
 )
 
+rustdoc = find_program('rustdoc', required: false)
+if rustdoc.found()
+  # rustdoc is invoked mostly like rustc.  This is a simple example
+  # where it is easy enough to invoke it by hand.
+  test(
+    'rust doctest',
+    rustdoc,
+    args : ['--test', '--crate-name', 'doctest1', '--crate-type', 'lib', files('doctest1.rs')],
+    protocol : 'rust',
+    suite : ['doctests'],
+  )
+endif
+
 exe = executable('rust_exe', ['test2.rs', 'test.rs'], build_by_default : false)
 
-rust = import('unstable-rust')
+rust = import('rust')
 rust.test('rust_test_from_exe', exe, should_fail : true)
 
 lib = static_library('rust_static', ['test.rs'], build_by_default : false, rust_crate_type : 'lib')

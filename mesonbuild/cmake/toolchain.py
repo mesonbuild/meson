@@ -198,6 +198,8 @@ class CMakeToolchain:
         if compiler.get_argument_syntax() == 'msvc':
             return arg.startswith('/')
         else:
+            if compiler.exelist[0] == 'zig' and arg in {'ar', 'cc', 'c++', 'dlltool', 'lib', 'ranlib', 'objcopy', 'rc'}:
+                return True
             return arg.startswith('-')
 
     def update_cmake_compiler_state(self) -> None:
@@ -210,7 +212,7 @@ class CMakeToolchain:
         languages = list(self.compilers.keys())
         lang_ids = [language_map.get(x, x.upper()) for x in languages]
         cmake_content = dedent(f'''
-            cmake_minimum_required(VERSION 3.7)
+            cmake_minimum_required(VERSION 3.10)
             project(CompInfo {' '.join(lang_ids)})
         ''')
 
@@ -230,10 +232,15 @@ class CMakeToolchain:
         cmake_args += trace.trace_args()
         cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_TOOLCHAIN_FILE={temp_toolchain_file.as_posix()}', '.']
-        rc, _, raw_trace = self.cmakebin.call(cmake_args, build_dir=build_dir, disable_cache=True)
+        rc, raw_stdout, raw_trace = self.cmakebin.call(cmake_args, build_dir=build_dir, disable_cache=True)
 
         if rc != 0:
             mlog.warning('CMake Toolchain: Failed to determine CMake compilers state')
+            mlog.debug(f' -- return code: {rc}')
+            for line in raw_stdout.split('\n'):
+                mlog.debug(f' -- stdout: {line.rstrip()}')
+            for line in raw_trace.split('\n'):
+                mlog.debug(f' -- stderr: {line.rstrip()}')
             return
 
         # Parse output

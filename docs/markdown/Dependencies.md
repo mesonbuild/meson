@@ -80,8 +80,8 @@ var = foo_dep.get_variable(cmake : 'CMAKE_VAR', pkgconfig : 'pkg-config-var', co
 ```
 
 It accepts the keywords 'cmake', 'pkgconfig', 'pkgconfig_define',
-'configtool', 'internal', and 'default_value'. 'pkgconfig_define'
-works just like the 'define_variable' argument to
+'configtool', 'internal', 'system', and 'default_value'.
+'pkgconfig_define' works just like the 'define_variable' argument to
 `get_pkgconfig_variable`. When this method is invoked the keyword
 corresponding to the underlying type of the dependency will be used to
 look for a variable. If that variable cannot be found or if the caller
@@ -317,6 +317,16 @@ dep = dependency('appleframeworks', modules : 'foundation')
 
 These dependencies can never be found for non-OSX hosts.
 
+## atomic (stdatomic)
+
+*(added 1.7.0)*
+
+Provides access to the atomic operations library. This first attempts
+to look for a valid atomic external library before trying to fallback
+to what is provided by the C runtime libraries.
+
+`method` may be `auto`, `builtin` or `system`.
+
 ## Blocks
 
 Enable support for Clang's blocks extension.
@@ -417,6 +427,34 @@ foreach h : check_headers
 endforeach
 ```
 
+## DIA SDK
+
+*(added 1.6.0)*
+
+Microsoft's Debug Interface Access SDK (DIA SDK) is available only on Windows,
+when using msvc, clang-cl or clang compiler from Microsoft Visual Studio.
+
+The DIA SDK runtime is not statically linked to target. The default usage
+method requires the runtime DLL (msdiaXXX.dll) to be manually registered in the
+OS with `regsrv32.exe` command, so it can be loaded using `CoCreateInstance`
+Windows function.
+
+Alternatively, you can use meson to copy the DIA runtime DLL to your build
+directory, and load it dynamically using `NoRegCoCreate` function provided by
+the DIA SDK. To facilitate this, you can read DLL path from dependency's
+variable 'dll' and use fs module to copy it. Example:
+
+```meson
+dia = dependency('diasdk', required: true)
+fs = import('fs')
+fs.copyfile(dia.get_variable('dll'))
+
+conf = configuration_data()
+conf.set('msdia_dll_name', fs.name(dia_dll_name))
+```
+
+Only the major version is available (eg. version is `14` for msdia140.dll).
+
 ## dl (libdl)
 
 *(added 0.62.0)*
@@ -438,17 +476,17 @@ providing them instead.
 GCC will use OpenCoarrays if present to implement coarrays, while Intel and NAG
 use internal coarray support.
 
-## GPGME
-
-*(added 0.51.0)*
-
-`method` may be `auto`, `config-tool` or `pkg-config`.
-
 ## GL
 
 This finds the OpenGL library in a way appropriate to the platform.
 
 `method` may be `auto`, `pkg-config` or `system`.
+
+## GPGME
+
+*(added 0.51.0)*
+
+`method` may be `auto`, `config-tool` or `pkg-config`.
 
 ## GTest and GMock
 
@@ -639,6 +677,14 @@ language-specific, you must specify the requested language using the
 
 Meson uses pkg-config to find NetCDF.
 
+## NumPy
+
+*(added 1.4.0)*
+
+`method` may be `auto`, `pkg-config`, or `config-tool`.
+`dependency('numpy')` supports regular use of the NumPy C API.
+Use of `numpy.f2py` for binding Fortran code isn't yet supported.
+
 ## ObjFW
 
 *(added 1.5.0)*
@@ -683,14 +729,6 @@ The `language` keyword may used.
 *(added 0.62.0)*
 
 `method` may be `auto`, `pkg-config`, `system` or `cmake`.
-
-## NumPy
-
-*(added 1.4.0)*
-
-`method` may be `auto`, `pkg-config`, or `config-tool`.
-`dependency('numpy')` supports regular use of the NumPy C API.
-Use of `numpy.f2py` for binding Fortran code isn't yet supported.
 
 ## pcap
 
@@ -766,7 +804,7 @@ your own risk.
 
 ## SDL2
 
-SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool,
+SDL2 can be located using `pkg-config`, the `sdl2-config` config tool,
 as an OSX framework, or `cmake`.
 
 `method` may be `auto`, `config-tool`, `extraframework`,

@@ -394,13 +394,18 @@ class Resolver:
         self.add_wrap(wrap)
         return wrap
 
-    def merge_wraps(self, other_resolver: 'Resolver') -> None:
+    def _merge_wraps(self, other_resolver: 'Resolver') -> None:
         for k, v in other_resolver.wraps.items():
             self.wraps.setdefault(k, v)
         for k, v in other_resolver.provided_deps.items():
             self.provided_deps.setdefault(k, v)
         for k, v in other_resolver.provided_programs.items():
             self.provided_programs.setdefault(k, v)
+
+    def load_and_merge(self, subdir: str, subproject: SubProject) -> None:
+        if self.wrap_mode != WrapMode.nopromote:
+            other_resolver = Resolver(self.source_dir, subdir, subproject, self.wrap_mode, self.wrap_frontend, self.allow_insecure, self.silent)
+            self._merge_wraps(other_resolver)
 
     def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
         # Python's ini parser converts all key values to lowercase.
@@ -687,7 +692,11 @@ class Resolver:
         elif WHITELIST_SUBDOMAIN in urlstring:
             raise WrapException(f'{urlstring} may be a WrapDB-impersonating URL')
         else:
-            headers = {'User-Agent': f'mesonbuild/{coredata.version}'}
+            headers = {
+                'User-Agent': f'mesonbuild/{coredata.version}',
+                'Accept-Language': '*',
+                'Accept-Encoding': '*',
+            }
             creds = self.get_netrc_credentials(url.netloc)
 
             if creds is not None and '@' not in url.netloc:
@@ -861,4 +870,4 @@ class Resolver:
                     except PermissionError:
                         os.chmod(dst_file, stat.S_IWUSR)
                         os.remove(dst_file)
-                shutil.copy2(src_file, dst_dir)
+                shutil.copy2(src_file, dst_dir, follow_symlinks=False)

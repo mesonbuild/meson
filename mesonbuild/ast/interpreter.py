@@ -43,7 +43,6 @@ from ..mparser import (
     NotNode,
     PlusAssignmentNode,
     TernaryNode,
-    TestCaseClauseNode,
 )
 
 if T.TYPE_CHECKING:
@@ -57,6 +56,7 @@ if T.TYPE_CHECKING:
         IfClauseNode,
         IndexNode,
         OrNode,
+        TestCaseClauseNode,
         UMinusNode,
     )
 

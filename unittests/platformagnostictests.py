@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import pickle
+import subprocess
 import tempfile
 import subprocess
 import textwrap
@@ -77,7 +78,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
                 f.write(code)
                 return f.name
-        
+
         fname = write_file("option('intminmax', type: 'integer', value: 10, min: 0, max: 5)")
         self.assertRaisesRegex(MesonException, 'Value 10 for option "intminmax" is more than maximum value 5.',
                                interp.process, fname)
@@ -85,7 +86,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['one', 'four'])")
         self.assertRaisesRegex(MesonException, 'Value "four" for option "array" is not in allowed choices: "one, two, three"',
                                interp.process, fname)
-        
+
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['four', 'five', 'six'])")
         self.assertRaisesRegex(MesonException, 'Values "four, five, six" for option "array" are not in allowed choices: "one, two, three"',
                                interp.process, fname)
@@ -107,7 +108,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn(log_msg, mesonlog)
 
     def test_new_subproject_reconfigure(self):
-        testdir = os.path.join(self.unit_test_dir, '108 new subproject on reconfigure')
+        testdir = os.path.join(self.unit_test_dir, '109 new subproject on reconfigure')
         self.init(testdir)
         self.build()
 
@@ -266,7 +267,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         thing to do as new features are added, but keeping track of them is
         good.
         '''
-        testdir = os.path.join(self.unit_test_dir, '116 empty project')
+        testdir = os.path.join(self.unit_test_dir, '117 empty project')
 
         self.init(testdir)
         self._run(self.meson_command + ['--internal', 'regenerate', '--profile-self', testdir, self.builddir])
@@ -281,7 +282,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_meson_package_cache_dir(self):
         # Copy testdir into temporary directory to not pollute meson source tree.
-        testdir = os.path.join(self.unit_test_dir, '118 meson package cache dir')
+        testdir = os.path.join(self.unit_test_dir, '119 meson package cache dir')
         srcdir = os.path.join(self.builddir, 'srctree')
         shutil.copytree(testdir, srcdir)
         builddir = os.path.join(srcdir, '_build')
@@ -290,7 +291,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_cmake_openssl_not_found_bug(self):
         """Issue #12098"""
-        testdir = os.path.join(self.unit_test_dir, '119 openssl cmake bug')
+        testdir = os.path.join(self.unit_test_dir, '120 openssl cmake bug')
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
@@ -325,7 +326,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             ('a.txt', '{a,b,c}.txt', True),
             ('a.txt', '*.{txt,tex,cpp}', True),
             ('a.hpp', '*.{txt,tex,cpp}', False),
-            
+
             ('a1.txt', 'a{0..9}.txt', True),
             ('a001.txt', 'a{0..9}.txt', True),
             ('a-1.txt', 'a{-10..10}.txt', True),
@@ -375,14 +376,14 @@ class PlatformAgnosticTests(BasePlatformTests):
         for code in ('', '\n'):
             formatted = formatter.format(code, Path())
             self.assertEqual('\n', formatted)
-    
+
     def test_format_indent_comment_in_brackets(self) -> None:
         """Ensure comments in arrays and dicts are correctly indented"""
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
         code = 'a = [\n    # comment\n]\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
-        
+
         code = 'a = [\n    # comment\n    1,\n]\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
@@ -390,7 +391,61 @@ class PlatformAgnosticTests(BasePlatformTests):
         code = 'a = {\n    # comment\n}\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
-        
+
+    def test_format_invalid_config_key(self) -> None:
+        fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
+        self.addCleanup(os.unlink, fname)
+
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write('not_an_option = 42\n')
+
+        with self.assertRaises(MesonException):
+            Formatter(Path(fname), use_editor_config=False, fetch_subdirs=False)
+
+    def test_format_invalid_config_value(self) -> None:
+        fd, fname = tempfile.mkstemp(suffix='.ini', text=True)
+        self.addCleanup(os.unlink, fname)
+
+        with os.fdopen(fd, 'w', encoding='utf-8') as handle:
+            handle.write('max_line_length = string\n')
+
+        with self.assertRaises(MesonException):
+            Formatter(Path(fname), use_editor_config=False, fetch_subdirs=False)
+
+    def test_format_invalid_editorconfig_value(self) -> None:
+        dirpath = tempfile.mkdtemp()
+        self.addCleanup(windows_proof_rmtree, dirpath)
+
+        editorconfig = Path(dirpath, '.editorconfig')
+        with open(editorconfig, 'w', encoding='utf-8') as handle:
+            handle.write('[*]\n')
+            handle.write('indent_size = string\n')
+
+        formatter = Formatter(None, use_editor_config=True, fetch_subdirs=False)
+        with self.assertRaises(MesonException):
+            formatter.load_editor_config(editorconfig)
+
+    def test_format_empty_file(self) -> None:
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        for code in ('', '\n'):
+            formatted = formatter.format(code, Path())
+            self.assertEqual('\n', formatted)
+
+    def test_format_indent_comment_in_brackets(self) -> None:
+        """Ensure comments in arrays and dicts are correctly indented"""
+        formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
+        code = 'a = [\n    # comment\n]\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+        code = 'a = [\n    # comment\n    1,\n]\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
+        code = 'a = {\n    # comment\n}\n'
+        formatted = formatter.format(code, Path())
+        self.assertEqual(code, formatted)
+
     def test_error_configuring_subdir(self):
         testdir = os.path.join(self.common_test_dir, '152 index customtarget')
         out = self.init(os.path.join(testdir, 'subdir'), allow_fail=True)
@@ -400,7 +455,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn(f'Did you mean to run meson from the directory: "{testdir}"?', out)
 
     def test_reconfigure_base_options(self):
-        testdir = os.path.join(self.unit_test_dir, '122 reconfigure base options')
+        testdir = os.path.join(self.unit_test_dir, '123 reconfigure base options')
         out = self.init(testdir, extra_args=['-Db_ndebug=true'])
         self.assertIn('\nMessage: b_ndebug: true\n', out)
         self.assertIn('\nMessage: c_std: c89\n', out)
@@ -508,3 +563,17 @@ class PlatformAgnosticTests(BasePlatformTests):
             f.write("option('new_option', type : 'boolean', value : false)")
         self.setconf('-Dsubproject:new_option=true')
         self.assertEqual(self.getconf('subproject:new_option'), True)
+
+    def test_mtest_rebuild_deps(self):
+        testdir = os.path.join(self.unit_test_dir, '107 underspecified mtest')
+        self.init(testdir)
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._run(self.mtest_command)
+        self.clean()
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._run(self.mtest_command + ['runner-without-dep'])
+        self.clean()
+
+        self._run(self.mtest_command + ['runner-with-exedep'])

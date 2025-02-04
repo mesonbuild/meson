@@ -27,12 +27,12 @@ from .options import OptionKey
 from .machinefile import CmdLineFileParser
 
 import ast
-import argparse
 import enum
 import shlex
 import typing as T
 
 if T.TYPE_CHECKING:
+    import argparse
     from typing_extensions import Protocol
     from typing import Any
 
@@ -74,7 +74,7 @@ if T.TYPE_CHECKING:
 #
 # Pip requires that RCs are named like this: '0.1.0.rc1'
 # But the corresponding Git tag needs to be '0.1.0rc1'
-version = '1.5.2'
+version = '1.7.0'
 
 # The next stable version when we are in dev. This is used to allow projects to
 # require meson version >=1.2.0 when using 1.1.99. FeatureNew won't warn when
@@ -658,9 +658,20 @@ class CoreData:
             elif k.machine != MachineChoice.BUILD and not self.optstore.is_compiler_option(k):
                 unknown_options.append(k)
         if unknown_options:
-            unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
-            sub = f'In subproject {subproject}: ' if subproject else ''
-            raise MesonException(f'{sub}Unknown options: "{unknown_options_str}"')
+            if subproject:
+                # The subproject may have top-level options that should be used
+                # when it is not a subproject. Ignore those for now. With option
+                # refactor they will get per-subproject values.
+                really_unknown = []
+                for uo in unknown_options:
+                    topkey = uo.evolve(subproject='')
+                    if topkey not in self.optstore:
+                        really_unknown.append(uo)
+                unknown_options = really_unknown
+            if unknown_options:
+                unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
+                sub = f'In subproject {subproject}: ' if subproject else ''
+                raise MesonException(f'{sub}Unknown options: "{unknown_options_str}"')
 
         if not self.is_cross_build():
             dirty |= self.copy_build_options_from_regular_ones()

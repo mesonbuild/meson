@@ -66,7 +66,7 @@ An example wrap-git will look like this:
 ```ini
 [wrap-git]
 url = https://github.com/libfoobar/libfoobar.git
-revision = head
+revision = HEAD
 depth = 1
 ```
 
@@ -124,7 +124,7 @@ case, the directory will be copied into `subprojects/` before applying patches.
 - `url` - name of the wrap-git repository to clone. Required.
 - `revision` - name of the revision to checkout. Must be either: a
   valid value (such as a git tag) for the VCS's `checkout` command, or
-  (for git) `head` to track upstream's default branch. Required.
+  (for git) `HEAD` to track upstream's default branch. Required.
 
 ### Specific to wrap-git
 - `depth` - shallowly clone the repository to X number of commits. This saves bandwidth and disk
@@ -297,6 +297,9 @@ fallback to use the subproject, assuming it uses
 
 ### CMake wraps
 
+**Note**: This is experimental and has no backwards or forwards compatibility guarantees.
+See [Meson's rules on mixing build systems](Mixing-build-systems.md).
+
 Since the CMake module does not know the public name of the provided
 dependencies, a CMake `.wrap` file cannot use the `dependency_names = foo`
 syntax. Instead, the `dep_name = <target_name>_dep` syntax should be used, where
@@ -316,6 +319,9 @@ foo-bar-1.0 = foo_bar_dep
 ```
 ### Cargo wraps
 
+**Note**: This is experimental and has no backwards or forwards compatibility guarantees.
+See [Meson's rules on mixing build systems](Mixing-build-systems.md).
+
 Cargo subprojects automatically override the `<package_name>-<version>-rs` dependency
 name:
 - `package_name` is defined in `[package] name = ...` section of the `Cargo.toml`.
@@ -323,7 +329,7 @@ name:
   * `x.y.z` -> 'x'
   * `0.x.y` -> '0.x'
   * `0.0.x` -> '0'
-  It allows to make different dependencies for uncompatible versions of the same
+  It allows to make different dependencies for incompatible versions of the same
   crate.
 - `-rs` suffix is added to distinguish from regular system dependencies, for
   example `gstreamer-1.0` is a system pkg-config dependency and `gstreamer-0.22-rs`
@@ -348,27 +354,6 @@ method = cargo
 dependency_names = foo-bar-0.1-rs
 ```
 
-Cargo features are exposed as Meson boolean options, with the `feature-` prefix.
-For example the `default` feature is named `feature-default` and can be set from
-the command line with `-Dfoo-1-rs:feature-default=false`. When a cargo subproject
-depends on another cargo subproject, it will automatically enable features it
-needs using the `dependency('foo-1-rs', default_options: ...)` mechanism. However,
-unlike Cargo, the set of enabled features is not managed globally. Let's assume
-the main project depends on `foo-1-rs` and `bar-1-rs`, and they both depend on
-`common-1-rs`. The main project will first look up `foo-1-rs` which itself will
-configure `common-rs` with a set of features. Later, when `bar-1-rs` does a lookup
-for `common-1-rs` it has already been configured and the set of features cannot be
-changed. If `bar-1-rs` wants extra features from `common-1-rs`, Meson will error out.
-It is currently the responsability of the main project to resolve those
-issues by enabling extra features on each subproject:
-```meson
-project(...,
-  default_options: {
-    'common-1-rs:feature-something': true,
-  },
-)
-```
-
 In addition, if the file `meson/meson.build` exists, Meson will call `subdir('meson')`
 where the project can add manual logic that would usually be part of `build.rs`.
 Some naming conventions need to be respected:
@@ -379,7 +364,7 @@ Some naming conventions need to be respected:
 
 Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the root
 of (sub)project source tree. Meson will automatically load that file and convert
-it into a serie of wraps definitions.
+it into a series of wraps definitions.
 
 ## Using wrapped projects
 

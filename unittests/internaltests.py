@@ -4,6 +4,7 @@
 from configparser import ConfigParser
 from pathlib import Path
 from unittest import mock
+import argparse
 import contextlib
 import io
 import json
@@ -13,6 +14,7 @@ import pickle
 import stat
 import subprocess
 import tempfile
+import textwrap
 import typing as T
 import unittest
 
@@ -23,6 +25,7 @@ import mesonbuild.dependencies.factory
 import mesonbuild.envconfig
 import mesonbuild.environment
 import mesonbuild.modules.gnome
+import mesonbuild.scripts.env2mfile
 from mesonbuild import coredata
 from mesonbuild.compilers.c import ClangCCompiler, GnuCCompiler
 from mesonbuild.compilers.cpp import VisualStudioCPPCompiler
@@ -32,7 +35,7 @@ from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectH
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.mesonlib import (
     LibType, MachineChoice, PerMachine, Version, is_windows, is_osx,
-    is_cygwin, is_openbsd, search_version, MesonException,
+    is_cygwin, is_openbsd, search_version, MesonException, python_command,
 )
 from mesonbuild.options import OptionKey
 from mesonbuild.interpreter.type_checking import in_set_validator, NoneType
@@ -694,6 +697,34 @@ class InternalTests(unittest.TestCase):
                     for link_arg in link_args:
                         for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
                             self.assertNotIn(f'lib{lib}.a', link_arg, msg=link_args)
+
+    def test_program_version(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            script_path = Path(tmpdir) / 'script.py'
+            script_path.write_text('import sys\nprint(sys.argv[1])\n', encoding='utf-8')
+            script_path.chmod(0o755)
+
+            for output, expected in {
+                    '': None,
+                    '1': None,
+                    '1.2.4': '1.2.4',
+                    '1 1.2.4': '1.2.4',
+                    'foo version 1.2.4': '1.2.4',
+                    'foo 1.2.4.': '1.2.4',
+                    'foo 1.2.4': '1.2.4',
+                    'foo 1.2.4 bar': '1.2.4',
+                    'foo 10.0.0': '10.0.0',
+                    '50 5.4.0': '5.4.0',
+                    'This is perl 5, version 40, subversion 0 (v5.40.0)': '5.40.0',
+                    'git version 2.48.0.rc1': '2.48.0',
+            }.items():
+                prog = ExternalProgram('script', command=[python_command, str(script_path), output], silent=True)
+
+                if expected is None:
+                    with self.assertRaisesRegex(MesonException, 'Could not find a version number'):
+                        prog.get_version()
+                else:
+                    self.assertEqual(prog.get_version(), expected)
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
@@ -1372,8 +1403,8 @@ class InternalTests(unittest.TestCase):
     def test_typed_kwarg_since(self) -> None:
         @typed_kwargs(
             'testfunc',
-            KwargInfo('input', str, since='1.0', since_message='Its awesome, use it',
-                      deprecated='2.0', deprecated_message='Its terrible, dont use it')
+            KwargInfo('input', str, since='1.0', since_message='It\'s awesome, use it',
+                      deprecated='2.0', deprecated_message='It\'s terrible, don\'t use it')
         )
         def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
             self.assertIsInstance(kwargs['input'], str)
@@ -1384,8 +1415,8 @@ class InternalTests(unittest.TestCase):
                 mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '0.1'}):
             # With Meson 0.1 it should trigger the "introduced" warning but not the "deprecated" warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
-            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. Its awesome, use it')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. Its terrible, dont use it')
+            self.assertRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. It\'s awesome, use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. It\'s terrible, don\'t use it')
 
         with self.subTest('no warnings should be triggered'), \
                 mock.patch('sys.stdout', io.StringIO()) as out, \
@@ -1399,8 +1430,8 @@ class InternalTests(unittest.TestCase):
                 mock.patch('mesonbuild.mesonlib.project_meson_versions', {'': '2.0'}):
             # With Meson 2.0 it should trigger the "deprecated" warning but not the "introduced" warning
             _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
-            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. Its terrible, dont use it')
-            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. Its awesome, use it')
+            self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc. It\'s terrible, don\'t use it')
+            self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc. It\'s awesome, use it')
 
     def test_typed_kwarg_validator(self) -> None:
         @typed_kwargs(
@@ -1432,7 +1463,7 @@ class InternalTests(unittest.TestCase):
         @typed_kwargs(
             'testfunc',
             KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
-            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'dont use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
+            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9', 'foo2': ('0.9', 'don\'t use it')}, since_values={'bar': '1.1', 'bar2': ('1.1', 'use this')}),
             KwargInfo('install_dir', (bool, str, NoneType), deprecated_values={False: '0.9'}),
             KwargInfo(
                 'mode',
@@ -1467,7 +1498,7 @@ class InternalTests(unittest.TestCase):
 
         with self.subTest('deprecated dict string value with msg'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'foo2': 'a'}})
-            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo2" in dict keys. dont use it.*""")
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targets '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo2" in dict keys. don't use it.*""")
 
         with self.subTest('new dict string value'), mock.patch('sys.stdout', io.StringIO()) as out:
             _(None, mock.Mock(subproject=''), [], {'output': {'bar': 'b'}})
@@ -1739,3 +1770,389 @@ class InternalTests(unittest.TestCase):
         for raw, expected in cases:
             with self.subTest(raw):
                 self.assertEqual(OptionKey.from_string(raw), expected)
+
+    def test_env2mfile_deb(self) -> None:
+        MachineInfo = mesonbuild.scripts.env2mfile.MachineInfo
+        to_machine_info = mesonbuild.scripts.env2mfile.dpkg_architecture_to_machine_info
+
+        # For testing purposes, behave as though all cross-programs
+        # exist in /usr/bin
+        def locate_path(program: str) -> T.List[str]:
+            if os.path.isabs(program):
+                return [program]
+            return ['/usr/bin/' + program]
+
+        def expected_compilers(
+            gnu_tuple: str,
+            gcc_suffix: str = '',
+        ) -> T.Dict[str, T.List[str]]:
+            return {
+                'c': [f'/usr/bin/{gnu_tuple}-gcc{gcc_suffix}'],
+                'cpp': [f'/usr/bin/{gnu_tuple}-g++{gcc_suffix}'],
+                'objc': [f'/usr/bin/{gnu_tuple}-gobjc{gcc_suffix}'],
+                'objcpp': [f'/usr/bin/{gnu_tuple}-gobjc++{gcc_suffix}'],
+                'vala': [f'/usr/bin/{gnu_tuple}-valac'],
+            }
+
+        def expected_binaries(gnu_tuple: str) -> T.Dict[str, T.List[str]]:
+            return {
+                'ar': [f'/usr/bin/{gnu_tuple}-ar'],
+                'strip': [f'/usr/bin/{gnu_tuple}-strip'],
+                'objcopy': [f'/usr/bin/{gnu_tuple}-objcopy'],
+                'ld': [f'/usr/bin/{gnu_tuple}-ld'],
+                'cmake': ['/usr/bin/cmake'],
+                'pkg-config': [f'/usr/bin/{gnu_tuple}-pkg-config'],
+                'cups-config': ['/usr/bin/cups-config'],
+                'exe_wrapper': [f'/usr/bin/{gnu_tuple}-cross-exe-wrapper'],
+                'g-ir-annotation-tool': [f'/usr/bin/{gnu_tuple}-g-ir-annotation-tool'],
+                'g-ir-compiler': [f'/usr/bin/{gnu_tuple}-g-ir-compiler'],
+                'g-ir-doc-tool': [f'/usr/bin/{gnu_tuple}-g-ir-doc-tool'],
+                'g-ir-generate': [f'/usr/bin/{gnu_tuple}-g-ir-generate'],
+                'g-ir-inspect': [f'/usr/bin/{gnu_tuple}-g-ir-inspect'],
+                'g-ir-scanner': [f'/usr/bin/{gnu_tuple}-g-ir-scanner'],
+            }
+
+        for title, dpkg_arch, gccsuffix, env, expected in [
+            (
+                # s390x is an example of the common case where the
+                # Meson CPU name, the GNU CPU name, the dpkg architecture
+                # name and uname -m all agree.
+                # (alpha, m68k, ppc64, riscv64, sh4, sparc64 are similar)
+                's390x-linux-gnu',
+                # Output of `dpkg-architecture -a...`, filtered to
+                # only the DEB_HOST_ parts because that's all we use
+                textwrap.dedent(
+                    '''
+                    DEB_HOST_ARCH=s390x
+                    DEB_HOST_ARCH_ABI=base
+                    DEB_HOST_ARCH_BITS=64
+                    DEB_HOST_ARCH_CPU=s390x
+                    DEB_HOST_ARCH_ENDIAN=big
+                    DEB_HOST_ARCH_LIBC=gnu
+                    DEB_HOST_ARCH_OS=linux
+                    DEB_HOST_GNU_CPU=s390x
+                    DEB_HOST_GNU_SYSTEM=linux-gnu
+                    DEB_HOST_GNU_TYPE=s390x-linux-gnu
+                    DEB_HOST_MULTIARCH=s390x-linux-gnu
+                    '''
+                ),
+                '',
+                {'PATH': '/usr/bin'},
+                MachineInfo(
+                    compilers=expected_compilers('s390x-linux-gnu'),
+                    binaries=expected_binaries('s390x-linux-gnu'),
+                    properties={},
+                    compile_args={},
+                    link_args={},
+                    cmake={
+                        'CMAKE_C_COMPILER': ['/usr/bin/s390x-linux-gnu-gcc'],
+                        'CMAKE_CXX_COMPILER': ['/usr/bin/s390x-linux-gnu-g++'],
+                        'CMAKE_SYSTEM_NAME': 'Linux',
+                        'CMAKE_SYSTEM_PROCESSOR': 's390x',
+                    },
+                    system='linux',
+                    subsystem='linux',
+                    kernel='linux',
+                    cpu='s390x',
+                    cpu_family='s390x',
+                    endian='big',
+                ),
+            ),
+            # Debian amd64 vs. GNU, Meson, etc. x86_64.
+            # arm64/aarch64, hppa/parisc, i386/i686/x86, loong64/loongarch64,
+            # powerpc/ppc are similar.
+            (
+                'x86_64-linux-gnu',
+                textwrap.dedent(
+                    '''
+                    DEB_HOST_ARCH=amd64
+                    DEB_HOST_ARCH_ABI=base
+                    DEB_HOST_ARCH_BITS=64
+                    DEB_HOST_ARCH_CPU=amd64
+                    DEB_HOST_ARCH_ENDIAN=little
+                    DEB_HOST_ARCH_LIBC=gnu
+                    DEB_HOST_ARCH_OS=linux
+                    DEB_HOST_GNU_CPU=x86_64
+                    DEB_HOST_GNU_SYSTEM=linux-gnu
+                    DEB_HOST_GNU_TYPE=x86_64-linux-gnu
+                    DEB_HOST_MULTIARCH=x86_64-linux-gnu
+                    '''
+                ),
+                '',
+                {'PATH': '/usr/bin'},
+                MachineInfo(
+                    compilers=expected_compilers('x86_64-linux-gnu'),
+                    binaries=expected_binaries('x86_64-linux-gnu'),
+                    properties={},
+                    compile_args={},
+                    link_args={},
+                    cmake={
+                        'CMAKE_C_COMPILER': ['/usr/bin/x86_64-linux-gnu-gcc'],
+                        'CMAKE_CXX_COMPILER': ['/usr/bin/x86_64-linux-gnu-g++'],
+                        'CMAKE_SYSTEM_NAME': 'Linux',
+                        'CMAKE_SYSTEM_PROCESSOR': 'x86_64',
+                    },
+                    system='linux',
+                    subsystem='linux',
+                    kernel='linux',
+                    cpu='x86_64',
+                    cpu_family='x86_64',
+                    endian='little',
+                ),
+            ),
+            (
+                'arm-linux-gnueabihf with non-default gcc and environment',
+                textwrap.dedent(
+                    '''
+                    DEB_HOST_ARCH=armhf
+                    DEB_HOST_ARCH_ABI=eabihf
+                    DEB_HOST_ARCH_BITS=32
+                    DEB_HOST_ARCH_CPU=arm
+                    DEB_HOST_ARCH_ENDIAN=little
+                    DEB_HOST_ARCH_LIBC=gnu
+                    DEB_HOST_ARCH_OS=linux
+                    DEB_HOST_GNU_CPU=arm
+                    DEB_HOST_GNU_SYSTEM=linux-gnueabihf
+                    DEB_HOST_GNU_TYPE=arm-linux-gnueabihf
+                    DEB_HOST_MULTIARCH=arm-linux-gnueabihf
+                    '''
+                ),
+                '-12',
+                {
+                    'PATH': '/usr/bin',
+                    'CPPFLAGS': '-DNDEBUG',
+                    'CFLAGS': '-std=c99',
+                    'CXXFLAGS': '-std=c++11',
+                    'OBJCFLAGS': '-fobjc-exceptions',
+                    'OBJCXXFLAGS': '-fobjc-nilcheck',
+                    'LDFLAGS': '-Wl,-O1',
+                },
+                MachineInfo(
+                    compilers=expected_compilers('arm-linux-gnueabihf', '-12'),
+                    binaries=expected_binaries('arm-linux-gnueabihf'),
+                    properties={},
+                    compile_args={
+                        'c': ['-DNDEBUG', '-std=c99'],
+                        'cpp': ['-DNDEBUG', '-std=c++11'],
+                        'objc': ['-DNDEBUG', '-fobjc-exceptions'],
+                        'objcpp': ['-DNDEBUG', '-fobjc-nilcheck'],
+                    },
+                    link_args={
+                        'c': ['-std=c99', '-Wl,-O1'],
+                        'cpp': ['-std=c++11', '-Wl,-O1'],
+                        'objc': ['-fobjc-exceptions', '-Wl,-O1'],
+                        'objcpp': ['-fobjc-nilcheck', '-Wl,-O1'],
+                    },
+                    cmake={
+                        'CMAKE_C_COMPILER': ['/usr/bin/arm-linux-gnueabihf-gcc-12'],
+                        'CMAKE_CXX_COMPILER': ['/usr/bin/arm-linux-gnueabihf-g++-12'],
+                        'CMAKE_SYSTEM_NAME': 'Linux',
+                        'CMAKE_SYSTEM_PROCESSOR': 'armv7l',
+                    },
+                    system='linux',
+                    subsystem='linux',
+                    kernel='linux',
+                    # In a native build this would often be armv8l
+                    # (the version of the running CPU) but the architecture
+                    # baseline in Debian is officially ARMv7
+                    cpu='arm7hlf',
+                    cpu_family='arm',
+                    endian='little',
+                ),
+            ),
+            (
+                'special cases for i386 (i686, x86) and Hurd',
+                textwrap.dedent(
+                    '''
+                    DEB_HOST_ARCH=hurd-i386
+                    DEB_HOST_ARCH_ABI=base
+                    DEB_HOST_ARCH_BITS=32
+                    DEB_HOST_ARCH_CPU=i386
+                    DEB_HOST_ARCH_ENDIAN=little
+                    DEB_HOST_ARCH_LIBC=gnu
+                    DEB_HOST_ARCH_OS=hurd
+                    DEB_HOST_GNU_CPU=i686
+                    DEB_HOST_GNU_SYSTEM=gnu
+                    DEB_HOST_GNU_TYPE=i686-gnu
+                    DEB_HOST_MULTIARCH=i386-gnu
+                    '''
+                ),
+                '',
+                {'PATH': '/usr/bin'},
+                MachineInfo(
+                    compilers=expected_compilers('i686-gnu'),
+                    binaries=expected_binaries('i686-gnu'),
+                    properties={},
+                    compile_args={},
+                    link_args={},
+                    cmake={
+                        'CMAKE_C_COMPILER': ['/usr/bin/i686-gnu-gcc'],
+                        'CMAKE_CXX_COMPILER': ['/usr/bin/i686-gnu-g++'],
+                        'CMAKE_SYSTEM_NAME': 'GNU',
+                        'CMAKE_SYSTEM_PROCESSOR': 'i686',
+                    },
+                    system='gnu',
+                    subsystem='gnu',
+                    kernel='gnu',
+                    cpu='i686',
+                    cpu_family='x86',
+                    endian='little',
+                ),
+            ),
+            (
+                'special cases for amd64 (x86_64) and kFreeBSD',
+                textwrap.dedent(
+                    '''
+                    DEB_HOST_ARCH=kfreebsd-amd64
+                    DEB_HOST_ARCH_ABI=base
+                    DEB_HOST_ARCH_BITS=64
+                    DEB_HOST_ARCH_CPU=x86_amd64
+                    DEB_HOST_ARCH_ENDIAN=little
+                    DEB_HOST_ARCH_LIBC=gnu
+                    DEB_HOST_ARCH_OS=kfreebsd
+                    DEB_HOST_GNU_CPU=x86_64
+                    DEB_HOST_GNU_SYSTEM=kfreebsd-gnu
+                    DEB_HOST_GNU_TYPE=x86_64-kfreebsd-gnu
+                    DEB_HOST_MULTIARCH=x86_64-kfreebsd-gnu
+                    '''
+                ),
+                '',
+                {'PATH': '/usr/bin'},
+                MachineInfo(
+                    compilers=expected_compilers('x86_64-kfreebsd-gnu'),
+                    binaries=expected_binaries('x86_64-kfreebsd-gnu'),
+                    properties={},
+                    compile_args={},
+                    link_args={},
+                    cmake={
+                        'CMAKE_C_COMPILER': ['/usr/bin/x86_64-kfreebsd-gnu-gcc'],
+                        'CMAKE_CXX_COMPILER': ['/usr/bin/x86_64-kfreebsd-gnu-g++'],
+                        'CMAKE_SYSTEM_NAME': 'kFreeBSD',
+                        'CMAKE_SYSTEM_PROCESSOR': 'x86_64',
+                    },
+                    system='kfreebsd',
+                    subsystem='kfreebsd',
+                    kernel='freebsd',
+                    cpu='x86_64',
+                    cpu_family='x86_64',
+                    endian='little',
+                ),
+            ),
+            (
+                'special case for mips64el',
+                textwrap.dedent(
+                    '''
+                    DEB_HOST_ARCH=mips64el
+                    DEB_HOST_ARCH_ABI=abi64
+                    DEB_HOST_ARCH_BITS=64
+                    DEB_HOST_ARCH_CPU=mips64el
+                    DEB_HOST_ARCH_ENDIAN=little
+                    DEB_HOST_ARCH_LIBC=gnu
+                    DEB_HOST_ARCH_OS=linux
+                    DEB_HOST_GNU_CPU=mips64el
+                    DEB_HOST_GNU_SYSTEM=linux-gnuabi64
+                    DEB_HOST_GNU_TYPE=mips64el-linux-gnuabi64
+                    DEB_HOST_MULTIARCH=mips64el-linux-gnuabi64
+                    '''
+                ),
+                '',
+                {'PATH': '/usr/bin'},
+                MachineInfo(
+                    compilers=expected_compilers('mips64el-linux-gnuabi64'),
+                    binaries=expected_binaries('mips64el-linux-gnuabi64'),
+                    properties={},
+                    compile_args={},
+                    link_args={},
+                    cmake={
+                        'CMAKE_C_COMPILER': ['/usr/bin/mips64el-linux-gnuabi64-gcc'],
+                        'CMAKE_CXX_COMPILER': ['/usr/bin/mips64el-linux-gnuabi64-g++'],
+                        'CMAKE_SYSTEM_NAME': 'Linux',
+                        'CMAKE_SYSTEM_PROCESSOR': 'mips64',
+                    },
+                    system='linux',
+                    subsystem='linux',
+                    kernel='linux',
+                    cpu='mips64',
+                    cpu_family='mips64',
+                    endian='little',
+                ),
+            ),
+            (
+                'special case for ppc64el',
+                textwrap.dedent(
+                    '''
+                    DEB_HOST_ARCH=ppc64el
+                    DEB_HOST_ARCH_ABI=base
+                    DEB_HOST_ARCH_BITS=64
+                    DEB_HOST_ARCH_CPU=ppc64el
+                    DEB_HOST_ARCH_ENDIAN=little
+                    DEB_HOST_ARCH_LIBC=gnu
+                    DEB_HOST_ARCH_OS=linux
+                    DEB_HOST_GNU_CPU=powerpc64le
+                    DEB_HOST_GNU_SYSTEM=linux-gnu
+                    DEB_HOST_GNU_TYPE=powerpc64le-linux-gnu
+                    DEB_HOST_MULTIARCH=powerpc64le-linux-gnu
+                    '''
+                ),
+                '',
+                {'PATH': '/usr/bin'},
+                MachineInfo(
+                    compilers=expected_compilers('powerpc64le-linux-gnu'),
+                    binaries=expected_binaries('powerpc64le-linux-gnu'),
+                    properties={},
+                    compile_args={},
+                    link_args={},
+                    cmake={
+                        'CMAKE_C_COMPILER': ['/usr/bin/powerpc64le-linux-gnu-gcc'],
+                        'CMAKE_CXX_COMPILER': ['/usr/bin/powerpc64le-linux-gnu-g++'],
+                        'CMAKE_SYSTEM_NAME': 'Linux',
+                        'CMAKE_SYSTEM_PROCESSOR': 'ppc64le',
+                    },
+                    system='linux',
+                    subsystem='linux',
+                    kernel='linux',
+                    # TODO: Currently ppc64, but native builds have ppc64le
+                    # https://github.com/mesonbuild/meson/issues/13741
+                    cpu='TODO',
+                    cpu_family='ppc64',
+                    endian='little',
+                ),
+            ),
+        ]:
+            with self.subTest(title), \
+                    unittest.mock.patch.dict('os.environ', env, clear=True), \
+                    unittest.mock.patch('mesonbuild.scripts.env2mfile.locate_path') as mock_locate_path:
+                mock_locate_path.side_effect = locate_path
+                options = argparse.Namespace()
+                options.gccsuffix = gccsuffix
+                actual = to_machine_info(dpkg_arch, options)
+
+                if expected.system == 'TODO':
+                    print(f'TODO: {title}: system() -> {actual.system}')
+                else:
+                    self.assertEqual(actual.system, expected.system)
+
+                if expected.subsystem == 'TODO':
+                    print(f'TODO: {title}: subsystem() -> {actual.subsystem}')
+                else:
+                    self.assertEqual(actual.subsystem, expected.subsystem)
+
+                if expected.kernel == 'TODO':
+                    print(f'TODO: {title}: kernel() -> {actual.kernel}')
+                else:
+                    self.assertEqual(actual.kernel, expected.kernel)
+
+                if expected.cpu == 'TODO':
+                    print(f'TODO: {title}: cpu() -> {actual.cpu}')
+                else:
+                    self.assertEqual(actual.cpu, expected.cpu)
+
+                self.assertEqual(actual.cpu_family, expected.cpu_family)
+                self.assertEqual(actual.endian, expected.endian)
+
+                self.assertEqual(actual.compilers, expected.compilers)
+                self.assertEqual(actual.binaries, expected.binaries)
+                self.assertEqual(actual.properties, expected.properties)
+                self.assertEqual(actual.compile_args, expected.compile_args)
+                self.assertEqual(actual.link_args, expected.link_args)
+                self.assertEqual(actual.cmake, expected.cmake)
