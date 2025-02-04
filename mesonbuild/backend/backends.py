@@ -479,7 +479,7 @@ class Backend:
         obj_list, _ = self._flatten_object_list(objects.target, [objects], '')
         return list(dict.fromkeys(obj_list))
 
-    def _flatten_object_list(self, target: build.BuildTarget,
+    def _flatten_object_list(self, target: build.BuildTargetTypes,
                              objects: T.Sequence[T.Union[str, 'File', build.ExtractedObjects]],
                              proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
         obj_list: T.List[str] = []
@@ -847,7 +847,13 @@ class Backend:
             fname = fname.replace(ch, '_')
         return hashed + fname
 
-    def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler, source: 'FileOrString', targetdir: T.Optional[str] = None) -> str:
+    def object_filename_from_source(
+            self,
+            target: build.BuildTargetTypes,
+            compiler: Compiler,
+            source: 'FileOrString',
+            targetdir: T.Optional[str] = None
+            ) -> str:
         assert isinstance(source, mesonlib.File)
         if isinstance(target, build.CompileTarget):
             return target.sources_map[source]
@@ -915,6 +921,7 @@ class Backend:
 
         # MSVC generate an object file for PCH
         if extobj.pch and self.target_uses_pch(extobj.target):
+            assert isinstance(extobj.target, build.BuildTarget), 'for mypy'
             for lang, pch in extobj.target.pch.items():
                 compiler = extobj.target.compilers[lang]
                 if compiler.get_argument_syntax() == 'msvc':
@@ -928,7 +935,8 @@ class Backend:
         # With unity builds, sources don't map directly to objects,
         # we only support extracting all the objects in this mode,
         # so just return all object files.
-        if extobj.target.is_unity:
+        if extobj.is_unity:
+            assert isinstance(extobj.target, build.BuildTarget), 'for mypy'
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
             unity_size = extobj.target.get_option(OptionKey('unity_size'))
@@ -943,8 +951,12 @@ class Backend:
                                                       comp.get_default_suffix(), i)
                     sources.append(_src)
 
+        if isinstance(extobj.target, build.BuildTarget):
+            compilers = list(extobj.target.compilers.values())
+        else:
+            compilers = list(self.environment.coredata.compilers[extobj.target.for_machine].values())
         for osrc in sources:
-            compiler = get_compiler_for_source(extobj.target.compilers.values(), osrc)
+            compiler = get_compiler_for_source(compilers, osrc)
             objname = self.object_filename_from_source(extobj.target, compiler, osrc, targetdir)
             result.append(objname)
 
@@ -982,11 +994,13 @@ class Backend:
         mesonlib.replace_if_different(pch_file, pch_file_tmp)
         return pch_rel_to_build
 
-    def target_uses_pch(self, target: build.BuildTarget) -> bool:
-        try:
-            return T.cast('bool', target.get_option(OptionKey('b_pch')))
-        except (KeyError, AttributeError):
-            return False
+    def target_uses_pch(self, target: build.BuildTargetTypes) -> bool:
+        if isinstance(target, build.BuildTarget):
+            try:
+                return T.cast('bool', target.get_option(OptionKey('b_pch')))
+            except (KeyError, AttributeError):
+                return False
+        return False
 
     @staticmethod
     def escape_extra_args(args: T.List[str]) -> T.List[str]:
