@@ -38,7 +38,7 @@ class ModuleState:
         self.subproject = interpreter.subproject
         self.subdir = interpreter.subdir
         self.root_subdir = interpreter.root_subdir
-        self.current_lineno = interpreter.current_lineno
+        self.current_lineno = interpreter.current_node.lineno
         self.environment = interpreter.environment
         self.project_name = interpreter.build.project_name
         self.project_version = interpreter.build.dep_manifest[interpreter.active_projectname].version
@@ -113,7 +113,7 @@ class ModuleState:
         if wanted:
             kwargs['version'] = wanted
         # FIXME: Even if we fix the function, mypy still can't figure out what's
-        # going on here. And we really dont want to call interpreter
+        # going on here. And we really don't want to call interpreter
         # implementations of meson functions anyway.
         return self._interpreter.func_dependency(self.current_node, [depname], kwargs) # type: ignore
 

@@ -97,6 +97,15 @@ def resolve_cmake_trace_targets(target_name: str,
                 not_found_warning(lib)
         elif curr_path.is_absolute() or lib.startswith('-'):
             return [lib]
+        elif '::' in lib:
+            # Bug-compatibility with upstream meson!!!
+            # The frameworks/30 scalapack unit test uses a broken CMake config
+            # from homebrew which contains an unresolved reference to MPI::MPI_C
+            # The original meson CMake module ignores it, so we do the same
+            # But this is definitely not the best way to behave
+            # (the same config file has also a number of other issues)
+            not_found_warning(lib)
+            return []
 
         return [f'-l{lib}']
 

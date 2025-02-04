@@ -22,7 +22,7 @@ Latest Meson version supporting previous Python versions:
 
 #### Installing from source
 
-Meson is available on [PyPi](https://pypi.python.org/pypi/meson), so
+Meson is available on [PyPI](https://pypi.python.org/pypi/meson), so
 it can be installed with `pip3 install meson`.  The exact command to
 type to install with `pip` can vary between systems, be sure to use
 the Python 3 version of `pip`.
@@ -35,7 +35,7 @@ python3 -m pip install meson
 
 For builds using Ninja, Ninja can be downloaded directly from Ninja
 [GitHub release page](https://github.com/ninja-build/ninja/releases)
-or via [PyPi](https://pypi.python.org/pypi/ninja)
+or via [PyPI](https://pypi.python.org/pypi/ninja)
 
 ```console
 python3 -m pip install ninja

@@ -179,13 +179,12 @@ class MetrowerksCompiler(Compiler):
         self.base_options = {
             OptionKey(o) for o in ['b_pch', 'b_ndebug']}
 
-        default_warn_args: T.List[str] = []
         self.warn_args: T.Dict[str, T.List[str]] = {
-            '0': ['-w', 'off'],
-            '1': default_warn_args,
-            '2': default_warn_args + ['-w', 'most'],
-            '3': default_warn_args + ['-w', 'all'],
-            'everything': default_warn_args + ['-w', 'full']}
+            '0': ['-warnings', 'off'],
+            '1': [],
+            '2': ['-warnings', 'on,nocmdline'],
+            '3': ['-warnings', 'on,all'],
+            'everything': ['-warnings', 'on,full']}
 
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         # Earlier versions of these compilers do not support specifying
@@ -275,6 +274,6 @@ class MetrowerksCompiler(Compiler):
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I':
-                parameter_list[idx] = i[:9] + os.path.normpath(os.path.join(build_dir, i[9:]))
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
 
         return parameter_list

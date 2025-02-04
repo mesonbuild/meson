@@ -8,7 +8,6 @@ from __future__ import annotations
 import abc
 import functools
 import os
-import multiprocessing
 import pathlib
 import re
 import subprocess
@@ -205,6 +204,7 @@ gnu_common_warning_args: T.Dict[str, T.List[str]] = {
 #   -Wdeclaration-after-statement
 #   -Wtraditional
 #   -Wtraditional-conversion
+#   -Wunsuffixed-float-constants
 gnu_c_warning_args: T.Dict[str, T.List[str]] = {
     "0.0.0": [
         "-Wbad-function-cast",
@@ -218,9 +218,6 @@ gnu_c_warning_args: T.Dict[str, T.List[str]] = {
     ],
     "4.1.0": [
         "-Wc++-compat",
-    ],
-    "4.5.0": [
-        "-Wunsuffixed-float-constants",
     ],
 }
 
@@ -424,7 +421,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # For other targets, discard the .def file.
         return []
 
-    def get_argument_syntax(self) -> str:
+    @staticmethod
+    def get_argument_syntax() -> str:
         return 'gcc'
 
     def get_profile_generate_args(self) -> T.List[str]:
@@ -553,16 +551,19 @@ class GnuCompiler(GnuLikeCompiler):
         super().__init__()
         self.defines = defines or {}
         self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads')})
+        self._has_color_support = mesonlib.version_compare(self.version, '>=4.9.0')
+        self._has_wpedantic_support = mesonlib.version_compare(self.version, '>=4.8.0')
+        self._has_lto_auto_support = mesonlib.version_compare(self.version, '>=10.0')
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
-        if mesonlib.version_compare(self.version, '>=4.9.0'):
+        if self._has_color_support:
             return gnu_color_args[colortype][:]
         return []
 
     def get_warn_args(self, level: str) -> T.List[str]:
         # Mypy doesn't understand cooperative inheritance
         args = super().get_warn_args(level)
-        if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
+        if not self._has_wpedantic_support and '-Wpedantic' in args:
             # -Wpedantic was added in 4.8.0
             # https://gcc.gnu.org/gcc-4.8/changes.html
             args[args.index('-Wpedantic')] = '-pedantic'
@@ -610,15 +611,16 @@ class GnuCompiler(GnuLikeCompiler):
         # error.
         return ['-Werror=attributes']
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
-        return ['-r', '-o', prelink_name] + obj_list
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        return [prelink_name], ['-r', '-o', prelink_name] + obj_list
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         if threads == 0:
-            if mesonlib.version_compare(self.version, '>= 10.0'):
+            if self._has_lto_auto_support:
                 return ['-flto=auto']
-            # This matches clang's behavior of using the number of cpus
-            return [f'-flto={multiprocessing.cpu_count()}']
+            # This matches clang's behavior of using the number of cpus, but
+            # obeying meson's MESON_NUM_PROCESSES convention.
+            return [f'-flto={mesonlib.determine_worker_count()}']
         elif threads > 0:
             return [f'-flto={threads}']
         return super().get_lto_compile_args(threads=threads)

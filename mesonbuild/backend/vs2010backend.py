@@ -879,7 +879,7 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(parent_node, 'PreprocessorDefinitions', Condition=condition).text = defs
                 ET.SubElement(parent_node, 'AdditionalIncludeDirectories', Condition=condition).text = paths
                 ET.SubElement(parent_node, 'AdditionalOptions', Condition=condition).text = opts
-        else: # Can't find bespoke nmake defs/dirs/opts fields for this extention, so just reference the project's fields
+        else: # Can't find bespoke nmake defs/dirs/opts fields for this extension, so just reference the project's fields
             ET.SubElement(parent_node, 'PreprocessorDefinitions').text = '$(NMakePreprocessorDefinitions)'
             ET.SubElement(parent_node, 'AdditionalIncludeDirectories').text = '$(NMakeIncludeSearchPath)'
             ET.SubElement(parent_node, 'AdditionalOptions').text = '$(AdditionalOptions)'
@@ -1542,7 +1542,7 @@ class Vs2010Backend(backends.Backend):
     # the solution's configurations.  Similarly, 'ItemGroup' also doesn't support 'Condition'.  So, without knowing
     # a better (simple) alternative, for now, we'll repoint these generated sources (which will be incorrectly
     # pointing to non-existent files under our '[builddir]_vs' directory) to the appropriate location under one of
-    # our buildtype build directores (e.g. '[builddir]_debug').
+    # our buildtype build directories (e.g. '[builddir]_debug').
     # This will at least allow the user to open the files of generated sources listed in the solution explorer,
     # once a build/compile has generated these sources.
     #
@@ -1725,7 +1725,7 @@ class Vs2010Backend(backends.Backend):
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
                         ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
-                            self.object_filename_from_source(target, s)
+                            self.object_filename_from_source(target, compiler, s)
             for s in gen_src:
                 if path_normalize_add(s, previous_sources):
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
@@ -1739,7 +1739,7 @@ class Vs2010Backend(backends.Backend):
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
                         s = File.from_built_file(target.get_subdir(), s)
                         ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
-                            self.object_filename_from_source(target, s)
+                            self.object_filename_from_source(target, compiler, s)
             for lang, headers in pch_sources.items():
                 impl = headers[1]
                 if impl and path_normalize_add(impl, previous_sources):

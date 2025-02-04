@@ -48,7 +48,13 @@ foreach qt : ['qt4', 'qt5', 'qt6']
   qtdep = dependency(qt, modules : qt_modules, main : true, private_headers: true, required : required, method : get_option('method'))
   if qtdep.found()
     qtmodule = import(qt)
-    assert(qtmodule.has_tools(), 'You may be missing a devel package. (qttools5-dev-tools on Debian based systems)')
+    if get_option('expect_lrelease')
+      assert(qtmodule.has_tools(), 'You may be missing a devel package. (qttools5-dev-tools on Debian based systems)')
+    else
+      assert(not qtmodule.has_tools(), 'Unexpectedly found lrelease')
+      assert(not qtmodule.has_tools(tools: ['lrelease']), 'Unexpectedly found lrelease')
+      assert(qtmodule.has_tools(tools: ['moc', 'uic', 'rcc']), 'You may be missing a devel package. (qttools5-dev-tools on Debian based systems)')
+    endif
 
     # Test that fetching a variable works and yields a non-empty value
     assert(qtdep.get_variable('prefix', configtool: 'QT_INSTALL_PREFIX') != '')
@@ -91,23 +97,25 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     # qt4-rcc and qt5-rcc take different arguments, for example qt4: ['-compress', '3']; qt5: '--compress=3'
     qtmodule.preprocess(qt + 'testrccarg', qresources : files(['stuff.qrc', 'stuff2.qrc']), rcc_extra_arguments : '--compress=3', method : get_option('method'))
 
-    translations_cpp = qtmodule.compile_translations(qresource: qt+'_lang.qrc')
-    # unity builds suck and definitely cannot handle two qrc embeds in one compilation unit
-    unityproof_translations = static_library(qt+'unityproof_translations', translations_cpp, dependencies: qtdep)
+    if get_option('expect_lrelease')
+      translations_cpp = qtmodule.compile_translations(qresource: qt+'_lang.qrc')
+      # unity builds suck and definitely cannot handle two qrc embeds in one compilation unit
+      unityproof_translations = static_library(qt+'unityproof_translations', translations_cpp, dependencies: qtdep)
 
-    extra_cpp_args += '-DQT="@0@"'.format(qt)
-    qexe = executable(qt + 'app',
-      sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
-      prep, prep_rcc],
-      dependencies : qtdep,
-      link_with: unityproof_translations,
-      cpp_args: extra_cpp_args,
-      gui_app : true)
+      extra_cpp_args += '-DQT="@0@"'.format(qt)
+      qexe = executable(qt + 'app',
+        sources : ['main.cpp', 'mainWindow.cpp', # Sources that don't need preprocessing.
+        prep, prep_rcc],
+        dependencies : qtdep,
+        link_with: unityproof_translations,
+        cpp_args: extra_cpp_args,
+        gui_app : true)
 
-    # We need a console test application because some test environments
-    # do not have an X server.
+      # We need a console test application because some test environments
+      # do not have an X server.
 
-    translations = qtmodule.compile_translations(ts_files : qt+'core_fr.ts', build_by_default : true)
+      translations = qtmodule.compile_translations(ts_files : qt+'core_fr.ts', build_by_default : true)
+    endif
 
     qtcore = dependency(qt, modules : 'Core', method : get_option('method'))
 

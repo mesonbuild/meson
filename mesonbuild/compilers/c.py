@@ -27,6 +27,7 @@ from .mixins.pgi import PGICompiler
 from .mixins.emscripten import EmscriptenMixin
 from .mixins.metrowerks import MetrowerksCompiler
 from .mixins.metrowerks import mwccarm_instruction_set_args, mwcceppc_instruction_set_args
+from .mixins.tasking import TaskingCompiler
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -158,7 +159,7 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
                 opts,
                 self.create_option(options.UserArrayOption,
                                    self.form_compileropt_key('winlibs'),
-                                   'Standard Win libraries to link against',
+                                   'Standard Windows libs to link against',
                                    gnu_winlibs),
             )
         return opts
@@ -213,7 +214,7 @@ class EmscriptenCCompiler(EmscriptenMixin, ClangCCompiler):
     _C17_VERSION = '>=1.38.35'
     _C18_VERSION = '>=1.38.35'
     _C2X_VERSION = '>=1.38.35'  # 1.38.35 used Clang 9.0.0
-    _C23_VERSION = '>=3.0.0'    # 3.0.0 used Clang 18.0.0
+    _C23_VERSION = '>=3.1.45'    # 3.1.45 used Clang 18.0.0
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo',
@@ -311,7 +312,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
                 opts,
                 self.create_option(options.UserArrayOption,
                                    key.evolve('c_winlibs'),
-                                   'Standard Win libraries to link against',
+                                   'Standard Windows libs to link against',
                                    gnu_winlibs),
             )
         return opts
@@ -360,6 +361,14 @@ class NvidiaHPC_CCompiler(PGICompiler, CCompiler):
         CCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
                            info, linker=linker, full_version=full_version)
         PGICompiler.__init__(self)
+
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = CCompiler.get_options(self)
+        cppstd_choices = ['c89', 'c90', 'c99', 'c11', 'c17', 'c18']
+        std_opt = opts[self.form_compileropt_key('std')]
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
+        std_opt.set_versions(cppstd_choices, gnu=True)
+        return opts
 
 
 class ElbrusCCompiler(ElbrusCompiler, CCompiler):
@@ -454,7 +463,7 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
             self.create_option(
                 options.UserArrayOption,
                 self.form_compileropt_key('winlibs'),
-                'Windows libs to link against.',
+                'Standard Windows libs to link against',
                 msvc_winlibs,
             ),
         )
@@ -822,3 +831,14 @@ class MetrowerksCCompilerEmbeddedPowerPC(MetrowerksCompiler, CCompiler):
         if std != 'none':
             args.append('-lang ' + std)
         return args
+
+class TaskingCCompiler(TaskingCompiler, CCompiler):
+    id = 'tasking'
+
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        CCompiler.__init__(self, ccache, exelist, version, for_machine, is_cross,
+                           info, linker=linker, full_version=full_version)
+        TaskingCompiler.__init__(self)

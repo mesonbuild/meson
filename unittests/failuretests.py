@@ -34,10 +34,10 @@ def no_pkgconfig():
     old_which = shutil.which
     old_search = ExternalProgram._search
 
-    def new_search(self, name, search_dir):
+    def new_search(self, name, search_dirs, exclude_paths):
         if name == 'pkg-config':
             return [None]
-        return old_search(self, name, search_dir)
+        return old_search(self, name, search_dirs, exclude_paths)
 
     def new_which(cmd, *kwargs):
         if cmd == 'pkg-config':
@@ -381,3 +381,8 @@ class FailureTests(BasePlatformTests):
     def test_error_func(self):
         self.assertMesonRaises("error('a', 'b', ['c', ['d', {'e': 'f'}]], 'g')",
                                r"Problem encountered: a b \['c', \['d', {'e' : 'f'}\]\] g")
+
+    def test_compiler_cache_without_compiler(self):
+        self.assertMesonRaises('',
+                               'Compiler cache specified without compiler: ccache',
+                               override_envvars={'CC': 'ccache'})

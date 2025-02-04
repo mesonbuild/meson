@@ -244,7 +244,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
             opts,
             self.create_option(options.UserComboOption,
                                self.form_compileropt_key('eh'),
-                               'C++ exception handling type.',
+                               'C++ exception handling type',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
             self.create_option(options.UserBooleanOption,
@@ -271,7 +271,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCompiler, CPPCompiler):
                 opts,
                 self.create_option(options.UserArrayOption,
                                    self.form_compileropt_key('winlibs'),
-                                   'Standard Win libraries to link against',
+                                   'Standard Windows libs to link against',
                                    gnu_winlibs),
             )
         return opts
@@ -341,14 +341,21 @@ class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 class AppleClangCPPCompiler(AppleCompilerMixin, ClangCPPCompiler):
 
     _CPP23_VERSION = '>=13.0.0'
-    # TODO: We don't know which XCode version will include LLVM 17 yet, so
-    # use something absurd.
-    _CPP26_VERSION = '>=99.0.0'
+    _CPP26_VERSION = '>=16.0.0'
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
 
     id = 'emscripten'
+
+    # Emscripten uses different version numbers than Clang; `emcc -v` will show
+    # the Clang version number used as well (but `emcc --version` does not).
+    # See https://github.com/pyodide/pyodide/discussions/4762 for more on
+    # emcc <--> clang versions. Note, although earlier versions claim to be the
+    # Clang versions 12.0.0 and 17.0.0 required for these C++ standards, they
+    # only accept the flags in the later versions below.
+    _CPP23_VERSION = '>=2.0.10'
+    _CPP26_VERSION = '>=3.1.39'
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo',
@@ -402,7 +409,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
             opts,
             self.create_option(options.UserComboOption,
                                key.evolve('eh'),
-                               'C++ exception handling type.',
+                               'C++ exception handling type',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
         )
@@ -452,7 +459,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
             opts,
             self.create_option(options.UserComboOption,
                                self.form_compileropt_key('eh'),
-                               'C++ exception handling type.',
+                               'C++ exception handling type',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
             self.create_option(options.UserBooleanOption,
@@ -480,7 +487,7 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCompiler, CPPCompiler):
                 opts,
                 self.create_option(options.UserArrayOption,
                                    key.evolve('cpp_winlibs'),
-                                   'Standard Win libraries to link against',
+                                   'Standard Windows libs to link against',
                                    gnu_winlibs),
             )
         return opts
@@ -561,6 +568,17 @@ class NvidiaHPC_CPPCompiler(PGICompiler, CPPCompiler):
                              info, linker=linker, full_version=full_version)
         PGICompiler.__init__(self)
 
+    def get_options(self) -> 'MutableKeyedOptionDictType':
+        opts = CPPCompiler.get_options(self)
+        cppstd_choices = [
+            'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23',
+            'gnu++98', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++20'
+        ]
+        std_opt = opts[self.form_compileropt_key('std')]
+        assert isinstance(std_opt, options.UserStdOption), 'for mypy'
+        std_opt.set_versions(cppstd_choices)
+        return opts
+
 
 class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
@@ -596,7 +614,7 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
             opts,
             self.create_option(options.UserComboOption,
                                self.form_compileropt_key('eh'),
-                               'C++ exception handling type.',
+                               'C++ exception handling type',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
             self.create_option(options.UserBooleanOption,
@@ -677,7 +695,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             opts,
             self.create_option(options.UserComboOption,
                                self.form_compileropt_key('eh'),
-                               'C++ exception handling type.',
+                               'C++ exception handling type',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
             self.create_option(options.UserBooleanOption,
@@ -750,7 +768,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
             opts,
             self.create_option(options.UserComboOption,
                                self.form_compileropt_key('eh'),
-                               'C++ exception handling type.',
+                               'C++ exception handling type',
                                ['none', 'default', 'a', 's', 'sc'],
                                'default'),
             self.create_option(options.UserBooleanOption,
@@ -759,7 +777,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
                                True),
             self.create_option(options.UserArrayOption,
                                self.form_compileropt_key('winlibs'),
-                               'Windows libs to link against.',
+                               'Standard Windows libs to link against',
                                msvc_winlibs),
         )
         std_opt = opts[key]
@@ -900,8 +918,13 @@ class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLike
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        # This has only been tested with version 19.0,
-        cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
+        # This has only been tested with version 19.0, 2021.2.1, 2024.4.2 and 2025.0.1
+        if version_compare(self.version, '<2021.1.0'):
+            cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
+        else:
+            cpp_stds = ['none', 'c++14', 'c++17', 'c++latest']
+        if version_compare(self.version, '>=2024.1.0'):
+            cpp_stds += ['c++20']
         return self._get_options_impl(super().get_options(), cpp_stds)
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:

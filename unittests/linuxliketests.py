@@ -36,6 +36,7 @@ from mesonbuild.compilers.cpp import AppleClangCPPCompiler
 from mesonbuild.compilers.objc import AppleClangObjCCompiler
 from mesonbuild.compilers.objcpp import AppleClangObjCPPCompiler
 from mesonbuild.dependencies.pkgconfig import PkgConfigDependency, PkgConfigCLI, PkgConfigInterface
+from mesonbuild.programs import NonExistingExternalProgram
 import mesonbuild.modules.pkgconfig
 
 PKG_CONFIG = os.environ.get('PKG_CONFIG', 'pkg-config')
@@ -281,7 +282,6 @@ class LinuxlikeTests(BasePlatformTests):
 
         symdir = f'{self.builddir}-symlink'
         os.symlink(self.builddir, symdir)
-        self.addCleanup(os.unlink, symdir)
         self.change_builddir(symdir)
 
         self.init(testdir)
@@ -317,6 +317,19 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.framework_test_dir, '7 gnome')
         self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
+
+    def test_qt5dependency_no_lrelease(self):
+        '''
+        Test that qt5 detection with qmake works. This can't be an ordinary
+        test case because it involves setting the environment.
+        '''
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        def _no_lrelease(self, prog, *args, **kwargs):
+            if 'lrelease' in prog:
+                return NonExistingExternalProgram(prog)
+            return self._interpreter.find_program_impl(prog, *args, **kwargs)
+        with mock.patch.object(mesonbuild.modules.ModuleState, 'find_program', _no_lrelease):
+            self.init(testdir, inprocess=True, extra_args=['-Dmethod=qmake', '-Dexpect_lrelease=false'])
 
     def test_qt5dependency_qmake_detection(self):
         '''
@@ -1128,6 +1141,42 @@ class LinuxlikeTests(BasePlatformTests):
         pkg_config_path = env.coredata.optstore.get_value('pkg_config_path')
         self.assertEqual(pkg_config_path, [pkg_dir])
 
+    def test_pkgconfig_uninstalled_env_added(self):
+        '''
+        Checks that the meson-uninstalled dir is added to PKG_CONFIG_PATH
+        '''
+        testdir = os.path.join(self.unit_test_dir, '111 pkgconfig duplicate path entries')
+        meson_uninstalled_dir = os.path.join(self.builddir, 'meson-uninstalled')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+
+        newEnv = PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
+
+        pkg_config_path_dirs = newEnv['PKG_CONFIG_PATH'].split(os.pathsep)
+
+        self.assertEqual(len(pkg_config_path_dirs), 1)
+        self.assertEqual(pkg_config_path_dirs[0], meson_uninstalled_dir)
+
+    def test_pkgconfig_uninstalled_env_prepended(self):
+        '''
+        Checks that the meson-uninstalled dir is prepended to PKG_CONFIG_PATH
+        '''
+        testdir = os.path.join(self.unit_test_dir, '111 pkgconfig duplicate path entries')
+        meson_uninstalled_dir = os.path.join(self.builddir, 'meson-uninstalled')
+        external_pkg_config_path_dir = os.path.join('usr', 'local', 'lib', 'pkgconfig')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+
+        env.coredata.set_options({OptionKey('pkg_config_path'): external_pkg_config_path_dir},
+                                 subproject='')
+
+        newEnv = PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)
+
+        pkg_config_path_dirs = newEnv['PKG_CONFIG_PATH'].split(os.pathsep)
+
+        self.assertEqual(pkg_config_path_dirs[0], meson_uninstalled_dir)
+        self.assertEqual(pkg_config_path_dirs[1], external_pkg_config_path_dir)
+
     @skipIfNoPkgconfig
     def test_pkgconfig_internal_libraries(self):
         '''
@@ -1685,9 +1734,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Prelinking currently only works on recently new GNU toolchains.
         # Skip everything else. When support for other toolchains is added,
         # remove limitations as necessary.
-        if is_osx():
-            raise SkipTest('Prelinking not supported on Darwin.')
-        if 'clang' in os.environ.get('CC', 'dummy'):
+        if 'clang' in os.environ.get('CC', 'dummy') and not is_osx():
             raise SkipTest('Prelinking not supported with Clang.')
         testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -1703,10 +1750,9 @@ class LinuxlikeTests(BasePlatformTests):
         p = subprocess.run([ar, 't', outlib],
                            stdout=subprocess.PIPE,
                            stderr=subprocess.DEVNULL,
-                           text=True, timeout=1)
+                           encoding='utf-8', text=True, timeout=1)
         obj_files = p.stdout.strip().split('\n')
-        self.assertEqual(len(obj_files), 1)
-        self.assertTrue(obj_files[0].endswith('-prelink.o'))
+        self.assertTrue(any(o.endswith('-prelink.o') for o in obj_files))
 
     def do_one_test_with_nativefile(self, testdir, args):
         testdir = os.path.join(self.common_test_dir, testdir)
@@ -1789,7 +1835,7 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertFalse(cpp.compiler_args([f'-isystem{symlink}' for symlink in default_symlinks]).to_native())
 
     def test_freezing(self):
-        testdir = os.path.join(self.unit_test_dir, '110 freeze')
+        testdir = os.path.join(self.unit_test_dir, '111 freeze')
         self.init(testdir)
         self.build()
         with self.assertRaises(subprocess.CalledProcessError) as e:
@@ -1798,7 +1844,7 @@ class LinuxlikeTests(BasePlatformTests):
 
     @skipUnless(is_linux(), "Ninja file differs on different platforms")
     def test_complex_link_cases(self):
-        testdir = os.path.join(self.unit_test_dir, '114 complex link cases')
+        testdir = os.path.join(self.unit_test_dir, '115 complex link cases')
         self.init(testdir)
         self.build()
         with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as f:
@@ -1817,3 +1863,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertIn('build t9-e1: c_LINKER t9-e1.p/main.c.o | libt9-s1.a libt9-s2.a libt9-s3.a\n', content)
         self.assertIn('build t12-e1: c_LINKER t12-e1.p/main.c.o | libt12-s1.a libt12-s2.a libt12-s3.a\n', content)
         self.assertIn('build t13-e1: c_LINKER t13-e1.p/main.c.o | libt12-s1.a libt13-s3.a\n', content)
+
+    def test_top_options_in_sp(self):
+        testdir = os.path.join(self.unit_test_dir, '124 pkgsubproj')
+        self.init(testdir)

@@ -141,7 +141,7 @@ class Conf:
 
         This prints the generated output in an aligned, pretty form. it aims
         for a total width of 160 characters, but will use whatever the tty
-        reports it's value to be. Though this is much wider than the standard
+        reports its value to be. Though this is much wider than the standard
         80 characters of terminals, and even than the newer 120, compressing
         it to those lengths makes the output hard to read.
 

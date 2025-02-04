@@ -467,7 +467,7 @@ class AllPlatformTests(BasePlatformTests):
         '''
         if not shutil.which('xmllint'):
             raise SkipTest('xmllint not installed')
-        testdir = os.path.join(self.unit_test_dir, '111 replace unencodable xml chars')
+        testdir = os.path.join(self.unit_test_dir, '112 replace unencodable xml chars')
         self.init(testdir)
         tests_command_output = self.run_tests()
         junit_xml_logs = Path(self.logdir, 'testlog.junit.xml')
@@ -889,17 +889,17 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         self.utime(os.path.join(testdir, 'meson.build'))
         o = self._run(self.mtest_command + ['--list'])
-        self.assertIn('Regenerating build files.', o)
+        self.assertIn('Regenerating build files', o)
         self.assertIn('test_features / xfail', o)
         o = self._run(self.mtest_command + ['--list'])
-        self.assertNotIn('Regenerating build files.', o)
+        self.assertNotIn('Regenerating build files', o)
         # no real targets should have been built
         tester = os.path.join(self.builddir, 'tester' + exe_suffix)
         self.assertPathDoesNotExist(tester)
         # check that we don't reconfigure if --no-rebuild is passed
         self.utime(os.path.join(testdir, 'meson.build'))
         o = self._run(self.mtest_command + ['--list', '--no-rebuild'])
-        self.assertNotIn('Regenerating build files.', o)
+        self.assertNotIn('Regenerating build files', o)
 
     def test_unexisting_test_name(self):
         testdir = os.path.join(self.unit_test_dir, '4 suite selection')
@@ -1055,6 +1055,7 @@ class AllPlatformTests(BasePlatformTests):
         # target internal dependency wrong include_directories: source dir
         self.assertPathBasenameEqual(incs[8], 'sub2')
 
+    @mock.patch.dict(os.environ)
     def test_compiler_detection(self):
         '''
         Test that automatic compiler detection and setting from the environment
@@ -1128,6 +1129,8 @@ class AllPlatformTests(BasePlatformTests):
                     # ld-like linker of link.exe-like linker (usually the
                     # former for msys2, the latter otherwise)
                     self.assertIsInstance(cc.linker, (linkers.MSVCDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
+                elif is_sunos():
+                    self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
                 else:
                     self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, intel):
@@ -1765,7 +1768,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_prebuilt_shared_lib(self):
         (cc, _, object_suffix, shared_suffix) = self.detect_prebuild_env()
-        tdir = os.path.join(self.unit_test_dir, '17 prebuilt shared')
+        tdir = self.copy_srcdir(os.path.join(self.unit_test_dir, '17 prebuilt shared'))
         source = os.path.join(tdir, 'alexandria.c')
         objectfile = os.path.join(tdir, 'alexandria.' + object_suffix)
         impfile = os.path.join(tdir, 'alexandria.lib')
@@ -2142,7 +2145,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertDictEqual(original, expected)
 
     def test_executable_names(self):
-        testdir = os.path.join(self.unit_test_dir, '121 executable suffix')
+        testdir = os.path.join(self.unit_test_dir, '122 executable suffix')
         self.init(testdir)
         self.build()
         exe1 = os.path.join(self.builddir, 'foo' + exe_suffix)
@@ -2233,7 +2236,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_options_listed_in_build_options(self) -> None:
         """Detect when changed options become listed in build options."""
-        testdir = os.path.join(self.unit_test_dir, '113 list build options')
+        testdir = os.path.join(self.unit_test_dir, '114 list build options')
 
         out = self.init(testdir)
         for line in out.splitlines():
@@ -2465,7 +2468,7 @@ class AllPlatformTests(BasePlatformTests):
         tdir = os.path.join(self.unit_test_dir, '30 shared_mod linking')
         out = self.init(tdir)
         msg = ('''DEPRECATION: target prog links against shared module mymod, which is incorrect.
-             This will be an error in the future, so please use shared_library() for mymod instead.
+             This will be an error in meson 2.0, so please use shared_library() for mymod instead.
              If shared_module() was used for mymod because it has references to undefined symbols,
              use shared_library() with `override_options: ['b_lundef=false']` instead.''')
         self.assertIn(msg, out)
@@ -3020,6 +3023,8 @@ class AllPlatformTests(BasePlatformTests):
         expected = {
             'descriptive_name': 'proj',
             'version': 'undefined',
+            'license': ['unknown'],
+            'license_files': [],
             'subproject_dir': 'subprojects',
             'subprojects': [
                 {
@@ -3330,13 +3335,17 @@ class AllPlatformTests(BasePlatformTests):
             ('win_subsystem', (str, None)),
         ]
 
-        targets_sources_typelist = [
+        targets_sources_unknown_lang_typelist = [
             ('language', str),
             ('compiler', list),
             ('parameters', list),
             ('sources', list),
             ('generated_sources', list),
             ('unity_sources', (list, None)),
+        ]
+
+        targets_sources_typelist = targets_sources_unknown_lang_typelist + [
+            ('machine', str),
         ]
 
         target_sources_linker_typelist = [
@@ -3414,7 +3423,14 @@ class AllPlatformTests(BasePlatformTests):
         self.assertListEqual(dependencies_to_find, [])
 
         # Check projectinfo
-        self.assertDictEqual(res['projectinfo'], {'version': '1.2.3', 'descriptive_name': 'introspection', 'subproject_dir': 'subprojects', 'subprojects': []})
+        self.assertDictEqual(res['projectinfo'], {
+            'version': '1.2.3',
+            'license': ['unknown'],
+            'license_files': [],
+            'descriptive_name': 'introspection',
+            'subproject_dir': 'subprojects',
+            'subprojects': []
+        })
 
         # Check targets
         targets_to_find = {
@@ -3446,7 +3462,10 @@ class AllPlatformTests(BasePlatformTests):
                 targets_to_find.pop(i['name'], None)
             for j in i['target_sources']:
                 if 'compiler' in j:
-                    assertKeyTypes(targets_sources_typelist, j)
+                    if j['language'] == 'unknown':
+                        assertKeyTypes(targets_sources_unknown_lang_typelist, j)
+                    else:
+                        assertKeyTypes(targets_sources_typelist, j)
                     self.assertEqual(j['sources'], [os.path.normpath(f) for f in tgt[4]])
                 else:
                     assertKeyTypes(target_sources_linker_typelist, j)
@@ -3548,6 +3567,7 @@ class AllPlatformTests(BasePlatformTests):
                 sources += j.get('sources', [])
             i['target_sources'] = [{
                 'language': 'unknown',
+                'machine': 'host',
                 'compiler': [],
                 'parameters': [],
                 'sources': sources,
@@ -4648,101 +4668,121 @@ class AllPlatformTests(BasePlatformTests):
             'targets': {
                 f'{self.builddir}/out1-notag.txt': {
                     'destination': '{datadir}/out1-notag.txt',
+                    'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
                 f'{self.builddir}/out2-notag.txt': {
                     'destination': '{datadir}/out2-notag.txt',
+                    'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
                 f'{self.builddir}/libstatic.a': {
                     'destination': '{libdir_static}/libstatic.a',
+                    'install_rpath': None,
                     'tag': 'devel',
                     'subproject': None,
                 },
                 f'{self.builddir}/' + exe_name('app'): {
                     'destination': '{bindir}/' + exe_name('app'),
+                    'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
                 f'{self.builddir}/' + exe_name('app-otherdir'): {
                     'destination': '{prefix}/otherbin/' + exe_name('app-otherdir'),
+                    'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
                 f'{self.builddir}/subdir/' + exe_name('app2'): {
                     'destination': '{bindir}/' + exe_name('app2'),
+                    'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
                 f'{self.builddir}/' + shared_lib_name('shared'): {
                     'destination': '{libdir_shared}/' + shared_lib_name('shared'),
+                    'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
                 f'{self.builddir}/' + shared_lib_name('both'): {
                     'destination': '{libdir_shared}/' + shared_lib_name('both'),
+                    'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
                 f'{self.builddir}/' + static_lib_name('both'): {
                     'destination': '{libdir_static}/' + static_lib_name('both'),
+                    'install_rpath': None,
                     'tag': 'devel',
                     'subproject': None,
                 },
                 f'{self.builddir}/' + shared_lib_name('bothcustom'): {
                     'destination': '{libdir_shared}/' + shared_lib_name('bothcustom'),
+                    'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
                 f'{self.builddir}/' + static_lib_name('bothcustom'): {
                     'destination': '{libdir_static}/' + static_lib_name('bothcustom'),
+                    'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
                 f'{self.builddir}/subdir/' + shared_lib_name('both2'): {
                     'destination': '{libdir_shared}/' + shared_lib_name('both2'),
+                    'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
                 f'{self.builddir}/subdir/' + static_lib_name('both2'): {
                     'destination': '{libdir_static}/' + static_lib_name('both2'),
+                    'install_rpath': None,
                     'tag': 'devel',
                     'subproject': None,
                 },
                 f'{self.builddir}/out1-custom.txt': {
                     'destination': '{datadir}/out1-custom.txt',
+                    'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
                 f'{self.builddir}/out2-custom.txt': {
                     'destination': '{datadir}/out2-custom.txt',
+                    'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
                 f'{self.builddir}/out3-custom.txt': {
                     'destination': '{datadir}/out3-custom.txt',
+                    'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
                 f'{self.builddir}/subdir/out1.txt': {
                     'destination': '{datadir}/out1.txt',
+                    'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
                 f'{self.builddir}/subdir/out2.txt': {
                     'destination': '{datadir}/out2.txt',
+                    'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
                 f'{self.builddir}/out-devel.h': {
                     'destination': '{includedir}/out-devel.h',
+                    'install_rpath': None,
                     'tag': 'devel',
                     'subproject': None,
                 },
                 f'{self.builddir}/out3-notag.txt': {
                     'destination': '{datadir}/out3-notag.txt',
+                    'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
@@ -4856,11 +4896,36 @@ class AllPlatformTests(BasePlatformTests):
         # When clippy is used, we should get an exception since a variable named
         # "foo" is used, but is on our denylist
         testdir = os.path.join(self.rust_test_dir, '1 basic')
+        self.init(testdir)
+        self.build('clippy')
+
+        self.wipe()
+        self.init(testdir, extra_args=['--werror', '-Db_colorout=never'])
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.build('clippy')
+        self.assertTrue('error: use of a blacklisted/placeholder name `foo`' in cm.exception.stdout or
+                        'error: use of a disallowed/placeholder name `foo`' in cm.exception.stdout)
+
+    @skip_if_not_language('rust')
+    @unittest.skipIf(not shutil.which('clippy-driver'), 'Test requires clippy-driver')
+    def test_rust_clippy_as_rustc(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        # When clippy is used, we should get an exception since a variable named
+        # "foo" is used, but is on our denylist
+        testdir = os.path.join(self.rust_test_dir, '1 basic')
         self.init(testdir, extra_args=['--werror'], override_envvars={'RUSTC': 'clippy-driver'})
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.build()
         self.assertTrue('error: use of a blacklisted/placeholder name `foo`' in cm.exception.stdout or
                         'error: use of a disallowed/placeholder name `foo`' in cm.exception.stdout)
+
+    @skip_if_not_language('rust')
+    def test_rust_test_warnings(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        testdir = os.path.join(self.rust_test_dir, '9 unit tests')
+        self.init(testdir, extra_args=['--fatal-meson-warnings'])
 
     @skip_if_not_language('rust')
     def test_rust_rlib_linkage(self) -> None:
@@ -4930,7 +4995,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertIn('Generating subdir/file.txt with a custom command', out)
 
     def test_symlinked_subproject(self):
-        testdir = os.path.join(self.unit_test_dir, '107 subproject symlink')
+        testdir = os.path.join(self.unit_test_dir, '108 subproject symlink')
         subproject_dir = os.path.join(testdir, 'subprojects')
         subproject = os.path.join(testdir, 'symlinked_subproject')
         symlinked_subproject = os.path.join(testdir, 'subprojects', 'symlinked_subproject')
@@ -4946,7 +5011,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
 
     def test_configure_same_noop(self):
-        testdir = os.path.join(self.unit_test_dir, '109 configure same noop')
+        testdir = os.path.join(self.unit_test_dir, '110 configure same noop')
         args = [
             '-Dstring=val',
             '-Dboolean=true',
@@ -4983,7 +5048,7 @@ class AllPlatformTests(BasePlatformTests):
             oldmtime = newmtime
 
     def test_c_cpp_stds(self):
-        testdir = os.path.join(self.unit_test_dir, '115 c cpp stds')
+        testdir = os.path.join(self.unit_test_dir, '116 c cpp stds')
         self.init(testdir)
         # Invalid values should fail whatever compiler we have
         with self.assertRaises(subprocess.CalledProcessError):
@@ -5014,3 +5079,12 @@ class AllPlatformTests(BasePlatformTests):
             # The first supported std should be selected
             self.setconf('-Dcpp_std=c++11,gnu++11,vc++11')
             self.assertEqual(self.getconf('cpp_std'), 'c++11')
+
+    def test_rsp_support(self):
+        env = get_fake_env()
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        has_rsp = cc.linker.id in {
+            'ld.bfd', 'ld.gold', 'ld.lld', 'ld.mold', 'ld.qcld', 'ld.wasm',
+            'link', 'lld-link', 'mwldarm', 'mwldeppc', 'optlink', 'xilink',
+        }
+        self.assertEqual(cc.linker.get_accepts_rsp(), has_rsp)

@@ -28,7 +28,6 @@ __all__ = [
 
     'noPosargs',
     'noKwargs',
-    'stringArgs',
     'noArgsFlattening',
     'noSecondLevelHolderResolving',
     'unholder_return',
@@ -87,7 +86,6 @@ from .baseobjects import (
 from .decorators import (
     noPosargs,
     noKwargs,
-    stringArgs,
     noArgsFlattening,
     noSecondLevelHolderResolving,
     unholder_return,

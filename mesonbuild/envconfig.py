@@ -64,6 +64,7 @@ known_cpu_families = (
     'wasm64',
     'x86',
     'x86_64',
+    'tricore'
 )
 
 # It would feel more natural to call this "64_BIT_CPU_FAMILIES", but
@@ -438,16 +439,19 @@ class BinaryTable:
 
     @classmethod
     def parse_entry(cls, entry: T.Union[str, T.List[str]]) -> T.Tuple[T.List[str], T.List[str]]:
-        compiler = mesonlib.stringlistify(entry)
+        parts = mesonlib.stringlistify(entry)
         # Ensure ccache exists and remove it if it doesn't
-        if compiler[0] == 'ccache':
-            compiler = compiler[1:]
+        if parts[0] == 'ccache':
+            compiler = parts[1:]
             ccache = cls.detect_ccache()
-        elif compiler[0] == 'sccache':
-            compiler = compiler[1:]
+        elif parts[0] == 'sccache':
+            compiler = parts[1:]
             ccache = cls.detect_sccache()
         else:
+            compiler = parts
             ccache = []
+        if not compiler:
+            raise EnvironmentException(f'Compiler cache specified without compiler: {parts[0]}')
         # Return value has to be a list of compiler 'choices'
         return compiler, ccache
 

@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2024 Contributors to the The Meson project
+# Copyright © 2019-2024 Intel Corporation
 
+from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
 from functools import total_ordering
 import argparse
+import typing as T
 
 from .mesonlib import (
     HoldableObject,
@@ -22,11 +25,17 @@ from .mesonlib import (
     listify_array_value,
     MachineChoice,
 )
-
 from . import mlog
 
-import typing as T
-from typing import ItemsView, KeysView
+if T.TYPE_CHECKING:
+    from typing_extensions import TypedDict
+
+    class ArgparseKWs(TypedDict, total=False):
+
+        action: str
+        dest: str
+        default: str
+        choices: T.List
 
 DEFAULT_YIELDING = False
 
@@ -61,6 +70,7 @@ _BUILTIN_NAMES = {
     'buildtype',
     'debug',
     'default_library',
+    'default_both_libraries',
     'errorlogs',
     'genvslite',
     'install_umask',
@@ -100,7 +110,7 @@ class OptionKey:
     def __init__(self, name: str, subproject: str = '',
                  machine: MachineChoice = MachineChoice.HOST):
         # the _type option to the constructor is kinda private. We want to be
-        # able tos ave the state and avoid the lookup function when
+        # able to save the state and avoid the lookup function when
         # pickling/unpickling, but we need to be able to calculate it when
         # constructing a new OptionKey
         object.__setattr__(self, 'name', name)
@@ -409,7 +419,7 @@ class UserArrayOption(UserOption[T.List[str]]):
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option is deprecated. ' \
-                  'This will become a hard error in the future.'
+                  'This will become a hard error in meson 2.0.'
             mlog.deprecation(msg)
         for i in newvalue:
             if not isinstance(i, str):
@@ -500,7 +510,7 @@ class UserStdOption(UserComboOption):
                 mlog.deprecation(
                     f'None of the values {candidates} are supported by the {self.lang} compiler.\n' +
                     f'However, the deprecated {std} std currently falls back to {newstd}.\n' +
-                    'This will be an error in the future.\n' +
+                    'This will be an error in meson 2.0.\n' +
                     'If the project supports both GNU and MSVC compilers, a value such as\n' +
                     '"c_std=gnu11,c11" specifies that GNU is preferred but it can safely fallback to plain c11.')
                 return newstd
@@ -567,7 +577,7 @@ class BuiltinOption(T.Generic[_T, _U]):
         return self.default
 
     def add_to_argparse(self, name: str, parser: argparse.ArgumentParser, help_suffix: str) -> None:
-        kwargs = OrderedDict()
+        kwargs: ArgparseKWs = {}
 
         c = self._argparse_choices()
         b = self._argparse_action()
@@ -622,6 +632,7 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
     (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
                                                  yielding=False)),
+    (OptionKey('default_both_libraries'), BuiltinOption(UserComboOption, 'Default library type for both_libraries', 'shared', choices=['shared', 'static', 'auto'])),
     (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
     (OptionKey('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
     (OptionKey('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
@@ -672,16 +683,14 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
 }
 
 class OptionStore:
-    def __init__(self):
+    def __init__(self) -> None:
         self.d: T.Dict['OptionKey', 'UserOption[T.Any]'] = {}
-        self.project_options = set()
-        self.all_languages = set()
-        self.module_options = set()
+        self.project_options: T.Set[OptionKey] = set()
+        self.module_options: T.Set[OptionKey] = set()
         from .compilers import all_languages
-        for lang in all_languages:
-            self.all_languages.add(lang)
+        self.all_languages = set(all_languages)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.d)
 
     def ensure_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
@@ -695,29 +704,29 @@ class OptionStore:
     def get_value(self, key: T.Union[OptionKey, str]) -> 'T.Any':
         return self.get_value_object(key).value
 
-    def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_system_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         if '.' in key.name:
             raise MesonException(f'Internal error: non-module option has a period in its name {key.name}.')
         self.add_system_option_internal(key, valobj)
 
-    def add_system_option_internal(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_system_option_internal(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         assert isinstance(valobj, UserOption)
         self.d[key] = valobj
 
-    def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         if not key.name.startswith(language + '_'):
             raise MesonException(f'Internal error: all compiler option names must start with language prefix. ({key.name} vs {language}_)')
         self.add_system_option(key, valobj)
 
-    def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_project_option(self, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         self.d[key] = valobj
         self.project_options.add(key)
 
-    def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]'):
+    def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         if key.name.startswith('build.'):
             raise MesonException('FATAL internal error: somebody goofed option handling.')
@@ -731,38 +740,38 @@ class OptionStore:
         return self.d[key].set_value(new_value)
 
     # FIXME, this should be removed.or renamed to "change_type_of_existing_object" or something like that
-    def set_value_object(self, key: T.Union[OptionKey, str], new_object: 'UserOption[T.Any]') -> bool:
+    def set_value_object(self, key: T.Union[OptionKey, str], new_object: 'UserOption[T.Any]') -> None:
         key = self.ensure_key(key)
         self.d[key] = new_object
 
-    def remove(self, key):
+    def remove(self, key: OptionKey) -> None:
         del self.d[key]
 
-    def __contains__(self, key):
+    def __contains__(self, key: OptionKey) -> bool:
         key = self.ensure_key(key)
         return key in self.d
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self.d)
 
-    def keys(self) -> KeysView['OptionKey']:
+    def keys(self) -> T.KeysView[OptionKey]:
         return self.d.keys()
 
-    def values(self):
+    def values(self) -> T.ValuesView[UserOption[T.Any]]:
         return self.d.values()
 
-    def items(self) -> ItemsView['OptionKey', 'UserOption[T.Any]']:
+    def items(self) -> T.ItemsView['OptionKey', 'UserOption[T.Any]']:
         return self.d.items()
 
     # FIXME: this method must be deleted and users moved to use "add_xxx_option"s instead.
-    def update(self, *args, **kwargs):
-        return self.d.update(*args, **kwargs)
+    def update(self, **kwargs: UserOption[T.Any]) -> None:
+        self.d.update(**kwargs)
 
-    def setdefault(self, k, o):
+    def setdefault(self, k: OptionKey, o: UserOption[T.Any]) -> UserOption[T.Any]:
         return self.d.setdefault(k, o)
 
-    def get(self, *args, **kwargs) -> UserOption:
-        return self.d.get(*args, **kwargs)
+    def get(self, o: OptionKey, default: T.Optional[UserOption[T.Any]] = None) -> T.Optional[UserOption[T.Any]]:
+        return self.d.get(o, default)
 
     def is_project_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a project option."""

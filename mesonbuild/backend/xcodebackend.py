@@ -423,7 +423,7 @@ class XCodeBackend(backends.Backend):
             # generate id for our own target-name
             t.buildphasemap = {}
             t.buildphasemap[tname] = self.gen_id()
-            # each target can have it's own Frameworks/Sources/..., generate id's for those
+            # each target can have its own Frameworks/Sources/..., generate id's for those
             t.buildphasemap['Frameworks'] = self.gen_id()
             t.buildphasemap['Resources'] = self.gen_id()
             t.buildphasemap['Sources'] = self.gen_id()
@@ -526,7 +526,7 @@ class XCodeBackend(backends.Backend):
         self.native_frameworks_fileref = {}
         for t in self.build_targets.values():
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks':
+                if dep.name == 'appleframeworks' and dep.found():
                     for f in dep.frameworks:
                         self.native_frameworks[f] = self.gen_id()
                         self.native_frameworks_fileref[f] = self.gen_id()
@@ -691,7 +691,7 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_build_file(self, objects_dict: PbxDict) -> None:
         for tname, t in self.build_targets.items():
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks':
+                if dep.name == 'appleframeworks' and dep.found():
                     for f in dep.frameworks:
                         fw_dict = PbxDict()
                         fwkey = self.native_frameworks[f]
@@ -848,7 +848,7 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_file_reference(self, objects_dict: PbxDict) -> None:
         for tname, t in self.build_targets.items():
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks':
+                if dep.name == 'appleframeworks' and dep.found():
                     for f in dep.frameworks:
                         fw_dict = PbxDict()
                         framework_fileref = self.native_frameworks_fileref[f]
@@ -1023,7 +1023,7 @@ class XCodeBackend(backends.Backend):
             file_list = PbxArray()
             bt_dict.add_item('files', file_list)
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks':
+                if dep.name == 'appleframeworks' and dep.found():
                     for f in dep.frameworks:
                         file_list.add_item(self.native_frameworks[f], f'{f}.framework in Frameworks')
             bt_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
@@ -1071,7 +1071,7 @@ class XCodeBackend(backends.Backend):
 
         for t in self.build_targets.values():
             for dep in t.get_external_deps():
-                if dep.name == 'appleframeworks':
+                if dep.name == 'appleframeworks' and dep.found():
                     for f in dep.frameworks:
                         frameworks_children.add_item(self.native_frameworks_fileref[f], f)
 
@@ -1703,12 +1703,12 @@ class XCodeBackend(backends.Backend):
                     for d in swift_dep_dirs:
                         args += compiler.get_include_args(d, False)
                 if args:
-                    lang_cargs = cargs
+                    cti_args = []
                     if compiler and target.implicit_include_directories:
                         # It is unclear what is the cwd when xcode runs. -I. does not seem to
                         # add the root build dir to the search path. So add an absolute path instead.
                         # This may break reproducible builds, in which case patches are welcome.
-                        lang_cargs += self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
+                        cti_args = self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
                     # Xcode cannot handle separate compilation flags for C and ObjectiveC. They are both
                     # put in OTHER_CFLAGS. Same with C++ and ObjectiveC++.
                     if lang == 'objc':
@@ -1716,12 +1716,9 @@ class XCodeBackend(backends.Backend):
                     elif lang == 'objcpp':
                         lang = 'cpp'
                     langname = LANGNAMEMAP[lang]
-                    if langname in langargs:
-                        langargs[langname] += args
-                    else:
-                        langargs[langname] = args
-                    langargs[langname] += lang_cargs
-            symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
+                    langargs.setdefault(langname, [])
+                    langargs[langname] = cargs + cti_args + args
+            symroot = os.path.join(self.environment.get_build_dir(), target.subdir).rstrip('/')
             bt_dict = PbxDict()
             objects_dict.add_item(valid, bt_dict, buildtype)
             bt_dict.add_item('isa', 'XCBuildConfiguration')
@@ -1759,19 +1756,12 @@ class XCodeBackend(backends.Backend):
                     settings_dict.add_item('GCC_PREFIX_HEADER', f'$(PROJECT_DIR)/{relative_pch_path}')
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
-            header_arr = PbxArray()
-            unquoted_headers = []
-            unquoted_headers.append(self.get_target_private_dir_abs(target))
+            unquoted_headers = [self.get_target_private_dir_abs(target)]
             if target.implicit_include_directories:
                 unquoted_headers.append(os.path.join(self.environment.get_build_dir(), target.get_subdir()))
                 unquoted_headers.append(os.path.join(self.environment.get_source_dir(), target.get_subdir()))
-            if headerdirs:
-                for i in headerdirs:
-                    i = os.path.normpath(i)
-                    unquoted_headers.append(i)
-            for i in unquoted_headers:
-                header_arr.add_item(f'"{i}"')
-            settings_dict.add_item('HEADER_SEARCH_PATHS', header_arr)
+            unquoted_headers += headerdirs
+            settings_dict.add_item('HEADER_SEARCH_PATHS', self.normalize_header_search_paths(unquoted_headers))
             settings_dict.add_item('INSTALL_PATH', install_path)
             settings_dict.add_item('LIBRARY_SEARCH_PATHS', '')
             if isinstance(target, build.SharedModule):
@@ -1798,6 +1788,15 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('WARNING_CFLAGS', warn_array)
             warn_array.add_item('"$(inherited)"')
             bt_dict.add_item('name', buildtype)
+
+    def normalize_header_search_paths(self, header_dirs) -> PbxArray:
+        header_arr = PbxArray()
+        for i in header_dirs:
+            np = os.path.normpath(i)
+            # Make sure Xcode will not split single path into separate entries, escaping space with a slash is not enought
+            item = f'"\\\"{np}\\\""' if ' ' in np else f'"{np}"'
+            header_arr.add_item(item)
+        return header_arr
 
     def add_otherargs(self, settings_dict, langargs):
         for langname, args in langargs.items():

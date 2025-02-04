@@ -256,8 +256,11 @@ kwargs:
       do not support GNU visibility arguments.
 
   d_import_dirs:
-    type: list[str]
-    description: List of directories to look in for string imports used in the D programming language.
+    type: list[inc | str]
+    since: 0.62.0
+    description: |
+      the directories to add to the string search path (i.e. `-J` switch for DMD).
+      Must be [[@inc]] objects or plain strings.
 
   d_unittest:
     type: bool

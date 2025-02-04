@@ -32,7 +32,7 @@ description: |
 
   The returned object also has methods that are documented in [[@build_tgt]].
 
-  *"jar" is deprecated because it is fundementally a different thing than the
+  *"jar" is deprecated because it is fundamentally a different thing than the
   other build_target types.
 
 posargs_inherit: _build_target_base

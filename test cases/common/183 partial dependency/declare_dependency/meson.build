@@ -1,4 +1,4 @@
-# Copyright © 2018 Intel Corporation
+# Copyright © 2018-2024 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,14 @@ dec_exe = executable(
   'declare_dep',
   files('main.c', 'other.c'),
   dependencies : sub_dep,
+)
+
+# Ensure that two partial dependencies of the same dependency are applied, as
+# they may provide different values.
+dec2_exe = executable(
+  'declare_dep2',
+  files('main.c', 'other.c'),
+  dependencies : [sub_dep.partial_dependency(), sub_dep],
 )
 
 test('Declare Dependency', dec_exe)

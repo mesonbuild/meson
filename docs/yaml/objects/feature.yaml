@@ -89,7 +89,7 @@ methods:
 
     ```
     if get_option('directx').require(host_machine.system() == 'windows',
-          error_message: 'DirectX only available on Windows').allowed() then
+          error_message: 'DirectX only available on Windows').allowed()
       src += ['directx.c']
       config.set10('HAVE_DIRECTX', true)
     endif

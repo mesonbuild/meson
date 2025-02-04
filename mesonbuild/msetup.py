@@ -165,7 +165,7 @@ class MesonApp:
             if not self.options.reconfigure and not self.options.wipe:
                 print('Directory already configured.\n\n'
                       'Just run your build command (e.g. ninja) and Meson will regenerate as necessary.\n'
-                      'Run "meson setup --reconfigure to force Meson to regenerate.\n\n'
+                      'Run "meson setup --reconfigure" to force Meson to regenerate.\n\n'
                       'If build failures persist, run "meson setup --wipe" to rebuild from scratch\n'
                       'using the same options as passed when configuring the build.')
                 if self.options.cmd_line_options:
@@ -354,7 +354,7 @@ def run(options: T.Union[CMDOptions, T.List[str]]) -> int:
     coredata.parse_cmd_line_options(options)
 
     # Msetup doesn't actually use this option, but we pass msetup options to
-    # mconf, and it does. We won't actally hit the path that uses it, but don't
+    # mconf, and it does. We won't actually hit the path that uses it, but don't
     # lie
     options.pager = False
 

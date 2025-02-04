@@ -82,7 +82,7 @@ class InterpreterBase:
         self.current_lineno = -1
         # Current node set during a function call. This can be used as location
         # when printing a warning message during a method call.
-        self.current_node: mparser.BaseNode = None
+        self.current_node = mparser.BaseNode(-1, -1, 'sentinel')
         # This is set to `version_string` when this statement is evaluated:
         # meson.version().compare_version(version_string)
         # If it was part of a if-clause, it is used to temporally override the
@@ -183,7 +183,6 @@ class InterpreterBase:
         while i < len(statements):
             cur = statements[i]
             try:
-                self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
             except Exception as e:
                 if getattr(e, 'lineno', None) is None:
@@ -656,8 +655,6 @@ class InterpreterBase:
                 raise mesonlib.MesonBugException(f'set_variable in InterpreterBase called with a non InterpreterObject {variable} of type {type(variable).__name__}')
         if not isinstance(varname, str):
             raise InvalidCode('First argument to set_variable must be a string.')
-        if re.match('[_a-zA-Z][_0-9a-zA-Z]*$', varname) is None:
-            raise InvalidCode('Invalid variable name: ' + varname)
         if varname in self.builtin:
             raise InvalidCode(f'Tried to overwrite internal variable "{varname}"')
         self.variables[varname] = variable

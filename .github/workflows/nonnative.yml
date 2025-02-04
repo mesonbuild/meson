@@ -37,7 +37,7 @@ jobs:
         apt-get -y purge clang gcc gdc
         apt-get -y autoremove
         python3 -m pip install coverage
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Run tests
       run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./tools/run_with_cov.py ./run_tests.py $CI_ARGS --cross ubuntu-armhf.json --cross-only'
 

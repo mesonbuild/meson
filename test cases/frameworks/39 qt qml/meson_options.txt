@@ -1,0 +1,1 @@
+option('method', type : 'string', value : 'auto', description : 'The method to use to find Qt')

@@ -385,7 +385,7 @@ class Rewriter:
     def print_info(self):
         if self.info_dump is None:
             return
-        sys.stderr.write(json.dumps(self.info_dump, indent=2))
+        sys.stdout.write(json.dumps(self.info_dump, indent=2))
 
     def on_error(self):
         if self.skip_errors:
@@ -1044,6 +1044,7 @@ cli_type_map = {
 }
 
 def run(options):
+    mlog.redirect(True)
     if not options.verbose:
         mlog.set_quiet()
 

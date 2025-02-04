@@ -16,7 +16,6 @@ from ..mesonlib import (
 )
 from ..options import OptionKey
 
-from . import compilers
 from .compilers import (
     clike_debug_args,
     Compiler,
@@ -26,6 +25,7 @@ from .mixins.gnu import GnuCompiler
 from .mixins.gnu import gnu_common_warning_args
 
 if T.TYPE_CHECKING:
+    from . import compilers
     from ..build import DFeatures
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo

@@ -28,8 +28,10 @@ from .pkgconfig import PkgConfigDependency
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
+    from ..compilers import Compiler
     from ..mesonlib import MachineChoice
     from typing_extensions import TypedDict
+    from ..interpreter.type_checking import PkgConfigDefineType
 
     class JNISystemDependencyKW(TypedDict):
         modules: T.List[str]
@@ -699,6 +701,106 @@ class JDKSystemDependency(JNISystemDependency):
 
 packages['jdk'] = JDKSystemDependency
 
+
+class DiaSDKSystemDependency(SystemDependency):
+
+    def _try_path(self, diadir: str, cpu: str) -> bool:
+        if not os.path.isdir(diadir):
+            return False
+
+        include = os.path.join(diadir, 'include')
+        if not os.path.isdir(include):
+            mlog.error('DIA SDK is missing include directory:', include)
+            return False
+
+        lib = os.path.join(diadir, 'lib', cpu, 'diaguids.lib')
+        if not os.path.exists(lib):
+            mlog.error('DIA SDK is missing library:', lib)
+            return False
+
+        bindir = os.path.join(diadir, 'bin', cpu)
+        if not os.path.exists(bindir):
+            mlog.error(f'Directory {bindir} not found')
+            return False
+
+        found = glob.glob(os.path.join(bindir, 'msdia*.dll'))
+        if not found:
+            mlog.error("Can't find msdia*.dll in " + bindir)
+            return False
+        if len(found) > 1:
+            mlog.error('Multiple msdia*.dll files found in ' + bindir)
+            return False
+        self.dll = found[0]
+
+        # Parse only major version from DLL name (eg '8' from 'msdia80.dll', '14' from 'msdia140.dll', etc.).
+        # Minor version is not reflected in the DLL name, instead '0' is always used.
+        # Aside from major version in DLL name, the SDK version is not visible to user anywhere.
+        # The only place where the full version is stored, seems to be the Version field in msdia*.dll resources.
+        dllname = os.path.basename(self.dll)
+        versionstr = dllname[len('msdia'):-len('.dll')]
+        if versionstr[-1] == '0':
+            self.version = versionstr[:-1]
+        else:
+            mlog.error(f"Unexpected DIA SDK version string in '{dllname}'")
+            self.version = 'unknown'
+
+        self.compile_args.append('-I' + include)
+        self.link_args.append(lib)
+        self.is_found = True
+        return True
+
+    # Check if compiler has a built-in macro defined
+    @staticmethod
+    def _has_define(compiler: 'Compiler', dname: str, env: 'Environment') -> bool:
+        defval, _ = compiler.get_define(dname, '', env, [], [])
+        return defval is not None
+
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+        super().__init__('diasdk', environment, kwargs)
+        self.is_found = False
+
+        compilers = environment.coredata.compilers.host
+        if 'cpp' in compilers:
+            compiler = compilers['cpp']
+        elif 'c' in compilers:
+            compiler = compilers['c']
+        else:
+            raise DependencyException('DIA SDK is only supported in C and C++ projects')
+
+        is_msvc_clang = compiler.id == 'clang' and self._has_define(compiler, '_MSC_VER', environment)
+        if compiler.id not in {'msvc', 'clang-cl'} and not is_msvc_clang:
+            raise DependencyException('DIA SDK is only supported with Microsoft Visual Studio compilers')
+
+        cpu_translate = {'arm': 'arm', 'aarch64': 'arm64', 'x86': '.', 'x86_64': 'amd64'}
+        cpu_family = environment.machines.host.cpu_family
+        cpu = cpu_translate.get(cpu_family)
+        if cpu is None:
+            raise DependencyException(f'DIA SDK is not supported for "{cpu_family}" architecture')
+
+        vsdir = os.environ.get('VSInstallDir')
+        if vsdir is None:
+            raise DependencyException("Environment variable VSInstallDir required for DIA SDK is not set")
+
+        diadir = os.path.join(vsdir, 'DIA SDK')
+        if self._try_path(diadir, cpu):
+            mlog.debug('DIA SDK was found at default path: ', diadir)
+            self.is_found = True
+            return
+        mlog.debug('DIA SDK was not found at default path: ', diadir)
+
+        return
+
+    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
+                     system: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     pkgconfig_define: PkgConfigDefineType = None) -> str:
+        if system == 'dll' and self.is_found:
+            return self.dll
+        if default_value is not None:
+            return default_value
+        raise DependencyException(f'Could not get system variable and no default was set for {self!r}')
+
+packages['diasdk'] = DiaSDKSystemDependency
 
 packages['llvm'] = llvm_factory = DependencyFactory(
     'LLVM',

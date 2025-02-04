@@ -7,7 +7,7 @@
 # soname to 1.2.3 but Autotools sets it to 1.
 
 project(vertest C)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION ${CMAKE_VERSION})
 
 add_library(nover SHARED versioned.c)
 
