@@ -1125,21 +1125,21 @@ class OptionStore:
     def __repr__(self) -> str:
         return repr(self.options)
 
-    def keys(self) -> T.KeysView[OptionKey]:
-        return self.d.keys()
+    def keys(self) -> T.KeysView[AnyOptionType]:
+        return self.options.keys()
 
-    def values(self) -> T.ValuesView[UserOption[T.Any]]:
-        return self.d.values()
+    def values(self) -> T.ValuesView[AnyOptionType]:
+        return self.options.values()
 
-    def items(self) -> T.ItemsView['OptionKey', 'UserOption[T.Any]']:
-        return self.d.items()
+    def items(self) -> T.ItemsView['OptionKey', 'AnyOptionType']:
+        return self.options.items()
 
     # FIXME: this method must be deleted and users moved to use "add_xxx_option"s instead.
     def update(self, **kwargs: AnyOptionType) -> None:
-        self.d.update(**kwargs)
+        self.options.update(**kwargs)
 
     def setdefault(self, k: OptionKey, o: UserOption[T.Any]) -> UserOption[T.Any]:
-        return self.d.setdefault(k, o)
+        return self.options.setdefault(k, o)
 
     def get(self, o: OptionKey, default: T.Optional[AnyOptionType] = None, **kwargs) -> T.Optional[AnyOptionType]:
         return self.options.get(o, default, **kwargs)
