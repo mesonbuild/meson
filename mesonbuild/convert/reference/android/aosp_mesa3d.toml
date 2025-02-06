@@ -1,0 +1,113 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+[project]
+project_name = 'aosp_mesa3d'
+project_path = 'external/mesa3d'
+build_system = 'soong'
+# Modules defined here must relative to the root
+handwritten_modules = 'gfxstream_workaround.bp'
+
+[copyright]
+license_name = "external_mesa3d_license"
+licenses = ["MIT", "Apache-2.0", "GPL-1.0-or-later", "GPL-2.0-only"]
+license_texts = ["LICENSE"]
+
+[target_renames]
+vulkan_lvp = "vulkan.lvp"
+vulkan_gfxstream = "vulkan.ranchu"
+vulkan_freedreno = "vulkan.freedreno"
+
+[custom_target]
+[custom_target.workarounds]
+skip_export_include_dirs = [
+    "gfxstream_guest_vk_autogen",
+    "vulkan_gfxstream_header",
+]
+
+[[custom_variable]]
+namespace = "aosp_mesa3d"
+name = "perfetto"
+possible_values = ["true", "default"]
+default_value = "default"
+
+[[config]]
+config_name = 'aosp_reference_drivers'
+
+[config.platforms]
+host_platforms = [
+    "android_arm64",
+    "android_x86_64",
+    "android_x86"
+]
+build_platforms = ["linux_glibc_x86_64"]
+
+[config.static_options]
+glx = "disabled"
+zlib = "disabled"
+platforms = "android"
+android-strict = false
+vulkan-drivers = "gfxstream,swrast"
+gallium-drivers = ""
+virtgpu_kumquat = true
+opengl = false
+egl = "disabled"
+
+[config.variable_options]
+perfetto = [
+    { value = true, select = "aosp_mesa3d:perfetto=true" },
+    { value = false, select = "aosp_mesa3d:perfetto=default" }
+]
+
+[[config]]
+config_name = 'aosp_reference_embedded_drivers'
+
+[config.platforms]
+host_platforms = [
+    "android_arm64",
+]
+build_platforms = ["linux_glibc_x86_64"]
+
+[config.static_options]
+glx = "disabled"
+zlib = "disabled"
+platforms = "android"
+android-strict = false
+vulkan-drivers = "freedreno"
+freedreno-kmds = "msm,kgsl"
+gallium-drivers = ""
+opengl = false
+egl = "disabled"
+
+[[config]]
+config_name = 'aosp_emulated_android_gfxstream'
+
+[config.platforms]
+host_platforms = ["linux_glibc_x86_64", "linux_musl_x86_64", "linux_musl_aarch64"]
+build_platforms = ["linux_glibc_x86_64"]
+
+[config.static_options]
+glx = "disabled"
+zlib = "disabled"
+platforms = "android"
+android-stub = true
+vulkan-drivers = "gfxstream"
+gallium-drivers = ""
+virtgpu_kumquat = true
+opengl = false
+egl = "disabled"
+
+[[config]]
+config_name = 'aosp_host_lavapipe'
+
+[config.platforms]
+host_platforms = ["linux_glibc_x86_64", "linux_musl_x86_64", "linux_musl_aarch64"]
+build_platforms = ["linux_glibc_x86_64"]
+
+[config.static_options]
+glx = "disabled"
+zlib = "disabled"
+platforms = ""
+vulkan-drivers = "swrast"
+gallium-drivers = ""
+opengl = false
+egl = "disabled"
