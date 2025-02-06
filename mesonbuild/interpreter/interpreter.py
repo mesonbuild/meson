@@ -3327,9 +3327,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         default_library = self.coredata.get_option(OptionKey('default_library', subproject=self.subproject))
         assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
-            return self.build_target(node, args, T.cast('kwtypes.StaticLibrary', kwargs), build.SharedLibrary)
+            return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.SharedLibrary)
         elif default_library == 'static':
-            return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.StaticLibrary)
+            return self.build_target(node, args, T.cast('kwtypes.StaticLibrary', kwargs), build.StaticLibrary)
         elif default_library == 'both':
             return self.build_both_libraries(node, args, kwargs)
         else:
