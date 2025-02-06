@@ -1,0 +1,216 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 The Meson Development Team
+
+from __future__ import annotations
+import typing as T
+from collections import defaultdict
+from pathlib import Path
+
+from mesonbuild.convert.build_systems.target import (
+    ConvertAttr,
+    ConvertCustomTarget,
+    ConvertTarget,
+    ConvertTargetType,
+    ConvertAttrNode,
+)
+from mesonbuild.convert.build_systems.emitter import (
+    ConvertEmitterBackend,
+    generic_emit_attribute_values,
+    COMMON_INDENT,
+)
+from mesonbuild.convert.build_systems.bazel.bzlmod_emitter import emit_module_bazel
+from mesonbuild.convert.build_systems.common import ConvertStateTracker
+from mesonbuild.convert.convert_project_config import CopyrightSection
+
+COPYRIGHT_HEADER_TEMPLATE = """\
+# Copyright (C) 2025-2026 The Magma GPU Project
+# SPDX-License-Identifier: Apache-2.0
+#
+# Generated via:
+#   https://github.com/mesonbuild/meson/tree/master/mesonbuild/convert
+#
+# Submit patches, do not hand-edit."""
+
+LICENSE_BLOCK_TEMPLATE = """\
+package(
+    default_applicable_licenses = ["//:{root_license_name}"],
+    default_visibility = ["//visibility:public"],
+)"""
+
+ROOT_LICENSE_TEMPLATE = """\
+license(
+    name = "{license_name}",
+    license_kinds = [
+{license_kinds}
+    ],
+)"""
+
+
+BAZEL_ATTR_MAP: T.Dict[ConvertAttr, str] = {
+    # Common attributes
+    ConvertAttr.INCLUDES: 'export_include_dirs',
+    ConvertAttr.LDFLAGS: 'linkopts',
+    ConvertAttr.NAME: 'name',
+    ConvertAttr.OUT: 'outs',
+    ConvertAttr.PYTHON_MAIN: 'main',
+    ConvertAttr.RUSTFLAGS: 'rustc_flags',
+    ConvertAttr.RUST_CRATE_NAME: 'crate_name',
+    ConvertAttr.RUST_EDITION: 'edition',
+    ConvertAttr.SRCS: 'srcs',
+    ConvertAttr.TOOLS: 'tools',
+    # Bazel-specific attributes
+    ConvertAttr.BAZEL_DEPS: 'deps',
+    ConvertAttr.BAZEL_FLAGS: 'flags',
+    ConvertAttr.BAZEL_HDRS: 'hdrs',
+}
+
+
+BAZEL_MODULE_MAP = {
+    ConvertTargetType.CUSTOM_TARGET: 'meson_genrule',
+    ConvertTargetType.EXECUTABLE: 'meson_cc_binary',
+    ConvertTargetType.FILEGROUP: 'filegroup',
+    ConvertTargetType.FLAG: 'meson_cc_flags',
+    ConvertTargetType.INCLUDE_DIRECTORY: 'meson_cc_headers',
+    ConvertTargetType.PYTHON_BINARY: 'py_binary',
+    ConvertTargetType.PYTHON_LIBRARY: 'py_library',
+    ConvertTargetType.RUST_FFI_SHARED: 'rust_shared_library',
+    ConvertTargetType.RUST_FFI_STATIC: 'rust_static_library',
+    ConvertTargetType.RUST_LIBRARY: 'rust_library',
+    ConvertTargetType.SHARED_LIBRARY: 'meson_cc_library',
+    ConvertTargetType.STATIC_LIBRARY: 'meson_cc_library',
+}
+
+
+BAZEL_LOAD_MAP = {
+    ConvertTargetType.CUSTOM_TARGET: ('//bazel:meson_rules.bzl', 'meson_genrule'),
+    ConvertTargetType.EXECUTABLE: ('//bazel:meson_rules.bzl', 'meson_cc_binary'),
+    ConvertTargetType.FLAG: ('//bazel:meson_rules.bzl', 'meson_cc_flags'),
+    ConvertTargetType.INCLUDE_DIRECTORY: ('//bazel:meson_rules.bzl', 'meson_cc_headers'),
+    ConvertTargetType.PYTHON_BINARY: ('@rules_python//python:py_binary.bzl', 'py_binary'),
+    ConvertTargetType.PYTHON_LIBRARY: ('@rules_python//python:py_library.bzl', 'py_library'),
+    ConvertTargetType.RUST_FFI_STATIC: ('@rules_rust//rust:defs.bzl', 'rust_static_library'),
+    ConvertTargetType.RUST_FFI_SHARED: ('@rules_rust//rust:defs.bzl', 'rust_shared_library'),
+    ConvertTargetType.RUST_FLAG: ('//bazel:rust_rules.bzl', 'meson_rust_flags'),
+    ConvertTargetType.RUST_LIBRARY: ('@rules_rust//rust:defs.bzl', 'rust_library'),
+    ConvertTargetType.STATIC_LIBRARY: ('//bazel:meson_rules.bzl', 'meson_cc_library'),
+    ConvertTargetType.SHARED_LIBRARY: ('//bazel:meson_rules.bzl', 'meson_cc_library'),
+}
+
+
+def _emit_python_aliases(python_libs: T.Dict[str, str]) -> str:
+    content = ''
+    for dep in sorted(python_libs):
+        content += 'alias(\n'
+        content += f'    name = "{dep}",\n'
+        content += f'    actual = "@meson_python_deps//{dep}",\n'
+        content += '    visibility = ["//visibility:public"],\n'
+        content += ')\n\n'
+    return content
+
+
+class BazelEmitterBackend(ConvertEmitterBackend):
+    def emit_begin(self, output_dir: Path, state_tracker: ConvertStateTracker) -> None:
+        # Do not emit bzlmod information in the unit test for now.  The reason
+        # is we only check BUILD.bazel in the unit test currently.
+        if state_tracker.project_config.project_name == 'basic_convert':
+            return
+
+        emit_module_bazel(output_dir, state_tracker, self.get_copyright_header({}))
+
+    def get_attr_map(self) -> T.Dict[ConvertAttr, str]:
+        return BAZEL_ATTR_MAP
+
+    def get_module_map(self) -> T.Dict[ConvertTargetType, str]:
+        return BAZEL_MODULE_MAP
+
+    def get_attr_separator(self) -> str:
+        return ' = '
+
+    def get_opening_brace(self) -> str:
+        return '('
+
+    def get_closing_brace(self) -> str:
+        return ')'
+
+    def get_build_file_name(self) -> str:
+        return 'BUILD.bazel'
+
+    def get_build_file_globs(self) -> T.List[str]:
+        return ['*.bazel', '*.bzl']
+
+    def get_copyright_header(self, copyright_info: CopyrightSection) -> str:
+        return COPYRIGHT_HEADER_TEMPLATE
+
+    def get_license_block(self, copyright_info: CopyrightSection,
+                          is_root: bool) -> str:  # fmt: skip
+        if 'license_name' in copyright_info:
+            root_license_name = copyright_info['license_name']
+            content = ''
+            if is_root:
+                license_kinds = '\n'.join(
+                    [
+                        f'        "@rules_license//licenses/spdx:{lic}",'
+                        for lic in copyright_info.get('licenses', [])
+                    ]
+                )
+                content += '\n\n' + ROOT_LICENSE_TEMPLATE.format(
+                    license_name=root_license_name, license_kinds=license_kinds
+                )
+            content += '\n\n' + LICENSE_BLOCK_TEMPLATE.format(root_license_name=root_license_name)
+            return content
+        return ''
+
+    def emit_extra_root_info(self, state_tracker: ConvertStateTracker) -> str:
+        content = ''
+        python_libs = state_tracker.project_config.dependencies.python_libraries
+        if python_libs:
+            content += _emit_python_aliases(python_libs)
+        return content
+
+    def emit_module_load_info(self, targets: T.List[ConvertTarget],
+                              is_root: bool) -> str:  # fmt: skip
+        file_to_rules = defaultdict(set)
+        if is_root:
+            file_to_rules['@rules_license//rules:license.bzl'].add('license')
+
+        for t in targets:
+            if t.target_type in BAZEL_LOAD_MAP:
+                load_file, rule = BAZEL_LOAD_MAP[t.target_type]
+                file_to_rules[load_file].add(rule)
+
+        if not file_to_rules:
+            return ''
+
+        load_lines = []
+        for load_file in sorted(file_to_rules.keys()):
+            rules = sorted(list(file_to_rules[load_file]))
+            rules_str = ', '.join([f'"{r}"' for r in rules])
+            load_lines.append(f'load("{load_file}", {rules_str})')
+
+        return '\n'.join(load_lines) + '\n\n'
+
+    def emit_special_target_info(self, target: ConvertTarget) -> str:
+        if isinstance(target, ConvertCustomTarget):
+            return f'    cmd = "{target.cmd}",\n'
+        return ''
+
+    def format_conditionals(self, indent: int, node: ConvertAttrNode) -> str:
+        content_str = ''
+        select_nodes = node.get_select_nodes()
+        if not select_nodes:
+            return content_str
+
+        select_node = select_nodes[0]
+        content_str += 'select({\n'
+
+        value_indent = indent + COMMON_INDENT
+        indent_str = ' ' * value_indent
+        for select_values, attribute_values in select_node.select_tuples:
+            key = ':'.join(select_values)
+            if key == 'default':
+                key = '//conditions:default'
+            content_str += f'{indent_str}"{key}": {generic_emit_attribute_values(value_indent, attribute_values, self.get_list_brackets())},\n'
+
+        content_str += ' ' * indent + '})'
+        return content_str
