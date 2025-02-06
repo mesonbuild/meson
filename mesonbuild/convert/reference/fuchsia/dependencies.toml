@@ -1,0 +1,13 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+
+[python_libraries]
+mako = "1.3"
+markupsafe = "2.0.0"
+pyyaml = "6.0"
+
+[programs]
+python3 = { version = "3.9" }
+bindgen = { version = "1.71" }
+bison = { version = "3.8.2" }
+flex = { version = "2.6.4" }

@@ -1,0 +1,219 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier-Apache-2.0
+
+# Generated via meson check-toolchain --fuchsia-clang-instance-id eElzEu-CHpuu6lW7IF3kpIH08sihIBJybp-rwP3yevUC --fuchsia-core-sdk-instance-id sVJe9XVJyCecoWH2SKQtCXQEDjgtV9xx3qpUW_x9USkC -o fuchsia_check_qsort_v3.toml
+
+[compiler_binaries.wrap]
+source_url = "https://chrome-infra-packages.appspot.com/dl/fuchsia/third_party/clang/linux-amd64/+/eElzEu-CHpuu6lW7IF3kpIH08sihIBJybp-rwP3yevUC"
+source_filename = "fuchsia-clang-linux-amd64.zip"
+source_hash = "78497312ef821e9baeea55bb205de4a481f4f2c8a12012726e9fabc0fdf27af5"
+
+[compiler_binaries.binary_paths]
+cc = "bin/clang"
+cpp = "bin/clang++"
+ld = "bin/ld.lld"
+ar = "bin/llvm-ar"
+nm = "bin/llvm-nm"
+objcopy = "bin/llvm-objcopy"
+objdump = "bin/llvm-objdump"
+gcov = "bin/llvm-cov"
+strip = "bin/llvm-strip"
+as = "bin/llvm-as"
+toolchain_id = "clang-fuchsia"
+
+[sysroot.wrap]
+source_url = "https://chrome-infra-packages.appspot.com/dl/fuchsia/sdk/core/linux-amd64/+/sVJe9XVJyCecoWH2SKQtCXQEDjgtV9xx3qpUW_x9USkC"
+source_filename = "fuchsia-sdk-core-linux-amd64.zip"
+source_hash = "b1525ef57549c8279ca161f648a42d0974040e382d57dc71deaa545bfc7d5129"
+
+[[toolchain]]
+name = "fuchsia_x86_64"
+
+[toolchain.host_machine]
+cpu_family = "x86_64"
+cpu = "x86_64"
+system = "fuchsia"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "23.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "23.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.links.fails]
+"GCC 64bit atomics" = true
+"xlocale" = true
+
+[toolchain.c.check_header.fails]
+"xlocale.h" = true
+"linux/futex.h" = true
+"linux/udmabuf.h" = true
+"pthread_np.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/sysmacros.h" = { major = true, minor = true, makedev = true }
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+ffs = true
+ffsll = true
+getrandom = true
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+reallocarray = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+memfd_create = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.links.fails]
+"qsort_r" = true
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[toolchain]]
+name = "fuchsia_aarch64"
+
+[toolchain.host_machine]
+cpu_family = "aarch64"
+cpu = "aarch64"
+system = "fuchsia"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "23.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "23.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.links.fails]
+"GCC 64bit atomics" = true
+"xlocale" = true
+
+[toolchain.c.check_header.fails]
+"xlocale.h" = true
+"linux/futex.h" = true
+"linux/udmabuf.h" = true
+"pthread_np.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/sysmacros.h" = { major = true, minor = true, makedev = true }
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+ffs = true
+ffsll = true
+getrandom = true
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+reallocarray = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+memfd_create = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.links.fails]
+"qsort_r" = true
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]
+
+[[toolchain]]
+name = "fuchsia_riscv"
+
+[toolchain.host_machine]
+cpu_family = "riscv64"
+cpu = "riscv64"
+system = "fuchsia"
+endian = "little"
+
+[toolchain.c]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "23.0.0"
+
+[toolchain.cpp]
+compiler_id = "clang"
+linker_id = "ld.lld"
+version = "23.0.0"
+
+[toolchain.rust]
+compiler_id = "rustc"
+linker_id = "ld.lld"
+version = "1.90.0"
+
+[toolchain.c.links.fails]
+"GCC 64bit atomics" = true
+"xlocale" = true
+
+[toolchain.c.check_header.fails]
+"xlocale.h" = true
+"linux/futex.h" = true
+"linux/udmabuf.h" = true
+"pthread_np.h" = true
+
+[toolchain.c.has_header_symbol.fails]
+"sys/sysmacros.h" = { major = true, minor = true, makedev = true }
+"sys/mkdev.h" = { major = true, minor = true, makedev = true }
+"errno.h" = { program_invocation_name = true }
+
+[toolchain.c.has_function.fails]
+ffs = true
+ffsll = true
+getrandom = true
+qsort_s = true
+secure_getenv = true
+pthread_setaffinity_np = true
+reallocarray = true
+__builtin_add_overflow_p = true
+__builtin_sub_overflow_p = true
+memfd_create = true
+
+[toolchain.c.supported_arguments.fails]
+args = [
+    "-Wno-nonnull-compare",
+]
+
+[toolchain.cpp.links.fails]
+"qsort_r" = true
+
+[toolchain.cpp.supported_arguments.fails]
+args = [
+    "-flifetime-dse=1",
+]

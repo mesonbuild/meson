@@ -1,0 +1,19 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+[project]
+project_name = 'basic_convert'
+build_system = 'soong'
+
+[copyright]
+license_name = "test_license"
+licenses = ["Apache-2.0"]
+license_texts = ["LICENSE"]
+
+[[config]]
+config_name = 'test_config'
+
+[config.toolchains]
+host_toolchains = ["test_toolchain"]
+build_toolchains = ["test_toolchain"]
+
+[config.static_options]
