@@ -1,0 +1,103 @@
+# Copyright 2026 The Meson Development Team
+# SPDX-License-Identifier: Apache-2.0
+[project]
+project_name = 'aosp_mesa3d'
+build_system = 'soong'
+
+[copyright]
+license_name = "external_mesa3d_license"
+licenses = ["MIT", "Apache-2.0", "GPL-1.0-or-later", "GPL-2.0-only"]
+license_texts = ["LICENSE"]
+
+[target_renames]
+vulkan_lvp = "vulkan.lvp"
+vulkan_gfxstream = "vulkan.ranchu"
+
+[custom_target]
+[custom_target.workarounds]
+# Maybe we should always do this.
+export_include_dirs = [
+    "u_format_gen.h",
+    "spirv_info",
+    "leaf.spv.h",
+    "morton.spv.h",
+    "lbvh_main.spv.h",
+    "lbvh_generate_ir.spv.h",
+    "ploc_internal.spv.h",
+    "init.comp.spv.h",
+    "fill.comp.spv.h",
+    "histogram.comp.spv.h",
+    "prefix.comp.spv.h",
+    "scatter_0_even.comp.spv.h",
+    "scatter_0_odd.comp.spv.h",
+    "scatter_1_even.comp.spv.h",
+    "scatter_1_odd.comp.spv.h",
+]
+
+[[custom_variable]]
+namespace = "aosp_mesa3d"
+name = "perfetto"
+possible_values = ["true", "default"]
+default_value = "default"
+
+[[config]]
+config_name = 'aosp_reference_drivers'
+
+[config.toolchains]
+host_toolchains = [
+    "android_arm64",
+    "android_x86_64",
+    "android_x86"
+]
+build_toolchains = ["linux_glibc_x86_64"]
+
+[config.static_options]
+glx = "disabled"
+zlib = "disabled"
+platforms = "android"
+android-strict = false
+vulkan-drivers = "gfxstream,swrast"
+gallium-drivers = ""
+virtgpu_kumquat = true
+opengl = false
+egl = "disabled"
+
+[config.variable_options]
+perfetto = [
+    { value = true, select = "aosp_mesa3d:perfetto=true" },
+    { value = false, select = "aosp_mesa3d:perfetto=default" }
+]
+
+[[config]]
+config_name = 'aosp_emulated_android_gfxstream'
+
+[config.toolchains]
+host_toolchains = ["linux_glibc_x86_64", "linux_musl_x86_64", "linux_musl_aarch64"]
+build_toolchains = ["linux_glibc_x86_64"]
+
+[config.static_options]
+glx = "disabled"
+zlib = "disabled"
+platforms = "android"
+android-stub = true
+vulkan-drivers = "gfxstream"
+gallium-drivers = ""
+virtgpu_kumquat = true
+opengl = false
+egl = "disabled"
+
+[[config]]
+config_name = 'aosp_host_lavapipe'
+
+[config.toolchains]
+host_toolchains = ["linux_glibc_x86_64", "linux_musl_x86_64", "linux_musl_aarch64"]
+build_toolchains = ["linux_glibc_x86_64"]
+
+[config.static_options]
+glx = "disabled"
+zlib = "disabled"
+platforms = ""
+vulkan-drivers = "swrast"
+gallium-drivers = ""
+opengl = false
+egl = "disabled"
