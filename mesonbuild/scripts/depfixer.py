@@ -460,7 +460,7 @@ def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union
     # Static libraries, import libraries, debug information, headers, etc
     # never have rpaths
     # DLLs and EXE currently do not need runtime path fixing
-    if fname.endswith(('.a', '.lib', '.pdb', '.h', '.hpp', '.dll', '.exe')):
+    if fname.endswith(('.a', '.lib', '.pdb', '.h', '.hpp', '.dll', '.exe', '.js', '.mjs')):
         return
     try:
         if fname.endswith('.jar'):
