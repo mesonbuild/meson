@@ -107,7 +107,7 @@ class PythonExternalProgram(BasicPythonExternalProgram):
 
 _PURE_KW = KwargInfo('pure', (bool, NoneType))
 _SUBDIR_KW = KwargInfo('subdir', str, default='')
-_LIMITED_API_KW = KwargInfo('limited_api', str, default='inherit', since='1.3.0')
+_LIMITED_API_KW = KwargInfo('limited_api', (str, NoneType), since='1.3.0')
 _DEFAULTABLE_SUBDIR_KW = KwargInfo('subdir', (str, NoneType))
 
 class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
@@ -162,7 +162,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         new_deps = mesonlib.extract_as_list(kwargs, 'dependencies')
         pydep = next((dep for dep in new_deps if isinstance(dep, _PythonDependencyBase)), None)
         if pydep is None:
-            pydep = self._dependency_method_impl({'limited_api': kwargs.pop('limited_api', '')})
+            pydep = self._dependency_method_impl({'limited_api': kwargs.pop('limited_api', None)})
             if not pydep.found():
                 raise mesonlib.MesonException('Python dependency not found')
             new_deps.append(pydep)
@@ -241,8 +241,8 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
         # Need to early resolve an inherited limited_api to an actual version
         # for cache key purposes
-        limited_api_version = kwargs.get('limited_api', '')
-        if limited_api_version == 'inherit':
+        limited_api_version = kwargs.get('limited_api')
+        if limited_api_version is None:
             limited_api_version = self.limited_api
             kwargs = kwargs.copy()
             kwargs['limited_api'] = limited_api_version
@@ -275,7 +275,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     @noPosargs
     def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Dependency':
         if 'limited_api' not in kwargs:
-            kwargs['limited_api'] = 'inherit'
+            kwargs['limited_api'] = None
 
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
