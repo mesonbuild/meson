@@ -49,6 +49,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
+    from .interpreter.kwargs import RustAbi
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']
@@ -61,6 +62,73 @@ if T.TYPE_CHECKING:
         debug: T.List[T.Union[str, int]]
         import_dirs: T.List[IncludeDirs]
         versions: T.List[T.Union[str, int]]
+
+    class BuildTargetKeywordArguments(TypedDict, total=False):
+
+        # The use of Sequence[str] here is intentional to get the generally
+        # undesirable behavior of Sequence[str]
+
+        build_by_default: bool
+        build_rpath: str
+        c_pch: T.Sequence[str]
+        cpp_pch: T.Sequence[str]
+        d_debug: T.List[T.Union[str, int]]
+        d_import_dirs: T.List[IncludeDirs]
+        d_module_versions: T.List[T.Union[str, int]]
+        d_unittest: bool
+        dependencies: T.List[dependencies.Dependency]
+        extra_files: T.List[File]
+        gnu_symbol_visibility: Literal['default', 'internal', 'hidden', 'protected', 'inlineshidden', '']
+        implicit_include_directories: bool
+        include_directories: T.List[IncludeDirs]
+        install: bool
+        install_dir: T.List[T.Union[str, Literal[False]]]
+        install_mode: FileMode
+        install_rpath: str
+        install_tag: T.List[str]
+        language_args: T.DefaultDict[str, T.List[str]]
+        link_args: T.List[str]
+        link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]
+        link_language: str
+        link_whole: T.Sequence[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]
+        link_with: T.List[BuildTargetTypes]
+        name_prefix: T.Optional[str]
+        name_suffix: T.Optional[str]
+        native: MachineChoice
+        override_options: T.Dict[OptionKey, str]
+        resources: T.List[str]
+        rust_crate_type: str  # Literal?
+        rust_dependency_map: T.Dict[str, str]
+        vala_gir: str
+        vala_header: str
+        vala_vapi: str
+        win_subsystem: str
+
+        _allow_no_sources: bool
+
+    class ExecutableKeywordArguments(BuildTargetKeywordArguments, total=False):
+
+        implib: T.Optional[str]
+        export_dynamic: bool
+        pie: bool
+        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+
+    class SharedModuleKeywordArguments(BuildTargetKeywordArguments, total=False):
+
+        vs_module_defs: T.Union[str, File, CustomTarget, CustomTargetIndex]
+        rust_abi: T.Optional[RustAbi]
+
+    class SharedLibraryKeywordArguments(SharedModuleKeywordArguments, total=False):
+
+        version: str
+        soversion: str
+        darwin_versions: T.Tuple[str, str]
+
+    class StaticLibraryKeywordArguments(BuildTargetKeywordArguments, total=False):
+
+        pic: bool
+        prelink: bool
+        rust_abi: T.Optional[RustAbi]
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -645,18 +713,16 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         return self.construct_id_from_path(
             self.subdir, name, self.type_suffix())
 
-    def process_kwargs_base(self, kwargs: T.Dict[str, T.Any]) -> None:
+    def process_kwargs_base(self, kwargs: BuildTargetKeywordArguments) -> None:
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
-            if not isinstance(self.build_by_default, bool):
-                raise InvalidArguments('build_by_default must be a boolean value.')
 
         if not self.build_by_default and kwargs.get('install', False):
             # For backward compatibility, if build_by_default is not explicitly
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
 
-        self.set_option_overrides(self.parse_overrides(kwargs))
+        self.set_option_overrides(kwargs.get('override_options', {}))
 
     def is_compiler_option_hack(self, key):
         # FIXME this method must be deleted when OptionsView goes away.
@@ -683,26 +749,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
         # TODO: if it's possible to annotate get_option or validate_option_value
         # in the future we might be able to remove the cast here
         return T.cast('T.Union[str, int, bool]', self.options.get_value(key))
-
-    @staticmethod
-    def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
-        opts = kwargs.get('override_options', [])
-
-        # In this case we have an already parsed and ready to go dictionary
-        # provided by typed_kwargs
-        if isinstance(opts, dict):
-            return T.cast('T.Dict[OptionKey, str]', opts)
-
-        result: T.Dict[OptionKey, str] = {}
-        overrides = stringlistify(opts)
-        for o in overrides:
-            if '=' not in o:
-                raise InvalidArguments('Overrides must be of form "key=value"')
-            k, v = o.split('=', 1)
-            key = OptionKey.from_string(k.strip())
-            v = v.strip()
-            result[key] = v
-        return result
 
     def is_linkable_target(self) -> bool:
         return False
@@ -738,7 +784,7 @@ class BuildTarget(Target):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs: T.Dict[str, T.Any]):
+            kwargs: BuildTargetKeywordArguments):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
         self.all_compilers = compilers
         self.compilers: OrderedDict[str, Compiler] = OrderedDict()
@@ -750,7 +796,7 @@ class BuildTarget(Target):
         self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
         self.depend_files: T.List[File] = []
-        self.link_depends = []
+        self.link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]] = []
         self.added_deps = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -1035,7 +1081,7 @@ class BuildTarget(Target):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
-    def process_link_depends(self, sources):
+    def process_link_depends(self, sources: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]) -> None:
         """Process the link_depends keyword argument.
 
         This is designed to handle strings, Files, and the output of Custom
@@ -1044,19 +1090,14 @@ class BuildTarget(Target):
         generated twice, since the output needs to be passed to the ld_args and
         link_depends.
         """
-        sources = listify(sources)
         for s in sources:
             if isinstance(s, File):
                 self.link_depends.append(s)
             elif isinstance(s, str):
                 self.link_depends.append(
                     File.from_source_file(self.environment.source_dir, self.subdir, s))
-            elif hasattr(s, 'get_outputs'):
-                self.link_depends.append(s)
             else:
-                raise InvalidArguments(
-                    'Link_depends arguments must be strings, Files, '
-                    'or a Custom Target, or lists thereof.')
+                self.link_depends.append(s)
 
     def extract_objects(self, srclist: T.List[T.Union['FileOrString', 'GeneratedTypes']]) -> ExtractedObjects:
         sources_set = set(self.sources)
@@ -1129,7 +1170,7 @@ class BuildTarget(Target):
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
         return self.install_mode
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
         self.process_kwargs_base(kwargs)
         self.original_kwargs = kwargs
 
@@ -1166,15 +1207,8 @@ class BuildTarget(Target):
                                         (str, bool))
         self.install_mode = kwargs.get('install_mode', None)
         self.install_tag = stringlistify(kwargs.get('install_tag', [None]))
-        if not isinstance(self, Executable):
-            # build_target will always populate these as `None`, which is fine
-            if kwargs.get('gui_app') is not None:
-                raise InvalidArguments('Argument gui_app can only be used on executables.')
-            if kwargs.get('win_subsystem') is not None:
-                raise InvalidArguments('Argument win_subsystem can only be used on executables.')
-        extra_files = extract_as_list(kwargs, 'extra_files')
+        extra_files = kwargs.get('extra_files', [])
         for i in extra_files:
-            assert isinstance(i, File)
             if i in self.extra_files:
                 continue
             trial = os.path.join(self.environment.get_source_dir(), i.subdir, i.fname)
@@ -1182,94 +1216,53 @@ class BuildTarget(Target):
                 raise InvalidArguments(f'Tried to add non-existing extra file {i}.')
             self.extra_files.append(i)
         self.install_rpath: str = kwargs.get('install_rpath', '')
-        if not isinstance(self.install_rpath, str):
-            raise InvalidArguments('Install_rpath is not a string.')
         self.build_rpath = kwargs.get('build_rpath', '')
-        if not isinstance(self.build_rpath, str):
-            raise InvalidArguments('Build_rpath is not a string.')
-        resources = extract_as_list(kwargs, 'resources')
-        for r in resources:
-            if not isinstance(r, str):
-                raise InvalidArguments('Resource argument is not a string.')
-            trial = os.path.join(self.environment.get_source_dir(), self.subdir, r)
-            if not os.path.isfile(trial):
-                raise InvalidArguments(f'Tried to add non-existing resource {r}.')
-        self.resources = resources
-        if kwargs.get('name_prefix') is not None:
-            name_prefix = kwargs['name_prefix']
-            if isinstance(name_prefix, list):
-                if name_prefix:
-                    raise InvalidArguments('name_prefix array must be empty to signify default.')
-            else:
-                if not isinstance(name_prefix, str):
-                    raise InvalidArguments('name_prefix must be a string.')
-                self.prefix = name_prefix
-                self.name_prefix_set = True
-        if kwargs.get('name_suffix') is not None:
-            name_suffix = kwargs['name_suffix']
-            if isinstance(name_suffix, list):
-                if name_suffix:
-                    raise InvalidArguments('name_suffix array must be empty to signify default.')
-            else:
-                if not isinstance(name_suffix, str):
-                    raise InvalidArguments('name_suffix must be a string.')
-                if name_suffix == '':
-                    raise InvalidArguments('name_suffix should not be an empty string. '
-                                           'If you want meson to use the default behaviour '
-                                           'for each platform pass `[]` (empty array)')
-                self.suffix = name_suffix
-                self.name_suffix_set = True
-        if isinstance(self, StaticLibrary):
-            # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
-            # PIC is always on for Windows (all code is position-independent
-            # since library loading is done differently)
-            m = self.environment.machines[self.for_machine]
-            if m.is_darwin() or m.is_windows():
-                self.pic = True
-            else:
-                self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
-        if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
-            # Executables must be PIE on Android
-            if self.environment.machines[self.for_machine].is_android():
-                self.pie = True
-            else:
-                self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
+        self.resources = kwargs.get('resources', [])
+        name_prefix = kwargs.get('name_prefix')
+        if name_prefix is not None:
+            self.prefix = name_prefix
+            self.name_prefix_set = True
+        name_suffix = kwargs.get('name_suffix')
+        if name_suffix is not None:
+            self.suffix = name_suffix
+            self.name_suffix_set = True
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
-        if not isinstance(self.implicit_include_directories, bool):
-            raise InvalidArguments('Implicit_include_directories must be a boolean.')
         self.gnu_symbol_visibility = kwargs.get('gnu_symbol_visibility', '')
-        if not isinstance(self.gnu_symbol_visibility, str):
-            raise InvalidArguments('GNU symbol visibility must be a string.')
-        if self.gnu_symbol_visibility != '':
-            permitted = ['default', 'internal', 'hidden', 'protected', 'inlineshidden']
-            if self.gnu_symbol_visibility not in permitted:
-                raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.gnu_symbol_visibility, ', '.join(permitted)))
+        self.rust_dependency_map = kwargs.get('rust_dependency_map', {})
 
-        rust_dependency_map = kwargs.get('rust_dependency_map', {})
-        if not isinstance(rust_dependency_map, dict):
-            raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary.')
-        if any(not isinstance(v, str) for v in rust_dependency_map.values()):
-            raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
-        self.rust_dependency_map = rust_dependency_map
+    @T.overload
+    def _extract_pic_pie(self, kwargs: StaticLibraryKeywordArguments, arg: Literal['pic', 'pie']) -> bool: ...
 
-    def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
+    @T.overload
+    def _extract_pic_pie(self, kwargs: ExecutableKeywordArguments, arg: Literal['pie']) -> bool: ...
+
+    def _extract_pic_pie(self,
+                         kwargs: T.Union[StaticLibraryKeywordArguments, ExecutableKeywordArguments],
+                         arg: Literal['pic', 'pie']) -> bool:
+        # since library loading is done differently)
+        m = self.environment.machines[self.for_machine]
+        assert m is not None, 'for mypy'
+        if arg == 'pic' and (m.is_darwin() or m.is_windows()):
+            return True
+
+        # Executables must be PIE on Android
+        if arg == 'pie' and m.is_android():
+            return True
+
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
             mlog.warning(f"Use the '{arg}' kwarg instead of passing '-f{arg}' manually to {self.name!r}")
             return True
 
-        k = OptionKey(option)
-        if kwargs.get(arg) is not None:
-            val = T.cast('bool', kwargs[arg])
-        elif k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore.get_value(k)
-        else:
-            val = False
+        val = kwargs.get(arg)
+        if val is not None:
+            return T.cast('bool', val)
 
-        if not isinstance(val, bool):
-            raise InvalidArguments(f'Argument {arg} to {self.name!r} must be boolean')
-        return val
+        k = OptionKey('b_pie' if arg == 'pie' else 'b_staticpic')
+        if k in self.environment.coredata.optstore:
+            return self.environment.coredata.optstore.get_value(k)
+        return False
 
     def get_filename(self) -> str:
         return self.filename
@@ -1541,8 +1534,6 @@ class BuildTarget(Target):
     def add_include_dirs(self, args: T.Sequence['IncludeDirs'], set_is_system: T.Optional[str] = None) -> None:
         ids: T.List['IncludeDirs'] = []
         for a in args:
-            if not isinstance(a, IncludeDirs):
-                raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
         if set_is_system is None:
             set_is_system = 'preserve'
@@ -1718,11 +1709,11 @@ class BuildTarget(Target):
                                      'use shared_library() with `override_options: [\'b_lundef=false\']` instead.')
                     link_target.force_soname = True
 
-    def process_vs_module_defs_kw(self, kwargs: T.Dict[str, T.Any]) -> None:
-        if kwargs.get('vs_module_defs') is None:
+    def process_vs_module_defs_kw(self, kwargs: T.Union[ExecutableKeywordArguments, SharedModuleKeywordArguments]) -> None:
+        path = kwargs.get('vs_module_defs')
+        if path is None:
             return
 
-        path: T.Union[str, File, CustomTarget, CustomTargetIndex] = kwargs['vs_module_defs']
         if isinstance(path, str):
             if os.path.isabs(path):
                 self.vs_module_defs = File.from_absolute_file(path)
@@ -1731,28 +1722,27 @@ class BuildTarget(Target):
         elif isinstance(path, File):
             # When passing a generated file.
             self.vs_module_defs = path
-        elif isinstance(path, (CustomTarget, CustomTargetIndex)):
+        else:
             # When passing output of a Custom Target
             self.vs_module_defs = File.from_built_file(path.get_subdir(), path.get_filename())
-        else:
-            raise InvalidArguments(
-                'vs_module_defs must be either a string, '
-                'a file object, a Custom Target, or a Custom Target Index')
-        self.process_link_depends(path)
+        self.process_link_depends([path])
 
-    def extract_targets_as_list(self, kwargs: T.Dict[str, T.Union[LibTypes, T.Sequence[LibTypes]]], key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
-        bl_type = self.environment.coredata.get_option(OptionKey('default_both_libraries'))
+    def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments,
+                                key: T.Literal['link_with', 'link_whole']) -> T.List[BuildTargetTypes]:
+        _bl_type = self.environment.coredata.get_option(OptionKey('default_both_libraries'))
+        assert _bl_type in {'static', 'shared', 'auto'}, 'unexpected default_both_libraries'
+        bl_type = T.cast('Literal["static", "shared", "auto"]', _bl_type)
         if bl_type == 'auto':
             if isinstance(self, StaticLibrary):
                 bl_type = 'static'
             elif isinstance(self, SharedLibrary):
                 bl_type = 'shared'
 
-        self_libs: T.List[LibTypes] = self.link_targets if key == 'link_with' else self.link_whole_targets
+        self_libs = self.link_targets if key == 'link_with' else self.link_whole_targets
 
-        lib_list = []
+        lib_list: T.List[BuildTargetTypes] = []
         for lib in listify(kwargs.get(key, [])) + self_libs:
-            if isinstance(lib, (Target, BothLibraries)):
+            if isinstance(lib, (BuildTarget, BothLibraries)):
                 lib_list.append(lib.get(bl_type))
             else:
                 lib_list.append(lib)
@@ -1971,20 +1961,13 @@ class Executable(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs):
-        key = OptionKey('b_pie')
-        if 'pie' not in kwargs and key in environment.coredata.optstore:
-            kwargs['pie'] = environment.coredata.optstore.get_value(key)
+            kwargs: ExecutableKeywordArguments):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
-        if not isinstance(self.export_dynamic, bool):
-            raise InvalidArguments('"export_dynamic" keyword argument must be a boolean')
-        self.implib = kwargs.get('implib')
-        if not isinstance(self.implib, (bool, str, type(None))):
-            raise InvalidArguments('"export_dynamic" keyword argument must be a boolean or string')
+        self.implib_name = kwargs.get('implib')
         # Only linkwithable if using export_dynamic
         self.is_linkwithable = self.export_dynamic
         # Remember that this exe was returned by `find_program()` through an override
@@ -2036,9 +2019,7 @@ class Executable(BuildTarget):
 
         # If using export_dynamic, set the import library name
         if self.export_dynamic:
-            implib_basename = self.name + '.exe'
-            if isinstance(self.implib, str):
-                implib_basename = self.implib
+            implib_basename = self.implib_name or self.name + '.exe'
             if machine.is_windows() or machine.is_cygwin():
                 if self.get_using_msvc():
                     self.import_filename = f'{implib_basename}.lib'
@@ -2061,8 +2042,9 @@ class Executable(BuildTarget):
                 name += '_' + self.suffix
             self.debug_filename = name + '.pdb'
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: ExecutableKeywordArguments) -> None:
         super().process_kwargs(kwargs)
+        self.pie = self._extract_pic_pie(kwargs, 'pie')
 
         self.rust_crate_type = kwargs.get('rust_crate_type') or 'bin'
         if self.rust_crate_type != 'bin':
@@ -2129,8 +2111,8 @@ class StaticLibrary(BuildTarget):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs):
-        self.prelink = T.cast('bool', kwargs.get('prelink', False))
+            kwargs: StaticLibraryKeywordArguments):
+        self.prelink = kwargs.get('prelink', False)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
 
@@ -2193,8 +2175,12 @@ class StaticLibrary(BuildTarget):
     def type_suffix(self):
         return "@sta"
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: StaticLibraryKeywordArguments) -> None:
         super().process_kwargs(kwargs)
+
+        self.pic = self._extract_pic_pie(kwargs, 'pic')
+        if not self.pic:
+            self.pie = self._extract_pic_pie(kwargs, 'pie')
 
         rust_abi = kwargs.get('rust_abi')
         rust_crate_type = kwargs.get('rust_crate_type')
@@ -2402,20 +2388,20 @@ class SharedLibrary(BuildTarget):
         if create_debug_file:
             self.debug_filename = os.path.splitext(self.filename)[0] + '.pdb'
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: SharedLibraryKeywordArguments) -> None:
         super().process_kwargs(kwargs)
 
         if not self.environment.machines[self.for_machine].is_android():
             # Shared library version
-            self.ltversion = T.cast('T.Optional[str]', kwargs.get('version'))
-            self.soversion = T.cast('T.Optional[str]', kwargs.get('soversion'))
+            self.ltversion = kwargs.get('version')
+            self.soversion = kwargs.get('soversion')
             if self.soversion is None and self.ltversion is not None:
                 # library version is defined, get the soversion from that
                 # We replicate what Autotools does here and take the first
                 # number of the version by default.
                 self.soversion = self.ltversion.split('.')[0]
             # macOS, iOS and tvOS dylib compatibility_version and current_version
-            self.darwin_versions = T.cast('T.Optional[T.Tuple[str, str]]', kwargs.get('darwin_versions'))
+            self.darwin_versions = kwargs.get('darwin_versions')
             if self.darwin_versions is None and self.soversion is not None:
                 # If unspecified, pick the soversion
                 self.darwin_versions = (self.soversion, self.soversion)
@@ -2527,7 +2513,7 @@ class SharedModule(SharedLibrary):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs):
+            kwargs: SharedModuleKeywordArguments):
         if 'version' in kwargs:
             raise MesonException('Shared modules must not specify the version kwarg.')
         if 'soversion' in kwargs:
@@ -2854,9 +2840,9 @@ class CompileTarget(BuildTarget):
                  dependencies: T.List[dependencies.Dependency],
                  depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]):
         compilers = {compiler.get_language(): compiler}
-        kwargs = {
+        kwargs: BuildTargetKeywordArguments = {
             'build_by_default': False,
-            'language_args': {compiler.language: compile_args},
+            'language_args': defaultdict(list, {compiler.language: compile_args}),
             'include_directories': include_directories,
             'dependencies': dependencies,
         }

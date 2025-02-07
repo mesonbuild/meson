@@ -19,6 +19,8 @@ from ..modules.cmake import CMakeSubprojectOptions
 from ..programs import ExternalProgram
 from .type_checking import PkgConfigDefineType, SourcesVarargsType
 
+RustAbi = Literal['rust', 'c']
+
 class FuncAddProjectArgs(TypedDict):
 
     """Keyword Arguments for the add_*_arguments family of arguments.
@@ -379,7 +381,7 @@ class _BuildTarget(_BaseBuildTarget):
 
 class _LibraryMixin(TypedDict):
 
-    rust_abi: T.Optional[Literal['c', 'rust']]
+    rust_abi: T.Optional[RustAbi]
 
 
 class Executable(_BuildTarget):

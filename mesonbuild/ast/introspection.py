@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool
@@ -21,7 +21,7 @@ from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNod
 from .interpreter import AstInterpreter
 
 if T.TYPE_CHECKING:
-    from ..build import BuildTarget
+    from ..build import BuildTarget, BuildTargetKeywordArguments
     from ..interpreterbase import TYPE_var
     from .visitor import AstVisitor
 
@@ -280,9 +280,9 @@ class IntrospectionInterpreter(AstInterpreter):
         extraf_nodes = traverse_nodes(extra_queue)
 
         # Make sure nothing can crash when creating the build class
-        kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in {'install', 'build_by_default', 'build_always'}}
-        kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in kwargs_reduced.items()}
-        kwargs_reduced = {k: v for k, v in kwargs_reduced.items() if not isinstance(v, BaseNode)}
+        kwargs_reduced_ = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in {'install', 'build_by_default', 'build_always'}}
+        kwargs_reduced_ = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in kwargs_reduced_.items()}
+        kwargs_reduced = T.cast('BuildTargetKeywordArguments', {k: v for k, v in kwargs_reduced_.items() if not isinstance(v, BaseNode)})
         for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
         objects: T.List[T.Any] = []
         empty_sources: T.List[T.Any] = []
