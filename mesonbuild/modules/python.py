@@ -174,37 +174,6 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         if pydep.limited_api != '' and allow_limited_api:
             target_suffix = self.limited_api_suffix
 
-            # On Windows, the limited API DLL is python3.dll, not python3X.dll.
-            for_machine = kwargs['native']
-            if self.interpreter.environment.machines[for_machine].is_windows():
-                pydep_copy = copy.copy(pydep)
-                pydep_copy.find_libpy_windows(self.env, limited_api=True)
-                if not pydep_copy.found():
-                    raise mesonlib.MesonException('Python dependency supporting limited API not found')
-
-                new_deps.remove(pydep)
-                new_deps.append(pydep_copy)
-
-            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
-            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
-            # directives. We manually override these here as this interferes with the intended
-            # use of the 'limited_api' kwarg
-            compilers = self.interpreter.environment.coredata.compilers[for_machine]
-            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
-                pyver = pydep.version.replace('.', '')
-                python_windows_debug_link_exception = f'/NODEFAULTLIB:python{pyver}_d.lib'
-                python_windows_release_link_exception = f'/NODEFAULTLIB:python{pyver}.lib'
-
-                new_link_args = mesonlib.extract_as_list(kwargs, 'link_args')
-
-                is_debug = self.interpreter.environment.coredata.optstore.get_value('debug')
-                if is_debug:
-                    new_link_args.append(python_windows_debug_link_exception)
-                else:
-                    new_link_args.append(python_windows_release_link_exception)
-
-                kwargs['link_args'] = new_link_args
-
         kwargs['dependencies'] = new_deps
 
         # msys2's python3 has "-cpython-36m.dll", we have to be clever
@@ -264,6 +233,28 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
             limited_api_version_hex = self._convert_api_version_to_py_version_hex(limited_api_version, dep.version)
             dep.limited_api = limited_api_version
             dep.compile_args.append(f'-DPy_LIMITED_API={limited_api_version_hex}')
+
+            # On Windows, the limited API DLL is python3.dll, not python3X.dll.
+            if self.interpreter.environment.machines[for_machine].is_windows():
+                dep.find_libpy_windows(self.interpreter.environment, limited_api=True)
+                if not dep.found():
+                    raise mesonlib.MesonException('Python dependency supporting limited API not found')
+
+            # When compiled under MSVC, Python's PC/pyconfig.h forcibly inserts pythonMAJOR.MINOR.lib
+            # into the linker path when not running in debug mode via a series #pragma comment(lib, "")
+            # directives. We manually override these here as this interferes with the intended
+            # use of the 'limited_api' kwarg
+            compilers = self.interpreter.environment.coredata.compilers[for_machine]
+            if any(compiler.get_id() == 'msvc' for compiler in compilers.values()):
+                pyver = dep.version.replace('.', '')
+                python_windows_debug_link_exception = f'/NODEFAULTLIB:python{pyver}_d.lib'
+                python_windows_release_link_exception = f'/NODEFAULTLIB:python{pyver}.lib'
+
+                is_debug = self.interpreter.environment.coredata.optstore.get_value('debug')
+                if is_debug:
+                    dep.link_args.append(python_windows_debug_link_exception)
+                else:
+                    dep.link_args.append(python_windows_release_link_exception)
 
         self.interpreter.coredata.deps[for_machine].put(identifier, dep)
         return dep
