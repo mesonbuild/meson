@@ -223,9 +223,9 @@ class OptionKey:
         return cls(opt, subproject, for_machine)
 
     def evolve(self,
-               name: T.Optional[str] = _BAD_VALUE,
+               name: T.Optional[str] = None,
                subproject: T.Optional[str] = _BAD_VALUE,
-               machine: T.Optional[MachineChoice] = _BAD_VALUE) -> 'OptionKey':
+               machine: T.Optional[MachineChoice] = None) -> 'OptionKey':
         """Create a new copy of this key, but with altered members.
 
         For example:
@@ -236,9 +236,9 @@ class OptionKey:
         """
         # We have to be a little clever with lang here, because lang is valid
         # as None, for non-compiler options
-        return OptionKey(name if name != _BAD_VALUE else self.name,
+        return OptionKey(name if name is not None else self.name,
                          subproject if subproject != _BAD_VALUE else self.subproject, # None is a valid value so it can'the default value in method declaration.
-                         machine if machine != _BAD_VALUE else self.machine)
+                         machine if machine is not None else self.machine)
 
     def as_root(self) -> 'OptionKey':
         """Convenience method for key.evolve(subproject='')."""
@@ -271,6 +271,8 @@ class OptionKey:
     def is_for_build(self) -> bool:
         return self.machine is MachineChoice.BUILD
 
+if T.TYPE_CHECKING:
+    OptionStringLikeDict: TypeAlias = T.Dict[T.Union[OptionKey, str], str]
 
 @dataclasses.dataclass
 class UserOption(T.Generic[_T], HoldableObject):
@@ -771,12 +773,12 @@ class OptionStore:
         self.all_languages = set(all_languages)
         self.build_options = None
         self.project_options = set()
-        self.augments = {}
-        self.pending_project_options = {}
+        self.augments: T.Dict[str, str] = {}
+        self.pending_project_options: T.Dict[OptionKey, str] = {}
         self.is_cross = is_cross
 
     def clear_pending(self) -> None:
-        self.pending_project_options = []
+        self.pending_project_options = {}
 
     def ensure_and_validate_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
         if isinstance(key, str):
@@ -795,7 +797,7 @@ class OptionStore:
             key = key.evolve(machine=MachineChoice.HOST)
         return key
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> 'T.Any':
+    def get_value(self, key: T.Union[OptionKey, str]) -> 'OptionValueType':
         return self.get_value_object(key).value
 
     def __len__(self) -> int:
@@ -825,7 +827,7 @@ class OptionStore:
                 return self.options[parent_key]
             return potential
 
-    def get_value_object_and_value_for(self, key: OptionKey):
+    def get_value_object_and_value_for(self, key: OptionKey) -> 'T.Tuple[UserOption[T.Any], OptionValueType]':
         assert isinstance(key, OptionKey)
         vobject = self.get_value_object_for(key)
         computed_value = vobject.value
@@ -844,7 +846,7 @@ class OptionStore:
         vobject, resolved_value = self.get_value_object_and_value_for(key)
         return resolved_value
 
-    def num_options(self):
+    def num_options(self) -> int:
         basic = len(self.options)
         build = len(self.build_options) if self.build_options else 0
         return basic + build
@@ -948,6 +950,7 @@ class OptionStore:
             new_value = self.sanitize_prefix(new_value)
         elif self.is_builtin_option(key):
             prefix = self.get_value_for('prefix')
+            assert isinstance(prefix, str)
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
         if key not in self.options:
             raise MesonException(f'Unknown options: "{key.name}" not found.')
@@ -960,6 +963,7 @@ class OptionStore:
             raise MesonException(f'Tried to modify read only option {str(key)!r}')
 
         if key.name == 'prefix' and first_invocation and changed:
+            assert isinstance(old_value, str)
             self.reset_prefixed_options(old_value, new_value)
 
         if changed:
@@ -967,7 +971,7 @@ class OptionStore:
 
         return changed
 
-    def set_dependents(self, key: OptionKey, value: str):
+    def set_dependents(self, key: OptionKey, value: str) -> None:
         if key.name != 'buildtype':
             return
         opt, debug = self.DEFAULT_DEPENDENTS[value]
@@ -976,7 +980,7 @@ class OptionStore:
         self.options[dkey].set_value(debug)
         self.options[optkey].set_value(opt)
 
-    def set_option(self, key: OptionKey, new_value: str, first_invocation: bool = False):
+    def set_option(self, key: OptionKey, new_value: str, first_invocation: bool = False) -> bool:
         assert isinstance(key, OptionKey)
         # FIXME, dupe of set_value
         # Remove one of the two before merging to master.
@@ -984,6 +988,7 @@ class OptionStore:
             new_value = self.sanitize_prefix(new_value)
         elif self.is_builtin_option(key):
             prefix = self.get_value_for('prefix')
+            assert isinstance(prefix, str)
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
         opt = self.get_value_object_for(key)
         if opt.deprecated is True:
@@ -993,7 +998,8 @@ class OptionStore:
                 if v in opt.deprecated:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is deprecated')
         elif isinstance(opt.deprecated, dict):
-            def replace(v):
+            def replace(v: T.Any) -> T.Any:
+                assert isinstance(opt.deprecated, dict) # No, Mypy can not tell this from two lines above
                 newvalue = opt.deprecated.get(v)
                 if newvalue is not None:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is replaced by {newvalue!r}')
@@ -1022,7 +1028,7 @@ class OptionStore:
 
         return changed
 
-    def set_option_from_string(self, keystr, new_value):
+    def set_option_from_string(self, keystr: T.Union[OptionKey, str], new_value: str) -> bool:
         if isinstance(keystr, OptionKey):
             o = keystr
         else:
@@ -1032,7 +1038,9 @@ class OptionStore:
         o = o.evolve(subproject='')
         return self.set_value(o, new_value)
 
-    def set_subproject_options(self, subproject, spcall_default_options, project_default_options):
+    def set_subproject_options(self, subproject: str,
+                               spcall_default_options: str,
+                               project_default_options: str) -> None:
         for o in itertools.chain(spcall_default_options, project_default_options):
             keystr, valstr = o.split('=', 1)
             assert ':' not in keystr
@@ -1063,7 +1071,7 @@ class OptionStore:
                 dirty = True
         return dirty
 
-    def reset_prefixed_options(self, old_prefix, new_prefix):
+    def reset_prefixed_options(self, old_prefix: str, new_prefix: str) -> None:
         for optkey, prefix_mapping in BUILTIN_DIR_NOPREFIX_OPTIONS.items():
             valobj = self.options[optkey]
             new_value = valobj.value
@@ -1083,11 +1091,11 @@ class OptionStore:
         key = self.ensure_and_validate_key(key)
         self.options[key] = new_object
 
-    def get_value_object(self, key: T.Union[OptionKey, str]) -> 'UserOption[T.Any]':
+    def get_value_object(self, key: T.Union[OptionKey, str]) -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
 
-    def get_option_from_meson_file(self, key: OptionKey):
+    def get_option_from_meson_file(self, key: OptionKey) -> 'T.Tuple[UserOption[T.Any], OptionValueType]':
         assert isinstance(key, OptionKey)
         (value_object, value) = self.get_value_object_and_value_for(key)
         return (value_object, value)
@@ -1106,7 +1114,7 @@ class OptionStore:
     def __repr__(self) -> str:
         return repr(self.options)
 
-    def keys(self) -> T.KeysView[AnyOptionType]:
+    def keys(self) -> T.KeysView[OptionKey]:
         return self.options.keys()
 
     def values(self) -> T.ValuesView[AnyOptionType]:
@@ -1119,10 +1127,10 @@ class OptionStore:
     def update(self, **kwargs: AnyOptionType) -> None:
         self.options.update(**kwargs)
 
-    def setdefault(self, k: OptionKey, o: UserOption[T.Any]) -> UserOption[T.Any]:
-        return self.options.setdefault(k, o)
+    def setdefault(self, k: OptionKey, o: UserOption[T.Any]) -> AnyOptionType:
+        return self.options.setdefault(k, o) # type: ignore [no-any-return, call-overload]
 
-    def get(self, o: OptionKey, default: T.Optional[AnyOptionType] = None, **kwargs) -> T.Optional[AnyOptionType]:
+    def get(self, o: OptionKey, default: T.Optional[AnyOptionType] = None, **kwargs: T.Any) -> T.Optional[AnyOptionType]:
         return self.options.get(o, default, **kwargs)
 
     def is_project_option(self, key: OptionKey) -> bool:
@@ -1155,7 +1163,7 @@ class OptionStore:
     def is_backend_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a backend option."""
         if isinstance(key, str):
-            name = key
+            name: str = key
         else:
             name = key.name
         return name.startswith('backend_')
@@ -1174,7 +1182,9 @@ class OptionStore:
     def is_module_option(self, key: OptionKey) -> bool:
         return key in self.module_options
 
-    def classify_D_arguments(self, D: T.List[str]):
+    def classify_D_arguments(self, D: T.List[str]) -> T.Tuple[T.List[T.Tuple[OptionKey, str]],
+                                                              T.List[T.Tuple[str, str]],
+                                                              T.List[T.Tuple[OptionKey, str]]]:
         global_options = []
         project_options = []
         perproject_global_options = []
@@ -1188,21 +1198,21 @@ class OptionStore:
                 global_options.append(valuetuple)
             else:
                 # FIXME, augments are currently stored as strings, not OptionKeys
-                valuetuple = (keystr, valstr)
-                perproject_global_options.append(valuetuple)
+                strvaluetuple = (keystr, valstr)
+                perproject_global_options.append(strvaluetuple)
         return (global_options, perproject_global_options, project_options)
 
-    def optlist2optdict(self, optlist):
+    def optlist2optdict(self, optlist: T.List[str]) -> T.Dict[str, str]:
         optdict = {}
         for p in optlist:
             k, v = p.split('=', 1)
             optdict[k] = v
         return optdict
 
-    def prefix_split_options(self, coll):
+    def prefix_split_options(self, coll: T.Union[T.List[str], OptionStringLikeDict]) -> T.Tuple[str, T.Union[T.List[str], OptionStringLikeDict]]:
         prefix = None
         if isinstance(coll, list):
-            others = []
+            others: T.List[str] = []
             for e in coll:
                 if e.startswith('prefix='):
                     prefix = e.split('=', 1)[1]
@@ -1210,17 +1220,23 @@ class OptionStore:
                     others.append(e)
             return (prefix, others)
         else:
-            others = {}
+            others_d: OptionStringLikeDict = {}
             for k, v in coll.items():
                 if isinstance(k, OptionKey) and k.name == 'prefix':
                     prefix = v
                 elif k == 'prefix':
                     prefix = v
                 else:
-                    others[k] = v
-            return (prefix, others)
+                    others_d[k] = v
+            return (prefix, others_d)
 
-    def first_handle_prefix(self, project_default_options, cmd_line_options, native_file_options):
+    def first_handle_prefix(self,
+                            project_default_options: T.Union[T.List[str], OptionStringLikeDict],
+                            cmd_line_options: T.Union[T.List[str], OptionStringLikeDict],
+                            native_file_options: T.Union[T.List[str], OptionStringLikeDict]) \
+            -> T.Tuple[T.Union[T.List[str], OptionStringLikeDict],
+                       T.Union[T.List[str], OptionStringLikeDict],
+                       T.Union[T.List[str], OptionStringLikeDict]]:
         prefix = None
         (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
         prefix = prefix if possible_prefix is None else possible_prefix
@@ -1233,7 +1249,7 @@ class OptionStore:
             self.hard_reset_from_prefix(prefix)
         return (nopref_project_default_options, nopref_cmd_line_options, nopref_native_file_options)
 
-    def hard_reset_from_prefix(self, prefix: str):
+    def hard_reset_from_prefix(self, prefix: str) -> None:
         prefix = self.sanitize_prefix(prefix)
         for optkey, prefix_mapping in BUILTIN_DIR_NOPREFIX_OPTIONS.items():
             valobj = self.options[optkey]
@@ -1244,15 +1260,21 @@ class OptionStore:
             valobj.set_value(new_value)
         self.options[OptionKey('prefix')].set_value(prefix)
 
-    def initialize_from_top_level_project_call(self, project_default_options, cmd_line_options, native_file_options):
+    def initialize_from_top_level_project_call(self,
+                                               project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
+                                               cmd_line_options_in: T.Union[T.List[str], OptionStringLikeDict],
+                                               native_file_options_in: T.Union[T.List[str], OptionStringLikeDict]) -> None:
         first_invocation = True
-        (project_default_options, cmd_line_options, native_file_options) = self.first_handle_prefix(project_default_options, cmd_line_options, native_file_options)
+        (project_default_options, cmd_line_options, native_file_options) = self.first_handle_prefix(project_default_options_in,
+                                                                                                    cmd_line_options_in,
+                                                                                                    native_file_options_in)
         if isinstance(project_default_options, str):
             project_default_options = [project_default_options]
         if isinstance(project_default_options, list):
-            project_default_options = self.optlist2optdict(project_default_options)
+            project_default_options = self.optlist2optdict(project_default_options) # type: ignore [assignment]
         if project_default_options is None:
             project_default_options = {}
+        assert isinstance(native_file_options, dict)
         for keystr, valstr in native_file_options.items():
             if isinstance(keystr, str):
                 # FIXME, standardise on Key or string.
@@ -1271,6 +1293,7 @@ class OptionStore:
                     self.options[proj_key].set_value(valstr)
                 else:
                     self.pending_project_options[key] = valstr
+        assert isinstance(project_default_options, dict)
         for keystr, valstr in project_default_options.items():
             # Ths is complicated by the fact that a string can have two meanings:
             #
@@ -1283,6 +1306,7 @@ class OptionStore:
             #
             # The key parsing fucntion can not handle the difference between the two
             # and defaults to A.
+            assert isinstance(keystr, str)
             key = OptionKey.from_string(keystr)
             # Due to backwards compatibility we ignore all cross options when building
             # natively.
@@ -1302,6 +1326,7 @@ class OptionStore:
                     self.set_option(proj_key, valstr)
                 else:
                     self.pending_project_options[key] = valstr
+        assert isinstance(cmd_line_options, dict)
         for keystr, valstr in cmd_line_options.items():
             if isinstance(keystr, str):
                 key = OptionKey.from_string(keystr)
@@ -1324,21 +1349,26 @@ class OptionStore:
                     #
                     # Some base options (sanitizers etc) might get added later.
                     # Permitting them all is not strictly correct.
+                    assert isinstance(keystr, str)
                     if ':' not in keystr and not self.is_compiler_option(key) and not self.is_base_option(key):
                         raise MesonException(f'Unknown options: "{keystr}"')
                     self.pending_project_options[key] = valstr
             else:
                 self.pending_project_options[key] = valstr
 
-    def hacky_mchackface_back_to_list(self, optdict):
+    def hacky_mchackface_back_to_list(self, optdict: T.Dict[str, str]) -> T.List[str]:
         if isinstance(optdict, dict):
             return [f'{k}={v}' for k, v in optdict.items()]
         return optdict
 
-    def initialize_from_subproject_call(self, subproject, spcall_default_options, project_default_options, cmd_line_options):
+    def initialize_from_subproject_call(self,
+                                        subproject: str,
+                                        spcall_default_options: T.Union[T.List[str], OptionStringLikeDict],
+                                        project_default_options: T.Union[T.List[str], OptionStringLikeDict],
+                                        cmd_line_options: T.Union[T.List[str], OptionStringLikeDict]) -> None:
         is_first_invocation = True
-        spcall_default_options = self.hacky_mchackface_back_to_list(spcall_default_options)
-        project_default_options = self.hacky_mchackface_back_to_list(project_default_options)
+        spcall_default_options = self.hacky_mchackface_back_to_list(spcall_default_options) # type: ignore [arg-type]
+        project_default_options = self.hacky_mchackface_back_to_list(project_default_options) # type: ignore [arg-type]
         if isinstance(spcall_default_options, str):
             spcall_default_options = [spcall_default_options]
         for o in itertools.chain(project_default_options, spcall_default_options):
@@ -1355,7 +1385,8 @@ class OptionStore:
                 aug_str = f'{subproject}:{keystr}'
                 self.augments[aug_str] = valstr
         # Check for pending options
-        for key, valstr in cmd_line_options.items():
+        assert isinstance(cmd_line_options, dict)
+        for key, valstr in cmd_line_options.items(): # type: ignore [assignment]
             if not isinstance(key, OptionKey):
                 key = OptionKey.from_string(key)
             if key.subproject != subproject:
