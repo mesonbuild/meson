@@ -798,11 +798,6 @@ class OptionStore:
     def get_value(self, key: T.Union[OptionKey, str]) -> 'T.Any':
         return self.get_value_object(key).value
 
-    def num_options(self):
-        basic = len(self.options)
-        build = len(self.build_options) if self.build_options else 0
-        return basic + build
-
     def __len__(self) -> int:
         return len(self.options)
 
@@ -829,10 +824,6 @@ class OptionStore:
                     raise KeyError(f'Tried to access nonexistant project parent option {parent_key}.')
                 return self.options[parent_key]
             return potential
-
-    def get_value_object(self, key: T.Union[OptionKey, str]) -> 'UserOption[T.Any]':
-        key = self.ensure_and_validate_key(key)
-        return self.options[key]
 
     def get_value_object_and_value_for(self, key: OptionKey):
         assert isinstance(key, OptionKey)
@@ -1095,16 +1086,6 @@ class OptionStore:
     def get_value_object(self, key: T.Union[OptionKey, str]) -> 'UserOption[T.Any]':
         key = self.ensure_and_validate_key(key)
         return self.options[key]
-
-    def get_value_object_and_value_for(self, key: OptionKey):
-        assert isinstance(key, OptionKey)
-        vobject = self.get_value_object_for(key)
-        computed_value = vobject.value
-        if key.subproject is not None:
-            keystr = str(key)
-            if keystr in self.augments:
-                computed_value = vobject.validate_value(self.augments[keystr])
-        return (vobject, computed_value)
 
     def get_option_from_meson_file(self, key: OptionKey):
         assert isinstance(key, OptionKey)
