@@ -275,7 +275,7 @@ def option_enabled(boptions: T.Set[OptionKey],
 def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '_T') -> '_T':
     """Get the value of an option, or the fallback value."""
     try:
-        v: '_T' = options.get_value(opt)
+        v: '_T' = options.get_value(opt) # type: ignore [assignment]
     except (KeyError, AttributeError):
         return fallback
 
