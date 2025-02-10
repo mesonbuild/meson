@@ -43,7 +43,9 @@ kwargs:
     default: false
     description: |
       when true the test is considered passed if the
-      executable returns a non-zero return value (i.e. reports an error)
+      executable returns a non-zero return value (i.e. reports an error).
+      This replaces the test result "Ok" with "Unexpected Pass" and "Fail"
+      with "Expected Fail".
 
   suite:
     type: str | list[str]
