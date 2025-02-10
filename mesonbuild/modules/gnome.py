@@ -704,14 +704,14 @@ class GnomeModule(ExtensionModule):
                         lib_dir = os.path.dirname(flag)
                         external_ldflags.update([f'-L{lib_dir}'])
                         if include_rpath:
-                            external_ldflags.update([f'-Wl,-rpath {lib_dir}'])
+                            external_ldflags.update([f'-Wl,-rpath,{lib_dir}'])
                         libname = os.path.basename(flag)
                         if libname.startswith("lib"):
                             libname = libname[3:]
                         libname = libname.split(".so")[0]
                         flag = f"-l{libname}"
                     # FIXME: Hack to avoid passing some compiler options in
-                    if flag.startswith("-W"):
+                    if flag.startswith("-W") and not flag.startswith('-Wl,-rpath,'):
                         continue
                     # If it's a framework arg, slurp the framework name too
                     # to preserve the order of arguments
@@ -964,6 +964,7 @@ class GnomeModule(ExtensionModule):
             scan_command: T.Sequence[T.Union['FileOrString', Executable, ExternalProgram, OverrideProgram]],
             generated_files: T.Sequence[T.Union[str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList]],
             depends: T.Sequence[T.Union['FileOrString', build.BuildTarget, 'build.GeneratedTypes', build.StructuredSources]],
+            env_flags: T.Sequence[str],
             kwargs: T.Dict[str, T.Any]) -> GirTarget:
         install = kwargs['install_gir']
         if install is None:
@@ -984,6 +985,7 @@ class GnomeModule(ExtensionModule):
         # g-ir-scanner uses Python's distutils to find the compiler, which uses 'CC'
         cc_exelist = state.environment.coredata.compilers.host['c'].get_exelist()
         run_env.set('CC', [quote_arg(x) for x in cc_exelist], ' ')
+        run_env.set('CFLAGS', [quote_arg(x) for x in env_flags], ' ')
         run_env.merge(kwargs['env'])
 
         return GirTarget(
@@ -1090,11 +1092,12 @@ class GnomeModule(ExtensionModule):
                 yield f
 
     @staticmethod
-    def _get_scanner_ldflags(ldflags: T.Iterable[str]) -> T.Iterable[str]:
+    def _get_scanner_ldflags(ldflags: T.Iterable[str]) -> tuple[list[str], list[str]]:
         'g-ir-scanner only accepts -L/-l; must ignore -F and other linker flags'
-        for f in ldflags:
-            if f.startswith(('-L', '-l', '--extra-library')):
-                yield f
+        return (
+            [f for f in ldflags if f.startswith(('-L', '-l', '--extra-library'))],
+            [f for f in ldflags if f.startswith(('-Wl,-rpath,'))],
+        )
 
     @typed_pos_args('gnome.generate_gir', varargs=(Executable, build.SharedLibrary, build.StaticLibrary), min_varargs=1)
     @typed_kwargs(
@@ -1164,11 +1167,14 @@ class GnomeModule(ExtensionModule):
         scan_cflags += list(self._get_scanner_cflags(dep_cflags))
         scan_cflags += list(self._get_scanner_cflags(self._get_external_args_for_langs(state, [lc[0] for lc in langs_compilers])))
         scan_internal_ldflags = []
-        scan_internal_ldflags += list(self._get_scanner_ldflags(internal_ldflags))
-        scan_internal_ldflags += list(self._get_scanner_ldflags(dep_internal_ldflags))
         scan_external_ldflags = []
-        scan_external_ldflags += list(self._get_scanner_ldflags(external_ldflags))
-        scan_external_ldflags += list(self._get_scanner_ldflags(dep_external_ldflags))
+        scan_env_ldflags = []
+        for cli_flags, env_flags in (self._get_scanner_ldflags(internal_ldflags), self._get_scanner_ldflags(dep_internal_ldflags)):
+            scan_internal_ldflags += cli_flags
+            scan_env_ldflags = env_flags
+        for cli_flags, env_flags in (self._get_scanner_ldflags(external_ldflags), self._get_scanner_ldflags(dep_external_ldflags)):
+            scan_external_ldflags += cli_flags
+            scan_env_ldflags = env_flags
         girtargets_inc_dirs = self._get_gir_targets_inc_dirs(girtargets)
         inc_dirs = kwargs['include_directories']
 
@@ -1222,7 +1228,7 @@ class GnomeModule(ExtensionModule):
         generated_files = [f for f in libsources if isinstance(f, (GeneratedList, CustomTarget, CustomTargetIndex))]
 
         scan_target = self._make_gir_target(
-            state, girfile, scan_command, generated_files, depends,
+            state, girfile, scan_command, generated_files, depends, scan_env_ldflags,
             # We have to cast here because mypy can't figure this out
             T.cast('T.Dict[str, T.Any]', kwargs))
 
