@@ -941,6 +941,7 @@ class TestRun:
         self.cmd: T.Optional[T.List[str]] = None
         self.env = test_env
         self.should_fail = test.should_fail
+        self.invert_result = test.invert_result
         self.project = test.project_name
         self.junit: T.Optional[et.ElementTree] = None
         self.is_parallel = is_parallel
@@ -988,8 +989,11 @@ class TestRun:
         if self.res == TestResult.RUNNING:
             self.res = TestResult.OK
         assert isinstance(self.res, TestResult)
-        if self.should_fail and self.res in (TestResult.OK, TestResult.FAIL):
-            self.res = TestResult.UNEXPECTEDPASS if self.res is TestResult.OK else TestResult.EXPECTEDFAIL
+        if self.res in (TestResult.OK, TestResult.FAIL):
+            if self.invert_result:
+                self.res = TestResult.FAIL if self.res is TestResult.OK else TestResult.OK
+            if self.should_fail:
+                self.res = TestResult.UNEXPECTEDPASS if self.res is TestResult.OK else TestResult.EXPECTEDFAIL
         if self.stdo and not self.stdo.endswith('\n'):
             self.stdo += '\n'
         if self.stde and not self.stde.endswith('\n'):

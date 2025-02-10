@@ -47,6 +47,16 @@ kwargs:
       This replaces the test result "Ok" with "Unexpected Pass" and "Fail"
       with "Expected Fail".
 
+  invert_result:
+    type: bool
+    default: false
+    since: 1.8
+    description: |
+      when true the test is considered passed if the executable returns a
+      non-zero return value (i.e. reports an error). When used together with
+      `should_fail` non-zero return values are reported as "Unexpected Pass"
+      and zero return values as "Expected Fail".
+
   suite:
     type: str | list[str]
     description: |
