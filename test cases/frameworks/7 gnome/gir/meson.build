@@ -2,6 +2,7 @@ subdir('dep1')
 
 libsources = ['meson-sample.c', 'meson-sample.h']
 lib2sources = ['meson-sample2.c', 'meson-sample2.h']
+pythonsources = ['meson-python-sample.c', 'meson-python-sample.h']
 
 gen_source = custom_target(
   'meson_sample3.h',
@@ -26,6 +27,23 @@ girlib2 = shared_library(
   install : true
 )
 
+if get_option('b_sanitize') == 'none'
+  py3_dep = py3.dependency(embed: true)
+else
+  warning('Python 3 test not supported with b_sanitize')
+  py3_dep = disabler()
+endif
+
+if py3_dep.found()
+  pythongirlib = shared_library(
+    'python_gir_lib',
+    sources: pythonsources,
+    dependencies: [gobj, py3_dep],
+    vs_module_defs: 'meson-python-sample.def',
+    install: true
+  )
+endif
+
 girexe = executable(
   'girprog',
   sources : 'prog.c',
@@ -36,17 +54,30 @@ girexe = executable(
 
 fake_dep = dependency('no-way-this-exists', required: false)
 
+# g-ir-scanner ignores CFLAGS for MSVC
+flags_dep_for_msvc = declare_dependency(
+  compile_args: ['-DMESON_TEST_2']
+)
+
+girs = [girlib, girlib2]
+girs_sources = [libsources, lib2sources, gen_source]
+# dep1_dep pulls in dep2_dep for us
+girs_deps = [fake_dep, dep1_dep, flags_dep_for_msvc]
+if py3_dep.found()
+  girs += [pythongirlib]
+  girs_sources += [pythonsources]
+  girs_deps += [py3_dep]
+endif
+
 gnome.generate_gir(
-  girlib, girlib2,
-  sources : [libsources, lib2sources, gen_source],
-  env : {'CPPFLAGS': '-DMESON_TEST_2'},
+  girs,
+  sources : girs_sources,
   nsversion : '1.0',
   namespace : 'Meson',
   symbol_prefix : 'meson',
   identifier_prefix : 'Meson',
   includes : ['GObject-2.0', 'MesonDep1-1.0'],
-  # dep1_dep pulls in dep2_dep for us
-  dependencies : [[fake_dep, dep1_dep]],
+  dependencies : girs_deps,
   doc_format: 'gtk-doc-markdown',
   install : true,
   build_by_default : true,

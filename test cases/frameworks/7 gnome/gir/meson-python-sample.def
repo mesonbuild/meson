@@ -1,0 +1,4 @@
+EXPORTS
+    meson_python_sample_new
+    meson_python_sample_print_message
+    meson_python_sample_get_type
