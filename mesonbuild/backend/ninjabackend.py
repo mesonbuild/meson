@@ -2437,7 +2437,7 @@ class NinjaBackend(backends.Backend):
         wd_args = compiler.get_working_directory_args('$RUNDIR')
 
         if wd_args is not None:
-            invoc = compiler.get_exelist() + ['-working-directory', '$RUNDIR']
+            invoc = compiler.get_exelist() + wd_args
         else:
             full_exe = self.environment.get_build_command() + [
                 '--internal',
