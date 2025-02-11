@@ -94,7 +94,7 @@ basis, it might not work in all use-cases.
 
 The exact rules followed to find dependencies that are implicitly
 added into the pkg-config file have evolved over time. Here are the
-rules as of Meson *0.49.0*, previous versions might have slightly
+rules as of Meson *1.8.0*, previous versions might have slightly
 different behaviour.
 
 - Not found libraries or dependencies are ignored.
@@ -105,12 +105,13 @@ different behaviour.
 - Libraries and dependencies will be de-duplicated, if they are added in both
   public and private (e.g `Requires:` and `Requires.private:`) it will be removed
   from the private list.
-- Shared libraries (i.e. `shared_library()` and **NOT** `library()`) add only
-  `-lfoo` into `Libs:` or `Libs.private:` but their dependencies are not pulled.
-  This is because dependencies are only needed for static link.
-- Other libraries (i.e. `static_library()` or `library()`) add `-lfoo` into `Libs:`
-  or `Libs.private:` and recursively add their dependencies into `Libs.private:` or
-  `Requires.private:`.
+- Shared libraries (i.e. `shared_library()`, or `library()` when `default_library`
+  is `shared`) add only `-lfoo` into `Libs:` or `Libs.private:`, but their
+  dependencies are not pulled. This is because dependencies are only needed
+  for static link.
+- Other libraries (i.e. `static_library()`, or `library()` unless `default_library`
+  is `shared`) add `-lfoo` into `Libs:` or `Libs.private:` and recursively add
+  their dependencies into `Libs.private:` or `Requires.private:`.
 - Dependencies provided by pkg-config are added into `Requires:` or
   `Requires.private:`. If a version was specified when declaring that dependency
   it will be written into the generated file too.
