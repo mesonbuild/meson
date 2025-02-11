@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess, os.path
 import typing as T
@@ -29,6 +30,27 @@ swift_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-O'],
 }
 
+
+def _get_swift_library_paths(exelist: T.List[str], info: MachineInfo, static: bool) -> T.List[str]:
+    try:
+        command = [*exelist, '-print-target-info']
+        if static:
+            command += ['-static-stdlib']
+        s = subprocess.check_output(command, universal_newlines=True,
+                                    encoding='utf-8', stderr=subprocess.STDOUT)
+        data = json.loads(s)
+        paths = [
+            *data['paths']['runtimeLibraryPaths'],
+            *data['paths']['runtimeLibraryImportPaths'],
+            *([data['paths']['sdkPath']] if info.is_darwin() else []),
+        ]
+        return paths
+    except subprocess.CalledProcessError as e:
+        raise MesonException(f'Failed to get Swift target info: {e.output}')
+    except KeyError:
+        raise MesonException('Failed to extract Swift library path')
+
+
 class SwiftCompiler(Compiler):
 
     LINKER_PREFIX = ['-Xlinker']
@@ -53,6 +75,9 @@ class SwiftCompiler(Compiler):
             except FileNotFoundError:
                 mlog.error('xcrun not found. Install Xcode to compile Swift code.')
                 raise MesonException('Could not detect Xcode. Please install it to compile Swift code.')
+
+        self.dynamic_library_path: T.List[str] = _get_swift_library_paths(exelist, info, False)
+        self.static_library_path: T.List[str] = _get_swift_library_paths(exelist, info, True)
 
     def get_pic_args(self) -> T.List[str]:
         return []

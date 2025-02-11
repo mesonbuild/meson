@@ -35,8 +35,15 @@ class SwiftModule(NewExtensionModule):
             self.swiftc = None
 
         self.methods.update({
+            'get_library_path': self.get_library_path,
             'generate_cpp_header': self.generate_cpp_header,
         })
+
+    @typed_pos_args('swift.get_library_path')
+    @typed_kwargs('swift.get_library_path')
+    def get_library_path(self, state: ModuleState, args, kwargs) -> ModuleReturnValue:
+        paths = [*self.swiftc.dynamic_library_path, *self.swiftc.static_library_path]
+        return ModuleReturnValue(paths, [])
 
     @typed_pos_args('swift.generate_cpp_header', build.BuildTarget)
     @typed_kwargs('swift.generate_cpp_header')
