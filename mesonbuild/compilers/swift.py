@@ -8,7 +8,7 @@ import subprocess, os.path
 import typing as T
 
 from .. import mlog
-from ..mesonlib import EnvironmentException, MesonException
+from ..mesonlib import EnvironmentException, MesonException, version_compare
 from .compilers import Compiler, clike_debug_args
 
 
@@ -114,6 +114,12 @@ class SwiftCompiler(Compiler):
 
     def get_compile_only_args(self) -> T.List[str]:
         return ['-c']
+
+    def get_working_directory_args(self, path: str) -> T.Optional[T.List[str]]:
+        if version_compare(self.version, '<4.2'):
+            return None
+
+        return ['-working-directory', path]
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
