@@ -2458,12 +2458,18 @@ class NinjaBackend(backends.Backend):
 
     def generate_swift_compile_rules(self, compiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
-        full_exe = self.environment.get_build_command() + [
-            '--internal',
-            'dirchanger',
-            '$RUNDIR',
-        ]
-        invoc = full_exe + compiler.get_exelist()
+        wd_args = compiler.get_working_directory_args('$RUNDIR')
+
+        if wd_args is not None:
+            invoc = compiler.get_exelist() + ['-working-directory', '$RUNDIR']
+        else:
+            full_exe = self.environment.get_build_command() + [
+                '--internal',
+                'dirchanger',
+                '$RUNDIR',
+            ]
+            invoc = full_exe + compiler.get_exelist()
+
         command = invoc + ['$ARGS', '$in']
         description = 'Compiling Swift source $in'
         self.add_rule(NinjaRule(rule, command, [], description))
