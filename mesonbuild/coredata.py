@@ -34,7 +34,6 @@ import typing as T
 if T.TYPE_CHECKING:
     import argparse
     from typing_extensions import Protocol
-    from typing import Any
 
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
@@ -43,7 +42,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import UserOption, ElementaryOptionValues
+    from .options import ElementaryOptionValues
     from .build import BuildTarget
 
     class SharedCMDOptions(Protocol):
@@ -398,10 +397,10 @@ class CoreData:
     def get_option(self, key: OptionKey) -> ElementaryOptionValues:
         return self.optstore.get_value_for(key.name, key.subproject)
 
-    def get_option_object_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> 'UserOption[T.Any]':
+    def get_option_object_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> options.AnyOptionType:
         return self.get_option_for_subproject(key, target.subproject)
 
-    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> T.Union[T.List[str], str, int, bool]:
+    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
             newkey = OptionKey(key, target.subproject)
@@ -418,7 +417,7 @@ class CoreData:
             return option_object.validate_value(override)
         return value
 
-    def get_option_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> T.Union[T.List[str], str, int, bool]:
+    def get_option_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> ElementaryOptionValues:
         if isinstance(key, str):
             key = OptionKey(key, subproject=subproject)
         if key.subproject != subproject:
@@ -426,7 +425,7 @@ class CoreData:
             key = key.evolve(subproject=subproject)
         return self.optstore.get_value_for(key)
 
-    def get_option_object_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> UserOption[T.Any]:
+    def get_option_object_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> options.AnyOptionType:
         #keyname = key.name
         if key.subproject != subproject:
             # This should be an error, fix before merging.
@@ -908,7 +907,7 @@ class OptionsView(abc.Mapping):
 
     # TODO: the typing here could be made more explicit using a TypeDict from
     # python 3.8 or typing_extensions
-    original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, UserOption[Any]]']
+    original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, options.AnyOptionType]']
     subproject: T.Optional[str] = None
     overrides: T.Optional[T.Mapping[OptionKey, ElementaryOptionValues]] = dataclasses.field(default_factory=dict)
 

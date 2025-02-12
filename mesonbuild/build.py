@@ -49,7 +49,6 @@ if T.TYPE_CHECKING:
     from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
-    from .options import ElementaryOptionValues
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
     LibTypes = T.Union['SharedLibrary', 'StaticLibrary', 'CustomTarget', 'CustomTargetIndex']

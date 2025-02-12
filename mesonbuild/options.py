@@ -803,7 +803,7 @@ class OptionStore:
     def __len__(self) -> int:
         return len(self.options)
 
-    def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> 'UserOption[T.Any]':
+    def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         potential = self.options.get(key, None)
         if self.is_project_option(key):
@@ -827,7 +827,7 @@ class OptionStore:
                 return self.options[parent_key]
             return potential
 
-    def get_value_object_and_value_for(self, key: OptionKey) -> 'T.Tuple[UserOption[T.Any], OptionValueType]':
+    def get_value_object_and_value_for(self, key: OptionKey) -> 'T.Tuple[AnyOptionType, OptionValueType]':
         assert isinstance(key, OptionKey)
         vobject = self.get_value_object_for(key)
         computed_value = vobject.value
@@ -1021,6 +1021,7 @@ class OptionStore:
             raise MesonException(f'Tried modify read only option {str(key)!r}')
 
         if key.name == 'prefix' and first_invocation and changed:
+            assert isinstance(old_value, str), 'for mypy'
             self.reset_prefixed_options(old_value, new_value)
 
         if changed:
@@ -1095,7 +1096,7 @@ class OptionStore:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
 
-    def get_option_from_meson_file(self, key: OptionKey) -> 'T.Tuple[UserOption[T.Any], OptionValueType]':
+    def get_option_from_meson_file(self, key: OptionKey) -> 'T.Tuple[AnyOptionType, OptionValueType]':
         assert isinstance(key, OptionKey)
         (value_object, value) = self.get_value_object_and_value_for(key)
         return (value_object, value)
@@ -1127,8 +1128,8 @@ class OptionStore:
     def update(self, **kwargs: AnyOptionType) -> None:
         self.options.update(**kwargs)
 
-    def setdefault(self, k: OptionKey, o: UserOption[T.Any]) -> AnyOptionType:
-        return self.options.setdefault(k, o) # type: ignore [no-any-return, call-overload]
+    def setdefault(self, k: OptionKey, o: AnyOptionType) -> AnyOptionType:
+        return self.options.setdefault(k, o)
 
     def get(self, o: OptionKey, default: T.Optional[AnyOptionType] = None, **kwargs: T.Any) -> T.Optional[AnyOptionType]:
         return self.options.get(o, default, **kwargs)
