@@ -214,47 +214,34 @@ clike_debug_args: T.Dict[bool, T.List[str]] = {
 
 MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
 
-
-@dataclass
-class BaseOption(T.Generic[_T]):
-    opt_type: T.Type[options.UserOption[_T]]
-    description: str
-    default: T.Any = None
-    choices: T.Any = None
-
-    def init_option(self, name: OptionKey) -> options.UserOption[_T]:
-        keywords = {}
-        if self.choices:
-            keywords['choices'] = self.choices
-        return self.opt_type(name.name, self.description, self.default, **keywords)
-
-
-BASE_OPTIONS: T.Mapping[OptionKey, BaseOption] = {
-    OptionKey('b_pch'): BaseOption(options.UserBooleanOption, 'Use precompiled headers', True),
-    OptionKey('b_lto'): BaseOption(options.UserBooleanOption, 'Use link time optimization', False),
-    OptionKey('b_lto_threads'): BaseOption(options.UserIntegerOption, 'Use multiple threads for Link Time Optimization', 0),
-    OptionKey('b_lto_mode'): BaseOption(options.UserComboOption, 'Select between different LTO modes.', 'default',
-                                        choices=['default', 'thin']),
-    OptionKey('b_thinlto_cache'): BaseOption(options.UserBooleanOption, 'Use LLVM ThinLTO caching for faster incremental builds', False),
-    OptionKey('b_thinlto_cache_dir'): BaseOption(options.UserStringOption, 'Directory to store ThinLTO cache objects', ''),
-    OptionKey('b_sanitize'): BaseOption(options.UserComboOption, 'Code sanitizer to use', 'none',
-                                        choices=['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined']),
-    OptionKey('b_lundef'): BaseOption(options.UserBooleanOption, 'Use -Wl,--no-undefined when linking', True),
-    OptionKey('b_asneeded'): BaseOption(options.UserBooleanOption, 'Use -Wl,--as-needed when linking', True),
-    OptionKey('b_pgo'): BaseOption(options.UserComboOption, 'Use profile guided optimization', 'off',
-                                   choices=['off', 'generate', 'use']),
-    OptionKey('b_coverage'): BaseOption(options.UserBooleanOption, 'Enable coverage tracking.', False),
-    OptionKey('b_colorout'): BaseOption(options.UserComboOption, 'Use colored output', 'always',
-                                        choices=['auto', 'always', 'never']),
-    OptionKey('b_ndebug'): BaseOption(options.UserComboOption, 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
-    OptionKey('b_staticpic'): BaseOption(options.UserBooleanOption, 'Build static libraries as position independent', True),
-    OptionKey('b_pie'): BaseOption(options.UserBooleanOption, 'Build executables as position independent', False),
-    OptionKey('b_bitcode'): BaseOption(options.UserBooleanOption, 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
-    OptionKey('b_vscrt'): BaseOption(options.UserComboOption, 'VS run-time library type to use.', 'from_buildtype',
-                                     choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
+BASE_OPTIONS: T.Mapping[OptionKey, options.AnyOptionType] = {
+    OptionKey(o.name): o for o in T.cast('T.List[options.AnyOptionType]', [
+        options.UserBooleanOption('b_pch', 'Use precompiled headers', True),
+        options.UserBooleanOption('b_lto', 'Use link time optimization', False),
+        options.UserIntegerOption('b_lto_threads', 'Use multiple threads for Link Time Optimization', 0),
+        options.UserComboOption('b_lto_mode', 'Select between different LTO modes.', 'default', choices=['default', 'thin']),
+        options.UserBooleanOption('b_thinlto_cache', 'Use LLVM ThinLTO caching for faster incremental builds', False),
+        options.UserStringOption('b_thinlto_cache_dir', 'Directory to store ThinLTO cache objects', ''),
+        options.UserComboOption(
+            'b_sanitize', 'Code sanitizer to use', 'none',
+            choices=['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined']),
+        options.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
+        options.UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
+        options.UserComboOption(
+            'b_pgo', 'Use profile guided optimization', 'off', choices=['off', 'generate', 'use']),
+        options.UserBooleanOption('b_coverage', 'Enable coverage tracking.', False),
+        options.UserComboOption(
+            'b_colorout', 'Use colored output', 'always', choices=['auto', 'always', 'never']),
+        options.UserComboOption(
+            'b_ndebug', 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
+        options.UserBooleanOption('b_staticpic', 'Build static libraries as position independent', True),
+        options.UserBooleanOption('b_pie', 'Build executables as position independent', False),
+        options.UserBooleanOption('b_bitcode', 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
+        options.UserComboOption(
+            'b_vscrt', 'VS run-time library type to use.', 'from_buildtype',
+            choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
+    ])
 }
-
-base_options = {key: base_opt.init_option(key) for key, base_opt in BASE_OPTIONS.items()}
 
 def option_enabled(boptions: T.Set[OptionKey],
                    target: 'BuildTarget',
