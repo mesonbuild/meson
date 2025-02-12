@@ -149,8 +149,8 @@ class DependencyCache:
     def __init__(self, builtins: 'KeyedOptionDictType', for_machine: MachineChoice):
         self.__cache: T.MutableMapping[TV_DepID, DependencySubCache] = OrderedDict()
         self.__builtins = builtins
-        self.__pkg_conf_key = OptionKey('pkg_config_path', machine=for_machine)
-        self.__cmake_key = OptionKey('cmake_prefix_path', machine=for_machine)
+        self.__pkg_conf_key = OptionKey.factory('pkg_config_path', machine=for_machine)
+        self.__cmake_key = OptionKey.factory('cmake_prefix_path', machine=for_machine)
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
@@ -353,7 +353,7 @@ class CoreData:
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
         if self.cross_files:
-            options.BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
+            options.BUILTIN_OPTIONS[OptionKey.factory('libdir')].default = 'lib'
 
     def sanitize_prefix(self, prefix: str) -> str:
         prefix = os.path.expanduser(prefix)
@@ -580,12 +580,12 @@ class CoreData:
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        key = OptionKey(f'{lang}_args', machine=for_machine)
+        key = OptionKey.factory(f'{lang}_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
-        key = OptionKey(f'{lang}_link_args', machine=for_machine)
+        key = OptionKey.factory(f'{lang}_link_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value(key))
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
@@ -642,7 +642,7 @@ class CoreData:
         if not self.is_cross_build():
             opts_to_set = {k: v for k, v in opts_to_set.items() if k.machine is not MachineChoice.BUILD}
         # Set prefix first because it's needed to sanitize other options
-        pfk = OptionKey('prefix')
+        pfk = OptionKey.factory('prefix')
         if pfk in opts_to_set:
             prefix = self.sanitize_prefix(opts_to_set[pfk])
             dirty |= self.optstore.set_value('prefix', prefix)
@@ -778,7 +778,7 @@ class CoreData:
         self.emit_base_options_warnings(enabled_opts)
 
     def emit_base_options_warnings(self, enabled_opts: T.List[OptionKey]) -> None:
-        if OptionKey('b_bitcode') in enabled_opts:
+        if OptionKey.factory('b_bitcode') in enabled_opts:
             mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
             mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
 
@@ -957,12 +957,12 @@ class OptionsView(abc.Mapping):
 
     def get_value(self, key: T.Union[str, OptionKey]):
         if isinstance(key, str):
-            key = OptionKey(key)
+            key = OptionKey.factory(key)
         return self[key].value
 
     def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues):
         if isinstance(key, str):
-            key = OptionKey(key)
+            key = OptionKey.factory(key)
         self.overrides[key] = value
 
     def __iter__(self) -> T.Iterator[OptionKey]:

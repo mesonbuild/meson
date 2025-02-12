@@ -363,7 +363,7 @@ class WindowsTests(BasePlatformTests):
         # Verify that the `b_vscrt` option is available
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
-        if OptionKey('b_vscrt') not in cc.base_options:
+        if OptionKey.factory('b_vscrt') not in cc.base_options:
             raise SkipTest('Compiler does not support setting the VS CRT')
         # Verify that qmake is for Qt5
         if not shutil.which('qmake-qt5'):
@@ -389,7 +389,7 @@ class WindowsTests(BasePlatformTests):
         # Verify that the `b_vscrt` option is available
         env = get_fake_env()
         cc = detect_c_compiler(env, MachineChoice.HOST)
-        if OptionKey('b_vscrt') not in cc.base_options:
+        if OptionKey.factory('b_vscrt') not in cc.base_options:
             raise SkipTest('Compiler does not support setting the VS CRT')
 
         def sanitycheck_vscrt(vscrt):

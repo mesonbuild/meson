@@ -29,7 +29,7 @@ class ValaCompiler(Compiler):
                  is_cross: bool, info: 'MachineInfo'):
         super().__init__([], exelist, version, for_machine, info, is_cross=is_cross)
         self.version = version
-        self.base_options = {OptionKey('b_colorout')}
+        self.base_options = {OptionKey.factory('b_colorout')}
         self.force_link = False
         self._has_color_support = version_compare(self.version, '>=0.37.1')
 

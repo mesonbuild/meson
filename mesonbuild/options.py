@@ -193,7 +193,7 @@ class OptionKey:
         return out
 
     def __repr__(self) -> str:
-        return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r})'
+        return f'OptionKey.factory({self.name!r}, {self.subproject!r}, {self.machine!r})'
 
     @classmethod
     def factory(cls, name: str, subproject: str = '', machine: MachineChoice = MachineChoice.HOST) -> OptionKey:
@@ -248,14 +248,14 @@ class OptionKey:
         """Create a new copy of this key, but with altered members.
 
         For example:
-        >>> a = OptionKey('foo', '', MachineChoice.Host)
-        >>> b = OptionKey('foo', 'bar', MachineChoice.Host)
+        >>> a = OptionKey.factory('foo', '', MachineChoice.Host)
+        >>> b = OptionKey.factory('foo', 'bar', MachineChoice.Host)
         >>> b == a.evolve(subproject='bar')
         True
         """
         # We have to be a little clever with lang here, because lang is valid
         # as None, for non-compiler options
-        return OptionKey(
+        return OptionKey.factory(
             name if name is not None else self.name,
             subproject if subproject is not None else self.subproject,
             machine if machine is not None else self.machine,
@@ -695,27 +695,27 @@ class BuiltinOption(T.Generic[_T]):
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
 # Please also update completion scripts in $MESONSRC/data/shell-completions/
 BUILTIN_DIR_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
-    (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', default_datadir())),
-    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', default_includedir())),
-    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', default_infodir())),
-    (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
-    (OptionKey('licensedir'),      BuiltinOption(UserStringOption, 'Licenses directory', '')),
-    (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', default_localedir())),
-    (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
-    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', default_mandir())),
-    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', default_sbindir())),
-    (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
-    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
+    (OptionKey.factory('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
+    (OptionKey.factory('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
+    (OptionKey.factory('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', default_datadir())),
+    (OptionKey.factory('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', default_includedir())),
+    (OptionKey.factory('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', default_infodir())),
+    (OptionKey.factory('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
+    (OptionKey.factory('licensedir'),      BuiltinOption(UserStringOption, 'Licenses directory', '')),
+    (OptionKey.factory('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
+    (OptionKey.factory('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', default_localedir())),
+    (OptionKey.factory('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
+    (OptionKey.factory('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', default_mandir())),
+    (OptionKey.factory('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', default_sbindir())),
+    (OptionKey.factory('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
+    (OptionKey.factory('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
 ])
 
 BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
-    (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist,
-                                                 readonly=True)),
-    (OptionKey('genvslite'),
+    (OptionKey.factory('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
+    (OptionKey.factory('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist,
+                                                         readonly=True)),
+    (OptionKey.factory('genvslite'),
      BuiltinOption(
          UserComboOption,
          'Setup multiple buildtype-suffixed ninja-backend build directories, '
@@ -723,59 +723,59 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
          'vs2022',
          choices=genvslitelist)
      ),
-    (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                                 choices=buildtypelist)),
-    (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
-    (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                                                 yielding=False)),
-    (OptionKey('default_both_libraries'), BuiltinOption(UserComboOption, 'Default library type for both_libraries', 'shared', choices=['shared', 'static', 'auto'])),
-    (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
-    (OptionKey('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
-    (OptionKey('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
-    (OptionKey('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])),
-    (OptionKey('prefer_static'),   BuiltinOption(UserBooleanOption, 'Whether to try static linking before shared linking', False)),
-    (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
-    (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
-    (OptionKey('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
-    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', 4, min_value=2)),
-    (OptionKey('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'], yielding=False)),
-    (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
-    (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
-    (OptionKey('force_fallback_for'), BuiltinOption(UserStringArrayOption, 'Force fallback for those subprojects', [])),
-    (OptionKey('vsenv'),           BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
+    (OptionKey.factory('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
+                                                         choices=buildtypelist)),
+    (OptionKey.factory('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
+    (OptionKey.factory('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
+                                                         yielding=False)),
+    (OptionKey.factory('default_both_libraries'), BuiltinOption(UserComboOption, 'Default library type for both_libraries', 'shared', choices=['shared', 'static', 'auto'])),
+    (OptionKey.factory('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
+    (OptionKey.factory('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
+    (OptionKey.factory('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
+    (OptionKey.factory('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])),
+    (OptionKey.factory('prefer_static'),   BuiltinOption(UserBooleanOption, 'Whether to try static linking before shared linking', False)),
+    (OptionKey.factory('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
+    (OptionKey.factory('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
+    (OptionKey.factory('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
+    (OptionKey.factory('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', 4, min_value=2)),
+    (OptionKey.factory('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'], yielding=False)),
+    (OptionKey.factory('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
+    (OptionKey.factory('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
+    (OptionKey.factory('force_fallback_for'), BuiltinOption(UserStringArrayOption, 'Force fallback for those subprojects', [])),
+    (OptionKey.factory('vsenv'),           BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
 
     # Pkgconfig module
-    (OptionKey('pkgconfig.relocatable'),
+    (OptionKey.factory('pkgconfig.relocatable'),
      BuiltinOption(UserBooleanOption, 'Generate pkgconfig files as relocatable', False)),
 
     # Python module
-    (OptionKey('python.bytecompile'),
+    (OptionKey.factory('python.bytecompile'),
      BuiltinOption(UserIntegerOption, 'Whether to compile bytecode', 0, min_value=-1, max_value=2)),
-    (OptionKey('python.install_env'),
+    (OptionKey.factory('python.install_env'),
      BuiltinOption(UserComboOption, 'Which python environment to install to', 'prefix', choices=['auto', 'prefix', 'system', 'venv'])),
-    (OptionKey('python.platlibdir'),
+    (OptionKey.factory('python.platlibdir'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
-    (OptionKey('python.purelibdir'),
+    (OptionKey.factory('python.purelibdir'),
      BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
-    (OptionKey('python.allow_limited_api'),
+    (OptionKey.factory('python.allow_limited_api'),
      BuiltinOption(UserBooleanOption, 'Whether to allow use of the Python Limited API', True)),
 ])
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
 BUILTIN_OPTIONS_PER_MACHINE: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('pkg_config_path'), BuiltinOption(UserStringArrayOption, 'List of additional paths for pkg-config to search', [])),
-    (OptionKey('cmake_prefix_path'), BuiltinOption(UserStringArrayOption, 'List of additional prefixes for cmake to search', [])),
+    (OptionKey.factory('pkg_config_path'), BuiltinOption(UserStringArrayOption, 'List of additional paths for pkg-config to search', [])),
+    (OptionKey.factory('cmake_prefix_path'), BuiltinOption(UserStringArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.
 BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
-    OptionKey('sysconfdir'):     {'/usr': '/etc'},
-    OptionKey('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
-    OptionKey('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
-    OptionKey('python.platlibdir'): {},
-    OptionKey('python.purelibdir'): {},
+    OptionKey.factory('sysconfdir'):     {'/usr': '/etc'},
+    OptionKey.factory('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
+    OptionKey.factory('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
+    OptionKey.factory('python.platlibdir'): {},
+    OptionKey.factory('python.purelibdir'): {},
 }
 
 class OptionStore:
@@ -791,7 +791,7 @@ class OptionStore:
 
     def ensure_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
         if isinstance(key, str):
-            return OptionKey(key)
+            return OptionKey.factory(key)
         return key
 
     def get_value_object(self, key: T.Union[OptionKey, str]) -> AnyOptionType:

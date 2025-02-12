@@ -2216,11 +2216,11 @@ def run(options: argparse.Namespace) -> int:
             return 1
 
     b = build.load(options.wd)
-    need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+    need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey.factory('vsenv')))
     setup_vsenv(need_vsenv)
 
     if not options.no_rebuild:
-        backend = b.environment.coredata.get_option(OptionKey('backend'))
+        backend = b.environment.coredata.get_option(OptionKey.factory('backend'))
         if backend == 'none':
             # nothing to build...
             options.no_rebuild = True

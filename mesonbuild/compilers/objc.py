@@ -53,7 +53,7 @@ class ObjCCompiler(CLikeCompiler, Compiler):
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
         if basename == 'std':
-            return OptionKey(f'c_{basename}', machine=self.for_machine)
+            return OptionKey.factory(f'c_{basename}', machine=self.for_machine)
         return super().form_compileropt_key(basename)
 
 
@@ -101,7 +101,7 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
         if basename == 'std':
-            return OptionKey('c_std', machine=self.for_machine)
+            return OptionKey.factory('c_std', machine=self.for_machine)
         return super().form_compileropt_key(basename)
 
     def make_option_name(self, key: OptionKey) -> str:

@@ -55,7 +55,7 @@ class TaskingCompiler(Compiler):
             raise EnvironmentException(f'{id} supports only cross-compilation.')
 
         self.base_options = {
-            OptionKey(o) for o in [
+            OptionKey.factory(o) for o in [
                 'b_lto',
                 'b_staticpic',
                 'b_ndebug'

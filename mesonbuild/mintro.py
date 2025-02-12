@@ -164,7 +164,7 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
     return plan
 
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
-    if coredata.get_option(OptionKey('layout')) == 'flat':
+    if coredata.get_option(OptionKey.factory('layout')) == 'flat':
         return 'meson-out'
     else:
         return subdir
@@ -287,8 +287,8 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     subprojects = subprojects or []
 
     dir_option_names = set(options.BUILTIN_DIR_OPTIONS)
-    test_option_names = {OptionKey('errorlogs'),
-                         OptionKey('stdsplit')}
+    test_option_names = {OptionKey.factory('errorlogs'),
+                         OptionKey.factory('stdsplit')}
 
     dir_options: 'cdata.MutableKeyedOptionDictType' = {}
     test_options: 'cdata.MutableKeyedOptionDictType' = {}

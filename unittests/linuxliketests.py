@@ -499,7 +499,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Check that all the listed -std=xxx options for this compiler work just fine when used
         # https://en.wikipedia.org/wiki/Xcode#Latest_versions
         # https://www.gnu.org/software/gcc/projects/cxx-status.html
-        key = OptionKey(f'{compiler.language}_std')
+        key = OptionKey.factory(f'{compiler.language}_std')
         for v in compiler.get_options()[key].choices:
             # we do it like this to handle gnu++17,c++17 and gnu17,c17 cleanly
             # thus, C++ first
@@ -1116,7 +1116,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertPathExists(os.path.join(pkg_dir, 'librelativepath.pc'))
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        env.coredata.set_options({OptionKey('pkg_config_path'): pkg_dir}, subproject='')
+        env.coredata.set_options({OptionKey.factory('pkg_config_path'): pkg_dir}, subproject='')
         kwargs = {'required': True, 'silent': True}
         relative_path_dep = PkgConfigDependency('librelativepath', env, kwargs)
         self.assertTrue(relative_path_dep.found())
@@ -1132,7 +1132,7 @@ class LinuxlikeTests(BasePlatformTests):
         pkg_dir = os.path.join(testdir, 'pkgconfig')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        env.coredata.set_options({OptionKey('pkg_config_path'): pkg_dir}, subproject='')
+        env.coredata.set_options({OptionKey.factory('pkg_config_path'): pkg_dir}, subproject='')
 
         # Regression test: This used to modify the value of `pkg_config_path`
         # option, adding the meson-uninstalled directory to it.
@@ -1167,7 +1167,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
 
-        env.coredata.set_options({OptionKey('pkg_config_path'): external_pkg_config_path_dir},
+        env.coredata.set_options({OptionKey.factory('pkg_config_path'): external_pkg_config_path_dir},
                                  subproject='')
 
         newEnv = PkgConfigInterface.setup_env({}, env, MachineChoice.HOST, uninstalled=True)

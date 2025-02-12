@@ -28,7 +28,7 @@ class PGICompiler(Compiler):
     id = 'pgi'
 
     def __init__(self) -> None:
-        self.base_options = {OptionKey('b_pch')}
+        self.base_options = {OptionKey.factory('b_pch')}
 
         default_warn_args = ['-Minform=inform']
         self.warn_args: T.Dict[str, T.List[str]] = {

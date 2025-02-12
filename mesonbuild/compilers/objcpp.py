@@ -37,7 +37,7 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
         if basename == 'std':
-            return OptionKey('cpp_std', machine=self.for_machine)
+            return OptionKey.factory('cpp_std', machine=self.for_machine)
         return super().form_compileropt_key(basename)
 
     def make_option_name(self, key: OptionKey) -> str:

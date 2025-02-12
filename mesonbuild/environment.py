@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2020 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -670,9 +670,9 @@ class Environment:
 
         # Warn if the user is using two different ways of setting build-type
         # options that override each other
-        bt = OptionKey('buildtype')
-        db = OptionKey('debug')
-        op = OptionKey('optimization')
+        bt = OptionKey.factory('buildtype')
+        db = OptionKey.factory('debug')
+        op = OptionKey.factory('optimization')
         if bt in self.options and (db in self.options or op in self.options):
             mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
                          'Using both is redundant since they override each other. '
@@ -779,11 +779,11 @@ class Environment:
                 if self.first_invocation:
                     if keyname == 'ldflags':
                         for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
-                            key = OptionKey(name=f'{lang}_link_args', machine=for_machine)
+                            key = OptionKey.factory(name=f'{lang}_link_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     elif keyname == 'cppflags':
                         for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
-                            key = OptionKey(f'{lang}_env_args', machine=for_machine)
+                            key = OptionKey.factory(f'{lang}_env_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
@@ -936,25 +936,25 @@ class Environment:
         return self.get_libdir()
 
     def get_prefix(self) -> str:
-        return self.coredata.get_option(OptionKey('prefix'))
+        return self.coredata.get_option(OptionKey.factory('prefix'))
 
     def get_libdir(self) -> str:
-        return self.coredata.get_option(OptionKey('libdir'))
+        return self.coredata.get_option(OptionKey.factory('libdir'))
 
     def get_libexecdir(self) -> str:
-        return self.coredata.get_option(OptionKey('libexecdir'))
+        return self.coredata.get_option(OptionKey.factory('libexecdir'))
 
     def get_bindir(self) -> str:
-        return self.coredata.get_option(OptionKey('bindir'))
+        return self.coredata.get_option(OptionKey.factory('bindir'))
 
     def get_includedir(self) -> str:
-        return self.coredata.get_option(OptionKey('includedir'))
+        return self.coredata.get_option(OptionKey.factory('includedir'))
 
     def get_mandir(self) -> str:
-        return self.coredata.get_option(OptionKey('mandir'))
+        return self.coredata.get_option(OptionKey.factory('mandir'))
 
     def get_datadir(self) -> str:
-        return self.coredata.get_option(OptionKey('datadir'))
+        return self.coredata.get_option(OptionKey.factory('datadir'))
 
     def get_compiler_system_lib_dirs(self, for_machine: MachineChoice) -> T.List[str]:
         for comp in self.coredata.compilers[for_machine].values():

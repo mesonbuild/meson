@@ -534,7 +534,7 @@ class ConverterTarget:
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> 'ImmutableListProtocol[str]':
         try:
-            opt = self.env.coredata.optstore.get_value_object(OptionKey(f'{lang}_std', machine=MachineChoice.BUILD))
+            opt = self.env.coredata.optstore.get_value_object(OptionKey.factory(f'{lang}_std', machine=MachineChoice.BUILD))
             assert isinstance(opt, (options.UserStdOption, options.UserComboOption)), 'for mypy'
             return opt.choices or []
         except KeyError:
@@ -828,7 +828,7 @@ class CMakeInterpreter:
         cmake_args += extra_cmake_options
         if not any(arg.startswith('-DCMAKE_BUILD_TYPE=') for arg in cmake_args):
             # Our build type is favored over any CMAKE_BUILD_TYPE environment variable
-            buildtype = T.cast('str', self.env.coredata.get_option(OptionKey('buildtype')))
+            buildtype = T.cast('str', self.env.coredata.get_option(OptionKey.factory('buildtype')))
             if buildtype in BUILDTYPE_MAP:
                 cmake_args += [f'-DCMAKE_BUILD_TYPE={BUILDTYPE_MAP[buildtype]}']
         trace_args = self.trace.trace_args()

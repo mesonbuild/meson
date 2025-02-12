@@ -95,9 +95,9 @@ class RustCompiler(Compiler):
                          is_cross=is_cross, full_version=full_version,
                          linker=linker)
         self.rustup_run_and_args: T.Optional[T.Tuple[T.List[str], T.List[str]]] = get_rustup_run_and_args(exelist)
-        self.base_options.update({OptionKey(o) for o in ['b_colorout', 'b_ndebug']})
+        self.base_options.update({OptionKey.factory(o) for o in ['b_colorout', 'b_ndebug']})
         if 'link' in self.linker.id:
-            self.base_options.add(OptionKey('b_vscrt'))
+            self.base_options.add(OptionKey.factory('b_vscrt'))
         self.native_static_libs: T.List[str] = []
 
     def needs_static_linker(self) -> bool:

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -258,8 +258,8 @@ class Conf:
             mlog.log('  Build dir ', self.build_dir)
 
         dir_option_names = set(options.BUILTIN_DIR_OPTIONS)
-        test_option_names = {OptionKey('errorlogs'),
-                             OptionKey('stdsplit')}
+        test_option_names = {OptionKey.factory('errorlogs'),
+                             OptionKey.factory('stdsplit')}
 
         dir_options: 'coredata.MutableKeyedOptionDictType' = {}
         test_options: 'coredata.MutableKeyedOptionDictType' = {}
