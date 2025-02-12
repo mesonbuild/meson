@@ -657,7 +657,7 @@ class CoreData:
         return dirty
 
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
-        from .compilers import base_options
+        from .compilers import BASE_OPTIONS
 
         # Main project can set default options on subprojects, but subprojects
         # can only set default options on themselves.
@@ -696,7 +696,7 @@ class CoreData:
             # adding languages and setting backend.
             if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
                 continue
-            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in base_options:
+            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in BASE_OPTIONS:
                 # set_options will report unknown base options
                 continue
             options[k] = v
@@ -744,7 +744,7 @@ class CoreData:
             else:
                 skey = key
             if skey not in self.optstore:
-                self.optstore.add_system_option(skey, copy.deepcopy(compilers.base_options[key]))
+                self.optstore.add_system_option(skey, copy.deepcopy(compilers.BASE_OPTIONS[key]))
                 if skey in env.options:
                     self.optstore.set_value(skey, env.options[skey])
                 elif subproject and key in env.options:
