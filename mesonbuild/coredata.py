@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2024 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .mesonlib import (
     MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
-    stringlistify,
+    default_prefix,
     pickle_load
 )
 
@@ -34,7 +34,6 @@ import typing as T
 if T.TYPE_CHECKING:
     import argparse
     from typing_extensions import Protocol
-    from typing import Any
 
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
@@ -43,7 +42,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import UserOption
+    from .options import ElementaryOptionTypes, ElementaryOptionValues
 
     class SharedCMDOptions(Protocol):
 
@@ -154,8 +153,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins.get_value(self.__pkg_conf_key)),
-            DependencyCacheType.CMAKE: stringlistify(self.__builtins.get_value(self.__cmake_key)),
+            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value(self.__pkg_conf_key, list),
+            DependencyCacheType.CMAKE: self.__builtins.get_value(self.__cmake_key, list),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
@@ -226,7 +225,7 @@ class CMakeStateCache:
     def items(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
         return iter(self.__cache.items())
 
-    def update(self, language: str, variables: T.Dict[str, T.List[str]]):
+    def update(self, language: str, variables: T.Dict[str, T.List[str]]) -> None:
         if language not in self.__cache:
             self.__cache[language] = {}
         self.__cache[language].update(variables)
@@ -257,7 +256,7 @@ class CoreData:
         self.regen_guid = str(uuid.uuid4()).upper()
         self.install_guid = str(uuid.uuid4()).upper()
         self.meson_command = meson_command
-        self.target_guids = {}
+        self.target_guids: T.Dict[str, str] = {}
         self.version = version
         self.optstore = options.OptionStore()
         self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
@@ -413,20 +412,22 @@ class CoreData:
                 self.add_builtin_option(self.optstore, key.evolve(subproject=subproject, machine=for_machine), opt)
 
     @staticmethod
-    def add_builtin_option(opts_map: 'MutableKeyedOptionDictType', key: OptionKey,
+    def add_builtin_option(opts_map: options.OptionStore, key: OptionKey,
                            opt: 'options.BuiltinOption') -> None:
         if key.subproject:
             if opt.yielding:
                 # This option is global and not per-subproject
                 return
-            value = opts_map.get_value(key.as_root())
+            value = opts_map.get_value_unsafe(key.as_root())
         else:
             value = None
-        if key.has_module_prefix():
-            modulename = key.get_module_prefix()
-            opts_map.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
+
+        inited = T.cast('options.AnyOptionType', opt.init_option(key, value, default_prefix()))
+        modulename = key.get_module_prefix()
+        if modulename is not None:
+            opts_map.add_module_option(modulename, key, inited)
         else:
-            opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
+            opts_map.add_system_option(key, inited)
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
@@ -442,10 +443,10 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
-    def get_option(self, key: OptionKey) -> T.Union[T.List[str], str, int, bool]:
+    def get_option(self, key: OptionKey) -> ElementaryOptionValues:
         try:
-            v = self.optstore.get_value(key)
-            return v
+            v = self.optstore.get_value_object(key)
+            return v.value
         except KeyError:
             pass
 
@@ -458,13 +459,14 @@ class CoreData:
 
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
-    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
+    def set_option(self, key: OptionKey, value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
         dirty = False
         if self.optstore.is_builtin_option(key):
             if key.name == 'prefix':
+                assert isinstance(value, str), 'for mypy'
                 value = self.sanitize_prefix(value)
             else:
-                prefix = self.optstore.get_value('prefix')
+                prefix = self.optstore.get_value('prefix', str)
                 value = self.sanitize_dir_option_value(prefix, key, value)
 
         try:
@@ -479,14 +481,15 @@ class CoreData:
                 if v in opt.deprecated:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is deprecated')
         elif isinstance(opt.deprecated, dict):
-            def replace(v):
+            arr: T.List[str] = []
+            for v in opt.listify(value):
                 newvalue = opt.deprecated.get(v)
                 if newvalue is not None:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is replaced by {newvalue!r}')
-                    return newvalue
-                return v
-            newvalue = [replace(v) for v in opt.listify(value)]
-            value = ','.join(newvalue)
+                    arr.append(newvalue)
+                else:
+                    arr.append(v)
+            value = ','.join(arr)
         elif isinstance(opt.deprecated, str):
             # Option is deprecated and replaced by another. Note that a project
             # option could be replaced by a built-in or module option, which is
@@ -507,6 +510,7 @@ class CoreData:
         dirty |= changed
 
         if key.name == 'buildtype':
+            assert isinstance(value, str), 'for mypy'
             dirty |= self._set_others_from_buildtype(value)
 
         return dirty
@@ -519,7 +523,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.optstore.get_value('buildtype')
+        value = self.optstore.get_value('buildtype', str)
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -538,8 +542,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.optstore.get_value('optimization')
-        actual_debug = self.optstore.get_value('debug')
+        actual_opt = self.optstore.get_value('optimization', str)
+        actual_debug = self.optstore.get_value('debug', bool)
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -581,12 +585,12 @@ class CoreData:
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value(key))
+        return self.optstore.get_value(key, list)
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value(key))
+        return self.optstore.get_value(key, list)
 
     def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
         for key, value in project_options.items():
@@ -687,9 +691,9 @@ class CoreData:
         # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
         options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
-        for k, v in default_options.items():
+        for k, v_ in default_options.items():
             if not subproject or k.subproject == subproject:
-                options[k] = v
+                options[k] = v_
         options.update(env.options)
         env.options = options
 
@@ -812,10 +816,11 @@ def write_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     config = CmdLineFileParser()
 
     properties: OrderedDict[str, str] = OrderedDict()
+    # XXX: this is an abuse of repr()
     if options.cross_file:
-        properties['cross_file'] = options.cross_file
+        properties['cross_file'] = repr(options.cross_file)
     if options.native_file:
-        properties['native_file'] = options.native_file
+        properties['native_file'] = repr(options.native_file)
 
     config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
     config['properties'] = properties
@@ -914,22 +919,17 @@ class OptionsView(abc.Mapping):
 
     # TODO: the typing here could be made more explicit using a TypeDict from
     # python 3.8 or typing_extensions
-    original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, UserOption[Any]]']
+    original_options: T.Union[KeyedOptionDictType, T.Dict[OptionKey, options.AnyOptionType]]
     subproject: T.Optional[str] = None
-    overrides: T.Optional[T.Mapping[OptionKey, T.Union[str, int, bool, T.List[str]]]] = dataclasses.field(default_factory=dict)
+    overrides: T.MutableMapping[OptionKey, ElementaryOptionValues] = dataclasses.field(default_factory=dict)
 
-    def __getitem__(self, key: OptionKey) -> options.UserOption:
+    def __getitem__(self, key: OptionKey) -> options.AnyOptionType:
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
         # We should try to share the code somehow.
         key = key.evolve(subproject=self.subproject)
         if not isinstance(self.original_options, options.OptionStore):
-            # This is only used by CUDA currently.
-            # This entire class gets removed when option refactor
-            # is finished.
-            if '_' in key.name or key.lang is not None:
-                is_project_option = False
-            else:
-                sys.exit(f'FAIL {key}.')
+            assert '_' in key.name
+            is_project_option = False
         else:
             is_project_option = self.original_options.is_project_option(key)
         if not is_project_option:
@@ -945,9 +945,13 @@ class OptionsView(abc.Mapping):
                 else:
                     opt = self.original_options[key2]
         else:
-            opt = self.original_options[key]
+            assert isinstance(self.original_options, options.OptionStore), 'for mypy'
+            opt = self.original_options.get_value_object(key)
             if opt.yielding:
                 opt = self.original_options.get(key.as_root(), opt)
+
+        assert opt is not None, 'for mypy'
+
         if self.overrides:
             override_value = self.overrides.get(key.as_root())
             if override_value is not None:
@@ -955,12 +959,25 @@ class OptionsView(abc.Mapping):
                 opt.set_value(override_value)
         return opt
 
-    def get_value(self, key: T.Union[str, OptionKey]):
+    def get_value_unsafe(self, key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             key = OptionKey(key)
         return self[key].value
 
-    def set_value(self, key: T.Union[str, OptionKey], value: T.Union[str, int, bool, T.List[str]]):
+    def get_value(self, key: T.Union[OptionKey, str],
+                  type_: T.Type[ElementaryOptionTypes],
+                  fallback: T.Optional[ElementaryOptionTypes] = None,
+                  ) -> ElementaryOptionTypes:
+        try:
+            v = self.get_value_unsafe(key)
+            assert isinstance(v, type_), 'for mypy'
+            return v
+        except KeyError:
+            if fallback is not None:
+                return fallback
+            raise
+
+    def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues) -> None:
         if isinstance(key, str):
             key = OptionKey(key)
         self.overrides[key] = value

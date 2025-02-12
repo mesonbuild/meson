@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 
 """Helpers for strict type checking."""
 
@@ -27,6 +27,7 @@ if T.TYPE_CHECKING:
 
     from ..build import ObjectTypes
     from ..interpreterbase import TYPE_var
+    from ..options import ElementaryOptionValues
     from ..mesonlib import EnvInitValueType
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
@@ -292,11 +293,11 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTarge
     default=[],
 )
 
-def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, T.Union[str, int, bool, T.List[str]]]]) -> T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]:
+def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, ElementaryOptionValues]]) -> T.Dict[OptionKey, ElementaryOptionValues]:
     if isinstance(raw, str):
         raw = [raw]
     if isinstance(raw, list):
-        output: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]] = {}
+        output: T.Dict[OptionKey, ElementaryOptionValues] = {}
         for each in raw:
             k, v = split_equal_string(each)
             output[OptionKey.from_string(k)] = v
@@ -304,7 +305,7 @@ def _override_options_convertor(raw: T.Union[str, T.List[str], T.Dict[str, T.Uni
     return {OptionKey.from_string(k): v for k, v in raw.items()}
 
 
-OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, T.Union[str, int, bool, T.List[str]]], T.List[str]]] = KwargInfo(
+OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, ElementaryOptionValues], T.List[str]]] = KwargInfo(
     'override_options',
     (str, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, (str, int, bool, list))),
     default={},

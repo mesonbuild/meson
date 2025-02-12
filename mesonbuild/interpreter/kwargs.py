@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 The Meson Developers
-# Copyright © 2021-2024 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 from __future__ import annotations
 
 """Keyword Argument type annotations."""
@@ -209,7 +209,7 @@ class Project(TypedDict):
 
     version: T.Optional[FileOrString]
     meson_version: T.Optional[str]
-    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     license: T.List[str]
     license_files: T.List[str]
     subproject_dir: str
@@ -239,7 +239,7 @@ class Summary(TypedDict):
 
 class FindProgram(ExtractRequired, ExtractSearchDirs):
 
-    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     native: MachineChoice
     version: T.List[str]
 
@@ -312,13 +312,13 @@ class ConfigureFile(TypedDict):
 
 class Subproject(ExtractRequired):
 
-    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     version: T.List[str]
 
 
 class DoSubproject(ExtractRequired):
 
-    default_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     version: T.List[str]
     cmake_options: T.List[str]
     options: T.Optional[CMakeSubprojectOptions]
@@ -346,7 +346,7 @@ class _BaseBuildTarget(TypedDict):
     name_suffix: T.Optional[str]
     native: MachineChoice
     objects: T.List[build.ObjectTypes]
-    override_options: T.Dict[OptionKey, T.Union[str, int, bool, T.List[str]]]
+    override_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     depend_files: NotRequired[T.List[File]]
     resources: T.List[str]
 

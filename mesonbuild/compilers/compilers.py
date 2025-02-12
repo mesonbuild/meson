@@ -254,30 +254,16 @@ BASE_OPTIONS: T.Mapping[OptionKey, BaseOption] = {
                                      choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
 }
 
-base_options = {key: base_opt.init_option(key) for key, base_opt in BASE_OPTIONS.items()}
+base_options = {key: T.cast('options.AnyOptionType', base_opt.init_option(key)) for key, base_opt in BASE_OPTIONS.items()}
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
                    option: OptionKey) -> bool:
     try:
         if option not in boptions:
             return False
-        ret = options.get_value(option)
-        assert isinstance(ret, bool), 'must return bool'  # could also be str
-        return ret
+        return options.get_value(option, bool)  # could also be str?
     except KeyError:
         return False
-
-
-def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '_T') -> '_T':
-    """Get the value of an option, or the fallback value."""
-    try:
-        v: '_T' = options.get_value(opt)
-    except (KeyError, AttributeError):
-        return fallback
-
-    assert isinstance(v, type(fallback)), f'Should have {type(fallback)!r} but was {type(v)!r}'
-    # Mypy doesn't understand that the above assert ensures that v is type _T
-    return v
 
 
 def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
@@ -286,30 +272,30 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
     :param options: OptionDictionary
     :return: whether to disable assertions or not
     """
-    return (options.get_value('b_ndebug') == 'true' or
-            (options.get_value('b_ndebug') == 'if-release' and
-             options.get_value('buildtype') in {'release', 'plain'}))
+    return (options.get_value('b_ndebug', str) == 'true' or
+            (options.get_value('b_ndebug', str) == 'if-release' and
+             options.get_value('buildtype', str) in {'release', 'plain'}))
 
 
 def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     try:
-        if options.get_value(OptionKey('b_lto')):
+        if options.get_value(OptionKey('b_lto'), bool):
             args.extend(compiler.get_lto_compile_args(
-                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
-                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default')))
+                threads=options.get_value(OptionKey('b_lto_threads'), int, 0),
+                mode=options.get_value(OptionKey('b_lto_mode'), str, 'default')))
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.get_colorout_args(options.get_value(OptionKey('b_colorout')))
+        args += compiler.get_colorout_args(options.get_value(OptionKey('b_colorout'), str))
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.sanitizer_compile_args(options.get_value(OptionKey('b_sanitize')))
+        args += compiler.sanitizer_compile_args(options.get_value(OptionKey('b_sanitize'), str))
     except (KeyError, AttributeError):
         pass
     try:
-        pgo_val = options.get_value(OptionKey('b_pgo'))
+        pgo_val = options.get_value(OptionKey('b_pgo'), str)
         if pgo_val == 'generate':
             args.extend(compiler.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -317,7 +303,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     except (KeyError, AttributeError):
         pass
     try:
-        if options.get_value(OptionKey('b_coverage')):
+        if options.get_value(OptionKey('b_coverage'), bool):
             args += compiler.get_coverage_args()
     except (KeyError, AttributeError):
         pass
@@ -330,8 +316,8 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
         args.append('-fembed-bitcode')
     try:
         try:
-            crt_val = options.get_value(OptionKey('b_vscrt'))
-            buildtype = options.get_value(OptionKey('buildtype'))
+            crt_val = options.get_value(OptionKey('b_vscrt'), str)
+            buildtype = options.get_value(OptionKey('buildtype'), str)
             args += compiler.get_crt_compile_args(crt_val, buildtype)
         except AttributeError:
             pass
@@ -343,27 +329,27 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
                        is_shared_module: bool, build_dir: str) -> T.List[str]:
     args: T.List[str] = []
     try:
-        if options.get_value('b_lto'):
-            if options.get_value('werror'):
+        if options.get_value('b_lto', bool):
+            if options.get_value('werror', bool):
                 args.extend(linker.get_werror_args())
 
             thinlto_cache_dir = None
-            if get_option_value(options, OptionKey('b_thinlto_cache'), False):
-                thinlto_cache_dir = get_option_value(options, OptionKey('b_thinlto_cache_dir'), '')
+            if options.get_value(OptionKey('b_thinlto_cache'), bool, False):
+                thinlto_cache_dir = options.get_value(OptionKey('b_thinlto_cache_dir'), str, '')
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
             args.extend(linker.get_lto_link_args(
-                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
-                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default'),
+                threads=options.get_value(OptionKey('b_lto_threads'), int, 0),
+                mode=options.get_value(OptionKey('b_lto_mode'), str, 'default'),
                 thinlto_cache_dir=thinlto_cache_dir))
     except (KeyError, AttributeError):
         pass
     try:
-        args += linker.sanitizer_link_args(options.get_value('b_sanitize'))
+        args += linker.sanitizer_link_args(options.get_value('b_sanitize', str))
     except (KeyError, AttributeError):
         pass
     try:
-        pgo_val = options.get_value('b_pgo')
+        pgo_val = options.get_value('b_pgo', str)
         if pgo_val == 'generate':
             args.extend(linker.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -371,7 +357,7 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except (KeyError, AttributeError):
         pass
     try:
-        if options.get_value('b_coverage'):
+        if options.get_value('b_coverage', bool):
             args += linker.get_coverage_link_args()
     except (KeyError, AttributeError):
         pass
@@ -398,8 +384,8 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
 
     try:
         try:
-            crt_val = options.get_value(OptionKey('b_vscrt'))
-            buildtype = options.get_value(OptionKey('buildtype'))
+            crt_val = options.get_value(OptionKey('b_vscrt'), str)
+            buildtype = options.get_value(OptionKey('buildtype'), str)
             args += linker.get_crt_link_args(crt_val, buildtype)
         except AttributeError:
             pass
@@ -1370,7 +1356,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       env: 'Environment') -> dict[OptionKey, options.UserOption[T.Any]]:
+                       env: 'Environment') -> dict[OptionKey, options.AnyOptionType]:
     """Retrieve options that apply to all compilers for a given language."""
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey(f'{lang}_args', machine=for_machine)
@@ -1381,6 +1367,8 @@ def get_global_options(lang: str,
 
     comp_options = env.options.get(comp_key, [])
     link_options = env.options.get(largkey, [])
+    assert isinstance(comp_options, (str, list)), 'for mypy'
+    assert isinstance(link_options, (str, list)), 'for mypy'
 
     cargs = options.UserStringArrayOption(
         f'{lang}_{argkey.name}',
@@ -1400,6 +1388,6 @@ def get_global_options(lang: str,
         # autotools compatibility.
         largs.extend_value(comp_options)
 
-    opts: dict[OptionKey, options.UserOption[T.Any]] = {argkey: cargs, largkey: largs}
+    opts: dict[OptionKey, options.AnyOptionType] = {argkey: cargs, largkey: largs}
 
     return opts
