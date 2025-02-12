@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2020 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -718,7 +718,7 @@ class Environment:
 
         for section, values in config.items():
             if ':' in section:
-                subproject, section = section.split(':')
+                subproject, section = section.split(':', 1)
             else:
                 subproject = ''
             if section == 'built-in options':
@@ -739,6 +739,13 @@ class Environment:
                     if key.subproject:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
                     self.options[key.evolve(subproject=subproject)] = v
+            elif ':' in section:
+                correct_subproject, correct_section = section.split(':')[-2:]
+                raise MesonException(
+                    'Subproject options should always be set as '
+                    '`[subproject:section]`, even if the options are from a '
+                    'nested subproject. '
+                    f'Replace `[{subproject}:{section}]` with `[{correct_subproject}:{correct_section}]`')
 
     def _set_default_options_from_env(self) -> None:
         opts: T.List[T.Tuple[str, str]] = (
