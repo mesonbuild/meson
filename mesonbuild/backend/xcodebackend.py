@@ -176,6 +176,15 @@ class PbxDict:
         self.keys.add(key)
         self.items.append(item)
 
+    def get_item(self, key: str) -> PbxDictItem:
+        assert key in self.keys
+        for item in self.items:
+            if not isinstance(item, PbxDictItem):
+                continue
+            if item.key == key:
+                return item
+        return None
+
     def has_item(self, key: str) -> bool:
         return key in self.keys
 
@@ -396,10 +405,23 @@ class XCodeBackend(backends.Backend):
 
     def generate_filemap(self) -> None:
         self.filemap = {} # Key is source file relative to src root.
+        self.foldermap = {}
         self.target_filemap = {}
         for name, t in self.build_targets.items():
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
+                    if '/' in s.fname:
+                        # From the top level down, add the folders containing the source file.
+                        folder = os.path.split(os.path.dirname(s.fname))
+                        while folder:
+                            fpath = os.path.join(*folder)
+                            # Multiple targets might use the same folders, so store their targets with them.
+                            # Otherwise, folders and their source files will appear in the wrong places in Xcode.
+                            if (fpath, t) not in self.foldermap:
+                                self.foldermap[(fpath, t)] = self.gen_id()
+                            else:
+                                break
+                            folder = folder[:-1]
                     s = os.path.join(s.subdir, s.fname)
                     self.filemap[s] = self.gen_id()
             for o in t.objects:
@@ -1052,6 +1074,24 @@ class XCodeBackend(backends.Backend):
         main_children.add_item(frameworks_id, 'Frameworks')
         main_dict.add_item('sourceTree', '<group>')
 
+        # Define each folder as a group in Xcode. That way, it can build the file tree correctly.
+        # This must be done before the project tree group is generated, as source files are added during that phase.
+        for (path, target), id in self.foldermap.items():
+            folder_dict = PbxDict()
+            objects_dict.add_item(id, folder_dict, path)
+            folder_dict.add_item('isa', 'PBXGroup')
+            folder_children = PbxArray()
+            folder_dict.add_item('children', folder_children)
+            folder_dict.add_item('name', '"{}"'.format(path.rsplit('/', 1)[-1]))
+            folder_dict.add_item('path', f'"{path}"')
+            folder_dict.add_item('sourceTree', 'SOURCE_ROOT')
+
+            # Add any detected subdirectories (not declared as subdir()) here, but only one level higher.
+            # Example: In "root", add "root/sub", but not "root/sub/subtwo".
+            for path_dep, target_dep in self.foldermap:
+                if path_dep.startswith(path) and path_dep.split('/', 1)[0] == path.split('/', 1)[0] and path_dep != path and path_dep.count('/') == path.count('/') + 1 and target == target_dep:
+                    folder_children.add_item(self.foldermap[(path_dep, target)], path_dep)
+
         self.add_projecttree(objects_dict, projecttree_id)
 
         resource_dict = PbxDict()
@@ -1121,6 +1161,7 @@ class XCodeBackend(backends.Backend):
         tid = t.get_id()
         group_id = self.gen_id()
         target_dict = PbxDict()
+        folder_ids = set()
         objects_dict.add_item(group_id, target_dict, tid)
         target_dict.add_item('isa', 'PBXGroup')
         target_children = PbxArray()
@@ -1130,6 +1171,18 @@ class XCodeBackend(backends.Backend):
         source_files_dict = PbxDict()
         for s in t.sources:
             if isinstance(s, mesonlib.File):
+                # If the file is in a folder, add it to the group representing that folder.
+                if '/' in s.fname:
+                    folder = '/'.join(s.fname.split('/')[:-1])
+                    folder_dict = objects_dict.get_item(self.foldermap[(folder, t)]).value.get_item('children').value
+                    temp = os.path.join(s.subdir, s.fname)
+                    folder_dict.add_item(self.fileref_ids[(tid, temp)], temp)
+                    if self.foldermap[(folder, t)] in folder_ids:
+                        continue
+                    if len(folder.split('/')) == 1:
+                        target_children.add_item(self.foldermap[(folder, t)], folder)
+                        folder_ids.add(self.foldermap[(folder, t)])
+                    continue
                 s = os.path.join(s.subdir, s.fname)
             elif isinstance(s, str):
                 s = os.path.join(t.subdir, s)
