@@ -98,6 +98,8 @@ _BUILTIN_NAMES = {
     'vsenv',
 }
 
+_OPTIONS_CACHE: T.Dict[int, OptionKey] = {}
+
 class OptionKey:
 
     """Represents an option key in the various option dictionaries.
@@ -116,7 +118,8 @@ class OptionKey:
     _as_tuple: T.Tuple[str, MachineChoice, str]
 
     def __init__(self, name: str, subproject: str = '',
-                 machine: MachineChoice = MachineChoice.HOST):
+                 machine: MachineChoice = MachineChoice.HOST,
+                 hash_: T.Optional[int] = None):
         # the _type option to the constructor is kinda private. We want to be
         # able to save the state and avoid the lookup function when
         # pickling/unpickling, but we need to be able to calculate it when
@@ -124,7 +127,7 @@ class OptionKey:
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
-        object.__setattr__(self, '_hash', hash((name, subproject, machine)))
+        object.__setattr__(self, '_hash', hash_ if hash_ is not None else hash((name, subproject, machine)))
         object.__setattr__(self, '_as_tuple', (self.subproject, self.machine, self.name))
 
     def __setattr__(self, key: str, value: T.Any) -> None:
@@ -191,6 +194,25 @@ class OptionKey:
 
     def __repr__(self) -> str:
         return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r})'
+
+    @classmethod
+    def factory(cls, name: str, subproject: str = '', machine: MachineChoice = MachineChoice.HOST) -> OptionKey:
+        """A cached initializer for OptionKeys
+
+        :param name: The name of the option
+        :param subproject: the subproject the option belongs to, defaults to ''
+        :param machine: the machine the subproject belongs to, defaults to MachineChoice.HOST
+        :return: An OptionKey
+        """
+        # This doesn't use lru_cache so that we can re-use the calculated hash
+        # in a cache miss situation.
+        _hash = hash((name, subproject, machine))
+        try:
+            return _OPTIONS_CACHE[_hash]
+        except KeyError:
+            inst = cls(name, subproject, machine, _hash)
+            _OPTIONS_CACHE[_hash] = inst
+            return inst
 
     @classmethod
     @lru_cache(None)
