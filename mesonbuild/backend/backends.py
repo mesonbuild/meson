@@ -26,7 +26,7 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect, lang_suffixes
 from ..mesonlib import (
-    File, MachineChoice, MesonException, OrderedSet,
+    File, MachineChoice, MesonException, OrderedSet, MesonBugException,
     ExecutableSerialisation, EnvironmentException,
     classify_unity_sources, get_compiler_for_source
 )
@@ -40,7 +40,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter import Interpreter, Test
     from ..linkers.linkers import StaticLinker
-    from ..mesonlib import FileMode, FileOrString
+    from ..mesonlib import FileMode
 
     from typing_extensions import TypedDict, NotRequired
 
@@ -342,7 +342,7 @@ class Backend:
                 curdir = '.'
         return compiler.get_include_args(curdir, False)
 
-    def get_target_filename_for_linking(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> T.Optional[str]:
+    def get_target_filename_for_linking(self, target: build.BuildTargetTypes) -> T.Optional[str]:
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
         # file is called an import library, and we want to link against that.
@@ -361,7 +361,7 @@ class Backend:
             return Path(self.get_target_dir(target), target.get_filename()).as_posix()
         elif isinstance(target, build.Executable):
             if target.import_filename:
-                return Path(self.get_target_dir(target), target.get_import_filename()).as_posix()
+                return Path(self.get_target_dir(target), target.import_filename).as_posix()
             else:
                 return None
         raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
@@ -377,7 +377,10 @@ class Backend:
             dirname = 'meson-out'
         return dirname
 
-    def get_target_dir_relative_to(self, t: build.Target, o: build.Target) -> str:
+    def get_target_dir_relative_to(self,
+                                   t: T.Union[build.Target, build.CustomTargetIndex],
+                                   o: T.Union[build.Target, build.CustomTargetIndex],
+                                   ) -> str:
         '''Get a target dir relative to another target's directory'''
         target_dir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))
         othert_dir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(o))
@@ -390,10 +393,10 @@ class Backend:
             return os.path.join(self.build_to_src, target_dir)
         return self.build_to_src
 
-    def get_target_private_dir(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]) -> str:
+    def get_target_private_dir(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, build.RunTarget]) -> str:
         return os.path.join(self.get_target_filename(target, warn_multi_output=False) + '.p')
 
-    def get_target_private_dir_abs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]) -> str:
+    def get_target_private_dir_abs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, build.RunTarget]) -> str:
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
 
     @lru_cache(maxsize=None)
@@ -420,7 +423,7 @@ class Backend:
         osrc = f'{target.name}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
-    def generate_unity_files(self, target: build.BuildTarget, unity_src: str) -> T.List[mesonlib.File]:
+    def generate_unity_files(self, target: build.BuildTarget, unity_src: T.Iterable[mesonlib.FileOrString]) -> T.List[mesonlib.File]:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
@@ -463,7 +466,7 @@ class Backend:
         return result
 
     @staticmethod
-    def relpath(todir: str, fromdir: str) -> str:
+    def relpath(todir: T.Union[os.PathLike[str], str], fromdir: T.Union[os.PathLike[str], str]) -> str:
         return os.path.relpath(os.path.join('dummyprefixdir', todir),
                                os.path.join('dummyprefixdir', fromdir))
 
@@ -476,7 +479,7 @@ class Backend:
         obj_list, _ = self._flatten_object_list(objects.target, [objects], '')
         return list(dict.fromkeys(obj_list))
 
-    def _flatten_object_list(self, target: build.BuildTarget,
+    def _flatten_object_list(self, target: build.BuildTargetTypes,
                              objects: T.Sequence[T.Union[str, 'File', build.ExtractedObjects]],
                              proj_dir_to_build_root: str) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
         obj_list: T.List[str] = []
@@ -527,7 +530,7 @@ class Backend:
     def get_executable_serialisation(
             self, cmd: T.Sequence[T.Union[programs.ExternalProgram, build.BuildTarget, build.CustomTarget, File, str]],
             workdir: T.Optional[str] = None,
-            extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
+            extra_bdeps: T.Optional[T.Iterable[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = None,
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
@@ -599,7 +602,7 @@ class Backend:
     def as_meson_exe_cmdline(self, exe: T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram],
                              cmd_args: T.Sequence[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]],
                              workdir: T.Optional[str] = None,
-                             extra_bdeps: T.Optional[T.List[build.BuildTarget]] = None,
+                             extra_bdeps: T.Optional[T.Iterable[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]] = None,
                              capture: T.Optional[str] = None,
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
@@ -844,8 +847,13 @@ class Backend:
             fname = fname.replace(ch, '_')
         return hashed + fname
 
-    def object_filename_from_source(self, target: build.BuildTarget, compiler: Compiler, source: 'FileOrString', targetdir: T.Optional[str] = None) -> str:
-        assert isinstance(source, mesonlib.File)
+    def object_filename_from_source(
+            self,
+            target: build.BuildTargetTypes,
+            compiler: Compiler,
+            source: File,
+            targetdir: T.Optional[str] = None
+            ) -> str:
         if isinstance(target, build.CompileTarget):
             return target.sources_map[source]
         build_dir = self.environment.get_build_dir()
@@ -903,7 +911,7 @@ class Backend:
                 raw_sources.append(File.from_built_relative(path))
 
         # Filter out headers and all non-source files
-        sources: T.List['FileOrString'] = []
+        sources: T.List[File] = []
         for s in raw_sources:
             if self.environment.is_source(s):
                 sources.append(s)
@@ -912,6 +920,7 @@ class Backend:
 
         # MSVC generate an object file for PCH
         if extobj.pch and self.target_uses_pch(extobj.target):
+            assert isinstance(extobj.target, build.BuildTarget), 'for mypy'
             for lang, pch in extobj.target.pch.items():
                 compiler = extobj.target.compilers[lang]
                 if compiler.get_argument_syntax() == 'msvc':
@@ -925,7 +934,8 @@ class Backend:
         # With unity builds, sources don't map directly to objects,
         # we only support extracting all the objects in this mode,
         # so just return all object files.
-        if extobj.target.is_unity:
+        if extobj.is_unity:
+            assert isinstance(extobj.target, build.BuildTarget), 'for mypy'
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
             unity_size = extobj.target.get_option(OptionKey('unity_size'))
@@ -940,8 +950,12 @@ class Backend:
                                                       comp.get_default_suffix(), i)
                     sources.append(_src)
 
+        if isinstance(extobj.target, build.BuildTarget):
+            compilers = list(extobj.target.compilers.values())
+        else:
+            compilers = list(self.environment.coredata.compilers[extobj.target.for_machine].values())
         for osrc in sources:
-            compiler = get_compiler_for_source(extobj.target.compilers.values(), osrc)
+            compiler = get_compiler_for_source(compilers, osrc)
             objname = self.object_filename_from_source(extobj.target, compiler, osrc, targetdir)
             result.append(objname)
 
@@ -979,11 +993,13 @@ class Backend:
         mesonlib.replace_if_different(pch_file, pch_file_tmp)
         return pch_rel_to_build
 
-    def target_uses_pch(self, target: build.BuildTarget) -> bool:
-        try:
-            return T.cast('bool', target.get_option(OptionKey('b_pch')))
-        except (KeyError, AttributeError):
-            return False
+    def target_uses_pch(self, target: build.BuildTargetTypes) -> bool:
+        if isinstance(target, build.BuildTarget):
+            try:
+                return T.cast('bool', target.get_option(OptionKey('b_pch')))
+            except (KeyError, AttributeError):
+                return False
+        return False
 
     @staticmethod
     def escape_extra_args(args: T.List[str]) -> T.List[str]:
@@ -1090,7 +1106,7 @@ class Backend:
                 commands += compiler.get_include_args(priv_dir, False)
         return commands
 
-    def build_target_link_arguments(self, compiler: 'Compiler', deps: T.List[build.Target]) -> T.List[str]:
+    def build_target_link_arguments(self, compiler: Compiler, deps: T.Iterable[build.BuildTargetTypes]) -> T.List[str]:
         args: T.List[str] = []
         for d in deps:
             if not d.is_linkable_target():
@@ -1189,7 +1205,7 @@ class Backend:
 
     def determine_windows_extra_paths(
             self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, programs.ExternalProgram, mesonlib.File, str],
-            extra_bdeps: T.Sequence[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]) -> T.List[str]:
+            extra_bdeps: T.Iterable[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]) -> T.List[str]:
         """On Windows there is no such thing as an rpath.
 
         We must determine all locations of DLLs that this exe
@@ -1428,8 +1444,8 @@ class Backend:
             newargs.append(arg)
         return newargs
 
-    def get_build_by_default_targets(self) -> 'T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]':
-        result: 'T.OrderedDict[str, T.Union[build.BuildTarget, build.CustomTarget]]' = OrderedDict()
+    def get_build_by_default_targets(self) -> T.Dict[str, T.Union[build.BuildTarget, build.CustomTarget]]:
+        result: T.Dict[str, T.Union[build.BuildTarget, build.CustomTarget]] = {}
         # Get all build and custom targets that must be built by default
         for name, b in self.build.get_targets().items():
             if b.build_by_default:
@@ -1469,7 +1485,7 @@ class Backend:
             libs.extend(self.get_custom_target_provided_by_generated_source(t))
         return libs
 
-    def get_custom_target_sources(self, target: build.CustomTarget) -> T.List[str]:
+    def get_custom_target_sources(self, target: T.Union[build.CustomTarget, build.RunTarget]) -> T.List[str]:
         '''
         Custom target sources can be of various object types; strings, File,
         BuildTarget, even other CustomTargets.
@@ -1498,7 +1514,11 @@ class Backend:
             srcs += fname
         return srcs
 
-    def get_target_depend_files(self, target: T.Union[build.CustomTarget, build.BuildTarget], absolute_paths: bool = False) -> T.List[str]:
+    def get_target_depend_files(
+            self,
+            target: T.Union[build.GeneratedTypes, build.RunTarget, build.BuildTarget],
+            absolute_paths: bool = False
+            ) -> T.List[str]:
         deps: T.List[str] = []
         for i in target.depend_files:
             if isinstance(i, mesonlib.File):
@@ -1509,9 +1529,9 @@ class Backend:
                     deps.append(i.rel_to_builddir(self.build_to_src))
             else:
                 if absolute_paths:
-                    deps.append(os.path.join(self.environment.get_source_dir(), target.subdir, i))
+                    deps.append(os.path.join(self.environment.get_source_dir(), target.get_subdir(), i))
                 else:
-                    deps.append(os.path.join(self.build_to_src, target.subdir, i))
+                    deps.append(os.path.join(self.build_to_src, target.get_subdir(), i))
         return deps
 
     def get_custom_target_output_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
@@ -1555,8 +1575,10 @@ class Backend:
         return incs
 
     def eval_custom_target_command(
-            self, target: build.CustomTarget, absolute_outputs: bool = False) -> \
-            T.Tuple[T.List[str], T.List[str], T.List[str]]:
+            self,
+            target: T.Union[build.CustomTarget, build.RunTarget],
+            absolute_outputs: bool = False
+            ) -> T.Tuple[T.List[str], T.List[str], T.List[str]]:
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
@@ -1593,6 +1615,8 @@ class Backend:
                 if '@CURRENT_SOURCE_DIR@' in i:
                     i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.subdir))
                 if '@DEPFILE@' in i:
+                    if isinstance(target, build.RunTarget):
+                        raise MesonBugException('run_target should not have allowed @DEPFILE@')
                     if target.depfile is None:
                         msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
                               'keyword argument.'
