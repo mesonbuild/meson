@@ -5,6 +5,7 @@
 from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
+from functools import lru_cache
 import argparse
 import dataclasses
 import typing as T
@@ -192,6 +193,7 @@ class OptionKey:
         return f'OptionKey({self.name!r}, {self.subproject!r}, {self.machine!r})'
 
     @classmethod
+    @lru_cache(None)
     def from_string(cls, raw: str) -> 'OptionKey':
         """Parse the raw command line format into a three part tuple.
 
