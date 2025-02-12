@@ -5,7 +5,6 @@
 from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
-from functools import total_ordering
 import argparse
 import dataclasses
 import typing as T
@@ -98,7 +97,6 @@ _BUILTIN_NAMES = {
     'vsenv',
 }
 
-@total_ordering
 class OptionKey:
 
     """Represents an option key in the various option dictionaries.
@@ -153,14 +151,34 @@ class OptionKey:
     def _to_tuple(self) -> T.Tuple[str, MachineChoice, str]:
         return (self.subproject, self.machine, self.name)
 
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return self._to_tuple() < other._to_tuple()
+        return NotImplemented
+
+    def __le__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return self._to_tuple() <= other._to_tuple()
+        return NotImplemented
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
             return self._to_tuple() == other._to_tuple()
         return NotImplemented
 
-    def __lt__(self, other: object) -> bool:
+    def __ne__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            return self._to_tuple() < other._to_tuple()
+            return self._to_tuple() != other._to_tuple()
+        return NotImplemented
+
+    def __ge__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return self._to_tuple() >= other._to_tuple()
+        return NotImplemented
+
+    def __gt__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return self._to_tuple() > other._to_tuple()
         return NotImplemented
 
     def __str__(self) -> str:
