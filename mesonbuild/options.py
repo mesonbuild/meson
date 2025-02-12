@@ -117,9 +117,8 @@ class OptionKey:
     _hash: int
     _as_tuple: T.Tuple[str, MachineChoice, str]
 
-    def __init__(self, name: str, subproject: str = '',
-                 machine: MachineChoice = MachineChoice.HOST,
-                 hash_: T.Optional[int] = None):
+    def __init__(self, name: str, subproject: str,
+                 machine: MachineChoice, hash_: int):
         # the _type option to the constructor is kinda private. We want to be
         # able to save the state and avoid the lookup function when
         # pickling/unpickling, but we need to be able to calculate it when
@@ -127,7 +126,7 @@ class OptionKey:
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
-        object.__setattr__(self, '_hash', hash_ if hash_ is not None else hash((name, subproject, machine)))
+        object.__setattr__(self, '_hash', hash_)
         object.__setattr__(self, '_as_tuple', (self.subproject, self.machine, self.name))
 
     def __setattr__(self, key: str, value: T.Any) -> None:
@@ -138,6 +137,7 @@ class OptionKey:
             'name': self.name,
             'subproject': self.subproject,
             'machine': self.machine,
+            'hash_': self._hash,
         }
 
     def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
@@ -241,7 +241,7 @@ class OptionKey:
         assert ':' not in opt
         assert opt.count('.') < 2
 
-        return cls(opt, subproject, for_machine)
+        return cls.factory(opt, subproject, for_machine)
 
     def evolve(self, name: T.Optional[str] = None, subproject: T.Optional[str] = None,
                machine: T.Optional[MachineChoice] = None) -> 'OptionKey':
