@@ -106,12 +106,13 @@ class OptionKey:
     internally easier to reason about and produce.
     """
 
-    __slots__ = ['name', 'subproject', 'machine', '_hash']
+    __slots__ = ['name', 'subproject', 'machine', '_hash', '_as_tuple']
 
     name: str
     subproject: str
     machine: MachineChoice
     _hash: int
+    _as_tuple: T.Tuple[str, MachineChoice, str]
 
     def __init__(self, name: str, subproject: str = '',
                  machine: MachineChoice = MachineChoice.HOST):
@@ -123,6 +124,7 @@ class OptionKey:
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
         object.__setattr__(self, '_hash', hash((name, subproject, machine)))
+        object.__setattr__(self, '_as_tuple', (self.subproject, self.machine, self.name))
 
     def __setattr__(self, key: str, value: T.Any) -> None:
         raise AttributeError('OptionKey instances do not support mutation.')
@@ -148,37 +150,34 @@ class OptionKey:
     def __hash__(self) -> int:
         return self._hash
 
-    def _to_tuple(self) -> T.Tuple[str, MachineChoice, str]:
-        return (self.subproject, self.machine, self.name)
-
     def __lt__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            return self._to_tuple() < other._to_tuple()
+            return self._as_tuple < other._as_tuple
         return NotImplemented
 
     def __le__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            return self._to_tuple() <= other._to_tuple()
+            return self._as_tuple <= other._as_tuple
         return NotImplemented
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            return self._to_tuple() == other._to_tuple()
+            return self._as_tuple == other._as_tuple
         return NotImplemented
 
     def __ne__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            return self._to_tuple() != other._to_tuple()
+            return self._as_tuple != other._as_tuple
         return NotImplemented
 
     def __ge__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            return self._to_tuple() >= other._to_tuple()
+            return self._as_tuple >= other._as_tuple
         return NotImplemented
 
     def __gt__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
-            return self._to_tuple() > other._to_tuple()
+            return self._as_tuple > other._as_tuple
         return NotImplemented
 
     def __str__(self) -> str:
