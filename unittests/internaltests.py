@@ -629,7 +629,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
-            env.coredata.optstore.set_value_object(OptionKey('c_link_args'), FakeCompilerOptions())
+            env.coredata.optstore.set_value_object(OptionKey.factory('c_link_args'), FakeCompilerOptions())
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -1731,16 +1731,16 @@ class InternalTests(unittest.TestCase):
 
     def test_option_key_from_string(self) -> None:
         cases = [
-            ('c_args', OptionKey('c_args')),
-            ('build.cpp_args', OptionKey('cpp_args', machine=MachineChoice.BUILD)),
-            ('prefix', OptionKey('prefix')),
-            ('made_up', OptionKey('made_up')),
+            ('c_args', OptionKey.factory('c_args')),
+            ('build.cpp_args', OptionKey.factory('cpp_args', machine=MachineChoice.BUILD)),
+            ('prefix', OptionKey.factory('prefix')),
+            ('made_up', OptionKey.factory('made_up')),
 
             # TODO: the from_String method should be splitting the prefix off of
             # these, as we have the type already, but it doesn't. For now have a
             # test so that we don't change the behavior un-intentionally
-            ('b_lto', OptionKey('b_lto')),
-            ('backend_startup_project', OptionKey('backend_startup_project')),
+            ('b_lto', OptionKey.factory('b_lto')),
+            ('backend_startup_project', OptionKey.factory('backend_startup_project')),
         ]
 
         for raw, expected in cases:

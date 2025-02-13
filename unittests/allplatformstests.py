@@ -2628,7 +2628,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(obj.optstore.get_value('default_library'), 'static')
         self.assertEqual(obj.optstore.get_value('warning_level'), '1')
         self.assertEqual(obj.optstore.get_value('set_sub_opt'), True)
-        self.assertEqual(obj.optstore.get_value(OptionKey('subp_opt', 'subp')), 'default3')
+        self.assertEqual(obj.optstore.get_value(OptionKey.factory('subp_opt', 'subp')), 'default3')
         self.wipe()
 
         # warning_level is special, it's --warnlevel instead of --warning-level
@@ -2722,17 +2722,17 @@ class AllPlatformTests(BasePlatformTests):
         # Test we can set subproject option
         self.init(testdir, extra_args=['-Dsubp:subp_opt=foo', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('subp_opt', 'subp')), 'foo')
+        self.assertEqual(obj.optstore.get_value(OptionKey.factory('subp_opt', 'subp')), 'foo')
         self.wipe()
 
         # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
+        self.assertEqual(obj.optstore.get_value(OptionKey.factory('c_args')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.optstore.get_value(OptionKey.factory('c_args')), ['foo bar', 'one', 'two'])
         self.wipe()
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
@@ -2751,7 +2751,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.optstore.get_value('bindir'), 'bar')
             self.assertEqual(obj.optstore.get_value('buildtype'), 'release')
             self.assertEqual(obj.optstore.get_value('b_sanitize'), 'thread')
-            self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dbar'])
+            self.assertEqual(obj.optstore.get_value(OptionKey.factory('c_args')), ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
@@ -2760,7 +2760,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.optstore.get_value('bindir'), 'foo')
             self.assertEqual(obj.optstore.get_value('buildtype'), 'plain')
             self.assertEqual(obj.optstore.get_value('b_sanitize'), 'address')
-            self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dfoo'])
+            self.assertEqual(obj.optstore.get_value(OptionKey.factory('c_args')), ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not

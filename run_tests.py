@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -153,7 +153,7 @@ def get_fake_env(sdir: str = '', bdir: T.Optional[str] = None, prefix: str = '',
     if opts is None:
         opts = get_fake_options(prefix)
     env = Environment(sdir, bdir, opts)
-    env.coredata.optstore.set_value_object(OptionKey('c_args'),  FakeCompilerOptions())
+    env.coredata.optstore.set_value_object(OptionKey.factory('c_args'),  FakeCompilerOptions())
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
     # Invalidate cache when using a different Environment object.
     clear_meson_configure_class_caches()

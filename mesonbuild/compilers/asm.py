@@ -46,7 +46,7 @@ class NasmCompiler(Compiler):
         super().__init__(ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
         self.links_with_msvc = False
         if 'link' in self.linker.id:
-            self.base_options.add(OptionKey('b_vscrt'))
+            self.base_options.add(OptionKey.factory('b_vscrt'))
             self.links_with_msvc = True
 
     def needs_static_linker(self) -> bool:

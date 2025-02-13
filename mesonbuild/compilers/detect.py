@@ -669,7 +669,7 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         cpp_compiler = detect_cpp_compiler(env, for_machine)
         cls = CudaCompiler
         env.coredata.add_lang_args(cls.language, cls, for_machine, env)
-        key = OptionKey('cuda_link_args', machine=for_machine)
+        key = OptionKey.factory('cuda_link_args', machine=for_machine)
         if key in env.options:
             # To fix LDFLAGS issue
             val = env.options[key]

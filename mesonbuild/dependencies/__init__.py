@@ -114,7 +114,7 @@ class FooSystemDependency(ExternalDependency):
             return
 
         get_option = environment.coredata.get_option
-        static_opt = kwargs.get('static', get_option(Mesonlib.OptionKey('prefer_static'))
+        static_opt = kwargs.get('static', get_option(Mesonlib.OptionKey.factory('prefer_static'))
         static = Mesonlib.LibType.STATIC if static_opt else Mesonlib.LibType.SHARED
         lib = self.clib_compiler.find_library(
             'foo', environment, [os.path.join(root, 'lib')], libtype=static)

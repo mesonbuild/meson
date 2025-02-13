@@ -75,16 +75,16 @@ class ExternalProject(NewExtensionModule):
         self.src_dir = Path(self.env.get_source_dir(), self.subdir)
         self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
         self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
-        _p = self.env.coredata.get_option(OptionKey('prefix'))
+        _p = self.env.coredata.get_option(OptionKey.factory('prefix'))
         assert isinstance(_p, str), 'for mypy'
         self.prefix = Path(_p)
-        _l = self.env.coredata.get_option(OptionKey('libdir'))
+        _l = self.env.coredata.get_option(OptionKey.factory('libdir'))
         assert isinstance(_l, str), 'for mypy'
         self.libdir = Path(_l)
-        _l = self.env.coredata.get_option(OptionKey('bindir'))
+        _l = self.env.coredata.get_option(OptionKey.factory('bindir'))
         assert isinstance(_l, str), 'for mypy'
         self.bindir = Path(_l)
-        _i = self.env.coredata.get_option(OptionKey('includedir'))
+        _i = self.env.coredata.get_option(OptionKey.factory('includedir'))
         assert isinstance(_i, str), 'for mypy'
         self.includedir = Path(_i)
         self.name = self.src_dir.name

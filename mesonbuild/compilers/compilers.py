@@ -230,28 +230,28 @@ class BaseOption(T.Generic[_T]):
 
 
 BASE_OPTIONS: T.Mapping[OptionKey, BaseOption] = {
-    OptionKey('b_pch'): BaseOption(options.UserBooleanOption, 'Use precompiled headers', True),
-    OptionKey('b_lto'): BaseOption(options.UserBooleanOption, 'Use link time optimization', False),
-    OptionKey('b_lto_threads'): BaseOption(options.UserIntegerOption, 'Use multiple threads for Link Time Optimization', 0),
-    OptionKey('b_lto_mode'): BaseOption(options.UserComboOption, 'Select between different LTO modes.', 'default',
-                                        choices=['default', 'thin']),
-    OptionKey('b_thinlto_cache'): BaseOption(options.UserBooleanOption, 'Use LLVM ThinLTO caching for faster incremental builds', False),
-    OptionKey('b_thinlto_cache_dir'): BaseOption(options.UserStringOption, 'Directory to store ThinLTO cache objects', ''),
-    OptionKey('b_sanitize'): BaseOption(options.UserComboOption, 'Code sanitizer to use', 'none',
-                                        choices=['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined']),
-    OptionKey('b_lundef'): BaseOption(options.UserBooleanOption, 'Use -Wl,--no-undefined when linking', True),
-    OptionKey('b_asneeded'): BaseOption(options.UserBooleanOption, 'Use -Wl,--as-needed when linking', True),
-    OptionKey('b_pgo'): BaseOption(options.UserComboOption, 'Use profile guided optimization', 'off',
-                                   choices=['off', 'generate', 'use']),
-    OptionKey('b_coverage'): BaseOption(options.UserBooleanOption, 'Enable coverage tracking.', False),
-    OptionKey('b_colorout'): BaseOption(options.UserComboOption, 'Use colored output', 'always',
-                                        choices=['auto', 'always', 'never']),
-    OptionKey('b_ndebug'): BaseOption(options.UserComboOption, 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
-    OptionKey('b_staticpic'): BaseOption(options.UserBooleanOption, 'Build static libraries as position independent', True),
-    OptionKey('b_pie'): BaseOption(options.UserBooleanOption, 'Build executables as position independent', False),
-    OptionKey('b_bitcode'): BaseOption(options.UserBooleanOption, 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
-    OptionKey('b_vscrt'): BaseOption(options.UserComboOption, 'VS run-time library type to use.', 'from_buildtype',
-                                     choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
+    OptionKey.factory('b_pch'): BaseOption(options.UserBooleanOption, 'Use precompiled headers', True),
+    OptionKey.factory('b_lto'): BaseOption(options.UserBooleanOption, 'Use link time optimization', False),
+    OptionKey.factory('b_lto_threads'): BaseOption(options.UserIntegerOption, 'Use multiple threads for Link Time Optimization', 0),
+    OptionKey.factory('b_lto_mode'): BaseOption(options.UserComboOption, 'Select between different LTO modes.', 'default',
+                                                choices=['default', 'thin']),
+    OptionKey.factory('b_thinlto_cache'): BaseOption(options.UserBooleanOption, 'Use LLVM ThinLTO caching for faster incremental builds', False),
+    OptionKey.factory('b_thinlto_cache_dir'): BaseOption(options.UserStringOption, 'Directory to store ThinLTO cache objects', ''),
+    OptionKey.factory('b_sanitize'): BaseOption(options.UserComboOption, 'Code sanitizer to use', 'none',
+                                                choices=['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined']),
+    OptionKey.factory('b_lundef'): BaseOption(options.UserBooleanOption, 'Use -Wl,--no-undefined when linking', True),
+    OptionKey.factory('b_asneeded'): BaseOption(options.UserBooleanOption, 'Use -Wl,--as-needed when linking', True),
+    OptionKey.factory('b_pgo'): BaseOption(options.UserComboOption, 'Use profile guided optimization', 'off',
+                                           choices=['off', 'generate', 'use']),
+    OptionKey.factory('b_coverage'): BaseOption(options.UserBooleanOption, 'Enable coverage tracking.', False),
+    OptionKey.factory('b_colorout'): BaseOption(options.UserComboOption, 'Use colored output', 'always',
+                                                choices=['auto', 'always', 'never']),
+    OptionKey.factory('b_ndebug'): BaseOption(options.UserComboOption, 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
+    OptionKey.factory('b_staticpic'): BaseOption(options.UserBooleanOption, 'Build static libraries as position independent', True),
+    OptionKey.factory('b_pie'): BaseOption(options.UserBooleanOption, 'Build executables as position independent', False),
+    OptionKey.factory('b_bitcode'): BaseOption(options.UserBooleanOption, 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
+    OptionKey.factory('b_vscrt'): BaseOption(options.UserComboOption, 'VS run-time library type to use.', 'from_buildtype',
+                                             choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
 }
 
 base_options = {key: base_opt.init_option(key) for key, base_opt in BASE_OPTIONS.items()}
@@ -294,22 +294,22 @@ def are_asserts_disabled(options: KeyedOptionDictType) -> bool:
 def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     try:
-        if options.get_value(OptionKey('b_lto')):
+        if options.get_value(OptionKey.factory('b_lto')):
             args.extend(compiler.get_lto_compile_args(
-                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
-                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default')))
+                threads=get_option_value(options, OptionKey.factory('b_lto_threads'), 0),
+                mode=get_option_value(options, OptionKey.factory('b_lto_mode'), 'default')))
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.get_colorout_args(options.get_value(OptionKey('b_colorout')))
+        args += compiler.get_colorout_args(options.get_value(OptionKey.factory('b_colorout')))
     except (KeyError, AttributeError):
         pass
     try:
-        args += compiler.sanitizer_compile_args(options.get_value(OptionKey('b_sanitize')))
+        args += compiler.sanitizer_compile_args(options.get_value(OptionKey.factory('b_sanitize')))
     except (KeyError, AttributeError):
         pass
     try:
-        pgo_val = options.get_value(OptionKey('b_pgo'))
+        pgo_val = options.get_value(OptionKey.factory('b_pgo'))
         if pgo_val == 'generate':
             args.extend(compiler.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -317,7 +317,7 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     except (KeyError, AttributeError):
         pass
     try:
-        if options.get_value(OptionKey('b_coverage')):
+        if options.get_value(OptionKey.factory('b_coverage')):
             args += compiler.get_coverage_args()
     except (KeyError, AttributeError):
         pass
@@ -326,12 +326,12 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler', 
     except (KeyError, AttributeError):
         pass
     # This does not need a try...except
-    if option_enabled(compiler.base_options, options, OptionKey('b_bitcode')):
+    if option_enabled(compiler.base_options, options, OptionKey.factory('b_bitcode')):
         args.append('-fembed-bitcode')
     try:
         try:
-            crt_val = options.get_value(OptionKey('b_vscrt'))
-            buildtype = options.get_value(OptionKey('buildtype'))
+            crt_val = options.get_value(OptionKey.factory('b_vscrt'))
+            buildtype = options.get_value(OptionKey.factory('buildtype'))
             args += compiler.get_crt_compile_args(crt_val, buildtype)
         except AttributeError:
             pass
@@ -348,13 +348,13 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
                 args.extend(linker.get_werror_args())
 
             thinlto_cache_dir = None
-            if get_option_value(options, OptionKey('b_thinlto_cache'), False):
-                thinlto_cache_dir = get_option_value(options, OptionKey('b_thinlto_cache_dir'), '')
+            if get_option_value(options, OptionKey.factory('b_thinlto_cache'), False):
+                thinlto_cache_dir = get_option_value(options, OptionKey.factory('b_thinlto_cache_dir'), '')
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
             args.extend(linker.get_lto_link_args(
-                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
-                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default'),
+                threads=get_option_value(options, OptionKey.factory('b_lto_threads'), 0),
+                mode=get_option_value(options, OptionKey.factory('b_lto_mode'), 'default'),
                 thinlto_cache_dir=thinlto_cache_dir))
     except (KeyError, AttributeError):
         pass
@@ -376,8 +376,8 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     except (KeyError, AttributeError):
         pass
 
-    as_needed = option_enabled(linker.base_options, options, OptionKey('b_asneeded'))
-    bitcode = option_enabled(linker.base_options, options, OptionKey('b_bitcode'))
+    as_needed = option_enabled(linker.base_options, options, OptionKey.factory('b_asneeded'))
+    bitcode = option_enabled(linker.base_options, options, OptionKey.factory('b_bitcode'))
     # Shared modules cannot be built with bitcode_bundle because
     # -bitcode_bundle is incompatible with -undefined and -bundle
     if bitcode and not is_shared_module:
@@ -391,15 +391,15 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     if not bitcode:
         args.extend(linker.headerpad_args())
         if (not is_shared_module and
-                option_enabled(linker.base_options, options, OptionKey('b_lundef'))):
+                option_enabled(linker.base_options, options, OptionKey.factory('b_lundef'))):
             args.extend(linker.no_undefined_link_args())
         else:
             args.extend(linker.get_allow_undefined_link_args())
 
     try:
         try:
-            crt_val = options.get_value(OptionKey('b_vscrt'))
-            buildtype = options.get_value(OptionKey('buildtype'))
+            crt_val = options.get_value(OptionKey.factory('b_vscrt'))
+            buildtype = options.get_value(OptionKey.factory('buildtype'))
             args += linker.get_crt_link_args(crt_val, buildtype)
         except AttributeError:
             pass
@@ -1356,7 +1356,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         raise EnvironmentException(f'{self.get_id()} does not support preprocessor')
 
     def form_compileropt_key(self, basename: str) -> OptionKey:
-        return OptionKey(f'{self.language}_{basename}', machine=self.for_machine)
+        return OptionKey.factory(f'{self.language}_{basename}', machine=self.for_machine)
 
     def _update_language_stds(self, opts: MutableKeyedOptionDictType, value: T.List[str]) -> None:
         key = self.form_compileropt_key('std')
@@ -1373,7 +1373,7 @@ def get_global_options(lang: str,
                        env: 'Environment') -> dict[OptionKey, options.UserOption[T.Any]]:
     """Retrieve options that apply to all compilers for a given language."""
     description = f'Extra arguments passed to the {lang}'
-    argkey = OptionKey(f'{lang}_args', machine=for_machine)
+    argkey = OptionKey.factory(f'{lang}_args', machine=for_machine)
     largkey = argkey.evolve(f'{lang}_link_args')
     envkey = argkey.evolve(f'{lang}_env_args')
 

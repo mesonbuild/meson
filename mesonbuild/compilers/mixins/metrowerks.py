@@ -177,7 +177,7 @@ class MetrowerksCompiler(Compiler):
             raise EnvironmentException(f'{id} supports only cross-compilation.')
 
         self.base_options = {
-            OptionKey(o) for o in ['b_pch', 'b_ndebug']}
+            OptionKey.factory(o) for o in ['b_pch', 'b_ndebug']}
 
         self.warn_args: T.Dict[str, T.List[str]] = {
             '0': ['-warnings', 'off'],

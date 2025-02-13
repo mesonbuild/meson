@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     def __init__(self) -> None:
         super().__init__()
-        self.base_options = {OptionKey(o) for o in ['b_pgo', 'b_coverage', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']}
+        self.base_options = {OptionKey.factory(o) for o in ['b_pgo', 'b_coverage', 'b_ndebug', 'b_staticpic', 'b_lundef', 'b_asneeded']}
         default_warn_args = ['-Wall']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -85,7 +85,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args: T.List[str] = []
-        std = options.get_value(OptionKey(f'{self.language}_std', machine=self.for_machine))
+        std = options.get_value(OptionKey.factory(f'{self.language}_std', machine=self.for_machine))
         if std != 'none':
             args.append('-std=' + std)
         return args

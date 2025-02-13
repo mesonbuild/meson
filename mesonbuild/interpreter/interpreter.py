@@ -1138,13 +1138,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         from ..backend import backends
 
-        if OptionKey('genvslite') in self.user_defined_options.cmd_line_options:
+        if OptionKey.factory('genvslite') in self.user_defined_options.cmd_line_options:
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
-            backend_name = self.coredata.get_option(OptionKey('genvslite'))
+            backend_name = self.coredata.get_option(OptionKey.factory('genvslite'))
             self.backend = backends.get_genvslite_backend(backend_name, self.build, self)
         else:
-            backend_name = self.coredata.get_option(OptionKey('backend'))
+            backend_name = self.coredata.get_option(OptionKey.factory('backend'))
             self.backend = backends.get_backend_from_name(backend_name, self.build, self)
 
         if self.backend is None:
@@ -1154,7 +1154,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
             if not self.environment.first_invocation:
                 raise MesonBugException(f'Backend changed from {backend_name} to {self.backend.name}')
-            self.coredata.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
+            self.coredata.set_option(OptionKey.factory('backend'), self.backend.name, first_invocation=True)
 
         # Only init backend options on first invocation otherwise it would
         # override values previously set from command line.
@@ -1303,7 +1303,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Load wrap files from this (sub)project.
         subprojects_dir = os.path.join(self.subdir, spdirname)
         if not self.is_subproject():
-            wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
+            wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey.factory('wrap_mode')))
             self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
         else:
             assert self.environment.wrap_resolver is not None, 'for mypy'
@@ -1318,9 +1318,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             # self.set_backend() otherwise it wouldn't be able to detect which
             # vs backend version we need. But after setting default_options in case
             # the project sets vs backend by default.
-            backend = self.coredata.get_option(OptionKey('backend'))
+            backend = self.coredata.get_option(OptionKey.factory('backend'))
             assert backend is None or isinstance(backend, str), 'for mypy'
-            vsenv = self.coredata.get_option(OptionKey('vsenv'))
+            vsenv = self.coredata.get_option(OptionKey.factory('vsenv'))
             assert isinstance(vsenv, bool), 'for mypy'
             force_vsenv = vsenv or backend.startswith('vs')
             mesonlib.setup_vsenv(force_vsenv)
@@ -1716,7 +1716,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
 
         fallback = None
-        wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
+        wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey.factory('wrap_mode')))
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:
@@ -3108,9 +3108,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 break
 
     def check_clang_asan_lundef(self) -> None:
-        if OptionKey('b_lundef') not in self.coredata.optstore:
+        if OptionKey.factory('b_lundef') not in self.coredata.optstore:
             return
-        if OptionKey('b_sanitize') not in self.coredata.optstore:
+        if OptionKey.factory('b_sanitize') not in self.coredata.optstore:
             return
         if (self.coredata.optstore.get_value('b_lundef') and
                 self.coredata.optstore.get_value('b_sanitize') != 'none'):
@@ -3281,9 +3281,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
-        preferred_library = self.coredata.get_option(OptionKey('default_both_libraries'))
+        preferred_library = self.coredata.get_option(OptionKey.factory('default_both_libraries'))
         if preferred_library == 'auto':
-            preferred_library = self.coredata.get_option(OptionKey('default_library'))
+            preferred_library = self.coredata.get_option(OptionKey.factory('default_library'))
             if preferred_library == 'both':
                 preferred_library = 'shared'
 
@@ -3324,7 +3324,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return build.BothLibraries(shared_lib, static_lib, preferred_library)
 
     def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library):
-        default_library = self.coredata.get_option(OptionKey('default_library', subproject=self.subproject))
+        default_library = self.coredata.get_option(OptionKey.factory('default_library', subproject=self.subproject))
         assert isinstance(default_library, str), 'for mypy'
         if default_library == 'shared':
             return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.SharedLibrary)

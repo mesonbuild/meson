@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
 import subprocess
@@ -43,7 +43,7 @@ def skip_if_not_base_option(feature: str) -> T.Callable[[T.Callable[P, R]], T.Ca
         def wrapped(*args: P.args, **kwargs: P.kwargs) -> R:
             env = get_fake_env()
             cc = detect_c_compiler(env, MachineChoice.HOST)
-            key = OptionKey(feature)
+            key = OptionKey.factory(feature)
             if key not in cc.base_options:
                 raise unittest.SkipTest(
                     f'{feature} not available with {cc.id}')

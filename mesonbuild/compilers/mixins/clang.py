@@ -58,15 +58,15 @@ class ClangCompiler(GnuLikeCompiler):
         super().__init__()
         self.defines = defines or {}
         self.base_options.update(
-            {OptionKey('b_colorout'), OptionKey('b_lto_threads'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
-             OptionKey('b_thinlto_cache_dir')})
+            {OptionKey.factory('b_colorout'), OptionKey.factory('b_lto_threads'), OptionKey.factory('b_lto_mode'), OptionKey.factory('b_thinlto_cache'),
+             OptionKey.factory('b_thinlto_cache_dir')})
 
         # TODO: this really should be part of the linker base_options, but
         # linkers don't have base_options.
         if isinstance(self.linker, AppleDynamicLinker):
-            self.base_options.add(OptionKey('b_bitcode'))
+            self.base_options.add(OptionKey.factory('b_bitcode'))
         elif isinstance(self.linker, MSVCDynamicLinker):
-            self.base_options.add(OptionKey('b_vscrt'))
+            self.base_options.add(OptionKey.factory('b_vscrt'))
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
 

@@ -112,7 +112,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     INVOKES_LINKER = False
 
     def __init__(self, target: str):
-        self.base_options = {OptionKey(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like
+        self.base_options = {OptionKey.factory(o) for o in ['b_pch', 'b_ndebug', 'b_vscrt']} # FIXME add lto, pgo and the like
         self.target = target
         self.is_64 = ('x64' in target) or ('x86_64' in target)
         # do some canonicalization of target machine
@@ -127,7 +127,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         else:
             self.machine = target
         if mesonlib.version_compare(self.version, '>=19.28.29910'): # VS 16.9.0 includes cl 19.28.29910
-            self.base_options.add(OptionKey('b_sanitize'))
+            self.base_options.add(OptionKey.factory('b_sanitize'))
         assert self.linker is not None
         self.linker.machine = self.machine
 
@@ -447,8 +447,8 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
 
         self.base_options.update(
-            {OptionKey('b_lto_threads'), OptionKey('b_lto'), OptionKey('b_lto_mode'), OptionKey('b_thinlto_cache'),
-             OptionKey('b_thinlto_cache_dir')})
+            {OptionKey.factory('b_lto_threads'), OptionKey.factory('b_lto'), OptionKey.factory('b_lto_mode'), OptionKey.factory('b_thinlto_cache'),
+             OptionKey.factory('b_thinlto_cache_dir')})
 
         # Assembly
         self.can_compile_suffixes.add('s')

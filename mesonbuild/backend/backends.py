@@ -371,7 +371,7 @@ class Backend:
         if isinstance(target, build.RunTarget):
             # this produces no output, only a dummy top-level name
             dirname = ''
-        elif self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
+        elif self.environment.coredata.get_option(OptionKey.factory('layout')) == 'mirror':
             dirname = target.get_subdir()
         else:
             dirname = 'meson-out'
@@ -424,7 +424,7 @@ class Backend:
         abs_files: T.List[str] = []
         result: T.List[mesonlib.File] = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
-        unity_size = target.get_option(OptionKey('unity_size'))
+        unity_size = target.get_option(OptionKey.factory('unity_size'))
         assert isinstance(unity_size, int), 'for mypy'
 
         def init_language_file(suffix: str, unity_file_number: int) -> T.TextIO:
@@ -818,7 +818,7 @@ class Backend:
     def determine_rpath_dirs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]
                              ) -> T.Tuple[str, ...]:
         result: OrderedSet[str]
-        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
+        if self.environment.coredata.get_option(OptionKey.factory('layout')) == 'mirror':
             # Need a copy here
             result = OrderedSet(target.get_link_dep_subdirs())
         else:
@@ -878,7 +878,7 @@ class Backend:
         object_suffix = machine.get_object_suffix()
         # For the TASKING compiler, in case of LTO or prelinking the object suffix has to be .mil
         if compiler.get_id() == 'tasking':
-            if target.get_option(OptionKey('b_lto')) or (isinstance(target, build.StaticLibrary) and target.prelink):
+            if target.get_option(OptionKey.factory('b_lto')) or (isinstance(target, build.StaticLibrary) and target.prelink):
                 if not source.rsplit('.', 1)[1] in lang_suffixes['c']:
                     if isinstance(target, build.StaticLibrary) and not target.prelink:
                         raise EnvironmentException('Tried using MIL linking for a static library with a assembly file. This can only be done if the static library is prelinked or disable \'b_lto\'.')
@@ -928,7 +928,7 @@ class Backend:
         if extobj.target.is_unity:
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
-            unity_size = extobj.target.get_option(OptionKey('unity_size'))
+            unity_size = extobj.target.get_option(OptionKey.factory('unity_size'))
             assert isinstance(unity_size, int), 'for mypy'
 
             for comp, srcs in compsrcs.items():
@@ -981,7 +981,7 @@ class Backend:
 
     def target_uses_pch(self, target: build.BuildTarget) -> bool:
         try:
-            return T.cast('bool', target.get_option(OptionKey('b_pch')))
+            return T.cast('bool', target.get_option(OptionKey.factory('b_pch')))
         except (KeyError, AttributeError):
             return False
 
@@ -1015,22 +1015,22 @@ class Backend:
         # Add things like /NOLOGO or -pipe; usually can't be overridden
         commands += compiler.get_always_args()
         # warning_level is a string, but mypy can't determine that
-        commands += compiler.get_warn_args(T.cast('str', target.get_option(OptionKey('warning_level'))))
+        commands += compiler.get_warn_args(T.cast('str', target.get_option(OptionKey.factory('warning_level'))))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
         # action to be done for warnings if/when they are emitted, so it's ok
         # to set it after or get_warn_args().
-        if target.get_option(OptionKey('werror')):
+        if target.get_option(OptionKey.factory('werror')):
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
         commands += compiler.get_option_compile_args(copt_proxy)
 
-        optimization = target.get_option(OptionKey('optimization'))
+        optimization = target.get_option(OptionKey.factory('optimization'))
         assert isinstance(optimization, str), 'for mypy'
         commands += compiler.get_optimization_args(optimization)
 
-        debug = target.get_option(OptionKey('debug'))
+        debug = target.get_option(OptionKey.factory('debug'))
         assert isinstance(debug, bool), 'for mypy'
         commands += compiler.get_debug_args(debug)
 
@@ -1336,7 +1336,7 @@ class Backend:
     def generate_depmf_install(self, d: InstallData) -> None:
         depmf_path = self.build.dep_manifest_name
         if depmf_path is None:
-            option_dir = self.environment.coredata.get_option(OptionKey('licensedir'))
+            option_dir = self.environment.coredata.get_option(OptionKey.factory('licensedir'))
             assert isinstance(option_dir, str), 'for mypy'
             if option_dir:
                 depmf_path = os.path.join(option_dir, 'depmf.json')
@@ -1667,7 +1667,7 @@ class Backend:
                 # TODO go through all candidates, like others
                 strip_bin = [detect.defaults['strip'][0]]
 
-        umask = self.environment.coredata.get_option(OptionKey('install_umask'))
+        umask = self.environment.coredata.get_option(OptionKey.factory('install_umask'))
         assert isinstance(umask, (str, int)), 'for mypy'
 
         d = InstallData(self.environment.get_source_dir(),
@@ -1699,7 +1699,7 @@ class Backend:
         bindir = Path(prefix, self.environment.get_bindir())
         libdir = Path(prefix, self.environment.get_libdir())
         incdir = Path(prefix, self.environment.get_includedir())
-        _ldir = self.environment.coredata.get_option(OptionKey('localedir'))
+        _ldir = self.environment.coredata.get_option(OptionKey.factory('localedir'))
         assert isinstance(_ldir, str), 'for mypy'
         localedir = Path(prefix, _ldir)
         dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)
@@ -1755,7 +1755,7 @@ class Backend:
                 # TODO: Create GNUStrip/AppleStrip/etc. hierarchy for more
                 #       fine-grained stripping of static archives.
                 can_strip = not isinstance(t, build.StaticLibrary)
-                should_strip = can_strip and t.get_option(OptionKey('strip'))
+                should_strip = can_strip and t.get_option(OptionKey.factory('strip'))
                 assert isinstance(should_strip, bool), 'for mypy'
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath

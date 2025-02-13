@@ -613,7 +613,7 @@ class NinjaBackend(backends.Backend):
             # so no harm in catching and reporting something unexpected.
             raise MesonBugException('We do not expect the ninja backend to be given a valid \'vslite_ctx\'')
         ninja = environment.detect_ninja_command_and_version(log=True)
-        if self.environment.coredata.get_option(OptionKey('vsenv')):
+        if self.environment.coredata.get_option(OptionKey.factory('vsenv')):
             builddir = Path(self.environment.get_build_dir())
             try:
                 # For prettier printing, reduce to a relative path. If
@@ -670,7 +670,7 @@ class NinjaBackend(backends.Backend):
             mlog.log_timestamp("Install generated")
             self.generate_dist()
             mlog.log_timestamp("Dist generated")
-            key = OptionKey('b_coverage')
+            key = OptionKey.factory('b_coverage')
             if (key in self.environment.coredata.optstore and
                     self.environment.coredata.optstore.get_value(key)):
                 gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = environment.find_coverage_tools(self.environment.coredata)
@@ -1117,7 +1117,7 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        cppversion = target.get_option(OptionKey('cpp_std', machine=target.for_machine))
+        cppversion = target.get_option(OptionKey.factory('cpp_std', machine=target.for_machine))
         if cppversion not in ('latest', 'c++latest', 'vc++latest'):
             return False
         if not mesonlib.current_vs_supports_modules():
@@ -1337,9 +1337,9 @@ class NinjaBackend(backends.Backend):
     def generate_tests(self) -> None:
         self.serialize_tests()
         cmd = self.environment.get_build_command(True) + ['test', '--no-rebuild']
-        if not self.environment.coredata.get_option(OptionKey('stdsplit')):
+        if not self.environment.coredata.get_option(OptionKey.factory('stdsplit')):
             cmd += ['--no-stdsplit']
-        if self.environment.coredata.get_option(OptionKey('errorlogs')):
+        if self.environment.coredata.get_option(OptionKey.factory('errorlogs')):
             cmd += ['--print-errorlogs']
         elem = self.create_phony_target('test', 'CUSTOM_COMMAND', ['all', 'meson-test-prereq', 'PHONY'])
         elem.add_item('COMMAND', cmd)
@@ -1725,7 +1725,7 @@ class NinjaBackend(backends.Backend):
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
-        args += valac.get_colorout_args(target.get_option(OptionKey('b_colorout')))
+        args += valac.get_colorout_args(target.get_option(OptionKey.factory('b_colorout')))
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
@@ -1803,14 +1803,14 @@ class NinjaBackend(backends.Backend):
 
         args: T.List[str] = []
         args += cython.get_always_args()
-        args += cython.get_debug_args(target.get_option(OptionKey('debug')))
-        args += cython.get_optimization_args(target.get_option(OptionKey('optimization')))
+        args += cython.get_debug_args(target.get_option(OptionKey.factory('debug')))
+        args += cython.get_optimization_args(target.get_option(OptionKey.factory('optimization')))
         args += cython.get_option_compile_args(target.get_options())
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
 
-        ext = target.get_option(OptionKey('cython_language', machine=target.for_machine))
+        ext = target.get_option(OptionKey.factory('cython_language', machine=target.for_machine))
 
         pyx_sources = []  # Keep track of sources we're adding to build
 
@@ -2017,8 +2017,8 @@ class NinjaBackend(backends.Backend):
         # https://github.com/rust-lang/rust/issues/39016
         if not isinstance(target, build.StaticLibrary):
             try:
-                buildtype = target.get_option(OptionKey('buildtype'))
-                crt = target.get_option(OptionKey('b_vscrt'))
+                buildtype = target.get_option(OptionKey.factory('buildtype'))
+                crt = target.get_option(OptionKey.factory('b_vscrt'))
                 args += rustc.get_crt_link_args(crt, buildtype)
             except (KeyError, AttributeError):
                 pass
@@ -3064,7 +3064,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # If TASKING compiler family is used and MIL linking is enabled for the target,
         # then compilation rule name is a special one to output MIL files
         # instead of object files for .c files
-        key = OptionKey('b_lto')
+        key = OptionKey.factory('b_lto')
         if compiler.get_id() == 'tasking':
             if ((isinstance(target, build.StaticLibrary) and target.prelink) or target.get_option(key)) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
                 compiler_name = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
@@ -3522,9 +3522,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        commands += linker.get_optimization_link_args(target.get_option(OptionKey('optimization')))
+        commands += linker.get_optimization_link_args(target.get_option(OptionKey.factory('optimization')))
         # Add /DEBUG and the pdb filename when using MSVC
-        if target.get_option(OptionKey('debug')):
+        if target.get_option(OptionKey.factory('debug')):
             commands += self.get_link_debugfile_args(linker, target)
             debugfile = self.get_link_debugfile_name(linker, target)
             if debugfile is not None:
@@ -3611,7 +3611,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
         if linker.get_id() == 'tasking':
-            if len([x for x in dep_targets + custom_target_libraries if x.endswith('.ma')]) > 0 and not target.get_option(OptionKey('b_lto')):
+            if len([x for x in dep_targets + custom_target_libraries if x.endswith('.ma')]) > 0 and not target.get_option(OptionKey.factory('b_lto')):
                 raise MesonException(f'Tried to link the target named \'{target.name}\' with a MIL archive without LTO enabled! This causes the compiler to ignore the archive.')
 
         # Compiler args must be included in TI C28x linker commands.
@@ -3731,7 +3731,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             target_name += f'-{extra_arg}'
             extra_args.append(f'--{extra_arg}')
         colorout = self.environment.coredata.optstore.get_value('b_colorout') \
-            if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
+            if OptionKey.factory('b_colorout') in self.environment.coredata.optstore else 'always'
         extra_args.extend(['--color', colorout])
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
@@ -3826,7 +3826,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if ctlist:
             elem.add_dep(self.generate_custom_target_clean(ctlist))
 
-        if OptionKey('b_coverage') in self.environment.coredata.optstore and \
+        if OptionKey.factory('b_coverage') in self.environment.coredata.optstore and \
            self.environment.coredata.optstore.get_value('b_coverage'):
             self.generate_gcov_clean()
             elem.add_dep('clean-gcda')

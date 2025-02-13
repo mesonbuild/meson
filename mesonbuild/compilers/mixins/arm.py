@@ -126,7 +126,7 @@ class ArmclangCompiler(Compiler):
         if not mesonlib.version_compare(self.version, '==' + self.linker.version):
             raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
         self.base_options = {
-            OptionKey(o) for o in
+            OptionKey.factory(o) for o in
             ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
              'b_ndebug', 'b_staticpic', 'b_colorout']}
         # Assembly
