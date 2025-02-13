@@ -24,7 +24,7 @@ from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
-    PerMachineDefaultable,
+    PerMachineDefaultable, lazy_property,
     MesonBugException, EnvironmentVariables, pickle_load,
 )
 from .options import OptionKey
@@ -415,20 +415,26 @@ class ExtractedObjects(HoldableObject):
     '''
     Holds a list of sources for which the objects must be extracted
     '''
-    target: 'BuildTarget'
+    target: BuildTargetTypes
     srclist: T.List[File] = field(default_factory=list)
-    genlist: T.List['GeneratedTypes'] = field(default_factory=list)
-    objlist: T.List[T.Union[str, 'File', 'ExtractedObjects']] = field(default_factory=list)
+    genlist: T.List[GeneratedTypes] = field(default_factory=list)
+    objlist: T.List[T.Union[str, File, ExtractedObjects]] = field(default_factory=list)
     recursive: bool = True
     pch: bool = False
 
     def __post_init__(self) -> None:
-        if self.target.is_unity:
-            self.check_unity_compatible()
+        if isinstance(self.target, BuildTarget) and self.target.is_unity:
+            self.__check_unity_compatible()
 
     def __repr__(self) -> str:
         r = '<{0} {1!r}: {2}>'
         return r.format(self.__class__.__name__, self.target.name, self.srclist)
+
+    @lazy_property
+    def is_unity(self) -> bool:
+        if isinstance(self.target, BuildTarget):
+            return self.target.is_unity
+        return False
 
     @staticmethod
     def get_sources(sources: T.Sequence['FileOrString'], generated_sources: T.Sequence['GeneratedTypes']) -> T.List['FileOrString']:
@@ -446,9 +452,16 @@ class ExtractedObjects(HoldableObject):
 
     def classify_all_sources(self, sources: T.List[FileOrString], generated_sources: T.Sequence['GeneratedTypes']) -> T.Dict['Compiler', T.List['FileOrString']]:
         sources_ = self.get_sources(sources, generated_sources)
-        return classify_unity_sources(self.target.compilers.values(), sources_)
+        if isinstance(self.target, BuildTarget):
+            return classify_unity_sources(self.target.compilers.values(), sources_)
+        # This is currently unreachable, and difficult to implement
+        # CustomTarget classes don't have access to compilers, so we'd need oo
+        # have access to the Interpreter's list of compilers for this objects
+        # subproject.
+        raise MesonBugException('Attempted to call "classify_all_sources" on CustomTarget output. This is not currently supported.')
 
-    def check_unity_compatible(self) -> None:
+    def __check_unity_compatible(self) -> None:
+        assert isinstance(self.target, BuildTarget), 'This shouldnt have been called'
         # Figure out if the extracted object list is compatible with a Unity
         # build. When we're doing a Unified build, we go through the sources,
         # and create a single source file from each subset of the sources that
@@ -749,7 +762,7 @@ class BuildTarget(Target):
         self.link_targets: T.List[LibTypes] = []
         self.link_whole_targets: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]] = []
         self.depend_files: T.List[File] = []
-        self.link_depends = []
+        self.link_depends: T.List[T.Union[File, CustomTarget, CustomTargetIndex, BuildTarget]] = []
         self.added_deps = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
@@ -1034,7 +1047,7 @@ class BuildTarget(Target):
             langs = ', '.join(self.compilers.keys())
             raise InvalidArguments(f'Cannot mix those languages into a target: {langs}')
 
-    def process_link_depends(self, sources):
+    def process_link_depends(self, sources: T.Iterable[T.Union[str, File, CustomTarget, CustomTargetIndex, BuildTarget]]) -> None:
         """Process the link_depends keyword argument.
 
         This is designed to handle strings, Files, and the output of Custom
@@ -2614,6 +2627,9 @@ class CustomTargetBase:
     '''
 
     rust_crate_type = ''
+    name: str
+
+    def get_outputs(self) -> T.List[str]: ...
 
     def get_dependencies_recurse(self, result: OrderedSet[BuildTargetTypes], include_internals: bool = True) -> None:
         pass
@@ -2627,6 +2643,12 @@ class CustomTargetBase:
     def get(self, lib_type: T.Literal['static', 'shared'], recursive: bool = False) -> LibTypes:
         """Base case used by BothLibraries"""
         return self
+
+    def extract_all_objects(self, recursive: bool = True) -> ExtractedObjects:
+        self_as_child = T.cast('T.Union[CustomTarget, CustomTargetIndex]', self)
+        return ExtractedObjects(self_as_child, [], [self_as_child], [],
+                                recursive, pch=True)
+
 
 class CustomTarget(Target, CustomTargetBase, CommandBase):
 
@@ -2808,9 +2830,6 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
         if len(self.outputs) != 1:
             return False
         return CustomTargetIndex(self, self.outputs[0]).is_internal()
-
-    def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        return self.get_outputs()
 
     def type_suffix(self):
         return "@cus"
@@ -3032,6 +3051,10 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
     def name(self) -> str:
         return f'{self.target.name}[{self.output}]'
 
+    @property
+    def depend_files(self) -> T.List[File]:
+        return self.target.depend_files
+
     def __repr__(self):
         return '<CustomTargetIndex: {!r}[{}]>'.format(self.target, self.output)
 
@@ -3079,11 +3102,15 @@ class CustomTargetIndex(CustomTargetBase, HoldableObject):
         suf = os.path.splitext(self.output)[-1]
         return suf in {'.a', '.lib'} and not self.should_install()
 
-    def extract_all_objects(self) -> T.List[T.Union[str, 'ExtractedObjects']]:
-        return self.target.extract_all_objects()
-
     def get_custom_install_dir(self) -> T.List[T.Union[str, Literal[False]]]:
         return self.target.get_custom_install_dir()
+
+    def get_option(self, key: OptionKey) -> ElementaryOptionValues:
+        return self.target.get_option(key)
+
+    def get_basename(self) -> str:
+        return self.target.get_basename()
+
 
 class ConfigurationData(HoldableObject):
     def __init__(self, initial_values: T.Optional[T.Union[
