@@ -105,6 +105,8 @@ _BUILTIN_NAMES = {
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
+_OptionKey__cache: T.Dict[T.Tuple[str, str, MachineChoice], OptionKey] = {}
+
 
 @total_ordering
 class OptionKey:
@@ -116,26 +118,42 @@ class OptionKey:
     internally easier to reason about and produce.
     """
 
-    __slots__ = ['name', 'subproject', 'machine', '_hash']
+    __slots__ = ('name', 'subproject', 'machine', '_hash')
 
     name: str
-    subproject: T.Optional[str] # None is global, empty string means top level project
+    subproject: T.Optional[str]  # None is global, empty string means top level project
     machine: MachineChoice
     _hash: int
 
-    def __init__(self,
-                 name: str,
-                 subproject: T.Optional[str] = None,
-                 machine: MachineChoice = MachineChoice.HOST):
+    def __new__(cls,
+                name: str = '',
+                subproject: T.Optional[str] = None,
+                machine: MachineChoice = MachineChoice.HOST) -> OptionKey:
+        """The use of the __new__ method allows to add a transparent cache
+        to the OptionKey object creation, without breaking its API.
+        """
+        if not name:
+            return super().__new__(cls)  # for unpickling, do not cache now
+
+        tuple_ = (name, subproject, machine)
+        try:
+            return _OptionKey__cache[tuple_]
+        except KeyError:
+            instance = super().__new__(cls)
+            instance._init(name, subproject, machine)
+            _OptionKey__cache[tuple_] = instance
+            return instance
+
+    def _init(self, name: str, subproject: T.Optional[str], machine: MachineChoice) -> None:
+        # We don't use the __init__ method, because it would be called after __new__
+        # while we need __new__ to initialise the object before populating the cache.
+
         if not isinstance(machine, MachineChoice):
             raise MesonException(f'Internal error, bad machine type: {machine}')
         if not isinstance(name, str):
             raise MesonBugException(f'Key name is not a string: {name}')
-        # the _type option to the constructor is kinda private. We want to be
-        # able to save the state and avoid the lookup function when
-        # pickling/unpickling, but we need to be able to calculate it when
-        # constructing a new OptionKey
         assert ':' not in name
+
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
@@ -152,15 +170,9 @@ class OptionKey:
         }
 
     def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
-        """De-serialize the state of a pickle.
-
-        This is very clever. __init__ is not a constructor, it's an
-        initializer, therefore it's safe to call more than once. We create a
-        state in the custom __getstate__ method, which is valid to pass
-        splatted to the initializer.
-        """
-        # Mypy doesn't like this, because it's so clever.
-        self.__init__(**state)  # type: ignore
+        # Here, the object is created using __new__()
+        self._init(**state)
+        _OptionKey__cache[(self.name, self.subproject, self.machine)] = self
 
     def __hash__(self) -> int:
         return self._hash
