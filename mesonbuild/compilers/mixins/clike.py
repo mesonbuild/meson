@@ -1285,10 +1285,16 @@ class CLikeCompiler(Compiler):
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
             # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
             # check the equivalent enable flag too "-Wforgotten-towel".
-            # Make an exception for -Wno-attributes=x as -Wattributes=x is invalid
-            # for GCC at least.
-            if arg.startswith('-Wno-') and not arg.startswith('-Wno-attributes='):
-                new_args.append('-W' + arg[5:])
+            if arg.startswith('-Wno-'):
+                # Make an exception for -Wno-attributes=x as -Wattributes=x is invalid
+                # for GCC at least.  Also, the opposite of -Wno-vla-larger-than is
+                # -Wvla-larger-than=N
+                if arg.startswith('-Wno-attributes='):
+                    pass
+                elif arg == '-Wno-vla-larger-than':
+                    new_args.append('-Wvla-larger-than=1000')
+                else:
+                    new_args.append('-W' + arg[5:])
             if arg.startswith('-Wl,'):
                 mlog.warning(f'{arg} looks like a linker argument, '
                              'but has_argument and other similar methods only '
