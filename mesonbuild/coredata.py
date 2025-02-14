@@ -594,7 +594,7 @@ class CoreData:
                 # refactor they will get per-subproject values.
                 really_unknown = []
                 for uo in unknown_options:
-                    topkey = uo.evolve(subproject='')
+                    topkey = uo.as_root()
                     if topkey not in self.optstore:
                         really_unknown.append(uo)
                 unknown_options = really_unknown
@@ -696,7 +696,7 @@ class CoreData:
             # adding languages and setting backend.
             if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
                 continue
-            if self.optstore.is_base_option(k) and k.as_root() in base_options:
+            if self.optstore.is_base_option(k) and (k in base_options or k.as_root() in base_options):
                 # set_options will report unknown base options
                 continue
             options[k] = v

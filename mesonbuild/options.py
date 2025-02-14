@@ -250,17 +250,15 @@ class OptionKey:
                          subproject if subproject != _BAD_VALUE else self.subproject, # None is a valid value so it can'the default value in method declaration.
                          machine if machine is not None else self.machine)
 
-    def as_root(self) -> 'OptionKey':
+    def as_root(self) -> OptionKey:
         """Convenience method for key.evolve(subproject='')."""
-        if self.subproject is None or self.subproject == '':
-            return self
         return self.evolve(subproject='')
 
-    def as_build(self) -> 'OptionKey':
+    def as_build(self) -> OptionKey:
         """Convenience method for key.evolve(machine=MachineChoice.BUILD)."""
         return self.evolve(machine=MachineChoice.BUILD)
 
-    def as_host(self) -> 'OptionKey':
+    def as_host(self) -> OptionKey:
         """Convenience method for key.evolve(machine=MachineChoice.HOST)."""
         return self.evolve(machine=MachineChoice.HOST)
 
@@ -804,7 +802,7 @@ class OptionStore:
         # I did not do this yet, because it would make this MR even
         # more massive than it already is. Later then.
         if not self.is_cross and key.machine == MachineChoice.BUILD:
-            key = key.evolve(machine=MachineChoice.HOST)
+            key = key.as_host()
         return key
 
     def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
@@ -819,7 +817,7 @@ class OptionStore:
         if self.is_project_option(key):
             assert key.subproject is not None
             if potential is not None and potential.yielding:
-                parent_key = key.evolve(subproject='')
+                parent_key = key.as_root()
                 try:
                     parent_option = self.options[parent_key]
                 except KeyError:
@@ -837,7 +835,7 @@ class OptionStore:
             return potential
         else:
             if potential is None:
-                parent_key = key.evolve(subproject=None)
+                parent_key = OptionKey(key.name, subproject=None, machine=key.machine)
                 if parent_key not in self.options:
                     raise KeyError(f'Tried to access nonexistant project parent option {parent_key}.')
                 return self.options[parent_key]
@@ -1047,7 +1045,7 @@ class OptionStore:
             o = OptionKey.from_string(keystr)
         if o in self.options:
             return self.set_value(o, new_value)
-        o = o.evolve(subproject='')
+        o = o.as_root()
         return self.set_value(o, new_value)
 
     def set_subproject_options(self, subproject: str,
@@ -1308,7 +1306,7 @@ class OptionStore:
             elif key in self.options:
                 self.set_value(key, valstr, first_invocation)
             else:
-                proj_key = key.evolve(subproject='')
+                proj_key = key.as_root()
                 if proj_key in self.options:
                     self.options[proj_key].set_value(valstr)
                 else:
@@ -1341,7 +1339,7 @@ class OptionStore:
                 # Argubly this should be a hard error, the default
                 # value of project option should be set in the option
                 # file, not in the project call.
-                proj_key = key.evolve(subproject='')
+                proj_key = key.as_root()
                 if self.is_project_option(proj_key):
                     self.set_option(proj_key, valstr)
                 else:
@@ -1359,7 +1357,7 @@ class OptionStore:
             if key in self.options:
                 self.set_value(key, valstr, True)
             elif key.subproject is None:
-                projectkey = key.evolve(subproject='')
+                projectkey = key.as_root()
                 if projectkey in self.options:
                     self.options[projectkey].set_value(valstr)
                 else:
