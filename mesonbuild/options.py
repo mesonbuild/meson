@@ -5,7 +5,6 @@
 from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
-from functools import total_ordering
 import argparse
 import dataclasses
 import itertools
@@ -108,7 +107,6 @@ _BAD_VALUE = 'Qwert Zuiopü'
 _OptionKey__cache: T.Dict[T.Tuple[str, str, MachineChoice], OptionKey] = {}
 
 
-@total_ordering
 class OptionKey:
 
     """Represents an option key in the various option dictionaries.
@@ -185,6 +183,11 @@ class OptionKey:
             return self._to_tuple() == other._to_tuple()
         return NotImplemented
 
+    def __ne__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return self._to_tuple() != other._to_tuple()
+        return NotImplemented
+
     def __lt__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
             if self.subproject is None:
@@ -192,6 +195,33 @@ class OptionKey:
             elif other.subproject is None:
                 return False
             return self._to_tuple() < other._to_tuple()
+        return NotImplemented
+
+    def __le__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            if self.subproject is None and other.subproject is not None:
+                return True
+            elif self.subproject is not None and other.subproject is None:
+                return False
+            return self._to_tuple() <= other._to_tuple()
+        return NotImplemented
+
+    def __gt__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            if other.subproject is None:
+                return self.subproject is not None
+            elif self.subproject is None:
+                return False
+            return self._to_tuple() > other._to_tuple()
+        return NotImplemented
+
+    def __ge__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            if self.subproject is None and other.subproject is not None:
+                return False
+            elif self.subproject is not None and other.subproject is None:
+                return True
+            return self._to_tuple() >= other._to_tuple()
         return NotImplemented
 
     def __str__(self) -> str:
