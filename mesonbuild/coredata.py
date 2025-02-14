@@ -606,7 +606,7 @@ class CoreData:
                 # refactor they will get per-subproject values.
                 really_unknown = []
                 for uo in unknown_options:
-                    topkey = uo.evolve(subproject='')
+                    topkey = uo.as_toplevel()
                     if topkey not in self.optstore:
                         really_unknown.append(uo)
                 unknown_options = really_unknown
