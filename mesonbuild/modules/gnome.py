@@ -1562,15 +1562,16 @@ class GnomeModule(ExtensionModule):
         deps_cflags, internal_ldflags, external_ldflags, _gi_includes, new_depends = \
             self._get_dependencies_flags(deps, state, depends, include_rpath=True)
 
+        compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
+
         cflags.extend(deps_cflags)
         cflags.extend(state.get_include_args(inc_dirs))
-        ldflags: T.List[str] = []
+        ldflags = compiler.compiler_args()
         ldflags.extend(internal_ldflags)
         ldflags.extend(external_ldflags)
 
         cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
         ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
-        compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
         cflags.extend(compiler_flags[0])
@@ -1582,7 +1583,7 @@ class GnomeModule(ExtensionModule):
         if cflags:
             args += ['--cflags=%s' % join_args(cflags)]
         if ldflags:
-            args += ['--ldflags=%s' % join_args(ldflags)]
+            args += ['--ldflags=%s' % join_args(ldflags.to_native())]
 
         return args, new_depends
 
