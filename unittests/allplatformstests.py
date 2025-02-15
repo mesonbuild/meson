@@ -5138,3 +5138,8 @@ class AllPlatformTests(BasePlatformTests):
             'link', 'lld-link', 'mwldarm', 'mwldeppc', 'optlink', 'xilink',
         }
         self.assertEqual(cc.linker.get_accepts_rsp(), has_rsp)
+
+    def test_nonexisting_bargs(self):
+        testdir = os.path.join(self.unit_test_dir, '117 empty project')
+        args = ['-Db_ndebug=if_release']
+        self.init(testdir, extra_args=args)

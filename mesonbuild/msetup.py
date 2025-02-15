@@ -191,7 +191,7 @@ class MesonApp:
     def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Any, all_subprojects: T.Any) -> None:
         pending = coredata.optstore.pending_project_options
         errlist: T.List[str] = []
-        permitted_unknowns = ['b_vscrt', 'b_lto', 'b_lundef']
+        permitted_unknowns = ['b_vscrt', 'b_lto', 'b_lundef', 'b_ndebug']
         permitlist: T.List[str] = []
         for opt in pending:
             # Due to backwards compatibility setting build options in non-cross
