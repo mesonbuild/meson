@@ -670,7 +670,7 @@ class GnomeModule(ExtensionModule):
                 cflags.update(dep.get_compile_args())
                 cflags.update(state.get_include_args(dep.include_directories))
                 for lib in dep.libraries:
-                    if isinstance(lib, build.SharedLibrary):
+                    if isinstance(lib, (build.SharedLibrary, build.StaticLibrary)):
                         _ld, depends = self._get_link_args(state, lib, depends, include_rpath)
                         internal_ldflags.update(_ld)
                         libdepflags = self._get_dependencies_flags_raw(lib.get_external_deps(), state, depends, include_rpath,
