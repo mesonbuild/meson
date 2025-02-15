@@ -622,9 +622,9 @@ class GnomeModule(ExtensionModule):
         link_command: T.List[str] = []
         new_depends = list(depends)
         # Construct link args
+        libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
+        link_command.append('-L' + libdir)
         if isinstance(lib, build.SharedLibrary):
-            libdir = os.path.join(state.environment.get_build_dir(), state.backend.get_target_dir(lib))
-            link_command.append('-L' + libdir)
             if include_rpath:
                 link_command.append('-Wl,-rpath,' + libdir)
             new_depends.append(lib)
