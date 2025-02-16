@@ -132,6 +132,9 @@ class SwiftCompiler(Compiler):
     def get_mod_gen_args(self) -> T.List[str]:
         return ['-emit-module']
 
+    def get_header_gen_args(self, header_name: str) -> T.List[str]:
+        return ['-parse', '-emit-objc-header', '-emit-objc-header-path', header_name]
+
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         return ['-I' + path]
 
