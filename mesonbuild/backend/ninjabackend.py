@@ -2218,7 +2218,6 @@ class NinjaBackend(backends.Backend):
                 raise InvalidArguments(f'Swift target {target.get_basename()} contains a non-swift source file.')
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = self.generate_basic_compiler_args(target, swiftc)
-        compile_args += swiftc.get_compile_only_args()
         compile_args += swiftc.get_module_args(module_name)
         for i in reversed(target.get_include_dirs()):
             basedir = i.get_curdir()
@@ -2266,12 +2265,16 @@ class NinjaBackend(backends.Backend):
         elem = NinjaBuildElement(self.all_outputs, rel_objects, rulename, abssrc)
         elem.add_dep(in_module_files + rel_generated)
         elem.add_dep(abs_headers)
-        elem.add_item('ARGS', compile_args + header_imports + abs_generated + module_includes)
+        elem.add_item('ARGS', swiftc.get_compile_only_args() + compile_args + header_imports + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
+
+        # -g makes swiftc create a .o file with potentially the same name as one of the compile target generated ones.
+        mod_gen_args = [el for el in compile_args if el != '-g']
+
         elem = NinjaBuildElement(self.all_outputs, out_module_name, rulename, abssrc)
         elem.add_dep(in_module_files + rel_generated)
-        elem.add_item('ARGS', compile_args + abs_generated + module_includes + swiftc.get_mod_gen_args())
+        elem.add_item('ARGS', swiftc.get_mod_gen_args() + mod_gen_args + abs_generated + module_includes)
         elem.add_item('RUNDIR', rundir)
         self.add_build(elem)
         if isinstance(target, build.StaticLibrary):
