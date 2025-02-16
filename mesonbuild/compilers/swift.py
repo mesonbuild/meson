@@ -103,6 +103,9 @@ class SwiftCompiler(Compiler):
     def get_std_exe_link_args(self) -> T.List[str]:
         return ['-emit-executable']
 
+    def get_std_shared_lib_link_args(self) -> T.List[str]:
+        return ['-emit-library']
+
     def get_module_args(self, modname: str) -> T.List[str]:
         return ['-module-name', modname]
 
