@@ -171,6 +171,9 @@ class SwiftCompiler(Compiler):
     def supports_cxx_interoperability(self) -> bool:
         return version_compare(self.version, '>=5.9')
 
+    def get_pch_output_dir_args(self, output_dir: str) -> T.List[str]:
+        return ['-pch-output-dir', output_dir]
+
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
