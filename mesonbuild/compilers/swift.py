@@ -127,6 +127,9 @@ class SwiftCompiler(Compiler):
         else:
             return ['-cxx-interoperability-mode=off']
 
+    def get_pch_output_dir_args(self, output_dir: str) -> T.List[str]:
+        return ['-pch-output-dir', output_dir]
+
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):

@@ -2216,6 +2216,10 @@ class NinjaBackend(backends.Backend):
                 header_imports += swiftc.get_header_import_args(absh)
             else:
                 raise InvalidArguments(f'Swift target {target.get_basename()} contains a non-swift source file.')
+        if header_imports != []:
+            # Swift writes a PCH file for bridging headers. Without this flag, it puts it somewhere in /tmp.
+            # '.' is already the target private dir.
+            header_imports += swiftc.get_pch_output_dir_args('.')
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = self.generate_basic_compiler_args(target, swiftc)
         compile_args += swiftc.get_compile_only_args()
@@ -2238,7 +2242,9 @@ class NinjaBackend(backends.Backend):
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
         link_args += self.build.get_project_link_args(swiftc, target.subproject, target.for_machine)
         link_args += self.build.get_global_link_args(swiftc, target.for_machine)
-        rundir = self.get_target_private_dir(target)
+        # SourceKit-LSP likes to place files here, and it doesn't know that this is relative the build directory, so
+        # make this an absolute path
+        rundir = self.get_target_private_dir_abs(target)
         out_module_name = self.swift_module_file_name(target)
         in_module_files = self.determine_swift_dep_modules(target)
         abs_module_dirs = self.determine_swift_dep_dirs(target)
