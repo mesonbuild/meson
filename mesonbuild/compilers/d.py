@@ -11,7 +11,7 @@ from .. import mesonlib
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
-    EnvironmentException, version_compare, is_windows
+    EnvironmentException, MesonBugException, version_compare, is_windows
 )
 from ..options import OptionKey
 
@@ -19,13 +19,14 @@ from .compilers import (
     clike_debug_args,
     Compiler,
     CompileCheckMode,
+    SimplePrefixLinkerOptionWrapperStyle,
 )
 from .mixins.gnu import GnuCompiler
 from .mixins.gnu import gnu_common_warning_args
 
 if T.TYPE_CHECKING:
     from . import compilers
-    from ..build import BuildTarget, DFeatures
+    from ..build import DFeatures
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -108,7 +109,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         def _get_target_arch_args(self) -> T.List[str]: ...
 
-    LINKER_PREFIX = '-L='
+    LINKER_PREFIX = SimplePrefixLinkerOptionWrapperStyle('-L=')
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-of=' + outputname]
@@ -173,32 +174,6 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
-
-    def build_rpath_args(self, build_dir: str, from_dir: str, target: BuildTarget,
-                         extra_paths: T.Optional[T.List[str]] = None
-                         ) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        if self.info.is_windows():
-            return ([], set())
-
-        # GNU ld, solaris ld, and lld acting like GNU ld
-        if self.linker.id.startswith('ld'):
-            # The way that dmd and ldc pass rpath to gcc is different than we would
-            # do directly, each argument -rpath and the value to rpath, need to be
-            # split into two separate arguments both prefaced with the -L=.
-            args: T.List[str] = []
-            (rpath_args, rpath_dirs_to_remove) = super().build_rpath_args(
-                    build_dir, from_dir, target)
-            for r in rpath_args:
-                if ',' in r:
-                    a, b = r.split(',', maxsplit=1)
-                    args.append(a)
-                    args.append(self.LINKER_PREFIX + b)
-                else:
-                    args.append(r)
-            return (args, rpath_dirs_to_remove)
-
-        return super().build_rpath_args(
-            build_dir, from_dir, target)
 
     @classmethod
     def _translate_args_to_nongnu(cls, args: T.List[str], info: MachineInfo, link_id: str) -> T.List[str]:
@@ -380,24 +355,10 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         sargs = super().get_soname_args(prefix, shlib_name, suffix, soversion, darwin_versions)
 
-        # LDC and DMD actually do use a linker, but they proxy all of that with
-        # their own arguments
-        soargs: T.List[str] = []
-        if self.linker.id.startswith('ld.'):
-            for arg in sargs:
-                a, b = arg.split(',', maxsplit=1)
-                soargs.append(a)
-                soargs.append(self.LINKER_PREFIX + b)
-            return soargs
-        elif self.linker.id.startswith('ld64'):
-            for arg in sargs:
-                if not arg.startswith(self.LINKER_PREFIX):
-                    soargs.append(self.LINKER_PREFIX + arg)
-                else:
-                    soargs.append(arg)
-            return soargs
-        else:
-            return sargs
+        if not all(arg.startswith(self.LINKER_PREFIX.prefix) for arg in sargs):
+            raise MesonBugException(f'Not all soname arguments for the D compiler start with {repr(self.LINKER_PREFIX.prefix)}: {sargs}')
+
+        return sargs
 
     def get_allow_undefined_link_args(self) -> T.List[str]:
         args = self.linker.get_allow_undefined_args()
