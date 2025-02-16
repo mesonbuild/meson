@@ -153,6 +153,9 @@ class SwiftCompiler(Compiler):
 
         return ['-working-directory', path]
 
+    def get_pch_output_dir_args(self, output_dir: str) -> T.List[str]:
+        return ['-pch-output-dir', output_dir]
+
     def get_cxx_interoperability_args(self, lang: T.Dict[str, Compiler]) -> T.List[str]:
         if 'cpp' in lang or 'objcpp' in lang:
             return ['-cxx-interoperability-mode=default']
