@@ -459,6 +459,54 @@ class RunResult(HoldableObject):
 
 
 @dataclass
+class PrefixArgumentLinkerOptionWrapperStyle:
+    """
+    Represents a linker option wrapper style where each linker argument is preceded by a separate argument representing
+    the compiler's passthrough option, like Clang: ['-Xlinker', 'arg1', '-Xlinker', 'arg2'] passes ['arg1', 'arg2'] to the
+    linker.
+    """
+
+    prefix_arg: str
+
+    def wrap(self, group: T.List[str]) -> T.List[str]:
+        return [compiler_arg for linker_arg in group for compiler_arg in [self.prefix_arg, linker_arg]]
+
+
+@dataclass
+class SimplePrefixLinkerOptionWrapperStyle:
+    """
+    Represents a linker option wrapper style where each linker argument is prefixed with the compiler's passthrough
+    option as part of the same argument, like DMD: ['-L=arg1', '-L=arg2'] passes ['arg1', 'arg2'] to the linker.
+    """
+
+    prefix: str
+
+    def wrap(self, group: T.List[str]) -> T.List[str]:
+        return [self.prefix + linker_arg for linker_arg in group]
+
+
+@dataclass
+class ManyInOneLinkerOptionWrapperStyle:
+    """
+    Represents a linker option wrapper style where multiple linker arguments are passed as a single argument to the
+    compiler combined with a prefix, like GCC: ['-Wl,arg1,arg2'] passes ['arg1', 'arg2'] to the linker.
+    """
+
+    prefix: str
+    separator: str
+
+    def wrap(self, group: T.List[str]) -> T.List[str]:
+        return [self.prefix + self.separator.join(group)]
+
+
+LinkerOptionWrapperStyle = T.Union[
+    PrefixArgumentLinkerOptionWrapperStyle,
+    SimplePrefixLinkerOptionWrapperStyle,
+    ManyInOneLinkerOptionWrapperStyle,
+]
+
+
+@dataclass
 class CompileResult(HoldableObject):
 
     """The result of Compiler.compiles (and friends)."""
@@ -480,7 +528,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     # manually searched.
     internal_libs: T.List[str] = []
 
-    LINKER_PREFIX: T.Union[None, str, T.List[str]] = None
+    LINKER_PREFIX: T.Optional[LinkerOptionWrapperStyle] = None
     INVOKES_LINKER = True
 
     language: Language
