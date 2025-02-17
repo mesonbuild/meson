@@ -2261,6 +2261,8 @@ class NinjaBackend(backends.Backend):
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = self.generate_basic_compiler_args(target, swiftc)
         compile_args += swiftc.get_module_args(module_name)
+        if target.uses_swift_parse_as_library_args():
+            compile_args += swiftc.get_library_args()
         for i in reversed(target.get_include_dirs()):
             basedir = i.get_curdir()
             for d in i.get_incdirs():
