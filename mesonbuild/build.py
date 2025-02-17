@@ -24,7 +24,7 @@ from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
-    PerMachineDefaultable,
+    is_parent_path, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
 )
 from .options import OptionKey
@@ -223,11 +223,18 @@ class DepManifest:
     license_files: T.List[T.Tuple[str, File]]
     subproject: str
 
+    def license_mapping(self) -> T.List[T.Tuple[str, str]]:
+        ret = []
+        for ifilename, name in self.license_files:
+            fname = os.path.join(*(x for x in pathlib.PurePath(os.path.normpath(name.fname)).parts if x != '..'))
+            ret.append((ifilename, os.path.join(name.subdir, fname)))
+        return ret
+
     def to_json(self) -> T.Dict[str, T.Union[str, T.List[str]]]:
         return {
             'version': self.version,
             'license': self.license,
-            'license_files': [l[1].relative_name() for l in self.license_files],
+            'license_files': [l[1] for l in self.license_mapping()],
         }
 
 
@@ -1726,7 +1733,7 @@ class BuildTarget(Target):
         self.process_link_depends(path)
 
     def extract_targets_as_list(self, kwargs: T.Dict[str, T.Union[LibTypes, T.Sequence[LibTypes]]], key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
-        bl_type = self.environment.coredata.get_option(OptionKey('default_both_libraries'))
+        bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
         if bl_type == 'auto':
             if isinstance(self, StaticLibrary):
                 bl_type = 'static'
@@ -1824,14 +1831,6 @@ class Generator(HoldableObject):
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
-    @staticmethod
-    def is_parent_path(parent: str, trial: str) -> bool:
-        try:
-            common = os.path.commonpath((parent, trial))
-        except ValueError: # Windows on different drives
-            return False
-        return pathlib.PurePath(common) == pathlib.PurePath(parent)
-
     def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
                       state: T.Union['Interpreter', 'ModuleState'],
                       preserve_path_from: T.Optional[str] = None,
@@ -1861,7 +1860,7 @@ class Generator(HoldableObject):
             for f in fs:
                 if preserve_path_from:
                     abs_f = f.absolute_path(state.environment.source_dir, state.environment.build_dir)
-                    if not self.is_parent_path(preserve_path_from, abs_f):
+                    if not is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
                 f = FileMaybeInTargetPrivateDir(f)
                 output.add_file(f, state)
@@ -2034,7 +2033,7 @@ class Executable(BuildTarget):
             machine.is_windows()
             and ('cs' in self.compilers or self.uses_rust() or self.get_using_msvc())
             # .pdb file is created only when debug symbols are enabled
-            and self.environment.coredata.get_option(OptionKey("debug"))
+            and self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
         )
         if create_debug_file:
             # If the target is has a standard exe extension (i.e. 'foo.exe'),
@@ -2316,14 +2315,14 @@ class SharedLibrary(BuildTarget):
                 # Import library is called foo.dll.lib
                 import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
                 # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.get_option(OptionKey("debug"))
+                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.lib
                 import_filename_tpl = '{0.prefix}{0.name}.lib'
                 # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.get_option(OptionKey("debug"))
+                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
             # Assume GCC-compatible naming
             else:
                 # Shared library is of the form libfoo.dll

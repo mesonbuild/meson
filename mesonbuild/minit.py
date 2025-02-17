@@ -193,7 +193,7 @@ def run(options: Arguments) -> int:
             raise SystemExit
 
         b = build.load(options.builddir)
-        need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+        need_vsenv = T.cast('bool', b.environment.coredata.optstore.get_value_for(OptionKey('vsenv')))
         vsenv_active = mesonlib.setup_vsenv(need_vsenv)
         if vsenv_active:
             mlog.log(mlog.green('INFO:'), 'automatically activated MSVC compiler environment')

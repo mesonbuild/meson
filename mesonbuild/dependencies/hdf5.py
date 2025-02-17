@@ -153,10 +153,14 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
         pkgconfig_files = OrderedSet(['hdf5', 'hdf5-serial'])
         pkg = PkgConfigInterface.instance(env, for_machine, silent=False)
         if pkg:
-            # some distros put hdf5-1.2.3.pc with version number in .pc filename.
-            for mod in pkg.list_all():
-                if mod.startswith('hdf5'):
-                    pkgconfig_files.add(mod)
+            try:
+                # old hdf5 versions put version number in .pc filename, e.g., hdf5-1.2.3.pc.
+                for mod in pkg.list_all():
+                    if mod.startswith('hdf5'):
+                        pkgconfig_files.add(mod)
+            except DependencyException:
+                # use just the standard files if pkg-config --list-all fails
+                pass
         for mod in pkgconfig_files:
             candidates.append(functools.partial(HDF5PkgConfigDependency, mod, env, kwargs, language))
 

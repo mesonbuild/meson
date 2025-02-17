@@ -246,5 +246,5 @@ class DataTests(unittest.TestCase):
         del os.environ['MESON_RUNNING_IN_PROJECT_TESTS']
         env = get_fake_env()
         interp = Interpreter(FakeBuild(env))
-        astint = AstInterpreter('.', '', '')
+        astint = AstInterpreter('.', '', '', '', env)
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))

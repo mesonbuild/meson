@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -85,11 +85,11 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        key = OptionKey(f'{self.language}_std', machine=self.for_machine)
+        key = OptionKey(f'{self.language}_std', subproject=subproject, machine=self.for_machine)
         if target:
             std = env.coredata.get_option_for_target(target, key)
         else:
-            std = env.coredata.get_option_for_subproject(key, subproject)
+            std = env.coredata.optstore.get_value_for(key)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)

@@ -266,6 +266,11 @@ be specified *(added 0.52.0)*:
 $ meson test --gdb --gdb-path /path/to/gdb testname
 ```
 
+Meson can print the error logs produced by failing tests via the
+`--print-errorlogs` option. The logs can include stack traces and environmental
+variables. This is especially useful when you run the tests on GitHub, Travis,
+Jenkins and the like:
+
 ```console
 $ meson test --print-errorlogs
 ```
@@ -279,11 +284,6 @@ shell is spawned if it fails *(added 1.5.0)*:
 ```console
 $ meson test --interactive testname
 ```
-
-Meson will report the output produced by the failing tests along with
-other useful information as the environmental variables. This is
-useful, for example, when you run the tests on Travis-CI, Jenkins and
-the like.
 
 By default, the output from tests will be limited to the last 100 lines. The
 maximum number of lines to show can be configured with the `--max-lines` option

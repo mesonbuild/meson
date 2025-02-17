@@ -100,7 +100,7 @@ if sys.version_info >= (3, 2):
     except Exception:
         pass
 
-# pypy supports modules targetting the limited api but
+# pypy supports modules targeting the limited api but
 # does not use a special suffix to distinguish them:
 # https://doc.pypy.org/en/latest/cpython_differences.html#permitted-abi-tags-in-extensions
 if is_pypy:

@@ -41,6 +41,10 @@ jobs:
       MESON_CI_JOBNAME: cygwin-${{ matrix.NAME }}
 
     steps:
+      # remove inheritable permissions since they break assumptions testsuite
+      # makes about file modes
+      - run: icacls . /inheritance:r /T /C
+
       - uses: actions/cache/restore@v4
         id: restore-cache
         with:

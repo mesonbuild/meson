@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2015-2016 The Meson development team
+# Copyright © 2023-2024 Intel Corporation
 
 '''This module provides helper functions for Gnome/GLib related
 functionality such as gobject-introspection, gresources and gtk-doc'''
@@ -521,7 +522,7 @@ class GnomeModule(ExtensionModule):
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
 
-        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(OptionKey('includedir'))
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
         assert isinstance(install_dir, str), 'for mypy'
         target_h = GResourceHeaderTarget(
             f'{target_name}_h',
@@ -912,9 +913,8 @@ class GnomeModule(ExtensionModule):
                 cflags += state.project_args[lang]
             if OptionKey('b_sanitize') in compiler.base_options:
                 sanitize = state.environment.coredata.optstore.get_value('b_sanitize')
-                assert isinstance(sanitize, str)
+                assert isinstance(sanitize, list)
                 cflags += compiler.sanitizer_compile_args(sanitize)
-                sanitize = sanitize.split(',')
                 # These must be first in ldflags
                 if 'address' in sanitize:
                     internal_ldflags += ['-lasan']
@@ -1655,7 +1655,7 @@ class GnomeModule(ExtensionModule):
 
         targets = []
         install_header = kwargs['install_header']
-        install_dir = kwargs['install_dir'] or state.environment.coredata.get_option(OptionKey('includedir'))
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
         assert isinstance(install_dir, str), 'for mypy'
 
         output = namebase + '.c'
@@ -1967,7 +1967,7 @@ class GnomeModule(ExtensionModule):
             ) -> build.CustomTarget:
         real_cmd: T.List[T.Union[str, 'ToolType']] = [self._find_tool(state, 'glib-mkenums')]
         real_cmd.extend(cmd)
-        _install_dir = install_dir or state.environment.coredata.get_option(OptionKey('includedir'))
+        _install_dir = install_dir or state.environment.coredata.optstore.get_value_for(OptionKey('includedir'))
         assert isinstance(_install_dir, str), 'for mypy'
 
         return CustomTarget(
@@ -2179,7 +2179,7 @@ class GnomeModule(ExtensionModule):
                 cmd.append(gir_file)
 
         vapi_output = library + '.vapi'
-        datadir = state.environment.coredata.get_option(OptionKey('datadir'))
+        datadir = state.environment.coredata.optstore.get_value_for(OptionKey('datadir'))
         assert isinstance(datadir, str), 'for mypy'
         install_dir = kwargs['install_dir'] or os.path.join(datadir, 'vala', 'vapi')
 

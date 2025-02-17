@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool
@@ -10,7 +10,7 @@ import copy
 import os
 import typing as T
 
-from .. import compilers, environment, mesonlib, optinterpreter, options
+from .. import compilers, environment, mesonlib, options
 from .. import coredata as cdata
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
@@ -55,16 +55,11 @@ class IntrospectionInterpreter(AstInterpreter):
                  subproject: SubProject = SubProject(''),
                  subproject_dir: str = 'subprojects',
                  env: T.Optional[environment.Environment] = None):
-        super().__init__(source_root, subdir, subproject, visitors=visitors)
-
         options = IntrospectionHelper(cross_file)
+        env_ = env or environment.Environment(source_root, None, options)
+        super().__init__(source_root, subdir, subproject, subproject_dir, env_, visitors=visitors)
+
         self.cross_file = cross_file
-        if env is None:
-            self.environment = environment.Environment(source_root, None, options)
-        else:
-            self.environment = env
-        self.subproject_dir = subproject_dir
-        self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
         self.project_data: T.Dict[str, T.Any] = {}
@@ -117,14 +112,7 @@ class IntrospectionInterpreter(AstInterpreter):
         proj_license_files = _str_list(kwargs.get('license_files', None)) or []
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers, 'license': proj_license, 'license_files': proj_license_files}
 
-        optfile = os.path.join(self.source_root, self.subdir, 'meson.options')
-        if not os.path.exists(optfile):
-            optfile = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
-        if os.path.exists(optfile):
-            oi = optinterpreter.OptionInterpreter(self.coredata.optstore, self.subproject)
-            oi.process(optfile)
-            assert isinstance(proj_name, str), 'for mypy'
-            self.coredata.update_project_options(oi.options, T.cast('SubProject', proj_name))
+        self._load_option_file()
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
@@ -313,7 +301,7 @@ class IntrospectionInterpreter(AstInterpreter):
         return new_target
 
     def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
-        default_library = self.coredata.get_option(OptionKey('default_library'))
+        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library'))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
         elif default_library == 'static':
@@ -390,3 +378,14 @@ class IntrospectionInterpreter(AstInterpreter):
                 if isinstance(val, StringNode):
                     return val.value
         return None
+
+    def flatten_kwargs(self, kwargs: T.Dict[str, TYPE_var], include_unknown_args: bool = False) -> T.Dict[str, TYPE_var]:
+        flattened_kwargs = {}
+        for key, val in kwargs.items():
+            if isinstance(val, BaseNode):
+                resolved = self.resolve_node(val, include_unknown_args)
+                if resolved is not None:
+                    flattened_kwargs[key] = resolved
+            elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
+                flattened_kwargs[key] = val
+        return flattened_kwargs

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021-2024 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 from __future__ import annotations
 
 import copy
@@ -311,7 +311,7 @@ class MesonMain(MesonInterpreterObject):
     @noPosargs
     @noKwargs
     def is_unity_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
-        optval = self.interpreter.environment.coredata.get_option(OptionKey('unity'))
+        optval = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('unity'))
         return optval == 'on' or (optval == 'subprojects' and self.interpreter.is_subproject())
 
     @noPosargs
@@ -360,7 +360,7 @@ class MesonMain(MesonInterpreterObject):
         dep.name = name
 
         optkey = OptionKey('default_library', subproject=self.interpreter.subproject)
-        default_library = self.interpreter.coredata.get_option(optkey)
+        default_library = self.interpreter.coredata.optstore.get_value_for(optkey)
         assert isinstance(default_library, str), 'for mypy'
         static = kwargs['static']
         if static is None:

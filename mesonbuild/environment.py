@@ -964,25 +964,25 @@ class Environment:
         return self.get_libdir()
 
     def get_prefix(self) -> str:
-        return _as_str(self.coredata.get_option(OptionKey('prefix')))
+        return _as_str(self.coredata.optstore.get_value_for(OptionKey('prefix')))
 
     def get_libdir(self) -> str:
-        return _as_str(self.coredata.get_option(OptionKey('libdir')))
+        return _as_str(self.coredata.optstore.get_value_for(OptionKey('libdir')))
 
     def get_libexecdir(self) -> str:
-        return _as_str(self.coredata.get_option(OptionKey('libexecdir')))
+        return _as_str(self.coredata.optstore.get_value_for(OptionKey('libexecdir')))
 
     def get_bindir(self) -> str:
-        return _as_str(self.coredata.get_option(OptionKey('bindir')))
+        return _as_str(self.coredata.optstore.get_value_for(OptionKey('bindir')))
 
     def get_includedir(self) -> str:
-        return _as_str(self.coredata.get_option(OptionKey('includedir')))
+        return _as_str(self.coredata.optstore.get_value_for(OptionKey('includedir')))
 
     def get_mandir(self) -> str:
-        return _as_str(self.coredata.get_option(OptionKey('mandir')))
+        return _as_str(self.coredata.optstore.get_value_for(OptionKey('mandir')))
 
     def get_datadir(self) -> str:
-        return _as_str(self.coredata.get_option(OptionKey('datadir')))
+        return _as_str(self.coredata.optstore.get_value_for(OptionKey('datadir')))
 
     def get_compiler_system_lib_dirs(self, for_machine: MachineChoice) -> T.List[str]:
         for comp in self.coredata.compilers[for_machine].values():

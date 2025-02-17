@@ -27,18 +27,20 @@ from .exceptions import (
     SubdirDoneRequest,
 )
 
+from .. import mlog
 from .decorators import FeatureNew
 from .disabler import Disabler, is_disabled
 from .helpers import default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
 from .operator import MesonOperator
 from ._unholder import _unholder
 
-import os, copy, re, pathlib
+import os, copy, hashlib, re, pathlib
 import typing as T
 import textwrap
 
 if T.TYPE_CHECKING:
     from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
+    from ..ast import AstVisitor
     from ..interpreter import Interpreter
 
     HolderMapType = T.Dict[
@@ -67,16 +69,21 @@ class InvalidCodeOnVoid(InvalidCode):
 
 
 class InterpreterBase:
-    def __init__(self, source_root: str, subdir: str, subproject: 'SubProject'):
+    def __init__(self, source_root: str, subdir: str, subproject: SubProject, subproject_dir: str, env: environment.Environment):
         self.source_root = source_root
         self.funcs: FunctionType = {}
         self.builtin: T.Dict[str, InterpreterObject] = {}
         # Holder maps store a mapping from an HoldableObject to a class ObjectHolder
         self.holder_map: HolderMapType = {}
         self.bound_holder_map: HolderMapType = {}
+        self.build_def_files: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
+        self.processed_buildfiles: T.Set[str] = set()
         self.subdir = subdir
         self.root_subdir = subdir
         self.subproject = subproject
+        self.subproject_dir = subproject_dir
+        self.environment = env
+        self.coredata = env.get_coredata()
         self.variables: T.Dict[str, InterpreterObject] = {}
         self.argument_depth = 0
         self.current_lineno = -1
@@ -102,7 +109,9 @@ class InterpreterBase:
             raise InvalidCode.from_node(f'Build file failed to parse as unicode: {e}', node=node)
 
     def load_root_meson_file(self) -> None:
-        mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
+        build_filename = os.path.join(self.subdir, environment.build_filename)
+        self.build_def_files.add(build_filename)
+        mesonfile = os.path.join(self.source_root, build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments(f'Missing Meson file in {mesonfile}')
         code = self.read_buildfile(mesonfile, mesonfile)
@@ -668,3 +677,71 @@ class InterpreterBase:
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')
+
+    def _load_option_file(self) -> None:
+        from .. import optinterpreter  # prevent circular import
+
+        # Load "meson.options" before "meson_options.txt", and produce a warning if
+        # it is being used with an old version. I have added check that if both
+        # exist the warning isn't raised
+        option_file = os.path.join(self.source_root, self.subdir, 'meson.options')
+        old_option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+
+        if os.path.exists(option_file):
+            if os.path.exists(old_option_file):
+                if os.path.samefile(option_file, old_option_file):
+                    mlog.debug("Not warning about meson.options with version minimum < 1.1 because meson_options.txt also exists")
+                else:
+                    raise mesonlib.MesonException("meson.options and meson_options.txt both exist, but are not the same file.")
+            else:
+                FeatureNew.single_use('meson.options file', '1.1', self.subproject, 'Use meson_options.txt instead')
+        else:
+            option_file = old_option_file
+        if os.path.exists(option_file):
+            with open(option_file, 'rb') as f:
+                # We want fast  not cryptographically secure, this is just to
+                # see if the option file has changed
+                self.coredata.options_files[self.subproject] = (option_file, hashlib.sha1(f.read()).hexdigest())
+            oi = optinterpreter.OptionInterpreter(self.environment.coredata.optstore, self.subproject)
+            oi.process(option_file)
+            self.coredata.update_project_options(oi.options, self.subproject)
+            self.build_def_files.add(option_file)
+        else:
+            self.coredata.options_files[self.subproject] = None
+
+    def _resolve_subdir(self, rootdir: str, new_subdir: str) -> T.Tuple[str, bool]:
+        subdir = os.path.join(self.subdir, new_subdir)
+        absdir = os.path.join(rootdir, subdir)
+        symlinkless_dir = os.path.realpath(absdir)
+        build_file = os.path.join(symlinkless_dir, environment.build_filename)
+        if build_file in self.processed_buildfiles:
+            return subdir, False
+        self.processed_buildfiles.add(build_file)
+        return subdir, True
+
+    def _evaluate_subdir(self, rootdir: str, subdir: str, visitors: T.Optional[T.Iterable[AstVisitor]] = None) -> bool:
+        buildfilename = os.path.join(subdir, environment.build_filename)
+        self.build_def_files.add(buildfilename)
+
+        absname = os.path.join(rootdir, buildfilename)
+        if not os.path.isfile(absname):
+            return False
+
+        code = self.read_buildfile(absname, buildfilename)
+        try:
+            codeblock = mparser.Parser(code, absname).parse()
+        except mesonlib.MesonException as me:
+            me.file = absname
+            raise me
+        try:
+            prev_subdir = self.subdir
+            self.subdir = subdir
+            if visitors:
+                for visitor in visitors:
+                    codeblock.accept(visitor)
+            self.evaluate_codeblock(codeblock)
+        except SubdirDoneRequest:
+            pass
+        finally:
+            self.subdir = prev_subdir
+        return True

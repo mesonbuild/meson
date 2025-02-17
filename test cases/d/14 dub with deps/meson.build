@@ -12,12 +12,9 @@ endif
 
 if meson.get_compiler('d').get_id() == 'gcc'
     error('MESON_SKIP_TEST: can\'t build dependencies with GDC')
-elif meson.get_compiler('d').get_id() == 'llvm'
-    dc = 'ldc2'
-elif meson.get_compiler('d').get_id() == 'dmd'
-    dc = 'dmd'
 endif
 
+dc = meson.get_compiler('d').cmd_array()[0]
 arch = host_machine.cpu_family()
 
 if host_machine.system() == 'windows'

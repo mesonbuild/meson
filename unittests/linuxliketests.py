@@ -590,8 +590,6 @@ class LinuxlikeTests(BasePlatformTests):
         Test that files installed by these tests have the correct permissions.
         Can't be an ordinary test because our installed_files.txt is very basic.
         '''
-        if is_cygwin():
-            self.new_builddir_in_tempdir()
         # Test file modes
         testdir = os.path.join(self.common_test_dir, '12 data')
         self.init(testdir)
@@ -644,8 +642,6 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that files are installed with correct permissions using install_mode.
         '''
-        if is_cygwin():
-            self.new_builddir_in_tempdir()
         testdir = os.path.join(self.common_test_dir, '190 install_mode')
         self.init(testdir)
         self.build()
@@ -684,8 +680,6 @@ class LinuxlikeTests(BasePlatformTests):
         install umask of 022, regardless of the umask at time the worktree
         was checked out or the build was executed.
         '''
-        if is_cygwin():
-            self.new_builddir_in_tempdir()
         # Copy source tree to a temporary directory and change permissions
         # there to simulate a checkout with umask 002.
         orig_testdir = os.path.join(self.unit_test_dir, '26 install umask')
@@ -1284,9 +1278,9 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '41 rpath order')
         self.init(testdir)
         if is_osx():
-            rpathre = re.compile(r'-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
+            rpathre = re.compile(r'-Wl,-rpath -Wl,.*/subprojects/sub1.*-Wl,-rpath -Wl,.*/subprojects/sub2')
         else:
-            rpathre = re.compile(r'-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
+            rpathre = re.compile(r'-Wl,-rpath -Wl,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
         with open(os.path.join(self.builddir, 'build.ninja'), encoding='utf-8') as bfile:
             for line in bfile:
                 if '-rpath' in line:
@@ -1930,3 +1924,25 @@ class LinuxlikeTests(BasePlatformTests):
             self.check_has_flag(compdb, mainsrc, '-O3')
             self.check_has_flag(compdb, sub1src, '-O2')
             self.check_has_flag(compdb, sub2src, '-O2')
+
+    def test_sanitizers(self):
+        testdir = os.path.join(self.unit_test_dir, '125 sanitizers')
+
+        with self.subTest('no b_sanitize value'):
+            try:
+                out = self.init(testdir)
+                self.assertRegex(out, 'value *: *none')
+            finally:
+                self.wipe()
+
+        for value, expected in { '': 'none',
+                                 'none': 'none',
+                                 'address': 'address',
+                                 'undefined,address': 'address,undefined',
+                                 'address,undefined': 'address,undefined' }.items():
+            with self.subTest('b_sanitize=' + value):
+                try:
+                    out = self.init(testdir, extra_args=['-Db_sanitize=' + value])
+                    self.assertRegex(out, 'value *: *' + expected)
+                finally:
+                    self.wipe()
