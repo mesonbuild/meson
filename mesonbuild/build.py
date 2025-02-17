@@ -75,6 +75,7 @@ lang_arg_kwargs |= {
 vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
 rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
 cs_kwargs = {'resources', 'cs_args'}
+swift_kwargs = {'swift_implicit_main'}
 
 buildtarget_kwargs = {
     'build_by_default',
@@ -110,7 +111,8 @@ known_build_target_kwargs = (
     pch_kwargs |
     vala_kwargs |
     rust_kwargs |
-    cs_kwargs)
+    cs_kwargs |
+    swift_kwargs)
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi'}
@@ -1233,6 +1235,13 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
+        self.swift_implicit_main = kwargs.get('swift_implicit_main', '')
+        permitted = {'', 'auto', 'never'}
+        if self.swift_implicit_main not in permitted:
+            raise InvalidArguments(
+                'Invalid value for swift_implicit_main {!r}: must be one of {}'
+                .format(self.swift_implicit_main, ', '.join(repr(x) for x in permitted)))
+
     def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
@@ -1648,6 +1657,12 @@ class BuildTarget(Target):
 
     def uses_fortran(self) -> bool:
         return 'fortran' in self.compilers
+
+    def uses_swift_parse_as_library_args(self) -> bool:
+        if self.swift_implicit_main == '':
+            return isinstance(self, (StaticLibrary, SharedLibrary))
+        else:
+            return self.swift_implicit_main == 'never'
 
     def get_using_msvc(self) -> bool:
         '''
