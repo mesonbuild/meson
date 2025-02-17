@@ -2,8 +2,8 @@ project('extra args', 'swift')
 
 trace_fname = 'trace.json'
 
-lib = static_library('main',
-  'main.swift',
+lib = static_library('lib',
+  'lib.swift',
   swift_args: [
     '-emit-loaded-module-trace',
     '-emit-loaded-module-trace-path', '../' + trace_fname

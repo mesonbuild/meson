@@ -2288,6 +2288,13 @@ class NinjaBackend(backends.Backend):
             compile_args += swiftc.get_cxx_interoperability_args(target.compilers)
         compile_args += self.build.get_project_args(swiftc, target.subproject, target.for_machine)
         compile_args += self.build.get_global_args(swiftc, target.for_machine)
+        if isinstance(target, (build.StaticLibrary, build.SharedLibrary)):
+            # swiftc treats modules with a single source file, and the main.swift file in multi-source file modules
+            # as top-level code. This is undesirable in library targets since it emits a main function. Add the
+            # -parse-as-library option as necessary to prevent emitting the main function while keeping files explicitly
+            # named main.swift treated as the entrypoint of the module in case this is desired.
+            if len(abssrc) == 1 and os.path.basename(abssrc[0]) != 'main.swift':
+                compile_args += swiftc.get_library_args()
         for i in reversed(target.get_include_dirs()):
             basedir = i.get_curdir()
             for d in i.get_incdirs():
