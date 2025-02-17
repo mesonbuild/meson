@@ -1080,7 +1080,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
-        value_object, value = self.coredata.optstore.get_option_from_meson_file(options.OptionKey(optname, self.subproject))
+        try:
+            value_object, value = self.coredata.optstore.get_option_from_meson_file(options.OptionKey(optname, self.subproject))
+        except KeyError:
+            if self.subproject:
+                raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
+            raise MesonException(f'Option {optname} does not exist.')
         if isinstance(value_object, options.UserFeatureOption):
             ocopy = copy.copy(value_object)
             ocopy.name = optname
