@@ -8,7 +8,7 @@ import subprocess, os.path
 import typing as T
 
 from .. import mlog, options
-from ..mesonlib import MesonException, version_compare
+from ..mesonlib import first, MesonException, version_compare
 from .compilers import Compiler, clike_debug_args
 
 
@@ -139,6 +139,12 @@ class SwiftCompiler(Compiler):
         if std != 'none':
             args += ['-swift-version', std]
 
+        # Pass C compiler -std=... arg to swiftc
+        c_lang = first(['objc', 'c'], lambda x: x in target.compilers)
+        if c_lang is not None:
+            cc = target.compilers[c_lang]
+            args.extend(arg for c_arg in cc.get_option_std_args(target, env, subproject) for arg in ['-Xcc', c_arg])
+
         return args
 
     def get_working_directory_args(self, path: str) -> T.Optional[T.List[str]]:
@@ -146,6 +152,12 @@ class SwiftCompiler(Compiler):
             return None
 
         return ['-working-directory', path]
+
+    def get_cxx_interoperability_args(self, lang: T.Dict[str, Compiler]) -> T.List[str]:
+        if 'cpp' in lang or 'objcpp' in lang:
+            return ['-cxx-interoperability-mode=default']
+        else:
+            return ['-cxx-interoperability-mode=off']
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
