@@ -2449,7 +2449,7 @@ class NinjaBackend(backends.Backend):
 
         command = invoc + ['$ARGS', '$in']
         description = 'Compiling Swift source $in'
-        self.add_rule(NinjaRule(rule, command, [], description))
+        self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
 
     def use_dyndeps_for_fortran(self) -> bool:
         '''Use the new Ninja feature for scanning dependencies during build,
