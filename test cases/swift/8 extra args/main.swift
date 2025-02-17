@@ -1,1 +1,3 @@
-print("test")
+public func callMe() {
+    print("test")
+}
