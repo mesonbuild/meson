@@ -1066,8 +1066,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                 [os.path.join(subdir, 'Cargo.toml')])
 
     @typed_pos_args('get_option', str)
-    @noKwargs
-    def func_get_option(self, nodes: mparser.BaseNode, args: T.Tuple[str],
+    @typed_kwargs(
+        'get_option',
+        KwargInfo('fallback', (NoneType, object), default='', since='1.8.0'),
+    )
+    def func_get_option(self, nodes: mparser.BaseNode, args: T.Tuple[str, T.Optional[str]],
                         kwargs: 'TYPE_kwargs') -> T.Union[options.UserOption, 'TYPE_var']:
         optname = args[0]
         if optname == 'optimization' and self.subproject == 'sub2':
@@ -1083,6 +1086,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         try:
             value_object, value = self.coredata.optstore.get_option_from_meson_file(options.OptionKey(optname, self.subproject))
         except KeyError:
+            fallback = kwargs.get('fallback', None)
+            if fallback is not None:
+                return P_OBJ.OptionString(fallback, f'{{{optname}}}')
             if self.subproject:
                 raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
             raise MesonException(f'Option {optname} does not exist.')

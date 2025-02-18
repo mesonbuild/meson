@@ -1,4 +1,4 @@
-project('options', 'c', meson_version : '>= 1.0.0')
+project('options', 'c', meson_version : '>= 1.8.0')
 
 if get_option('testoption') != 'optval'
   error('Incorrect value to test option')
@@ -56,3 +56,6 @@ endtestcase
 testcase expect_error('Invalid option name \'this.is.also.invalid\'')
   get_option('this.is.also.invalid')
 endtestcase
+
+assert(get_option('nonexisting',
+  fallback: 'fallback_value') == 'fallback_value')
