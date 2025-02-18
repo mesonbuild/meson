@@ -1083,9 +1083,14 @@ class Interpreter(InterpreterBase, HoldableObject):
         try:
             value_object, value = self.coredata.optstore.get_option_from_meson_file(options.OptionKey(optname, self.subproject))
         except KeyError:
-            if self.subproject:
-                raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
-            raise MesonException(f'Option {optname} does not exist.')
+            if self.coredata.optstore.is_base_option(optname):
+                # Due to backwards compatibility return the default
+                # option for base options instead of erroring out.
+                value_object, value = self.get_default_for_b_option(optname)
+            else:
+                if self.subproject:
+                    raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
+                raise MesonException(f'Option {optname} does not exist.')
         if isinstance(value_object, options.UserFeatureOption):
             ocopy = copy.copy(value_object)
             ocopy.name = optname

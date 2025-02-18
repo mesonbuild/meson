@@ -182,3 +182,8 @@ class OptionTests(unittest.TestCase):
         optstore.set_subproject_options(subproject, [f'cpp_std={unused_value}'], [f'cpp_std={unused_value}'])
         self.assertEqual(optstore.get_value_for(name), default_value)
         self.assertEqual(optstore.get_value_for(name, subproject), override_value)
+
+    def test_b_default(self):
+        optstore = OptionStore(False)
+        _, value = optstore.get_default_for_b_option('b_vscrt')
+        self.assertEqual(value, 'from_buildtype')
