@@ -1087,6 +1087,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             value_object, value = self.coredata.optstore.get_option_from_meson_file(options.OptionKey(optname, self.subproject))
         except KeyError:
             fallback = kwargs.get('fallback', None)
+            if fallback is None and optname == 'b_vscrt':
+                mlog.deprecation(textwrap.dedent('''Due to a bug it was possible to request nonexisting b_ options.
+                To maintain backwards compatibility this still works, but will become a hard error in the future.
+                You should update your build files to use the "fallback" keyword argument in these cases.'''))
+                fallback = 'if-release'
             if fallback is not None:
                 return P_OBJ.OptionString(fallback, f'{{{optname}}}')
             if self.subproject:
