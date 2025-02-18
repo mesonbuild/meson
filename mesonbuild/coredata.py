@@ -42,7 +42,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import ElementaryOptionValues
+    from .options import OptionValueType
     from .build import BuildTarget
 
     class SharedCMDOptions(Protocol):
@@ -394,13 +394,13 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
-    def get_option(self, key: OptionKey) -> ElementaryOptionValues:
+    def get_option(self, key: OptionKey) -> OptionValueType:
         return self.optstore.get_value_for(key.name, key.subproject)
 
     def get_option_object_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> options.AnyOptionType:
         return self.get_option_for_subproject(key, target.subproject)
 
-    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
+    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> OptionValueType:
         if isinstance(key, str):
             assert ':' not in key
             newkey = OptionKey(key, target.subproject)
@@ -417,7 +417,7 @@ class CoreData:
             return option_object.validate_value(override)
         return value
 
-    def get_option_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> ElementaryOptionValues:
+    def get_option_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> OptionValueType:
         if isinstance(key, str):
             key = OptionKey(key, subproject=subproject)
         if key.subproject != subproject:
@@ -909,7 +909,7 @@ class OptionsView(abc.Mapping):
     # python 3.8 or typing_extensions
     original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, options.AnyOptionType]']
     subproject: T.Optional[str] = None
-    overrides: T.Optional[T.Mapping[OptionKey, ElementaryOptionValues]] = dataclasses.field(default_factory=dict)
+    overrides: T.Optional[T.Mapping[OptionKey, OptionValueType]] = dataclasses.field(default_factory=dict)
 
     def __getitem__(self, key: OptionKey) -> options.UserOption:
         # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
@@ -953,7 +953,7 @@ class OptionsView(abc.Mapping):
             key = OptionKey(key)
         return self[key].value
 
-    def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues):
+    def set_value(self, key: T.Union[str, OptionKey], value: OptionValueType):
         if isinstance(key, str):
             key = OptionKey(key)
         self.overrides[key] = value

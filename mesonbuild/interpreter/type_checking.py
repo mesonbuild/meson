@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
 
     from ..build import ObjectTypes
     from ..interpreterbase import TYPE_var
-    from ..options import ElementaryOptionValues
+    from ..options import OptionValueType
     from ..mesonlib import EnvInitValueType
 
     _FullEnvInitValueType = T.Union[EnvironmentVariables, T.List[str], T.List[T.List[str]], EnvInitValueType, str, None]
@@ -293,7 +293,7 @@ COMMAND_KW: KwargInfo[T.List[T.Union[str, BuildTarget, CustomTarget, CustomTarge
 )
 
 
-OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, ElementaryOptionValues], T.List[str]]] = KwargInfo(
+OVERRIDE_OPTIONS_KW: KwargInfo[T.Union[str, T.Dict[str, OptionValueType], T.List[str]]] = KwargInfo(
     'override_options',
     (str, ContainerTypeInfo(list, str), ContainerTypeInfo(dict, (str, int, bool, list))),
     default={},
