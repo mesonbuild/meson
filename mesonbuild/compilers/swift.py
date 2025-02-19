@@ -186,10 +186,13 @@ class SwiftCompiler(Compiler):
         if target is not None and not target.uses_swift_cpp_interop():
             return []
 
-        if version_compare(self.version, '<5.9'):
+        if not self.supports_cxx_interoperability():
             raise MesonException(f'Compiler {self} does not support C++ interoperability')
 
         return ['-cxx-interoperability-mode=default']
+
+    def supports_cxx_interoperability(self) -> bool:
+        return version_compare(self.version, '>=5.9')
 
     def get_library_args(self) -> T.List[str]:
         return ['-parse-as-library']

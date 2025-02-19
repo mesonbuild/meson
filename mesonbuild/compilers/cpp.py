@@ -9,7 +9,7 @@ import typing as T
 
 from .. import options
 from .. import mlog
-from ..mesonlib import MesonException, version_compare
+from ..mesonlib import MesonBugException, MesonException, version_compare
 
 from .compilers import (
     gnu_winlibs,
@@ -70,6 +70,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str, for_machine: MachineChoice,
                  env: Environment, linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None):
+        self._works_with_swift: T.Optional[bool] = None
+
         # If a child ObjCPP class has already set it, don't set it ourselves
         Compiler.__init__(self, ccache, exelist, version, for_machine, env,
                           linker=linker, full_version=full_version)
@@ -90,6 +92,12 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
     def _sanity_check_source_code(self) -> str:
         return 'class breakCCompiler;int main(void) { return 0; }\n'
+
+    def works_with_swift(self) -> bool:
+        if self._works_with_swift is None:
+            raise MesonBugException('Called CPPCompiler.works_with_swift() but compatibility was never checked')
+
+        return self._works_with_swift
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # -fpermissive allows non-conforming code to compile which is necessary
