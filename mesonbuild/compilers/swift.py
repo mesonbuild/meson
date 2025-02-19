@@ -187,6 +187,9 @@ class SwiftCompiler(Compiler):
     def get_pch_output_dir_args(self, output_dir: str) -> T.List[str]:
         return ['-pch-output-dir', output_dir]
 
+    def get_library_args(self) -> T.List[str]:
+        return ['-parse-as-library']
+
     def get_cxx_interoperability_args(self, target: T.Optional[build.BuildTarget] = None) -> T.List[str]:
         enabled = target is None or target.uses_swift_cpp_interop()
 
