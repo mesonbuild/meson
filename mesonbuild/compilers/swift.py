@@ -146,6 +146,9 @@ class SwiftCompiler(Compiler):
 
         return ['-working-directory', path]
 
+    def get_library_args(self) -> T.List[str]:
+        return ['-parse-as-library']
+
     def get_cxx_interoperability_args(self, lang: T.Dict[str, Compiler]) -> T.List[str]:
         if 'cpp' in lang or 'objcpp' in lang:
             return ['-cxx-interoperability-mode=default']
