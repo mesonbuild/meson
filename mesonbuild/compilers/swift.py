@@ -187,10 +187,23 @@ class SwiftCompiler(Compiler):
         if target is not None and not target.uses_swift_cpp_interop():
             return []
 
-        if version_compare(self.version, '<5.9'):
+        if not self.supports_cxx_interoperability():
             raise MesonException(f'Compiler {self} does not support C++ interoperability')
 
         return ['-cxx-interoperability-mode=default']
+
+    def supports_cxx_interoperability(self) -> bool:
+        return version_compare(self.version, '>=5.9')
+
+    def export_cpp_header_for_compat_detection(self, header_name: str, output_dir: str) -> None:
+        from ..mesonlib import Popen_safe_logged
+
+        if not self.supports_cxx_interoperability():
+            raise MesonException(f'Compiler {self} does not support C++ interoperability')
+
+        swift_command = [*self.get_exelist(), *self.get_header_gen_args(header_name), *self.get_library_args(),
+                         *self.get_module_args('Check'), *self.get_cxx_interoperability_args(), '-']
+        p, _, _ = Popen_safe_logged(swift_command, cwd=output_dir)
 
     def get_library_args(self) -> T.List[str]:
         return ['-parse-as-library']
