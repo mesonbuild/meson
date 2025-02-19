@@ -2170,7 +2170,7 @@ class NinjaBackend(backends.Backend):
                             self.target_swift_modulename(target) + '.swiftmodule')
 
     def target_swift_modulename(self, target):
-        return target.name
+        return target.name.replace(' ', '')
 
     def determine_swift_dep_modules(self, target):
         result = []
