@@ -2231,11 +2231,11 @@ class NinjaBackend(backends.Backend):
     def compiler_to_pch_rule_name(cls, compiler: Compiler) -> str:
         return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine, 'PCH')
 
-    def swift_module_file_name(self, target):
+    def swift_module_file_name(self, target: build.BuildTarget):
         return os.path.join(self.get_target_private_dir(target),
                             target.swift_module_name + '.swiftmodule')
 
-    def determine_swift_dep_modules(self, target):
+    def determine_swift_dep_modules(self, target: build.BuildTarget):
         result = []
         for l in target.link_targets:
             if self.is_swift_target(l):
