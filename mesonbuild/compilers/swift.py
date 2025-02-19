@@ -184,6 +184,9 @@ class SwiftCompiler(Compiler):
 
         return ['-working-directory', path]
 
+    def get_library_args(self) -> T.List[str]:
+        return ['-parse-as-library']
+
     def get_cxx_interoperability_args(self, target: T.Optional[build.BuildTarget] = None) -> T.List[str]:
         if target is not None and not target.uses_swift_cpp_interop():
             return []
