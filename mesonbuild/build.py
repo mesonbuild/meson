@@ -791,6 +791,15 @@ class BuildTarget(Target):
             if self.vala_gir:
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
+        if 'cpp' in self.compilers and \
+                any('swift' in t.compilers for t in itertools.chain([self], self.link_targets, self.link_whole_targets)):
+            from .compilers.cpp import CPPCompiler
+
+            cpp = self.compilers['cpp']
+            assert isinstance(cpp, CPPCompiler)
+            if not cpp.works_with_swift():
+                raise MesonException(f'target "{self.name}" tries to link Swift objects with C++ objects, '
+                                     'but the C++ and Swift compilers are incompatible')
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
