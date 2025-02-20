@@ -82,6 +82,7 @@ if T.TYPE_CHECKING:
 
         build_by_default: bool
         dependencies: T.List[Dependency]
+        doc_format: T.Optional[str]
         export_packages: T.List[str]
         extra_args: T.List[str]
         fatal_warnings: bool
@@ -1103,6 +1104,7 @@ class GnomeModule(ExtensionModule):
         _EXTRA_ARGS_KW,
         ENV_KW.evolve(since='1.2.0'),
         KwargInfo('dependencies', ContainerTypeInfo(list, Dependency), default=[], listify=True),
+        KwargInfo('doc_format', (str, NoneType), since='1.8.0'),
         KwargInfo('export_packages', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('fatal_warnings', bool, default=False, since='0.55.0'),
         KwargInfo('header', ContainerTypeInfo(list, str), default=[], listify=True),
@@ -1207,6 +1209,9 @@ class GnomeModule(ExtensionModule):
         if self._gir_has_option('--sources-top-dirs'):
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), state.root_subdir)]
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), state.root_subdir)]
+
+        if kwargs['doc_format'] is not None and self._gir_has_option('--doc-format'):
+            scan_command += ['--doc-format', kwargs['doc_format']]
 
         if '--warn-error' in scan_command:
             FeatureDeprecated.single_use('gnome.generate_gir argument --warn-error', '0.55.0',

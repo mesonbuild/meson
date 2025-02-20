@@ -47,6 +47,7 @@ gnome.generate_gir(
   includes : ['GObject-2.0', 'MesonDep1-1.0'],
   # dep1_dep pulls in dep2_dep for us
   dependencies : [[fake_dep, dep1_dep]],
+  doc_format: 'gtk-doc-markdown',
   install : true,
   build_by_default : true,
 )
