@@ -5143,3 +5143,8 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '117 empty project')
         args = ['-Db_ndebug=if_release']
         self.init(testdir, extra_args=args)
+
+    def test_wipe_with_args(self):
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir, extra_args=['-Dc_args=-DSOMETHING'])
+        self.init(testdir, extra_args=['--wipe'])

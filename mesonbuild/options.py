@@ -1305,7 +1305,7 @@ class OptionStore:
             # A) a system option in which case the subproject is None
             # B) a project option, in which case the subproject is '' (this method is only called from top level)
             #
-            # The key parsing fucntion can not handle the difference between the two
+            # The key parsing function can not handle the difference between the two
             # and defaults to A.
             assert isinstance(keystr, str)
             key = OptionKey.from_string(keystr)
@@ -1350,8 +1350,7 @@ class OptionStore:
                     #
                     # Some base options (sanitizers etc) might get added later.
                     # Permitting them all is not strictly correct.
-                    assert isinstance(keystr, str)
-                    if ':' not in keystr and not self.is_compiler_option(key) and not self.is_base_option(key):
+                    if not self.is_compiler_option(key) and not self.is_base_option(key):
                         raise MesonException(f'Unknown options: "{keystr}"')
                     self.pending_project_options[key] = valstr
             else:
