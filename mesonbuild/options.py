@@ -5,7 +5,6 @@
 from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
-from functools import total_ordering
 import argparse
 import dataclasses
 import itertools
@@ -105,8 +104,9 @@ _BUILTIN_NAMES = {
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
+_OptionKey__cache: T.Dict[T.Tuple[str, str, MachineChoice], OptionKey] = {}
 
-@total_ordering
+
 class OptionKey:
 
     """Represents an option key in the various option dictionaries.
@@ -116,26 +116,42 @@ class OptionKey:
     internally easier to reason about and produce.
     """
 
-    __slots__ = ['name', 'subproject', 'machine', '_hash']
+    __slots__ = ('name', 'subproject', 'machine', '_hash')
 
     name: str
-    subproject: T.Optional[str] # None is global, empty string means top level project
+    subproject: T.Optional[str]  # None is global, empty string means top level project
     machine: MachineChoice
     _hash: int
 
-    def __init__(self,
-                 name: str,
-                 subproject: T.Optional[str] = None,
-                 machine: MachineChoice = MachineChoice.HOST):
+    def __new__(cls,
+                name: str = '',
+                subproject: T.Optional[str] = None,
+                machine: MachineChoice = MachineChoice.HOST) -> OptionKey:
+        """The use of the __new__ method allows to add a transparent cache
+        to the OptionKey object creation, without breaking its API.
+        """
+        if not name:
+            return super().__new__(cls)  # for unpickling, do not cache now
+
+        tuple_ = (name, subproject, machine)
+        try:
+            return _OptionKey__cache[tuple_]
+        except KeyError:
+            instance = super().__new__(cls)
+            instance._init(name, subproject, machine)
+            _OptionKey__cache[tuple_] = instance
+            return instance
+
+    def _init(self, name: str, subproject: T.Optional[str], machine: MachineChoice) -> None:
+        # We don't use the __init__ method, because it would be called after __new__
+        # while we need __new__ to initialise the object before populating the cache.
+
         if not isinstance(machine, MachineChoice):
             raise MesonException(f'Internal error, bad machine type: {machine}')
         if not isinstance(name, str):
             raise MesonBugException(f'Key name is not a string: {name}')
-        # the _type option to the constructor is kinda private. We want to be
-        # able to save the state and avoid the lookup function when
-        # pickling/unpickling, but we need to be able to calculate it when
-        # constructing a new OptionKey
         assert ':' not in name
+
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
@@ -152,15 +168,9 @@ class OptionKey:
         }
 
     def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
-        """De-serialize the state of a pickle.
-
-        This is very clever. __init__ is not a constructor, it's an
-        initializer, therefore it's safe to call more than once. We create a
-        state in the custom __getstate__ method, which is valid to pass
-        splatted to the initializer.
-        """
-        # Mypy doesn't like this, because it's so clever.
-        self.__init__(**state)  # type: ignore
+        # Here, the object is created using __new__()
+        self._init(**state)
+        _OptionKey__cache[(self.name, self.subproject, self.machine)] = self
 
     def __hash__(self) -> int:
         return self._hash
@@ -173,6 +183,11 @@ class OptionKey:
             return self._to_tuple() == other._to_tuple()
         return NotImplemented
 
+    def __ne__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return self._to_tuple() != other._to_tuple()
+        return NotImplemented
+
     def __lt__(self, other: object) -> bool:
         if isinstance(other, OptionKey):
             if self.subproject is None:
@@ -180,6 +195,33 @@ class OptionKey:
             elif other.subproject is None:
                 return False
             return self._to_tuple() < other._to_tuple()
+        return NotImplemented
+
+    def __le__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            if self.subproject is None and other.subproject is not None:
+                return True
+            elif self.subproject is not None and other.subproject is None:
+                return False
+            return self._to_tuple() <= other._to_tuple()
+        return NotImplemented
+
+    def __gt__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            if other.subproject is None:
+                return self.subproject is not None
+            elif self.subproject is None:
+                return False
+            return self._to_tuple() > other._to_tuple()
+        return NotImplemented
+
+    def __ge__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            if self.subproject is None and other.subproject is not None:
+                return False
+            elif self.subproject is not None and other.subproject is None:
+                return True
+            return self._to_tuple() >= other._to_tuple()
         return NotImplemented
 
     def __str__(self) -> str:
@@ -240,19 +282,23 @@ class OptionKey:
                          subproject if subproject != _BAD_VALUE else self.subproject, # None is a valid value so it can'the default value in method declaration.
                          machine if machine is not None else self.machine)
 
-    def as_root(self) -> 'OptionKey':
-        """Convenience method for key.evolve(subproject='')."""
-        if self.subproject is None or self.subproject == '':
+    def as_root(self) -> OptionKey:
+        """Convenience method for key.evolve(subproject='') if subproject is not global."""
+        if not self.subproject:
             return self
-        return self.evolve(subproject='')
+        return OptionKey(self.name, subproject='', machine=self.machine)
 
-    def as_build(self) -> 'OptionKey':
+    def as_toplevel(self) -> OptionKey:
+        """Convenience method for key.evolve(subproject='')."""
+        return OptionKey(self.name, subproject='', machine=self.machine)
+
+    def as_build(self) -> OptionKey:
         """Convenience method for key.evolve(machine=MachineChoice.BUILD)."""
-        return self.evolve(machine=MachineChoice.BUILD)
+        return OptionKey(self.name, self.subproject, machine=MachineChoice.BUILD)
 
-    def as_host(self) -> 'OptionKey':
+    def as_host(self) -> OptionKey:
         """Convenience method for key.evolve(machine=MachineChoice.HOST)."""
-        return self.evolve(machine=MachineChoice.HOST)
+        return OptionKey(self.name, self.subproject, machine=MachineChoice.HOST)
 
     def has_module_prefix(self) -> bool:
         return '.' in self.name
@@ -794,7 +840,7 @@ class OptionStore:
         # I did not do this yet, because it would make this MR even
         # more massive than it already is. Later then.
         if not self.is_cross and key.machine == MachineChoice.BUILD:
-            key = key.evolve(machine=MachineChoice.HOST)
+            key = key.as_host()
         return key
 
     def get_value(self, key: T.Union[OptionKey, str]) -> 'OptionValueType':
@@ -809,7 +855,7 @@ class OptionStore:
         if self.is_project_option(key):
             assert key.subproject is not None
             if potential is not None and potential.yielding:
-                parent_key = key.evolve(subproject='')
+                parent_key = key.as_toplevel()
                 parent_option = self.options[parent_key]
                 # If parent object has different type, do not yield.
                 # This should probably be an error.
@@ -821,7 +867,7 @@ class OptionStore:
             return potential
         else:
             if potential is None:
-                parent_key = key.evolve(subproject=None)
+                parent_key = OptionKey(key.name, subproject=None, machine=key.machine)
                 if parent_key not in self.options:
                     raise KeyError(f'Tried to access nonexistant project parent option {parent_key}.')
                 return self.options[parent_key]
@@ -1036,7 +1082,7 @@ class OptionStore:
             o = OptionKey.from_string(keystr)
         if o in self.options:
             return self.set_value(o, new_value)
-        o = o.evolve(subproject='')
+        o = o.as_toplevel()
         return self.set_value(o, new_value)
 
     def set_subproject_options(self, subproject: str,
@@ -1289,7 +1335,7 @@ class OptionStore:
             elif key in self.options:
                 self.set_value(key, valstr, first_invocation)
             else:
-                proj_key = key.evolve(subproject='')
+                proj_key = key.as_toplevel()
                 if proj_key in self.options:
                     self.options[proj_key].set_value(valstr)
                 else:
@@ -1322,7 +1368,7 @@ class OptionStore:
                 # Argubly this should be a hard error, the default
                 # value of project option should be set in the option
                 # file, not in the project call.
-                proj_key = key.evolve(subproject='')
+                proj_key = key.as_toplevel()
                 if self.is_project_option(proj_key):
                     self.set_option(proj_key, valstr)
                 else:
@@ -1340,7 +1386,7 @@ class OptionStore:
             if key in self.options:
                 self.set_value(key, valstr, True)
             elif key.subproject is None:
-                projectkey = key.evolve(subproject='')
+                projectkey = key.as_toplevel()
                 if projectkey in self.options:
                     self.options[projectkey].set_value(valstr)
                 else:
