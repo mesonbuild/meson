@@ -191,7 +191,6 @@ class MesonApp:
     def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Any, all_subprojects: T.Any) -> None:
         pending = coredata.optstore.pending_project_options
         errlist: T.List[str] = []
-        permitted_unknowns = ['b_vscrt', 'b_lto', 'b_lundef', 'b_ndebug']
         permitlist: T.List[str] = []
         for opt in pending:
             # Due to backwards compatibility setting build options in non-cross
@@ -204,8 +203,10 @@ class MesonApp:
             if opt.subproject and opt.subproject not in all_subprojects:
                 continue
             if coredata.optstore.is_compiler_option(opt):
+                permitlist.append(opt.name)
                 continue
-            if opt.name in permitted_unknowns:
+            # Ditto for base options.
+            if coredata.optstore.is_base_option(opt):
                 permitlist.append(opt.name)
                 continue
             keystr = str(opt)
@@ -222,7 +223,7 @@ class MesonApp:
             # support it, this option gets silently swallowed.
             # So at least print a message about it.
             optstr = ','.join(permitlist)
-            mlog.warning(f'Some command line options went unused: {optstr}', fatal=False)
+            mlog.warning(f'The following command line option(s) were not used: {optstr}', fatal=False)
 
         coredata.optstore.clear_pending()
 
