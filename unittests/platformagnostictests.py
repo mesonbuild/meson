@@ -415,9 +415,12 @@ class PlatformAgnosticTests(BasePlatformTests):
     def test_setup_with_unknown_option(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
 
-        for option in ('not_an_option', 'b_not_an_option'):
-            out = self.init(testdir, extra_args=['--wipe', f'-D{option}=1'], allow_fail=True)
-            self.assertIn(f'ERROR: Unknown options: "{option}"', out)
+        out = self.init(testdir, extra_args=['--wipe', '-Dnot_an_option=1'], allow_fail=True)
+        self.assertIn('ERROR: Unknown options: "not_an_option"', out)
+
+        out = self.init(testdir, extra_args=['--wipe', '-Db_not_an_option=1'])
+        self.assertIn('WARNING: The following command line option(s) were not used: b_not_an_option', out)
+
 
     def test_configure_new_option(self) -> None:
         """Adding a new option without reconfiguring should work."""
