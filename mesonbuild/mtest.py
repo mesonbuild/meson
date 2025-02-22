@@ -657,7 +657,7 @@ class ConsoleLogger(TestLogger):
         if len(lines) < self.max_lines:
             return log
         else:
-            return str(mlog.bold(f'Listing only the last {self.max_lines} lines from a long log.\n')) + '\n'.join(lines[-self.max_lines:])
+            return str(mlog.bold(f'Listing only the first {self.max_lines} lines from a long log.\n')) + '\n'.join(lines[:self.max_lines])
 
     def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         if not result.verbose:
