@@ -810,7 +810,13 @@ class OptionStore:
             assert key.subproject is not None
             if potential is not None and potential.yielding:
                 parent_key = key.evolve(subproject='')
-                parent_option = self.options[parent_key]
+                try:
+                    parent_option = self.options[parent_key]
+                except KeyError:
+                    # Subproject is set to yield, but top level
+                    # project does not have an option of the same
+                    # name. Return the subproject option.
+                    return potential
                 # If parent object has different type, do not yield.
                 # This should probably be an error.
                 if type(parent_option) is type(potential):
