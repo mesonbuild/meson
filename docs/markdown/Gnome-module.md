@@ -93,6 +93,7 @@ There are several keyword arguments. Many of these map directly to the
 `g-ir-scanner` tool so see its documentation for more information.
 
 * `dependencies`: deps to use during introspection scanning
+* `doc_format`: (*Added 1.8.0*) format of the inline documentation
 * `extra_args`: command line arguments to pass to gir compiler
 * `env`: (*Added 1.2.0*) environment variables to set, such as
   `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
