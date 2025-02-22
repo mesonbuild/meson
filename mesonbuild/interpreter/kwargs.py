@@ -239,7 +239,7 @@ class Summary(TypedDict):
 
 class FindProgram(ExtractRequired, ExtractSearchDirs):
 
-    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
+    default_options: T.Dict[OptionKey, options.OptionValueType]
     native: MachineChoice
     version: T.List[str]
 
@@ -312,7 +312,7 @@ class ConfigureFile(TypedDict):
 
 class Subproject(ExtractRequired):
 
-    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
+    default_options: T.Dict[OptionKey, options.OptionValueType]
     version: T.List[str]
 
 
@@ -346,7 +346,7 @@ class _BaseBuildTarget(TypedDict):
     name_suffix: T.Optional[str]
     native: MachineChoice
     objects: T.List[build.ObjectTypes]
-    override_options: T.Dict[OptionKey, options.ElementaryOptionValues]
+    override_options: T.Dict[OptionKey, options.OptionValueType]
     depend_files: NotRequired[T.List[File]]
     resources: T.List[str]
 
