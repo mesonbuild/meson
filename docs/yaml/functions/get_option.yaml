@@ -24,3 +24,9 @@ posargs:
   option_name:
     type: str
     description: Name of the option to query
+
+kwargs:
+  fallback:
+    type: str
+    description: |
+      Value to return if the option does not exist. (**since 1.8.0**)
