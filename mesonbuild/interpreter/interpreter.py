@@ -2275,6 +2275,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     kwargs['args'],
                     env,
                     kwargs['should_fail'],
+                    kwargs['invert_result'],
                     kwargs['timeout'],
                     kwargs['workdir'],
                     kwargs['protocol'],

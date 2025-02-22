@@ -40,6 +40,7 @@ class BaseTest(TypedDict):
 
     args: T.List[T.Union[str, File, build.Target, ExternalProgram]]
     should_fail: bool
+    invert_result: bool
     timeout: int
     workdir: T.Optional[str]
     depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]]
