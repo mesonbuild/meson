@@ -100,6 +100,22 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name, 'sub'), top_value)
         self.assertEqual(optstore.num_options(), 2)
 
+    def test_project_yielding_not_defined_in_top_project(self):
+        optstore = OptionStore(False)
+        top_name = 'a_name'
+        top_value = 'top'
+        sub_name = 'different_name'
+        sub_value = 'sub'
+        vo = UserStringOption(top_name, 'A top level option', top_value)
+        optstore.add_project_option(OptionKey(top_name, ''), vo)
+        self.assertEqual(optstore.get_value_for(top_name, ''), top_value)
+        self.assertEqual(optstore.num_options(), 1)
+        vo2 = UserStringOption(sub_name, 'A subproject option', sub_value, True)
+        optstore.add_project_option(OptionKey(sub_name, 'sub'), vo2)
+        self.assertEqual(optstore.get_value_for(top_name, ''), top_value)
+        self.assertEqual(optstore.get_value_for(sub_name, 'sub'), sub_value)
+        self.assertEqual(optstore.num_options(), 2)
+
     def test_augments(self):
         optstore = OptionStore(False)
         name = 'cpp_std'
