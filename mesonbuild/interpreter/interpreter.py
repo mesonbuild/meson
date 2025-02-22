@@ -2051,6 +2051,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_MODE_KW.evolve(since='0.47.0'),
         KwargInfo('feed', bool, default=False, since='0.59.0'),
         KwargInfo('capture', bool, default=False),
+        KwargInfo('rename', (ContainerTypeInfo(list, str), NoneType), default=None, listify=True, since='1.7.0'),
         KwargInfo('console', bool, default=False, since='0.48.0'),
     )
     def func_custom_target(self, node: mparser.FunctionNode, args: T.Tuple[str],
@@ -2116,7 +2117,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                                    'or the same number of elements as the output keyword argument. '
                                    f'(there are {len(kwargs["install_tag"])} install_tags, '
                                    f'and {len(kwargs["output"])} outputs)')
-
+        if kwargs['rename'] and len(kwargs['rename']) != len(kwargs['output']):
+            raise InvalidArguments('custom_target: rename argument must either be empty or have '
+                                   'length equal to the number of outputs. '
+                                   f'(there are {len(kwargs["rename"])} rename, '
+                                   f'and {len(kwargs["output"])} outputs)')
         for t in kwargs['output']:
             self.validate_forbidden_targets(t)
         self._validate_custom_target_outputs(len(inputs) > 1, kwargs['output'], "custom_target")
@@ -2142,6 +2147,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             install_dir=kwargs['install_dir'],
             install_mode=install_mode,
             install_tag=kwargs['install_tag'],
+            rename=kwargs['rename'],
             backend=self.backend)
         self.add_target(tg.name, tg)
         return tg
@@ -2640,6 +2646,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         KwargInfo('output_format', str, default='c', since='0.47.0', since_values={'json': '1.3.0'},
                   validator=in_set_validator({'c', 'json', 'nasm'})),
         KwargInfo('macro_name', (str, NoneType), default=None, since='1.3.0'),
+        KwargInfo('rename', (ContainerTypeInfo(list, str), NoneType), default=None, listify=True, since='1.7.0'),
     )
     def func_configure_file(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                             kwargs: kwtypes.ConfigureFile):
@@ -2697,6 +2704,11 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.configure_file_outputs[ofile_rpath] = self.current_node.lineno
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
+
+        # Validate rename
+        rename = kwargs['rename']
+        if rename and len(rename) != 1:
+            raise InterpreterException('rename must either be an empty list or a single string')
 
         # Perform the appropriate action
         if kwargs['configuration'] is not None:
@@ -2792,7 +2804,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
             install_tag = kwargs['install_tag']
             self.build.data.append(build.Data([cfile], idir, idir_name, install_mode, self.subproject,
-                                              install_tag=install_tag, data_type='configure'))
+                                              install_tag=install_tag, data_type='configure', rename=rename))
         return mesonlib.File.from_built_file(self.subdir, output)
 
     def extract_incdirs(self, kwargs, key: str = 'include_directories') -> T.List[build.IncludeDirs]:
@@ -3487,6 +3499,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         target = targetclass(name, self.subdir, self.subproject, for_machine, srcs, struct, objs,
                              self.environment, self.compilers[for_machine], kwargs)
 
+        if kwargs['rename'] and len(kwargs['rename']) != len(target.outputs):
+            raise InvalidArguments('build_target: rename argument must either be empty or have '
+                                   'length equal to the number of outputs. '
+                                   f'(there are {len(kwargs["rename"])} rename, '
+                                   f'and {len(target.outputs)} outputs)')
         self.add_target(name, target)
         self.project_args_frozen = True
         return target
