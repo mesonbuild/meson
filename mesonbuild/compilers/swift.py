@@ -15,6 +15,7 @@ from .compilers import Compiler, clike_debug_args, PrefixArgumentLinkerOptionSty
 if T.TYPE_CHECKING:
     from .. import build
     from ..compilers.compilers import Language
+    from ..envconfig import MachineInfo
     from ..options import MutableKeyedOptionDictType
     from ..dependencies import Dependency
     from ..environment import Environment
@@ -222,3 +223,16 @@ class SwiftCompiler(Compiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return swift_optimization_args[optimization_level]
+
+    @classmethod
+    def _unix_args_to_native(cls, args: T.List[str], info: MachineInfo) -> T.List[str]:
+        result: T.List[str] = []
+        for arg in args:
+            if arg == '-pthread':
+                arg = '-lpthread'
+            elif arg.startswith('-isystem'):
+                arg = f'-I{arg.removeprefix('-isystem')}'
+            elif arg.startswith('-idirafter'):
+                arg = f'-I{arg.removeprefix('-idirafter')}'
+            result.append(arg)
+        return result
