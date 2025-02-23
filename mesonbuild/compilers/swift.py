@@ -30,6 +30,12 @@ swift_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-O'],
 }
 
+swiftc_color_args: T.Dict[str, T.List[str]] = {
+    'auto': [],
+    'always': ['-color-diagnostics'],
+    'never': ['-no-color-diagnostics'],
+}
+
 class SwiftCompiler(Compiler):
 
     LINKER_PREFIX = PrefixArgumentLinkerOptionWrapperStyle('-Xlinker')
@@ -96,6 +102,9 @@ class SwiftCompiler(Compiler):
 
     def get_header_import_args(self, headername: str) -> T.List[str]:
         return ['-import-objc-header', headername]
+
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
+        return swiftc_color_args[colortype][:]
 
     def get_warn_args(self, level: str) -> T.List[str]:
         return []
