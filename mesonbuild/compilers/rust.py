@@ -203,15 +203,16 @@ class RustCompiler(Compiler):
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: T.Tuple[str, ...], build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        # add rustc's sysroot to account for rustup installations
+        rpath_paths = tuple(f'{path}:{self.get_target_libdir()}' for path in rpath_paths)
+
         args, to_remove = super().build_rpath_args(env, build_dir, from_dir, rpath_paths,
                                                    build_rpath, install_rpath)
 
-        # ... but then add rustc's sysroot to account for rustup
-        # installations
         rustc_rpath_args = []
         for arg in args:
             rustc_rpath_args.append('-C')
-            rustc_rpath_args.append(f'link-arg={arg}:{self.get_target_libdir()}')
+            rustc_rpath_args.append(f'link-arg={arg}')
         return rustc_rpath_args, to_remove
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
