@@ -1902,7 +1902,7 @@ def _make_tree_writable(topdir: T.Union[str, Path]) -> None:
         os.chmod(d, os.stat(d).st_mode | stat.S_IWRITE | stat.S_IREAD)
         for fname in files:
             fpath = os.path.join(d, fname)
-            if os.path.isfile(fpath):
+            if not os.path.islink(fpath) and os.path.isfile(fpath):
                 os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)
 
 
