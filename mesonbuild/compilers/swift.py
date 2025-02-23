@@ -115,6 +115,16 @@ class SwiftCompiler(Compiler):
     def get_std_shared_lib_link_args(self) -> T.List[str]:
         return ['-emit-library']
 
+    def get_dependency_link_args(self, dep: Dependency) -> T.List[str]:
+        args = list(dep.get_link_args(self.get_language()))
+
+        for i, n in enumerate(args):
+            if n == '-pthread':
+                # swiftc does not have the -pthread flag
+                args[i] = '-lpthread'
+
+        return args
+
     def get_module_args(self, modname: str) -> T.List[str]:
         return ['-module-name', modname]
 
