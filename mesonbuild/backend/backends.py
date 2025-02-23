@@ -1295,7 +1295,7 @@ class Backend:
                 env_build_dir = self.environment.get_build_dir()
                 ld_lib_path: T.Set[str] = set(os.path.join(env_build_dir, l.get_subdir()) for l in ld_lib_path_libs)
 
-                if ld_lib_path:
+                if ld_lib_path and not t_env.has_name('LD_LIBRARY_PATH') and not t_env.is_unset('LD_LIBRARY_PATH'):
                     t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
 
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
