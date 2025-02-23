@@ -87,6 +87,9 @@ class EnvironmentVariables(HoldableObject):
     def has_name(self, name: str) -> bool:
         return name in self.varnames
 
+    def is_unset(self, name: str) -> bool:
+        return name in self.unset_vars
+
     def get_names(self) -> T.Set[str]:
         return self.varnames
 
