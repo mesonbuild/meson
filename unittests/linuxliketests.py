@@ -1920,3 +1920,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.check_has_flag(compdb, mainsrc, '-O3')
         self.check_has_flag(compdb, sub1src, '-O2')
         self.check_has_flag(compdb, sub2src, '-O2')
+
+    def test_run_command_external_program(self):
+        testdir = os.path.join(self.unit_test_dir, '125 command list run_command')
+        self.init(testdir, extra_args=['--native-file=' + testdir + '/nativefile.toml'])
