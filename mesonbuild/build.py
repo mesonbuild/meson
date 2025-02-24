@@ -980,8 +980,14 @@ class BuildTarget(Target):
         if 'vala' in self.compilers and 'c' not in self.compilers:
             self.compilers['c'] = self.all_compilers['c']
         if 'cython' in self.compilers:
-            key = OptionKey('cython_language', machine=self.for_machine)
-            value = self.environment.coredata.optstore.get_value_for(key)
+            # Not great, but we can't ask for the override value from "the system"
+            # because this object is currently being constructed so it is not
+            # yet placed in the data store. Grab it directly from override strings
+            # instead.
+            value = self.get_override('cython_language')
+            if value is None:
+                key = OptionKey('cython_language', machine=self.for_machine)
+                value = self.environment.coredata.optstore.get_value_for(key)
             try:
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
