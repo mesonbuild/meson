@@ -159,6 +159,9 @@ class SwiftCompiler(Compiler):
         else:
             return ['-cxx-interoperability-mode=off']
 
+    def supports_cxx_interoperability(self) -> bool:
+        return version_compare(self.version, '>=5.9')
+
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
