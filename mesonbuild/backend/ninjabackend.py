@@ -2309,7 +2309,7 @@ class NinjaBackend(backends.Backend):
 
         compile_args = self.generate_basic_compiler_args(target, swiftc)
         # TODO: export header even when this target doesn't use swift
-        if mesonlib.version_compare(swiftc.version, '>=5.9'):
+        if swiftc.supports_cxx_interoperability():
             compile_args += swiftc.get_cxx_interoperability_args(target.compilers)
         compile_args += self.build.get_project_args(swiftc, target.subproject, target.for_machine)
         compile_args += self.build.get_global_args(swiftc, target.for_machine)
