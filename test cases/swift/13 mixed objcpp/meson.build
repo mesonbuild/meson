@@ -8,5 +8,5 @@ if not swiftc.version().version_compare('>= 5.9')
 endif
 
 lib = static_library('mylib', 'mylib.mm')
-exe = executable('prog', 'main.swift', 'mylib.h', link_with: lib)
+exe = executable('prog', 'main.swift', 'mylib.h', link_with: lib, swift_interoperability_mode: 'cpp')
 test('objcpp interface', exe)

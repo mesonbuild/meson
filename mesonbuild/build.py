@@ -75,7 +75,7 @@ lang_arg_kwargs |= {
 vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
 rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
 cs_kwargs = {'resources', 'cs_args'}
-swift_kwargs = {'swift_module_name'}
+swift_kwargs = {'swift_interoperability_mode', 'swift_module_name'}
 
 buildtarget_kwargs = {
     'build_by_default',
@@ -1275,6 +1275,8 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
+        self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode')
+
         self.swift_module_name = kwargs.get('swift_module_name')
         if self.swift_module_name == '':
             self.swift_module_name = self.name
@@ -1701,6 +1703,9 @@ class BuildTarget(Target):
 
     def uses_fortran(self) -> bool:
         return 'fortran' in self.compilers
+
+    def uses_swift_cpp_interop(self) -> bool:
+        return self.swift_interoperability_mode == 'cpp' and 'swift' in self.compilers
 
     def get_using_msvc(self) -> bool:
         '''

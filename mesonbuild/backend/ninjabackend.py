@@ -2266,6 +2266,20 @@ class NinjaBackend(backends.Backend):
         relsrc = []
         abs_headers = []
         header_imports = []
+
+        if not target.uses_swift_cpp_interop():
+            cpp_targets = [t for t in target.link_targets if t.uses_swift_cpp_interop()]
+            if cpp_targets != []:
+                target_word = 'targets' if len(cpp_targets) > 1 else 'target'
+                first = ', '.join(repr(t.name) for t in cpp_targets[:-1])
+                and_word = ' and ' if len(cpp_targets) > 1 else ''
+                last = repr(cpp_targets[-1].name)
+                enable_word = 'enable' if len(cpp_targets) > 1 else 'enables'
+                raise MesonException('Swift target {0} links against {1} {2}{3}{4} which {5} C++ interoperability. '
+                                     'This requires {0} to also have it enabled. '
+                                     'Add "swift_interoperability_mode: \'cpp\'" to the definition of {0}.'
+                                     .format(repr(target.name), target_word, first, and_word, last, enable_word))
+
         for i in target.get_sources():
             if swiftc.can_compile(i):
                 rels = i.rel_to_builddir(self.build_to_src)
@@ -2282,8 +2296,7 @@ class NinjaBackend(backends.Backend):
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = self.generate_basic_compiler_args(target, swiftc)
         compile_args += swiftc.get_module_args(module_name)
-        if mesonlib.version_compare(swiftc.version, '>=5.9'):
-            compile_args += swiftc.get_cxx_interoperability_args(target.compilers)
+        compile_args += swiftc.get_cxx_interoperability_args(target)
         compile_args += self.build.get_project_args(swiftc, target.subproject, target.for_machine)
         compile_args += self.build.get_global_args(swiftc, target.for_machine)
         if isinstance(target, (build.StaticLibrary, build.SharedLibrary)):
