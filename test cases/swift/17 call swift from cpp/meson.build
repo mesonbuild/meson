@@ -8,4 +8,4 @@ if not swiftc.version().version_compare('>= 5.9')
 endif
 
 lib = shared_library('Library', 'lib.swift')
-executable('program', 'main.cpp', link_with: [lib], include_directories: [lib.private_dir_include()])
+executable('program', 'main.cpp', link_with: [lib], include_directories: [lib.private_dir_include()], swift_interoperability_mode: 'cpp')

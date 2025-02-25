@@ -9,5 +9,5 @@ Xcode backend is used.
 
 ```meson
 lib = static_library('mylib', 'mylib.cpp')
-exe = executable('prog', 'main.swift', 'mylib.h', link_with: lib)
+exe = executable('prog', 'main.swift', 'mylib.h', link_with: lib, swift_interoperability_mode: 'cpp')
 ```
