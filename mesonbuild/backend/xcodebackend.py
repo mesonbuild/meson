@@ -1831,7 +1831,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('SECTORDER_FLAGS', '')
             if is_swift and bridging_header:
                 settings_dict.add_item('SWIFT_OBJC_BRIDGING_HEADER', bridging_header)
-                if self.objversion >= 60 and 'cpp' in langs:
+                if self.objversion >= 60 and target.uses_swift_cpp_interop():
                     settings_dict.add_item('SWIFT_OBJC_INTEROP_MODE', 'objcxx')
             settings_dict.add_item('BUILD_DIR', symroot)
             settings_dict.add_item('OBJROOT', f'{symroot}/build')
