@@ -8,11 +8,12 @@ import subprocess, os.path
 import typing as T
 
 from .. import mlog
-from ..mesonlib import EnvironmentException, MesonException, version_compare
+from ..mesonlib import EnvironmentException, first, MesonException, version_compare
 from .compilers import Compiler, clike_debug_args
 
 
 if T.TYPE_CHECKING:
+    from .. import build
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -114,6 +115,18 @@ class SwiftCompiler(Compiler):
 
     def get_compile_only_args(self) -> T.List[str]:
         return ['-c']
+
+    def get_option_compile_args(self, target: build.BuildTarget, env: Environment, subproject: T.Optional[str] = None
+                                ) -> T.List[str]:
+        args: T.List[str] = []
+
+        # Pass C compiler args to swiftc, notably -std=...
+        c_lang = first(['objc', 'c'], lambda x: x in target.compilers)
+        if c_lang is not None:
+            cc = target.compilers[c_lang]
+            args.extend(arg for c_arg in cc.get_option_compile_args(target, env, subproject) for arg in ['-Xcc', c_arg])
+
+        return args
 
     def get_working_directory_args(self, path: str) -> T.Optional[T.List[str]]:
         if version_compare(self.version, '<4.2'):
