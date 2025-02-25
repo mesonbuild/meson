@@ -153,11 +153,14 @@ class SwiftCompiler(Compiler):
 
         return ['-working-directory', path]
 
-    def get_cxx_interoperability_args(self, lang: T.Dict[str, Compiler]) -> T.List[str]:
-        if 'cpp' in lang or 'objcpp' in lang:
-            return ['-cxx-interoperability-mode=default']
-        else:
-            return ['-cxx-interoperability-mode=off']
+    def get_cxx_interoperability_args(self, target: T.Optional[build.BuildTarget] = None) -> T.List[str]:
+        if target is not None and not target.uses_swift_cpp_interop():
+            return []
+
+        if version_compare(self.version, '<5.9'):
+            raise MesonException(f'Compiler {self} does not support C++ interoperability')
+
+        return ['-cxx-interoperability-mode=default']
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
