@@ -157,8 +157,12 @@ class SwiftCompiler(Compiler):
 
         return ['-working-directory', path]
 
-    def get_cxx_interoperability_args(self, lang: T.Dict[str, Compiler]) -> T.List[str]:
-        if 'cpp' in lang or 'objcpp' in lang:
+    def get_cxx_interoperability_args(self, enabled: bool) -> T.List[str]:
+        if not self.supports_cxx_interoperability():
+            if enabled:
+                raise MesonException(f'Compiler {self} does not support C++ interoperability')
+            return []
+        if enabled:
             return ['-cxx-interoperability-mode=default']
         else:
             return ['-cxx-interoperability-mode=off']
