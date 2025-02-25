@@ -195,7 +195,7 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
     for linker in trials:
         linker_name = os.path.basename(linker[0])
 
-        if any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
+        if os.getenv('FORCE_MSVC_ARFLAGS') or any(os.path.basename(x) in {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'} for x in linker):
             arg = '/?'
         elif linker_name in {'ar2000', 'ar2000.exe', 'ar430', 'ar430.exe', 'armar', 'armar.exe', 'ar6x', 'ar6x.exe'}:
             arg = '?'
@@ -483,7 +483,9 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             target = 'x86' if 'IA-32' in err else 'x86_64'
             cls = c.IntelClCCompiler if lang == 'c' else cpp.IntelClCPPCompiler
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
-            linker = linkers.XilinkDynamicLinker(for_machine, [], version=version)
+            linker_exe = env.lookup_binary_entry(for_machine, 'c_ld')
+            linker_exelist = [linker_exe] if linker_exe else None
+            linker = linkers.XilinkDynamicLinker(for_machine, [], version=version, exelist=linker_exelist)
             return cls(
                 compiler, version, for_machine, is_cross, info, target,
                 linker=linker)
@@ -492,7 +494,9 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             target = 'x86' if 'IA-32' in err else 'x86_64'
             cls = c.IntelLLVMClCCompiler if lang == 'c' else cpp.IntelLLVMClCPPCompiler
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
-            linker = linkers.XilinkDynamicLinker(for_machine, [], version=version)
+            linker_exe = env.lookup_binary_entry(for_machine, 'c_ld')
+            linker_exelist = [linker_exe] if linker_exe else None
+            linker = linkers.XilinkDynamicLinker(for_machine, [], version=version, exelist=linker_exelist)
             return cls(
                 compiler, version, for_machine, is_cross, info, target,
                 linker=linker)
