@@ -140,7 +140,11 @@ class SwiftCompiler(Compiler):
             args += ['-swift-version', std]
 
         # Pass C compiler -std=... arg to swiftc
-        c_lang = first(['objc', 'c'], lambda x: x in target.compilers)
+        c_langs = ['objc', 'c']
+        if target.uses_swift_cpp_interop():
+            c_langs = ['objcpp', 'cpp', *c_langs]
+
+        c_lang = first(c_langs, lambda x: x in target.compilers)
         if c_lang is not None:
             cc = target.compilers[c_lang]
             args.extend(arg for c_arg in cc.get_option_std_args(target, env, subproject) for arg in ['-Xcc', c_arg])
