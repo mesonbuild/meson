@@ -2220,7 +2220,7 @@ class NinjaBackend(backends.Backend):
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = self.generate_basic_compiler_args(target, swiftc)
         compile_args += swiftc.get_module_args(module_name)
-        if mesonlib.version_compare(swiftc.version, '>=5.9'):
+        if swiftc.supports_cxx_interoperability():
             compile_args += swiftc.get_cxx_interoperability_args(target.compilers)
         compile_args += self.build.get_project_args(swiftc, target.subproject, target.for_machine)
         compile_args += self.build.get_global_args(swiftc, target.for_machine)
