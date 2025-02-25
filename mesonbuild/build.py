@@ -75,6 +75,7 @@ lang_arg_kwargs |= {
 vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
 rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
 cs_kwargs = {'resources', 'cs_args'}
+swift_kwargs = {'swift_cpp_interop'}
 
 buildtarget_kwargs = {
     'build_by_default',
@@ -110,7 +111,8 @@ known_build_target_kwargs = (
     pch_kwargs |
     vala_kwargs |
     rust_kwargs |
-    cs_kwargs)
+    cs_kwargs |
+    swift_kwargs)
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi'}
@@ -1233,6 +1235,13 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
+        self.swift_cpp_interop = kwargs.get('swift_cpp_interop', 'auto')
+        permitted = {'auto', 'false', 'true'}
+        if self.swift_cpp_interop not in permitted:
+            raise InvalidArguments(
+                'Invalid value for swift_cpp_interop {!r}: must be one of {}'
+                .format(self.swift_cpp_interop, ', '.join(repr(x) for x in permitted)))
+
     def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
@@ -1648,6 +1657,17 @@ class BuildTarget(Target):
 
     def uses_fortran(self) -> bool:
         return 'fortran' in self.compilers
+
+    def uses_swift_cpp_interop(self) -> bool:
+        try:
+            swiftc = self.compilers['swift']
+        except KeyError:
+            return False
+
+        if self.swift_cpp_interop == 'auto':
+            return swiftc.supports_cxx_interoperability() and any(lang in self.compilers for lang in ['objcpp', 'cpp'])
+        else:
+            return self.swift_cpp_interop == 'true'
 
     def get_using_msvc(self) -> bool:
         '''
