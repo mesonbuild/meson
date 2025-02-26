@@ -50,8 +50,6 @@ if T.TYPE_CHECKING:
         default: str
         choices: T.List
 
-    OptionValueType: TypeAlias = T.Union[str, int, bool, T.List[str]]
-
 DEFAULT_YIELDING = False
 
 # Can't bind this near the class method it seems, sadly.
@@ -797,7 +795,7 @@ class OptionStore:
             key = key.evolve(machine=MachineChoice.HOST)
         return key
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> 'OptionValueType':
+    def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
         return self.get_value_object(key).value
 
     def __len__(self) -> int:
@@ -833,7 +831,7 @@ class OptionStore:
                 return self.options[parent_key]
             return potential
 
-    def get_value_object_and_value_for(self, key: OptionKey) -> 'T.Tuple[AnyOptionType, OptionValueType]':
+    def get_value_object_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert isinstance(key, OptionKey)
         vobject = self.get_value_object_for(key)
         computed_value = vobject.value
@@ -843,7 +841,7 @@ class OptionStore:
                 computed_value = vobject.validate_value(self.augments[keystr])
         return (vobject, computed_value)
 
-    def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> 'OptionValueType':
+    def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject)
         else:
@@ -1102,7 +1100,7 @@ class OptionStore:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
 
-    def get_option_from_meson_file(self, key: OptionKey) -> 'T.Tuple[AnyOptionType, OptionValueType]':
+    def get_option_from_meson_file(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert isinstance(key, OptionKey)
         (value_object, value) = self.get_value_object_and_value_for(key)
         return (value_object, value)
