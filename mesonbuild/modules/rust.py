@@ -24,6 +24,7 @@ from ..programs import ExternalProgram
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..build import IncludeDirs, LibTypes
+    from ..compilers.rust import RustCompiler
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
@@ -58,12 +59,14 @@ class RustModule(ExtensionModule):
     """A module that holds helper functions for rust."""
 
     INFO = ModuleInfo('rust', '0.57.0', stabilized='1.0.0')
+    _bindgen_rust_target: T.Optional[str]
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
         self._bindgen_bin: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
         if 'rust' in interpreter.compilers.host:
-            self._bindgen_rust_target: T.Optional[str] = interpreter.compilers.host['rust'].version
+            rustc = T.cast('RustCompiler', interpreter.compilers.host['rust'])
+            self._bindgen_rust_target = 'nightly' if rustc.is_nightly else rustc.version
         else:
             self._bindgen_rust_target = None
         self._bindgen_set_std = False

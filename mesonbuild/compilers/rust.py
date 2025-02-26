@@ -100,6 +100,8 @@ class RustCompiler(Compiler):
         if 'link' in self.linker.id:
             self.base_options.add(OptionKey('b_vscrt'))
         self.native_static_libs: T.List[str] = []
+        self.is_beta = '-beta' in full_version
+        self.is_nightly = '-nightly' in full_version
 
     def needs_static_linker(self) -> bool:
         return False
