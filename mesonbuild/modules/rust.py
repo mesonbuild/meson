@@ -66,6 +66,7 @@ class RustModule(ExtensionModule):
             self._bindgen_rust_target: T.Optional[str] = interpreter.compilers.host['rust'].version
         else:
             self._bindgen_rust_target = None
+        self._bindgen_set_std = False
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
@@ -266,6 +267,10 @@ class RustModule(ExtensionModule):
                 if 'Got an invalid' in err or 'is not a valid Rust target' in err:
                     self._bindgen_rust_target = None
 
+            # TODO: Executable needs to learn about get_version
+            if isinstance(self._bindgen_bin, ExternalProgram):
+                self._bindgen_set_std = mesonlib.version_compare(self._bindgen_bin.get_version(), '>= 0.71')
+
         name: str
         if isinstance(header, File):
             name = header.fname
@@ -335,6 +340,11 @@ class RustModule(ExtensionModule):
             kwargs['args'] + inline_wrapper_args
         if self._bindgen_rust_target and '--rust-target' not in cmd:
             cmd.extend(['--rust-target', self._bindgen_rust_target])
+        if self._bindgen_set_std and '--rust-edition' not in cmd:
+            rust_std = state.environment.coredata.optstore.get_value('rust_std')
+            assert isinstance(rust_std, str), 'for mypy'
+            if rust_std != 'none':
+                cmd.extend(['--rust-edition', rust_std])
         cmd.append('--')
         cmd.extend(kwargs['c_args'])
         cmd.extend(clang_args)
