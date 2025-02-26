@@ -10,8 +10,7 @@ from . import mlog, options
 import pickle, os, uuid
 import sys
 from itertools import chain
-from collections import OrderedDict, abc
-import dataclasses
+from collections import OrderedDict
 import textwrap
 
 from .mesonlib import (
@@ -60,9 +59,8 @@ if T.TYPE_CHECKING:
         cross_file: T.List[str]
         native_file: T.List[str]
 
-    OptionDictType = T.Union[T.Dict[str, options.AnyOptionType], 'OptionsView']
+    OptionDictType = T.Dict[str, options.AnyOptionType]
     MutableKeyedOptionDictType = T.Dict['OptionKey', options.AnyOptionType]
-    KeyedOptionDictType = T.Union['options.OptionStore', 'OptionsView']
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
@@ -146,7 +144,7 @@ class DependencyCache:
     successfully lookup by providing a simple get/put interface.
     """
 
-    def __init__(self, builtins: 'KeyedOptionDictType', for_machine: MachineChoice):
+    def __init__(self, builtins: options.OptionStore, for_machine: MachineChoice):
         self.__cache: T.MutableMapping[TV_DepID, DependencySubCache] = OrderedDict()
         self.__builtins = builtins
         self.__pkg_conf_key = options.OptionKey('pkg_config_path')
@@ -900,69 +898,6 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
             args.cmd_line_options[key.name] = value
             delattr(args, name)
 
-@dataclasses.dataclass
-class OptionsView(abc.Mapping):
-    '''A view on an options dictionary for a given subproject and with overrides.
-    '''
-
-    # TODO: the typing here could be made more explicit using a TypeDict from
-    # python 3.8 or typing_extensions
-    original_options: T.Union[KeyedOptionDictType, 'dict[OptionKey, options.AnyOptionType]']
-    subproject: T.Optional[str] = None
-    overrides: T.Optional[T.Mapping[OptionKey, ElementaryOptionValues]] = dataclasses.field(default_factory=dict)
-
-    def __getitem__(self, key: OptionKey) -> options.UserOption:
-        # FIXME: This is fundamentally the same algorithm than interpreter.get_option_internal().
-        # We should try to share the code somehow.
-        key = key.evolve(subproject=self.subproject)
-        if not isinstance(self.original_options, options.OptionStore):
-            # This is only used by CUDA currently.
-            # This entire class gets removed when option refactor
-            # is finished.
-            if '_' in key.name or key.lang is not None:
-                is_project_option = False
-            else:
-                sys.exit(f'FAIL {key}.')
-        else:
-            is_project_option = self.original_options.is_project_option(key)
-        if not is_project_option:
-            opt = self.original_options.get(key)
-            if opt is None or opt.yielding:
-                key2 = key.as_root()
-                # This hack goes away once wi start using OptionStore
-                # to hold overrides.
-                if isinstance(self.original_options, options.OptionStore):
-                    if key2 not in self.original_options:
-                        raise KeyError(f'{key} {key2}')
-                    opt = self.original_options.get_value_object(key2)
-                else:
-                    opt = self.original_options[key2]
-        else:
-            opt = self.original_options[key]
-            if opt.yielding:
-                opt = self.original_options.get(key.as_root(), opt)
-        if self.overrides:
-            override_value = self.overrides.get(key.as_root())
-            if override_value is not None:
-                opt = copy.copy(opt)
-                opt.set_value(override_value)
-        return opt
-
-    def get_value(self, key: T.Union[str, OptionKey]):
-        if isinstance(key, str):
-            key = OptionKey(key)
-        return self[key].value
-
-    def set_value(self, key: T.Union[str, OptionKey], value: ElementaryOptionValues):
-        if isinstance(key, str):
-            key = OptionKey(key)
-        self.overrides[key] = value
-
-    def __iter__(self) -> T.Iterator[OptionKey]:
-        return iter(self.original_options)
-
-    def __len__(self) -> int:
-        return len(self.original_options)
 
 FORBIDDEN_TARGET_NAMES = frozenset({
     'clean',
