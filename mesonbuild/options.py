@@ -850,11 +850,6 @@ class OptionStore:
         vobject, resolved_value = self.get_value_object_and_value_for(key)
         return resolved_value
 
-    def num_options(self) -> int:
-        basic = len(self.options)
-        build = len(self.build_options) if self.build_options else 0
-        return basic + build
-
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         if '.' in key.name:
