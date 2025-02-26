@@ -41,6 +41,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter, Test
     from ..linkers.linkers import StaticLinker
     from ..mesonlib import FileMode, FileOrString
+    from ..options import ElementaryOptionValues
 
     from typing_extensions import TypedDict, NotRequired
 
@@ -2105,7 +2106,7 @@ class Backend:
             return target.subproject != ''
         raise MesonException(f'Internal error: invalid option type for "unity": {val}')
 
-    def get_target_option(self, target: build.BuildTarget, name: T.Union[str, OptionKey]) -> T.Union[str, int, bool, T.List[str]]:
+    def get_target_option(self, target: build.BuildTarget, name: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject=target.subproject)
         elif isinstance(name, OptionKey):

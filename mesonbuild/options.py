@@ -288,7 +288,7 @@ class UserOption(T.Generic[_T], HoldableObject):
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
 
-    def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
+    def printable_value(self) -> ElementaryOptionValues:
         assert isinstance(self.value, (str, int, bool, list))
         return self.value
 

@@ -1419,7 +1419,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                               env: Environment,
                               target: T.Optional[BuildTarget],
                               subproject: T.Optional[str] = None
-                              ) -> T.Union[str, int, bool, T.List[str]]:
+                              ) -> options.ElementaryOptionValues:
         if isinstance(key, str):
             key = self.form_compileropt_key(key)
         if target:
