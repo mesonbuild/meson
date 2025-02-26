@@ -45,6 +45,7 @@ if T.TYPE_CHECKING:
     from ..linkers.linkers import DynamicLinker, StaticLinker
     from ..compilers.cs import CsCompiler
     from ..compilers.fortran import FortranCompiler
+    from ..compilers.rust import RustCompiler
     from ..mesonlib import FileOrString
     from .backends import TargetIntrospectionData
 
@@ -1930,24 +1931,12 @@ class NinjaBackend(backends.Backend):
         # in Rust
         return target.rust_dependency_map.get(dependency.name, dependency.name).replace('-', '_')
 
-    def generate_rust_target(self, target: build.BuildTarget) -> None:
-        rustc = target.compilers['rust']
+    def generate_rust_sources(self, target: build.BuildTarget) -> T.Tuple[T.List[str], str]:
+        orderdeps: T.List[str] = []
+
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
         # statements and magic.
-        args = rustc.compiler_args()
-        # Compiler args for compiling this target
-        args += compilers.get_base_compile_args(target, rustc, self.environment)
-        self.generate_generator_list_rules(target)
-
-        # dependencies need to cause a relink, they're not just for ordering
-        deps: T.List[str] = []
-
-        # Dependencies for rust-project.json
-        project_deps: T.List[RustDep] = []
-
-        orderdeps: T.List[str] = []
-
         main_rust_file = None
         if target.structured_sources:
             if target.structured_sources.needs_copy():
@@ -1977,14 +1966,10 @@ class NinjaBackend(backends.Backend):
             orderdeps.extend(_ods)
 
         for i in target.get_sources():
-            if not rustc.can_compile(i):
-                raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
             if main_rust_file is None:
                 main_rust_file = i.rel_to_builddir(self.build_to_src)
         for g in target.get_generated_sources():
             for i in g.get_outputs():
-                if not rustc.can_compile(i):
-                    raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
                 if isinstance(g, GeneratedList):
                     fname = os.path.join(self.get_target_private_dir(target), i)
                 else:
@@ -1992,26 +1977,35 @@ class NinjaBackend(backends.Backend):
                 if main_rust_file is None:
                     main_rust_file = fname
                 orderdeps.append(fname)
-        if main_rust_file is None:
-            raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
+
+        return orderdeps, main_rust_file
+
+    def get_rust_compiler_args(self, target: build.BuildTarget, rustc: Compiler, src_crate_type: str,
+                               depfile: T.Optional[str] = None) -> T.List[str]:
+        # Compiler args for compiling this target
+        args = compilers.get_base_compile_args(target, rustc, self.environment)
+
         target_name = self.get_target_filename(target)
-        args.extend(['--crate-type', target.rust_crate_type])
+        args.extend(['--crate-type', src_crate_type])
 
         # If we're dynamically linking, add those arguments
-        #
-        # Rust is super annoying, calling -C link-arg foo does not work, it has
-        # to be -C link-arg=foo
         if target.rust_crate_type in {'bin', 'dylib'}:
             args.extend(rustc.get_linker_always_args())
 
         args += self.generate_basic_compiler_args(target, rustc)
         # Rustc replaces - with _. spaces or dots are not allowed, so we replace them with underscores
         args += ['--crate-name', target.name.replace('-', '_').replace(' ', '_').replace('.', '_')]
-        depfile = os.path.join(self.get_target_private_dir(target), target.name + '.d')
-        args += rustc.get_dependency_gen_args(target_name, depfile)
+        if depfile:
+            args += rustc.get_dependency_gen_args(target_name, depfile)
         args += rustc.get_output_args(target_name)
         args += ['-C', 'metadata=' + target.get_id()]
         args += target.get_extra_args('rust')
+        return args
+
+    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: Compiler) -> T.Tuple[T.List[str], T.List[RustDep], T.List[str]]:
+        deps: T.List[str] = []
+        project_deps: T.List[RustDep] = []
+        args: T.List[str] = []
 
         # Rustc always use non-debug Windows runtime. Inject the one selected
         # by Meson options instead.
@@ -2125,6 +2119,33 @@ class NinjaBackend(backends.Backend):
         if isinstance(target, build.SharedLibrary) or has_shared_deps:
             args += self.get_build_rpath_args(target, rustc)
 
+        return deps, project_deps, args
+
+    def generate_rust_target(self, target: build.BuildTarget) -> None:
+        rustc = T.cast('RustCompiler', target.compilers['rust'])
+        self.generate_generator_list_rules(target)
+
+        for i in target.get_sources():
+            if not rustc.can_compile(i):
+                raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
+        for g in target.get_generated_sources():
+            for i in g.get_outputs():
+                if not rustc.can_compile(i):
+                    raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
+
+        orderdeps, main_rust_file = self.generate_rust_sources(target)
+        target_name = self.get_target_filename(target)
+        if main_rust_file is None:
+            raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
+
+        args = rustc.compiler_args()
+
+        depfile = os.path.join(self.get_target_private_dir(target), target.name + '.d')
+        args += self.get_rust_compiler_args(target, rustc, target.rust_crate_type, depfile)
+
+        deps, project_deps, deps_args = self.get_rust_compiler_deps_and_args(target, rustc)
+        args += deps_args
+
         proc_macro_dylib_path = None
         if target.rust_crate_type == 'proc-macro':
             proc_macro_dylib_path = self.get_target_filename_abs(target)
@@ -2141,6 +2162,7 @@ class NinjaBackend(backends.Backend):
         if orderdeps:
             element.add_orderdep(orderdeps)
         if deps:
+            # dependencies need to cause a relink, they're not just for ordering
             element.add_dep(deps)
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
@@ -2148,6 +2170,15 @@ class NinjaBackend(backends.Backend):
         if isinstance(target, build.SharedLibrary):
             self.generate_shsym(target)
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
+
+        if target.doctests:
+            assert target.doctests.target is not None
+            rustdoc = rustc.get_rustdoc(self.environment)
+            args = rustdoc.get_exe_args()
+            args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
+            _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc)
+            args += deps_args
+            target.doctests.cmd_args = args.to_native() + [main_rust_file] + target.doctests.cmd_args
 
     @staticmethod
     def get_rule_suffix(for_machine: MachineChoice) -> str:
