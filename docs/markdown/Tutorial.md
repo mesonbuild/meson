@@ -120,7 +120,7 @@ use GTK+. The new version looks like this.
 #include <gtk/gtk.h>
 
 //
-// Should provided the active view for a GTK application
+// Should provide the active view for a GTK application
 //
 static void activate(GtkApplication* app, gpointer user_data)
 {
