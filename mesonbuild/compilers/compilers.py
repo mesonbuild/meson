@@ -26,7 +26,7 @@ from ..arglist import CompilerArgs
 if T.TYPE_CHECKING:
     from .. import coredata
     from ..build import BuildTarget, DFeatures
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import MutableKeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import RSPFileSyntax
@@ -272,7 +272,7 @@ def option_enabled(boptions: T.Set[OptionKey],
         return False
 
 
-def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '_T') -> '_T':
+def get_option_value(options: options.OptionStore, opt: OptionKey, fallback: '_T') -> '_T':
     """Get the value of an option, or the fallback value."""
     try:
         v: '_T' = options.get_value(opt) # type: ignore [assignment]

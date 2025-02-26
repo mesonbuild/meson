@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -190,7 +190,7 @@ class Conf:
                 items = [l[i] if l[i] else ' ' * four_column[i] for i in range(4)]
                 mlog.log(*items)
 
-    def split_options_per_subproject(self, options: T.Union[coredata.MutableKeyedOptionDictType, coredata.KeyedOptionDictType]) -> T.Dict[str, 'coredata.MutableKeyedOptionDictType']:
+    def split_options_per_subproject(self, options: T.Union[coredata.MutableKeyedOptionDictType, options.OptionStore]) -> T.Dict[str, 'coredata.MutableKeyedOptionDictType']:
         result: T.Dict[str, 'coredata.MutableKeyedOptionDictType'] = {}
         for k, o in options.items():
             if k.subproject:
@@ -228,7 +228,7 @@ class Conf:
         self._add_line(mlog.normal_yellow(section + ':'), '', '', '')
         self.print_margin = 2
 
-    def print_options(self, title: str, opts: T.Union[coredata.MutableKeyedOptionDictType, coredata.KeyedOptionDictType]) -> None:
+    def print_options(self, title: str, opts: T.Union[coredata.MutableKeyedOptionDictType, options.OptionStore]) -> None:
         if not opts:
             return
         if title:
