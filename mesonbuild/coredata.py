@@ -395,9 +395,6 @@ class CoreData:
     def get_option(self, key: OptionKey) -> ElementaryOptionValues:
         return self.optstore.get_value_for(key.name, key.subproject)
 
-    def get_option_object_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> options.AnyOptionType:
-        return self.get_option_for_subproject(key, target.subproject)
-
     def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
@@ -422,13 +419,6 @@ class CoreData:
             # This should be an error, fix before merging.
             key = key.evolve(subproject=subproject)
         return self.optstore.get_value_for(key)
-
-    def get_option_object_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> options.AnyOptionType:
-        #keyname = key.name
-        if key.subproject != subproject:
-            # This should be an error, fix before merging.
-            key = key.evolve(subproject=subproject)
-        return self.optstore.get_value_object_for(key)
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
