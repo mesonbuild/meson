@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2020-2024 Intel Corporation
+# Copyright © 2020-2025 Intel Corporation
 
 from __future__ import annotations
 import itertools
@@ -259,9 +259,11 @@ class RustModule(ExtensionModule):
                 _, _, err = mesonlib.Popen_safe(
                     T.cast('T.List[str]', self._bindgen_bin.get_command()) +
                     ['--rust-target', self._bindgen_rust_target])
-                # Sometimes this is "invalid Rust target" and sometimes "invalid
-                # rust target"
-                if 'Got an invalid' in err:
+                # < 0.71: Sometimes this is "invalid Rust target" and
+                # sometimes "invalid # rust target"
+                # >= 0.71: error: invalid value '...' for '--rust-target <RUST_TARGET>': "..." is not a valid Rust target, accepted values are of the form ...
+                # It's also much harder to hit this in 0.71 than in previous versions
+                if 'Got an invalid' in err or 'is not a valid Rust target' in err:
                     self._bindgen_rust_target = None
 
         name: str
