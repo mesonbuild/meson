@@ -1047,7 +1047,11 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             popen_exceptions[join_args(compiler + arg)] = e
             continue
 
-        version = search_version(out)
+        # Full version contains the "-nightly" or "-beta" suffixes, but version
+        # should just be X.Y.Z
+        full_version = search_version(out)
+        version = full_version.split('-', 1)[0]
+
         cls: T.Type[RustCompiler] = rust.RustCompiler
 
         # Clippy is a wrapper around rustc, but it doesn't have rustc in its
@@ -1063,7 +1067,8 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             except OSError as e:
                 popen_exceptions[join_args(compiler + arg)] = e
                 continue
-            version = search_version(out)
+            full_version = search_version(out)
+            version = full_version.split('-', 1)[0]
 
             cls = rust.ClippyRustCompiler
             mlog.deprecation(
@@ -1143,7 +1148,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
             return cls(
                 compiler, version, for_machine, is_cross, info,
-                linker=linker)
+                linker=linker, full_version=full_version)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
