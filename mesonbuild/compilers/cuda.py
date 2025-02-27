@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -700,10 +700,10 @@ class CudaCompiler(Compiler):
         # return self._to_host_flags(self.host_compiler.get_optimization_args(optimization_level))
         return cuda_optimization_args[optimization_level]
 
-    def sanitizer_compile_args(self, value: str) -> T.List[str]:
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.sanitizer_compile_args(value))
 
-    def sanitizer_link_args(self, value: str) -> T.List[str]:
+    def sanitizer_link_args(self, value: T.List[str]) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.sanitizer_link_args(value))
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
