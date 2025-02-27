@@ -1,4 +1,13 @@
-project('options', 'c', meson_version : '>= 1.0.0')
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2025 Intel Corporation
+
+project('options', meson_version : '>= 1.0.0')
+
+# This must happen before any language is added, or we wont be sure that the
+# compiler didn't cause b_lto to be initialized
+assert(get_option('b_lto') == false, 'Unused b_ option does not have default value')
+
+add_languages('c', required : true)
 
 if get_option('testoption') != 'optval'
   error('Incorrect value to test option')
