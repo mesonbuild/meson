@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
+# Copyright © 2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -14,10 +15,9 @@ from ..mesonlib import (
     EnvironmentException, Popen_safe,
     is_windows, LibType, version_compare
 )
-from .compilers import Compiler
+from .compilers import Compiler, CompileCheckMode
 
 if T.TYPE_CHECKING:
-    from .compilers import CompileCheckMode
     from ..build import BuildTarget
     from ..coredata import MutableKeyedOptionDictType
     from ..dependencies import Dependency
@@ -812,3 +812,11 @@ class CudaCompiler(Compiler):
 
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         return self.host_compiler.get_assert_args(disable, env)
+
+    def has_multi_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
+        args = self._to_host_flags(args)
+        return self.compiles('int main(void) { return 0; }', env, extra_args=args, mode=CompileCheckMode.COMPILE)
+
+    def has_multi_link_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
+        args = self._to_host_flags(self.linker.fatal_warnings() + args, phase=Phase.LINKER)
+        return self.compiles('int main(void) { return 0; }', env, extra_args=args, mode=CompileCheckMode.LINK)
