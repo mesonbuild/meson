@@ -497,10 +497,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
         key = self.form_compileropt_key('std')
-        # To shut up mypy.
-        if isinstance(opts, dict):
-            raise RuntimeError('This is a transitory issue that should not happen. Please report with full backtrace.')
-        std_opt = opts.get_value_object(key)
+        std_opt = opts[key]
         assert isinstance(std_opt, options.UserStdOption), 'for mypy'
         std_opt.set_versions(['c89', 'c99', 'c11'])
         return opts
