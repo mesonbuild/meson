@@ -5177,3 +5177,11 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         self.init(testdir, extra_args=['-Dc_args=-DSOMETHING'])
         self.init(testdir, extra_args=['--wipe'])
+
+    def test_interactive_tap(self):
+        testdir = os.path.join(self.unit_test_dir, '124 interactive tap')
+        self.init(testdir, extra_args=['--wrap-mode=forcefallback'])
+        output = self._run(self.mtest_command + ['--interactive'])
+        self.assertRegex(output, r'Ok:\s*0')
+        self.assertRegex(output, r'Fail:\s*0')
+        self.assertRegex(output, r'Ignored:\s*1')
