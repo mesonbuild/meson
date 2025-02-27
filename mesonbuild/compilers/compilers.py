@@ -308,7 +308,13 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     try:
         sanitize = env.coredata.get_option_for_target(target, 'b_sanitize')
         assert isinstance(sanitize, str)
-        args += compiler.sanitizer_compile_args(sanitize)
+        sanitize_args = compiler.sanitizer_compile_args(sanitize)
+        # We consider that if there are no sanitizer arguments returned, then
+        # the language doesn't support them.
+        if sanitize_args:
+            if not compiler.has_multi_arguments(sanitize_args, env)[0]:
+                raise MesonException(f'Compiler {compiler.name_string()} does not support sanitizer arguments {sanitize_args}')
+            args.extend(sanitize_args)
     except KeyError:
         pass
     try:
@@ -371,7 +377,13 @@ def get_base_link_args(target: 'BuildTarget',
     try:
         sanitizer = env.coredata.get_option_for_target(target, 'b_sanitize')
         assert isinstance(sanitizer, str)
-        args += linker.sanitizer_link_args(sanitizer)
+        sanitizer_args = linker.sanitizer_link_args(sanitizer)
+        # We consider that if there are no sanitizer arguments returned, then
+        # the language doesn't support them.
+        if sanitizer_args:
+            if not linker.has_multi_link_arguments(sanitizer_args, env)[0]:
+                raise MesonException(f'Linker {linker.name_string()} does not support sanitizer arguments {sanitizer_args}')
+            args.extend(sanitizer_args)
     except KeyError:
         pass
     try:
