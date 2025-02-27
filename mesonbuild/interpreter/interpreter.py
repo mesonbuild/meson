@@ -1081,12 +1081,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InterpreterException(f'Invalid option name {optname!r}')
 
         try:
-            value_object, value = self.coredata.optstore.get_option_from_meson_file(options.OptionKey(optname, self.subproject))
+            optkey = options.OptionKey(optname, self.subproject)
+            value_object, value = self.coredata.optstore.get_option_from_meson_file(optkey)
         except KeyError:
-            if self.coredata.optstore.is_base_option(optname):
+            if self.coredata.optstore.is_base_option(optkey):
                 # Due to backwards compatibility return the default
                 # option for base options instead of erroring out.
-                value_object, value = self.get_default_for_b_option(optname)
+                return self.coredata.optstore.get_default_for_b_option(optname)
             else:
                 if self.subproject:
                     raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')
