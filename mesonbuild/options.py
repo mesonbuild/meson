@@ -1100,12 +1100,12 @@ class OptionStore:
         (value_object, value) = self.get_value_object_and_value_for(key)
         return (value_object, value)
 
-    def get_default_for_b_option(self, keyname: str) -> T.Tuple[AnyOptionType, OptionValueType]:
+    def get_default_for_b_option(self, keyname: str) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert keyname.startswith('b_')
         from .compilers.compilers import BASE_OPTIONS
         for bkey, bvalue in BASE_OPTIONS.items():
             if bkey.name == keyname:
-                return (T.cast('AnyOptionType', bvalue), bvalue.default)
+                return (T.cast('AnyOptionType', bvalue.init_option(bkey)), bvalue.default)
         raise MesonBugException(f'Requested base option {keyname} which does not exist.')
 
     def remove(self, key: OptionKey) -> None:
