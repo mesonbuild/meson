@@ -20,6 +20,7 @@ import platform
 import random
 import re
 import signal
+import socket
 import subprocess
 import shlex
 import sys
@@ -1467,6 +1468,13 @@ class TestSubprocess:
             if self.stde_task:
                 self.stde_task.cancel()
 
+            # On Windows we kill processes via `taskkill`, and that does not
+            # close transports for us. We thus have to manually close it, which
+            # is a no-op in case it already was closed on other platforms.
+            transport = getattr(p, '_transport', None)
+            if transport is not None:
+                transport.close()
+
     async def wait(self, test: 'TestRun') -> None:
         p = self._process
 
@@ -1687,6 +1695,65 @@ class SingleTestRunner:
             await stde_task
 
         self.runobj.complete()
+
+
+class SignalNotifier:
+    """Run callbacks in the event loop when signals are delivered.  Used
+    only on Win32, which lacks add_signal_handler/remove_signal_handler
+    on the event loop.
+
+    The (non-asyncio) signal handler writes the signal number to a socket,
+    which is read by a task running reader().
+    """
+
+    def __init__(self, loop: asyncio.events.AbstractEventLoop | None = None):
+        if loop is None:
+            loop = asyncio.get_running_loop()
+        self._loop = loop
+        self._handlers: dict[int, T.Callable[[], None]] = {}
+        # On Windows pipe() does not work, so use socketpair() which is emulated
+        # with a loopback TCP pair.
+        self._rsock, self._wsock = socket.socketpair()
+        self._rsock.setblocking(False)
+        self._wsock.setblocking(False)
+        self._reader_task = loop.create_task(self._reader())
+
+    def add_signal_handler(self, signum: int, func: T.Callable[[], None]) -> None:
+        self._handlers[signum] = func
+        signal.signal(signum, lambda signum, frame: self.notify(signum))
+
+    def remove_signal_handler(self, signum: int) -> None:
+        signal.signal(signum, signal.default_int_handler if signum == signal.SIGINT else signal.SIG_DFL)
+        del self._handlers[signum]
+
+    def notify(self, signum: int) -> None:
+        try:
+            self._wsock.send(bytes([signum]))
+        except OSError:
+            # either a BlockingIOError, or the read side closed so nothing to do.
+            pass
+
+    async def _reader(self) -> None:
+        loop = self._loop
+        try:
+            while True:
+                data = await loop.sock_recv(self._rsock, 4096)
+                if not data:
+                    break
+                for signum in data:
+                    func = self._handlers.get(signum)
+                    if func is not None:
+                        loop.call_soon(func)
+        finally:
+            self._wsock.close()
+            self._rsock.close()
+
+    async def close(self) -> None:
+        try:
+            self._wsock.shutdown(socket.SHUT_WR)  # reader sees EOF
+        except OSError:
+            pass
+        await self._reader_task
 
 
 class TestHarness:
@@ -2233,12 +2300,23 @@ class TestHarness:
         for l in self.loggers:
             l.start(self)
 
-        if sys.platform != 'win32':
-            if os.getpgid(0) == os.getpid():
-                loop.add_signal_handler(signal.SIGINT, sigint_handler)
-            else:
-                loop.add_signal_handler(signal.SIGINT, sigterm_handler)
-            loop.add_signal_handler(signal.SIGTERM, sigterm_handler)
+        if sys.platform == 'win32':
+            group_leader = False
+            notifier = SignalNotifier(loop)
+            add_signal_handler = notifier.add_signal_handler
+            remove_signal_handler = notifier.remove_signal_handler
+            add_signal_handler(signal.SIGBREAK, sigterm_handler)
+        else:
+            group_leader = os.getpgid(0) == os.getpid()
+            add_signal_handler = loop.add_signal_handler
+            remove_signal_handler = loop.remove_signal_handler
+
+        if group_leader:
+            add_signal_handler(signal.SIGINT, sigint_handler)
+        else:
+            add_signal_handler(signal.SIGINT, sigterm_handler)
+        add_signal_handler(signal.SIGTERM, sigterm_handler)
+
         try:
             for runner in runners:
                 if not runner.is_parallel:
@@ -2254,9 +2332,11 @@ class TestHarness:
 
             await complete_all(futures)
         finally:
-            if sys.platform != 'win32':
-                loop.remove_signal_handler(signal.SIGINT)
-                loop.remove_signal_handler(signal.SIGTERM)
+            remove_signal_handler(signal.SIGINT)
+            remove_signal_handler(signal.SIGTERM)
+            if sys.platform == 'win32':
+                remove_signal_handler(signal.SIGBREAK)
+                await notifier.close()
             for l in self.loggers:
                 await l.finish(self)
 
