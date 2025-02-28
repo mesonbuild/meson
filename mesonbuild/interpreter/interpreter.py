@@ -1087,7 +1087,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             if self.coredata.optstore.is_base_option(optkey):
                 # Due to backwards compatibility return the default
                 # option for base options instead of erroring out.
-                return self.coredata.optstore.get_default_for_b_option(optname)
+                return self.coredata.optstore.get_default_for_b_option(optkey)
             else:
                 if self.subproject:
                     raise MesonException(f'Option {optname} does not exist for subproject {self.subproject}.')

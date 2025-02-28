@@ -207,5 +207,5 @@ class OptionTests(unittest.TestCase):
 
     def test_b_default(self):
         optstore = OptionStore(False)
-        value = optstore.get_default_for_b_option('b_vscrt')
+        value = optstore.get_default_for_b_option(OptionKey('b_vscrt'))
         self.assertEqual(value, 'from_buildtype')
