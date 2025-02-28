@@ -508,7 +508,10 @@ class TestLogger:
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         pass
 
-    async def finish(self, harness: 'TestHarness') -> None:
+    async def stop(self) -> None:
+        pass
+
+    def finish(self, harness: 'TestHarness') -> None:
         pass
 
     def close(self) -> None:
@@ -541,7 +544,7 @@ class ConsoleLogger(TestLogger):
         self.progress_test: T.Optional['TestRun'] = None
         self.progress_task: T.Optional[asyncio.Future] = None
         self.max_left_width = 0
-        self.stop = False
+        self._stop = False
         # TODO: before 3.10 this cannot be created immediately, because
         # it will create a new event loop
         self.update: asyncio.Event
@@ -617,7 +620,7 @@ class ConsoleLogger(TestLogger):
             loop = asyncio.get_running_loop()
             next_update = 0.0
             self.request_update()
-            while not self.stop:
+            while not self._stop:
                 await self.update.wait()
                 self.update.clear()
                 # We may get here simply because the progress line has been
@@ -734,12 +737,13 @@ class ConsoleLogger(TestLogger):
 
         self.request_update()
 
-    async def finish(self, harness: 'TestHarness') -> None:
-        self.stop = True
+    async def stop(self) -> None:
+        self._stop = True
         self.request_update()
         if self.progress_task:
             await self.progress_task
 
+    def finish(self, harness: 'TestHarness') -> None:
         if harness.collected_failures and \
                 (harness.options.print_errorlogs or harness.options.verbose):
             print("\nSummary of Failures:\n")
@@ -774,7 +778,10 @@ class TextLogfileBuilder(TestFileLogger):
             self.file.write(result.stde)
         self.file.write(dashes('', '=', 78) + '\n\n')
 
-    async def finish(self, harness: 'TestHarness') -> None:
+    async def stop(self) -> None:
+        pass
+
+    def finish(self, harness: 'TestHarness') -> None:
         if harness.collected_failures:
             self.file.write("\nSummary of Failures:\n\n")
             for i, result in enumerate(harness.collected_failures, 1):
@@ -936,7 +943,10 @@ class JunitBuilder(TestLogger):
                 err = et.SubElement(testcase, 'system-err')
                 err.text = replace_unencodable_xml_chars(test.stde.rstrip())
 
-    async def finish(self, harness: 'TestHarness') -> None:
+    async def stop(self) -> None:
+        pass
+
+    def finish(self, harness: 'TestHarness') -> None:
         """Calculate total test counts and write out the xml result."""
         for suite in self.suites.values():
             self.root.append(suite)
@@ -2086,6 +2096,8 @@ class TestHarness:
 
             asyncio.run(self._run_tests(runners))
         finally:
+            for l in self.loggers:
+                l.finish(self)
             self.close_logfiles()
 
     def log_subtest(self, test: TestRun, s: str, res: TestResult) -> None:
@@ -2191,7 +2203,7 @@ class TestHarness:
                 loop.remove_signal_handler(signal.SIGINT)
                 loop.remove_signal_handler(signal.SIGTERM)
             for l in self.loggers:
-                await l.finish(self)
+                await l.stop()
 
 def list_tests(th: TestHarness) -> bool:
     tests = th.get_tests(errorfile=sys.stderr)
