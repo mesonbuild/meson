@@ -33,7 +33,7 @@ from .mesonlib import (
 from . import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypeAlias, TypedDict
+    from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
     AnyOptionType: TypeAlias = T.Union[
@@ -324,6 +324,8 @@ class UserOption(T.Generic[_T], HoldableObject):
 
     def __post_init__(self, value_: _T) -> None:
         self.value = self.validate_value(value_)
+        # Final isn't technically allowed in a __post_init__ method
+        self.default: Final[_T] = self.value  # type: ignore[misc]
 
     def listify(self, value: T.Any) -> T.List[T.Any]:
         return [value]
