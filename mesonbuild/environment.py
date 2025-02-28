@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2020 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -46,7 +46,6 @@ if T.TYPE_CHECKING:
     from .compilers import Compiler
     from .wrap.wrap import Resolver
     from . import cargo
-    from .build import BuildTarget
 
     CompilersDict = T.Dict[str, Compiler]
 
@@ -1035,13 +1034,3 @@ class Environment:
         if extra_paths:
             env.prepend('PATH', list(extra_paths))
         return env
-
-    def determine_option_value(self, key: T.Union[str, 'OptionKey'], target: T.Optional['BuildTarget'], subproject: T.Optional[str]) -> T.List[str]:
-        if target is None and subproject is None:
-            raise RuntimeError('Internal error, option value determination is missing arguments.')
-        if isinstance(key, str):
-            key = OptionKey(key)
-        if target:
-            return self.coredata.get_option_for_target(target, key)
-        else:
-            return self.coredata.get_option_for_subproject(key, subproject)
