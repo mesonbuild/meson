@@ -2090,11 +2090,31 @@ class TestHarness:
         try:
             self.open_logfiles()
 
-            # TODO: this is the default for python 3.8
             if sys.platform == 'win32':
+                # TODO: this is the default for python 3.8
                 asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-            asyncio.run(self._run_tests(runners))
+                # asyncio does not support signal handling on Windows, so we
+                # cannot cleanly shut down running tests. This leads to all
+                # kinds of errors and exceptions because we would try to read
+                # from processes that may have already been killed by the
+                # system or because we try to use cancelled event loops.
+                # Sometimes, sending SIGINT would even have no effect at all.
+                #
+                # We paper over this issue by using `run_until_complete()`,
+                # which means we won't try to properly clean up after ourselves
+                # anymore and exit the loop immediately instead of printing a
+                # summary of failed tests. This is arguably better though than
+                # printing a wall of text cluttered with exceptions.
+                #
+                # This behaviour should likely be reverted once we know to
+                # properly handle signals on Windows.
+                try:
+                    asyncio.get_event_loop().run_until_complete(self._run_tests(runners))
+                except KeyboardInterrupt:
+                    pass
+            else:
+                asyncio.run(self._run_tests(runners))
         finally:
             for l in self.loggers:
                 l.finish(self)
