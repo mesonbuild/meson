@@ -237,8 +237,7 @@ BASE_OPTIONS: T.Mapping[OptionKey, BaseOption] = {
                                         choices=['default', 'thin']),
     OptionKey('b_thinlto_cache'): BaseOption(options.UserBooleanOption, 'Use LLVM ThinLTO caching for faster incremental builds', False),
     OptionKey('b_thinlto_cache_dir'): BaseOption(options.UserStringOption, 'Directory to store ThinLTO cache objects', ''),
-    OptionKey('b_sanitize'): BaseOption(options.UserComboOption, 'Code sanitizer to use', 'none',
-                                        choices=['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined']),
+    OptionKey('b_sanitize'): BaseOption(options.UserStringArrayOption, 'Code sanitizers to use', []),
     OptionKey('b_lundef'): BaseOption(options.UserBooleanOption, 'Use -Wl,--no-undefined when linking', True),
     OptionKey('b_asneeded'): BaseOption(options.UserBooleanOption, 'Use -Wl,--as-needed when linking', True),
     OptionKey('b_pgo'): BaseOption(options.UserComboOption, 'Use profile guided optimization', 'off',
@@ -320,8 +319,14 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
         pass
     try:
         sanitize = env.coredata.get_option_for_target(target, 'b_sanitize')
-        assert isinstance(sanitize, str)
-        args += compiler.sanitizer_compile_args(sanitize)
+        assert isinstance(sanitize, list)
+        sanitize_args = compiler.sanitizer_compile_args(sanitize)
+        # We consider that if there are no sanitizer arguments returned, then
+        # the language doesn't support them.
+        if sanitize_args:
+            if not compiler.has_multi_arguments(sanitize_args, env)[0]:
+                raise MesonException(f'Compiler {compiler.name_string()} does not support sanitizer arguments {sanitize_args}')
+            args.extend(sanitize_args)
     except KeyError:
         pass
     try:
@@ -383,8 +388,14 @@ def get_base_link_args(target: 'BuildTarget',
         pass
     try:
         sanitizer = env.coredata.get_option_for_target(target, 'b_sanitize')
-        assert isinstance(sanitizer, str)
-        args += linker.sanitizer_link_args(sanitizer)
+        assert isinstance(sanitizer, list)
+        sanitizer_args = linker.sanitizer_link_args(sanitizer)
+        # We consider that if there are no sanitizer arguments returned, then
+        # the language doesn't support them.
+        if sanitizer_args:
+            if not linker.has_multi_link_arguments(sanitizer_args, env)[0]:
+                raise MesonException(f'Linker {linker.name_string()} does not support sanitizer arguments {sanitizer_args}')
+            args.extend(sanitizer_args)
     except KeyError:
         pass
     try:
@@ -1045,10 +1056,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_lto_args()
 
-    def sanitizer_compile_args(self, value: str) -> T.List[str]:
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return []
 
-    def sanitizer_link_args(self, value: str) -> T.List[str]:
+    def sanitizer_link_args(self, value: T.List[str]) -> T.List[str]:
         return self.linker.sanitizer_args(value)
 
     def get_asneeded_args(self) -> T.List[str]:

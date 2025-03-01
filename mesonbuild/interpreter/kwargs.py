@@ -482,3 +482,8 @@ class FuncDeclareDependency(TypedDict):
     sources: T.List[T.Union[FileOrString, build.GeneratedTypes]]
     variables: T.Dict[str, str]
     version: T.Optional[str]
+
+
+class FuncGetOption(TypedDict):
+
+    format: int
