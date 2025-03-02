@@ -7,41 +7,42 @@ from __future__ import annotations
 
 from .. import mparser
 from .visitor import AstVisitor, FullAstVisitor
+from ..mesonlib import MesonBugException
 
 import re
 import typing as T
 
 
 # Also known as "order of operations" or "binding power".
-# This is the counterpart to Parser.e1, Parser.e2, Parser.e3, Parser.e4, Parser.e5, Parser.e6, Parser.e7, Parser.e8, Parser.e9
+# This is the counterpart to Parser.e1, Parser.e2, Parser.e3, Parser.e4, Parser.e5, Parser.e6, Parser.e7, Parser.e8, Parser.e9, Parser.e10
 def precedence_level(node: mparser.BaseNode) -> int:
     if isinstance(node, (mparser.PlusAssignmentNode, mparser.AssignmentNode, mparser.TernaryNode)):
-        return 10
+        return 1
     elif isinstance(node, mparser.OrNode):
-        return 20
+        return 2
     elif isinstance(node, mparser.AndNode):
-        return 30
+        return 3
     elif isinstance(node, mparser.ComparisonNode):
-        return 40
+        return 4
     elif isinstance(node, mparser.ArithmeticNode):
         if node.operation in set(['add', 'sub']):
-            return 51
+            return 5
         elif node.operation in set(['mod', 'mul', 'div']):
-            return 52
+            return 6
     elif isinstance(node, (mparser.NotNode, mparser.UMinusNode)):
-        return 60
+        return 7
     elif isinstance(node, mparser.FunctionNode):
-        return 70
+        return 8
     elif isinstance(node, (mparser.ArrayNode, mparser.DictNode)):
-        return 80
-    elif isinstance(node, (mparser.BooleanNode, mparser.IdNode, mparser.NumberNode, mparser.BaseStringNode, mparser.FormatStringNode, mparser.MultilineFormatStringNode, mparser.EmptyNode)):
-        return 90
+        return 9
+    elif isinstance(node, (mparser.BooleanNode, mparser.IdNode, mparser.NumberNode, mparser.StringNode, mparser.EmptyNode)):
+        return 10
     elif isinstance(node, mparser.ParenthesizedNode):
         # Parenthesize have the highest binding power, but since the AstPrinter
         # ignores ParanthesizedNode, the binding power of the inner node is
         # relevant.
         return precedence_level(node.inner)
-    raise TypeError
+    raise MesonBugException('Unhandled node type')
 
 class AstPrinter(AstVisitor):
     escape_trans: T.Dict[int, str] = str.maketrans({'\\': '\\\\', "'": "\'"})

@@ -250,6 +250,8 @@ class InterpreterBase:
             return self.evaluate_statement(cur.inner)
         elif isinstance(cur, mparser.TestCaseClauseNode):
             return self.evaluate_testcase(cur)
+        elif isinstance(cur, mparser.EmptyNode):
+            return None
         else:
             raise InvalidCode("Unknown statement.")
         return None
@@ -436,6 +438,7 @@ class InterpreterBase:
 
     @FeatureNew('format strings', '0.58.0')
     def evaluate_fstring(self, node: mparser.StringNode) -> InterpreterObject:
+        print(f"{self.variables=}")
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:
@@ -512,7 +515,7 @@ class InterpreterBase:
 
     def function_call(self, node: mparser.FunctionNode) -> T.Optional[InterpreterObject]:
         func_name = node.func_name.value
-        (h_posargs, h_kwargs) = self.reduce_arguments(node.args)
+        (h_posargs, h_kwargs) = self.reduce_arguments(node.args, include_unknown_args=True)
         (posargs, kwargs) = self._unholder_args(h_posargs, h_kwargs)
         if is_disabled(posargs, kwargs) and func_name not in {'get_variable', 'set_variable', 'unset_variable', 'is_disabler'}:
             return Disabler()
@@ -540,7 +543,7 @@ class InterpreterBase:
             object_display_name = invocable.__class__.__name__
             obj = self.evaluate_statement(invocable)
         method_name = node.name.value
-        (h_args, h_kwargs) = self.reduce_arguments(node.args)
+        (h_args, h_kwargs) = self.reduce_arguments(node.args, include_unknown_args = True)
         (args, kwargs) = self._unholder_args(h_args, h_kwargs)
         if is_disabled(args, kwargs):
             return Disabler()
@@ -588,6 +591,7 @@ class InterpreterBase:
                 args: mparser.ArgumentNode,
                 key_resolver: T.Callable[[mparser.BaseNode], str] = default_resolve_key,
                 duplicate_key_error: T.Optional[str] = None,
+                include_unknown_args: bool = False,
             ) -> T.Tuple[
                 T.List[InterpreterObject],
                 T.Dict[str, InterpreterObject]
