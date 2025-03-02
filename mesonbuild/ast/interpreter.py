@@ -11,6 +11,7 @@ import typing as T
 from collections import defaultdict
 from dataclasses import dataclass
 import itertools
+from pathlib import Path
 
 from .. import mparser, mesonlib
 from .. import environment
@@ -48,7 +49,6 @@ from ..mparser import (
     ArrayNode,
     AssignmentNode,
     BaseNode,
-    ElementaryNode,
     EmptyNode,
     IdNode,
     MethodNode,
@@ -353,7 +353,7 @@ class AstInterpreter(InterpreterBase):
         else:
             res = self.inner_method_call(obj, method_name, args, kwargs)
         self.funcvals[node] = res
-    
+
     def evaluate_fstring(self, node: mparser.StringNode) -> None:
         pass
 
@@ -547,7 +547,7 @@ class AstInterpreter(InterpreterBase):
             else:
                 raise TypeError
         self.funcvals[node] = self._holderify(ret)
-    
+
     def get_cur_value(self, var_name: str, allow_none: bool = False) -> T.Union[BaseNode, UnknownValue]:
         if var_name in {'meson', 'host_machine', 'build_machine', 'target_machine'}:
             return UnknownValue()

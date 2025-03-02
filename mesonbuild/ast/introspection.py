@@ -17,7 +17,7 @@ from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject, UnknownValue
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
-from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 from .interpreter import AstInterpreter, IntrospectionBuildTarget, IntrospectionDependency
 
 if T.TYPE_CHECKING:
