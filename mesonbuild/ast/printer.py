@@ -13,6 +13,8 @@ import typing as T
 
 
 class AstPrinter(AstVisitor):
+    escape_trans: T.Dict[int, str] = str.maketrans({'\\': '\\\\', "'": "\'"})
+
     def __init__(self, indent: int = 2, arg_newline_cutoff: int = 5, update_ast_line_nos: bool = False):
         self.result = ''
         self.indent = indent
@@ -57,7 +59,7 @@ class AstPrinter(AstVisitor):
         node.lineno = self.curr_line or node.lineno
 
     def escape(self, val: str) -> str:
-        return val.replace('\\', '\\\\').replace("'", "\'")
+        return val.translate(self.escape_trans)
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         assert isinstance(node.value, str)
