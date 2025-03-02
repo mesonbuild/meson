@@ -63,7 +63,7 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var
+    from ..interpreterbase import SubProject, TYPE_var
     from ..mparser import (
         AndNode,
         ComparisonNode,

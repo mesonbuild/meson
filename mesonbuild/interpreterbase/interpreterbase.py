@@ -438,7 +438,7 @@ class InterpreterBase:
 
     @FeatureNew('format strings', '0.58.0')
     def evaluate_fstring(self, node: mparser.StringNode) -> InterpreterObject:
-        print(f"{self.variables=}")
+
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:
