@@ -813,7 +813,6 @@ class OptionStore:
         self.module_options: T.Set[OptionKey] = set()
         from .compilers import all_languages
         self.all_languages = set(all_languages)
-        self.build_options = None
         self.project_options = set()
         self.augments: T.Dict[str, str] = {}
         self.pending_project_options: T.Dict[OptionKey, str] = {}
