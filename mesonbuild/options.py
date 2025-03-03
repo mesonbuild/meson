@@ -672,11 +672,6 @@ class BuiltinOption(T.Generic[_T]):
             return 'store_true'
         return None
 
-    def _argparse_choices(self) -> T.Any:
-        if self.opt_type is UserBooleanOption:
-            return [True, False]
-        return self.choices
-
     @staticmethod
     def argparse_name_to_arg(name: str) -> str:
         if name == 'warning_level':
@@ -696,7 +691,7 @@ class BuiltinOption(T.Generic[_T]):
     def add_to_argparse(self, name: OptionKey, parser: argparse.ArgumentParser, help_suffix: str) -> None:
         kwargs: ArgparseKWs = {}
 
-        c = self._argparse_choices()
+        c = self.choices
         b = self._argparse_action()
         h = self.description
         if not b:
