@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
 import json
@@ -415,11 +415,14 @@ class PlatformAgnosticTests(BasePlatformTests):
     def test_setup_with_unknown_option(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
 
-        out = self.init(testdir, extra_args=['--wipe', '-Dnot_an_option=1'], allow_fail=True)
-        self.assertIn('ERROR: Unknown options: "not_an_option"', out)
+        with self.subTest('unknown user option'):
+            out = self.init(testdir, extra_args=['-Dnot_an_option=1'], allow_fail=True)
+            self.assertIn('ERROR: Unknown options: "not_an_option"', out)
 
-        out = self.init(testdir, extra_args=['--wipe', '-Db_not_an_option=1'])
-        self.assertIn('WARNING: The following command line option(s) were not used: b_not_an_option', out)
+        with self.subTest('unknown builtin option'):
+            self.new_builddir()
+            out = self.init(testdir, extra_args=['-Db_not_an_option=1'], allow_fail=True)
+            self.assertIn('ERROR: Unknown options: "b_not_an_option"', out)
 
 
     def test_configure_new_option(self) -> None:
