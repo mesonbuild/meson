@@ -802,10 +802,10 @@ def save(obj: CoreData, build_dir: str) -> str:
 
 def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
     for n, b in options.BUILTIN_OPTIONS.items():
-        b.add_to_argparse(n, parser, '')
+        options.option_to_argparse(b, n, parser, '')
     for n, b in options.BUILTIN_OPTIONS_PER_MACHINE.items():
-        b.add_to_argparse(n, parser, ' (just for host machine)')
-        b.add_to_argparse(n.as_build(), parser, ' (just for build machine)')
+        options.option_to_argparse(b, n, parser, ' (just for host machine)')
+        options.option_to_argparse(b, n.as_build(), parser, ' (just for build machine)')
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
@@ -832,7 +832,7 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
         value = getattr(args, name, None)
         if value is not None:
             if key in args.cmd_line_options:
-                cmdline_name = options.BuiltinOption.argparse_name_to_arg(name)
+                cmdline_name = options.argparse_name_to_arg(name)
                 raise MesonException(
                     f'Got argument {name} as both -D{name} and {cmdline_name}. Pick one.')
             args.cmd_line_options[key.name] = value
