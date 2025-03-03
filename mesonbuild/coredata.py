@@ -362,20 +362,20 @@ class CoreData:
                 self.add_builtin_option(self.optstore, key.evolve(machine=for_machine), opt)
 
     @staticmethod
-    def add_builtin_option(opts_map: 'MutableKeyedOptionDictType', key: OptionKey,
+    def add_builtin_option(optstore: options.OptionStore, key: OptionKey,
                            opt: 'options.BuiltinOption') -> None:
         if key.subproject:
             if opt.yielding:
                 # This option is global and not per-subproject
                 return
-            value = opts_map.get_value(key.as_root())
+            value = optstore.get_value(key.as_root())
         else:
             value = None
         if key.has_module_prefix():
             modulename = key.get_module_prefix()
-            opts_map.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
+            optstore.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
         else:
-            opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
+            optstore.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
