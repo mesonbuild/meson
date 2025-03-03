@@ -147,5 +147,6 @@ index.md
 	Contributing.md
 		Yaml-RefMan.md
 		MesonCI.md
+	Releasing.md
 	legal.md
 	Videos.md
