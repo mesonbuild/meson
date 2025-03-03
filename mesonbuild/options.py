@@ -42,6 +42,8 @@ if T.TYPE_CHECKING:
         'UserStringOption', 'UserUmaskOption']
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
 
+    _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
+
     class ArgparseKWs(TypedDict, total=False):
 
         action: str
@@ -102,7 +104,7 @@ _BUILTIN_NAMES = {
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
-_optionkey_cache: T.Dict[T.Tuple[str, str, MachineChoice], OptionKey] = {}
+_optionkey_cache: T.Dict[_OptionKeyTuple, OptionKey] = {}
 
 
 class OptionKey:
@@ -131,7 +133,7 @@ class OptionKey:
         if not name:
             return super().__new__(cls)  # for unpickling, do not cache now
 
-        tuple_ = (name, subproject, machine)
+        tuple_: _OptionKeyTuple = (subproject, machine, name)
         try:
             return _optionkey_cache[tuple_]
         except KeyError:
@@ -168,12 +170,12 @@ class OptionKey:
     def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
         # Here, the object is created using __new__()
         self._init(**state)
-        _optionkey_cache[(self.name, self.subproject, self.machine)] = self
+        _optionkey_cache[self._to_tuple()] = self
 
     def __hash__(self) -> int:
         return self._hash
 
-    def _to_tuple(self) -> T.Tuple[str, MachineChoice, str]:
+    def _to_tuple(self) -> _OptionKeyTuple:
         return (self.subproject, self.machine, self.name)
 
     def __eq__(self, other: object) -> bool:
