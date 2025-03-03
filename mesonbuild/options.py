@@ -322,7 +322,7 @@ class UserOption(T.Generic[_T], HoldableObject):
     value_: dataclasses.InitVar[_T]
     yielding: bool = DEFAULT_YIELDING
     deprecated: DeprecatedType = False
-    readonly: bool = dataclasses.field(default=False, init=False)
+    readonly: bool = dataclasses.field(default=False)
 
     def __post_init__(self, value_: _T) -> None:
         self.value = self.validate_value(value_)
