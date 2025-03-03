@@ -1082,7 +1082,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         try:
             optkey = options.OptionKey(optname, self.subproject)
-            value_object, value = self.coredata.optstore.get_option_from_meson_file(optkey)
+            value_object, value = self.coredata.optstore.get_value_object_and_value_for(optkey)
         except KeyError:
             if self.coredata.optstore.is_base_option(optkey):
                 # Due to backwards compatibility return the default

@@ -1139,11 +1139,6 @@ class OptionStore:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
 
-    def get_option_from_meson_file(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
-        assert isinstance(key, OptionKey)
-        (value_object, value) = self.get_value_object_and_value_for(key)
-        return (value_object, value)
-
     def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
         assert self.is_base_option(key)
         from .compilers.compilers import BASE_OPTIONS
