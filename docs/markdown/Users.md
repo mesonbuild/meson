@@ -152,7 +152,7 @@ format files
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
  - [refivar](https://github.com/nvinson/refivar), A reimplementation of efivar in Rust
  - [Rizin](https://rizin.re), Free and Open Source Reverse Engineering Framework
- - [rmw](https://remove-to-waste.info), safe-remove utility for the command line
+ - [rmw](https://theimpossibleastronaut.com/rmw-website/), safe-remove utility for the command line
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
  - [SciPy](https://scipy.org/), an open-source software for mathematics, science, and engineering
  - [scrcpy](https://github.com/Genymobile/scrcpy), a cross platform application that provides display and control of Android devices connected on USB or over TCP/IP
