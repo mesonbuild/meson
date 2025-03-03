@@ -134,6 +134,7 @@ index.md
 		Contact-information.md
 		Continuous-Integration.md
 		Design-rationale.md
+		Donating.md
 		IndepthTutorial.md
 		In-the-press.md
 		Mixing-build-systems.md
