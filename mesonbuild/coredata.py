@@ -17,6 +17,7 @@ from .mesonlib import (
     MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
+    default_prefix,
     stringlistify,
     pickle_load
 )
@@ -363,19 +364,23 @@ class CoreData:
 
     @staticmethod
     def add_builtin_option(optstore: options.OptionStore, key: OptionKey,
-                           opt: 'options.BuiltinOption') -> None:
+                           opt: options.AnyOptionType) -> None:
+        # Create a copy of the object, as we're going to mutate it
+        opt = copy.copy(opt)
         if key.subproject:
             if opt.yielding:
                 # This option is global and not per-subproject
                 return
-            value = optstore.get_value(key.as_root())
         else:
-            value = None
-        if key.has_module_prefix():
-            modulename = key.get_module_prefix()
-            optstore.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
+            new_value = options.argparse_prefixed_default(
+                opt, key, default_prefix())
+            opt.set_value(new_value)
+
+        modulename = key.get_module_prefix()
+        if modulename:
+            optstore.add_module_option(modulename, key, opt)
         else:
-            optstore.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
+            optstore.add_system_option(key, opt)
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':

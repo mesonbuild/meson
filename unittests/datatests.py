@@ -138,9 +138,15 @@ class DataTests(unittest.TestCase):
             self.assertEqual(len(found_entries & options), 0)
             found_entries |= options
 
+        # TODO: put the module name back in the OptionKey
+        def remove_module_name(key: OptionKey) -> OptionKey:
+            if '.' in key.name:
+                return key.evolve(name=key.name.split('.', 1)[1])
+            return key
+
         self.assertEqual(found_entries, {
-            *(str(k.without_module_prefix()) for k in mesonbuild.options.BUILTIN_OPTIONS),
-            *(str(k.without_module_prefix()) for k in mesonbuild.options.BUILTIN_OPTIONS_PER_MACHINE),
+            *(str(remove_module_name(k)) for k in mesonbuild.options.BUILTIN_OPTIONS),
+            *(str(remove_module_name(k)) for k in mesonbuild.options.BUILTIN_OPTIONS_PER_MACHINE),
         })
 
         # Check that `buildtype` table inside `Core options` matches how
