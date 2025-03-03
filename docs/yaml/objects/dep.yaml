@@ -138,6 +138,9 @@ methods:
       - includes: any include_directories
       - sources: any compiled or static sources the dependency has
 
+      *(since 1.8.0)* If `includes` is `true`, `-I` compile args will be preserved
+                      for external dependencies, even if `compile_args` is `false`.
+
     warnings:
       - A bug present until 0.50.1 results in the above behavior
         not working correctly.
