@@ -696,7 +696,7 @@ class CoreData:
             # adding languages and setting backend.
             if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
                 continue
-            if self.optstore.is_base_option(k) and (k in base_options or k.as_root() in base_options):
+            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in base_options:
                 # set_options will report unknown base options
                 continue
             options[k] = v
