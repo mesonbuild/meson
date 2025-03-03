@@ -7,9 +7,7 @@ import unittest
 
 
 def num_options(store: OptionStore) -> int:
-    basic = len(store.options)
-    build = len(store.build_options) if store.build_options else 0
-    return basic + build
+    return len(store.options)
 
 
 class OptionTests(unittest.TestCase):
