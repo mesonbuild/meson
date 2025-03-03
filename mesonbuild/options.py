@@ -655,56 +655,50 @@ class BuiltinOption(T.Generic[_T]):
     def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> UserOption[_T]:
         """Create an instance of opt_type and return it."""
         if value is None:
-            value = self.prefixed_default(name, prefix)
+            value = _argparse_prefixed_default(self, name, prefix)
         keywords = {'yielding': self.yielding, 'value_': value}
         keywords.update(self.kwargs)
         if self.choices:
             keywords['choices'] = self.choices
-        o = self.opt_type(name.name, self.description, **keywords)
+        # This will be fixed when the BuiltinOption class is deleted
+        o = self.opt_type(name.name, self.description, **keywords)  # type: ignore
         o.readonly = self.readonly
         return o
 
-    def _argparse_action(self) -> T.Optional[str]:
-        # If the type is a boolean, the presence of the argument in --foo form
-        # is to enable it. Disabling happens by using -Dfoo=false, which is
-        # parsed under `args.projectoptions` and does not hit this codepath.
-        if isinstance(self.default, bool):
-            return 'store_true'
-        return None
 
-    @staticmethod
-    def argparse_name_to_arg(name: str) -> str:
-        if name == 'warning_level':
-            return '--warnlevel'
-        else:
-            return '--' + name.replace('_', '-')
+def argparse_name_to_arg(name: str) -> str:
+    if name == 'warning_level':
+        return '--warnlevel'
+    return '--' + name.replace('_', '-')
 
-    def prefixed_default(self, name: 'OptionKey', prefix: str = '') -> T.Any:
-        if self.opt_type in {UserComboOption, UserIntegerOption, UserUmaskOption}:
-            return self.default
-        try:
-            return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
-        except KeyError:
-            pass
-        return self.default
 
-    def add_to_argparse(self, name: OptionKey, parser: argparse.ArgumentParser, help_suffix: str) -> None:
-        kwargs: ArgparseKWs = {}
+def _argparse_prefixed_default(opt: BuiltinOption, name: OptionKey, prefix: str = '') -> ElementaryOptionValues:
+    if opt.opt_type in {UserComboOption, UserIntegerOption, UserUmaskOption}:
+        return opt.default
+    try:
+        return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
+    except KeyError:
+        return T.cast('ElementaryOptionValues', opt.default)
 
-        c = self.choices
-        b = self._argparse_action()
-        h = self.description
-        if not b:
-            h = '{} (default: {}).'.format(h.rstrip('.'), self.prefixed_default(name))
-        else:
-            kwargs['action'] = b
-        if c and not b:
-            kwargs['choices'] = c
-        kwargs['default'] = argparse.SUPPRESS
-        kwargs['dest'] = str(name)
 
-        cmdline_name = self.argparse_name_to_arg(str(name))
-        parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
+def option_to_argparse(option: BuiltinOption, name: OptionKey, parser: argparse.ArgumentParser, help_suffix: str) -> None:
+    kwargs: ArgparseKWs = {}
+
+    c = option.choices
+    b = 'store_true' if isinstance(option.default, bool) else None
+    h = option.description
+    if not b:
+        h = '{} (default: {}).'.format(h.rstrip('.'), _argparse_prefixed_default(option, name))
+    else:
+        kwargs['action'] = b
+    if c and not b:
+        kwargs['choices'] = c
+    kwargs['default'] = argparse.SUPPRESS
+    kwargs['dest'] = str(name)
+
+    cmdline_name = argparse_name_to_arg(str(name))
+    parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
+
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
