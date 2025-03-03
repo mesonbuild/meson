@@ -939,6 +939,9 @@ class Environment:
 
     def get_import_lib_dir(self) -> str:
         "Install dir for the import library (library used for linking)"
+        m = self.machines.host
+        if m.is_haiku():
+            return 'develop/lib'
         return self.get_libdir()
 
     def get_shared_module_dir(self) -> str:
@@ -959,6 +962,9 @@ class Environment:
 
     def get_static_lib_dir(self) -> str:
         "Install dir for the static library"
+        m = self.machines.host
+        if m.is_haiku():
+            return 'develop/lib'
         return self.get_libdir()
 
     def get_prefix(self) -> str:
