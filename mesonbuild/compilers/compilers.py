@@ -212,35 +212,6 @@ clike_debug_args: T.Dict[bool, T.List[str]] = {
 }
 
 
-MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
-
-BASE_OPTIONS: T.Mapping[OptionKey, options.AnyOptionType] = {
-    OptionKey(o.name): o for o in T.cast('T.List[options.AnyOptionType]', [
-        options.UserBooleanOption('b_pch', 'Use precompiled headers', True),
-        options.UserBooleanOption('b_lto', 'Use link time optimization', False),
-        options.UserIntegerOption('b_lto_threads', 'Use multiple threads for Link Time Optimization', 0),
-        options.UserComboOption('b_lto_mode', 'Select between different LTO modes.', 'default', choices=['default', 'thin']),
-        options.UserBooleanOption('b_thinlto_cache', 'Use LLVM ThinLTO caching for faster incremental builds', False),
-        options.UserStringOption('b_thinlto_cache_dir', 'Directory to store ThinLTO cache objects', ''),
-        options.UserStringArrayOption('b_sanitize', 'Code sanitizer to use', []),
-        options.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
-        options.UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
-        options.UserComboOption(
-            'b_pgo', 'Use profile guided optimization', 'off', choices=['off', 'generate', 'use']),
-        options.UserBooleanOption('b_coverage', 'Enable coverage tracking.', False),
-        options.UserComboOption(
-            'b_colorout', 'Use colored output', 'always', choices=['auto', 'always', 'never']),
-        options.UserComboOption(
-            'b_ndebug', 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
-        options.UserBooleanOption('b_staticpic', 'Build static libraries as position independent', True),
-        options.UserBooleanOption('b_pie', 'Build executables as position independent', False),
-        options.UserBooleanOption('b_bitcode', 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
-        options.UserComboOption(
-            'b_vscrt', 'VS run-time library type to use.', 'from_buildtype',
-            choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
-    ])
-}
-
 def option_enabled(boptions: T.Set[OptionKey],
                    target: 'BuildTarget',
                    env: 'Environment',
@@ -1109,7 +1080,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return []
 
     def get_crt_val(self, crt_val: str, buildtype: str) -> str:
-        if crt_val in MSCRT_VALS:
+        if crt_val in options.MSCRT_VALS:
             return crt_val
         assert crt_val in {'from_buildtype', 'static_from_buildtype'}
 

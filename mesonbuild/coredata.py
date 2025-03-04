@@ -603,27 +603,25 @@ class CoreData:
         return dirty
 
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
-        from .compilers import BASE_OPTIONS
-
         # Main project can set default options on subprojects, but subprojects
         # can only set default options on themselves.
         # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
-        options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
+        options_: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
         for k, v in default_options.items():
             if isinstance(k, str):
                 k = OptionKey.from_string(k)
             if not subproject or k.subproject == subproject:
-                options[k] = v
-        options.update(env.options)
-        env.options = options
+                options_[k] = v
+        options_.update(env.options)
+        env.options = options_
 
         # Create a subset of options, keeping only project and builtin
         # options for this subproject.
         # Language and backend specific options will be set later when adding
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
-        options = OrderedDict()
+        options_ = OrderedDict()
 
         for k, v in env.options.items():
             if isinstance(k, str):
@@ -642,12 +640,12 @@ class CoreData:
             # adding languages and setting backend.
             if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
                 continue
-            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in BASE_OPTIONS:
+            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in options.BASE_OPTIONS:
                 # set_options will report unknown base options
                 continue
-            options[k] = v
+            options_[k] = v
 
-        self.set_options(options, subproject=subproject, first_invocation=env.first_invocation)
+        self.set_options(options_, subproject=subproject, first_invocation=env.first_invocation)
 
     def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
                              env: Environment, subproject: str) -> None:
@@ -680,8 +678,6 @@ class CoreData:
             self.optstore.add_compiler_option(lang, gopt_key, gopt_valobj)
 
     def process_compiler_options(self, lang: str, comp: Compiler, env: Environment, subproject: str) -> None:
-        from . import compilers
-
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env, subproject)
 
         for key in comp.base_options:
@@ -690,7 +686,7 @@ class CoreData:
             else:
                 skey = key
             if skey not in self.optstore:
-                self.optstore.add_system_option(skey, copy.deepcopy(compilers.BASE_OPTIONS[key]))
+                self.optstore.add_system_option(skey, copy.deepcopy(options.BASE_OPTIONS[key]))
                 if skey in env.options:
                     self.optstore.set_option(skey, env.options[skey])
                 elif subproject and key in env.options:

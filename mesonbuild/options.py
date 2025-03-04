@@ -753,6 +753,34 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('python.purelibdir'): {},
 }
 
+MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
+
+BASE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
+    OptionKey(o.name): o for o in T.cast('T.List[AnyOptionType]', [
+        UserBooleanOption('b_pch', 'Use precompiled headers', True),
+        UserBooleanOption('b_lto', 'Use link time optimization', False),
+        UserIntegerOption('b_lto_threads', 'Use multiple threads for Link Time Optimization', 0),
+        UserComboOption('b_lto_mode', 'Select between different LTO modes.', 'default', choices=['default', 'thin']),
+        UserBooleanOption('b_thinlto_cache', 'Use LLVM ThinLTO caching for faster incremental builds', False),
+        UserStringOption('b_thinlto_cache_dir', 'Directory to store ThinLTO cache objects', ''),
+        UserStringArrayOption('b_sanitize', 'Code sanitizer to use', []),
+        UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
+        UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
+        UserComboOption(
+            'b_pgo', 'Use profile guided optimization', 'off', choices=['off', 'generate', 'use']),
+        UserBooleanOption('b_coverage', 'Enable coverage tracking.', False),
+        UserComboOption(
+            'b_colorout', 'Use colored output', 'always', choices=['auto', 'always', 'never']),
+        UserComboOption(
+            'b_ndebug', 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
+        UserBooleanOption('b_staticpic', 'Build static libraries as position independent', True),
+        UserBooleanOption('b_pie', 'Build executables as position independent', False),
+        UserBooleanOption('b_bitcode', 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
+        UserComboOption(
+            'b_vscrt', 'VS run-time library type to use.', 'from_buildtype',
+            choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
+    ])
+}
 
 class OptionStore:
     DEFAULT_DEPENDENTS = {'plain': ('plain', False),
@@ -1058,7 +1086,6 @@ class OptionStore:
 
     def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
         assert self.is_base_option(key)
-        from .compilers.compilers import BASE_OPTIONS
         try:
             return T.cast('ElementaryOptionValues', BASE_OPTIONS[key.evolve(subproject=None)].default)
         except KeyError:
