@@ -36,21 +36,23 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(k), new_value)
 
     def test_parsing(self):
-        s1 = OptionKey.from_string('sub:optname')
-        s1_expected = OptionKey('optname', 'sub', MachineChoice.HOST)
-        self.assertEqual(s1, s1_expected)
-        self.assertEqual(str(s1), 'sub:optname')
+        with self.subTest('subproject'):
+            s1 = OptionKey.from_string('sub:optname')
+            s1_expected = OptionKey('optname', 'sub', MachineChoice.HOST)
+            self.assertEqual(s1, s1_expected)
+            self.assertEqual(str(s1), 'sub:optname')
 
-        s2 = OptionKey.from_string('optname')
-        s2_expected = OptionKey('optname', None, MachineChoice.HOST)
-        self.assertEqual(s2, s2_expected)
+        with self.subTest('plain name'):
+            s2 = OptionKey.from_string('optname')
+            s2_expected = OptionKey('optname', None, MachineChoice.HOST)
+            self.assertEqual(s2, s2_expected)
+            self.assertEqual(str(s2), 'optname')
 
-        self.assertEqual(str(s2), 'optname')
-
-        s3 = OptionKey.from_string(':optname')
-        s3_expected = OptionKey('optname', '', MachineChoice.HOST)
-        self.assertEqual(s3, s3_expected)
-        self.assertEqual(str(s3), ':optname')
+        with self.subTest('root project'):
+            s3 = OptionKey.from_string(':optname')
+            s3_expected = OptionKey('optname', '', MachineChoice.HOST)
+            self.assertEqual(s3, s3_expected)
+            self.assertEqual(str(s3), ':optname')
 
     def test_subproject_for_system(self):
         optstore = OptionStore(False)
