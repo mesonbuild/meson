@@ -11,7 +11,7 @@ import typing as T
 
 from . import build, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .mesonlib import MesonException
-from .options import OptionKey
+from .options import BASE_OPTIONS, OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -189,7 +189,6 @@ class MesonApp:
             return self._generate(env, capture, vslite_ctx)
 
     def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Any, all_subprojects: T.Any) -> None:
-        from mesonbuild.compilers import BASE_OPTIONS
         pending = coredata.optstore.pending_project_options
         errlist: T.List[str] = []
         for opt in pending:
