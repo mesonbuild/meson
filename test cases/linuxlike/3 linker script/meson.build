@@ -1,4 +1,4 @@
-project('linker script', 'c')
+project('linker script', 'c', default_options : {'prefix': '/tmp'})
 
 # Solaris 11.4 ld supports --version-script only when you also specify
 # -z gnu-version-script-compat
