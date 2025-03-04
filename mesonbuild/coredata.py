@@ -552,7 +552,7 @@ class CoreData:
         assert not self.is_cross_build()
         for k in options.BUILTIN_OPTIONS_PER_MACHINE:
             o = self.optstore.get_value_object_for(k.name)
-            dirty |= self.optstore.set_value(k, True, o.value)
+            dirty |= self.optstore.set_value(k, o.value, True)
         for bk, bv in self.optstore.items():
             if bk.machine is MachineChoice.BUILD:
                 hk = bk.as_host()
