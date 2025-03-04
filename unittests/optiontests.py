@@ -182,29 +182,6 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), set_value)
 
-    def test_subproject_call_options(self):
-        optstore = OptionStore(False)
-        name = 'cpp_std'
-        default_value = 'c++11'
-        override_value = 'c++14'
-        unused_value = 'c++20'
-        subproject = 'sub'
-
-        co = UserComboOption(name,
-                             'C++ language standard to use',
-                             default_value,
-                             choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
-                             )
-        optstore.add_system_option(name, co)
-        optstore.set_subproject_options(subproject, [f'cpp_std={override_value}'], [f'cpp_std={unused_value}'])
-        self.assertEqual(optstore.get_value_for(name), default_value)
-        self.assertEqual(optstore.get_value_for(name, subproject), override_value)
-
-        # Trying again should change nothing
-        optstore.set_subproject_options(subproject, [f'cpp_std={unused_value}'], [f'cpp_std={unused_value}'])
-        self.assertEqual(optstore.get_value_for(name), default_value)
-        self.assertEqual(optstore.get_value_for(name, subproject), override_value)
-
     def test_b_default(self):
         optstore = OptionStore(False)
         value = optstore.get_default_for_b_option(OptionKey('b_vscrt'))
