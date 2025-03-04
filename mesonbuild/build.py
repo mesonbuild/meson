@@ -113,7 +113,7 @@ known_build_target_kwargs = (
     cs_kwargs)
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs'}
-known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi'}
+known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi', 'shortname'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
 known_jar_kwargs = known_exe_kwargs | {'main_class', 'java_resources'}
@@ -2157,6 +2157,8 @@ class StaticLibrary(BuildTarget):
                     self.suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
+            elif self.environment.machines[self.for_machine].is_os2() and self.get_option(OptionKey('emxomf')):
+                self.suffix = 'lib'
             else:
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking':
                     self.suffix = 'ma' if self.options.get_value('b_lto') and not self.prelink else 'a'
@@ -2234,6 +2236,7 @@ class SharedLibrary(BuildTarget):
         # Max length 2, first element is compatibility_version, second is current_version
         self.darwin_versions: T.Optional[T.Tuple[str, str]] = None
         self.vs_module_defs = None
+        self.shortname = None
         # The import library this target will generate
         self.import_filename = None
         # The debugging information file this target will generate
@@ -2358,6 +2361,15 @@ class SharedLibrary(BuildTarget):
             suffix = 'so'
             # Android doesn't support shared_library versioning
             self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif self.environment.machines[self.for_machine].is_os2():
+            suffix = 'dll'
+            # Import library is called foo_dll.a or foo_dll.lib
+            import_filename_tpl = '{0.name}_dll'
+            import_filename_tpl += '.lib' if self.environment.coredata.get_option(OptionKey('emxomf')) else '.a'
+            self.filename_tpl = '{0.shortname}' if self.shortname else '{0.name}'
+            if self.soversion:
+                self.filename_tpl += '{0.soversion}'
+            self.filename_tpl += '.{0.suffix}'
         else:
             prefix = 'lib'
             suffix = 'so'
@@ -2375,6 +2387,14 @@ class SharedLibrary(BuildTarget):
         if self.suffix is None:
             self.suffix = suffix
         self.filename = self.filename_tpl.format(self)
+        if self.environment.machines[self.for_machine].is_os2():
+            # OS/2 does not allow a longer DLL name than 8 chars
+            name = os.path.splitext(self.filename)[0]
+            if len(name) > 8:
+                name = name[:8]
+                if self.soversion:
+                    name = name[:-len(self.soversion)] + self.soversion
+            self.filename = '{}.{}'.format(name, self.suffix)
         if import_filename_tpl:
             self.import_filename = import_filename_tpl.format(self)
         # There may have been more outputs added by the time we get here, so
@@ -2403,6 +2423,9 @@ class SharedLibrary(BuildTarget):
 
         # Visual Studio module-definitions file
         self.process_vs_module_defs_kw(kwargs)
+
+        # OS/2 uses a 8.3 name for a DLL
+        self.shortname = kwargs.get('shortname')
 
         rust_abi = kwargs.get('rust_abi')
         rust_crate_type = kwargs.get('rust_crate_type')

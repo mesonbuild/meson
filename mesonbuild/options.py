@@ -101,6 +101,7 @@ _BUILTIN_NAMES = {
     'pkg_config_path',
     'cmake_prefix_path',
     'vsenv',
+    'emxomf',
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
@@ -763,6 +764,7 @@ BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
     (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
     (OptionKey('force_fallback_for'), BuiltinOption(UserStringArrayOption, 'Force fallback for those subprojects', [])),
     (OptionKey('vsenv'),           BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
+    (OptionKey('emxomf'),          BuiltinOption(UserBooleanOption, "Whether to use OMF format on OS/2", False)),
 
     # Pkgconfig module
     (OptionKey('pkgconfig.relocatable'),
