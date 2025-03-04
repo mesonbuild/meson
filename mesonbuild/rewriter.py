@@ -23,7 +23,7 @@ from pathlib import Path
 
 if T.TYPE_CHECKING:
     import argparse
-    from argparse import ArgumentParser, HelpFormatter, _FormatterClass
+    from argparse import ArgumentParser, _FormatterClass
     from .mlog import AnsiDecorator
 
 BUILD_TARGET_FUNCTIONS = [

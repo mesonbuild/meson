@@ -115,7 +115,7 @@ class IntrospectionBuildTarget(MesonInterpreterObject):
     outputs: T.List[str]
     source_nodes: T.List[BaseNode]
     extra_files: BaseNode
-    kwargs: T.Dict[str, T.Union[T.Union[str, int, bool, T.List[T.Any], T.Dict[str, T.Any]], HoldableObject, MesonInterpreterObject]]
+    kwargs: T.Dict[str, TYPE_var]
     node: FunctionNode
 
 def flatten_nested_lists(ar: T.Any) -> T.List[T.Any]:
