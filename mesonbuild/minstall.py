@@ -869,9 +869,9 @@ def run(opts: 'ArgumentType') -> int:
         sys.exit('Install data not found. Run this command in build directory root.')
     if not opts.no_rebuild:
         b = build.load(opts.wd)
-        need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+        need_vsenv = T.cast('bool', b.environment.coredata.optstore.get_value_for(OptionKey('vsenv')))
         setup_vsenv(need_vsenv)
-        backend = T.cast('str', b.environment.coredata.get_option(OptionKey('backend')))
+        backend = T.cast('str', b.environment.coredata.optstore.get_value_for(OptionKey('backend')))
         if not rebuild_all(opts.wd, backend):
             sys.exit(-1)
     os.chdir(opts.wd)

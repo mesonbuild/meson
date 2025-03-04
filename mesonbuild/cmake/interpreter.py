@@ -828,7 +828,7 @@ class CMakeInterpreter:
         cmake_args += extra_cmake_options
         if not any(arg.startswith('-DCMAKE_BUILD_TYPE=') for arg in cmake_args):
             # Our build type is favored over any CMAKE_BUILD_TYPE environment variable
-            buildtype = T.cast('str', self.env.coredata.get_option(OptionKey('buildtype')))
+            buildtype = T.cast('str', self.env.coredata.optstore.get_value_for(OptionKey('buildtype')))
             if buildtype in BUILDTYPE_MAP:
                 cmake_args += [f'-DCMAKE_BUILD_TYPE={BUILDTYPE_MAP[buildtype]}']
         trace_args = self.trace.trace_args()
