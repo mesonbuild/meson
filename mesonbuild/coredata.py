@@ -571,12 +571,11 @@ class CoreData:
         # Set prefix first because it's needed to sanitize other options
         pfk = OptionKey('prefix')
         if pfk in opts_to_set:
-            prefix = self.sanitize_prefix(opts_to_set[pfk])
+            prefix = self.optstore.sanitize_prefix(opts_to_set[pfk])
             for key in options.BUILTIN_DIR_NOPREFIX_OPTIONS:
                 if key not in opts_to_set:
                     val = options.BUILTIN_OPTIONS[key].prefixed_default(key, prefix)
-                    tmpkey = options.convert_oldkey(key)
-                    dirty |= self.optstore.set_option(tmpkey, val)
+                    dirty |= self.optstore.set_option(key, val)
 
         unknown_options: T.List[OptionKey] = []
         for k, v in opts_to_set.items():
