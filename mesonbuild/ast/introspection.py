@@ -215,6 +215,8 @@ class IntrospectionInterpreter(AstInterpreter):
         version = kwargs.get('version', [])
         if not isinstance(version, list):
             version = [version]
+        assert all(isinstance(el, str) for el in version)
+        version = T.cast(T.List[str], version)
         assert isinstance(required, (bool, UnknownValue))
         newdep = IntrospectionDependency(
             name=name,

@@ -23,7 +23,7 @@ from pathlib import Path
 
 if T.TYPE_CHECKING:
     import argparse
-    from argparse import ArgumentParser, HelpFormatter
+    from argparse import ArgumentParser, HelpFormatter, _FormatterClass
     from .mlog import AnsiDecorator
 
 BUILD_TARGET_FUNCTIONS = [
@@ -36,7 +36,7 @@ class RewriterException(MesonException):
 
 # Note: when adding arguments, please also add them to the completion
 # scripts in $MESONSRC/data/shell-completions/
-def add_arguments(parser: ArgumentParser, formatter: T.Callable[[str], HelpFormatter]) -> None:
+def add_arguments(parser: ArgumentParser, formatter: _FormatterClass) -> None:
     parser.add_argument('-s', '--sourcedir', type=str, default='.', metavar='SRCDIR', help='Path to source directory.')
     parser.add_argument('-V', '--verbose', action='store_true', default=False, help='Enable verbose output')
     parser.add_argument('-S', '--skip-errors', dest='skip', action='store_true', default=False, help='Skip errors instead of aborting')
@@ -107,7 +107,8 @@ class RequiredKeys:
 class MTypeBase:
     node: BaseNode
 
-    def __init__(self, node: T.Optional[BaseNode] = None):
+    #def __init__(self, node: T.Optional[BaseNode] = None):
+    def __init__(self, node: BaseNode):
         if node is None:
             self.node = self.new_node()
         else:
@@ -118,7 +119,7 @@ class MTypeBase:
                 self.node_type = i
 
     @classmethod
-    def new_node(cls, value=None):
+    def new_node(cls, value: T.Any = None) -> BaseNode:
         # Overwrite in derived class
         raise RewriterException('Internal error: new_node of MTypeBase was called')
 
@@ -132,6 +133,10 @@ class MTypeBase:
     def supported_nodes(cls) -> T.List[type]:
         # Overwrite in derived class
         return []
+
+    def set_value(self, value: T.Any) -> None:
+        # Overwrite in derived class
+        mlog.warning('Cannot set the value of type', mlog.bold(type(self).__name__), '--> skipping')
 
     def add_value(self, value: T.Any) -> None:
         # Overwrite in derived class
@@ -150,7 +155,7 @@ class MTypeStr(MTypeBase):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value=None) -> BaseNode:
+    def new_node(cls, value: T.Optional[str] = None) -> BaseNode:
         if value is None:
             value = ''
         return StringNode(Token('string', '', 0, 0, 0, None, str(value)))
@@ -168,7 +173,7 @@ class MTypeBool(MTypeBase):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value=None) -> BaseNode:
+    def new_node(cls, value: T.Optional[str] = None) -> BaseNode:
         return BooleanNode(Token('', '', 0, 0, 0, None, bool(value)))
 
     @classmethod
@@ -184,7 +189,7 @@ class MTypeID(MTypeBase):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value=None) -> BaseNode:
+    def new_node(cls, value: T.Optional[str] = None) -> BaseNode:
         if value is None:
             value = ''
         return IdNode(Token('', '', 0, 0, 0, None, str(value)))
@@ -194,11 +199,13 @@ class MTypeID(MTypeBase):
         return [IdNode]
 
 class MTypeList(MTypeBase):
+    node: ArrayNode
+
     def __init__(self, node: T.Optional[BaseNode] = None):
         super().__init__(node)
 
     @classmethod
-    def new_node(cls, value=None):
+    def new_node(cls, value: T.Optional[T.List[T.Any]] = None) -> ArrayNode:
         if value is None:
             value = []
         elif not isinstance(value, list):
@@ -208,39 +215,39 @@ class MTypeList(MTypeBase):
         return ArrayNode(create_symbol('['), args, create_symbol(']'))
 
     @classmethod
-    def _new_element_node(cls, value):
+    def _new_element_node(cls, value: T.Any) -> BaseNode:
         # Overwrite in derived class
         raise RewriterException('Internal error: _new_element_node of MTypeList was called')
 
-    def _ensure_array_node(self):
+    def _ensure_array_node(self) -> None:
         if not isinstance(self.node, ArrayNode):
             tmp = self.node
             self.node = self.new_node()
             self.node.args.arguments = [tmp]
 
     @staticmethod
-    def _check_is_equal(node, value) -> bool:
+    def _check_is_equal(node: BaseNode, value: str) -> bool:
         # Overwrite in derived class
         return False
 
     @staticmethod
-    def _check_regex_matches(node, regex: str) -> bool:
+    def _check_regex_matches(node: BaseNode, regex: str) -> bool:
         # Overwrite in derived class
         return False
 
-    def get_node(self):
+    def get_node(self) -> BaseNode:
         if isinstance(self.node, ArrayNode):
             if len(self.node.args.arguments) == 1:
                 return self.node.args.arguments[0]
         return self.node
 
     @classmethod
-    def supported_element_nodes(cls):
+    def supported_element_nodes(cls) -> T.List[T.Type]:
         # Overwrite in derived class
         return []
 
     @classmethod
-    def supported_nodes(cls):
+    def supported_nodes(cls) -> T.List[T.Type]:
         return [ArrayNode] + cls.supported_element_nodes()
 
     def set_value(self, value: T.Any) -> None:
@@ -291,23 +298,23 @@ class MTypeStrList(MTypeList):
         super().__init__(node)
 
     @classmethod
-    def _new_element_node(cls, value):
+    def _new_element_node(cls, value: str) -> StringNode:
         return StringNode(Token('string', '', 0, 0, 0, None, str(value)))
 
     @staticmethod
-    def _check_is_equal(node, value) -> bool:
+    def _check_is_equal(node: BaseNode, value: str) -> bool:
         if isinstance(node, StringNode):
             return bool(node.value == value)
         return False
 
     @staticmethod
-    def _check_regex_matches(node, regex: str) -> bool:
+    def _check_regex_matches(node: BaseNode, regex: str) -> bool:
         if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
     @classmethod
-    def supported_element_nodes(cls):
+    def supported_element_nodes(cls) -> T.List[T.Type]:
         return [StringNode]
 
 class MTypeIDList(MTypeList):
@@ -315,23 +322,23 @@ class MTypeIDList(MTypeList):
         super().__init__(node)
 
     @classmethod
-    def _new_element_node(cls, value):
+    def _new_element_node(cls, value: str) -> IdNode:
         return IdNode(Token('', '', 0, 0, 0, None, str(value)))
 
     @staticmethod
-    def _check_is_equal(node, value) -> bool:
+    def _check_is_equal(node: BaseNode, value: str) -> bool:
         if isinstance(node, IdNode):
-            return node.value == value
+            return bool(node.value == value)
         return False
 
     @staticmethod
-    def _check_regex_matches(node, regex: str) -> bool:
+    def _check_regex_matches(node: BaseNode, regex: str) -> bool:
         if isinstance(node, StringNode):
             return re.match(regex, node.value) is not None
         return False
 
     @classmethod
-    def supported_element_nodes(cls):
+    def supported_element_nodes(cls) -> T.List[T.Type]:
         return [IdNode]
 
 rewriter_keys: T.Dict[str, T.Dict[str, T.Any]] = {
@@ -598,6 +605,7 @@ class Rewriter:
 
         # Modify the kwargs
         num_changed = 0
+
         for key, val in sorted(cmd['kwargs'].items()):
             if key not in kwargs_def:
                 mlog.error('Cannot modify unknown kwarg', mlog.bold(key), *self.on_error())

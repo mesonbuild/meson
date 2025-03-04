@@ -63,7 +63,7 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import SubProject, TYPE_var
+    from ..interpreterbase import SubProject, TYPE_var, TYPE_nvar
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -398,7 +398,7 @@ class AstInterpreter(InterpreterBase):
         for value in args.kwargs.values():
             self.evaluate_statement(value)
         if isinstance(args, ArgumentNode):
-            kwargs: T.Dict[str, TYPE_var] = {}
+            kwargs: T.Dict[str, BaseNode] = {}
             for key, val in args.kwargs.items():
                 kwargs[key_resolver(key)] = val
             if args.incorrect_order():
@@ -421,17 +421,14 @@ class AstInterpreter(InterpreterBase):
     def evaluate_comparison(self, node: ComparisonNode) -> None:
         self.evaluate_statement(node.left)
         self.evaluate_statement(node.right)
-        return False
 
     def evaluate_andstatement(self, cur: AndNode) -> None:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
-        return False
 
     def evaluate_orstatement(self, cur: OrNode) -> None:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
-        return False
 
     def evaluate_notstatement(self, cur: NotNode) -> None:
         self.evaluate_statement(cur.value)
@@ -708,9 +705,6 @@ class AstInterpreter(InterpreterBase):
             return self.node_to_runtime_value(node.inner)
         raise mesonlib.MesonBugException('Unhandled node type')
 
-    def get_variable(self, varname: str) -> int:
-        return 0
-
     def assignment(self, node: AssignmentNode) -> None:
         assert isinstance(node, AssignmentNode)
         self.evaluate_statement(node.value)
@@ -781,7 +775,7 @@ class AstInterpreter(InterpreterBase):
         rtvals = flatten_nested_lists([self.node_to_runtime_value(sn) for sn in nodes])
         return [src_to_abs(x) for x in rtvals]
 
-    def flatten_args(self, args_raw: T.Union[TYPE_var, T.Sequence[TYPE_var]], include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[TYPE_var]:
+    def flatten_args(self, args_raw: T.Union[TYPE_nvar, T.Sequence[TYPE_nvar]], include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[TYPE_var]:
         # Make sure we are always dealing with lists
         if isinstance(args_raw, list):
             args = args_raw
