@@ -337,12 +337,6 @@ class Conf:
         for m in mismatching:
             mlog.log(f'{m[0]:21}{m[1]:10}{m[2]:10}')
 
-    def print_sp_overrides(self) -> None:
-        if self.coredata.sp_option_overrides:
-            mlog.log('\nThe folowing options have per-subproject overrides:')
-            for k, v in self.coredata.sp_option_overrides.items():
-                mlog.log(f'{k:21}{v:10}')
-
     def print_augments(self) -> None:
         if self.coredata.optstore.augments:
             mlog.log('\nCurrently set option augments:')
