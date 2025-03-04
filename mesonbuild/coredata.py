@@ -414,14 +414,6 @@ class CoreData:
             return option_object.validate_value(override)
         return value
 
-    def get_option_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> ElementaryOptionValues:
-        if isinstance(key, str):
-            key = OptionKey(key, subproject=subproject)
-        if key.subproject != subproject:
-            # This should be an error, fix before merging.
-            key = key.evolve(subproject=subproject)
-        return self.optstore.get_value_for(key)
-
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
         try:

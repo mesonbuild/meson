@@ -78,11 +78,11 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
 
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        key = OptionKey('c_std', machine=self.for_machine)
+        key = OptionKey('c_std', subproject=subproject, machine=self.for_machine)
         if target:
             std = env.coredata.get_option_for_target(target, key)
         else:
-            std = env.coredata.get_option_for_subproject(key, subproject)
+            std = env.coredata.optstore.get_value_for(key)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
