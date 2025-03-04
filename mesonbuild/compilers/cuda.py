@@ -794,11 +794,11 @@ class CudaCompiler(Compiler):
                        target: 'T.Optional[BuildTarget]',
                        env: 'Environment',
                        subproject: T.Optional[str] = None) -> T.List[str]:
-        key = self.form_compileropt_key('ccbindir')
+        key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
         if target:
             ccbindir = env.coredata.get_option_for_target(target, key)
         else:
-            ccbindir = env.coredata.get_option_for_subproject(key, subproject)
+            ccbindir = env.coredata.optstore.get_value_for(key)
         if isinstance(ccbindir, str) and ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
         else:

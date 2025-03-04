@@ -280,10 +280,12 @@ def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
             (env.coredata.get_option_for_target(target, 'b_ndebug') == 'if-release' and
              env.coredata.get_option_for_target(target, 'buildtype') in {'release', 'plain'}))
 
+
 def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> bool:
-    return (env.coredata.get_option_for_subproject('b_ndebug', subproject) == 'true' or
-            (env.coredata.get_option_for_subproject('b_ndebug', subproject) == 'if-release' and
-             env.coredata.get_option_for_subproject('buildtype', subproject) in {'release', 'plain'}))
+    key = OptionKey('b_ndebug', subproject)
+    return (env.coredata.optstore.get_value_for(key) == 'true' or
+            (env.coredata.optstore.get_value_for(key) == 'if-release' and
+             env.coredata.optstore.get_value_for(key.evolve(name='buildtype')) in {'release', 'plain'}))
 
 
 def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
@@ -1400,7 +1402,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if target:
             return env.coredata.get_option_for_target(target, key)
         else:
-            return env.coredata.get_option_for_subproject(key, subproject)
+            return env.coredata.optstore.get_value_for(key.evolve(subproject=subproject))
 
     def _update_language_stds(self, opts: MutableKeyedOptionDictType, value: T.List[str]) -> None:
         key = self.form_compileropt_key('std')
