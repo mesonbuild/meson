@@ -230,7 +230,7 @@ class XCodeBackend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
-        self.buildtype = T.cast('str', self.environment.coredata.get_option(OptionKey('buildtype')))
+        self.buildtype = T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype')))
         self.project_conflist = self.gen_id()
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
@@ -272,7 +272,7 @@ class XCodeBackend(backends.Backend):
 
     @functools.lru_cache(maxsize=None)
     def get_target_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
-        dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.get_option(OptionKey('buildtype'))))
+        dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
         #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 

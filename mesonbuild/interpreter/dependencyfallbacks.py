@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021-2024 The Meson Developers
-# Copyright © 2021-2024 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -326,8 +326,8 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             return self._notfound_dependency()
 
         # Check if usage of the subproject fallback is forced
-        wrap_mode = WrapMode.from_string(self.coredata.get_option(OptionKey('wrap_mode')))
-        force_fallback_for = self.coredata.get_option(OptionKey('force_fallback_for'))
+        wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
+        force_fallback_for = self.coredata.optstore.get_value_for(OptionKey('force_fallback_for'))
         assert isinstance(force_fallback_for, list), 'for mypy'
         self.nofallback = wrap_mode == WrapMode.nofallback
         self.forcefallback = (force_fallback or

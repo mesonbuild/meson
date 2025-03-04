@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2018 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool
@@ -313,7 +313,7 @@ class IntrospectionInterpreter(AstInterpreter):
         return new_target
 
     def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
-        default_library = self.coredata.get_option(OptionKey('default_library'))
+        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library'))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
         elif default_library == 'static':
