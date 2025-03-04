@@ -1036,16 +1036,6 @@ class OptionStore:
         o = o.as_root()
         return self.set_value(o, new_value)
 
-    def set_subproject_options(self, subproject: str,
-                               spcall_default_options: str,
-                               project_default_options: str) -> None:
-        for o in itertools.chain(spcall_default_options, project_default_options):
-            keystr, valstr = o.split('=', 1)
-            assert ':' not in keystr
-            keystr = f'{subproject}:{keystr}'
-            if keystr not in self.augments:
-                self.augments[keystr] = valstr
-
     def set_from_configure_command(self, D_args: T.List[str], U_args: T.List[str]) -> bool:
         dirty = False
         D_args = [] if D_args is None else D_args
