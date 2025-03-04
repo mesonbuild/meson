@@ -397,9 +397,6 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
-    def get_option(self, key: OptionKey) -> ElementaryOptionValues:
-        return self.optstore.get_value_for(key.name, key.subproject)
-
     def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key

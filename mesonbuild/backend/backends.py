@@ -373,7 +373,7 @@ class Backend:
         if isinstance(target, build.RunTarget):
             # this produces no output, only a dummy top-level name
             dirname = ''
-        elif self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
+        elif self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
             dirname = target.get_subdir()
         else:
             dirname = 'meson-out'
@@ -815,7 +815,7 @@ class Backend:
     def determine_rpath_dirs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]
                              ) -> T.Tuple[str, ...]:
         result: OrderedSet[str]
-        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
+        if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
             # Need a copy here
             result = OrderedSet(target.get_link_dep_subdirs())
         else:
@@ -1335,7 +1335,7 @@ class Backend:
     def generate_depmf_install(self, d: InstallData) -> None:
         depmf_path = self.build.dep_manifest_name
         if depmf_path is None:
-            option_dir = self.environment.coredata.get_option(OptionKey('licensedir'))
+            option_dir = self.environment.coredata.optstore.get_value_for(OptionKey('licensedir'))
             assert isinstance(option_dir, str), 'for mypy'
             if option_dir:
                 depmf_path = os.path.join(option_dir, 'depmf.json')
@@ -1666,7 +1666,7 @@ class Backend:
                 # TODO go through all candidates, like others
                 strip_bin = [detect.defaults['strip'][0]]
 
-        umask = self.environment.coredata.get_option(OptionKey('install_umask'))
+        umask = self.environment.coredata.optstore.get_value_for(OptionKey('install_umask'))
         assert isinstance(umask, (str, int)), 'for mypy'
 
         d = InstallData(self.environment.get_source_dir(),
@@ -1698,7 +1698,7 @@ class Backend:
         bindir = Path(prefix, self.environment.get_bindir())
         libdir = Path(prefix, self.environment.get_libdir())
         incdir = Path(prefix, self.environment.get_includedir())
-        _ldir = self.environment.coredata.get_option(OptionKey('localedir'))
+        _ldir = self.environment.coredata.optstore.get_value_for(OptionKey('localedir'))
         assert isinstance(_ldir, str), 'for mypy'
         localedir = Path(prefix, _ldir)
         dest_path = Path(prefix, outdir, Path(fname).name) if outdir else Path(prefix, fname)

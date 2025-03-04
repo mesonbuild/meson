@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021-2024 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 from __future__ import annotations
 
 import collections
@@ -716,7 +716,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         search_dirs = extract_search_dirs(kwargs)
 
-        prefer_static = self.environment.coredata.get_option(OptionKey('prefer_static'))
+        prefer_static = self.environment.coredata.optstore.get_value_for(OptionKey('prefer_static'))
         if kwargs['static'] is True:
             libtype = mesonlib.LibType.STATIC
         elif kwargs['static'] is False:

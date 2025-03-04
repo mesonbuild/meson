@@ -121,7 +121,7 @@ class DubDependency(ExternalDependency):
         dub_arch = self.compiler.arch
 
         # we need to know the build type as well
-        dub_buildtype = str(environment.coredata.get_option(OptionKey('buildtype')))
+        dub_buildtype = str(environment.coredata.optstore.get_value_for(OptionKey('buildtype')))
         # MESON types: choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
         # DUB types: debug (default), plain, release, release-debug, release-nobounds, unittest, profile, profile-gc,
         # docs, ddox, cov, unittest-cov, syntax and custom

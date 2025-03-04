@@ -105,7 +105,7 @@ def _flags_to_list(raw: str) -> T.List[str]:
     return res
 
 def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
-    backend_name = env.coredata.get_option(OptionKey('backend'))
+    backend_name = env.coredata.optstore.get_value_for(OptionKey('backend'))
     assert isinstance(backend_name, str)
     assert backend_name in backend_generator_map
     return ['-G', backend_generator_map[backend_name]]

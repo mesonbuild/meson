@@ -331,7 +331,7 @@ class HotdocTargetBuilder:
         for path in self.include_paths:
             self.cmd.extend(['--include-path', path])
 
-        if self.state.environment.coredata.get_option(OptionKey('werror', subproject=self.state.subproject)):
+        if self.state.environment.coredata.optstore.get_value_for(OptionKey('werror', subproject=self.state.subproject)):
             self.cmd.append('--fatal-warnings')
         self.generate_hotdoc_config()
 

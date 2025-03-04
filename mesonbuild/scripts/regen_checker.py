@@ -44,7 +44,7 @@ def run(args: T.List[str]) -> int:
     with open(coredata_file, 'rb') as f:
         coredata = pickle.load(f)
         assert isinstance(coredata, CoreData)
-    backend = coredata.get_option(OptionKey('backend'))
+    backend = coredata.optstore.get_value_for(OptionKey('backend'))
     assert isinstance(backend, str)
     regen_timestamp = os.stat(dumpfile).st_mtime
     if need_regen(regeninfo, regen_timestamp):
