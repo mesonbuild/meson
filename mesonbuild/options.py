@@ -302,12 +302,6 @@ class OptionKey:
             return self.name.split('.', 1)[0]
         return None
 
-    def without_module_prefix(self) -> 'OptionKey':
-        if self.has_module_prefix():
-            newname = self.name.split('.', 1)[1]
-            return self.evolve(newname)
-        return self
-
     def is_for_build(self) -> bool:
         return self.machine is MachineChoice.BUILD
 
@@ -322,7 +316,7 @@ class UserOption(T.Generic[_T], HoldableObject):
     value_: dataclasses.InitVar[_T]
     yielding: bool = DEFAULT_YIELDING
     deprecated: DeprecatedType = False
-    readonly: bool = dataclasses.field(default=False, init=False)
+    readonly: bool = dataclasses.field(default=False)
 
     def __post_init__(self, value_: _T) -> None:
         self.value = self.validate_value(value_)
@@ -635,158 +629,119 @@ class UserStdOption(UserComboOption):
                              f'Possible values for option "{self.name}" are {self.choices}')
 
 
-class BuiltinOption(T.Generic[_T]):
+def argparse_name_to_arg(name: str) -> str:
+    if name == 'warning_level':
+        return '--warnlevel'
+    return '--' + name.replace('_', '-')
 
-    """Class for a builtin option type.
 
-    There are some cases that are not fully supported yet.
-    """
+def argparse_prefixed_default(opt: AnyOptionType, name: OptionKey, prefix: str = '') -> ElementaryOptionValues:
+    if isinstance(opt, (UserComboOption, UserIntegerOption, UserUmaskOption)):
+        return T.cast('ElementaryOptionValues', opt.default)
+    try:
+        return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
+    except KeyError:
+        return T.cast('ElementaryOptionValues', opt.default)
 
-    def __init__(self, opt_type: T.Type[UserOption[_T]], description: str, default: T.Any, yielding: bool = True, *,
-                 choices: T.Any = None, readonly: bool = False, **kwargs: object):
-        self.opt_type = opt_type
-        self.description = description
-        self.default = default
-        self.choices = choices
-        self.yielding = yielding
-        self.readonly = readonly
-        self.kwargs = kwargs
 
-    def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> UserOption[_T]:
-        """Create an instance of opt_type and return it."""
-        if value is None:
-            value = self.prefixed_default(name, prefix)
-        keywords = {'yielding': self.yielding, 'value_': value}
-        keywords.update(self.kwargs)
-        if self.choices:
-            keywords['choices'] = self.choices
-        o = self.opt_type(name.name, self.description, **keywords)
-        o.readonly = self.readonly
-        return o
+def option_to_argparse(option: AnyOptionType, name: OptionKey, parser: argparse.ArgumentParser, help_suffix: str) -> None:
+    kwargs: ArgparseKWs = {}
 
-    def _argparse_action(self) -> T.Optional[str]:
-        # If the type is a boolean, the presence of the argument in --foo form
-        # is to enable it. Disabling happens by using -Dfoo=false, which is
-        # parsed under `args.projectoptions` and does not hit this codepath.
-        if isinstance(self.default, bool):
-            return 'store_true'
-        return None
+    if isinstance(option, (EnumeratedUserOption, UserArrayOption)):
+        c = option.choices
+    else:
+        c = None
+    b = 'store_true' if isinstance(option.default, bool) else None
+    h = option.description
+    if not b:
+        h = '{} (default: {}).'.format(h.rstrip('.'), argparse_prefixed_default(option, name))
+    else:
+        kwargs['action'] = b
+    if c and not b:
+        kwargs['choices'] = c
+    kwargs['default'] = argparse.SUPPRESS
+    kwargs['dest'] = str(name)
 
-    def _argparse_choices(self) -> T.Any:
-        if self.opt_type is UserBooleanOption:
-            return [True, False]
-        return self.choices
+    cmdline_name = argparse_name_to_arg(str(name))
+    parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
 
-    @staticmethod
-    def argparse_name_to_arg(name: str) -> str:
-        if name == 'warning_level':
-            return '--warnlevel'
-        else:
-            return '--' + name.replace('_', '-')
-
-    def prefixed_default(self, name: 'OptionKey', prefix: str = '') -> T.Any:
-        if self.opt_type in {UserComboOption, UserIntegerOption, UserUmaskOption}:
-            return self.default
-        try:
-            return BUILTIN_DIR_NOPREFIX_OPTIONS[name][prefix]
-        except KeyError:
-            pass
-        return self.default
-
-    def add_to_argparse(self, name: OptionKey, parser: argparse.ArgumentParser, help_suffix: str) -> None:
-        kwargs: ArgparseKWs = {}
-
-        c = self._argparse_choices()
-        b = self._argparse_action()
-        h = self.description
-        if not b:
-            h = '{} (default: {}).'.format(h.rstrip('.'), self.prefixed_default(name))
-        else:
-            kwargs['action'] = b
-        if c and not b:
-            kwargs['choices'] = c
-        kwargs['default'] = argparse.SUPPRESS
-        kwargs['dest'] = str(name)
-
-        cmdline_name = self.argparse_name_to_arg(str(name))
-        parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
 # Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
 # Please also update completion scripts in $MESONSRC/data/shell-completions/
-BUILTIN_DIR_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
-    (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', default_datadir())),
-    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', default_includedir())),
-    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', default_infodir())),
-    (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
-    (OptionKey('licensedir'),      BuiltinOption(UserStringOption, 'Licenses directory', '')),
-    (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', default_localedir())),
-    (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
-    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', default_mandir())),
-    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', default_sbindir())),
-    (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
-    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', default_sysconfdir())),
-])
+BUILTIN_DIR_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
+    OptionKey(o.name): o for o in [
+        UserStringOption('prefix', 'Installation prefix', default_prefix()),
+        UserStringOption('bindir', 'Executable directory', 'bin'),
+        UserStringOption('datadir', 'Data file directory', default_datadir()),
+        UserStringOption('includedir', 'Header file directory', default_includedir()),
+        UserStringOption('infodir', 'Info page directory', default_infodir()),
+        UserStringOption('libdir', 'Library directory', default_libdir()),
+        UserStringOption('licensedir', 'Licenses directory', ''),
+        UserStringOption('libexecdir', 'Library executable directory', default_libexecdir()),
+        UserStringOption('localedir', 'Locale data directory', default_localedir()),
+        UserStringOption('localstatedir', 'Localstate data directory', 'var'),
+        UserStringOption('mandir', 'Manual page directory', default_mandir()),
+        UserStringOption('sbindir', 'System executable directory', default_sbindir()),
+        UserStringOption('sharedstatedir', 'Architecture-independent data directory', 'com'),
+        UserStringOption('sysconfdir', 'Sysconf data directory', default_sysconfdir()),
+    ]
+}
 
-BUILTIN_CORE_OPTIONS: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
-    (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist,
-                                                 readonly=True)),
-    (OptionKey('genvslite'),
-     BuiltinOption(
-         UserComboOption,
-         'Setup multiple buildtype-suffixed ninja-backend build directories, '
-         'and a [builddir]_vs containing a Visual Studio meta-backend with multiple configurations that calls into them',
-         'vs2022',
-         choices=genvslitelist)
-     ),
-    (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                                 choices=buildtypelist)),
-    (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Enable debug symbols and other information', True)),
-    (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                                                 yielding=False)),
-    (OptionKey('default_both_libraries'), BuiltinOption(UserComboOption, 'Default library type for both_libraries', 'shared', choices=['shared', 'static', 'auto'])),
-    (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
-    (OptionKey('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
-    (OptionKey('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
-    (OptionKey('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])),
-    (OptionKey('prefer_static'),   BuiltinOption(UserBooleanOption, 'Whether to try static linking before shared linking', False)),
-    (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
-    (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
-    (OptionKey('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
-    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', 4, min_value=2)),
-    (OptionKey('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'], yielding=False)),
-    (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
-    (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote'])),
-    (OptionKey('force_fallback_for'), BuiltinOption(UserStringArrayOption, 'Force fallback for those subprojects', [])),
-    (OptionKey('vsenv'),           BuiltinOption(UserBooleanOption, 'Activate Visual Studio environment', False, readonly=True)),
+BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
+    OptionKey(o.name): o for o in T.cast('T.List[AnyOptionType]', [
+        UserFeatureOption('auto_features', "Override value of all 'auto' features", 'auto'),
+        UserComboOption('backend', 'Backend to use', 'ninja', choices=backendlist, readonly=True),
+        UserComboOption(
+            'genvslite',
+            'Setup multiple buildtype-suffixed ninja-backend build directories, '
+            'and a [builddir]_vs containing a Visual Studio meta-backend with multiple configurations that calls into them',
+            'vs2022',
+            choices=genvslitelist
+        ),
+        UserComboOption('buildtype', 'Build type to use', 'debug', choices=buildtypelist),
+        UserBooleanOption('debug', 'Enable debug symbols and other information', True),
+        UserComboOption('default_library', 'Default library type', 'shared', choices=['shared', 'static', 'both'],
+                        yielding=False),
+        UserComboOption('default_both_libraries', 'Default library type for both_libraries', 'shared',
+                        choices=['shared', 'static', 'auto']),
+        UserBooleanOption('errorlogs', "Whether to print the logs from failing tests", True),
+        UserUmaskOption('install_umask', 'Default umask to apply on permissions of installed files', OctalInt(0o022)),
+        UserComboOption('layout', 'Build directory layout', 'mirror', choices=['mirror', 'flat']),
+        UserComboOption('optimization', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's']),
+        UserBooleanOption('prefer_static', 'Whether to try static linking before shared linking', False),
+        UserBooleanOption('stdsplit', 'Split stdout and stderr in test logs', True),
+        UserBooleanOption('strip', 'Strip targets on install', False),
+        UserComboOption('unity', 'Unity build', 'off', choices=['on', 'off', 'subprojects']),
+        UserIntegerOption('unity_size', 'Unity block size', 4, min_value=2),
+        UserComboOption('warning_level', 'Compiler warning level to use', '1', choices=['0', '1', '2', '3', 'everything'],
+                        yielding=False),
+        UserBooleanOption('werror', 'Treat warnings as errors', False, yielding=False),
+        UserComboOption('wrap_mode', 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback', 'nopromote']),
+        UserStringArrayOption('force_fallback_for', 'Force fallback for those subprojects', []),
+        UserBooleanOption('vsenv', 'Activate Visual Studio environment', False, readonly=True),
 
-    # Pkgconfig module
-    (OptionKey('pkgconfig.relocatable'),
-     BuiltinOption(UserBooleanOption, 'Generate pkgconfig files as relocatable', False)),
+        # Pkgconfig module
+        UserBooleanOption('pkgconfig.relocatable', 'Generate pkgconfig files as relocatable', False),
 
-    # Python module
-    (OptionKey('python.bytecompile'),
-     BuiltinOption(UserIntegerOption, 'Whether to compile bytecode', 0, min_value=-1, max_value=2)),
-    (OptionKey('python.install_env'),
-     BuiltinOption(UserComboOption, 'Which python environment to install to', 'prefix', choices=['auto', 'prefix', 'system', 'venv'])),
-    (OptionKey('python.platlibdir'),
-     BuiltinOption(UserStringOption, 'Directory for site-specific, platform-specific files.', '')),
-    (OptionKey('python.purelibdir'),
-     BuiltinOption(UserStringOption, 'Directory for site-specific, non-platform-specific files.', '')),
-    (OptionKey('python.allow_limited_api'),
-     BuiltinOption(UserBooleanOption, 'Whether to allow use of the Python Limited API', True)),
-])
+        # Python module
+        UserIntegerOption('python.bytecompile', 'Whether to compile bytecode', 0, min_value=-1, max_value=2),
+        UserComboOption('python.install_env', 'Which python environment to install to', 'prefix',
+                        choices=['auto', 'prefix', 'system', 'venv']),
+        UserStringOption('python.platlibdir', 'Directory for site-specific, platform-specific files.', ''),
+        UserStringOption('python.purelibdir', 'Directory for site-specific, non-platform-specific files.', ''),
+        UserBooleanOption('python.allow_limited_api', 'Whether to allow use of the Python Limited API', True),
+    ])
+}
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
-BUILTIN_OPTIONS_PER_MACHINE: T.Dict['OptionKey', 'BuiltinOption'] = OrderedDict([
-    (OptionKey('pkg_config_path'), BuiltinOption(UserStringArrayOption, 'List of additional paths for pkg-config to search', [])),
-    (OptionKey('cmake_prefix_path'), BuiltinOption(UserStringArrayOption, 'List of additional prefixes for cmake to search', [])),
-])
+BUILTIN_OPTIONS_PER_MACHINE: T.Mapping[OptionKey, AnyOptionType] = {
+    OptionKey(o.name): o for o in [
+        UserStringArrayOption('pkg_config_path', 'List of additional paths for pkg-config to search', []),
+        UserStringArrayOption('cmake_prefix_path', 'List of additional prefixes for cmake to search', []),
+    ]
+}
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.
@@ -1302,7 +1257,9 @@ class OptionStore:
             if prefix in prefix_mapping:
                 new_value = prefix_mapping[prefix]
             else:
-                new_value = BUILTIN_OPTIONS[optkey].default
+                _v = BUILTIN_OPTIONS[optkey].default
+                assert isinstance(_v, str), 'for mypy'
+                new_value = _v
             valobj.set_value(new_value)
         self.options[OptionKey('prefix')].set_value(prefix)
 

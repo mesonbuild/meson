@@ -239,7 +239,7 @@ class OptionInterpreter:
         value = kwargs['value']
         if value is None:
             value = kwargs['choices'][0]
-        return options.UserComboOption(name, description, value, *args, choices)
+        return options.UserComboOption(name, description, value, *args, choices=choices)
 
     @typed_kwargs(
         'integer option',
