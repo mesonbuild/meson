@@ -1090,17 +1090,17 @@ class CLikeCompiler(Compiler):
         return sorted(filtered, key=tuple_key, reverse=True)
 
     @classmethod
-    def _get_trials_from_pattern(cls, pattern: str, directory: str, libname: str) -> T.List[Path]:
-        f = Path(directory) / pattern.format(libname)
+    def _get_trials_from_pattern(cls, pattern: str, directory: str, libname: str) -> T.List[str]:
+        f = os.path.join(directory, pattern.format(libname))
         # Globbing for OpenBSD
         if '*' in pattern:
             # NOTE: globbing matches directories and broken symlinks
             # so we have to do an isfile test on it later
-            return [Path(x) for x in cls._sort_shlibs_openbsd(glob.glob(str(f)))]
+            return cls._sort_shlibs_openbsd(glob.glob(f))
         return [f]
 
     @staticmethod
-    def _get_file_from_list(env: Environment, paths: T.List[Path]) -> T.Optional[Path]:
+    def _get_file_from_list(env: Environment, paths: T.List[str]) -> T.Optional[Path]:
         '''
         We just check whether the library exists. We can't do a link check
         because the library might have unresolved symbols that require other
@@ -1108,16 +1108,16 @@ class CLikeCompiler(Compiler):
         architecture.
         '''
         for p in paths:
-            if p.is_file():
+            if os.path.isfile(p):
 
                 if env.machines.host.is_darwin() and env.machines.build.is_darwin():
                     # Run `lipo` and check if the library supports the arch we want
-                    archs = mesonlib.darwin_get_object_archs(str(p))
+                    archs = mesonlib.darwin_get_object_archs(p)
                     if not archs or env.machines.host.cpu_family not in archs:
                         mlog.debug(f'Rejected {p}, supports {archs} but need {env.machines.host.cpu_family}')
                         continue
 
-                return p
+                return Path(p)
 
         return None
 
