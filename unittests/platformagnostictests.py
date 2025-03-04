@@ -451,7 +451,7 @@ class PlatformAgnosticTests(BasePlatformTests):
                 f.write(line)
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.setconf('-Dneg_int_opt=0')
-        self.assertIn('Unknown options: "neg_int_opt"', e.exception.stdout)
+        self.assertIn('Unknown options: ":neg_int_opt"', e.exception.stdout)
 
     def test_configure_option_changed_constraints(self) -> None:
         """Changing the constraints of an option without reconfiguring should work."""
@@ -491,7 +491,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         os.unlink(os.path.join(testdir, 'meson_options.txt'))
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.setconf('-Dneg_int_opt=0')
-        self.assertIn('Unknown options: "neg_int_opt"', e.exception.stdout)
+        self.assertIn('Unknown options: ":neg_int_opt"', e.exception.stdout)
 
     def test_configure_options_file_added(self) -> None:
         """A new project option file should be detected."""
