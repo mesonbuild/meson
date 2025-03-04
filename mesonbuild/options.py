@@ -941,53 +941,27 @@ class OptionStore:
         # .as_posix() keeps the posix-like file separators Meson uses.
         return value.as_posix()
 
-    def set_value(self, key: T.Union[OptionKey, str], new_value: 'T.Any', first_invocation: bool = False) -> bool:
-        key = self.ensure_and_validate_key(key)
-        if key.name == 'prefix':
-            new_value = self.sanitize_prefix(new_value)
-        elif self.is_builtin_option(key):
-            prefix = self.get_value_for('prefix')
-            assert isinstance(prefix, str)
-            new_value = self.sanitize_dir_option_value(prefix, key, new_value)
-        if key not in self.options:
-            raise MesonException(f'Unknown options: "{key.name}" not found.')
-
-        valobj = self.options[key]
-        old_value = valobj.value
-        changed = valobj.set_value(new_value)
-
-        if valobj.readonly and changed and not first_invocation:
-            raise MesonException(f'Tried to modify read only option {str(key)!r}')
-
-        if key.name == 'prefix' and first_invocation and changed:
-            assert isinstance(old_value, str)
-            self.reset_prefixed_options(old_value, new_value)
-
-        if changed:
-            self.set_dependents(key, new_value)
-
-        return changed
-
-    def set_dependents(self, key: OptionKey, value: str) -> None:
-        if key.name != 'buildtype':
-            return
+    def _set_dependents(self, key: OptionKey, value: str) -> None:
         opt, debug = self.DEFAULT_DEPENDENTS[value]
         dkey = key.evolve(name='debug')
         optkey = key.evolve(name='optimization')
         self.options[dkey].set_value(debug)
         self.options[optkey].set_value(opt)
 
-    def set_option(self, key: OptionKey, new_value: str, first_invocation: bool = False) -> bool:
-        assert isinstance(key, OptionKey)
-        # FIXME, dupe of set_value
-        # Remove one of the two before merging to master.
+    def set_option(self, key: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
         if key.name == 'prefix':
+            assert isinstance(new_value, str), 'for mypy'
             new_value = self.sanitize_prefix(new_value)
         elif self.is_builtin_option(key):
             prefix = self.get_value_for('prefix')
-            assert isinstance(prefix, str)
+            assert isinstance(prefix, str), 'for mypy'
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
-        opt = self.get_value_object_for(key)
+
+        try:
+            opt = self.get_value_object_for(key)
+        except KeyError:
+            raise MesonException(f'Unknown options: "{key!s}" not found.')
+
         if opt.deprecated is True:
             mlog.deprecation(f'Option {key.name!r} is deprecated')
         elif isinstance(opt.deprecated, list):
@@ -1014,15 +988,17 @@ class OptionStore:
         old_value = opt.value
         changed = opt.set_value(new_value)
 
-        if opt.readonly and changed:
-            raise MesonException(f'Tried modify read only option {str(key)!r}')
+        if opt.readonly and changed and not first_invocation:
+            raise MesonException(f'Tried to modify read only option {str(key)!r}')
 
         if key.name == 'prefix' and first_invocation and changed:
             assert isinstance(old_value, str), 'for mypy'
+            assert isinstance(new_value, str), 'for mypy'
             self.reset_prefixed_options(old_value, new_value)
 
-        if changed:
-            self.set_dependents(key, new_value)
+        if changed and key.name == 'buildtype':
+            assert isinstance(new_value, str), 'for mypy'
+            self._set_dependents(key, new_value)
 
         return changed
 
@@ -1032,9 +1008,9 @@ class OptionStore:
         else:
             o = OptionKey.from_string(keystr)
         if o in self.options:
-            return self.set_value(o, new_value)
+            return self.set_option(o, new_value)
         o = o.as_root()
-        return self.set_value(o, new_value)
+        return self.set_option(o, new_value)
 
     def set_from_configure_command(self, D_args: T.List[str], U_args: T.List[str]) -> bool:
         dirty = False
@@ -1279,7 +1255,7 @@ class OptionStore:
                 augstr = str(key)
                 self.augments[augstr] = valstr
             elif key in self.options:
-                self.set_value(key, valstr, first_invocation)
+                self.set_option(key, valstr, first_invocation)
             else:
                 proj_key = key.as_root()
                 if proj_key in self.options:
@@ -1330,7 +1306,7 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key in self.options:
-                self.set_value(key, valstr, True)
+                self.set_option(key, valstr, True)
             elif key.subproject is None:
                 projectkey = key.as_root()
                 if projectkey in self.options:
@@ -1371,7 +1347,7 @@ class OptionStore:
             # If the key points to a project option, set the value from that.
             # Otherwise set an augment.
             if key in self.project_options:
-                self.set_value(key, valstr, is_first_invocation)
+                self.set_option(key, valstr, is_first_invocation)
             else:
                 self.pending_project_options.pop(key, None)
                 aug_str = f'{subproject}:{keystr}'
@@ -1385,6 +1361,6 @@ class OptionStore:
                 continue
             self.pending_project_options.pop(key, None)
             if key in self.options:
-                self.set_value(key, valstr, is_first_invocation)
+                self.set_option(key, valstr, is_first_invocation)
             else:
                 self.augments[str(key)] = valstr
