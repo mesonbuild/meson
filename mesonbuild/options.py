@@ -755,7 +755,7 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
 
 MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
 
-BASE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
+COMPILER_BASE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
     OptionKey(o.name): o for o in T.cast('T.List[AnyOptionType]', [
         UserBooleanOption('b_pch', 'Use precompiled headers', True),
         UserBooleanOption('b_lto', 'Use link time optimization', False),
@@ -1091,7 +1091,7 @@ class OptionStore:
     def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
         assert self.is_base_option(key)
         try:
-            return T.cast('ElementaryOptionValues', BASE_OPTIONS[key.evolve(subproject=None)].default)
+            return T.cast('ElementaryOptionValues', COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default)
         except KeyError:
             raise MesonBugException(f'Requested base option {key} which does not exist.')
 

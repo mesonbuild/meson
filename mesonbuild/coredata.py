@@ -640,7 +640,7 @@ class CoreData:
             # adding languages and setting backend.
             if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
                 continue
-            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in options.BASE_OPTIONS:
+            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in options.COMPILER_BASE_OPTIONS:
                 # set_options will report unknown base options
                 continue
             options_[k] = v
@@ -686,7 +686,7 @@ class CoreData:
             else:
                 skey = key
             if skey not in self.optstore:
-                self.optstore.add_system_option(skey, copy.deepcopy(options.BASE_OPTIONS[key]))
+                self.optstore.add_system_option(skey, copy.deepcopy(options.COMPILER_BASE_OPTIONS[key]))
                 if skey in env.options:
                     self.optstore.set_option(skey, env.options[skey])
                 elif subproject and key in env.options:
