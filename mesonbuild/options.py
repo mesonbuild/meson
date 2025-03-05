@@ -941,13 +941,6 @@ class OptionStore:
         # .as_posix() keeps the posix-like file separators Meson uses.
         return value.as_posix()
 
-    def _set_dependents(self, key: OptionKey, value: str) -> None:
-        opt, debug = self.DEFAULT_DEPENDENTS[value]
-        dkey = key.evolve(name='debug')
-        optkey = key.evolve(name='optimization')
-        self.options[dkey].set_value(debug)
-        self.options[optkey].set_value(opt)
-
     def set_option(self, key: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
         if key.name == 'prefix':
             assert isinstance(new_value, str), 'for mypy'
@@ -998,7 +991,11 @@ class OptionStore:
 
         if changed and key.name == 'buildtype':
             assert isinstance(new_value, str), 'for mypy'
-            self._set_dependents(key, new_value)
+            optimization, debug = self.DEFAULT_DEPENDENTS[new_value]
+            dkey = key.evolve(name='debug')
+            optkey = key.evolve(name='optimization')
+            self.options[dkey].set_value(debug)
+            self.options[optkey].set_value(optimization)
 
         return changed
 
