@@ -11,7 +11,7 @@ import typing as T
 
 from . import build, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .mesonlib import MesonException
-from .options import BASE_OPTIONS, OptionKey
+from .options import COMPILER_BASE_OPTIONS, OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -204,7 +204,7 @@ class MesonApp:
             if coredata.optstore.is_compiler_option(opt):
                 continue
             if (coredata.optstore.is_base_option(opt) and
-                    opt.evolve(subproject=None, machine=mesonlib.MachineChoice.HOST) in BASE_OPTIONS):
+                    opt.evolve(subproject=None, machine=mesonlib.MachineChoice.HOST) in COMPILER_BASE_OPTIONS):
                 continue
             keystr = str(opt)
             if keystr in cmd_line_options:
