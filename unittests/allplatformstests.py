@@ -12,6 +12,7 @@ import platform
 import pickle
 import zipfile, tarfile
 import sys
+import sysconfig
 from unittest import mock, SkipTest, skipIf, skipUnless
 from contextlib import contextmanager
 from glob import glob
@@ -2947,6 +2948,88 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Dstart_native=false'], override_envvars=env)
         self.wipe()
         self.init(testdir, extra_args=['-Dstart_native=true'], override_envvars=env)
+
+    @skipIf(is_windows(), 'POSIX only')
+    def test_python_build_config_extensions(self):
+        testdir = os.path.join(self.unit_test_dir,
+                               '125 python extension')
+
+        VERSION_INFO_KEYS = ('major', 'minor', 'micro', 'releaselevel', 'serial')
+        EXTENSION_SUFFIX = '.extension-suffix.so'
+        STABLE_ABI_SUFFIX = '.stable-abi-suffix.so'
+
+        python_build_config = {
+            'schema_version': '1.0',
+            'base_interpreter': sys.executable,
+            'base_prefix': '/usr',
+            'platform': sysconfig.get_platform(),
+            'language': {
+                'version': sysconfig.get_python_version(),
+                'version_info': {key: getattr(sys.version_info, key) for key in VERSION_INFO_KEYS}
+            },
+            'implementation': {
+                attr: (
+                    getattr(sys.implementation, attr)
+                    if attr != 'version' else
+                    {key: getattr(sys.implementation.version, key) for key in VERSION_INFO_KEYS}
+                )
+                for attr in dir(sys.implementation)
+                if not attr.startswith('__')
+            },
+            'abi': {
+                'flags': [],
+                'extension_suffix': EXTENSION_SUFFIX,
+                'stable_abi_suffix': STABLE_ABI_SUFFIX,
+            },
+            'suffixes': {
+                'source': ['.py'],
+                'bytecode': ['.pyc'],
+                'optimized_bytecode': ['.pyc'],
+                'debug_bytecode': ['.pyc'],
+                'extensions': [EXTENSION_SUFFIX, STABLE_ABI_SUFFIX, '.so'],
+            },
+            'libpython': {
+                'dynamic': sysconfig.get_config_var('LDLIBRARY'),
+                'dynamic_stableabi': sysconfig.get_config_var('PY3LIBRARY'),
+                'static': sysconfig.get_config_var('LIBRARY'),
+                'link_extensions': True,
+            },
+            'c_api': {
+                'headers': sysconfig.get_path('include'),
+                'pkgconfig_path': sysconfig.get_config_var('LIBPC'),
+            }
+        }
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
+            json.dump(python_build_config, fp=python_build_config_file)
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
+            cross_file.write(
+                textwrap.dedent(f'''
+                    [binaries]
+                    pkg-config = 'pkg-config'
+
+                    [built-in options]
+                    python.build_config = '{python_build_config_file.name}'
+                '''.strip())
+            )
+            cross_file.flush()
+
+        intro_installed_file = os.path.join(self.builddir, 'meson-info', 'intro-installed.json')
+        expected_files = [
+            os.path.join(self.builddir, 'foo' + EXTENSION_SUFFIX),
+            os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX),
+        ]
+
+        for extra_args in (
+            ['--python.build-config', python_build_config_file.name],
+            ['--cross-file', cross_file.name],
+        ):
+            with self.subTest(extra_args=extra_args):
+                self.init(testdir, extra_args=extra_args)
+                with open(intro_installed_file) as f:
+                    intro_installed = json.load(f)
+                self.assertEqual(expected_files, list(intro_installed))
+                self.wipe()
 
     def __reconfigure(self):
         # Set an older version to force a reconfigure from scratch
