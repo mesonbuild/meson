@@ -197,6 +197,8 @@ def get_llvm_tool_names(tool: str) -> T.List[str]:
     # unless it becomes a stable release.
     suffixes = [
         '', # base (no suffix)
+        '-20.1', '20.1',
+        '-20',  '20',
         '-19.1', '19.1',
         '-19',  '19',
         '-18.1', '18.1',
