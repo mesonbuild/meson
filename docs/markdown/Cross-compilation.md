@@ -85,7 +85,7 @@ their user interface much more complex.
 
 The most complicated case is when you cross-compile a cross compiler.
 As an example you can, on a Linux machine, generate a cross compiler
-that runs on Windows but produces binaries on MIPS Linux. In this case
+that runs on Windows but produces binaries for MIPS Linux. In this case
 *build machine* is x86 Linux, *host machine* is x86 Windows and
 *target machine* is MIPS Linux. This setup is known as the [Canadian
 Cross](https://en.wikipedia.org/wiki/Cross_compiler#Canadian_Cross).
