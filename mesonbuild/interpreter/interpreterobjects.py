@@ -4,6 +4,7 @@ import shlex
 import subprocess
 import copy
 import textwrap
+import sys
 
 from pathlib import Path, PurePath
 
@@ -24,7 +25,7 @@ from ..interpreterbase import (
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
-from ..mesonlib import HoldableObject, listify, Popen_safe
+from ..mesonlib import HoldableObject, listify
 
 import typing as T
 
@@ -214,11 +215,13 @@ class RunProcess(MesonInterpreterObject):
                  mesonintrospect: T.List[str],
                  in_builddir: bool = False,
                  check: bool = False,
-                 capture: bool = True) -> None:
+                 capture: bool = True,
+                 console: bool = False) -> None:
         super().__init__()
         if not isinstance(cmd, ExternalProgram):
             raise AssertionError('BUG: RunProcess must be passed an ExternalProgram')
         self.capture = capture
+        self.console = console
         self.returncode, self.stdout, self.stderr = self.run_command(cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check)
         self.methods.update({'returncode': self.returncode_method,
                              'stdout': self.stdout_method,
@@ -248,26 +251,80 @@ class RunProcess(MesonInterpreterObject):
         child_env = os.environ.copy()
         child_env.update(menv)
         child_env = env.get_env(child_env)
-        stdout = subprocess.PIPE if self.capture else subprocess.DEVNULL
+
+        stdin: T.Union[T.TextIO, int] = sys.stdin if self.console else subprocess.DEVNULL
+        stdout = subprocess.PIPE
+        stderr = subprocess.PIPE
+
         mlog.debug('Running command:', mesonlib.join_args(command_array))
         try:
-            p, o, e = Popen_safe(command_array, stdout=stdout, env=child_env, cwd=cwd)
-            if self.capture:
-                mlog.debug('--- stdout ---')
-                mlog.debug(o)
-            else:
-                o = ''
-                mlog.debug('--- stdout disabled ---')
-            mlog.debug('--- stderr ---')
-            mlog.debug(e)
-            mlog.debug('')
-
-            if check and p.returncode != 0:
-                raise InterpreterException('Command `{}` failed with status {}.'.format(mesonlib.join_args(command_array), p.returncode))
-
-            return p.returncode, o, e
+            p = subprocess.Popen(command_array, stdin=stdin, stdout=stdout, stderr=stderr, env=child_env, cwd=cwd)
         except FileNotFoundError:
             raise InterpreterException('Could not execute command `%s`.' % mesonlib.join_args(command_array))
+
+        def handle_proc_output(proc_output: T.Optional[bytes], sys_output: T.TextIO,
+                               capture_list: T.List) -> None:
+            if not proc_output:
+                return
+            if self.console:
+                sys_output.write(proc_output.decode('utf-8', errors='replace'))
+                sys_output.flush()
+            if self.capture:
+                capture_list.append(proc_output)
+
+        o_list: T.List[T.ByteString] = []
+        e_list: T.List[T.ByteString] = []
+
+        prev_p_out_len = 0
+        prev_p_err_len = 0
+        while True:
+            try:
+                p_out_all, p_err_all = p.communicate(timeout=0.1)
+                proc_finished = True
+            except subprocess.TimeoutExpired as err:
+                p_out_all, p_err_all = err.stdout, err.stderr
+                proc_finished = False
+
+            # Since communicate/TimeoutExpired will give us the entire output,
+            # we need to figure out what's changed since the last poll. To do
+            # this we keep track of the previous output length and calculate the
+            # length difference, then use that difference to slice the output.
+            if p_out_all:
+                p_out_diff = len(p_out_all) - prev_p_out_len
+                p_out = p_out_all[-p_out_diff:] if p_out_diff > 0 else b''
+                prev_p_out_len = len(p_out_all)
+            else:
+                p_out = b''
+            if p_err_all:
+                p_err_diff = len(p_err_all) - prev_p_err_len
+                p_err = p_err_all[-p_err_diff:] if p_err_diff > 0 else b''
+                prev_p_err_len = len(p_err_all)
+            else:
+                p_err = b''
+
+            handle_proc_output(p_out, sys.stdout, o_list)
+            handle_proc_output(p_err, sys.stderr, e_list)
+
+            if proc_finished:
+                break
+
+        o = b''.join(o_list).decode('utf-8', errors='replace').replace('\r\n', '\n')
+        e = b''.join(e_list).decode('utf-8', errors='replace').replace('\r\n', '\n')
+
+        if self.capture:
+            mlog.debug('--- stdout ---')
+            mlog.debug(o)
+            mlog.debug('--- stderr ---')
+            mlog.debug(e)
+        else:
+            mlog.debug('--- capture output disabled ---')
+        mlog.debug('')
+
+        if check and p.returncode != 0:
+            raise InterpreterException(
+                'Command `{}` failed with status {}.'.format(mesonlib.join_args(command_array), p.returncode))
+
+        return p.returncode, o, e
 
     @noPosargs
     @noKwargs
