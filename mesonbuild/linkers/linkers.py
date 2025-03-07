@@ -806,7 +806,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return self._apply_prefix('-undefined,dynamic_lookup')
 
     def get_std_shared_module_args(self, target: 'BuildTarget') -> T.List[str]:
-        return ['-bundle'] + self._apply_prefix('-undefined,dynamic_lookup')
+        return ['-dynamiclib'] + self._apply_prefix('-undefined,dynamic_lookup')
 
     def get_pie_args(self) -> T.List[str]:
         return []
