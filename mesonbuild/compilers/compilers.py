@@ -222,9 +222,7 @@ BASE_OPTIONS: T.Mapping[OptionKey, options.AnyOptionType] = {
         options.UserComboOption('b_lto_mode', 'Select between different LTO modes.', 'default', choices=['default', 'thin']),
         options.UserBooleanOption('b_thinlto_cache', 'Use LLVM ThinLTO caching for faster incremental builds', False),
         options.UserStringOption('b_thinlto_cache_dir', 'Directory to store ThinLTO cache objects', ''),
-        options.UserComboOption(
-            'b_sanitize', 'Code sanitizer to use', 'none',
-            choices=['none', 'address', 'thread', 'undefined', 'memory', 'leak', 'address,undefined']),
+        options.UserStringArrayOption('b_sanitize', 'Code sanitizer to use', []),
         options.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
         options.UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
         options.UserComboOption(
@@ -307,7 +305,9 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
         pass
     try:
         sanitize = env.coredata.get_option_for_target(target, 'b_sanitize')
-        assert isinstance(sanitize, str)
+        assert isinstance(sanitize, list)
+        if sanitize == ['none']:
+            sanitize = []
         sanitize_args = compiler.sanitizer_compile_args(sanitize)
         # We consider that if there are no sanitizer arguments returned, then
         # the language doesn't support them.
@@ -376,7 +376,9 @@ def get_base_link_args(target: 'BuildTarget',
         pass
     try:
         sanitizer = env.coredata.get_option_for_target(target, 'b_sanitize')
-        assert isinstance(sanitizer, str)
+        assert isinstance(sanitizer, list)
+        if sanitizer == ['none']:
+            sanitizer = []
         sanitizer_args = linker.sanitizer_link_args(sanitizer)
         # We consider that if there are no sanitizer arguments returned, then
         # the language doesn't support them.
@@ -1044,10 +1046,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_lto_args()
 
-    def sanitizer_compile_args(self, value: str) -> T.List[str]:
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return []
 
-    def sanitizer_link_args(self, value: str) -> T.List[str]:
+    def sanitizer_link_args(self, value: T.List[str]) -> T.List[str]:
         return self.linker.sanitizer_args(value)
 
     def get_asneeded_args(self) -> T.List[str]:
