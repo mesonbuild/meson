@@ -17,6 +17,7 @@ from .mesonlib import (
     MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
+    default_prefix,
     stringlistify,
     pickle_load
 )
@@ -362,20 +363,24 @@ class CoreData:
                 self.add_builtin_option(self.optstore, key.evolve(machine=for_machine), opt)
 
     @staticmethod
-    def add_builtin_option(opts_map: 'MutableKeyedOptionDictType', key: OptionKey,
-                           opt: 'options.BuiltinOption') -> None:
+    def add_builtin_option(optstore: options.OptionStore, key: OptionKey,
+                           opt: options.AnyOptionType) -> None:
+        # Create a copy of the object, as we're going to mutate it
+        opt = copy.copy(opt)
         if key.subproject:
             if opt.yielding:
                 # This option is global and not per-subproject
                 return
-            value = opts_map.get_value(key.as_root())
         else:
-            value = None
-        if key.has_module_prefix():
-            modulename = key.get_module_prefix()
-            opts_map.add_module_option(modulename, key, opt.init_option(key, value, options.default_prefix()))
+            new_value = options.argparse_prefixed_default(
+                opt, key, default_prefix())
+            opt.set_value(new_value)
+
+        modulename = key.get_module_prefix()
+        if modulename:
+            optstore.add_module_option(modulename, key, opt)
         else:
-            opts_map.add_system_option(key, opt.init_option(key, value, options.default_prefix()))
+            optstore.add_system_option(key, opt)
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
@@ -802,10 +807,10 @@ def save(obj: CoreData, build_dir: str) -> str:
 
 def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
     for n, b in options.BUILTIN_OPTIONS.items():
-        b.add_to_argparse(n, parser, '')
+        options.option_to_argparse(b, n, parser, '')
     for n, b in options.BUILTIN_OPTIONS_PER_MACHINE.items():
-        b.add_to_argparse(n, parser, ' (just for host machine)')
-        b.add_to_argparse(n.as_build(), parser, ' (just for build machine)')
+        options.option_to_argparse(b, n, parser, ' (just for host machine)')
+        options.option_to_argparse(b, n.as_build(), parser, ' (just for build machine)')
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
@@ -832,7 +837,7 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
         value = getattr(args, name, None)
         if value is not None:
             if key in args.cmd_line_options:
-                cmdline_name = options.BuiltinOption.argparse_name_to_arg(name)
+                cmdline_name = options.argparse_name_to_arg(name)
                 raise MesonException(
                     f'Got argument {name} as both -D{name} and {cmdline_name}. Pick one.')
             args.cmd_line_options[key.name] = value

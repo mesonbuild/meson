@@ -167,21 +167,25 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.init(testdir)
 
         # no-op change works
-        self.setconf(f'--backend=ninja')
-        self.init(testdir, extra_args=['--reconfigure', '--backend=ninja'])
+        with self.subTest('set the option to the same value'):
+            self.setconf('--backend=ninja')
+            self.init(testdir, extra_args=['--reconfigure', '--backend=ninja'])
 
         # Change backend option is not allowed
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.setconf('-Dbackend=none')
-        self.assertIn("ERROR: Tried to modify read only option 'backend'", cm.exception.stdout)
+        with self.subTest('Changing the backend'):
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.setconf('-Dbackend=none')
+            self.assertIn("ERROR: Tried to modify read only option 'backend'", cm.exception.stdout)
 
         # Check that the new value was not written in the store.
-        self.assertEqual(self.getconf('backend'), 'ninja')
+        with self.subTest('option is stored correctly'):
+            self.assertEqual(self.getconf('backend'), 'ninja')
 
         # Wipe with a different backend is allowed
-        self.init(testdir, extra_args=['--wipe', '--backend=none'])
+        with self.subTest('Changing the backend with wipe'):
+            self.init(testdir, extra_args=['--wipe', '--backend=none'])
 
-        self.assertEqual(self.getconf('backend'), 'none')
+            self.assertEqual(self.getconf('backend'), 'none')
 
     def test_validate_dirs(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')

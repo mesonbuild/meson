@@ -334,7 +334,8 @@ class AllPlatformTests(BasePlatformTests):
                 name = opt['name']
                 value = opt['value']
                 if name in expected[prefix]:
-                    self.assertEqual(value, expected[prefix][name], f'For option {name} and prefix {prefix}.')
+                    with self.subTest(prefix=prefix, option=name):
+                        self.assertEqual(value, expected[prefix][name], f'For option {name} and prefix {prefix}.')
             self.wipe()
 
     def test_default_options_prefix_dependent_defaults(self):
