@@ -340,7 +340,8 @@ class RustCompiler(Compiler):
             return None
 
         return RustdocTestCompiler(exelist, self.version, self.for_machine,
-                                   self.is_cross, self.info, linker=self.linker)
+                                   self.is_cross, self.info, full_version=self.full_version,
+                                   linker=self.linker)
 
 class ClippyRustCompiler(RustCompiler):
 
