@@ -1862,6 +1862,18 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '125 pkgsubproj')
         self.init(testdir)
 
+    def test_unreadable_dir_in_declare_dep(self):
+        testdir = os.path.join(self.unit_test_dir, '125 declare_dep var')
+        tmpdir = Path(tempfile.mkdtemp())
+        self.addCleanup(windows_proof_rmtree, tmpdir)
+        declaredepdir = tmpdir / 'test'
+        declaredepdir.mkdir()
+        try:
+            tmpdir.chmod(0o444)
+            self.init(testdir, extra_args=f'-Ddir={declaredepdir}')
+        finally:
+            tmpdir.chmod(0o755)
+
     def check_has_flag(self, compdb, src, argument):
         for i in compdb:
             if src in i['file']:

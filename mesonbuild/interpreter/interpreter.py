@@ -704,20 +704,18 @@ class Interpreter(InterpreterBase, HoldableObject):
             version = self.project_version
         d_module_versions = kwargs['d_module_versions']
         d_import_dirs = self.extract_incdirs(kwargs, 'd_import_dirs')
-        srcdir = Path(self.environment.source_dir)
+        srcdir = self.environment.source_dir
+        subproject_dir = os.path.abspath(os.path.join(srcdir, self.subproject_dir))
+        project_root = os.path.abspath(os.path.join(srcdir, self.root_subdir))
         # convert variables which refer to an -uninstalled.pc style datadir
         for k, v in variables.items():
             if not v:
                 FeatureNew.single_use('empty variable value in declare_dependency', '1.4.0', self.subproject, location=node)
-            try:
-                p = Path(v)
-            except ValueError:
-                continue
-            else:
-                if not self.is_subproject() and srcdir / self.subproject_dir in p.parents:
-                    continue
-                if p.is_absolute() and p.is_dir() and srcdir / self.root_subdir in [p] + list(Path(os.path.abspath(p)).parents):
-                    variables[k] = P_OBJ.DependencyVariableString(v)
+            if os.path.isabs(v) \
+                    and (self.is_subproject() or not is_parent_path(subproject_dir, v)) \
+                    and is_parent_path(project_root, v) \
+                    and os.path.isdir(v):
+                variables[k] = P_OBJ.DependencyVariableString(v)
 
         dep = dependencies.InternalDependency(version, incs, compile_args,
                                               link_args, libs, libs_whole, sources, extra_files,
