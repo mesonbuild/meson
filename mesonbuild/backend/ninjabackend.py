@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from dataclasses import dataclass
 from enum import Enum, unique
 from functools import lru_cache
@@ -503,6 +503,7 @@ class NinjaBackend(backends.Backend):
         self.ninja_filename = 'build.ninja'
         self.fortran_deps: T.Dict[str, T.Dict[str, File]] = {}
         self.all_outputs: T.Set[str] = set()
+        self.all_pch: T.Dict[str, T.Set[str]] = defaultdict(set)
         self.all_structured_sources: T.Set[str] = set()
         self.introspection_data = {}
         self.created_llvm_ir_rule = PerMachine(False, False)
@@ -3287,6 +3288,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem.add_item('ARGS', commands)
             elem.add_item('DEPFILE', dep)
             self.add_build(elem)
+            self.all_pch[compiler.id].update(objs + [dst])
         return pch_objects
 
     def get_target_shsym_filename(self, target):
@@ -3734,7 +3736,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem.add_item('pool', 'console')
         self.add_build(elem)
 
-    def generate_clangtool(self, name: str, extra_arg: T.Optional[str] = None) -> None:
+    def generate_clangtool(self, name: str, extra_arg: T.Optional[str] = None, need_pch: bool = False) -> None:
         target_name = 'clang-' + name
         extra_args = []
         if extra_arg:
@@ -3754,6 +3756,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = self.create_phony_target(target_name, 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
+        if need_pch:
+            elem.add_dep(list(self.all_pch['clang']))
         self.add_build(elem)
 
     def generate_clangformat(self) -> None:
@@ -3765,10 +3769,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_clangtidy(self) -> None:
         if not environment.detect_clangtidy():
             return
-        self.generate_clangtool('tidy')
+        self.generate_clangtool('tidy', need_pch=True)
         if not environment.detect_clangapply():
             return
-        self.generate_clangtool('tidy', 'fix')
+        self.generate_clangtool('tidy', 'fix', need_pch=True)
 
     def generate_tags(self, tool: str, target_name: str) -> None:
         import shutil
