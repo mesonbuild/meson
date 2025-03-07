@@ -25,7 +25,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from .. import coredata
-    from ..build import BuildTarget, DFeatures
+    from ..build import BuildTarget, BuildTargetTypes, DFeatures
     from ..coredata import MutableKeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -1239,6 +1239,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def module_name_to_filename(self, module_name: str) -> str:
         raise EnvironmentException(f'{self.id} does not implement module_name_to_filename')
+
+    def get_extra_order_deps(self, target: BuildTarget) -> T.Iterable[BuildTargetTypes]:
+        return []
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         """Arguments to pass the compiler and/or linker for checks.
