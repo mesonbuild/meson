@@ -24,6 +24,8 @@ like Meson, rather than Meson work more like rust.
 rustmod.test(name, target, ...)
 ```
 
+*Since 1.8.0*
+
 This function creates a new rust unittest target from an existing rust
 based target, which may be a library or executable. It does this by
 copying the sources and arguments passed to the original target and
@@ -36,10 +38,37 @@ It also takes the following keyword arguments:
 
 - `dependencies`: a list of test-only Dependencies
 - `link_with`: a list of additional build Targets to link with (*since 1.2.0*)
+- `link_whole`: a list of additional build Targets to link with in their entirety (*since 1.8.0*)
 - `rust_args`: a list of extra arguments passed to the Rust compiler (*since 1.2.0*)
 
 This function  also accepts all of the keyword arguments accepted by the
 [[test]] function except `protocol`, it will set that automatically.
+
+### doctest()
+
+```meson
+rustmod.doctest(name, target, ...)
+```
+
+This function creates a new `test()` target from an existing rust
+based library target. The test will use `rustdoc` to extract and run
+the doctests that are included in `target`'s sources.
+
+This function takes two positional arguments, the first is the name of the
+test and the second is the library or executable that is the rust based target.
+It also takes the following keyword arguments:
+
+- `dependencies`: a list of test-only Dependencies
+- `link_with`: a list of additional build Targets to link with
+- `link_whole`: a list of additional build Targets to link with in their entirety
+- `rust_args`: a list of extra arguments passed to the Rust compiler
+
+The target is linked automatically into the doctests.
+
+This function  also accepts all of the keyword arguments accepted by the
+[[test]] function except `protocol`, it will set that automatically.
+However, arguments are limited to strings that do not contain spaces
+due to limitations of `rustdoc`.
 
 ### bindgen()
 
