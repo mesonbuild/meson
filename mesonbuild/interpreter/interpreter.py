@@ -1068,14 +1068,14 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     @typed_pos_args('get_option', str)
     @noKwargs
-    def func_get_option(self, nodes: mparser.BaseNode, args: T.Tuple[str],
-                        kwargs: 'TYPE_kwargs') -> T.Union[options.UserOption, 'TYPE_var']:
+    def func_get_option(self, node: mparser.BaseNode, args: T.Tuple[str],
+                        kwargs: kwtypes.FuncGetOption) -> T.Union[options.UserOption, 'TYPE_var']:
         optname = args[0]
+
         if ':' in optname:
             raise InterpreterException('Having a colon in option name is forbidden, '
                                        'projects are not allowed to directly access '
                                        'options of other subprojects.')
-
         if optname_regex.search(optname.split('.', maxsplit=1)[-1]) is not None:
             raise InterpreterException(f'Invalid option name {optname!r}')
 
@@ -1096,6 +1096,15 @@ class Interpreter(InterpreterBase, HoldableObject):
             ocopy.name = optname
             ocopy.value = value
             return ocopy
+        elif optname == 'b_sanitize':
+            assert isinstance(value_object, options.UserStringArrayOption)
+            # To ensure backwards compatibility this always returns a string.
+            # We may eventually want to introduce a new "format" kwarg that
+            # allows the user to modify this behaviour, but for now this is
+            # likely good enough for most usecases.
+            if not value:
+                return 'none'
+            return ','.join(sorted(value))
         elif isinstance(value_object, options.UserOption):
             if isinstance(value_object.value, str):
                 return P_OBJ.OptionString(value, f'{{{optname}}}')
@@ -3090,7 +3099,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if OptionKey('b_sanitize') not in self.coredata.optstore:
             return
         if (self.coredata.optstore.get_value('b_lundef') and
-                self.coredata.optstore.get_value('b_sanitize') != 'none'):
+                self.coredata.optstore.get_value('b_sanitize')):
             value = self.coredata.optstore.get_value('b_sanitize')
             mlog.warning(textwrap.dedent(f'''\
                     Trying to use {value} sanitizer on Clang with b_lundef.
