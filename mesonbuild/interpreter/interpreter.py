@@ -722,9 +722,14 @@ class Interpreter(InterpreterBase, HoldableObject):
             except ValueError:
                 continue
             else:
-                if not self.is_subproject() and srcdir / self.subproject_dir in p.parents:
-                    continue
-                if p.is_absolute() and p.is_dir() and srcdir / self.root_subdir in [p] + list(Path(os.path.abspath(p)).parents):
+                # Note that p.is_dir() can raise a PermissionError if a parent does not have
+                # the executable permission set.  Test it last, and only after checking that
+                # v is within the project's source directory, to avoid false positives for
+                # e.g. root owned directories under /var.
+                if p.is_absolute() \
+                        and (self.is_subproject() or srcdir / self.subproject_dir not in p.parents) \
+                        and srcdir / self.root_subdir in [p] + list(Path(os.path.abspath(p)).parents) \
+                        and p.is_dir():
                     variables[k] = P_OBJ.DependencyVariableString(v)
 
         dep = dependencies.InternalDependency(version, incs, compile_args,
