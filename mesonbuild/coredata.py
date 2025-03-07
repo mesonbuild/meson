@@ -396,9 +396,6 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
-    def get_option(self, key: OptionKey) -> ElementaryOptionValues:
-        return self.optstore.get_value_for(key.name, key.subproject)
-
     def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
         if isinstance(key, str):
             assert ':' not in key
@@ -416,18 +413,10 @@ class CoreData:
             return option_object.validate_value(override)
         return value
 
-    def get_option_for_subproject(self, key: T.Union[str, OptionKey], subproject) -> ElementaryOptionValues:
-        if isinstance(key, str):
-            key = OptionKey(key, subproject=subproject)
-        if key.subproject != subproject:
-            # This should be an error, fix before merging.
-            key = key.evolve(subproject=subproject)
-        return self.optstore.get_value_for(key)
-
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
         try:
-            changed = self.optstore.set_value(key, value, first_invocation)
+            changed = self.optstore.set_option(key, value, first_invocation)
         except KeyError:
             raise MesonException(f'Tried to set unknown builtin option {str(key)}')
         dirty |= changed
@@ -494,8 +483,8 @@ class CoreData:
             assert value == 'custom'
             return False
 
-        dirty |= self.optstore.set_value('optimization', opt)
-        dirty |= self.optstore.set_value('debug', debug)
+        dirty |= self.optstore.set_option(OptionKey('optimization'), opt)
+        dirty |= self.optstore.set_option(OptionKey('debug'), debug)
 
         return dirty
 
@@ -526,7 +515,7 @@ class CoreData:
 
             oldval = self.optstore.get_value_object(key)
             if type(oldval) is not type(value):
-                self.optstore.set_value(key, value.value)
+                self.optstore.set_option(key, value.value)
             elif options.choices_are_different(oldval, value):
                 # If the choices have changed, use the new value, but attempt
                 # to keep the old options. If they are not valid keep the new
@@ -557,7 +546,7 @@ class CoreData:
         assert not self.is_cross_build()
         for k in options.BUILTIN_OPTIONS_PER_MACHINE:
             o = self.optstore.get_value_object_for(k.name)
-            dirty |= self.optstore.set_value(k, o.value, True)
+            dirty |= self.optstore.set_option(k, o.value, True)
         for bk, bv in self.optstore.items():
             if bk.machine is MachineChoice.BUILD:
                 hk = bk.as_host()
@@ -701,16 +690,16 @@ class CoreData:
             if skey not in self.optstore:
                 self.optstore.add_system_option(skey, copy.deepcopy(compilers.BASE_OPTIONS[key]))
                 if skey in env.options:
-                    self.optstore.set_value(skey, env.options[skey])
+                    self.optstore.set_option(skey, env.options[skey])
                 elif subproject and key in env.options:
-                    self.optstore.set_value(skey, env.options[key])
+                    self.optstore.set_option(skey, env.options[key])
                 # FIXME
                 #if subproject and not self.optstore.has_option(key):
                 #    self.optstore[key] = copy.deepcopy(self.optstore[skey])
             elif skey in env.options:
-                self.optstore.set_value(skey, env.options[skey])
+                self.optstore.set_option(skey, env.options[skey])
             elif subproject and key in env.options:
-                self.optstore.set_value(skey, env.options[key])
+                self.optstore.set_option(skey, env.options[key])
         self.emit_base_options_warnings()
 
     def emit_base_options_warnings(self) -> None:

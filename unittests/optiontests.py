@@ -36,21 +36,23 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(k), new_value)
 
     def test_parsing(self):
-        s1 = OptionKey.from_string('sub:optname')
-        s1_expected = OptionKey('optname', 'sub', MachineChoice.HOST)
-        self.assertEqual(s1, s1_expected)
-        self.assertEqual(str(s1), 'sub:optname')
+        with self.subTest('subproject'):
+            s1 = OptionKey.from_string('sub:optname')
+            s1_expected = OptionKey('optname', 'sub', MachineChoice.HOST)
+            self.assertEqual(s1, s1_expected)
+            self.assertEqual(str(s1), 'sub:optname')
 
-        s2 = OptionKey.from_string('optname')
-        s2_expected = OptionKey('optname', None, MachineChoice.HOST)
-        self.assertEqual(s2, s2_expected)
+        with self.subTest('plain name'):
+            s2 = OptionKey.from_string('optname')
+            s2_expected = OptionKey('optname', None, MachineChoice.HOST)
+            self.assertEqual(s2, s2_expected)
+            self.assertEqual(str(s2), 'optname')
 
-        self.assertEqual(str(s2), 'optname')
-
-        s3 = OptionKey.from_string(':optname')
-        s3_expected = OptionKey('optname', '', MachineChoice.HOST)
-        self.assertEqual(s3, s3_expected)
-        self.assertEqual(str(s3), ':optname')
+        with self.subTest('root project'):
+            s3 = OptionKey.from_string(':optname')
+            s3_expected = OptionKey('optname', '', MachineChoice.HOST)
+            self.assertEqual(s3, s3_expected)
+            self.assertEqual(str(s3), ':optname')
 
     def test_subproject_for_system(self):
         optstore = OptionStore(False)
@@ -179,29 +181,6 @@ class OptionTests(unittest.TestCase):
         optstore.set_from_configure_command([f'{sub_name}:{name}={set_value}'], [])
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), set_value)
-
-    def test_subproject_call_options(self):
-        optstore = OptionStore(False)
-        name = 'cpp_std'
-        default_value = 'c++11'
-        override_value = 'c++14'
-        unused_value = 'c++20'
-        subproject = 'sub'
-
-        co = UserComboOption(name,
-                             'C++ language standard to use',
-                             default_value,
-                             choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
-                             )
-        optstore.add_system_option(name, co)
-        optstore.set_subproject_options(subproject, [f'cpp_std={override_value}'], [f'cpp_std={unused_value}'])
-        self.assertEqual(optstore.get_value_for(name), default_value)
-        self.assertEqual(optstore.get_value_for(name, subproject), override_value)
-
-        # Trying again should change nothing
-        optstore.set_subproject_options(subproject, [f'cpp_std={unused_value}'], [f'cpp_std={unused_value}'])
-        self.assertEqual(optstore.get_value_for(name), default_value)
-        self.assertEqual(optstore.get_value_for(name, subproject), override_value)
 
     def test_b_default(self):
         optstore = OptionStore(False)

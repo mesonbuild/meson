@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2018 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
@@ -403,7 +403,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         self.version_reqs: T.Optional[T.List[str]] = version_reqs
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
-        self.static = kwargs.get('static', self.env.coredata.get_option(OptionKey('prefer_static')))
+        self.static = kwargs.get('static', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')

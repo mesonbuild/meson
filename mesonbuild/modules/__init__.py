@@ -134,7 +134,7 @@ class ModuleState:
 
     def get_option(self, name: str, subproject: str = '',
                    machine: MachineChoice = MachineChoice.HOST) -> ElementaryOptionValues:
-        return self.environment.coredata.get_option(OptionKey(name, subproject, machine))
+        return self.environment.coredata.optstore.get_value_for(OptionKey(name, subproject, machine))
 
     def is_user_defined_option(self, name: str, subproject: str = '',
                                machine: MachineChoice = MachineChoice.HOST,

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2017 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -374,7 +374,7 @@ def run(options: argparse.Namespace) -> int:
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
-    need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+    need_vsenv = T.cast('bool', b.environment.coredata.optstore.get_value_for(OptionKey('vsenv')))
     setup_vsenv(need_vsenv)
     src_root = b.environment.source_dir
     bld_root = b.environment.build_dir

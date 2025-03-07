@@ -764,11 +764,11 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         # need a typeddict for this
-        key = self.form_compileropt_key('winlibs')
+        key = self.form_compileropt_key('winlibs').evolve(subproject=subproject)
         if target:
             value = env.coredata.get_option_for_target(target, key)
         else:
-            value = env.coredata.get_option_for_subproject(key, subproject)
+            value = env.coredata.optstore.get_value_for(key)
         return T.cast('T.List[str]', value)[:]
 
     def _get_options_impl(self, opts: 'MutableKeyedOptionDictType', cpp_stds: T.List[str]) -> 'MutableKeyedOptionDictType':
@@ -845,11 +845,11 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         # which means setting the C++ standard version to C++14, in compilers that support it
         # (i.e., after VS2015U3)
         # if one is using anything before that point, one cannot set the standard.
-        stdkey = self.form_compileropt_key('std')
+        stdkey = self.form_compileropt_key('std').evolve(subproject=subproject)
         if target is not None:
             std = env.coredata.get_option_for_target(target, stdkey)
         else:
-            std = env.coredata.get_option_for_subproject(stdkey, subproject)
+            std = env.coredata.optstore.get_value_for(stdkey)
         if std in {'vc++11', 'c++11'}:
             mlog.warning(self.id, 'does not support C++11;',
                          'attempting best effort; setting the standard to C++14',
