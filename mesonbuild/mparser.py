@@ -676,15 +676,16 @@ comparison_map: T.Mapping[str, COMPARISONS] = {
 # levels so there are not enough words to describe them all.
 # Enter numbering:
 #
-# 1 assignment
-# 2 or
-# 3 and
-# 4 comparison
-# 5 arithmetic
-# 6 negation
-# 7 funcall, method call
-# 8 parentheses
-# 9 plain token
+#  1 assignment
+#  2 or
+#  3 and
+#  4 comparison
+#  5 addition and subtraction
+#  6 multiplication, division and modulus
+#  7 negation
+#  8 funcall, method call
+#  9 parentheses
+# 10 plain token
 
 class Parser:
     def __init__(self, code: str, filename: str):
@@ -831,28 +832,9 @@ class Parser:
         return left
 
     def e5(self) -> BaseNode:
-        return self.e5addsub()
-
-    def e5addsub(self) -> BaseNode:
         op_map = {
             'plus': 'add',
             'dash': 'sub',
-        }
-        left = self.e5muldiv()
-        while True:
-            op = self.accept_any(tuple(op_map.keys()))
-            if op:
-                operator = self.create_node(SymbolNode, self.previous)
-                left = self.create_node(ArithmeticNode, op_map[op], left, operator, self.e5muldiv())
-            else:
-                break
-        return left
-
-    def e5muldiv(self) -> BaseNode:
-        op_map = {
-            'percent': 'mod',
-            'star': 'mul',
-            'fslash': 'div',
         }
         left = self.e6()
         while True:
@@ -865,16 +847,32 @@ class Parser:
         return left
 
     def e6(self) -> BaseNode:
-        if self.accept('not'):
-            operator = self.create_node(SymbolNode, self.previous)
-            return self.create_node(NotNode, self.current, operator, self.e7())
-        if self.accept('dash'):
-            operator = self.create_node(SymbolNode, self.previous)
-            return self.create_node(UMinusNode, self.current, operator, self.e7())
-        return self.e7()
+        op_map = {
+            'percent': 'mod',
+            'star': 'mul',
+            'fslash': 'div',
+        }
+        left = self.e7()
+        while True:
+            op = self.accept_any(tuple(op_map.keys()))
+            if op:
+                operator = self.create_node(SymbolNode, self.previous)
+                left = self.create_node(ArithmeticNode, op_map[op], left, operator, self.e7())
+            else:
+                break
+        return left
 
     def e7(self) -> BaseNode:
-        left = self.e8()
+        if self.accept('not'):
+            operator = self.create_node(SymbolNode, self.previous)
+            return self.create_node(NotNode, self.current, operator, self.e8())
+        if self.accept('dash'):
+            operator = self.create_node(SymbolNode, self.previous)
+            return self.create_node(UMinusNode, self.current, operator, self.e8())
+        return self.e8()
+
+    def e8(self) -> BaseNode:
+        left = self.e9()
         block_start = self.current
         if self.accept('lparen'):
             lpar = self.create_node(SymbolNode, block_start)
@@ -897,7 +895,7 @@ class Parser:
                 left = self.index_call(left)
         return left
 
-    def e8(self) -> BaseNode:
+    def e9(self) -> BaseNode:
         block_start = self.current
         if self.accept('lparen'):
             lpar = self.create_node(SymbolNode, block_start)
@@ -918,9 +916,9 @@ class Parser:
             rcurl = self.create_node(SymbolNode, self.previous)
             return self.create_node(DictNode, lcurl, key_values, rcurl)
         else:
-            return self.e9()
+            return self.e10()
 
-    def e9(self) -> BaseNode:
+    def e10(self) -> BaseNode:
         t = self.current
         if self.accept('true'):
             t.value = True
@@ -978,7 +976,7 @@ class Parser:
 
     def method_call(self, source_object: BaseNode) -> MethodNode:
         dot = self.create_node(SymbolNode, self.previous)
-        methodname = self.e9()
+        methodname = self.e10()
         if not isinstance(methodname, IdNode):
             if isinstance(source_object, NumberNode) and isinstance(methodname, NumberNode):
                 raise ParseException('meson does not support float numbers',
