@@ -1930,3 +1930,25 @@ class LinuxlikeTests(BasePlatformTests):
             self.check_has_flag(compdb, mainsrc, '-O3')
             self.check_has_flag(compdb, sub1src, '-O2')
             self.check_has_flag(compdb, sub2src, '-O2')
+
+    def test_sanitizers(self):
+        testdir = os.path.join(self.unit_test_dir, '125 sanitizers')
+
+        with self.subTest('no b_sanitize value'):
+            try:
+                out = self.init(testdir)
+                self.assertRegex(out, 'value *: *none')
+            finally:
+                self.wipe()
+
+        for value, expected in { '': 'none',
+                                 'none': 'none',
+                                 'address': 'address',
+                                 'undefined,address': 'address,undefined',
+                                 'address,undefined': 'address,undefined' }.items():
+            with self.subTest('b_sanitize=' + value):
+                try:
+                    out = self.init(testdir, extra_args=['-Db_sanitize=' + value])
+                    self.assertRegex(out, 'value *: *' + expected)
+                finally:
+                    self.wipe()

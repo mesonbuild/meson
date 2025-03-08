@@ -231,10 +231,20 @@ available on all platforms or with all compilers:
 | b_pie               | false                | true, false                                                   | Build position-independent executables (since 0.49.0)                          |
 | b_vscrt             | from_buildtype       | none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0)  |
 
-The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
-`undefined`, `memory`, `leak`, `address,undefined`, but note that some
-compilers might not support all of them. For example Visual Studio
-only supports the address sanitizer.
+The default and possible values of sanitizers changed in 1.8. Before 1.8 they
+were string values, and restricted to a specific subset of values: `none`,
+`address`, `thread`, `undefined`, `memory`, `leak`, or `address,undefined`. In
+1.8 it was changed to a free form array of sanitizers, which are checked by a
+compiler and linker check. For backwards compatibility reasons
+`get_option('b_sanitize')` continues to return a string with the array values
+separated by a comma. Furthermore:
+
+ - If the `b_sanitize` option is empty, the `'none'` string is returned.
+
+ - If it contains only the values `'address'` and `'undefined'`, they are
+   always returned as the `'address,undefined'` string, in this order.
+
+ - Otherwise, the array elements are returned in undefined order.
 
 \* < 0 means disable, == 0 means automatic selection, > 0 sets a specific number to use
 

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 
@@ -14,10 +15,9 @@ from ..mesonlib import (
     EnvironmentException, Popen_safe,
     is_windows, LibType, version_compare
 )
-from .compilers import Compiler
+from .compilers import Compiler, CompileCheckMode
 
 if T.TYPE_CHECKING:
-    from .compilers import CompileCheckMode
     from ..build import BuildTarget
     from ..coredata import MutableKeyedOptionDictType
     from ..dependencies import Dependency
@@ -700,10 +700,10 @@ class CudaCompiler(Compiler):
         # return self._to_host_flags(self.host_compiler.get_optimization_args(optimization_level))
         return cuda_optimization_args[optimization_level]
 
-    def sanitizer_compile_args(self, value: str) -> T.List[str]:
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.sanitizer_compile_args(value))
 
-    def sanitizer_link_args(self, value: str) -> T.List[str]:
+    def sanitizer_link_args(self, value: T.List[str]) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.sanitizer_link_args(value))
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
@@ -812,3 +812,12 @@ class CudaCompiler(Compiler):
 
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         return self.host_compiler.get_assert_args(disable, env)
+
+    def has_multi_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
+        args = self._to_host_flags(args)
+        return self.compiles('int main(void) { return 0; }', env, extra_args=args, mode=CompileCheckMode.COMPILE)
+
+    def has_multi_link_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
+        args = ['-Xnvlink='+self._shield_nvcc_list_arg(s) for s in self.linker.fatal_warnings()]
+        args += self._to_host_flags(args, phase=Phase.LINKER)
+        return self.compiles('int main(void) { return 0; }', env, extra_args=args, mode=CompileCheckMode.LINK)
