@@ -13,7 +13,6 @@ from mesonbuild.mesonlib import version_compare
 
 modules = [
     # fully typed submodules
-    # 'mesonbuild/ast/',
     'mesonbuild/cargo/',
     'mesonbuild/cmake/',
     'mesonbuild/compilers/',
@@ -26,11 +25,13 @@ modules = [
     'mesonbuild/wrap/',
 
     # specific files
+    'mesonbuild/arglist.py',
+    'mesonbuild/ast/__init__.py',
+    'mesonbuild/ast/interpreter.py',
     'mesonbuild/ast/introspection.py',
     'mesonbuild/ast/printer.py',
     'mesonbuild/ast/postprocess.py',
     'mesonbuild/ast/visitor.py',
-    'mesonbuild/arglist.py',
     'mesonbuild/backend/backends.py',
     'mesonbuild/backend/nonebackend.py',
     # 'mesonbuild/coredata.py',
@@ -82,6 +83,7 @@ modules = [
     'mesonbuild/optinterpreter.py',
     'mesonbuild/options.py',
     'mesonbuild/programs.py',
+    'mesonbuild/rewriter.py',
 ]
 additional = [
     'run_mypy.py',
