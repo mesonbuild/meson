@@ -1792,7 +1792,7 @@ class XCodeBackend(backends.Backend):
         header_arr = PbxArray()
         for i in header_dirs:
             np = os.path.normpath(i)
-            # Make sure Xcode will not split single path into separate entries, escaping space with a slash is not enought
+            # Make sure Xcode will not split single path into separate entries, escaping space with a slash is not enough
             item = f'"\\\"{np}\\\""' if ' ' in np else f'"{np}"'
             header_arr.add_item(item)
         return header_arr

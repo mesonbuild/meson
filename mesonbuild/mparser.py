@@ -1102,7 +1102,7 @@ class Parser:
             e.ast = block
             raise
 
-        # Remaining whitespaces will not be catched since there are no more nodes
+        # Remaining whitespaces will not be caught since there are no more nodes
         for ws_token in self.current_ws:
             block.append_whitespaces(ws_token)
         self.current_ws = []
