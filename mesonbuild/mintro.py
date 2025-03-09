@@ -380,17 +380,16 @@ def list_compilers(coredata: cdata.CoreData) -> T.Dict[str, T.Dict[str, T.Dict[s
             }
     return compilers
 
-def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool]]]:
-    result: T.List[T.Dict[str, T.Union[str, bool]]] = []
+def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool, T.List[str]]]]:
+    result: T.List[T.Dict[str, T.Union[str, bool, T.List[str]]]] = []
     for i in intr.dependencies:
-        keys = [
-            'name',
-            'required',
-            'version',
-            'has_fallback',
-            'conditional',
-        ]
-        result += [{k: v for k, v in i.items() if k in keys}]
+        result += [{
+            'name': i.name,
+            'required': i.required,
+            'version': i.version,
+            'has_fallback': i.has_fallback,
+            'conditional': i.conditional,
+        }]
     return result
 
 def list_deps(coredata: cdata.CoreData, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[str, T.List[str]]]]:

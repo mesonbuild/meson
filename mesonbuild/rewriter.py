@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
+from .ast.interpreter import IntrospectionDependency
 from mesonbuild.mesonlib import MesonException, setup_vsenv
 from . import mlog, environment
 from functools import wraps
@@ -427,10 +428,10 @@ class Rewriter:
 
         return tgt
 
-    def find_dependency(self, dependency: str):
+    def find_dependency(self, dependency: str) -> T.Optional[IntrospectionDependency]:
         def check_list(name: str):
             for i in self.interpreter.dependencies:
-                if name == i['name']:
+                if name == i.name:
                     return i
             return None
 
@@ -521,9 +522,9 @@ class Rewriter:
                 node = tmp_tgt.node
                 arg_node = node.args
         elif cmd['function'] == 'dependency':
-            tmp = self.find_dependency(cmd['id'])
-            if tmp:
-                node = tmp['node']
+            tmp_dep = self.find_dependency(cmd['id'])
+            if tmp_dep:
+                node = tmp_dep.node
                 arg_node = node.args
         if not node:
             mlog.error('Unable to find the function node')
