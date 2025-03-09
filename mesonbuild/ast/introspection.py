@@ -16,7 +16,7 @@ from ..interpreterbase import InvalidArguments, SubProject
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
-from .interpreter import AstInterpreter
+from .interpreter import AstInterpreter, IntrospectionBuildTarget
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
@@ -65,7 +65,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
         self.project_data: T.Dict[str, T.Any] = {}
-        self.targets: T.List[T.Dict[str, T.Any]] = []
+        self.targets: T.List[IntrospectionBuildTarget] = []
         self.dependencies: T.List[T.Dict[str, T.Any]] = []
         self.project_node: BaseNode = None
 
@@ -234,7 +234,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'node': node
         }]
 
-    def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> T.Optional[T.Dict[str, T.Any]]:
+    def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> IntrospectionBuildTarget:
         args = self.flatten_args(args)
         if not args or not isinstance(args[0], str):
             return None
@@ -299,26 +299,25 @@ class IntrospectionInterpreter(AstInterpreter):
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
-        new_target = {
-            'name': target.get_basename(),
-            'machine': target.for_machine.get_lower_case_name(),
-            'id': target.get_id(),
-            'type': target.get_typename(),
-            'defined_in': os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
-            'subdir': self.subdir,
-            'build_by_default': target.build_by_default,
-            'installed': target.should_install(),
-            'outputs': target.get_outputs(),
-            'sources': source_nodes,
-            'extra_files': extraf_nodes,
-            'kwargs': kwargs,
-            'node': node,
-        }
+        new_target = IntrospectionBuildTarget(
+            name=target.get_basename(),
+            machine=target.for_machine.get_lower_case_name(),
+            id=target.get_id(),
+            typename=target.get_typename(),
+            defined_in=os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
+            subdir=self.subdir,
+            build_by_default=target.build_by_default,
+            installed=target.should_install(),
+            outputs=target.get_outputs(),
+            source_nodes=source_nodes,
+            extra_files=extraf_nodes,
+            kwargs=kwargs,
+            node=node)
 
         self.targets += [new_target]
         return new_target
 
-    def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         default_library = self.coredata.optstore.get_value_for(OptionKey('default_library'))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
@@ -328,28 +327,28 @@ class IntrospectionInterpreter(AstInterpreter):
             return self.build_target(node, args, kwargs, SharedLibrary)
         return None
 
-    def func_executable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_executable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         return self.build_target(node, args, kwargs, Executable)
 
-    def func_static_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_static_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         return self.build_target(node, args, kwargs, StaticLibrary)
 
-    def func_shared_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_shared_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         return self.build_target(node, args, kwargs, SharedLibrary)
 
-    def func_both_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_both_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         return self.build_target(node, args, kwargs, SharedLibrary)
 
-    def func_shared_module(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_shared_module(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         return self.build_target(node, args, kwargs, SharedModule)
 
-    def func_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         return self.build_library(node, args, kwargs)
 
-    def func_jar(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_jar(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         return self.build_target(node, args, kwargs, Jar)
 
-    def func_build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[T.Dict[str, T.Any]]:
+    def func_build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
         if 'target_type' not in kwargs:
             return None
         target_type = kwargs.pop('target_type')
