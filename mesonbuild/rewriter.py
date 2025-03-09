@@ -9,7 +9,7 @@
 # - reindent?
 from __future__ import annotations
 
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
+from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
 from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, create_symbol
 from .interpreterbase import UnknownValue, TV_func
 from .interpreterbase.helpers import flatten
@@ -26,6 +26,11 @@ if T.TYPE_CHECKING:
     import argparse
     from argparse import ArgumentParser, _FormatterClass
     from .mlog import AnsiDecorator
+
+BUILD_TARGET_FUNCTIONS = [
+    'executable', 'jar', 'library', 'shared_library', 'shared_module',
+    'static_library', 'both_libraries', 'custom_target'
+]
 
 class RewriterException(MesonException):
     pass

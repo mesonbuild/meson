@@ -26,12 +26,6 @@ if T.TYPE_CHECKING:
     from .visitor import AstVisitor
 
 
-# TODO: it would be nice to not have to duplicate this
-BUILD_TARGET_FUNCTIONS = [
-    'executable', 'jar', 'library', 'shared_library', 'shared_module',
-    'static_library', 'both_libraries'
-]
-
 class IntrospectionHelper:
     # mimic an argparse namespace
     def __init__(self, cross_file: T.Optional[str]):

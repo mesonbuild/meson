@@ -20,7 +20,7 @@ import sys
 import typing as T
 
 from . import build, environment, mesonlib, options, coredata as cdata
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
+from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
 from .dependencies import Dependency
 from .interpreterbase import ObjectHolder, UnknownValue
