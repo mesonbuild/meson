@@ -68,7 +68,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[IntrospectionBuildTarget] = []
         self.dependencies: T.List[IntrospectionDependency] = []
-        self.project_node: BaseNode = None
+        self.project_node: FunctionNode = None
 
         self.funcs.update({
             'add_languages': self.func_add_languages,
@@ -86,6 +86,7 @@ class IntrospectionInterpreter(AstInterpreter):
     def func_project(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         if self.project_node:
             raise InvalidArguments('Second call to project()')
+        assert isinstance(node, FunctionNode)
         self.project_node = node
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
@@ -217,16 +218,20 @@ class IntrospectionInterpreter(AstInterpreter):
                     self.coredata.add_compiler_options(options, lang, for_machine, self.environment, self.subproject)
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+        assert isinstance(node, FunctionNode)
         args = self.flatten_args(args)
         kwargs = self.flatten_kwargs(kwargs)
         if not args:
             return
         name = args[0]
+        assert isinstance(name, str)
         has_fallback = 'fallback' in kwargs
         required = kwargs.get('required', True)
         version = kwargs.get('version', [])
         if not isinstance(version, list):
             version = [version]
+        assert all(isinstance(el, str) for el in version)
+        version = T.cast(T.List[str], version)
         if isinstance(required, ElementaryNode):
             required = required.value
         if not isinstance(required, bool):
@@ -241,11 +246,12 @@ class IntrospectionInterpreter(AstInterpreter):
         self.dependencies += [newdep]
 
     def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> IntrospectionBuildTarget:
+        assert isinstance(node, FunctionNode)
         args = self.flatten_args(args)
         if not args or not isinstance(args[0], str):
             return None
         name = args[0]
-        srcqueue = [node]
+        srcqueue: T.List[BaseNode] = [node]
         extra_queue = []
 
         # Process the sources BEFORE flattening the kwargs, to preserve the original nodes

@@ -83,6 +83,7 @@ modules = [
     'mesonbuild/optinterpreter.py',
     'mesonbuild/options.py',
     'mesonbuild/programs.py',
+    'mesonbuild/rewriter.py',
 ]
 additional = [
     'run_mypy.py',
