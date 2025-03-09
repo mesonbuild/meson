@@ -44,8 +44,11 @@ class IntrospectionHelper:
         return NotImplemented
 
 class IntrospectionInterpreter(AstInterpreter):
-    # Interpreter to detect the options without a build directory
-    # Most of the code is stolen from interpreter.Interpreter
+    # If you run `meson setup ...` the `Interpreter`-class walks over the AST.
+    # If you run `meson rewrite ...` and `meson introspect meson.build ...`,
+    # the `AstInterpreter`-class walks over the AST.
+    # Works without a build directory.
+    # Most of the code is stolen from interpreter.Interpreter .
     def __init__(self,
                  source_root: str,
                  subdir: str,

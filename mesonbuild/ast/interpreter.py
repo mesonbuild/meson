@@ -13,7 +13,6 @@ from .. import mparser, mesonlib
 from .. import environment
 
 from ..interpreterbase import (
-    MesonInterpreterObject,
     InterpreterBase,
     InvalidArguments,
     BreakRequest,
@@ -59,27 +58,6 @@ if T.TYPE_CHECKING:
         TestCaseClauseNode,
         UMinusNode,
     )
-
-class DontCareObject(MesonInterpreterObject):
-    pass
-
-class MockExecutable(MesonInterpreterObject):
-    pass
-
-class MockStaticLibrary(MesonInterpreterObject):
-    pass
-
-class MockSharedLibrary(MesonInterpreterObject):
-    pass
-
-class MockCustomTarget(MesonInterpreterObject):
-    pass
-
-class MockRunTarget(MesonInterpreterObject):
-    pass
-
-ADD_SOURCE = 0
-REMOVE_SOURCE = 1
 
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
@@ -231,9 +209,6 @@ class AstInterpreter(InterpreterBase):
 
     def evaluate_indexing(self, node: IndexNode) -> int:
         return 0
-
-    def unknown_function_called(self, func_name: str) -> None:
-        pass
 
     def reduce_arguments(
                 self,
