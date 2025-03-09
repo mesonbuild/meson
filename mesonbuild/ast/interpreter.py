@@ -49,7 +49,7 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var
+    from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var, TYPE_nvar
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -387,7 +387,7 @@ class AstInterpreter(InterpreterBase):
 
         return result
 
-    def flatten_args(self, args_raw: T.Union[TYPE_var, T.Sequence[TYPE_var]], include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[TYPE_var]:
+    def flatten_args(self, args_raw: T.Union[TYPE_nvar, T.Sequence[TYPE_nvar]], include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[TYPE_var]:
         # Make sure we are always dealing with lists
         if isinstance(args_raw, list):
             args = args_raw
