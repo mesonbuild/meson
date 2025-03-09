@@ -401,7 +401,7 @@ class Rewriter:
         def check_list(name: str) -> T.List[BaseNode]:
             result = []
             for i in self.interpreter.targets:
-                if name in {i['name'], i['id']}:
+                if name in {i.name, i.id}:
                     result += [i]
             return result
 
@@ -412,7 +412,7 @@ class Rewriter:
             else:
                 mlog.error('There are multiple targets matching', mlog.bold(target))
                 for i in targets:
-                    mlog.error('  -- Target name', mlog.bold(i['name']), 'with ID', mlog.bold(i['id']))
+                    mlog.error('  -- Target name', mlog.bold(i.name), 'with ID', mlog.bold(i.id))
                 mlog.error('Please try again with the unique ID of the target', *self.on_error())
                 self.handle_error()
                 return None
@@ -516,9 +516,9 @@ class Rewriter:
             node = self.interpreter.project_node
             arg_node = node.args
         elif cmd['function'] == 'target':
-            tmp = self.find_target(cmd['id'])
-            if tmp:
-                node = tmp['node']
+            tmp_tgt = self.find_target(cmd['id'])
+            if tmp_tgt:
+                node = tmp_tgt.node
                 arg_node = node.args
         elif cmd['function'] == 'dependency':
             tmp = self.find_dependency(cmd['id'])
@@ -619,7 +619,7 @@ class Rewriter:
 
         # Make source paths relative to the current subdir
         def rel_source(src: str) -> str:
-            subdir = os.path.abspath(os.path.join(self.sourcedir, target['subdir']))
+            subdir = os.path.abspath(os.path.join(self.sourcedir, target.subdir))
             if os.path.isabs(src):
                 return os.path.relpath(src, subdir)
             elif not os.path.exists(src):
@@ -647,15 +647,15 @@ class Rewriter:
 
         if cmd['operation'] == 'src_add':
             node = None
-            if target['sources']:
-                node = target['sources'][0]
+            if target.source_nodes:
+                node = target.source_nodes[0]
             else:
-                node = target['node']
+                node = target.node
             assert node is not None
 
             # Generate the current source list
             src_list = []
-            for i in target['sources']:
+            for i in target.source_nodes:
                 for j in arg_list_from_node(i):
                     if isinstance(j, StringNode):
                         src_list += [j.value]
@@ -689,7 +689,7 @@ class Rewriter:
         elif cmd['operation'] == 'src_rm':
             # Helper to find the exact string node and its parent
             def find_node(src):
-                for i in target['sources']:
+                for i in target.source_nodes:
                     for j in arg_list_from_node(i):
                         if isinstance(j, StringNode):
                             if j.value == src:
@@ -721,13 +721,13 @@ class Rewriter:
                     self.modified_nodes += [root]
 
         elif cmd['operation'] == 'extra_files_add':
-            tgt_function: FunctionNode = target['node']
+            tgt_function: FunctionNode = target.node
             mark_array = True
             try:
-                node = target['extra_files'][0]
+                node = target.extra_files[0]
             except IndexError:
                 # Specifying `extra_files` with a list that flattens to empty gives an empty
-                # target['extra_files'] list, account for that.
+                # target.extra_files list, account for that.
                 try:
                     extra_files_key = next(k for k in tgt_function.args.kwargs.keys() if isinstance(k, IdNode) and k.value == 'extra_files')
                     node = tgt_function.args.kwargs[extra_files_key]
@@ -738,17 +738,17 @@ class Rewriter:
                     mark_array = False
                     if tgt_function not in self.modified_nodes:
                         self.modified_nodes += [tgt_function]
-                target['extra_files'] = [node]
+                target.extra_files = [node]
             if isinstance(node, IdNode):
                 node = self.interpreter.assignments[node.value]
-                target['extra_files'] = [node]
+                target.extra_files = [node]
             if not isinstance(node, ArrayNode):
                 mlog.error('Target', mlog.bold(cmd['target']), 'extra_files argument must be a list', *self.on_error())
                 return self.handle_error()
 
             # Generate the current extra files list
             extra_files_list = []
-            for i in target['extra_files']:
+            for i in target.extra_files:
                 for j in arg_list_from_node(i):
                     if isinstance(j, StringNode):
                         extra_files_list += [j.value]
@@ -779,7 +779,7 @@ class Rewriter:
         elif cmd['operation'] == 'extra_files_rm':
             # Helper to find the exact string node and its parent
             def find_node(src):
-                for i in target['extra_files']:
+                for i in target.extra_files:
                     for j in arg_list_from_node(i):
                         if isinstance(j, StringNode):
                             if j.value == src:
@@ -838,9 +838,9 @@ class Rewriter:
             self.to_add_nodes += [src_ass_node, tgt_ass_node]
 
         elif cmd['operation'] == 'target_rm':
-            to_remove = self.find_assignment_node(target['node'])
+            to_remove = self.find_assignment_node(target.node)
             if to_remove is None:
-                to_remove = target['node']
+                to_remove = target.node
             self.to_remove_nodes += [to_remove]
             mlog.log('  -- Removing target', mlog.green(cmd['target']), 'at',
                      mlog.yellow(f'{to_remove.filename}:{to_remove.lineno}'))
@@ -848,21 +848,21 @@ class Rewriter:
         elif cmd['operation'] == 'info':
             # T.List all sources in the target
             src_list = []
-            for i in target['sources']:
+            for i in target.source_nodes:
                 for j in arg_list_from_node(i):
                     if isinstance(j, StringNode):
                         src_list += [j.value]
             extra_files_list = []
-            for i in target['extra_files']:
+            for i in target.extra_files:
                 for j in arg_list_from_node(i):
                     if isinstance(j, StringNode):
                         extra_files_list += [j.value]
             test_data = {
-                'name': target['name'],
+                'name': target.name,
                 'sources': src_list,
                 'extra_files': extra_files_list
             }
-            self.add_info('target', target['id'], test_data)
+            self.add_info('target', target.id, test_data)
 
         # Sort files
         for i in to_sort_nodes:

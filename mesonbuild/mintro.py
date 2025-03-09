@@ -191,25 +191,25 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
                     res += [Path(j.value)]
                 elif isinstance(j, str):
                     res += [Path(j)]
-        res = [root_dir / i['subdir'] / x for x in res]
+        res = [root_dir / i.subdir / x for x in res]
         res = [x.resolve() for x in res]
         return res
 
     for i in intr.targets:
-        sources = nodes_to_paths(i['sources'])
-        extra_f = nodes_to_paths(i['extra_files'])
-        outdir = get_target_dir(intr.coredata, i['subdir'])
+        sources = nodes_to_paths(i.source_nodes)
+        extra_f = nodes_to_paths(i.extra_files)
+        outdir = get_target_dir(intr.coredata, i.subdir)
 
         tlist += [{
-            'name': i['name'],
-            'id': i['id'],
-            'type': i['type'],
-            'defined_in': i['defined_in'],
-            'filename': [os.path.join(outdir, x) for x in i['outputs']],
-            'build_by_default': i['build_by_default'],
+            'name': i.name,
+            'id': i.id,
+            'type': i.typename,
+            'defined_in': i.defined_in,
+            'filename': [os.path.join(outdir, x) for x in i.outputs],
+            'build_by_default': i.build_by_default,
             'target_sources': [{
                 'language': 'unknown',
-                'machine': i['machine'],
+                'machine': i.machine,
                 'compiler': [],
                 'parameters': [],
                 'sources': [str(x) for x in sources],
@@ -218,7 +218,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
             'depends': [],
             'extra_files': [str(x) for x in extra_f],
             'subproject': None, # Subprojects are not supported
-            'installed': i['installed']
+            'installed': i.installed
         }]
 
     return tlist
