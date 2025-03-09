@@ -8,11 +8,13 @@ from __future__ import annotations
 import os
 import sys
 import typing as T
+from dataclasses import dataclass
 
 from .. import mparser, mesonlib
 from .. import environment
 
 from ..interpreterbase import (
+    MesonInterpreterObject,
     InterpreterBase,
     InvalidArguments,
     BreakRequest,
@@ -57,11 +59,28 @@ if T.TYPE_CHECKING:
         OrNode,
         TestCaseClauseNode,
         UMinusNode,
+        FunctionNode,
     )
 
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
 
+# `IntrospectionBuildTarget` is to the `IntrospectionInterpreter` what `BuildTarget` is to the normal `Interpreter`.
+@dataclass
+class IntrospectionBuildTarget(MesonInterpreterObject):
+    name: str
+    machine: str
+    id: str
+    typename: str
+    defined_in: str
+    subdir: str
+    build_by_default: bool
+    installed: bool
+    outputs: T.List[str]
+    source_nodes: T.List[BaseNode]
+    extra_files: T.List[BaseNode]
+    kwargs: T.Dict[str, TYPE_var]
+    node: FunctionNode
 
 class AstInterpreter(InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, subproject_dir: str, env: environment.Environment, visitors: T.Optional[T.List[AstVisitor]] = None):
