@@ -65,6 +65,16 @@ if T.TYPE_CHECKING:
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
 
+# `IntrospectionDependency` is to the `IntrospectionInterpreter` what `Dependency` is to the normal `Interpreter`.
+@dataclass
+class IntrospectionDependency(MesonInterpreterObject):
+    name: str
+    required: T.Union[bool]
+    version: T.List[str]
+    has_fallback: bool
+    conditional: bool
+    node: FunctionNode
+
 # `IntrospectionBuildTarget` is to the `IntrospectionInterpreter` what `BuildTarget` is to the normal `Interpreter`.
 @dataclass
 class IntrospectionBuildTarget(MesonInterpreterObject):
