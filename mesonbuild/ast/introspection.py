@@ -16,7 +16,7 @@ from ..interpreterbase import InvalidArguments, SubProject
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
-from .interpreter import AstInterpreter, IntrospectionBuildTarget
+from .interpreter import AstInterpreter, IntrospectionBuildTarget, IntrospectionDependency
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
@@ -66,7 +66,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.default_options = {OptionKey('backend'): self.backend}
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[IntrospectionBuildTarget] = []
-        self.dependencies: T.List[T.Dict[str, T.Any]] = []
+        self.dependencies: T.List[IntrospectionDependency] = []
         self.project_node: BaseNode = None
 
         self.funcs.update({
@@ -225,14 +225,14 @@ class IntrospectionInterpreter(AstInterpreter):
             required = required.value
         if not isinstance(required, bool):
             required = False
-        self.dependencies += [{
-            'name': name,
-            'required': required,
-            'version': version,
-            'has_fallback': has_fallback,
-            'conditional': node.condition_level > 0,
-            'node': node
-        }]
+        newdep = IntrospectionDependency(
+            name=name,
+            required=required,
+            version=version,
+            has_fallback=has_fallback,
+            conditional=node.condition_level > 0,
+            node=node)
+        self.dependencies += [newdep]
 
     def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> IntrospectionBuildTarget:
         args = self.flatten_args(args)
