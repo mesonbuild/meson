@@ -669,3 +669,10 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.init(testdir)
         self.build()
         self.assertBuildIsNoop()
+
+    def test_configure_file_relative_path_depfile(self):
+        testdir = os.path.join(self.common_test_dir, "14 configure file")
+        out = self.init(testdir)
+        self.utime(os.path.join(testdir, 'depfile'))
+        ret = self.build(stderr=False)
+        self.assertIn('The Meson build system', ret)

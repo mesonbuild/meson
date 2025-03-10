@@ -1598,7 +1598,8 @@ Thread model: posix'''), '21.9.0')
                 (['foo.o \\', 'foo.h: bar'], 'foo.h', set({'bar'})),
                 (['foo.o \\', 'foo.h: bar'], 'foo.o', set({'bar'})),
                 # \\ handling
-                (['foo: Program\\ F\\iles\\\\X'], 'foo', set({'Program Files\\X'})),
+                (['foo: Program\\ F\\iles\\\\X'], 'foo',
+                 set({'Program Files/X' if os.path.sep == '\\' else r'Program Files\X'})),
                 # $ handling
                 (['f$o.o: c/b'], 'f$o.o', set({'c/b'})),
                 (['f$$o.o: c/b'], 'f$o.o', set({'c/b'})),
@@ -1607,6 +1608,17 @@ Thread model: posix'''), '21.9.0')
                 (['a: b', 'b: a'], 'b', set({'a', 'b'})),
         ]:
             d = mesonbuild.depfile.DepFile(f)
+            deps = d.get_all_dependencies(target)
+            self.assertEqual(sorted(deps), sorted(expdeps))
+
+    def test_depfile_join_paths(self):
+        for (f, target, expdeps) in [
+                # relative paths
+                (['meson/foo.o  : foo.c'], 'meson/foo.o', set({'/path/to/src/foo.c'})),
+                # absolute paths
+                (['meson/foo.o  : /usr/include/foo.h'], 'meson/foo.o', set({'/usr/include/foo.h'})),
+        ]:
+            d = mesonbuild.depfile.DepFile(f, '/path/to/src')
             deps = d.get_all_dependencies(target)
             self.assertEqual(sorted(deps), sorted(expdeps))
 
