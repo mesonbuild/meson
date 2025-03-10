@@ -192,11 +192,6 @@ class MesonApp:
         pending = coredata.optstore.pending_options
         errlist: T.List[str] = []
         for opt in pending:
-            # Due to backwards compatibility setting build options in non-cross
-            # builds is permitted and is a no-op. This should be made
-            # a hard error.
-            if not coredata.is_cross_build() and opt.is_for_build():
-                continue
             # It is not an error to set wrong option for unknown subprojects or
             # language because we don't have control on which one will be selected.
             if opt.subproject and opt.subproject not in all_subprojects:
