@@ -690,6 +690,13 @@ class Environment:
                          'See: https://mesonbuild.com/Builtin-options.html#build-type-options',
                          fatal=False)
 
+        # Filter out build machine options that are not valid per-project.
+        # We allow this in the file because it makes the machine files more
+        # useful (ie, the same file can be used for host == build configuration
+        # a host != build configuration)
+        self.options = {k: v for k, v in self.options.items()
+                        if k.machine is MachineChoice.HOST or self.coredata.optstore.is_per_machine_option(k)}
+
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:
             self.exe_wrapper = ExternalProgram.from_bin_list(self, MachineChoice.HOST, 'exe_wrapper')
