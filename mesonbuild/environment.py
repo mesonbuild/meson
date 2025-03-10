@@ -663,7 +663,7 @@ class Environment:
             # Keep only per machine options from the native file. The cross
             # file takes precedence over all other options.
             for key, value in list(self.options.items()):
-                if self.coredata.is_per_machine_option(key):
+                if self.coredata.optstore.is_per_machine_option(key):
                     self.options[key.as_build()] = value
             self._load_machine_file_options(config, properties.host, MachineChoice.HOST)
 
