@@ -673,6 +673,8 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         if key in env.options:
             # To fix LDFLAGS issue
             val = env.options[key]
+            if isinstance(val, str):
+                val = [val]
             assert isinstance(val, list)
             env.coredata.set_options({key: cls.to_host_flags_base(val, Phase.LINKER)})
         linker = CudaLinker(compiler, for_machine, CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
