@@ -1,0 +1,7 @@
+{
+  "matrix": {
+    "options": {
+      "cuda_link_args": [{ "val": "-ldl" }]
+    }
+  }
+}
