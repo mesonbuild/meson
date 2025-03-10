@@ -103,10 +103,6 @@ class InterpreterObject:
         return decorator
 
     def __init__(self, *, subproject: T.Optional['SubProject'] = None) -> None:
-        self.methods: T.Dict[
-            str,
-            T.Callable[[T.List[TYPE_var], TYPE_kwargs], TYPE_var]
-        ] = {}
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node:  mparser.BaseNode = None
@@ -129,13 +125,6 @@ class InterpreterObject:
             if not getattr(method, 'no-second-level-holder-flattening', False):
                 args, kwargs = resolve_second_level_holders(args, kwargs)
             return method(self, args, kwargs)
-        if method_name in self.methods:
-            bound_method = self.methods[method_name]
-            if not getattr(bound_method, 'no-args-flattening', False):
-                args = flatten(args)
-            if not getattr(bound_method, 'no-second-level-holder-flattening', False):
-                args, kwargs = resolve_second_level_holders(args, kwargs)
-            return bound_method(args, kwargs)
         raise InvalidCode(f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.')
 
     def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
