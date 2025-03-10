@@ -1224,14 +1224,14 @@ class OptionStore:
     def first_handle_prefix(self,
                             project_default_options: T.Union[T.List[str], OptionStringLikeDict],
                             cmd_line_options: T.Union[T.List[str], OptionStringLikeDict],
-                            native_file_options: T.Union[T.List[str], OptionStringLikeDict]) \
+                            machine_file_options: T.Union[T.List[str], OptionStringLikeDict]) \
             -> T.Tuple[T.Union[T.List[str], OptionStringLikeDict],
                        T.Union[T.List[str], OptionStringLikeDict],
                        T.Union[T.List[str], OptionStringLikeDict]]:
         prefix = None
         (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
         prefix = prefix if possible_prefix is None else possible_prefix
-        (possible_prefix, nopref_native_file_options) = self.prefix_split_options(native_file_options)
+        (possible_prefix, nopref_native_file_options) = self.prefix_split_options(machine_file_options)
         prefix = prefix if possible_prefix is None else possible_prefix
         (possible_prefix, nopref_cmd_line_options) = self.prefix_split_options(cmd_line_options)
         prefix = prefix if possible_prefix is None else possible_prefix
@@ -1256,19 +1256,19 @@ class OptionStore:
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
                                                cmd_line_options_in: T.Union[T.List[str], OptionStringLikeDict],
-                                               native_file_options_in: T.Union[T.List[str], OptionStringLikeDict]) -> None:
+                                               machine_file_options_in: T.Union[T.List[str], OptionStringLikeDict]) -> None:
         first_invocation = True
-        (project_default_options, cmd_line_options, native_file_options) = self.first_handle_prefix(project_default_options_in,
-                                                                                                    cmd_line_options_in,
-                                                                                                    native_file_options_in)
+        (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
+                                                                                                     cmd_line_options_in,
+                                                                                                     machine_file_options_in)
         if isinstance(project_default_options, str):
             project_default_options = [project_default_options]
         if isinstance(project_default_options, list):
             project_default_options = self.optlist2optdict(project_default_options) # type: ignore [assignment]
         if project_default_options is None:
             project_default_options = {}
-        assert isinstance(native_file_options, dict)
-        for keystr, valstr in native_file_options.items():
+        assert isinstance(machine_file_options, dict)
+        for keystr, valstr in machine_file_options.items():
             if isinstance(keystr, str):
                 # FIXME, standardise on Key or string.
                 key = OptionKey.from_string(keystr)
