@@ -2,6 +2,7 @@
 c = 'emcc'
 cpp = 'em++'
 ar = 'emar'
+exe_wrapper = 'node'
 
 [built-in options]
 c_args = []
