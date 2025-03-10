@@ -835,7 +835,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                 supported_args.append(arg)
         return supported_args
 
-    @FeatureNew('compiler.first_supported_link_argument_method', '0.46.0')
+    @FeatureNew('compiler.first_supported_link_argument', '0.46.0')
     @noKwargs
     @typed_pos_args('compiler.first_supported_link_argument', varargs=str)
     def first_supported_link_argument_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
@@ -880,7 +880,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def get_supported_function_attributes_method(self, args: T.Tuple[T.List[str]], kwargs: 'TYPE_kwargs') -> T.List[str]:
         return [a for a in args[0] if self._has_function_attribute_impl(a)]
 
-    @FeatureNew('compiler.get_argument_syntax_method', '0.49.0')
+    @FeatureNew('compiler.get_argument_syntax', '0.49.0')
     @noPosargs
     @noKwargs
     def get_argument_syntax_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
