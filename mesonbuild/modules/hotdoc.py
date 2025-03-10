@@ -14,7 +14,7 @@ from ..build import CustomTarget, CustomTargetIndex
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import (
     InvalidArguments, noPosargs, noKwargs, typed_kwargs, FeatureDeprecated,
-    ContainerTypeInfo, KwargInfo, typed_pos_args
+    ContainerTypeInfo, KwargInfo, typed_pos_args, InterpreterObject
 )
 from ..interpreter.interpreterobjects import _CustomTargetHolder
 from ..interpreter.type_checking import NoneType
@@ -383,12 +383,9 @@ class HotdocTargetBuilder:
 
 
 class HotdocTargetHolder(_CustomTargetHolder['HotdocTarget']):
-    def __init__(self, target: HotdocTarget, interp: Interpreter):
-        super().__init__(target, interp)
-        self.methods.update({'config_path': self.config_path_method})
-
     @noPosargs
     @noKwargs
+    @InterpreterObject.method('config_path')
     def config_path_method(self, *args: T.Any, **kwargs: T.Any) -> str:
         conf = self.held_object.hotdoc_conf.absolute_path(self.interpreter.environment.source_dir,
                                                           self.interpreter.environment.build_dir)

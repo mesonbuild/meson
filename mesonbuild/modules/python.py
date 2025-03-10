@@ -20,7 +20,7 @@ from ..interpreter.type_checking import NoneType, PRESERVE_PATH_KW, SHARED_MOD_K
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs, ContainerTypeInfo,
     InvalidArguments, typed_pos_args, typed_kwargs, KwargInfo,
-    FeatureNew, FeatureNewKwargs, disablerIfNotFound
+    FeatureNew, FeatureNewKwargs, disablerIfNotFound, InterpreterObject
 )
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
@@ -126,23 +126,11 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         self.platform = info['platform']
         self.is_pypy = info['is_pypy']
         self.link_libpython = info['link_libpython']
-        self.methods.update({
-            'extension_module': self.extension_module_method,
-            'dependency': self.dependency_method,
-            'install_sources': self.install_sources_method,
-            'get_install_dir': self.get_install_dir_method,
-            'language_version': self.language_version_method,
-            'found': self.found_method,
-            'has_path': self.has_path_method,
-            'get_path': self.get_path_method,
-            'has_variable': self.has_variable_method,
-            'get_variable': self.get_variable_method,
-            'path': self.path_method,
-        })
 
     @permittedKwargs(mod_kwargs)
     @typed_pos_args('python.extension_module', str, varargs=(str, mesonlib.File, CustomTarget, CustomTargetIndex, GeneratedList, StructuredSources, ExtractedObjects, BuildTarget))
     @typed_kwargs('python.extension_module', *_MOD_KWARGS, _DEFAULTABLE_SUBDIR_KW, _LIMITED_API_KW, allow_unknown=True)
+    @InterpreterObject.method('extension_module')
     def extension_module_method(self, args: T.Tuple[str, T.List[BuildTargetSource]], kwargs: ExtensionModuleKw) -> 'SharedModule':
         if 'install_dir' in kwargs:
             if kwargs['subdir'] is not None:
@@ -268,6 +256,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     @permittedKwargs(permitted_dependency_kwargs | {'embed'})
     @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
     @noPosargs
+    @InterpreterObject.method('dependency')
     def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Dependency':
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
@@ -287,6 +276,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
         PRESERVE_PATH_KW,
         KwargInfo('install_tag', (str, NoneType), since='0.60.0')
     )
+    @InterpreterObject.method('install_sources')
     def install_sources_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]],
                                kwargs: 'PyInstallKw') -> 'Data':
         self.held_object.run_bytecompile[self.version] = True
@@ -301,6 +291,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
     @noPosargs
     @typed_kwargs('python_installation.install_dir', _PURE_KW, _SUBDIR_KW)
+    @InterpreterObject.method('get_install_dir')
     def get_install_dir_method(self, args: T.List['TYPE_var'], kwargs: 'PyInstallKw') -> str:
         self.held_object.run_bytecompile[self.version] = True
         pure = kwargs['pure'] if kwargs['pure'] is not None else self.pure
@@ -318,16 +309,19 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
     @noPosargs
     @noKwargs
+    @InterpreterObject.method('language_version')
     def language_version_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return self.version
 
     @typed_pos_args('python_installation.has_path', str)
     @noKwargs
+    @InterpreterObject.method('has_path')
     def has_path_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.paths
 
     @typed_pos_args('python_installation.get_path', str, optargs=[object])
     @noKwargs
+    @InterpreterObject.method('get_path')
     def get_path_method(self, args: T.Tuple[str, T.Optional['TYPE_var']], kwargs: 'TYPE_kwargs') -> 'TYPE_var':
         path_name, fallback = args
         try:
@@ -339,11 +333,13 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
     @typed_pos_args('python_installation.has_variable', str)
     @noKwargs
+    @InterpreterObject.method('has_variable')
     def has_variable_method(self, args: T.Tuple[str], kwargs: 'TYPE_kwargs') -> bool:
         return args[0] in self.variables
 
     @typed_pos_args('python_installation.get_variable', str, optargs=[object])
     @noKwargs
+    @InterpreterObject.method('get_variable')
     def get_variable_method(self, args: T.Tuple[str, T.Optional['TYPE_var']], kwargs: 'TYPE_kwargs') -> 'TYPE_var':
         var_name, fallback = args
         try:
@@ -356,6 +352,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     @noPosargs
     @noKwargs
     @FeatureNew('Python module path method', '0.50.0')
+    @InterpreterObject.method('path')
     def path_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> str:
         return super().path_method(args, kwargs)
 
