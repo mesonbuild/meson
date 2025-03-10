@@ -1769,7 +1769,12 @@ class Backend:
                     d.targets.append(i)
 
                     for alias, to, tag in t.get_aliases():
-                        alias = os.path.join(first_outdir, alias)
+                        symlinkDir = first_outdir
+                        if tag == 'devel':
+                            symlinkDir = self.environment.get_import_lib_dir()
+                        alias = os.path.join(symlinkDir, alias)
+                        if first_outdir != symlinkDir:
+                            to = os.path.join(os.path.relpath(first_outdir, symlinkDir), to)
                         s = InstallSymlinkData(to, alias, first_outdir, t.subproject, tag, allow_missing=True)
                         d.symlinks.append(s)
 
