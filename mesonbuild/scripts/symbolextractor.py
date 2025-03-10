@@ -16,6 +16,7 @@ from .. import mesonlib
 from .. import mlog
 from ..mesonlib import Popen_safe
 import argparse
+import subprocess
 
 parser = argparse.ArgumentParser()
 
@@ -121,6 +122,21 @@ def solaris_syms(libfilename: str, outfilename: str) -> None:
         gnu_syms(libfilename, outfilename)
     finally:
         os.environ['PATH'] = origpath
+
+def aix_syms(libfilename: str, outfilename: str) -> None:
+    nm_output = subprocess.run(rf"nm -BCg {libfilename} | egrep ' [TDB] ' | sed -e 's/.* //' | egrep -v '\\$' | sed -e 's/^[.]//' | sort | uniq",
+                               shell=True,
+                               check=True,
+                               text=True,
+                               capture_output=True)
+    # First line in export file will be #!
+    try:
+        with open(outfilename, 'w', encoding="utf-8") as f:
+            f.write('#!\n')
+            f.write(nm_output.stdout)
+        print("Symbols are written to ", outfilename)
+    except Exception as e:
+        print(f"Exception: Could not generate export file {e}")
 
 def osx_syms(libfilename: str, outfilename: str) -> None:
     # Get the name of the library
@@ -299,6 +315,8 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
             dummy_syms(outfilename)
     elif mesonlib.is_sunos():
         solaris_syms(libfilename, outfilename)
+    elif mesonlib.is_aix():
+        aix_syms(libfilename, outfilename)
     else:
         if not os.path.exists(TOOL_WARNING_FILE):
             mlog.warning('Symbol extracting has not been implemented for this '
