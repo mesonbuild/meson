@@ -489,13 +489,6 @@ class CoreData:
 
         return dirty
 
-    def is_per_machine_option(self, optname: OptionKey) -> bool:
-        if isinstance(optname, str):
-            optname = OptionKey.from_string(optname)
-        if optname.as_host() in options.BUILTIN_OPTIONS_PER_MACHINE:
-            return True
-        return self.optstore.is_compiler_option(optname)
-
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)

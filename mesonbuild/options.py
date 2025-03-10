@@ -1132,6 +1132,11 @@ class OptionStore:
         """Convenience method to check if this is a project option."""
         return key in self.project_options
 
+    def is_per_machine_option(self, optname: OptionKey) -> bool:
+        if optname.evolve(subproject=None, machine=MachineChoice.HOST) in BUILTIN_OPTIONS_PER_MACHINE:
+            return True
+        return self.is_compiler_option(optname)
+
     def is_reserved_name(self, key: OptionKey) -> bool:
         if key.name in _BUILTIN_NAMES:
             return True
