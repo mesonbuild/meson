@@ -140,15 +140,17 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         # First augment a subproject
-        optstore.set_from_configure_command([f'{sub_name}:{name}={aug_value}'], [])
-        self.assertEqual(optstore.get_value_for(name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub_name), aug_value)
-        self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
+        with self.subTest('set subproject override'):
+            optstore.set_from_configure_command([f'{sub_name}:{name}={aug_value}'], [])
+            self.assertEqual(optstore.get_value_for(name), top_value)
+            self.assertEqual(optstore.get_value_for(name, sub_name), aug_value)
+            self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
-        optstore.set_from_configure_command([], [f'{sub_name}:{name}'])
-        self.assertEqual(optstore.get_value_for(name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
-        self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
+        with self.subTest('unset subproject override'):
+            optstore.set_from_configure_command([], [f'{sub_name}:{name}'])
+            self.assertEqual(optstore.get_value_for(name), top_value)
+            self.assertEqual(optstore.get_value_for(name, sub_name), top_value)
+            self.assertEqual(optstore.get_value_for(name, sub2_name), top_value)
 
         # And now augment the top level option
         optstore.set_from_configure_command([f':{name}={aug_value}'], [])
