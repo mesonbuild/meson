@@ -618,18 +618,34 @@ class GnuCompiler(GnuLikeCompiler):
         if threads == 0:
             if self._has_lto_auto_support:
                 return ['-flto=auto']
-            # This matches clang's behavior of using the number of cpus, but
+            # This matches gcc's behavior of using the number of cpus, but
             # obeying meson's MESON_NUM_PROCESSES convention.
             return [f'-flto={mesonlib.determine_worker_count()}']
         elif threads > 0:
             return [f'-flto={threads}']
-        return super().get_lto_compile_args(threads=threads)
+        return ['-flto']
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
         if linker == 'mold' and mesonlib.version_compare(version, '>=12.0.1'):
             return ['-fuse-ld=mold']
         return super().use_linker_args(linker, version)
+
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        if threads == 0:
+            if self._has_lto_auto_support:
+                args.append('-flto=auto')
+            else:
+                # This matches gcc's behavior of using the number of cpus, but
+                # obeying meson's MESON_NUM_PROCESSES convention.
+                args.append(f'-flto={mesonlib.determine_worker_count()}')
+        elif threads > 0:
+            args.append(f'-flto={threads}')
+        else:
+            args.extend(super().get_lto_compile_args(threads=threads))
+        return args
 
     def get_profile_use_args(self) -> T.List[str]:
         return super().get_profile_use_args() + ['-fprofile-correction']
