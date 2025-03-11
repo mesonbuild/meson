@@ -189,7 +189,7 @@ class MesonApp:
             return self._generate(env, capture, vslite_ctx)
 
     def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Any, all_subprojects: T.Any) -> None:
-        pending = coredata.optstore.pending_project_options
+        pending = coredata.optstore.pending_options
         errlist: T.List[str] = []
         for opt in pending:
             # It is not an error to set wrong option for unknown subprojects or
