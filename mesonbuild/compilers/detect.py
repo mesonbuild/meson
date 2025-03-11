@@ -1191,7 +1191,11 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
         version = search_version(out)
         full_version = out.split('\n', 1)[0]
 
-        if 'LLVM D compiler' in out:
+        # The OpenD fork should stay close enough to upstream D (in
+        # the areas that interest us) to allow supporting them both
+        # without much hassle.
+        # See: https://github.com/orgs/opendlang/discussions/56
+        if 'LLVM D compiler' in out or 'LLVM Open D compiler' in out:
             cls = d.LLVMDCompiler
             # LDC seems to require a file
             # We cannot use NamedTemporaryFile on windows, its documented
