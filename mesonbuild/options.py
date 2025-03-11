@@ -798,11 +798,15 @@ class OptionStore:
         self.all_languages = set(all_languages)
         self.project_options = set()
         self.augments: T.Dict[str, str] = {}
-        self.pending_project_options: T.Dict[OptionKey, str] = {}
         self.is_cross = is_cross
 
+        # Pending options are options that need to be initialized later, either
+        # configuration dependent options like compiler options, or options for
+        # a different subproject
+        self.pending_options: T.Dict[OptionKey, ElementaryOptionValues] = {}
+
     def clear_pending(self) -> None:
-        self.pending_project_options = {}
+        self.pending_options = {}
 
     def ensure_and_validate_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
         if isinstance(key, str):
@@ -889,7 +893,7 @@ class OptionStore:
             assert isinstance(valobj.name, str)
         if key not in self.options:
             self.options[key] = valobj
-            pval = self.pending_project_options.pop(key, None)
+            pval = self.pending_options.pop(key, None)
             if pval is not None:
                 self.set_option(key, pval)
 
@@ -902,7 +906,7 @@ class OptionStore:
     def add_project_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         assert key.subproject is not None
-        pval = self.pending_project_options.pop(key, None)
+        pval = self.pending_options.pop(key, None)
         if key in self.options:
             raise MesonException(f'Internal error: tried to add a project option {key} that already exists.')
         else:
@@ -1285,7 +1289,7 @@ class OptionStore:
                 if proj_key in self.options:
                     self.options[proj_key].set_value(valstr)
                 else:
-                    self.pending_project_options[key] = valstr
+                    self.pending_options[key] = valstr
         assert isinstance(project_default_options, dict)
         for keystr, valstr in project_default_options.items():
             # Ths is complicated by the fact that a string can have two meanings:
@@ -1306,7 +1310,7 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key.subproject is not None:
-                self.pending_project_options[key] = valstr
+                self.pending_options[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
             else:
@@ -1318,7 +1322,7 @@ class OptionStore:
                 if self.is_project_option(proj_key):
                     self.set_option(proj_key, valstr)
                 else:
-                    self.pending_project_options[key] = valstr
+                    self.pending_options[key] = valstr
         assert isinstance(cmd_line_options, dict)
         for keystr, valstr in cmd_line_options.items():
             if isinstance(keystr, str):
@@ -1344,9 +1348,9 @@ class OptionStore:
                     # Permitting them all is not strictly correct.
                     if not self.is_compiler_option(key) and not self.is_base_option(key):
                         raise MesonException(f'Unknown options: "{keystr}"')
-                    self.pending_project_options[key] = valstr
+                    self.pending_options[key] = valstr
             else:
-                self.pending_project_options[key] = valstr
+                self.pending_options[key] = valstr
 
     def hacky_mchackface_back_to_list(self, optdict: T.Dict[str, str]) -> T.List[str]:
         if isinstance(optdict, dict):
@@ -1373,7 +1377,7 @@ class OptionStore:
             if key in self.project_options:
                 self.set_option(key, valstr, is_first_invocation)
             else:
-                self.pending_project_options.pop(key, None)
+                self.pending_options.pop(key, None)
                 aug_str = f'{subproject}:{keystr}'
                 self.augments[aug_str] = valstr
         # Check for pending options
@@ -1383,7 +1387,7 @@ class OptionStore:
                 key = OptionKey.from_string(key)
             if key.subproject != subproject:
                 continue
-            self.pending_project_options.pop(key, None)
+            self.pending_options.pop(key, None)
             if key in self.options:
                 self.set_option(key, valstr, is_first_invocation)
             else:
