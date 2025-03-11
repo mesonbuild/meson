@@ -543,6 +543,8 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
         if self.language_stdlib_provider(env) == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
         else:
+            # One can use -stdlib=libc++ with GCC, it just (as of 2025) requires
+            # an experimental configure arg to expose that.
             if version_compare(self.version, '>=18'):
                 return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
             elif version_compare(self.version, '>=15'):
