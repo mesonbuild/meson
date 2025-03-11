@@ -1,7 +1,7 @@
 project('zlib system dependency', 'c')
 
 if not ['darwin', 'freebsd', 'dragonfly', 'windows', 'android'].contains(host_machine.system())
-  error('MESON_SKIP_TEST only applicable on macOS, FreeBSD, DragonflyBSD, Windows, and Android.')
+  error('MESON_SKIP_TEST only applicable on macOS, FreeBSD, DragonFlyBSD, Windows, and Android.')
 endif
 
 cc = meson.get_compiler('c')
