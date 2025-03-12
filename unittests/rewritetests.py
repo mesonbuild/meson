@@ -408,7 +408,6 @@ class RewriterTests(BasePlatformTests):
         for orig_line, new_line in zip_longest(original_contents.splitlines(), new_contents.splitlines()):
             self.assertEqual(orig_line, new_line)
 
-    @unittest.expectedFailure
     def test_rewrite_prefix(self) -> None:
         self.prime('7 prefix')
         out = self.rewrite_raw(self.builddir, ['kwargs', 'info', 'project', '/'])
