@@ -650,17 +650,7 @@ class GnuCompiler(GnuLikeCompiler):
         if legal_code and mesonlib.version_compare(self.version, '>=6.1.0'):
             args.extend(('-Werror=lto-type-mismatch', '-Werror=odr', '-Werror=strict-aliasing'))
 
-        if threads == 0:
-            if self._has_lto_auto_support:
-                args.append('-flto=auto')
-            else:
-                # This matches gcc's behavior of using the number of cpus, but
-                # obeying meson's MESON_NUM_PROCESSES convention.
-                args.append(f'-flto={mesonlib.determine_worker_count()}')
-        elif threads > 0:
-            args.append(f'-flto={threads}')
-        else:
-            args.extend(super().get_lto_compile_args(threads=threads))
+        args.extend(self.get_lto_compile_args(threads=threads))
         return args
 
     def get_profile_use_args(self) -> T.List[str]:
