@@ -55,16 +55,11 @@ class IntrospectionInterpreter(AstInterpreter):
                  subproject: SubProject = SubProject(''),
                  subproject_dir: str = 'subprojects',
                  env: T.Optional[environment.Environment] = None):
-        super().__init__(source_root, subdir, subproject, visitors=visitors)
-
         options = IntrospectionHelper(cross_file)
+        env_ = env or environment.Environment(source_root, None, options)
+        super().__init__(source_root, subdir, subproject, subproject_dir, env_, visitors=visitors)
+
         self.cross_file = cross_file
-        if env is None:
-            self.environment = environment.Environment(source_root, None, options)
-        else:
-            self.environment = env
-        self.subproject_dir = subproject_dir
-        self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.default_options = {OptionKey('backend'): self.backend}
         self.project_data: T.Dict[str, T.Any] = {}

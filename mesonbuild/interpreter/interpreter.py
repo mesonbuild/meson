@@ -274,15 +274,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                 relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
                 user_defined_options: T.Optional[coredata.SharedCMDOptions] = None,
             ) -> None:
-        super().__init__(_build.environment.get_source_dir(), subdir, subproject)
+        super().__init__(_build.environment.get_source_dir(), subdir, subproject, subproject_dir, _build.environment)
         self.active_projectname = ''
         self.build = _build
-        self.environment = self.build.environment
-        self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.summary: T.Dict[str, 'Summary'] = {}
         self.modules: T.Dict[str, NewExtensionModule] = {}
-        self.subproject_dir = subproject_dir
         self.relaxations = relaxations or set()
         if ast is None:
             self.load_root_meson_file()

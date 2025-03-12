@@ -86,8 +86,8 @@ _V = T.TypeVar('_V')
 
 
 class AstInterpreter(InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
-        super().__init__(source_root, subdir, subproject)
+    def __init__(self, source_root: str, subdir: str, subproject: SubProject, subproject_dir: str, env: environment.Environment, visitors: T.Optional[T.List[AstVisitor]] = None):
+        super().__init__(source_root, subdir, subproject, subproject_dir, env)
         self.visitors = visitors if visitors is not None else []
         self.assignments: T.Dict[str, BaseNode] = {}
         self.assign_vals: T.Dict[str, T.Any] = {}
