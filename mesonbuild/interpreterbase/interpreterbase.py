@@ -704,7 +704,7 @@ class InterpreterBase:
                 self.coredata.options_files[self.subproject] = (option_file, hashlib.sha1(f.read()).hexdigest())
             oi = optinterpreter.OptionInterpreter(self.environment.coredata.optstore, self.subproject)
             oi.process(option_file)
-            self.coredata.update_project_options(oi.options, self.subproject)
+            self.coredata.optstore.update_project_options(oi.options, self.subproject)
             self.build_def_files.add(option_file)
         else:
             self.coredata.options_files[self.subproject] = None

@@ -15,7 +15,6 @@ from collections import OrderedDict
 import textwrap
 
 from .mesonlib import (
-    MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
     default_prefix,
@@ -498,34 +497,6 @@ class CoreData:
         # mypy cannot analyze type of OptionKey
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value_for(linkkey))
-
-    def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
-        for key, value in project_options.items():
-            if key not in self.optstore:
-                self.optstore.add_project_option(key, value)
-                continue
-            if key.subproject != subproject:
-                raise MesonBugException(f'Tried to set an option for subproject {key.subproject} from {subproject}!')
-
-            oldval = self.optstore.get_value_object(key)
-            if type(oldval) is not type(value):
-                self.optstore.set_option(key, value.value)
-            elif options.choices_are_different(oldval, value):
-                # If the choices have changed, use the new value, but attempt
-                # to keep the old options. If they are not valid keep the new
-                # defaults but warn.
-                self.optstore.set_value_object(key, value)
-                try:
-                    value.set_value(oldval.value)
-                except MesonException:
-                    mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).',
-                                 fatal=False)
-
-        # Find any extranious keys for this project and remove them
-        potential_removed_keys = self.optstore.keys() - project_options.keys()
-        for key in potential_removed_keys:
-            if self.optstore.is_project_option(key) and key.subproject == subproject:
-                self.optstore.remove(key)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:

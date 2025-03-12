@@ -35,6 +35,8 @@ from . import mlog
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
+    from .interpreterbase import SubProject
+
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
     AnyOptionType: TypeAlias = T.Union[
         'UserBooleanOption', 'UserComboOption', 'UserFeatureOption',
@@ -1402,3 +1404,31 @@ class OptionStore:
                 self.set_option(key, valstr, is_first_invocation)
             else:
                 self.augments[str(key)] = valstr
+
+    def update_project_options(self, project_options: MutableKeyedOptionDictType, subproject: SubProject) -> None:
+        for key, value in project_options.items():
+            if key not in self.options:
+                self.add_project_option(key, value)
+                continue
+            if key.subproject != subproject:
+                raise MesonBugException(f'Tried to set an option for subproject {key.subproject} from {subproject}!')
+
+            oldval = self.get_value_object(key)
+            if type(oldval) is not type(value):
+                self.set_option(key, value.value)
+            elif choices_are_different(oldval, value):
+                # If the choices have changed, use the new value, but attempt
+                # to keep the old options. If they are not valid keep the new
+                # defaults but warn.
+                self.set_value_object(key, value)
+                try:
+                    value.set_value(oldval.value)
+                except MesonException:
+                    mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).',
+                                 fatal=False)
+
+        # Find any extranious keys for this project and remove them
+        potential_removed_keys = self.options.keys() - project_options.keys()
+        for key in potential_removed_keys:
+            if self.is_project_option(key) and key.subproject == subproject:
+                self.remove(key)
