@@ -190,9 +190,10 @@ class Conf:
                 items = [l[i] if l[i] else ' ' * four_column[i] for i in range(4)]
                 mlog.log(*items)
 
-    def split_options_per_subproject(self, options: T.Union[coredata.MutableKeyedOptionDictType, options.OptionStore]) -> T.Dict[str, 'coredata.MutableKeyedOptionDictType']:
-        result: T.Dict[str, 'coredata.MutableKeyedOptionDictType'] = {}
-        for k, o in options.items():
+    def split_options_per_subproject(self, opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore]
+                                     ) -> T.Dict[str, options.MutableKeyedOptionDictType]:
+        result: T.Dict[str, options.MutableKeyedOptionDictType] = {}
+        for k, o in opts.items():
             if k.subproject:
                 self.all_subprojects.add(k.subproject)
             result.setdefault(k.subproject, {})[k] = o
@@ -228,7 +229,7 @@ class Conf:
         self._add_line(mlog.normal_yellow(section + ':'), '', '', '')
         self.print_margin = 2
 
-    def print_options(self, title: str, opts: T.Union[coredata.MutableKeyedOptionDictType, options.OptionStore]) -> None:
+    def print_options(self, title: str, opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore]) -> None:
         if not opts:
             return
         if title:
@@ -264,10 +265,10 @@ class Conf:
         test_option_names = {OptionKey('errorlogs'),
                              OptionKey('stdsplit')}
 
-        dir_options: 'coredata.MutableKeyedOptionDictType' = {}
-        test_options: 'coredata.MutableKeyedOptionDictType' = {}
-        core_options: 'coredata.MutableKeyedOptionDictType' = {}
-        module_options: T.Dict[str, 'coredata.MutableKeyedOptionDictType'] = collections.defaultdict(dict)
+        dir_options: options.MutableKeyedOptionDictType = {}
+        test_options: options.MutableKeyedOptionDictType = {}
+        core_options: options.MutableKeyedOptionDictType = {}
+        module_options: T.Dict[str, options.MutableKeyedOptionDictType] = collections.defaultdict(dict)
         for k, v in self.coredata.optstore.options.items():
             if k in dir_option_names:
                 dir_options[k] = v

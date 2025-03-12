@@ -290,9 +290,9 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     test_option_names = {OptionKey('errorlogs'),
                          OptionKey('stdsplit')}
 
-    dir_options: 'cdata.MutableKeyedOptionDictType' = {}
-    test_options: 'cdata.MutableKeyedOptionDictType' = {}
-    core_options: 'cdata.MutableKeyedOptionDictType' = {}
+    dir_options: options.MutableKeyedOptionDictType = {}
+    test_options: options.MutableKeyedOptionDictType = {}
+    core_options: options.MutableKeyedOptionDictType = {}
     for k, v in coredata.optstore.items():
         if k in dir_option_names:
             dir_options[k] = v
@@ -304,7 +304,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
                 for s in subprojects:
                     core_options[k.evolve(subproject=s)] = v
 
-    def add_keys(opts: T.Union[cdata.MutableKeyedOptionDictType, options.OptionStore], section: str) -> None:
+    def add_keys(opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore], section: str) -> None:
         for key, opt in sorted(opts.items()):
             optdict = {'name': str(key), 'value': opt.value, 'section': section,
                        'machine': key.machine.get_lower_case_name() if coredata.optstore.is_per_machine_option(key) else 'any'}
