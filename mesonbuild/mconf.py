@@ -96,7 +96,7 @@ class Conf:
                         if ophash != conf_options[1]:
                             oi = OptionInterpreter(self.coredata.optstore, sub)
                             oi.process(opfile)
-                            self.coredata.update_project_options(oi.options, sub)
+                            self.coredata.optstore.update_project_options(oi.options, sub)
                             self.coredata.options_files[sub] = (opfile, ophash)
                 else:
                     opfile = os.path.join(self.source_dir, 'meson.options')
@@ -105,12 +105,12 @@ class Conf:
                     if os.path.exists(opfile):
                         oi = OptionInterpreter(self.coredata.optstore, sub)
                         oi.process(opfile)
-                        self.coredata.update_project_options(oi.options, sub)
+                        self.coredata.optstore.update_project_options(oi.options, sub)
                         with open(opfile, 'rb') as f:
                             ophash = hashlib.sha1(f.read()).hexdigest()
                         self.coredata.options_files[sub] = (opfile, ophash)
                     else:
-                        self.coredata.update_project_options({}, sub)
+                        self.coredata.optstore.update_project_options({}, sub)
         elif os.path.isfile(os.path.join(self.build_dir, environment.build_filename)):
             # Make sure that log entries in other parts of meson don't interfere with the JSON output
             with mlog.no_logging():
