@@ -106,7 +106,8 @@ There are several keyword arguments. Many of these map directly to the
 * `identifier_prefix`: the identifier prefix for the gir object,
   e.g. `Gtk`
 * `includes`: list of gir names to be included, can also be a GirTarget
-* `header`: *(Added 0.43.0)* name of main c header to include for the library, e.g. `glib.h`
+* `header`: *(Added 0.43.0)* name of main c header to include for the library,
+  e.g. `glib.h`, (*Since 0.61.0*) a list of headers is allowed
 * `include_directories`: extra include paths to look for gir files
 * `install`: if true, install the generated files
 * `install_gir`: (*Added 0.61.0*) overrides `install`, whether to install the
