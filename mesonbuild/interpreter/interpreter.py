@@ -284,14 +284,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.modules: T.Dict[str, NewExtensionModule] = {}
         self.subproject_dir = subproject_dir
         self.relaxations = relaxations or set()
-        self.build_def_files: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
         if ast is None:
             self.load_root_meson_file()
         else:
             self.ast = ast
         self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(self.build, self)})
-        self.processed_buildfiles: T.Set[str] = set()
         self.validated_cache: T.Set[str] = set()
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
@@ -2461,39 +2459,21 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise InvalidArguments('The "meson-" prefix is reserved and cannot be used for top-level subdir().')
         if args[0] == '':
             raise InvalidArguments("The argument given to subdir() is the empty string ''. This is prohibited.")
+        if os.path.isabs(args[0]):
+            raise InvalidArguments('Subdir argument must be a relative path.')
         for i in kwargs['if_found']:
             if not i.found():
                 return
 
-        prev_subdir = self.subdir
-        subdir = os.path.join(prev_subdir, args[0])
-        if os.path.isabs(subdir):
-            raise InvalidArguments('Subdir argument must be a relative path.')
-        absdir = os.path.join(self.environment.get_source_dir(), subdir)
-        symlinkless_dir = os.path.realpath(absdir)
-        build_file = os.path.join(symlinkless_dir, 'meson.build')
-        if build_file in self.processed_buildfiles:
+        subdir, is_new = self._resolve_subdir(self.environment.get_source_dir(), args[0])
+        if not is_new:
             raise InvalidArguments(f'Tried to enter directory "{subdir}", which has already been visited.')
-        self.processed_buildfiles.add(build_file)
-        self.subdir = subdir
+
         os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
-        buildfilename = os.path.join(self.subdir, environment.build_filename)
-        self.build_def_files.add(buildfilename)
-        absname = os.path.join(self.environment.get_source_dir(), buildfilename)
-        if not os.path.isfile(absname):
-            self.subdir = prev_subdir
+
+        if not self._evaluate_subdir(self.environment.get_source_dir(), subdir):
+            buildfilename = os.path.join(subdir, environment.build_filename)
             raise InterpreterException(f"Nonexistent build file '{buildfilename!s}'")
-        code = self.read_buildfile(absname, buildfilename)
-        try:
-            codeblock = mparser.Parser(code, absname).parse()
-        except mesonlib.MesonException as me:
-            me.file = absname
-            raise me
-        try:
-            self.evaluate_codeblock(codeblock)
-        except SubdirDoneRequest:
-            pass
-        self.subdir = prev_subdir
 
     # This is either ignored on basically any OS nowadays, or silently gets
     # ignored (Solaris) or triggers an "illegal operation" error (FreeBSD).

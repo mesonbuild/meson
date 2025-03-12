@@ -89,7 +89,6 @@ class AstInterpreter(InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, visitors: T.Optional[T.List[AstVisitor]] = None):
         super().__init__(source_root, subdir, subproject)
         self.visitors = visitors if visitors is not None else []
-        self.processed_buildfiles: T.Set[str] = set()
         self.assignments: T.Dict[str, BaseNode] = {}
         self.assign_vals: T.Dict[str, T.Any] = {}
         self.reverse_assignment: T.Dict[str, BaseNode] = {}
@@ -174,33 +173,14 @@ class AstInterpreter(InterpreterBase):
             sys.stderr.write(f'Unable to evaluate subdir({args}) in AstInterpreter --> Skipping\n')
             return
 
-        prev_subdir = self.subdir
-        subdir = os.path.join(prev_subdir, args[0])
-        absdir = os.path.join(self.source_root, subdir)
-        buildfilename = os.path.join(subdir, environment.build_filename)
-        absname = os.path.join(self.source_root, buildfilename)
-        symlinkless_dir = os.path.realpath(absdir)
-        build_file = os.path.join(symlinkless_dir, 'meson.build')
-        if build_file in self.processed_buildfiles:
+        subdir, is_new = self._resolve_subdir(self.source_root, args[0])
+        if not is_new:
             sys.stderr.write('Trying to enter {} which has already been visited --> Skipping\n'.format(args[0]))
             return
-        self.processed_buildfiles.add(build_file)
 
-        if not os.path.isfile(absname):
+        if not self._evaluate_subdir(self.source_root, subdir, self.visitors):
+            buildfilename = os.path.join(subdir, environment.build_filename)
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
-            return
-        code = self.read_buildfile(absname, buildfilename)
-        try:
-            codeblock = mparser.Parser(code, absname).parse()
-        except mesonlib.MesonException as me:
-            me.file = absname
-            raise me
-
-        self.subdir = subdir
-        for i in self.visitors:
-            codeblock.accept(i)
-        self.evaluate_codeblock(codeblock)
-        self.subdir = prev_subdir
 
     def method_call(self, node: BaseNode) -> bool:
         return True
