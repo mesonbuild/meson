@@ -10,7 +10,7 @@ import copy
 import os
 import typing as T
 
-from .. import compilers, environment, mesonlib, optinterpreter, options
+from .. import compilers, environment, mesonlib, options
 from .. import coredata as cdata
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
@@ -112,14 +112,7 @@ class IntrospectionInterpreter(AstInterpreter):
         proj_license_files = _str_list(kwargs.get('license_files', None)) or []
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers, 'license': proj_license, 'license_files': proj_license_files}
 
-        optfile = os.path.join(self.source_root, self.subdir, 'meson.options')
-        if not os.path.exists(optfile):
-            optfile = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
-        if os.path.exists(optfile):
-            oi = optinterpreter.OptionInterpreter(self.coredata.optstore, self.subproject)
-            oi.process(optfile)
-            assert isinstance(proj_name, str), 'for mypy'
-            self.coredata.update_project_options(oi.options, T.cast('SubProject', proj_name))
+        self._load_option_file()
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)

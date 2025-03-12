@@ -27,13 +27,14 @@ from .exceptions import (
     SubdirDoneRequest,
 )
 
+from .. import mlog
 from .decorators import FeatureNew
 from .disabler import Disabler, is_disabled
 from .helpers import default_resolve_key, flatten, resolve_second_level_holders, stringifyUserArguments
 from .operator import MesonOperator
 from ._unholder import _unholder
 
-import os, copy, re, pathlib
+import os, copy, hashlib, re, pathlib
 import typing as T
 import textwrap
 
@@ -674,6 +675,37 @@ class InterpreterBase:
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')
+
+    def _load_option_file(self) -> None:
+        from .. import optinterpreter  # prevent circular import
+
+        # Load "meson.options" before "meson_options.txt", and produce a warning if
+        # it is being used with an old version. I have added check that if both
+        # exist the warning isn't raised
+        option_file = os.path.join(self.source_root, self.subdir, 'meson.options')
+        old_option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
+
+        if os.path.exists(option_file):
+            if os.path.exists(old_option_file):
+                if os.path.samefile(option_file, old_option_file):
+                    mlog.debug("Not warning about meson.options with version minimum < 1.1 because meson_options.txt also exists")
+                else:
+                    raise mesonlib.MesonException("meson.options and meson_options.txt both exist, but are not the same file.")
+            else:
+                FeatureNew.single_use('meson.options file', '1.1', self.subproject, 'Use meson_options.txt instead')
+        else:
+            option_file = old_option_file
+        if os.path.exists(option_file):
+            with open(option_file, 'rb') as f:
+                # We want fast  not cryptographically secure, this is just to
+                # see if the option file has changed
+                self.coredata.options_files[self.subproject] = (option_file, hashlib.sha1(f.read()).hexdigest())
+            oi = optinterpreter.OptionInterpreter(self.environment.coredata.optstore, self.subproject)
+            oi.process(option_file)
+            self.coredata.update_project_options(oi.options, self.subproject)
+            self.build_def_files.add(option_file)
+        else:
+            self.coredata.options_files[self.subproject] = None
 
     def _resolve_subdir(self, rootdir: str, new_subdir: str) -> T.Tuple[str, bool]:
         subdir = os.path.join(self.subdir, new_subdir)
