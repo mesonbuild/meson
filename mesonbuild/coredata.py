@@ -565,51 +565,6 @@ class CoreData:
 
         return dirty
 
-    def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
-        # Main project can set default options on subprojects, but subprojects
-        # can only set default options on themselves.
-        # Preserve order: if env.options has 'buildtype' it must come after
-        # 'optimization' if it is in default_options.
-        options_: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
-        for k, v in default_options.items():
-            if isinstance(k, str):
-                k = OptionKey.from_string(k)
-            if not subproject or k.subproject == subproject:
-                options_[k] = v
-        options_.update(env.options)
-        env.options = options_
-
-        # Create a subset of options, keeping only project and builtin
-        # options for this subproject.
-        # Language and backend specific options will be set later when adding
-        # languages and setting the backend (builtin options must be set first
-        # to know which backend we'll use).
-        options_ = OrderedDict()
-
-        for k, v in env.options.items():
-            if isinstance(k, str):
-                k = OptionKey.from_string(k)
-            # If this is a subproject, don't use other subproject options
-            if k.subproject and k.subproject != subproject:
-                continue
-            # If the option is a builtin and is yielding then it's not allowed per subproject.
-            #
-            # Always test this using the HOST machine, as many builtin options
-            # are not valid for the BUILD machine, but the yielding value does
-            # not differ between them even when they are valid for both.
-            if subproject and self.optstore.is_builtin_option(k) and self.optstore.get_value_object(k.evolve(subproject=None, machine=MachineChoice.HOST)).yielding:
-                continue
-            # Skip base, compiler, and backend options, they are handled when
-            # adding languages and setting backend.
-            if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
-                continue
-            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in options.COMPILER_BASE_OPTIONS:
-                # set_options will report unknown base options
-                continue
-            options_[k] = v
-
-        self.set_options(options_, subproject=subproject, first_invocation=env.first_invocation)
-
     def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
                              env: Environment, subproject: str) -> None:
         for k, o in c_options.items():

@@ -119,7 +119,19 @@ class IntrospectionInterpreter(AstInterpreter):
         string_dict = cdata.create_options_dict(_project_default_options, self.subproject)
         self.project_default_options = {OptionKey(s): v for s, v in string_dict.items()}
         self.default_options.update(self.project_default_options)
-        self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
+        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
+            if self.subproject == '':
+                self.coredata.optstore.initialize_from_top_level_project_call(
+                    T.cast('T.Dict[T.Union[OptionKey, str], str]', string_dict),
+                    {},  # TODO: not handled by this Interpreter.
+                    self.environment.options)
+            else:
+                self.coredata.optstore.initialize_from_subproject_call(
+                    self.subproject,
+                    {},  # TODO: this isn't handled by the introspection interpreter...
+                    T.cast('T.Dict[T.Union[OptionKey, str], str]', string_dict),
+                    {})  # TODO: this isn't handled by the introspection interpreter...
+                self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
