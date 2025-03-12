@@ -39,6 +39,7 @@ import textwrap
 
 if T.TYPE_CHECKING:
     from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
+    from ..ast import AstVisitor
     from ..interpreter import Interpreter
 
     HolderMapType = T.Dict[
@@ -74,6 +75,8 @@ class InterpreterBase:
         # Holder maps store a mapping from an HoldableObject to a class ObjectHolder
         self.holder_map: HolderMapType = {}
         self.bound_holder_map: HolderMapType = {}
+        self.build_def_files: mesonlib.OrderedSet[str] = mesonlib.OrderedSet()
+        self.processed_buildfiles: T.Set[str] = set()
         self.subdir = subdir
         self.root_subdir = subdir
         self.subproject = subproject
@@ -668,3 +671,40 @@ class InterpreterBase:
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')
+
+    def _resolve_subdir(self, rootdir: str, new_subdir: str) -> T.Tuple[str, bool]:
+        subdir = os.path.join(self.subdir, new_subdir)
+        absdir = os.path.join(rootdir, subdir)
+        symlinkless_dir = os.path.realpath(absdir)
+        build_file = os.path.join(symlinkless_dir, environment.build_filename)
+        if build_file in self.processed_buildfiles:
+            return subdir, False
+        self.processed_buildfiles.add(build_file)
+        return subdir, True
+
+    def _evaluate_subdir(self, rootdir: str, subdir: str, visitors: T.Optional[T.Iterable[AstVisitor]] = None) -> bool:
+        buildfilename = os.path.join(subdir, environment.build_filename)
+        self.build_def_files.add(buildfilename)
+    
+        absname = os.path.join(rootdir, buildfilename)
+        if not os.path.isfile(absname):
+            return False
+
+        code = self.read_buildfile(absname, buildfilename)
+        try:
+            codeblock = mparser.Parser(code, absname).parse()
+        except mesonlib.MesonException as me:
+            me.file = absname
+            raise me
+        try:
+            prev_subdir = self.subdir
+            self.subdir = subdir
+            if visitors:
+                for visitor in visitors:
+                    codeblock.accept(visitor)
+            self.evaluate_codeblock(codeblock)
+        except SubdirDoneRequest:
+            pass
+        finally:
+            self.subdir = prev_subdir
+        return True
