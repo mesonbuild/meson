@@ -68,7 +68,7 @@ class InvalidCodeOnVoid(InvalidCode):
 
 
 class InterpreterBase:
-    def __init__(self, source_root: str, subdir: str, subproject: 'SubProject'):
+    def __init__(self, source_root: str, subdir: str, subproject: SubProject, subproject_dir: str, env: environment.Environment):
         self.source_root = source_root
         self.funcs: FunctionType = {}
         self.builtin: T.Dict[str, InterpreterObject] = {}
@@ -80,6 +80,9 @@ class InterpreterBase:
         self.subdir = subdir
         self.root_subdir = subdir
         self.subproject = subproject
+        self.subproject_dir = subproject_dir
+        self.environment = env
+        self.coredata = env.get_coredata()
         self.variables: T.Dict[str, InterpreterObject] = {}
         self.argument_depth = 0
         self.current_lineno = -1
@@ -685,7 +688,7 @@ class InterpreterBase:
     def _evaluate_subdir(self, rootdir: str, subdir: str, visitors: T.Optional[T.Iterable[AstVisitor]] = None) -> bool:
         buildfilename = os.path.join(subdir, environment.build_filename)
         self.build_def_files.add(buildfilename)
-    
+
         absname = os.path.join(rootdir, buildfilename)
         if not os.path.isfile(absname):
             return False
