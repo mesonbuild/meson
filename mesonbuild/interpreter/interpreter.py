@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import hashlib, io, sys, traceback
+import io, sys, traceback
 
 from .. import mparser
 from .. import environment
@@ -13,7 +13,6 @@ from .. import dependencies
 from .. import mlog
 from .. import options
 from .. import build
-from .. import optinterpreter
 from .. import compilers
 from .. import envconfig
 from ..wrap import wrap, WrapMode
@@ -1181,33 +1180,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             mesonlib.project_meson_versions[self.subproject] = mesonlib.NoProjectVersion()
 
-        # Load "meson.options" before "meson_options.txt", and produce a warning if
-        # it is being used with an old version. I have added check that if both
-        # exist the warning isn't raised
-        option_file = os.path.join(self.source_root, self.subdir, 'meson.options')
-        old_option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
-
-        if os.path.exists(option_file):
-            if os.path.exists(old_option_file):
-                if os.path.samefile(option_file, old_option_file):
-                    mlog.debug("Not warning about meson.options with version minimum < 1.1 because meson_options.txt also exists")
-                else:
-                    raise MesonException("meson.options and meson_options.txt both exist, but are not the same file.")
-            else:
-                FeatureNew.single_use('meson.options file', '1.1', self.subproject, 'Use meson_options.txt instead')
-        else:
-            option_file = old_option_file
-        if os.path.exists(option_file):
-            with open(option_file, 'rb') as f:
-                # We want fast  not cryptographically secure, this is just to
-                # see if the option file has changed
-                self.coredata.options_files[self.subproject] = (option_file, hashlib.sha1(f.read()).hexdigest())
-            oi = optinterpreter.OptionInterpreter(self.environment.coredata.optstore, self.subproject)
-            oi.process(option_file)
-            self.coredata.update_project_options(oi.options, self.subproject)
-            self.add_build_def_file(option_file)
-        else:
-            self.coredata.options_files[self.subproject] = None
+        self._load_option_file()
 
         self.project_default_options = kwargs['default_options']
         if isinstance(self.project_default_options, str):
