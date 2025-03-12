@@ -424,16 +424,5 @@ class AstInterpreter(InterpreterBase):
                 flattened_args += [i]
         return flattened_args
 
-    def flatten_kwargs(self, kwargs: T.Dict[str, TYPE_var], include_unknown_args: bool = False) -> T.Dict[str, TYPE_var]:
-        flattened_kwargs = {}
-        for key, val in kwargs.items():
-            if isinstance(val, BaseNode):
-                resolved = self.resolve_node(val, include_unknown_args)
-                if resolved is not None:
-                    flattened_kwargs[key] = resolved
-            elif isinstance(val, (str, bool, int, float)) or include_unknown_args:
-                flattened_kwargs[key] = val
-        return flattened_kwargs
-
     def evaluate_testcase(self, node: TestCaseClauseNode) -> Disabler | None:
         return Disabler(subproject=self.subproject)
