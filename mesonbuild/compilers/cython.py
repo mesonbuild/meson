@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021-2024 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 from __future__ import annotations
 
 """Abstraction for Cython language compilers."""
@@ -11,7 +11,7 @@ from ..mesonlib import EnvironmentException, version_compare
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
-    from ..coredata import MutableKeyedOptionDictType
+    from ..options import MutableKeyedOptionDictType
     from ..environment import Environment
     from ..build import BuildTarget
 

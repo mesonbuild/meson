@@ -15,7 +15,6 @@ from .interpreterbase import FeatureNew, FeatureDeprecated, typed_pos_args, type
 from .interpreter.type_checking import NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
-    from . import coredata
     from .interpreterbase import TYPE_var, TYPE_kwargs
     from .interpreterbase import SubProject
     from typing_extensions import TypedDict, Literal
@@ -67,7 +66,7 @@ optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 class OptionInterpreter:
     def __init__(self, optionstore: 'OptionStore', subproject: 'SubProject') -> None:
-        self.options: 'coredata.MutableKeyedOptionDictType' = {}
+        self.options: options.MutableKeyedOptionDictType = {}
         self.subproject = subproject
         self.option_types: T.Dict[str, T.Callable[..., options.AnyOptionType]] = {
             'string': self.string_parser,

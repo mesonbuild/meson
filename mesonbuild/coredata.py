@@ -43,7 +43,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import ElementaryOptionValues
+    from .options import ElementaryOptionValues, MutableKeyedOptionDictType
     from .build import BuildTarget
 
     class SharedCMDOptions(Protocol):
@@ -62,7 +62,6 @@ if T.TYPE_CHECKING:
         native_file: T.List[str]
 
     OptionDictType = T.Dict[str, options.AnyOptionType]
-    MutableKeyedOptionDictType = T.Dict['OptionKey', options.AnyOptionType]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]

@@ -15,12 +15,12 @@ from .mixins.clike import CLikeCompiler
 from .mixins.gnu import GnuCompiler, GnuCStds, gnu_common_warning_args, gnu_objc_warning_args
 
 if T.TYPE_CHECKING:
-    from .. import coredata
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..build import BuildTarget
+    from ..options import MutableKeyedOptionDictType
 
 
 class ObjCCompiler(CLikeCompiler, Compiler):
@@ -36,7 +36,7 @@ class ObjCCompiler(CLikeCompiler, Compiler):
                           linker=linker)
         CLikeCompiler.__init__(self)
 
-    def get_options(self) -> coredata.MutableKeyedOptionDictType:
+    def get_options(self) -> MutableKeyedOptionDictType:
         opts = super().get_options()
         key = self.form_compileropt_key('std')
         opts.update({

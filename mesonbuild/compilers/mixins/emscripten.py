@@ -15,7 +15,6 @@ from ...mesonlib import LibType
 from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
-    from ... import coredata
     from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...dependencies import Dependency
@@ -57,7 +56,7 @@ class EmscriptenMixin(Compiler):
             args.append(f'-sPTHREAD_POOL_SIZE={count}')
         return args
 
-    def get_options(self) -> coredata.MutableKeyedOptionDictType:
+    def get_options(self) -> options.MutableKeyedOptionDictType:
         opts = super().get_options()
 
         key = OptionKey(f'{self.language}_thread_count', machine=self.for_machine)
