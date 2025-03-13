@@ -3399,100 +3399,100 @@ class AllPlatformTests(BasePlatformTests):
                 src_to_id.update({os.path.relpath(src, testdir): i['id']
                                   for src in group.get('sources', [])})
 
-        # Check Tests and benchmarks
-        tests_to_find = ['test case 1', 'test case 2', 'benchmark 1']
-        deps_to_find = {'test case 1': [src_to_id['t1.cpp']],
-                        'test case 2': [src_to_id['t2.cpp'], src_to_id['t3.cpp']],
-                        'benchmark 1': [out_to_id['file2'], out_to_id['file3'], out_to_id['file4'], src_to_id['t3.cpp']]}
-        for i in res['benchmarks'] + res['tests']:
-            assertKeyTypes(test_keylist, i)
-            if i['name'] in tests_to_find:
-                tests_to_find.remove(i['name'])
-            self.assertEqual(sorted(i['depends']),
-                             sorted(deps_to_find[i['name']]))
-        self.assertListEqual(tests_to_find, [])
+        with self.subTest('Check Tests and Benchmarks'):
+            tests_to_find = ['test case 1', 'test case 2', 'benchmark 1']
+            deps_to_find = {'test case 1': [src_to_id['t1.cpp']],
+                            'test case 2': [src_to_id['t2.cpp'], src_to_id['t3.cpp']],
+                            'benchmark 1': [out_to_id['file2'], out_to_id['file3'], out_to_id['file4'], src_to_id['t3.cpp']]}
+            for i in res['benchmarks'] + res['tests']:
+                assertKeyTypes(test_keylist, i)
+                if i['name'] in tests_to_find:
+                    tests_to_find.remove(i['name'])
+                self.assertEqual(sorted(i['depends']),
+                                sorted(deps_to_find[i['name']]))
+            self.assertListEqual(tests_to_find, [])
 
-        # Check buildoptions
-        buildopts_to_find = {'cpp_std': 'c++11'}
-        for i in res['buildoptions']:
-            assertKeyTypes(buildoptions_keylist, i)
-            valid_type = False
-            for j in buildoptions_typelist:
-                if i['type'] == j[0]:
-                    self.assertIsInstance(i['value'], j[1])
-                    assertKeyTypes(j[2], i, strict=False)
-                    valid_type = True
-                    break
+        with self.subTest('Check buildoptions'):
+            buildopts_to_find = {'cpp_std': 'c++11'}
+            for i in res['buildoptions']:
+                assertKeyTypes(buildoptions_keylist, i)
+                valid_type = False
+                for j in buildoptions_typelist:
+                    if i['type'] == j[0]:
+                        self.assertIsInstance(i['value'], j[1])
+                        assertKeyTypes(j[2], i, strict=False)
+                        valid_type = True
+                        break
 
-            self.assertIn(i['section'], buildoptions_sections)
-            self.assertIn(i['machine'], buildoptions_machines)
-            self.assertTrue(valid_type)
-            if i['name'] in buildopts_to_find:
-                self.assertEqual(i['value'], buildopts_to_find[i['name']])
-                buildopts_to_find.pop(i['name'], None)
-        self.assertDictEqual(buildopts_to_find, {})
+                self.assertIn(i['section'], buildoptions_sections)
+                self.assertIn(i['machine'], buildoptions_machines)
+                self.assertTrue(valid_type)
+                if i['name'] in buildopts_to_find:
+                    self.assertEqual(i['value'], buildopts_to_find[i['name']])
+                    buildopts_to_find.pop(i['name'], None)
+            self.assertDictEqual(buildopts_to_find, {})
 
-        # Check buildsystem_files
-        bs_files = ['meson.build', 'meson_options.txt', 'sharedlib/meson.build', 'staticlib/meson.build']
-        bs_files = [os.path.join(testdir, x) for x in bs_files]
-        self.assertPathListEqual(list(sorted(res['buildsystem_files'])), list(sorted(bs_files)))
+        with self.subTest('Check buildsystem_files'):
+            bs_files = ['meson.build', 'meson_options.txt', 'sharedlib/meson.build', 'staticlib/meson.build']
+            bs_files = [os.path.join(testdir, x) for x in bs_files]
+            self.assertPathListEqual(list(sorted(res['buildsystem_files'])), list(sorted(bs_files)))
 
-        # Check dependencies
-        dependencies_to_find = ['threads']
-        for i in res['dependencies']:
-            assertKeyTypes(dependencies_typelist, i)
-            if i['name'] in dependencies_to_find:
-                dependencies_to_find.remove(i['name'])
-        self.assertListEqual(dependencies_to_find, [])
+        with self.subTest('Check dependencies'):
+            dependencies_to_find = ['threads']
+            for i in res['dependencies']:
+                assertKeyTypes(dependencies_typelist, i)
+                if i['name'] in dependencies_to_find:
+                    dependencies_to_find.remove(i['name'])
+            self.assertListEqual(dependencies_to_find, [])
 
-        # Check projectinfo
-        self.assertDictEqual(res['projectinfo'], {
-            'version': '1.2.3',
-            'license': ['unknown'],
-            'license_files': [],
-            'descriptive_name': 'introspection',
-            'subproject_dir': 'subprojects',
-            'subprojects': []
-        })
+        with self.subTest('Check projectinfo'):
+            self.assertDictEqual(res['projectinfo'], {
+                'version': '1.2.3',
+                'license': ['unknown'],
+                'license_files': [],
+                'descriptive_name': 'introspection',
+                'subproject_dir': 'subprojects',
+                'subprojects': []
+            })
 
-        # Check targets
-        targets_to_find = {
-            'sharedTestLib': ('shared library', True, False, 'sharedlib/meson.build',
-                              [os.path.join(testdir, 'sharedlib', 'shared.cpp')]),
-            'staticTestLib': ('static library', True, False, 'staticlib/meson.build',
-                              [os.path.join(testdir, 'staticlib', 'static.c')]),
-            'custom target test 1': ('custom', False, False, 'meson.build',
-                                     [os.path.join(testdir, 'cp.py')]),
-            'custom target test 2': ('custom', False, False, 'meson.build',
-                                     name_to_out['custom target test 1']),
-            'test1': ('executable', True, True, 'meson.build',
-                      [os.path.join(testdir, 't1.cpp')]),
-            'test2': ('executable', True, False, 'meson.build',
-                      [os.path.join(testdir, 't2.cpp')]),
-            'test3': ('executable', True, False, 'meson.build',
-                      [os.path.join(testdir, 't3.cpp')]),
-            'custom target test 3': ('custom', False, False, 'meson.build',
-                                     name_to_out['test3']),
-        }
-        for i in res['targets']:
-            assertKeyTypes(targets_typelist, i)
-            if i['name'] in targets_to_find:
-                tgt = targets_to_find[i['name']]
-                self.assertEqual(i['type'], tgt[0])
-                self.assertEqual(i['build_by_default'], tgt[1])
-                self.assertEqual(i['installed'], tgt[2])
-                self.assertPathEqual(i['defined_in'], os.path.join(testdir, tgt[3]))
-                targets_to_find.pop(i['name'], None)
-            for j in i['target_sources']:
-                if 'compiler' in j:
-                    if j['language'] == 'unknown':
-                        assertKeyTypes(targets_sources_unknown_lang_typelist, j)
+        with self.subTest('Check targets'):
+            targets_to_find = {
+                'sharedTestLib': ('shared library', True, False, 'sharedlib/meson.build',
+                                [os.path.join(testdir, 'sharedlib', 'shared.cpp')]),
+                'staticTestLib': ('static library', True, False, 'staticlib/meson.build',
+                                [os.path.join(testdir, 'staticlib', 'static.c')]),
+                'custom target test 1': ('custom', False, False, 'meson.build',
+                                        [os.path.join(testdir, 'cp.py')]),
+                'custom target test 2': ('custom', False, False, 'meson.build',
+                                        name_to_out['custom target test 1']),
+                'test1': ('executable', True, True, 'meson.build',
+                        [os.path.join(testdir, 't1.cpp')]),
+                'test2': ('executable', True, False, 'meson.build',
+                        [os.path.join(testdir, 't2.cpp')]),
+                'test3': ('executable', True, False, 'meson.build',
+                        [os.path.join(testdir, 't3.cpp')]),
+                'custom target test 3': ('custom', False, False, 'meson.build',
+                                        name_to_out['test3']),
+            }
+            for i in res['targets']:
+                assertKeyTypes(targets_typelist, i)
+                if i['name'] in targets_to_find:
+                    tgt = targets_to_find[i['name']]
+                    self.assertEqual(i['type'], tgt[0])
+                    self.assertEqual(i['build_by_default'], tgt[1])
+                    self.assertEqual(i['installed'], tgt[2])
+                    self.assertPathEqual(i['defined_in'], os.path.join(testdir, tgt[3]))
+                    targets_to_find.pop(i['name'], None)
+                for j in i['target_sources']:
+                    if 'compiler' in j:
+                        if j['language'] == 'unknown':
+                            assertKeyTypes(targets_sources_unknown_lang_typelist, j)
+                        else:
+                            assertKeyTypes(targets_sources_typelist, j)
+                        self.assertEqual(j['sources'], [os.path.normpath(f) for f in tgt[4]])
                     else:
-                        assertKeyTypes(targets_sources_typelist, j)
-                    self.assertEqual(j['sources'], [os.path.normpath(f) for f in tgt[4]])
-                else:
-                    assertKeyTypes(target_sources_linker_typelist, j)
-        self.assertDictEqual(targets_to_find, {})
+                        assertKeyTypes(target_sources_linker_typelist, j)
+            self.assertDictEqual(targets_to_find, {})
 
     def test_introspect_file_dump_equals_all(self):
         testdir = os.path.join(self.unit_test_dir, '56 introspection')
