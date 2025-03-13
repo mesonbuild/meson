@@ -109,7 +109,9 @@ class InterpreterBase:
             raise InvalidCode.from_node(f'Build file failed to parse as unicode: {e}', node=node)
 
     def load_root_meson_file(self) -> None:
-        mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
+        build_filename = os.path.join(self.subdir, environment.build_filename)
+        self.build_def_files.add(build_filename)
+        mesonfile = os.path.join(self.source_root, build_filename)
         if not os.path.isfile(mesonfile):
             raise InvalidArguments(f'Missing Meson file in {mesonfile}')
         code = self.read_buildfile(mesonfile, mesonfile)
