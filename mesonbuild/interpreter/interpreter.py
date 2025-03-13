@@ -328,11 +328,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.builtin['target_machine'] = \
             OBJ.MachineHolder(self.build.environment.machines.target, self)
 
-    def load_root_meson_file(self) -> None:
-        build_filename = os.path.join(self.subdir, environment.build_filename)
-        self.build_def_files.add(build_filename)
-        super().load_root_meson_file()
-
     def build_func_dict(self) -> None:
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
                            'add_global_link_arguments': self.func_add_global_link_arguments,
