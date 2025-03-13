@@ -613,6 +613,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         default={},
         since='1.2.0',
     ),
+    KwargInfo('swift_implicit_main', str, default='', validator=in_set_validator({'', 'auto', 'never'}), since='1.7.99'),
     KwargInfo('build_rpath', str, default='', since='0.42.0'),
     KwargInfo(
         'gnu_symbol_visibility',
