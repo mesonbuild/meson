@@ -32,7 +32,7 @@ from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..interpreterbase import stringifyUserArguments
-from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
+from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
 from ..optinterpreter import optname_regex
 
 from . import interpreterobjects as OBJ
@@ -99,6 +99,7 @@ from . import primitives as P_OBJ
 from pathlib import Path
 from enum import Enum
 from difflib import get_close_matches
+import pkgutil
 import os
 import shutil
 import uuid
@@ -140,6 +141,9 @@ def _project_version_validator(value: T.Union[T.List, str, mesonlib.File, None])
         elif not isinstance(value[0], mesonlib.File):
             return 'when passed as array must contain a File'
     return None
+
+def _get_meson_modules(module_path: Path) -> T.List[str]:
+    return [mod.name for mod in pkgutil.iter_modules(module_path) if not mod.name.startswith('_')]
 
 class Summary:
     def __init__(self, project_name: str, project_version: str):
@@ -639,7 +643,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                     mlog.debug(line)
 
             if required:
-                raise InvalidArguments(f'Module "{modname}" does not exist')
+                ustr = f'Module "{modname}" does not exist.'
+                close_matches = get_close_matches(modname, _get_meson_modules(modules_path))
+                if close_matches:
+                    ustr += f' Did you mean "{close_matches[0]}"?'
+                raise InvalidArguments(ustr)
             ext_module = NotFoundExtensionModule(real_modname)
         else:
             ext_module = module.initialize(self)
