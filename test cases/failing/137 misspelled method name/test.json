@@ -1,0 +1,8 @@
+{
+  "stdout": [
+    {
+      "match": "re",
+      "line": "test cases/failing/137 misspelled method name/meson.build:2:16: ERROR: Unknown method \"versoin\" in object <mesonbuild.interpreter.mesonmain.MesonMain object at 0x[0-9a-fA-F]+> of type MesonMain. Did you mean \"version\"?"
+    }
+  ]
+}
