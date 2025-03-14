@@ -13,6 +13,7 @@ import textwrap
 import typing as T
 from abc import ABCMeta
 from contextlib import AbstractContextManager
+from difflib import get_close_matches
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol, TypeAlias
@@ -79,6 +80,9 @@ class InterpreterObject:
             if not getattr(method, 'no-second-level-holder-flattening', False):
                 args, kwargs = resolve_second_level_holders(args, kwargs)
             return method(args, kwargs)
+        close_matches = get_close_matches(method_name, self.methods)
+        if close_matches:
+            raise InvalidCode(f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}. Did you mean "{close_matches[0]}"?')
         raise InvalidCode(f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.')
 
     def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
