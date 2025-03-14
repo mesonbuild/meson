@@ -36,6 +36,7 @@ from ._unholder import _unholder
 import os, copy, re, pathlib
 import typing as T
 import textwrap
+from difflib import get_close_matches
 
 if T.TYPE_CHECKING:
     from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
@@ -527,6 +528,9 @@ class InterpreterBase:
             res = func(node, func_args, kwargs)
             return self._holderify(res) if res is not None else None
         else:
+            close_matches = get_close_matches(func_name, self.funcs.keys())
+            if close_matches:
+                raise InvalidCode(f'Unknown function "{func_name}". Did you mean "{close_matches[0]}"?')
             self.unknown_function_called(func_name)
             return None
 
