@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/134 misspelled function kwargs/meson.build:1:0: ERROR: project got unknown keyword arguments \"licence\" (did you mean \"license\"?)"
+    }
+  ]
+}

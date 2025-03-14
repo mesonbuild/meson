@@ -88,6 +88,14 @@ def disablerIfNotFound(f: TV_func) -> TV_func:
         return ret
     return T.cast('TV_func', wrapped)
 
+def kwargs_get_close_matches(invalid_kwargs: T.Set[str], valid_kwargs: T.Set[str]) -> T.List[str]:
+    with_close_matches = []
+    from difflib import get_close_matches
+    for invalid in sorted(invalid_kwargs):
+        close_matches = get_close_matches(invalid, valid_kwargs)
+        with_close_matches.append(f'"{invalid}" (did you mean "{close_matches[0]}"?)' if close_matches else f'"{invalid}"')
+    return with_close_matches
+
 @dataclass(repr=False, eq=False)
 class permittedKwargs:
     permitted: T.Set[str]
@@ -98,7 +106,7 @@ class permittedKwargs:
             kwargs = get_callee_args(wrapped_args)[2]
             unknowns = set(kwargs).difference(self.permitted)
             if unknowns:
-                ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
+                ustr = ', '.join(kwargs_get_close_matches(unknowns, self.permitted))
                 raise InvalidArguments(f'Got unknown keyword arguments {ustr}')
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast('TV_func', wrapped)
@@ -508,7 +516,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                 all_names = {t.name for t in types}
                 unknowns = set(kwargs).difference(all_names)
                 if unknowns:
-                    ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
+                    ustr = ', '.join(kwargs_get_close_matches(unknowns, all_names))
                     raise InvalidArguments(f'{name} got unknown keyword arguments {ustr}')
 
             for info in types:
