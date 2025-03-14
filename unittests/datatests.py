@@ -30,10 +30,11 @@ from run_tests import (
     FakeBuild, get_fake_env
 )
 
+from .baseclass import BaseMesonTest
 from .helpers import *
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
-class DataTests(unittest.TestCase):
+class DataTests(BaseMesonTest):
 
     def test_snippets(self):
         hashcounter = re.compile('^ *(#)+')

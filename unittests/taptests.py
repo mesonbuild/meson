@@ -6,6 +6,8 @@ import io
 
 from mesonbuild.mtest import TAPParser, TestResult
 
+# These do not need to use the BaseMesonTest because they only test TAP parsing
+# and output, but do not initialize Meson
 
 class TAPParserTests(unittest.TestCase):
     def assert_test(self, events, **kwargs):

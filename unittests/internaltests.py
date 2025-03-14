@@ -49,9 +49,10 @@ from run_tests import (
     FakeCompilerOptions, get_fake_env, get_fake_options
 )
 
+from .baseclass import BaseMesonTest
 from .helpers import *
 
-class InternalTests(unittest.TestCase):
+class InternalTests(BaseMesonTest):
 
     def test_version_number(self):
         self.assertEqual(search_version('foobar 1.2.3'), '1.2.3')
