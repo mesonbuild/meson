@@ -13,7 +13,7 @@ import typing as T
 from .. import compilers, environment, mesonlib, options
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
-from ..interpreterbase import InvalidArguments, SubProject
+from ..interpreterbase import InvalidArguments, SubProject, UnknownValue
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
@@ -180,7 +180,7 @@ class IntrospectionInterpreter(AstInterpreter):
     def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         kwargs = self.flatten_kwargs(kwargs)
         required = kwargs.get('required', True)
-        assert isinstance(required, (bool, options.UserFeatureOption)), 'for mypy'
+        assert isinstance(required, (bool, options.UserFeatureOption, UnknownValue)), 'for mypy'
         if isinstance(required, options.UserFeatureOption):
             required = required.is_enabled()
         if 'native' in kwargs:
@@ -190,7 +190,7 @@ class IntrospectionInterpreter(AstInterpreter):
             for for_machine in [MachineChoice.BUILD, MachineChoice.HOST]:
                 self._add_languages(args, required, for_machine)
 
-    def _add_languages(self, raw_langs: T.List[TYPE_var], required: bool, for_machine: MachineChoice) -> None:
+    def _add_languages(self, raw_langs: T.List[TYPE_var], required: T.Union[bool, UnknownValue], for_machine: MachineChoice) -> None:
         langs: T.List[str] = []
         for l in self.flatten_args(raw_langs):
             if isinstance(l, str):
@@ -205,7 +205,7 @@ class IntrospectionInterpreter(AstInterpreter):
                     comp = detect_compiler_for(self.environment, lang, for_machine, True, self.subproject)
                 except mesonlib.MesonException:
                     # do we even care about introspecting this language?
-                    if required:
+                    if isinstance(required, UnknownValue) or required:
                         raise
                     else:
                         continue
@@ -277,8 +277,8 @@ class IntrospectionInterpreter(AstInterpreter):
                     # Try to resolve the ID and append the node to the queue
                     assert isinstance(curr.value, str)
                     var_name = curr.value
-                    if var_name in self.assignments:
-                        tmp_node = self.assignments[var_name]
+                    if var_name in self.cur_assignments:
+                        tmp_node = self.get_cur_value(var_name)
                         if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
                             inqueue += [tmp_node]
                 elif isinstance(curr, ArithmeticNode):

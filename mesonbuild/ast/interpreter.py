@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import sys
 import typing as T
+from collections import defaultdict
 from dataclasses import dataclass
 
 from .. import mparser, mesonlib
@@ -21,6 +22,7 @@ from ..interpreterbase import (
     ContinueRequest,
     Disabler,
     default_resolve_key,
+    UnknownValue,
 )
 
 from ..interpreter import (
@@ -44,6 +46,9 @@ from ..mparser import (
     NotNode,
     PlusAssignmentNode,
     TernaryNode,
+    SymbolNode,
+    Token,
+    FunctionNode,
 )
 
 if T.TYPE_CHECKING:
@@ -59,11 +64,13 @@ if T.TYPE_CHECKING:
         OrNode,
         TestCaseClauseNode,
         UMinusNode,
-        FunctionNode,
     )
 
 _T = T.TypeVar('_T')
 _V = T.TypeVar('_V')
+
+def _symbol(val: str) -> SymbolNode:
+    return SymbolNode(Token('', '', 0, 0, 0, (0, 0), val))
 
 # `IntrospectionDependency` is to the `IntrospectionInterpreter` what `Dependency` is to the normal `Interpreter`.
 @dataclass
@@ -97,7 +104,7 @@ class AstInterpreter(InterpreterBase):
         super().__init__(source_root, subdir, subproject, subproject_dir, env)
         self.visitors = visitors if visitors is not None else []
         self.nesting: T.List[int] = []
-        self.assignments: T.Dict[str, BaseNode] = {}
+        self.cur_assignments: T.DefaultDict[str, T.List[T.Tuple[T.List[int], T.Union[BaseNode, UnknownValue]]]] = defaultdict(list)
         self.assign_vals: T.Dict[str, T.Any] = {}
         self.reverse_assignment: T.Dict[str, BaseNode] = {}
         self.funcs.update({'project': self.func_do_nothing,
@@ -229,14 +236,6 @@ class AstInterpreter(InterpreterBase):
         self.argument_depth -= 1
         return {}
 
-    def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
-        assert isinstance(node, PlusAssignmentNode)
-        # Cheat by doing a reassignment
-        self.assignments[node.var_name.value] = node.value  # Save a reference to the value node
-        if node.value.ast_id:
-            self.reverse_assignment[node.value.ast_id] = node
-        self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
-
     def evaluate_indexing(self, node: IndexNode) -> int:
         return 0
 
@@ -275,13 +274,83 @@ class AstInterpreter(InterpreterBase):
         self.evaluate_statement(cur.value)
         return False
 
+    def find_potential_writes(self, node: BaseNode) -> T.Set[str]:
+        if isinstance(node, mparser.ForeachClauseNode):
+            return {el.value for el in node.varnames} | self.find_potential_writes(node.block)
+        elif isinstance(node, mparser.CodeBlockNode):
+            ret = set()
+            for line in node.lines:
+                ret.update(self.find_potential_writes(line))
+            return ret
+        elif isinstance(node, (AssignmentNode, PlusAssignmentNode)):
+            return set([node.var_name.value]) | self.find_potential_writes(node.value)
+        elif isinstance(node, IdNode):
+            return set()
+        elif isinstance(node, ArrayNode):
+            ret = set()
+            for arg in node.args.arguments:
+                ret.update(self.find_potential_writes(arg))
+            return ret
+        elif isinstance(node, mparser.DictNode):
+            ret = set()
+            for k, v in node.args.kwargs.items():
+                ret.update(self.find_potential_writes(k))
+                ret.update(self.find_potential_writes(v))
+            return ret
+        elif isinstance(node, FunctionNode):
+            ret = set()
+            for arg in node.args.arguments:
+                ret.update(self.find_potential_writes(arg))
+            for arg in node.args.kwargs.values():
+                ret.update(self.find_potential_writes(arg))
+            return ret
+        elif isinstance(node, MethodNode):
+            ret = self.find_potential_writes(node.source_object)
+            for arg in node.args.arguments:
+                ret.update(self.find_potential_writes(arg))
+            for arg in node.args.kwargs.values():
+                ret.update(self.find_potential_writes(arg))
+            return ret
+        elif isinstance(node, ArithmeticNode):
+            return self.find_potential_writes(node.left) | self.find_potential_writes(node.right)
+        elif isinstance(node, (mparser.NumberNode, mparser.StringNode, mparser.BreakNode, mparser.BooleanNode, mparser.ContinueNode)):
+            return set()
+        elif isinstance(node, mparser.IfClauseNode):
+            if isinstance(node.elseblock, EmptyNode):
+                ret = set()
+            else:
+                ret = self.find_potential_writes(node.elseblock.block)
+            for i in node.ifs:
+                ret.update(self.find_potential_writes(i))
+            return ret
+        elif isinstance(node, mparser.IndexNode):
+            return self.find_potential_writes(node.iobject) | self.find_potential_writes(node.index)
+        elif isinstance(node, mparser.IfNode):
+            return self.find_potential_writes(node.condition) | self.find_potential_writes(node.block)
+        elif isinstance(node, (mparser.ComparisonNode, mparser.OrNode, mparser.AndNode)):
+            return self.find_potential_writes(node.left) | self.find_potential_writes(node.right)
+        elif isinstance(node, mparser.NotNode):
+            return self.find_potential_writes(node.value)
+        elif isinstance(node, mparser.TernaryNode):
+            return self.find_potential_writes(node.condition) | self.find_potential_writes(node.trueblock) | self.find_potential_writes(node.falseblock)
+        elif isinstance(node, mparser.UMinusNode):
+            return self.find_potential_writes(node.value)
+        elif isinstance(node, mparser.ParenthesizedNode):
+            return self.find_potential_writes(node.inner)
+        raise mesonlib.MesonBugException('Unhandled node type')
+
     def evaluate_foreach(self, node: ForeachClauseNode) -> None:
+        asses = self.find_potential_writes(node)
+        for ass in asses:
+            self.cur_assignments[ass].append((self.nesting.copy(), UnknownValue()))
         try:
             self.evaluate_codeblock(node.block)
         except ContinueRequest:
             pass
         except BreakRequest:
             pass
+        for ass in asses:
+            self.cur_assignments[ass].append((self.nesting.copy(), UnknownValue())) # In case the foreach loops 0 times.
 
     def evaluate_if(self, node: IfClauseNode) -> None:
         self.nesting.append(0)
@@ -291,16 +360,56 @@ class AstInterpreter(InterpreterBase):
         if not isinstance(node.elseblock, EmptyNode):
             self.evaluate_codeblock(node.elseblock.block)
         self.nesting.pop()
+        for var_name in self.cur_assignments:
+            potential_values = []
+            oldval = self.get_cur_value(var_name, allow_none=True)
+            if oldval is not None:
+                potential_values.append(oldval)
+            for nesting, value in self.cur_assignments[var_name]:
+                if len(nesting) > len(self.nesting):
+                    potential_values.append(value)
+            self.cur_assignments[var_name] = [(nesting, v) for (nesting, v) in self.cur_assignments[var_name] if len(nesting) <= len(self.nesting)]
+            if len(potential_values) > 1 or (len(potential_values) > 0 and oldval is None):
+                uv = UnknownValue()
+                self.cur_assignments[var_name].append((self.nesting.copy(), uv))
+
+    def get_cur_value(self, var_name: str, allow_none: bool = False) -> T.Union[BaseNode, UnknownValue, None]:
+        if var_name in {'meson', 'host_machine', 'build_machine', 'target_machine'}:
+            return UnknownValue()
+        ret = None
+        for nesting, value in reversed(self.cur_assignments[var_name]):
+            if len(self.nesting) >= len(nesting) and self.nesting[:len(nesting)] == nesting:
+                ret = value
+                break
+        if ret is None and allow_none:
+            return ret
+        assert ret is not None
+        return ret
 
     def get_variable(self, varname: str) -> int:
         return 0
 
     def assignment(self, node: AssignmentNode) -> None:
         assert isinstance(node, AssignmentNode)
-        self.assignments[node.var_name.value] = node.value # Save a reference to the value node
+        self.cur_assignments[node.var_name.value].append((self.nesting.copy(), node.value))
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
+
+    def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
+        assert isinstance(node, PlusAssignmentNode)
+        self.evaluate_statement(node.value)
+        lhs = self.get_cur_value(node.var_name.value)
+        newval: T.Union[UnknownValue, ArithmeticNode]
+        if isinstance(lhs, UnknownValue):
+            newval = UnknownValue()
+        else:
+            newval = mparser.ArithmeticNode(operation='add', left=lhs, operator=_symbol('+'), right=node.value)
+        self.cur_assignments[node.var_name.value].append((self.nesting.copy(), newval))
+
+        if node.value.ast_id:
+            self.reverse_assignment[node.value.ast_id] = node
+        self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
 
     def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
         def quick_resolve(n: BaseNode, loop_detect: T.Optional[T.List[str]] = None) -> T.Any:
@@ -308,9 +417,9 @@ class AstInterpreter(InterpreterBase):
                 loop_detect = []
             if isinstance(n, IdNode):
                 assert isinstance(n.value, str)
-                if n.value in loop_detect or n.value not in self.assignments:
+                if n.value in loop_detect or n.value not in self.cur_assignments:
                     return []
-                return quick_resolve(self.assignments[n.value], loop_detect = loop_detect + [n.value])
+                return quick_resolve(self.get_cur_value(n.value), loop_detect = loop_detect + [n.value])
             elif isinstance(n, ElementaryNode):
                 return n.value
             else:
