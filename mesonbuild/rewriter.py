@@ -10,12 +10,12 @@
 from __future__ import annotations
 
 from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstPrinter
-from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency
+from .ast.interpreter import IntrospectionBuildTarget, IntrospectionDependency, _symbol
 from .interpreterbase import TV_func
 from mesonbuild.mesonlib import MesonException, setup_vsenv
 from . import mlog, environment
 from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, StringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, SymbolNode
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, StringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode
 import json, os, re, sys
 import typing as T
 
@@ -96,9 +96,6 @@ class RequiredKeys:
             return f(*wrapped_args, **wrapped_kwargs)
 
         return T.cast('TV_func', wrapped)
-
-def _symbol(val: str) -> SymbolNode:
-    return SymbolNode(Token('', '', 0, 0, 0, (0, 0), val))
 
 class MTypeBase:
     node: BaseNode
@@ -434,8 +431,8 @@ class Rewriter:
 
         # Check the assignments
         tgt = None
-        if target in self.interpreter.assignments:
-            node = self.interpreter.assignments[target]
+        if target in self.interpreter.cur_assignments:
+            node = self.interpreter.get_cur_value(target)
             if isinstance(node, FunctionNode):
                 if node.func_name.value in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
                     tgt = self.interpreter.assign_vals[target]
@@ -455,8 +452,8 @@ class Rewriter:
             return dep
 
         # Check the assignments
-        if dependency in self.interpreter.assignments:
-            node = self.interpreter.assignments[dependency]
+        if dependency in self.interpreter.cur_assignments:
+            node = self.interpreter.get_cur_value(dependency)
             if isinstance(node, FunctionNode):
                 if node.func_name.value == 'dependency':
                     name = self.interpreter.flatten_args(node.args)[0]
@@ -759,7 +756,9 @@ class Rewriter:
                         self.modified_nodes += [tgt_function]
                 target.extra_files = [node]
             if isinstance(node, IdNode):
-                node = self.interpreter.assignments[node.value]
+                cv = self.interpreter.get_cur_value(node.value)
+                assert isinstance(cv, BaseNode)
+                node = cv
                 target.extra_files = [node]
             if not isinstance(node, ArrayNode):
                 mlog.error('Target', mlog.bold(cmd['target']), 'extra_files argument must be a list', *self.on_error())
