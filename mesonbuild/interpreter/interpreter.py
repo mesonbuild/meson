@@ -98,6 +98,7 @@ from . import primitives as P_OBJ
 
 from pathlib import Path
 from enum import Enum
+from difflib import get_close_matches
 import os
 import shutil
 import uuid
@@ -3564,7 +3565,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         except KeyError:
             if fallback is not None:
                 return self._holderify(fallback)
-        raise InterpreterException(f'Tried to get unknown variable "{varname}".')
+        ustr = f'Tried to get unknown variable "{varname}".'
+        close_matches = get_close_matches(varname, self.variables.keys())
+        if close_matches:
+            ustr += f' Did you mean "{close_matches[0]}"?'
+        raise InterpreterException(ustr)
 
     @typed_pos_args('is_variable', str)
     @noKwargs
@@ -3579,7 +3584,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         try:
             del self.variables[varname]
         except KeyError:
-            raise InterpreterException(f'Tried to unset unknown variable "{varname}".')
+            ustr = f'Tried to unset unknown variable "{varname}".'
+            close_matches = get_close_matches(varname, self.variables.keys())
+            if close_matches:
+                ustr += f' Did you mean "{close_matches[0]}"?'
+            raise InterpreterException(ustr)
 
     @staticmethod
     def machine_from_native_kwarg(kwargs: T.Dict[str, T.Any]) -> MachineChoice:
