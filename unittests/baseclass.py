@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 from unittest import TestCase, mock
+import itertools
 import os
+
+from mesonbuild.compilers.compilers import CFLAGS_MAPPING
 
 class BaseMesonTest(TestCase):
 
@@ -21,6 +24,12 @@ class BaseMesonTest(TestCase):
 
         os.environ['COLUMNS'] = '80'
         os.environ['PYTHONIOENCODING'] = 'utf8'
+
+        # Remove any CFlags, etc coming from an external environment so that we
+        # get what we expect
+        for flag in itertools.chain(['CPPFLAGS', 'LDFLAGS'], CFLAGS_MAPPING.values()):
+            if flag in os.environ:
+                del os.environ[flag]
 
     @classmethod
     def tearDownClass(cls) -> None:
