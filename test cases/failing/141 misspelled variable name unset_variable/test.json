@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/141 misspelled variable name unset_variable/meson.build:3:0: ERROR: Tried to unset unknown variable \"jello\". Did you mean \"hello\"?"
+    }
+  ]
+}
