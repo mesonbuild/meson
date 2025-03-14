@@ -31,7 +31,7 @@ from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..interpreterbase import stringifyUserArguments
-from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
+from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
 from ..optinterpreter import optname_regex
 
 from . import interpreterobjects as OBJ
@@ -627,7 +627,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                     mlog.debug(line)
 
             if required:
-                raise InvalidArguments(f'Module "{modname}" does not exist')
+                ustr = f'Module "{modname}" does not exist.'
+                from difflib import get_close_matches
+                from pkgutil import iter_modules
+                modnames = [mod.name for mod in iter_modules(modules_path) if not mod.name.startswith('_')]
+                close_matches = get_close_matches(modname, modnames)
+                if close_matches:
+                    ustr += f' Did you mean "{close_matches[0]}"?'
+                raise InvalidArguments(ustr)
             ext_module = NotFoundExtensionModule(real_modname)
         else:
             ext_module = module.initialize(self)
