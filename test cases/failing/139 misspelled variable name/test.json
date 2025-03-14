@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/139 misspelled variable name/meson.build:3:26: ERROR: Unknown variable name \"versoin\". Did you mean \"version\"?"
+    }
+  ]
+}

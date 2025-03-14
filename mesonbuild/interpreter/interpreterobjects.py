@@ -853,7 +853,12 @@ class SubprojectHolder(MesonInterpreterObject):
         except KeyError:
             if fallback is not None:
                 return self.held_object._holderify(fallback)
-            raise InvalidArguments(f'Requested variable "{varname}" not found.')
+            ustr = f'Requested variable "{varname}" not found.'
+            from difflib import get_close_matches
+            close_matches = get_close_matches(varname, self.held_object.variables.keys())
+            if close_matches:
+                ustr += f' Did you mean "{close_matches[0]}"?'
+            raise InvalidArguments(ustr)
 
     @noKwargs
     @typed_pos_args('subproject.get_variable', str, optargs=[object])
