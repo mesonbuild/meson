@@ -7,7 +7,7 @@ short-description: Simple project step by step explanation
 A Meson file that builds an executable looks like this.
 
 ```meson
-project('simple', 'c')
+project('simple', host_machine_languages : 'c')
 executable('myexe', 'source.c')
 ```
 
@@ -25,7 +25,7 @@ Variables are fully supported. The above code snippet could also have
 been declared like this.
 
 ```meson
-project('simple', 'c')
+project('simple', host_machine_languages : 'c')
 src = 'source.c'
 executable('myexe', src)
 ```
@@ -34,7 +34,7 @@ Most executables consist of more than one source file. The easiest way
 to deal with this is to put them in an array.
 
 ```meson
-project('simple', 'c')
+project('simple', host_machine_languages : 'c')
 src = ['source1.c', 'source2.c', 'source3.c']
 executable('myexe', src)
 ```
@@ -44,7 +44,7 @@ arguments to functions can only be passed using them. The above
 snippet could be rewritten like this.
 
 ```meson
-project('simple', 'c')
+project('simple', host_machine_languages : 'c')
 src = ['source1.c', 'source2.c', 'source3.c']
 executable('myexe', sources : src)
 ```
@@ -57,7 +57,7 @@ which represents the given build target. It can be passed on to other
 functions, like this.
 
 ```meson
-project('simple', 'c')
+project('simple', host_machine_languages : 'c')
 src = ['source1.c', 'source2.c', 'source3.c']
 exe = executable('myexe', src)
 test('simple test', exe)
