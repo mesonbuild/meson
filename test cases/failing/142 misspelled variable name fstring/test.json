@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/142 misspelled variable name fstring/meson.build:3:4: ERROR: Identifier \"jello\" does not name a variable. Did you mean \"hello\"?"
+    }
+  ]
+}
