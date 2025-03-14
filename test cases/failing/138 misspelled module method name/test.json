@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/138 misspelled module method name/meson.build:3:10: ERROR: Unknown method \"find_installlation\" in object. Did you mean \"find_installation\"?"
+    }
+  ]
+}
