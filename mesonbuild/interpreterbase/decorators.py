@@ -127,6 +127,14 @@ def disablerIfNotFound(f: TV_func) -> TV_func:
         return ret
     return T.cast('TV_func', wrapped)
 
+def kwargs_get_close_matches(invalid_kwargs: T.Set[str], valid_kwargs: T.Set[str]) -> T.List[str]:
+    with_close_matches = []
+    from difflib import get_close_matches
+    for invalid in sorted(invalid_kwargs):
+        close_matches = get_close_matches(invalid, valid_kwargs)
+        with_close_matches.append(f'"{invalid}" (did you mean "{close_matches[0]}"?)' if close_matches else f'"{invalid}"')
+    return with_close_matches
+
 def typed_operator(operator: MesonOperator,
                    types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[['_TV_FN_Operator'], '_TV_FN_Operator']:
     """Decorator that does type checking for operator calls.
@@ -551,7 +559,7 @@ def typed_kwargs(name: str, *types: KwargInfo, allow_unknown: bool = False) -> T
                 all_names = {t.name for t in types}
                 unknowns = set(kwargs).difference(all_names)
                 if unknowns:
-                    ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
+                    ustr = ', '.join(kwargs_get_close_matches(unknowns, all_names))
                     raise InvalidArguments(f'{name} got unknown keyword arguments {ustr}')
 
             for info in types:
