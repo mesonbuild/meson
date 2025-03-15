@@ -6,6 +6,7 @@ import copy
 import textwrap
 
 from pathlib import Path, PurePath
+from difflib import get_close_matches
 
 from .. import mesonlib
 from .. import options
@@ -853,7 +854,11 @@ class SubprojectHolder(MesonInterpreterObject):
         except KeyError:
             if fallback is not None:
                 return self.held_object._holderify(fallback)
-            raise InvalidArguments(f'Requested variable "{varname}" not found.')
+            ustr = f'Requested variable "{varname}" not found.'
+            close_matches = get_close_matches(varname, self.held_object.variables.keys())
+            if close_matches:
+                ustr += f' Did you mean "{close_matches[0]}"?'
+            raise InvalidArguments(ustr)
 
     @noKwargs
     @typed_pos_args('subproject.get_variable', str, optargs=[object])
@@ -866,7 +871,11 @@ class ModuleObjectHolder(ObjectHolder[ModuleObject]):
         modobj = self.held_object
         method = modobj.methods.get(method_name)
         if not method:
-            raise InvalidCode(f'Unknown method {method_name!r} in object.')
+            ustr = f'Unknown method "{method_name}" in object.'
+            close_matches = get_close_matches(method_name, modobj.methods.keys())
+            if close_matches:
+                ustr += f' Did you mean "{close_matches[0]}"?'
+            raise InvalidCode(ustr)
         if not getattr(method, 'no-args-flattening', False):
             args = flatten(args)
         if not getattr(method, 'no-second-level-holder-flattening', False):
