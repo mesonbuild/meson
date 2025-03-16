@@ -2173,7 +2173,8 @@ class StaticLibrary(BuildTarget):
                 rustc = self.compilers['rust']
                 d = dependencies.InternalDependency('undefined', [], [],
                                                     rustc.native_static_libs,
-                                                    [], [], [], [], [], {}, [], [], [])
+                                                    [], [], [], [], [], {}, [], [], [],
+                                                    '_rust_native_static_libs')
                 self.external_deps.append(d)
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries

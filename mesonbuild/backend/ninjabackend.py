@@ -3647,7 +3647,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
-                        commands.extend_preserving_lflags(linker.get_dependency_link_args(dep))
+                        link_args = linker.get_dependency_link_args(dep)
+                        # Ensure that native static libraries use Unix-style naming if necessary.
+                        # Depending on the target/linker, rustc --print native-static-libs may
+                        # output MSVC-style names. Converting these to Unix-style is safe, as the
+                        # list contains only native static libraries.
+                        if dep.name == '_rust_native_static_libs' and linker.get_argument_syntax() != 'msvc':
+                            from ..linkers.linkers import VisualStudioLikeLinker
+                            link_args = VisualStudioLikeLinker.native_args_to_unix(link_args)
+                        commands.extend_preserving_lflags(link_args)
 
         # Add link args specific to this BuildTarget type that must not be overridden by dependencies
         commands += self.get_target_type_link_args_post_dependencies(target, linker)
