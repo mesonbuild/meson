@@ -109,7 +109,7 @@ class RustCompiler(Compiler):
 
     def sanity_check(self, work_dir: str, environment: Environment) -> None:
         source_name = os.path.join(work_dir, 'sanity.rs')
-        output_name = os.path.join(work_dir, 'rusttest')
+        output_name = os.path.join(work_dir, 'rusttest.exe')
         cmdlist = self.exelist.copy()
 
         with open(source_name, 'w', encoding='utf-8') as ofile:
