@@ -618,11 +618,11 @@ class Rewriter:
         if num_changed > 0 and node not in self.modified_nodes:
             self.modified_nodes += [node]
 
-    def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
-        if node.ast_id and node.ast_id in self.interpreter.reverse_assignment:
-            ret = self.interpreter.reverse_assignment[node.ast_id]
-            assert isinstance(ret, AssignmentNode)
-            return ret
+    def find_assignment_node(self, node: BaseNode) -> T.Optional[AssignmentNode]:
+        for k, v in self.interpreter.all_assignment_nodes.items():
+            for ass in v:
+                if ass.value == node:
+                    return ass
         return None
 
     @RequiredKeys(rewriter_keys['target'])
