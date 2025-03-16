@@ -170,7 +170,7 @@ class RustCompiler(Compiler):
         # are always part of C/C++ linkers. Rustc probably should not print
         # them, pkg-config for example never specify them.
         # FIXME: https://github.com/rust-lang/rust/issues/55120
-        exclude = {'-lc', '-lgcc_s', '-lkernel32', '-ladvapi32'}
+        exclude = {'-lc', '-lgcc_s', '-lkernel32', '-ladvapi32', '/defaultlib:msvcrt'}
         self.native_static_libs = [i for i in match.group(1).split() if i not in exclude]
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
