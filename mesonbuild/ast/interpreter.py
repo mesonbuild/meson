@@ -23,6 +23,7 @@ from ..interpreterbase import (
     Disabler,
     default_resolve_key,
     UnknownValue,
+    InterpreterObject,
 )
 
 from ..interpreter import (
@@ -99,6 +100,56 @@ class IntrospectionBuildTarget(MesonInterpreterObject):
     kwargs: T.Dict[str, TYPE_var]
     node: FunctionNode
 
+def is_ignored_edge(src: T.Union[BaseNode, UnknownValue]) -> bool:
+    return (isinstance(src, FunctionNode) and src.func_name.value not in {'files', 'get_variable'}) or isinstance(src, MethodNode)
+
+class DataflowDAG:
+    src_to_tgts: T.DefaultDict[T.Union[BaseNode, UnknownValue], T.Set[T.Union[BaseNode, UnknownValue]]]
+    tgt_to_srcs: T.DefaultDict[T.Union[BaseNode, UnknownValue], T.Set[T.Union[BaseNode, UnknownValue]]]
+
+    def __init__(self) -> None:
+        self.src_to_tgts = defaultdict(set)
+        self.tgt_to_srcs = defaultdict(set)
+
+    def add_edge(self, source: T.Union[BaseNode, UnknownValue], target: T.Union[BaseNode, UnknownValue]) -> None:
+        self.src_to_tgts[source].add(target)
+        self.tgt_to_srcs[target].add(source)
+
+    # Returns all nodes in the DAG that are reachable from a node in `srcs`.
+    # In other words, A node `a` is part of the returned set exactly if data
+    # from `srcs` flows into `a`, directly or indirectly.
+    # Certain edges are ignored.
+    def reachable(self, srcs: T.Set[T.Union[BaseNode, UnknownValue]], reverse: bool) -> T.Set[T.Union[BaseNode, UnknownValue]]:
+        reachable = srcs.copy()
+        active = srcs.copy()
+        while active:
+            new: T.Set[T.Union[BaseNode, UnknownValue]] = set()
+            if reverse:
+                for tgt in active:
+                    new.update(src for src in self.tgt_to_srcs[tgt] if not is_ignored_edge(src))
+            else:
+                for src in active:
+                    if is_ignored_edge(src):
+                        continue
+                    new.update(tgt for tgt in self.src_to_tgts[src])
+            reachable.update(new)
+            active = new
+        return reachable
+
+    # Returns all paths from src to target.
+    # Certain edges are ignored.
+    def find_all_paths(self, src: T.Union[BaseNode, UnknownValue], target: T.Union[BaseNode, UnknownValue]) -> T.List[T.List[T.Union[BaseNode, UnknownValue]]]:
+        queue = [(src, [src])]
+        paths = []
+        while queue:
+            cur, path = queue.pop()
+            if cur == target:
+                paths.append(path)
+            if is_ignored_edge(cur):
+                continue
+            queue.extend((tgt, path + [tgt]) for tgt in self.src_to_tgts[cur])
+        return paths
+
 class AstInterpreter(InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: SubProject, subproject_dir: str, env: environment.Environment, visitors: T.Optional[T.List[AstVisitor]] = None):
         super().__init__(source_root, subdir, subproject, subproject_dir, env)
@@ -106,6 +157,18 @@ class AstInterpreter(InterpreterBase):
         self.nesting: T.List[int] = []
         self.cur_assignments: T.DefaultDict[str, T.List[T.Tuple[T.List[int], T.Union[BaseNode, UnknownValue]]]] = defaultdict(list)
         self.all_assignment_nodes: T.DefaultDict[str, T.List[AssignmentNode]] = defaultdict(list)
+        # dataflow_dag is an acyclic directed graph that contains an edge
+        # from one instance of `BaseNode` to another instance of `BaseNode` if
+        # data flows directly from one to the other. Example: If meson.build
+        # contains this:
+        # var = 'foo' + '123'
+        # executable(var, 'src.c')
+        # var = 'bar'
+        # dataflow_dag will contain an edge from the IdNode corresponding to
+        # 'var' in line 2 to the ArithmeticNode corresponding to 'foo' + '123'.
+        # This graph is crucial for e.g. node_to_runtime_value because we have
+        # to know that 'var' in line2 is 'foo123' and not 'bar'.
+        self.dataflow_dag = DataflowDAG()
         self.assign_vals: T.Dict[str, T.Any] = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
@@ -361,6 +424,8 @@ class AstInterpreter(InterpreterBase):
             self.cur_assignments[var_name] = [(nesting, v) for (nesting, v) in self.cur_assignments[var_name] if len(nesting) <= len(self.nesting)]
             if len(potential_values) > 1 or (len(potential_values) > 0 and oldval is None):
                 uv = UnknownValue()
+                for pv in potential_values:
+                    self.dataflow_dag.add_edge(pv, uv)
                 self.cur_assignments[var_name].append((self.nesting.copy(), uv))
 
     def get_cur_value(self, var_name: str, allow_none: bool = False) -> T.Union[BaseNode, UnknownValue, None]:
@@ -378,6 +443,144 @@ class AstInterpreter(InterpreterBase):
 
     def get_variable(self, varname: str) -> int:
         return 0
+
+    # The function `node_to_runtime_value` takes a node of the ast as an
+    # argument and tries to return the same thing that would be passed to e.g.
+    # `func_message` if you put `message(node)` in your `meson.build` file and
+    # run `meson setup`. If this is not possible, `UnknownValue()` is returned.
+    # There are 3 Reasons why this is sometimes impossible:
+    #     1. Because the meson rewriter is imperfect and has not implemented everything yet
+    #     2. Because the value is different on different machines, example:
+    #     ```meson
+    #     node = somedep.found()
+    #     message(node)
+    #     ```
+    #     will print `true` on some machines and `false` on others, so
+    #     `node_to_runtime_value` does not know whether to return `true` or
+    #     `false` and will return `UnknownValue()`.
+    #     3. Here:
+    #     ```meson
+    #     foreach x : [1, 2]
+    #         node = x
+    #         message(node)
+    #     endforeach
+    #     ```
+    #     `node_to_runtime_value` does not know whether to return `1` or `2` and
+    #     will return `UnknownValue()`.
+    #
+    # If you have something like
+    # ```
+    # node = [123, somedep.found()]
+    # ```
+    # `node_to_runtime_value` will return `[123, UnknownValue()]`.
+    def node_to_runtime_value(self, node: T.Union[UnknownValue, BaseNode, TYPE_var]) -> T.Any:
+        if isinstance(node, (mparser.StringNode, mparser.BooleanNode, mparser.NumberNode)):
+            return node.value
+        elif isinstance(node, mparser.StringNode):
+            if node.is_fstring:
+                return UnknownValue()
+            else:
+                return node.value
+        elif isinstance(node, list):
+            return [self.node_to_runtime_value(x) for x in node]
+        elif isinstance(node, ArrayNode):
+            return [self.node_to_runtime_value(x) for x in node.args.arguments]
+        elif isinstance(node, mparser.DictNode):
+            return {self.node_to_runtime_value(k): self.node_to_runtime_value(v) for k, v in node.args.kwargs.items()}
+        elif isinstance(node, IdNode):
+            assert len(self.dataflow_dag.tgt_to_srcs[node]) == 1
+            val = next(iter(self.dataflow_dag.tgt_to_srcs[node]))
+            return self.node_to_runtime_value(val)
+        elif isinstance(node, (MethodNode, FunctionNode)):
+            return UnknownValue()
+        elif isinstance(node, ArithmeticNode):
+            left = self.node_to_runtime_value(node.left)
+            right = self.node_to_runtime_value(node.right)
+            if isinstance(left, list) and isinstance(right, UnknownValue):
+                return left + [right]
+            if isinstance(right, list) and isinstance(left, UnknownValue):
+                return [left] + right
+            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
+                return UnknownValue()
+            if node.operation == 'add':
+                if isinstance(left, dict) and isinstance(right, dict):
+                    ret = left.copy()
+                    for k, v in right.items():
+                        ret[k] = v
+                    return ret
+                if isinstance(left, list):
+                    if not isinstance(right, list):
+                        right = [right]
+                    return left + right
+                return left + right
+            elif node.operation == 'sub':
+                return left - right
+            elif node.operation == 'mul':
+                return left * right
+            elif node.operation == 'div':
+                if isinstance(left, int) and isinstance(right, int):
+                    return left // right
+                elif isinstance(left, str) and isinstance(right, str):
+                    return os.path.join(left, right).replace('\\', '/')
+            elif node.operation == 'mod':
+                if isinstance(left, int) and isinstance(right, int):
+                    return left % right
+        elif isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionDependency, str, bool, int)):
+            return node
+        elif isinstance(node, mparser.IndexNode):
+            iobject = self.node_to_runtime_value(node.iobject)
+            index = self.node_to_runtime_value(node.index)
+            if isinstance(iobject, UnknownValue) or isinstance(index, UnknownValue):
+                return UnknownValue()
+            return iobject[index]
+        elif isinstance(node, mparser.ComparisonNode):
+            left = self.node_to_runtime_value(node.left)
+            right = self.node_to_runtime_value(node.right)
+            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
+                return UnknownValue()
+            if node.ctype == '==':
+                return left == right
+            elif node.ctype == '!=':
+                return left != right
+            elif node.ctype == 'in':
+                return left in right
+            elif node.ctype == 'notin':
+                return left not in right
+        elif isinstance(node, mparser.TernaryNode):
+            cond = self.node_to_runtime_value(node.condition)
+            if isinstance(cond, UnknownValue):
+                return UnknownValue()
+            if cond is True:
+                return self.node_to_runtime_value(node.trueblock)
+            if cond is False:
+                return self.node_to_runtime_value(node.falseblock)
+        elif isinstance(node, mparser.OrNode):
+            left = self.node_to_runtime_value(node.left)
+            right = self.node_to_runtime_value(node.right)
+            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
+                return UnknownValue()
+            return left or right
+        elif isinstance(node, mparser.AndNode):
+            left = self.node_to_runtime_value(node.left)
+            right = self.node_to_runtime_value(node.right)
+            if isinstance(left, UnknownValue) or isinstance(right, UnknownValue):
+                return UnknownValue()
+            return left and right
+        elif isinstance(node, mparser.UMinusNode):
+            val = self.node_to_runtime_value(node.value)
+            if isinstance(val, UnknownValue):
+                return val
+            if isinstance(val, (int, float)):
+                return -val
+        elif isinstance(node, mparser.NotNode):
+            val = self.node_to_runtime_value(node.value)
+            if isinstance(val, UnknownValue):
+                return val
+            if isinstance(val, bool):
+                return not val
+        elif isinstance(node, mparser.ParenthesizedNode):
+            return self.node_to_runtime_value(node.inner)
+        raise mesonlib.MesonBugException('Unhandled node type')
 
     def assignment(self, node: AssignmentNode) -> None:
         assert isinstance(node, AssignmentNode)
@@ -397,7 +600,17 @@ class AstInterpreter(InterpreterBase):
         self.cur_assignments[node.var_name.value].append((self.nesting.copy(), newval))
         self.all_assignment_nodes[node.var_name.value].append(node)
 
+        self.dataflow_dag.add_edge(lhs, newval)
+        self.dataflow_dag.add_edge(node.value, newval)
+
         self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
+
+    def func_get_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+        assert isinstance(node, FunctionNode)
+        var_name = args[0]
+        assert isinstance(var_name, str)
+        val = self.get_cur_value(var_name)
+        self.dataflow_dag.add_edge(val, node)
 
     def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
         def quick_resolve(n: BaseNode, loop_detect: T.Optional[T.List[str]] = None) -> T.Any:
@@ -511,3 +724,19 @@ class AstInterpreter(InterpreterBase):
 
     def evaluate_testcase(self, node: TestCaseClauseNode) -> Disabler | None:
         return Disabler(subproject=self.subproject)
+
+    def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[InterpreterObject]:
+        if hasattr(cur, 'args'):
+            for arg in cur.args.arguments:
+                self.dataflow_dag.add_edge(arg, cur)
+            for k, v in cur.args.kwargs.items():
+                self.dataflow_dag.add_edge(v, cur)
+        for attr in ['source_object', 'left', 'right', 'items', 'iobject', 'index', 'condition']:
+            if hasattr(cur, attr):
+                assert isinstance(getattr(cur, attr), mparser.BaseNode)
+                self.dataflow_dag.add_edge(getattr(cur, attr), cur)
+        if isinstance(cur, mparser.IdNode):
+            self.dataflow_dag.add_edge(self.get_cur_value(cur.value), cur)
+            return None
+        else:
+            return super().evaluate_statement(cur)
