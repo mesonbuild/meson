@@ -433,3 +433,24 @@ class RewriterTests(BasePlatformTests):
             }
         }
         self.assertDictEqual(out, expected)
+
+    # Asserts that AstInterpreter.dataflow_dag is what it should be
+    def test_dataflow_dag(self):
+        test_path = Path(self.rewrite_test_dir, '1 basic')
+        interpreter = IntrospectionInterpreter(test_path, '', 'ninja', visitors = [AstIDGenerator()])
+        interpreter.analyze()
+
+        def sortkey(node):
+            return (node.lineno, node.colno, node.end_lineno, node.end_colno)
+
+        def node_to_str(node):
+            return f"{node.__class__.__name__}({node.lineno}:{node.colno})"
+
+        dag_as_str = ""
+        for target in sorted(interpreter.dataflow_dag.tgt_to_srcs.keys(), key=sortkey):
+            dag_as_str += f"Data flowing to {node_to_str(target)}:\n"
+            for source in sorted(interpreter.dataflow_dag.tgt_to_srcs[target], key=sortkey):
+                dag_as_str += f"    {node_to_str(source)}\n"
+
+        expected = Path(test_path / "expected_dag.txt").read_text().strip()
+        self.assertEqual(dag_as_str.strip(), expected)
