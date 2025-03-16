@@ -105,8 +105,8 @@ class AstInterpreter(InterpreterBase):
         self.visitors = visitors if visitors is not None else []
         self.nesting: T.List[int] = []
         self.cur_assignments: T.DefaultDict[str, T.List[T.Tuple[T.List[int], T.Union[BaseNode, UnknownValue]]]] = defaultdict(list)
+        self.all_assignment_nodes: T.DefaultDict[str, T.List[AssignmentNode]] = defaultdict(list)
         self.assign_vals: T.Dict[str, T.Any] = {}
-        self.reverse_assignment: T.Dict[str, BaseNode] = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -392,8 +392,7 @@ class AstInterpreter(InterpreterBase):
     def assignment(self, node: AssignmentNode) -> None:
         assert isinstance(node, AssignmentNode)
         self.cur_assignments[node.var_name.value].append((self.nesting.copy(), node.value))
-        if node.value.ast_id:
-            self.reverse_assignment[node.value.ast_id] = node
+        self.all_assignment_nodes[node.var_name.value].append(node)
         self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
@@ -406,9 +405,8 @@ class AstInterpreter(InterpreterBase):
         else:
             newval = mparser.ArithmeticNode(operation='add', left=lhs, operator=_symbol('+'), right=node.value)
         self.cur_assignments[node.var_name.value].append((self.nesting.copy(), newval))
+        self.all_assignment_nodes[node.var_name.value].append(node)
 
-        if node.value.ast_id:
-            self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
 
     def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
