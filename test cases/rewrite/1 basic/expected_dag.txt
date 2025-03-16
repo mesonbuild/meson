@@ -1,0 +1,83 @@
+Data flowing to FunctionNode(1:0):
+    StringNode(1:8)
+    StringNode(1:23)
+Data flowing to ArrayNode(3:7):
+    StringNode(3:8)
+    StringNode(3:20)
+Data flowing to FunctionNode(4:7):
+    ArrayNode(4:13)
+Data flowing to ArrayNode(4:13):
+    StringNode(4:14)
+    StringNode(4:27)
+Data flowing to IdNode(5:7):
+    ArrayNode(3:7)
+Data flowing to ArrayNode(6:7):
+    IdNode(6:8)
+Data flowing to IdNode(6:8):
+    IdNode(5:7)
+Data flowing to FunctionNode(10:7):
+    StringNode(10:18)
+    ArithmeticNode(10:34)
+Data flowing to ArithmeticNode(10:34):
+    IdNode(10:34)
+    IdNode(10:41)
+Data flowing to IdNode(10:34):
+    ArrayNode(3:7)
+Data flowing to IdNode(10:41):
+    FunctionNode(4:7)
+Data flowing to FunctionNode(11:7):
+    StringNode(11:18)
+    IdNode(11:34)
+Data flowing to IdNode(11:34):
+    ArrayNode(3:7)
+Data flowing to FunctionNode(12:7):
+    StringNode(12:18)
+    ArrayNode(12:34)
+Data flowing to ArrayNode(12:34):
+    IdNode(12:35)
+Data flowing to IdNode(12:35):
+    FunctionNode(4:7)
+Data flowing to FunctionNode(13:7):
+    StringNode(13:18)
+    ArrayNode(13:34)
+Data flowing to ArrayNode(13:34):
+    StringNode(13:35)
+    StringNode(13:47)
+Data flowing to FunctionNode(14:7):
+    StringNode(14:18)
+    ArrayNode(14:34)
+Data flowing to ArrayNode(14:34):
+    StringNode(14:35)
+    ArrayNode(14:47)
+Data flowing to ArrayNode(14:47):
+    StringNode(14:48)
+Data flowing to FunctionNode(15:7):
+    StringNode(15:18)
+    ArrayNode(15:34)
+Data flowing to ArrayNode(15:34):
+    IdNode(15:35)
+    StringNode(15:41)
+Data flowing to IdNode(15:35):
+    FunctionNode(4:7)
+Data flowing to FunctionNode(16:7):
+    StringNode(16:18)
+    StringNode(16:34)
+    StringNode(16:46)
+Data flowing to FunctionNode(17:7):
+    StringNode(17:18)
+    StringNode(17:34)
+    IdNode(17:47)
+    StringNode(17:53)
+Data flowing to IdNode(17:47):
+    ArrayNode(3:7)
+Data flowing to FunctionNode(18:7):
+    StringNode(18:18)
+    IdNode(18:34)
+Data flowing to IdNode(18:34):
+    IdNode(5:7)
+Data flowing to FunctionNode(19:0):
+    StringNode(19:11)
+    IdNode(19:27)
+Data flowing to IdNode(19:27):
+    ArrayNode(6:7)
+
