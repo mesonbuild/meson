@@ -317,12 +317,12 @@ class CLikeCompiler(Compiler):
             cmdlist = [binary_name]
         mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))
         try:
-            # fortran code writes to stdout
-            pe = subprocess.run(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            mlog.debug('Sanity check run command line: ', ' '.join(cmdlist))
+            pe, _, _ = Popen_safe_logged(cmdlist, 'Sanity check', cwd=work_dir)
+            if pe.returncode != 0:
+                raise mesonlib.EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
         except Exception as e:
             raise mesonlib.EnvironmentException(f'Could not invoke sanity test executable: {e!s}.')
-        if pe.returncode != 0:
-            raise mesonlib.EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'int main(void) { int class=0; return class; }\n'
