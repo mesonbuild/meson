@@ -579,24 +579,13 @@ class CudaCompiler(Compiler):
         if self.is_cross:
             return
         cmdlist = self.exelist + ['--run', f'"{binary_name}"']
-        mlog.debug('Sanity check run command line: ', ' '.join(cmdlist))
-        pe, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
-        mlog.debug('Sanity check run stdout: ')
-        mlog.debug(stdo)
-        mlog.debug('-----\nSanity check run stderr:')
-        mlog.debug(stde)
-        mlog.debug('-----')
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
+        stdo, stde = self.run_sanity_check(env, cmdlist, work_dir, use_exe_wrapper_for_cross=False)
 
         # Interpret the result of the sanity test.
         # As mentioned above, it is not only a sanity test but also a GPU
         # architecture detection test.
         if stde == '':
             self.detected_cc = stdo
-        else:
-            mlog.debug('cudaGetDeviceCount() returned ' + stde)
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
