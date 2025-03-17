@@ -200,21 +200,19 @@ class AstInterpreter(InterpreterBase):
     def method_call(self, node: BaseNode) -> bool:
         return True
 
-    def evaluate_fstring(self, node: mparser.StringNode) -> str:
-        assert isinstance(node, mparser.StringNode)
-        return node.value
+    def evaluate_fstring(self, node: mparser.StringNode) -> None:
+        pass
 
-    def evaluate_arraystatement(self, cur: mparser.ArrayNode) -> TYPE_var:
-        return self.reduce_arguments(cur.args)[0]
+    def evaluate_arraystatement(self, cur: mparser.ArrayNode) -> None:
+        for arg in cur.args.arguments:
+            self.evaluate_statement(arg)
 
-    def evaluate_arithmeticstatement(self, cur: ArithmeticNode) -> int:
+    def evaluate_arithmeticstatement(self, cur: ArithmeticNode) -> None:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
-        return 0
 
-    def evaluate_uminusstatement(self, cur: UMinusNode) -> int:
+    def evaluate_uminusstatement(self, cur: UMinusNode) -> None:
         self.evaluate_statement(cur.value)
-        return 0
 
     def evaluate_ternary(self, node: TernaryNode) -> None:
         assert isinstance(node, TernaryNode)
@@ -222,22 +220,14 @@ class AstInterpreter(InterpreterBase):
         self.evaluate_statement(node.trueblock)
         self.evaluate_statement(node.falseblock)
 
-    def evaluate_dictstatement(self, node: mparser.DictNode) -> TYPE_nkwargs:
-        def resolve_key(node: mparser.BaseNode) -> str:
-            if isinstance(node, mparser.StringNode):
-                return node.value
-            return '__AST_UNKNOWN__'
-        arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)
-        assert not arguments
-        self.argument_depth += 1
-        for key, value in kwargs.items():
-            if isinstance(key, BaseNode):
-                self.evaluate_statement(key)
-        self.argument_depth -= 1
-        return {}
+    def evaluate_dictstatement(self, node: mparser.DictNode) -> None:
+        for k, v in node.args.kwargs.items():
+            self.evaluate_statement(k)
+            self.evaluate_statement(v)
 
-    def evaluate_indexing(self, node: IndexNode) -> int:
-        return 0
+    def evaluate_indexing(self, node: IndexNode) -> None:
+        self.evaluate_statement(node.iobject)
+        self.evaluate_statement(node.index)
 
     def reduce_arguments(
                 self,
@@ -245,6 +235,10 @@ class AstInterpreter(InterpreterBase):
                 key_resolver: T.Callable[[mparser.BaseNode], str] = default_resolve_key,
                 duplicate_key_error: T.Optional[str] = None,
             ) -> T.Tuple[T.List[TYPE_var], TYPE_nkwargs]:
+        for arg in args.arguments:
+            self.evaluate_statement(arg)
+        for value in args.kwargs.values():
+            self.evaluate_statement(value)
         if isinstance(args, ArgumentNode):
             kwargs: T.Dict[str, TYPE_var] = {}
             for key, val in args.kwargs.items():
@@ -255,24 +249,20 @@ class AstInterpreter(InterpreterBase):
         else:
             return self.flatten_args(args), {}
 
-    def evaluate_comparison(self, node: ComparisonNode) -> bool:
+    def evaluate_comparison(self, node: ComparisonNode) -> None:
         self.evaluate_statement(node.left)
         self.evaluate_statement(node.right)
-        return False
 
-    def evaluate_andstatement(self, cur: AndNode) -> bool:
+    def evaluate_andstatement(self, cur: AndNode) -> None:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
-        return False
 
-    def evaluate_orstatement(self, cur: OrNode) -> bool:
+    def evaluate_orstatement(self, cur: OrNode) -> None:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
-        return False
 
-    def evaluate_notstatement(self, cur: NotNode) -> bool:
+    def evaluate_notstatement(self, cur: NotNode) -> None:
         self.evaluate_statement(cur.value)
-        return False
 
     def find_potential_writes(self, node: BaseNode) -> T.Set[str]:
         if isinstance(node, mparser.ForeachClauseNode):
