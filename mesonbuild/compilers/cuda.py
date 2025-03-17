@@ -577,12 +577,8 @@ class CudaCompiler(Compiler):
 
         # Run sanity check (if possible)
         if self.is_cross:
-            if not env.has_exe_wrapper():
-                return
-            else:
-                cmdlist = env.exe_wrapper.get_command() + [binary_name]
-        else:
-            cmdlist = self.exelist + ['--run', '"' + binary_name + '"']
+            return
+        cmdlist = self.exelist + ['--run', f'"{binary_name}"']
         mlog.debug('Sanity check run command line: ', ' '.join(cmdlist))
         pe, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
         mlog.debug('Sanity check run stdout: ')
