@@ -11,7 +11,6 @@ import os
 import typing as T
 
 from .. import compilers, environment, mesonlib, options
-from .. import coredata as cdata
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject, UnknownValue
@@ -64,7 +63,6 @@ class IntrospectionInterpreter(AstInterpreter):
 
         self.cross_file = cross_file
         self.backend = backend
-        self.default_options = {OptionKey('backend'): self.backend}
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[IntrospectionBuildTarget] = []
         self.dependencies: T.List[IntrospectionDependency] = []
@@ -117,13 +115,6 @@ class IntrospectionInterpreter(AstInterpreter):
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers, 'license': proj_license, 'license_files': proj_license_files}
 
         self._load_option_file()
-
-        def_opts = self.flatten_args(kwargs.get('default_options', []))
-        _project_default_options = mesonlib.stringlistify(def_opts)
-        string_dict = cdata.create_options_dict(_project_default_options, self.subproject)
-        self.project_default_options = {OptionKey(s): v for s, v in string_dict.items()}
-        self.default_options.update(self.project_default_options)
-        self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
