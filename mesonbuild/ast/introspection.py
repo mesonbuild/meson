@@ -21,7 +21,6 @@ from .interpreter import AstInterpreter, IntrospectionBuildTarget, Introspection
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
     from ..interpreterbase import TYPE_var
-    from ..options import OptionDict
     from .visitor import AstVisitor
 
 
@@ -63,7 +62,6 @@ class IntrospectionInterpreter(AstInterpreter):
 
         self.cross_file = cross_file
         self.backend = backend
-        self.default_options = {OptionKey('backend'): self.backend}
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[IntrospectionBuildTarget] = []
         self.dependencies: T.List[IntrospectionDependency] = []
@@ -126,24 +124,6 @@ class IntrospectionInterpreter(AstInterpreter):
         self.project_data = {'descriptive_name': proj_name, 'version': proj_vers, 'license': proj_license, 'license_files': proj_license_files}
 
         self._load_option_file()
-
-        def_opts = self.flatten_args(kwargs.get('default_options', []))
-        _project_default_options = mesonlib.stringlistify(def_opts)
-        self.project_default_options = create_options_dict(_project_default_options, self.subproject)
-        self.default_options.update(self.project_default_options)
-        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
-            if self.subproject == '':
-                self.coredata.optstore.initialize_from_top_level_project_call(
-                    T.cast('OptionDict', self.project_default_options),
-                    {},  # TODO: not handled by this Interpreter.
-                    self.environment.options)
-            else:
-                self.coredata.optstore.initialize_from_subproject_call(
-                    self.subproject,
-                    {},  # TODO: this isn't handled by the introspection interpreter...
-                    T.cast('OptionDict', self.project_default_options),
-                    {})  # TODO: this isn't handled by the introspection interpreter...
-                self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
             spdirname = kwargs['subproject_dir']
