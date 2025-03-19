@@ -40,19 +40,6 @@ your build dir. After that you just run the build command. Meson will
 autodetect changes in your source tree and regenerate all files
 needed to build the project.
 
-The setup command is the default operation. If no actual command is
-specified, Meson will assume you meant to do a setup. That means
-that you can set up a build directory without the setup command
-like this:
-
-.B meson [
-.I options
-.B ] [
-.I build directory
-.B ] [
-.I source directory
-.B ]
-
 .SS "options:"
 .TP
 \fB\-\-version\fR
@@ -657,6 +644,13 @@ try to read configuration from .editorconfig
 .TP
 \fB-o OUTPUT, --output OUTPUT\fR
 output file (implies having exactly one input)
+
+.SH When no command is specified
+
+If you run Meson without a subcommand, it will assume you meant
+\fBmeson setup\fR. However, this syntax is deprecated, and Meson
+will print a warning message if it is used. You should always use
+\fBmeson setup\fR explicitly, instead of relying on the default.
 
 .SH EXIT STATUS
 
