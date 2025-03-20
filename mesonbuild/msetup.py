@@ -11,7 +11,7 @@ import typing as T
 
 from . import build, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .mesonlib import MesonException
-from .options import OptionKey
+from .options import COMPILER_OPTIONS, OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -189,15 +189,9 @@ class MesonApp:
             return self._generate(env, capture, vslite_ctx)
 
     def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Any, all_subprojects: T.Any) -> None:
-        from mesonbuild.compilers import BASE_OPTIONS
-        pending = coredata.optstore.pending_project_options
+        pending = coredata.optstore.pending_options
         errlist: T.List[str] = []
         for opt in pending:
-            # Due to backwards compatibility setting build options in non-cross
-            # builds is permitted and is a no-op. This should be made
-            # a hard error.
-            if not coredata.is_cross_build() and opt.is_for_build():
-                continue
             # It is not an error to set wrong option for unknown subprojects or
             # language because we don't have control on which one will be selected.
             if opt.subproject and opt.subproject not in all_subprojects:
@@ -205,7 +199,7 @@ class MesonApp:
             if coredata.optstore.is_compiler_option(opt):
                 continue
             if (coredata.optstore.is_base_option(opt) and
-                    opt.evolve(subproject=None, machine=mesonlib.MachineChoice.HOST) in BASE_OPTIONS):
+                    opt.evolve(subproject=None, machine=mesonlib.MachineChoice.HOST) in COMPILER_OPTIONS):
                 continue
             keystr = str(opt)
             if keystr in cmd_line_options:
