@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2022-2023 Intel Corporation
+# Copyright © 2022-2025 Intel Corporation
 
 from __future__ import annotations
 import unittest
@@ -12,6 +12,8 @@ from mesonbuild.cargo import builder, cfg, load_wraps
 from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.version import convert
 
+# These tests do not need the MesonBaseClass because they don't invoke any Meson
+# environment, they're just testing parsers and convertors
 
 class CargoVersionTest(unittest.TestCase):
 
