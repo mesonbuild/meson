@@ -456,7 +456,7 @@ class Rewriter:
             node = self.interpreter.get_cur_value(dependency)
             if isinstance(node, FunctionNode):
                 if node.func_name.value == 'dependency':
-                    name = self.interpreter.flatten_args(node.args)[0]
+                    name = self.interpreter.node_to_runtime_value(node.args.arguments[0])
                     assert isinstance(name, str)
                     dep = check_list(name)
 
