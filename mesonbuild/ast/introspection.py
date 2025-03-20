@@ -204,18 +204,16 @@ class IntrospectionInterpreter(AstInterpreter):
         if not args:
             return
         name = args[0]
-        assert isinstance(name, str)
+        assert isinstance(name, (str, UnknownValue))
         has_fallback = 'fallback' in kwargs
         required = kwargs.get('required', True)
         version = kwargs.get('version', [])
-        if not isinstance(version, list):
-            version = [version]
-        assert all(isinstance(el, str) for el in version)
-        version = T.cast(T.List[str], version)
-        if isinstance(required, ElementaryNode):
-            required = required.value
-        if not isinstance(required, bool):
-            required = False
+        if not isinstance(version, UnknownValue):
+            if not isinstance(version, list):
+                version = [version]
+            assert all(isinstance(el, str) for el in version)
+            version = T.cast(T.List[str], version)
+        assert isinstance(required, (bool, UnknownValue))
         newdep = IntrospectionDependency(
             name=name,
             required=required,
@@ -225,11 +223,11 @@ class IntrospectionInterpreter(AstInterpreter):
             node=node)
         self.dependencies += [newdep]
 
-    def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> IntrospectionBuildTarget:
+    def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         assert isinstance(node, FunctionNode)
         args = self.flatten_args(args)
         if not args or not isinstance(args[0], str):
-            return None
+            return UnknownValue()
         name = args[0]
         srcqueue: T.List[BaseNode] = [node]
         extra_queue = []
@@ -309,7 +307,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.targets += [new_target]
         return new_target
 
-    def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         default_library = self.coredata.optstore.get_value_for(OptionKey('default_library'))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
@@ -319,28 +317,28 @@ class IntrospectionInterpreter(AstInterpreter):
             return self.build_target(node, args, kwargs, SharedLibrary)
         return None
 
-    def func_executable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def func_executable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         return self.build_target(node, args, kwargs, Executable)
 
-    def func_static_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def func_static_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         return self.build_target(node, args, kwargs, StaticLibrary)
 
-    def func_shared_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def func_shared_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         return self.build_target(node, args, kwargs, SharedLibrary)
 
-    def func_both_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def func_both_lib(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         return self.build_target(node, args, kwargs, SharedLibrary)
 
-    def func_shared_module(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def func_shared_module(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         return self.build_target(node, args, kwargs, SharedModule)
 
-    def func_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def func_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         return self.build_library(node, args, kwargs)
 
-    def func_jar(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def func_jar(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         return self.build_target(node, args, kwargs, Jar)
 
-    def func_build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> IntrospectionBuildTarget:
+    def func_build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         if 'target_type' not in kwargs:
             return None
         target_type = kwargs.pop('target_type')
@@ -392,7 +390,7 @@ class IntrospectionInterpreter(AstInterpreter):
         flattened_kwargs = {}
         for key, val in kwargs.items():
             if isinstance(val, BaseNode):
-                resolved = self.resolve_node(val, include_unknown_args)
+                resolved = self.node_to_runtime_value(val)
                 if resolved is not None:
                     flattened_kwargs[key] = resolved
             elif isinstance(val, (str, bool, int, float)) or include_unknown_args:

@@ -24,7 +24,7 @@ from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionL
 from .backend import backends
 from .dependencies import Dependency
 from . import environment
-from .interpreterbase import ObjectHolder
+from .interpreterbase import ObjectHolder, UnknownValue
 from .options import OptionKey
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
 
@@ -380,8 +380,8 @@ def list_compilers(coredata: cdata.CoreData) -> T.Dict[str, T.Dict[str, T.Dict[s
             }
     return compilers
 
-def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool, T.List[str]]]]:
-    result: T.List[T.Dict[str, T.Union[str, bool, T.List[str]]]] = []
+def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool, T.List[str], UnknownValue]]]:
+    result: T.List[T.Dict[str, T.Union[str, bool, T.List[str], UnknownValue]]] = []
     for i in intr.dependencies:
         result += [{
             'name': i.name,
