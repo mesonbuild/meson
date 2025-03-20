@@ -1354,9 +1354,9 @@ class Backend:
         d.data.append(InstallDataBase(ifilename, ofilename, out_name, None, '',
                                       tag='devel', data_type='depmf'))
         for m in self.build.dep_manifest.values():
-            for ifilename, name in m.license_files:
-                ofilename = os.path.join(odirname, name.relative_name())
-                out_name = os.path.join(out_dir, name.relative_name())
+            for ifilename, name in m.license_mapping():
+                ofilename = os.path.join(odirname, name)
+                out_name = os.path.join(out_dir, name)
                 d.data.append(InstallDataBase(ifilename, ofilename, out_name, None,
                                               m.subproject, tag='devel', data_type='depmf'))
 

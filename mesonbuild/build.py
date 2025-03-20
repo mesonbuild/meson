@@ -223,11 +223,18 @@ class DepManifest:
     license_files: T.List[T.Tuple[str, File]]
     subproject: str
 
+    def license_mapping(self) -> T.List[T.Tuple[str, str]]:
+        ret = []
+        for ifilename, name in self.license_files:
+            fname = os.path.join(*(x for x in pathlib.PurePath(os.path.normpath(name.fname)).parts if x != '..'))
+            ret.append((ifilename, os.path.join(name.subdir, fname)))
+        return ret
+
     def to_json(self) -> T.Dict[str, T.Union[str, T.List[str]]]:
         return {
             'version': self.version,
             'license': self.license,
-            'license_files': [l[1].relative_name() for l in self.license_files],
+            'license_files': [l[1] for l in self.license_mapping()],
         }
 
 
