@@ -40,7 +40,6 @@ from ..mparser import (
     ArrayNode,
     AssignmentNode,
     BaseNode,
-    ElementaryNode,
     EmptyNode,
     IdNode,
     MethodNode,
@@ -76,9 +75,9 @@ def _symbol(val: str) -> SymbolNode:
 # `IntrospectionDependency` is to the `IntrospectionInterpreter` what `Dependency` is to the normal `Interpreter`.
 @dataclass
 class IntrospectionDependency(MesonInterpreterObject):
-    name: str
-    required: T.Union[bool]
-    version: T.List[str]
+    name: T.Union[str, UnknownValue]
+    required: T.Union[bool, UnknownValue]
+    version: T.Union[T.List[str], UnknownValue]
     has_fallback: bool
     conditional: bool
     node: FunctionNode
@@ -612,96 +611,7 @@ class AstInterpreter(InterpreterBase):
         val = self.get_cur_value(var_name)
         self.dataflow_dag.add_edge(val, node)
 
-    def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
-        def quick_resolve(n: BaseNode, loop_detect: T.Optional[T.List[str]] = None) -> T.Any:
-            if loop_detect is None:
-                loop_detect = []
-            if isinstance(n, IdNode):
-                assert isinstance(n.value, str)
-                if n.value in loop_detect or n.value not in self.cur_assignments:
-                    return []
-                return quick_resolve(self.get_cur_value(n.value), loop_detect = loop_detect + [n.value])
-            elif isinstance(n, ElementaryNode):
-                return n.value
-            else:
-                return n
-
-        if id_loop_detect is None:
-            id_loop_detect = []
-        result = None
-
-        if not isinstance(node, BaseNode):
-            return None
-
-        assert node.ast_id
-        if node.ast_id in id_loop_detect:
-            return None # Loop detected
-        id_loop_detect += [node.ast_id]
-
-        # Try to evaluate the value of the node
-        if isinstance(node, IdNode):
-            result = quick_resolve(node)
-
-        elif isinstance(node, ElementaryNode):
-            result = node.value
-
-        elif isinstance(node, NotNode):
-            result = self.resolve_node(node.value, include_unknown_args, id_loop_detect)
-            if isinstance(result, bool):
-                result = not result
-
-        elif isinstance(node, ArrayNode):
-            result = node.args.arguments.copy()
-
-        elif isinstance(node, ArgumentNode):
-            result = node.arguments.copy()
-
-        elif isinstance(node, ArithmeticNode):
-            if node.operation != 'add':
-                return None # Only handle string and array concats
-            l = self.resolve_node(node.left, include_unknown_args, id_loop_detect)
-            r = self.resolve_node(node.right, include_unknown_args, id_loop_detect)
-            if isinstance(l, str) and isinstance(r, str):
-                result = l + r # String concatenation detected
-            else:
-                result = self.flatten_args(l, include_unknown_args, id_loop_detect) + self.flatten_args(r, include_unknown_args, id_loop_detect)
-
-        elif isinstance(node, MethodNode):
-            src = quick_resolve(node.source_object)
-            margs = self.flatten_args(node.args.arguments, include_unknown_args, id_loop_detect)
-            mkwargs: T.Dict[str, TYPE_var] = {}
-            method_name = node.name.value
-            try:
-                if isinstance(src, str):
-                    result = StringHolder(src, T.cast('Interpreter', self)).method_call(method_name, margs, mkwargs)
-                elif isinstance(src, bool):
-                    result = BooleanHolder(src, T.cast('Interpreter', self)).method_call(method_name, margs, mkwargs)
-                elif isinstance(src, int):
-                    result = IntegerHolder(src, T.cast('Interpreter', self)).method_call(method_name, margs, mkwargs)
-                elif isinstance(src, list):
-                    result = ArrayHolder(src, T.cast('Interpreter', self)).method_call(method_name, margs, mkwargs)
-                elif isinstance(src, dict):
-                    result = DictHolder(src, T.cast('Interpreter', self)).method_call(method_name, margs, mkwargs)
-            except mesonlib.MesonException:
-                return None
-
-        # Ensure that the result is fully resolved (no more nodes)
-        if isinstance(result, BaseNode):
-            result = self.resolve_node(result, include_unknown_args, id_loop_detect)
-        elif isinstance(result, list):
-            new_res: T.List[TYPE_var] = []
-            for i in result:
-                if isinstance(i, BaseNode):
-                    resolved = self.resolve_node(i, include_unknown_args, id_loop_detect)
-                    if resolved is not None:
-                        new_res += self.flatten_args(resolved, include_unknown_args, id_loop_detect)
-                else:
-                    new_res += [i]
-            result = new_res
-
-        return result
-
-    def flatten_args(self, args_raw: T.Union[TYPE_nvar, T.Sequence[TYPE_nvar]], include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[TYPE_var]:
+    def flatten_args(self, args_raw: T.Union[TYPE_nvar, T.Sequence[TYPE_nvar]], include_unknown_args: bool = False) -> T.List[TYPE_var]:
         # Make sure we are always dealing with lists
         if isinstance(args_raw, list):
             args = args_raw
@@ -713,13 +623,15 @@ class AstInterpreter(InterpreterBase):
         # Resolve the contents of args
         for i in args:
             if isinstance(i, BaseNode):
-                resolved = self.resolve_node(i, include_unknown_args, id_loop_detect)
+                resolved = self.node_to_runtime_value(i)
                 if resolved is not None:
                     if not isinstance(resolved, list):
                         resolved = [resolved]
                     flattened_args += resolved
-            elif isinstance(i, (str, bool, int, float)) or include_unknown_args:
+            elif isinstance(i, (str, bool, int, float, UnknownValue)) or include_unknown_args:
                 flattened_args += [i]
+            else:
+                raise NotImplementedError
         return flattened_args
 
     def evaluate_testcase(self, node: TestCaseClauseNode) -> Disabler | None:
