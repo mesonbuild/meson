@@ -29,7 +29,7 @@ from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
     ExecutableSerialisation, EnvironmentException,
     classify_unity_sources, get_compiler_for_source,
-    is_parent_path,
+    is_parent_path, get_rsp_threshold,
 )
 from ..options import OptionKey
 
@@ -533,6 +533,7 @@ class Backend:
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
+            can_use_rsp_file: bool = False,
             tag: T.Optional[str] = None,
             verbose: bool = False,
             installdir_map: T.Optional[T.Dict[str, str]] = None) -> 'ExecutableSerialisation':
@@ -594,6 +595,21 @@ class Backend:
             exe_wrapper = None
 
         workdir = workdir or self.environment.get_build_dir()
+
+        # Must include separators as well
+        needs_rsp_file = can_use_rsp_file and sum(len(i) + 1 for i in cmd_args) >= get_rsp_threshold()
+
+        if needs_rsp_file:
+            hasher = hashlib.sha1()
+            args = ' '.join(mesonlib.quote_arg(arg) for arg in cmd_args)
+            hasher.update(args.encode(encoding='utf-8', errors='ignore'))
+            digest = hasher.hexdigest()
+            scratch_file = f'meson_rsp_{digest}.rsp'
+            rsp_file = os.path.join(self.environment.get_scratch_dir(), scratch_file)
+            with open(rsp_file, 'w', encoding='utf-8', newline='\n') as f:
+                f.write(args)
+                cmd_args = [f'@{rsp_file}']
+
         return ExecutableSerialisation(exe_cmd + cmd_args, env,
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag, verbose, installdir_map)
@@ -606,6 +622,7 @@ class Backend:
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
                              env: T.Optional[mesonlib.EnvironmentVariables] = None,
+                             can_use_rsp_file: bool = False,
                              verbose: bool = False) -> T.Tuple[T.List[str], str]:
         '''
         Serialize an executable for running with a generator or a custom target
@@ -613,7 +630,7 @@ class Backend:
         cmd: T.List[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
-        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, verbose=verbose)
+        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, verbose=verbose)
         reasons: T.List[str] = []
         if es.extra_paths:
             reasons.append('to set PATH')
@@ -652,6 +669,9 @@ class Backend:
             for k, v in env.get_env({}).items():
                 envlist.append(f'{k}={v}')
             return ['env'] + envlist + es.cmd_args, ', '.join(reasons)
+
+        if any(a.startswith('@') for a in es.cmd_args):
+            reasons.append('because command is too long')
 
         if not force_serialize:
             if not capture and not feed:
