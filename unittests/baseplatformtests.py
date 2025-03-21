@@ -125,18 +125,6 @@ class BasePlatformTests(TestCase):
         newdir = os.path.realpath(newdir)
         self.change_builddir(newdir)
 
-    def new_builddir_in_tempdir(self):
-        # Can't keep the builddir inside the source tree for the umask tests:
-        # https://github.com/mesonbuild/meson/pull/5546#issuecomment-509666523
-        # And we can't do this for all tests because it causes the path to be
-        # a short-path which breaks other tests:
-        # https://github.com/mesonbuild/meson/pull/9497
-        newdir = tempfile.mkdtemp()
-        # In case the directory is inside a symlinked directory, find the real
-        # path otherwise we might not find the srcdir from inside the builddir.
-        newdir = os.path.realpath(newdir)
-        self.change_builddir(newdir)
-
     def _open_meson_log(self) -> io.TextIOWrapper:
         log = os.path.join(self.logdir, 'meson-log.txt')
         return open(log, encoding='utf-8')
