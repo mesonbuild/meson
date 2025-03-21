@@ -1991,6 +1991,7 @@ class GnomeModule(ExtensionModule):
             extra_depends=depends,
             # https://github.com/mesonbuild/meson/issues/973
             absolute_paths=True,
+            rspable=mesonlib.is_windows() or mesonlib.is_cygwin(),
             description='Generating GObject enum file {}',
         )
 

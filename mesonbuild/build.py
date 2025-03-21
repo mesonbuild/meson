@@ -2687,6 +2687,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
                  install_dir: T.Optional[T.List[T.Union[str, Literal[False]]]] = None,
                  install_mode: T.Optional[FileMode] = None,
                  install_tag: T.Optional[T.List[T.Optional[str]]] = None,
+                 rspable: bool = False,
                  absolute_paths: bool = False,
                  backend: T.Optional['Backend'] = None,
                  description: str = 'Generating {} with a custom command',
@@ -2718,6 +2719,9 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
 
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
+
+        # Whether to enable using response files for the underlying tool
+        self.rspable = rspable
 
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return None, None
