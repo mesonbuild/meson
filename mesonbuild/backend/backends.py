@@ -1592,7 +1592,7 @@ class Backend:
 
     def eval_custom_target_command(
             self, target: build.CustomTarget, absolute_outputs: bool = False) -> \
-            T.Tuple[T.List[str], T.List[str], T.List[str]]:
+            T.Tuple[T.List[str], T.List[str], T.List[str | programs.ExternalProgram]]:
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
@@ -1641,6 +1641,9 @@ class Backend:
                     if not target.absolute_paths:
                         pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
+            elif isinstance(i, programs.ExternalProgram):
+                # Let it pass and be extended elsewhere
+                pass
             else:
                 raise RuntimeError(f'Argument {i} is of unknown type {type(i)}')
             cmd.append(i)
@@ -1665,7 +1668,7 @@ class Backend:
         # fixed.
         #
         # https://github.com/mesonbuild/meson/pull/737
-        cmd = [i.replace('\\', '/') for i in cmd]
+        cmd = [i.replace('\\', '/') if isinstance(i, str) else i for i in cmd]
         return inputs, outputs, cmd
 
     def get_introspect_command(self) -> str:
@@ -2026,6 +2029,8 @@ class Backend:
                         compiler += [j]
                     elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
                         compiler += j.get_outputs()
+                    elif isinstance(j, programs.ExternalProgram):
+                        compiler += j.get_command()
                     else:
                         raise RuntimeError(f'Type "{type(j).__name__}" is not supported in get_introspection_data. This is a bug')
 
