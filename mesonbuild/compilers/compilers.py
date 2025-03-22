@@ -223,6 +223,7 @@ BASE_OPTIONS: T.Mapping[OptionKey, options.AnyOptionType] = {
         options.UserBooleanOption('b_thinlto_cache', 'Use LLVM ThinLTO caching for faster incremental builds', False),
         options.UserStringOption('b_thinlto_cache_dir', 'Directory to store ThinLTO cache objects', ''),
         options.UserStringArrayOption('b_sanitize', 'Code sanitizer to use', []),
+        options.UserBooleanOption('b_legal_code', 'Whether to ban dangerous constructs in a language', True),
         options.UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
         options.UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
         options.UserComboOption(
@@ -299,6 +300,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
                 mode=ltomode))
     except (KeyError, AttributeError):
         pass
+
     try:
         clrout = env.coredata.get_option_for_target(target, 'b_colorout')
         assert isinstance(clrout, str)
@@ -369,10 +371,12 @@ def get_base_link_args(target: 'BuildTarget',
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
             num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
+            legal_code = get_option_value_for_target(env, target, OptionKey('b_legal_code'), False)
             lto_mode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
             args.extend(linker.get_lto_link_args(
                 threads=num_threads,
                 mode=lto_mode,
+                legal_code=legal_code,
                 thinlto_cache_dir=thinlto_cache_dir))
     except (KeyError, AttributeError):
         pass
@@ -1041,10 +1045,14 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
             ret.append(arg)
         return ret
 
+    def get_legal_code_compiler_args(self, lto: bool) -> T.List[str]:
+        return []
+
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return []
 
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
+                          legal_code: bool = False,
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_lto_args()
 
