@@ -2576,7 +2576,7 @@ class CommandBase:
     subproject: str
 
     def flatten_command(self, cmd: T.Sequence[T.Union[str, File, programs.ExternalProgram, BuildTargetTypes]]) -> \
-            T.List[T.Union[str, File, BuildTarget, 'CustomTarget']]:
+            T.List[T.Union[str, File, BuildTarget, CustomTarget, programs.ExternalProgram]]:
         cmd = listify(cmd)
         final_cmd: T.List[T.Union[str, File, BuildTarget, 'CustomTarget']] = []
         for c in cmd:
@@ -2593,7 +2593,8 @@ class CommandBase:
                     # Can only add a dependency on an external program which we
                     # know the absolute path of
                     self.depend_files.append(File.from_absolute_file(path))
-                final_cmd += c.get_command()
+                # Do NOT flatten -- it is needed for later parsing
+                final_cmd.append(c)
             elif isinstance(c, (BuildTarget, CustomTarget)):
                 self.dependencies.append(c)
                 final_cmd.append(c)
