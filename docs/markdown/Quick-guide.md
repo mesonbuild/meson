@@ -35,11 +35,10 @@ generate native VS and Xcode project files.*
 Installation using package manager
 --
 
-Ubuntu:
+Debian or Ubuntu:
 
 ```console
-$ sudo apt-get install python3 python3-pip python3-setuptools \
-                       python3-wheel ninja-build
+$ sudo apt-get install python3 ninja-build meson
 ```
 *Due to our frequent release cycle and development speed, distro packaged software may quickly become outdated.*
 
@@ -47,13 +46,19 @@ Installation using Python
 --
 Requirements: **pip3**
 
-The best way to receive the most up-to-date version of Mesonbuild.
+This is the best way to receive the most up-to-date version of Mesonbuild.
 
-Install as a local user (recommended):
+First, install dependencies using the package manager:
+```console
+$ sudo apt-get install python3 python3-pip python3-setuptools \
+                       python3-wheel ninja-build
+```
+
+Then, install meson as a local user (recommended):
 ```console
 $ pip3 install --user meson
 ```
-Install as root:
+Or, install meson as root:
 ```console
 # pip3 install meson
 ```
