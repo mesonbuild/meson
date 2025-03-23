@@ -633,6 +633,63 @@ class Rewriter:
                     return ass
         return None
 
+    # Utility function to get a list of the sources from a node
+    def arg_list_from_node(self, n: BaseNode) -> T.List[BaseNode]:
+        args = []
+        if isinstance(n, FunctionNode):
+            args = list(n.args.arguments)
+            if n.func_name.value in BUILD_TARGET_FUNCTIONS:
+                args.pop(0)
+        elif isinstance(n, ArrayNode):
+            args = n.args.arguments
+        elif isinstance(n, ArgumentNode):
+            args = n.arguments
+        return args
+
+    def rm_src_or_extra(self, op: str, target: IntrospectionBuildTarget, to_be_removed: T.List[str], to_sort_nodes: T.List[ArgumentNode]) -> None:
+        # Helper to find the exact string node and its parent
+        def find_node(src: str) -> T.Tuple[BaseNode, StringNode]:
+            if op == 'src_rm':
+                nodes = target.source_nodes
+            elif op == 'extra_files_rm':
+                nodes = target.extra_files
+            for i in nodes:
+                for j in self.arg_list_from_node(i):
+                    if isinstance(j, StringNode):
+                        if j.value == src:
+                            return i, j
+            return None, None
+
+        if op == 'src_rm':
+            name = 'source'
+        elif op == 'extra_files_rm':
+            name = 'extra file'
+
+        for i in to_be_removed:
+            # Try to find the node with the source string
+            root, string_node = find_node(i)
+            if root is None:
+                mlog.warning('  -- Unable to find', name, mlog.green(i), 'in the target')
+                continue
+
+            arg_node = None
+            if isinstance(root, (FunctionNode, ArrayNode)):
+                arg_node = root.args
+            elif isinstance(root, ArgumentNode):
+                arg_node = root
+            assert arg_node is not None
+
+            # Remove the found string node from the argument list
+            mlog.log('  -- Removing', name, mlog.green(i), 'from',
+                     mlog.yellow(f'{string_node.filename}:{string_node.lineno}'))
+            arg_node.arguments.remove(string_node)
+
+            # Mark the node as modified
+            if arg_node not in to_sort_nodes and not isinstance(root, FunctionNode):
+                to_sort_nodes += [arg_node]
+            if root not in self.modified_nodes:
+                self.modified_nodes += [root]
+
     @RequiredKeys(rewriter_keys['target'])
     def process_target(self, cmd: T.Dict[str, T.Any]) -> None:
         mlog.log('Processing target', mlog.bold(cmd['target']), 'operation', mlog.cyan(cmd['operation']))
@@ -654,19 +711,6 @@ class Rewriter:
         if target is not None:
             cmd['sources'] = [rel_source(x) for x in cmd['sources']]
 
-        # Utility function to get a list of the sources from a node
-        def arg_list_from_node(n: BaseNode) -> T.List[BaseNode]:
-            args = []
-            if isinstance(n, FunctionNode):
-                args = list(n.args.arguments)
-                if n.func_name.value in BUILD_TARGET_FUNCTIONS:
-                    args.pop(0)
-            elif isinstance(n, ArrayNode):
-                args = n.args.arguments
-            elif isinstance(n, ArgumentNode):
-                args = n.arguments
-            return args
-
         to_sort_nodes = []
 
         if cmd['operation'] == 'src_add':
@@ -680,7 +724,7 @@ class Rewriter:
             # Generate the current source list
             src_list = []
             for src_node in target.source_nodes:
-                for j in arg_list_from_node(src_node):
+                for j in self.arg_list_from_node(src_node):
                     if isinstance(j, StringNode):
                         src_list += [j.value]
 
@@ -709,40 +753,6 @@ class Rewriter:
                 to_sort_nodes += [arg_node]
             if node not in self.modified_nodes:
                 self.modified_nodes += [node]
-
-        elif cmd['operation'] == 'src_rm':
-            # Helper to find the exact string node and its parent
-            def find_node(src: str) -> T.Tuple[BaseNode, StringNode]:
-                for i in target.source_nodes:
-                    for j in arg_list_from_node(i):
-                        if isinstance(j, StringNode):
-                            if j.value == src:
-                                return i, j
-                return None, None
-
-            for i in cmd['sources']:
-                # Try to find the node with the source string
-                root, string_node = find_node(i)
-                if root is None:
-                    mlog.warning('  -- Unable to find source', mlog.green(i), 'in the target')
-                    continue
-
-                # Remove the found string node from the argument list
-                arg_node = None
-                if isinstance(root, (FunctionNode, ArrayNode)):
-                    arg_node = root.args
-                elif isinstance(root, ArgumentNode):
-                    arg_node = root
-                assert arg_node is not None
-                mlog.log('  -- Removing source', mlog.green(i), 'from',
-                         mlog.yellow(f'{string_node.filename}:{string_node.lineno}'))
-                arg_node.arguments.remove(string_node)
-
-                # Mark the node as modified
-                if arg_node not in to_sort_nodes and not isinstance(root, FunctionNode):
-                    to_sort_nodes += [arg_node]
-                if root not in self.modified_nodes:
-                    self.modified_nodes += [root]
 
         elif cmd['operation'] == 'extra_files_add':
             tgt_function: FunctionNode = target.node
@@ -775,7 +785,7 @@ class Rewriter:
             # Generate the current extra files list
             extra_files_list = []
             for i in target.extra_files:
-                for j in arg_list_from_node(i):
+                for j in self.arg_list_from_node(i):
                     if isinstance(j, StringNode):
                         extra_files_list += [j.value]
 
@@ -802,37 +812,8 @@ class Rewriter:
             if mark_array and node not in self.modified_nodes:
                 self.modified_nodes += [node]
 
-        elif cmd['operation'] == 'extra_files_rm':
-            # Helper to find the exact string node and its parent
-            def find_node(src: str) -> T.Tuple[BaseNode, StringNode]:
-                for i in target.extra_files:
-                    for j in arg_list_from_node(i):
-                        if isinstance(j, StringNode):
-                            if j.value == src:
-                                return i, j
-                return None, None
-
-            for i in cmd['sources']:
-                # Try to find the node with the source string
-                root, string_node = find_node(i)
-                if root is None:
-                    mlog.warning('  -- Unable to find extra file', mlog.green(i), 'in the target')
-                    continue
-
-                if not isinstance(root, (FunctionNode, ArrayNode)):
-                    raise NotImplementedError # I'm lazy
-
-                # Remove the found string node from the argument list
-                arg_node = root.args
-                mlog.log('  -- Removing extra file', mlog.green(i), 'from',
-                         mlog.yellow(f'{string_node.filename}:{string_node.lineno}'))
-                arg_node.arguments.remove(string_node)
-
-                # Mark the node as modified
-                if arg_node not in to_sort_nodes and not isinstance(root, FunctionNode):
-                    to_sort_nodes += [arg_node]
-                if root not in self.modified_nodes:
-                    self.modified_nodes += [root]
+        elif cmd['operation'] in {'src_rm', 'extra_files_rm'}:
+            self.rm_src_or_extra(cmd['operation'], target, cmd['sources'], to_sort_nodes)
 
         elif cmd['operation'] == 'target_add':
             if target is not None:
@@ -878,12 +859,12 @@ class Rewriter:
             # T.List all sources in the target
             src_list = []
             for i in target.source_nodes:
-                for j in arg_list_from_node(i):
+                for j in self.arg_list_from_node(i):
                     if isinstance(j, StringNode):
                         src_list += [j.value]
             extra_files_list = []
             for i in target.extra_files:
-                for j in arg_list_from_node(i):
+                for j in self.arg_list_from_node(i):
                     if isinstance(j, StringNode):
                         extra_files_list += [j.value]
             test_data = {
