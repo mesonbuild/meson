@@ -185,7 +185,6 @@ class AstInterpreter(InterpreterBase):
         self.dataflow_dag = DataflowDAG()
         self.funcvals: T.Dict[BaseNode, T.Any] = {}
         self.tainted = False
-        self.assign_vals: T.Dict[str, T.Any] = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -642,9 +641,9 @@ class AstInterpreter(InterpreterBase):
 
     def assignment(self, node: AssignmentNode) -> None:
         assert isinstance(node, AssignmentNode)
+        self.evaluate_statement(node.value)
         self.cur_assignments[node.var_name.value].append((self.nesting.copy(), node.value))
         self.all_assignment_nodes[node.var_name.value].append(node)
-        self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
         assert isinstance(node, PlusAssignmentNode)
@@ -660,8 +659,6 @@ class AstInterpreter(InterpreterBase):
 
         self.dataflow_dag.add_edge(lhs, newval)
         self.dataflow_dag.add_edge(node.value, newval)
-
-        self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
 
     def func_set_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         assert isinstance(node, FunctionNode)
