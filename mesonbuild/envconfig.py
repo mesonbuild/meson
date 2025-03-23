@@ -281,7 +281,7 @@ class MachineInfo(HoldableObject):
         assert all(isinstance(v, str) for v in raw.values()), 'for mypy'
         literal = T.cast('T.Dict[str, str]', raw)
         minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
-        if set(literal) < minimum_literal:
+        if minimum_literal - set(literal):
             raise EnvironmentException(
                 f'Machine info is currently {literal}\n' +
                 'but is missing {}.'.format(minimum_literal - set(literal)))
