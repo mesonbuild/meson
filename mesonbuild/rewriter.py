@@ -15,7 +15,7 @@ from .interpreterbase import TV_func
 from mesonbuild.mesonlib import MesonException, setup_vsenv
 from . import mlog, environment
 from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, StringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode
+from .mparser import Token, ArrayNode, ArgumentNode, AssignmentNode, BaseNode, StringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, PlusAssignmentNode
 import json, os, re, sys
 import typing as T
 
@@ -409,58 +409,66 @@ class Rewriter:
             return None
         raise MesonException('Rewriting the meson.build failed')
 
+    def all_assignments(self, varname: str) -> T.List[BaseNode]:
+        assigned_values = []
+        for ass in self.interpreter.all_assignment_nodes[varname]:
+            if isinstance(ass, PlusAssignmentNode):
+                continue
+            assert isinstance(ass, AssignmentNode)
+            assigned_values.append(ass.value)
+        return assigned_values
+
     def find_target(self, target: str) -> T.Optional[IntrospectionBuildTarget]:
-        def check_list(name: str) -> T.List[IntrospectionBuildTarget]:
-            result = []
-            for i in self.interpreter.targets:
-                if name in {i.name, i.id}:
-                    result += [i]
-            return result
+        for i in self.interpreter.targets:
+            if target == i.id:
+                return i
 
-        targets = check_list(target)
-        if targets:
-            if len(targets) == 1:
-                return targets[0]
-            else:
-                mlog.error('There are multiple targets matching', mlog.bold(target))
-                for i in targets:
-                    mlog.error('  -- Target name', mlog.bold(i.name), 'with ID', mlog.bold(i.id))
-                mlog.error('Please try again with the unique ID of the target', *self.on_error())
-                self.handle_error()
-                return None
+        potential_tgts = []
+        for i in self.interpreter.targets:
+            if target == i.name:
+                potential_tgts.append(i)
 
-        # Check the assignments
-        tgt = None
-        if target in self.interpreter.cur_assignments:
-            node = self.interpreter.get_cur_value(target)
-            if isinstance(node, FunctionNode):
-                if node.func_name.value in {'executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries'}:
-                    tgt = self.interpreter.assign_vals[target]
+        if not potential_tgts:
+            potenial_tgts_1 = self.all_assignments(target)
+            potenial_tgts_1 = [self.interpreter.node_to_runtime_value(el) for el in potenial_tgts_1]
+            potential_tgts = [el for el in potenial_tgts_1 if isinstance(el, IntrospectionBuildTarget)]
 
-        assert isinstance(tgt, (type(None), IntrospectionBuildTarget))
-        return tgt
-
-    def find_dependency(self, dependency: str) -> T.Optional[IntrospectionDependency]:
-        def check_list(name: str) -> T.Optional[IntrospectionDependency]:
-            for i in self.interpreter.dependencies:
-                if name == i.name:
-                    return i
+        if not potential_tgts:
+            return None
+        elif len(potential_tgts) == 1:
+            return potential_tgts[0]
+        else:
+            mlog.error('There are multiple targets matching', mlog.bold(target))
+            for i in potential_tgts:
+                mlog.error('  -- Target name', mlog.bold(i.name), 'with ID', mlog.bold(i.id))
+            mlog.error('Please try again with the unique ID of the target', *self.on_error())
+            self.handle_error()
             return None
 
-        dep = check_list(dependency)
-        if dep is not None:
-            return dep
+    def find_dependency(self, dependency: str) -> T.Optional[IntrospectionDependency]:
+        potential_deps = []
+        for i in self.interpreter.dependencies:
+            if i.name == dependency:
+                potential_deps.append(i)
 
-        # Check the assignments
-        if dependency in self.interpreter.cur_assignments:
-            node = self.interpreter.get_cur_value(dependency)
-            if isinstance(node, FunctionNode):
-                if node.func_name.value == 'dependency':
-                    name = self.interpreter.node_to_runtime_value(node.args.arguments[0])
-                    assert isinstance(name, str)
-                    dep = check_list(name)
+        checking_varnames = len(potential_deps) == 0
 
-        return dep
+        if checking_varnames:
+            potential_deps1 = self.all_assignments(dependency)
+            potential_deps = [self.interpreter.node_to_runtime_value(el) for el in potential_deps1 if isinstance(el, FunctionNode) and el.func_name.value == 'dependency']
+
+        if not potential_deps:
+            return None
+        elif len(potential_deps) == 1:
+            return potential_deps[0]
+        else:
+            mlog.error('There are multiple dependencies matching', mlog.bold(dependency))
+            for i in potential_deps:
+                mlog.error('  -- Dependency name', i)
+            if checking_varnames:
+                mlog.error('Please try again with the name of the dependency', *self.on_error())
+            self.handle_error()
+            return None
 
     @RequiredKeys(rewriter_keys['default_options'])
     def process_default_options(self, cmd: T.Dict[str, T.Any]) -> None:
