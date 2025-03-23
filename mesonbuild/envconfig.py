@@ -272,7 +272,7 @@ class MachineInfo(HoldableObject):
     @classmethod
     def from_literal(cls, literal: T.Dict[str, str]) -> 'MachineInfo':
         minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
-        if set(literal) < minimum_literal:
+        if minimum_literal - set(literal):
             raise EnvironmentException(
                 f'Machine info is currently {literal}\n' +
                 'but is missing {}.'.format(minimum_literal - set(literal)))
