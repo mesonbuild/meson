@@ -54,9 +54,10 @@ from ..mparser import (
 )
 
 if T.TYPE_CHECKING:
+    from pathlib import Path
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import SubProject, TYPE_nkwargs, TYPE_var, TYPE_nvar
+    from ..interpreterbase import SubProject, TYPE_var, TYPE_nvar
     from ..mparser import (
         AndNode,
         ComparisonNode,
@@ -246,10 +247,10 @@ class AstInterpreter(InterpreterBase):
                            'debug': self.func_do_nothing,
                            })
 
-    def _unholder_args(self, args: _T, kwargs: _V) -> T.Tuple[_T, _V]:
+    def _unholder_args(self, args: T.Any, kwargs: T.Any) -> T.Tuple[T.Any, T.Any]:
         return args, kwargs
 
-    def _holderify(self, res: _T) -> _T:
+    def _holderify(self, res: T.Any) -> T.Any:
         return res
 
     def func_do_nothing(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> UnknownValue:
@@ -340,13 +341,13 @@ class AstInterpreter(InterpreterBase):
                 args: mparser.ArgumentNode,
                 key_resolver: T.Callable[[mparser.BaseNode], str] = default_resolve_key,
                 duplicate_key_error: T.Optional[str] = None,
-            ) -> T.Tuple[T.List[TYPE_var], TYPE_nkwargs]:
+            ) -> T.Tuple[T.List[T.Any], T.Any]:
         for arg in args.arguments:
             self.evaluate_statement(arg)
         for value in args.kwargs.values():
             self.evaluate_statement(value)
         if isinstance(args, ArgumentNode):
-            kwargs: T.Dict[str, TYPE_var] = {}
+            kwargs = {}
             for key, val in args.kwargs.items():
                 kwargs[key_resolver(key)] = val
             if args.incorrect_order():
@@ -496,9 +497,6 @@ class AstInterpreter(InterpreterBase):
             return UnknownValue()
         assert ret is not None
         return ret
-
-    def get_variable(self, varname: str) -> int:
-        return 0
 
     # The function `node_to_runtime_value` takes a node of the ast as an
     # argument and tries to return the same thing that would be passed to e.g.
