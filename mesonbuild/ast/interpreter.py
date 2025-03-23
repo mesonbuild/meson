@@ -10,6 +10,7 @@ import sys
 import typing as T
 from collections import defaultdict
 from dataclasses import dataclass
+import itertools
 
 from .. import mparser, mesonlib
 from .. import environment
@@ -22,6 +23,7 @@ from ..interpreterbase import (
     ContinueRequest,
     Disabler,
     default_resolve_key,
+    is_disabled,
     UnknownValue,
     InterpreterObject,
 )
@@ -71,6 +73,18 @@ _V = T.TypeVar('_V')
 
 def _symbol(val: str) -> SymbolNode:
     return SymbolNode(Token('', '', 0, 0, 0, (0, 0), val))
+
+# `IntrospectionFile` is to the `IntrospectionInterpreter` what `File` is to the normal `Interpreter`.
+@dataclass
+class IntrospectionFile:
+    subdir: str
+    rel: str
+
+    def to_abs_path(self, root_dir: Path) -> Path:
+        return (root_dir / self.subdir / self.rel).resolve()
+
+    def __hash__(self) -> int:
+        return hash((self.__class__.__name__, self.subdir, self.rel))
 
 # `IntrospectionDependency` is to the `IntrospectionInterpreter` what `Dependency` is to the normal `Interpreter`.
 @dataclass
@@ -168,6 +182,8 @@ class AstInterpreter(InterpreterBase):
         # This graph is crucial for e.g. node_to_runtime_value because we have
         # to know that 'var' in line2 is 'foo123' and not 'bar'.
         self.dataflow_dag = DataflowDAG()
+        self.funcvals: T.Dict[BaseNode, T.Any] = {}
+        self.tainted = False
         self.assign_vals: T.Dict[str, T.Any] = {}
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
@@ -201,7 +217,7 @@ class AstInterpreter(InterpreterBase):
                            'vcs_tag': self.func_do_nothing,
                            'add_languages': self.func_do_nothing,
                            'declare_dependency': self.func_do_nothing,
-                           'files': self.func_do_nothing,
+                           'files': self.func_files,
                            'executable': self.func_do_nothing,
                            'static_library': self.func_do_nothing,
                            'shared_library': self.func_do_nothing,
@@ -210,9 +226,9 @@ class AstInterpreter(InterpreterBase):
                            'custom_target': self.func_do_nothing,
                            'run_target': self.func_do_nothing,
                            'subdir': self.func_subdir,
-                           'set_variable': self.func_do_nothing,
-                           'get_variable': self.func_do_nothing,
-                           'unset_variable': self.func_do_nothing,
+                           'set_variable': self.func_set_variable,
+                           'get_variable': self.func_get_variable,
+                           'unset_variable': self.func_unset_variable,
                            'is_disabler': self.func_do_nothing,
                            'is_variable': self.func_do_nothing,
                            'disabler': self.func_do_nothing,
@@ -236,8 +252,8 @@ class AstInterpreter(InterpreterBase):
     def _holderify(self, res: _T) -> _T:
         return res
 
-    def func_do_nothing(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> bool:
-        return True
+    def func_do_nothing(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> UnknownValue:
+        return UnknownValue()
 
     def load_root_meson_file(self) -> None:
         super().load_root_meson_file()
@@ -259,8 +275,36 @@ class AstInterpreter(InterpreterBase):
             buildfilename = os.path.join(subdir, environment.build_filename)
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
 
-    def method_call(self, node: BaseNode) -> bool:
-        return True
+    def inner_method_call(self, obj: BaseNode, method_name: str, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
+        for arg in itertools.chain(args, kwargs.values()):
+            if isinstance(arg, UnknownValue):
+                return UnknownValue()
+
+        if isinstance(obj, str):
+            result = StringHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+        elif isinstance(obj, bool):
+            result = BooleanHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+        elif isinstance(obj, int):
+            result = IntegerHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+        elif isinstance(obj, list):
+            result = ArrayHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+        elif isinstance(obj, dict):
+            result = DictHolder(obj, T.cast('Interpreter', self)).method_call(method_name, args, kwargs)
+        else:
+            return UnknownValue()
+        return result
+
+    def method_call(self, node: mparser.MethodNode) -> None:
+        invocable = node.source_object
+        self.evaluate_statement(invocable)
+        obj = self.node_to_runtime_value(invocable)
+        method_name = node.name.value
+        (args, kwargs) = self.reduce_arguments(node.args)
+        if is_disabled(args, kwargs):
+            res = Disabler()
+        else:
+            res = self.inner_method_call(obj, method_name, args, kwargs)
+        self.funcvals[node] = res
 
     def evaluate_fstring(self, node: mparser.StringNode) -> None:
         pass
@@ -427,6 +471,17 @@ class AstInterpreter(InterpreterBase):
                     self.dataflow_dag.add_edge(pv, uv)
                 self.cur_assignments[var_name].append((self.nesting.copy(), uv))
 
+    def func_files(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
+        ret: T.List[T.Union[IntrospectionFile, UnknownValue]] = []
+        for arg in args:
+            if isinstance(arg, str):
+                ret.append(IntrospectionFile(self.subdir, arg))
+            elif isinstance(arg, UnknownValue):
+                ret.append(UnknownValue())
+            else:
+                raise TypeError
+        return ret
+
     def get_cur_value(self, var_name: str, allow_none: bool = False) -> T.Union[BaseNode, UnknownValue, None]:
         if var_name in {'meson', 'host_machine', 'build_machine', 'target_machine'}:
             return UnknownValue()
@@ -437,6 +492,8 @@ class AstInterpreter(InterpreterBase):
                 break
         if ret is None and allow_none:
             return ret
+        if ret is None and self.tainted:
+            return UnknownValue()
         assert ret is not None
         return ret
 
@@ -491,7 +548,11 @@ class AstInterpreter(InterpreterBase):
             val = next(iter(self.dataflow_dag.tgt_to_srcs[node]))
             return self.node_to_runtime_value(val)
         elif isinstance(node, (MethodNode, FunctionNode)):
-            return UnknownValue()
+            funcval = self.funcvals[node]
+            if isinstance(funcval, (dict, str)):
+                return funcval
+            else:
+                return self.node_to_runtime_value(funcval)
         elif isinstance(node, ArithmeticNode):
             left = self.node_to_runtime_value(node.left)
             right = self.node_to_runtime_value(node.right)
@@ -524,7 +585,7 @@ class AstInterpreter(InterpreterBase):
             elif node.operation == 'mod':
                 if isinstance(left, int) and isinstance(right, int):
                     return left % right
-        elif isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionDependency, str, bool, int)):
+        elif isinstance(node, (UnknownValue, IntrospectionBuildTarget, IntrospectionFile, IntrospectionDependency, str, bool, int)):
             return node
         elif isinstance(node, mparser.IndexNode):
             iobject = self.node_to_runtime_value(node.iobject)
@@ -604,12 +665,40 @@ class AstInterpreter(InterpreterBase):
 
         self.assign_vals[node.var_name.value] = self.evaluate_statement(node.value)
 
-    def func_get_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+    def func_set_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+        assert isinstance(node, FunctionNode)
+        if bool(node.args.kwargs):
+            raise InvalidArguments('set_variable accepts no keyword arguments')
+        if len(node.args.arguments) != 2:
+            raise InvalidArguments('set_variable requires exactly two positional arguments')
+        var_name = args[0]
+        value = node.args.arguments[1]
+        if isinstance(var_name, UnknownValue):
+            self.evaluate_statement(value)
+            self.tainted = True
+            return
+        assert isinstance(var_name, str)
+        equiv = AssignmentNode(var_name=IdNode(Token('', '', 0, 0, 0, (0, 0), var_name)), value=value, operator=_symbol('='))
+        equiv.ast_id = str(id(equiv))
+        self.evaluate_statement(equiv)
+
+    def func_get_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
         assert isinstance(node, FunctionNode)
         var_name = args[0]
         assert isinstance(var_name, str)
         val = self.get_cur_value(var_name)
         self.dataflow_dag.add_edge(val, node)
+        return val
+
+    def func_unset_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+        assert isinstance(node, FunctionNode)
+        if bool(node.args.kwargs):
+            raise InvalidArguments('unset_variable accepts no keyword arguments')
+        if len(node.args.arguments) != 1:
+            raise InvalidArguments('unset_variable requires exactly one positional arguments')
+        var_name = args[0]
+        assert isinstance(var_name, str)
+        self.cur_assignments[var_name].append((self.nesting.copy(), node))
 
     def flatten_args(self, args_raw: T.Union[TYPE_nvar, T.Sequence[TYPE_nvar]], include_unknown_args: bool = False) -> T.List[TYPE_var]:
         # Make sure we are always dealing with lists
@@ -628,7 +717,7 @@ class AstInterpreter(InterpreterBase):
                     if not isinstance(resolved, list):
                         resolved = [resolved]
                     flattened_args += resolved
-            elif isinstance(i, (str, bool, int, float, UnknownValue)) or include_unknown_args:
+            elif isinstance(i, (str, bool, int, float, UnknownValue, IntrospectionFile)) or include_unknown_args:
                 flattened_args += [i]
             else:
                 raise NotImplementedError
@@ -652,3 +741,9 @@ class AstInterpreter(InterpreterBase):
             return None
         else:
             return super().evaluate_statement(cur)
+
+    def function_call(self, node: mparser.FunctionNode) -> T.Any:
+        ret = super().function_call(node)
+        if ret is not None:
+            self.funcvals[node] = ret
+        return ret

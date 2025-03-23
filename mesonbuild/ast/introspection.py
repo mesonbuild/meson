@@ -157,7 +157,7 @@ class IntrospectionInterpreter(AstInterpreter):
         except (mesonlib.MesonException, RuntimeError):
             pass
 
-    def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+    def func_add_languages(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> UnknownValue:
         kwargs = self.flatten_kwargs(kwargs)
         required = kwargs.get('required', True)
         assert isinstance(required, (bool, options.UserFeatureOption, UnknownValue)), 'for mypy'
@@ -169,6 +169,7 @@ class IntrospectionInterpreter(AstInterpreter):
         else:
             for for_machine in [MachineChoice.BUILD, MachineChoice.HOST]:
                 self._add_languages(args, required, for_machine)
+        return UnknownValue()
 
     def _add_languages(self, raw_langs: T.List[TYPE_var], required: T.Union[bool, UnknownValue], for_machine: MachineChoice) -> None:
         langs: T.List[str] = []
@@ -197,12 +198,12 @@ class IntrospectionInterpreter(AstInterpreter):
                         options[k] = v
                     self.coredata.add_compiler_options(options, lang, for_machine, self.environment, self.subproject)
 
-    def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
+    def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Optional[IntrospectionDependency]:
         assert isinstance(node, FunctionNode)
         args = self.flatten_args(args)
         kwargs = self.flatten_kwargs(kwargs)
         if not args:
-            return
+            return None
         name = args[0]
         assert isinstance(name, (str, UnknownValue))
         has_fallback = 'fallback' in kwargs
@@ -222,6 +223,7 @@ class IntrospectionInterpreter(AstInterpreter):
             conditional=node.condition_level > 0,
             node=node)
         self.dependencies += [newdep]
+        return newdep
 
     def build_target(self, node: BaseNode, args: T.List[TYPE_var], kwargs_raw: T.Dict[str, TYPE_var], targetclass: T.Type[BuildTarget]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
         assert isinstance(node, FunctionNode)
