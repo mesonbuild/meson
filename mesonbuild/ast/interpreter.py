@@ -11,6 +11,7 @@ import typing as T
 from collections import defaultdict
 from dataclasses import dataclass
 import itertools
+from pathlib import Path
 
 from .. import mparser, mesonlib
 from .. import environment
@@ -27,6 +28,8 @@ from ..interpreterbase import (
     UnknownValue,
     InterpreterObject,
 )
+
+from ..interpreterbase.helpers import flatten
 
 from ..interpreter import (
     StringHolder,
@@ -54,7 +57,6 @@ from ..mparser import (
 )
 
 if T.TYPE_CHECKING:
-    from pathlib import Path
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
     from ..interpreterbase import SubProject, TYPE_var, TYPE_nvar
@@ -110,7 +112,7 @@ class IntrospectionBuildTarget(MesonInterpreterObject):
     installed: bool
     outputs: T.List[str]
     source_nodes: T.List[BaseNode]
-    extra_files: T.List[BaseNode]
+    extra_files: BaseNode
     kwargs: T.Dict[str, TYPE_var]
     node: FunctionNode
 
@@ -694,6 +696,20 @@ class AstInterpreter(InterpreterBase):
         var_name = args[0]
         assert isinstance(var_name, str)
         self.cur_assignments[var_name].append((self.nesting.copy(), node))
+
+    def nodes_to_pretty_filelist(self, root_path: Path, subdir: str, nodes: T.List[BaseNode]) -> T.List[T.Union[str, UnknownValue]]:
+        def src_to_abs(src: T.Union[str, IntrospectionFile, UnknownValue]) -> T.Union[str, UnknownValue]:
+            if isinstance(src, str):
+                return os.path.normpath(os.path.join(root_path, subdir, src))
+            elif isinstance(src, IntrospectionFile):
+                return str(src.to_abs_path(root_path))
+            elif isinstance(src, UnknownValue):
+                return src
+            else:
+                raise TypeError
+
+        rtvals: T.List[T.Any] = flatten([self.node_to_runtime_value(sn) for sn in nodes])
+        return [src_to_abs(x) for x in rtvals]
 
     def flatten_args(self, args_raw: T.Union[TYPE_nvar, T.Sequence[TYPE_nvar]], include_unknown_args: bool = False) -> T.List[TYPE_var]:
         # Make sure we are always dealing with lists

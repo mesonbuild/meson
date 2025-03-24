@@ -16,7 +16,7 @@ from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject, UnknownValue
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
-from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 from .interpreter import AstInterpreter, IntrospectionBuildTarget, IntrospectionDependency
 
 if T.TYPE_CHECKING:
@@ -243,40 +243,20 @@ class IntrospectionInterpreter(AstInterpreter):
 
         kwargs = self.flatten_kwargs(kwargs_raw, True)
 
-        def traverse_nodes(inqueue: T.List[BaseNode]) -> T.List[BaseNode]:
-            res: T.List[BaseNode] = []
-            while inqueue:
-                curr = inqueue.pop(0)
-                arg_node = None
-                assert isinstance(curr, BaseNode)
-                if isinstance(curr, FunctionNode):
-                    arg_node = curr.args
-                elif isinstance(curr, ArrayNode):
-                    arg_node = curr.args
-                elif isinstance(curr, IdNode):
-                    # Try to resolve the ID and append the node to the queue
-                    assert isinstance(curr.value, str)
-                    var_name = curr.value
-                    if var_name in self.cur_assignments:
-                        tmp_node = self.get_cur_value(var_name)
-                        if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
-                            inqueue += [tmp_node]
-                elif isinstance(curr, ArithmeticNode):
-                    inqueue += [curr.left, curr.right]
-                if arg_node is None:
-                    continue
-                arg_nodes = arg_node.arguments.copy()
-                # Pop the first element if the function is a build target function
-                if isinstance(curr, FunctionNode) and curr.func_name.value in BUILD_TARGET_FUNCTIONS:
-                    arg_nodes.pop(0)
-                elementary_nodes = [x for x in arg_nodes if isinstance(x, (str, StringNode))]
-                inqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]
-                if elementary_nodes:
-                    res += [curr]
-            return res
+        oldlen = len(node.args.arguments)
+        source_nodes = node.args.arguments[1:]
+        for k, v in node.args.kwargs.items():
+            assert isinstance(k, IdNode)
+            if k.value == 'sources':
+                source_nodes.append(v)
+        assert oldlen == len(node.args.arguments)
 
-        source_nodes = traverse_nodes(srcqueue)
-        extraf_nodes = traverse_nodes(extra_queue)
+        extraf_nodes = None
+        for k, v in node.args.kwargs.items():
+            assert isinstance(k, IdNode)
+            if k.value == 'extra_files':
+                assert extraf_nodes is None
+                extraf_nodes = v
 
         # Make sure nothing can crash when creating the build class
         kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in {'install', 'build_by_default', 'build_always', 'name_prefix'}}
