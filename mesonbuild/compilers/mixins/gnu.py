@@ -621,8 +621,7 @@ class GnuCompiler(GnuLikeCompiler):
             args.extend(('-Werror=lto-type-mismatch', '-Werror=odr', '-Werror=strict-aliasing'))
 
         if self.language in {'c', 'objc'} and mesonlib.version_compare_many(self.version, ['>=5.1.0', '<14.0.0'])[0]:
-            args.extend(('-Werror=implicit', '-Werror=int-conversion',
-                         '-Werror=incompatible-pointer-types'))
+            args.extend(('-Werror=implicit', '-Werror=int-conversion',))
         return args
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:

@@ -216,9 +216,6 @@ class ClangCompiler(GnuLikeCompiler):
         args: T.List[str] = []
 
         if self.language in {'c', 'objc'} and mesonlib.version_compare(self.version, '>=3.3.0'):
-            args.extend(('-Werror=incompatible-pointer-types',
-                         '-Wno-error=incompatible-pointer-types-discards-qualifiers'))
-
             # Clang doesn't yet error out by default on incompatible-pointer-types, but
             # conditionalize the rest to make command line length smaller.
             # https://github.com/llvm/llvm-project/issues/74605
