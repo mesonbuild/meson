@@ -31,6 +31,12 @@ if T.TYPE_CHECKING:
 
     from .interpreter import Interpreter
 
+class IntrospectionEncoder(json.JSONEncoder):
+    def default(self, obj: T.Any) -> T.Any:
+        if isinstance(obj, UnknownValue):
+            return 'unknown'
+        return json.JSONEncoder.default(self, obj)
+
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')
 
@@ -492,12 +498,12 @@ def print_results(options: argparse.Namespace, results: T.Sequence[T.Tuple[str, 
         return 1
     elif len(results) == 1 and not options.force_dict:
         # Make to keep the existing output format for a single option
-        print(json.dumps(results[0][1], indent=indent))
+        print(json.dumps(results[0][1], indent=indent, cls=IntrospectionEncoder))
     else:
         out = {}
         for i in results:
             out[i[0]] = i[1]
-        print(json.dumps(out, indent=indent))
+        print(json.dumps(out, indent=indent, cls=IntrospectionEncoder))
     return 0
 
 def get_infodir(builddir: T.Optional[str] = None) -> str:

@@ -17,6 +17,7 @@ from mesonbuild.mesonlib import MesonException, setup_vsenv, relpath
 from . import mlog, environment
 from functools import wraps
 from .mparser import Token, ArrayNode, ArgumentNode, ArithmeticNode, AssignmentNode, BaseNode, StringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, PlusAssignmentNode
+from .mintro import IntrospectionEncoder
 import json, os, re, sys, codecs
 import typing as T
 from pathlib import Path
@@ -399,7 +400,7 @@ class Rewriter:
     def print_info(self) -> None:
         if self.info_dump is None:
             return
-        sys.stdout.write(json.dumps(self.info_dump, indent=2))
+        sys.stdout.write(json.dumps(self.info_dump, indent=2, cls=IntrospectionEncoder))
 
     def on_error(self) -> T.Tuple[AnsiDecorator, AnsiDecorator]:
         if self.skip_errors:
