@@ -369,6 +369,13 @@ class ArgumentNode(BaseNode):
             mlog.warning('This will be an error in Meson 2.0.')
         self.kwargs[name] = value
 
+    def get_kwarg_or_default(self, name: str, default: BaseNode) -> BaseNode:
+        for k, v in self.kwargs.items():
+            assert isinstance(k, IdNode)
+            if k.value == name:
+                return v
+        return default
+
     def set_kwarg_no_check(self, name: BaseNode, value: BaseNode) -> None:
         self.kwargs[name] = value
 

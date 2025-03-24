@@ -19,20 +19,17 @@ from pathlib import Path, PurePath
 import sys
 import typing as T
 
-from . import build, mesonlib, options, coredata as cdata
-from .ast import IntrospectionInterpreter, BUILD_TARGET_FUNCTIONS, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
+from . import build, environment, mesonlib, options, coredata as cdata
+from .ast import IntrospectionInterpreter, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from .backend import backends
 from .dependencies import Dependency
-from . import environment
 from .interpreterbase import ObjectHolder, UnknownValue
 from .options import OptionKey
-from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
 
 if T.TYPE_CHECKING:
     import argparse
 
     from .interpreter import Interpreter
-    from .mparser import BaseNode
 
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')
@@ -169,35 +166,14 @@ def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
     else:
         return subdir
 
-def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
-    tlist: T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]] = []
-    root_dir = Path(intr.source_root)
-
-    def nodes_to_paths(node_list: T.List[BaseNode]) -> T.List[Path]:
-        res: T.List[Path] = []
-        for n in node_list:
-            args: T.List[BaseNode] = []
-            if isinstance(n, FunctionNode):
-                args = list(n.args.arguments)
-                if n.func_name.value in BUILD_TARGET_FUNCTIONS:
-                    args.pop(0)
-            elif isinstance(n, ArrayNode):
-                args = n.args.arguments
-            elif isinstance(n, ArgumentNode):
-                args = n.arguments
-            for j in args:
-                if isinstance(j, StringNode):
-                    assert isinstance(j.value, str)
-                    res += [Path(j.value)]
-                elif isinstance(j, str):
-                    res += [Path(j)]
-        res = [root_dir / i.subdir / x for x in res]
-        res = [x.resolve() for x in res]
-        return res
+def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, object]]:
+    tlist = []
+    root_dir = Path(intr.source_root).resolve()
 
     for i in intr.targets:
-        sources = nodes_to_paths(i.source_nodes)
-        extra_f = nodes_to_paths(i.extra_files)
+        sources = intr.nodes_to_pretty_filelist(root_dir, i.subdir, i.source_nodes)
+        extra_files = intr.nodes_to_pretty_filelist(root_dir, i.subdir, [i.extra_files] if i.extra_files else [])
+
         outdir = get_target_dir(intr.coredata, i.subdir)
 
         tlist += [{
@@ -212,11 +188,11 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
                 'machine': i.machine,
                 'compiler': [],
                 'parameters': [],
-                'sources': [str(x) for x in sources],
+                'sources': sources,
                 'generated_sources': []
             }],
             'depends': [],
-            'extra_files': [str(x) for x in extra_f],
+            'extra_files': extra_files,
             'subproject': None, # Subprojects are not supported
             'installed': i.installed
         }]
