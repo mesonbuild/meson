@@ -936,12 +936,18 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
             if 'windows' in out or env.machines[for_machine].is_windows():
                 # If we're in a MINGW context this actually will use a gnu style ld
                 try:
-                    linker = guess_win_linker(env, compiler, comp, version, for_machine)
+                    if 'embt.com' in out:
+                        linker = guess_win_linker(env, compiler, comp, version, for_machine, extra_args=['-q'])
+                    else:
+                        linker = guess_win_linker(env, compiler, comp, version, for_machine)
                 except MesonException:
                     pass
 
             if not linker:
-                linker = guess_nix_linker(env, compiler, comp, version, for_machine)
+                if 'embt.com' in out:
+                    linker = guess_nix_linker(env, compiler, comp, version, for_machine, extra_args=['-q'])
+                else:
+                    linker = guess_nix_linker(env, compiler, comp, version, for_machine)
             return comp(
                 ccache, compiler, version, for_machine,
                 is_cross, info, linker=linker, defines=defines)
