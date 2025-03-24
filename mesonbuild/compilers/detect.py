@@ -175,6 +175,11 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             suffix = compiler.version.split('.')[0]
             # Prefer suffixed llvm-ar first, then unsuffixed then the defaults
             trials = [[f'{llvm_ar[0]}-{suffix}'], llvm_ar] + default_linkers
+        elif compiler.id == 'bccclang' and compiler.info.is_windows():
+            if os.path.basename(compiler.get_exelist(False)[0]).lower().rsplit('.', 1)[0] == 'bcc64':
+                trials = [['tlib64']] + default_linkers
+            else:
+                trials = [['tlib']] + default_linkers
         elif compiler.language == 'd':
             # Prefer static linkers over linkers used by D compilers
             if is_windows():
@@ -225,6 +230,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return linkers.DLinker(linker, compiler.arch)
         if err.startswith('Renesas') and 'rlink' in linker_name:
             return linkers.CcrxLinker(linker)
+        if 'TLIB' in out:
+            return linkers.TlibLinker(linker, 'TLIB64' in out)
         if out.startswith('GNU ar') and 'xc16-ar' in linker_name:
             return linkers.Xc16Linker(linker)
         if 'Texas Instruments Incorporated' in out:
@@ -432,6 +439,18 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             linker = guess_win_linker(env, ['lld-link'], cls, version, for_machine)
             return cls(
                 compiler, version, for_machine, is_cross, info, target,
+                linker=linker)
+
+        if 'Embarcadero C++' in out and 'LLVM' in out:
+            version = search_version(out.split('\n', 1)[1])
+            if lang == 'c':
+                cls = c.BorlandClangCCompiler
+            elif lang == 'cpp':
+                cls = cpp.BorlandClangCPPCompiler
+
+            linker = guess_win_linker(env, compiler, cls, version, for_machine)
+            return cls(
+                ccache, compiler, version, for_machine, is_cross, info,
                 linker=linker)
 
         # must be detected here before clang because TI compilers contain 'clang' in their output and so that they can be detected as 'clang'
