@@ -456,15 +456,7 @@ class DCompiler(Compiler):
         if pc.returncode != 0:
             raise EnvironmentException('D compiler %s cannot compile programs.' % self.name_string())
 
-        if self.is_cross:
-            if not environment.has_exe_wrapper():
-                # Can't check if the binaries run so we have to assume they do
-                return
-            cmdlist = environment.exe_wrapper.get_command() + [output_name]
-        else:
-            cmdlist = [output_name]
-        if subprocess.call(cmdlist) != 0:
-            raise EnvironmentException('Executables created by D compiler %s are not runnable.' % self.name_string())
+        stdo, stde = self.run_sanity_check(environment, [output_name], work_dir)
 
     def needs_static_linker(self) -> bool:
         return True
