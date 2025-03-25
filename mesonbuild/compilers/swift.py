@@ -8,7 +8,7 @@ import subprocess, os.path
 import typing as T
 
 from .. import mlog, options
-from ..mesonlib import EnvironmentException, MesonException, version_compare
+from ..mesonlib import MesonException, version_compare
 from .compilers import Compiler, clike_debug_args
 
 
@@ -170,13 +170,7 @@ class SwiftCompiler(Compiler):
 ''')
         pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('Swift compiler %s cannot compile programs.' % self.name_string())
-        if self.is_cross:
-            # Can't check if the binaries run so we have to assume they do
-            return
-        if subprocess.call(output_name) != 0:
-            raise EnvironmentException('Executables created by Swift compiler %s are not runnable.' % self.name_string())
+        self.run_sanity_check(environment, [output_name], work_dir)
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]

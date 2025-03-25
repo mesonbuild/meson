@@ -1200,6 +1200,23 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         is good enough here.
         """
 
+    def run_sanity_check(self, environment: Environment, cmdlist: T.List[str], work_dir: str, use_exe_wrapper_for_cross: bool = True) -> T.Tuple[str, str]:
+        # Run sanity check
+        if self.is_cross and use_exe_wrapper_for_cross:
+            if not environment.has_exe_wrapper():
+                # Can't check if the binaries run so we have to assume they do
+                return ('', '')
+            cmdlist = environment.exe_wrapper.get_command() + cmdlist
+        mlog.debug('Running test binary command: ', mesonlib.join_args(cmdlist))
+        try:
+            pe, stdo, stde = Popen_safe_logged(cmdlist, 'Sanity check', cwd=work_dir)
+        except Exception as e:
+            raise mesonlib.EnvironmentException(f'Could not invoke sanity check executable: {e!s}.')
+
+        if pe.returncode != 0:
+            raise mesonlib.EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
+        return stdo, stde
+
     def split_shlib_to_parts(self, fname: str) -> T.Tuple[T.Optional[str], str]:
         return None, fname
 
