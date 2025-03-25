@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2021 Intel Corporation
+# Copyright © 2021-2024 Intel Corporation
 from __future__ import annotations
 
 """Abstraction for Cython language compilers."""
@@ -11,8 +11,9 @@ from ..mesonlib import EnvironmentException, version_compare
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
-    from ..coredata import MutableKeyedOptionDictType, KeyedOptionDictType
+    from ..coredata import MutableKeyedOptionDictType
     from ..environment import Environment
+    from ..build import BuildTarget
 
 
 class CythonCompiler(Compiler):
@@ -67,27 +68,32 @@ class CythonCompiler(Compiler):
         return new
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
-        return self.update_options(
-            super().get_options(),
-            self.create_option(options.UserComboOption,
-                               self.form_compileropt_key('version'),
-                               'Python version to target',
-                               ['2', '3'],
-                               '3'),
-            self.create_option(options.UserComboOption,
-                               self.form_compileropt_key('language'),
-                               'Output C or C++ files',
-                               ['c', 'cpp'],
-                               'c'),
-        )
+        opts = super().get_options()
 
-    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args: T.List[str] = []
         key = self.form_compileropt_key('version')
-        version = options.get_value(key)
-        args.append(f'-{version}')
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'Python version to target',
+            '3',
+            choices=['2', '3'])
+
         key = self.form_compileropt_key('language')
-        lang = options.get_value(key)
+        opts[key] = options.UserComboOption(
+            self.make_option_name(key),
+            'Output C or C++ files',
+            'c',
+            choices=['c', 'cpp'])
+
+        return opts
+
+    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        version = self.get_compileropt_value('version', env, target, subproject)
+        assert isinstance(version, str)
+        args.append(f'-{version}')
+
+        lang = self.get_compileropt_value('language', env, target, subproject)
+        assert isinstance(lang, str)
         if lang == 'cpp':
             args.append('--cplus')
         return args

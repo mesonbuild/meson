@@ -1,5 +1,0 @@
-queries:
-  - uses: ./.github/codeql/lgtm.qls
-
-paths-ignore:
-  - 'test cases'

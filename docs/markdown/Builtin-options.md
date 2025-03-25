@@ -98,6 +98,8 @@ machine](#specifying-options-per-machine) section for details.
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
 | vsenv                                  | false         | Activate Visual Studio environment                             | no             | no                |
 
+(For the Rust language only, `warning_level=0` disables all warnings).
+
 #### Details for `backend`
 
 Several build file formats are supported as command runners to build the
@@ -181,11 +183,16 @@ fails.
 
 #### Details for `default_both_libraries`
 
-Since `1.6.0`, you can select the default type of library selected when using
-a `both_libraries` object. This can be either 'shared' (default value, compatible
-with previous meson versions), 'static', or 'auto'. With auto, the value from
-`default_library` option is used, unless it is 'both', in which case 'shared'
-is used instead.
+Since `1.6.0`, you can specify the default type of library selected when using a
+`both_libraries` object with `default_both_libraries`. Note that, unlike
+`default_library`, this option does not affect how the library artifacts are
+built, but how they are internally linked to the dependent targets within the
+same project.
+
+The possible values of this option are 'shared' (default value, compatible with
+previous meson versions), 'static', and 'auto'. With auto, the value from the
+`default_library` option is used, unless it is 'both', in which case 'shared' is
+used instead.
 
 When `default_both_libraries` is 'auto', passing a [[@both_libs]] dependency
 in [[both_libraries]] will link the static dependency with the static lib,
@@ -224,10 +231,20 @@ available on all platforms or with all compilers:
 | b_pie               | false                | true, false                                                   | Build position-independent executables (since 0.49.0)                          |
 | b_vscrt             | from_buildtype       | none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0)  |
 
-The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
-`undefined`, `memory`, `leak`, `address,undefined`, but note that some
-compilers might not support all of them. For example Visual Studio
-only supports the address sanitizer.
+The default and possible values of sanitizers changed in 1.8. Before 1.8 they
+were string values, and restricted to a specific subset of values: `none`,
+`address`, `thread`, `undefined`, `memory`, `leak`, or `address,undefined`. In
+1.8 it was changed to a free form array of sanitizers, which are checked by a
+compiler and linker check. For backwards compatibility reasons
+`get_option('b_sanitize')` continues to return a string with the array values
+separated by a comma. Furthermore:
+
+ - If the `b_sanitize` option is empty, the `'none'` string is returned.
+
+ - If it contains only the values `'address'` and `'undefined'`, they are
+   always returned as the `'address,undefined'` string, in this order.
+
+ - Otherwise, the array elements are returned in undefined order.
 
 \* < 0 means disable, == 0 means automatic selection, > 0 sets a specific number to use
 
@@ -255,8 +272,7 @@ with `b_asneeded`, so that option will be silently disabled.
 
 [[shared_module]]s will not have
 bitcode embedded because `-Wl,-bitcode_bundle` is incompatible with
-both `-bundle` and `-Wl,-undefined,dynamic_lookup` which are necessary
-for shared modules to work.
+`-Wl,-undefined,dynamic_lookup` which is necessary for shared modules to work.
 
 ## Compiler options
 
@@ -271,7 +287,7 @@ or compiler being used:
 | ------           | ------------- | ---------------                          | ----------- |
 | c_args           |               | free-form comma-separated list           | C compile arguments to use |
 | c_link_args      |               | free-form comma-separated list           | C link arguments to use |
-| c_std            | none          | none, c89, c99, c11, c17, c18, c2x, c23, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x, gnu23 | C language standard to use |
+| c_std            | none          | none, c89, c99, c11, c17, c18, c2x, c23, c2y, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x, gnu23, gnu2y | C language standard to use |
 | c_winlibs        | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 | c_thread_count   | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
 | cpp_args         |               | free-form comma-separated list           | C++ compile arguments to use |

@@ -6,7 +6,7 @@ if not dub_exe.found()
 endif
 
 dub_ver = dub_exe.version()
-if dub_ver.version_compare('>1.31.1') and dub_ver.version_compare('<1.35.0')
+if dub_ver.version_compare('>1.31.1', '<1.35.0')
   error('MESON_SKIP_TEST: Incompatible Dub version ' + dub_ver)
 endif
 
@@ -17,7 +17,7 @@ test('test urld', test_exe)
 
 # If you want meson to generate/update a dub.json file
 dlang = import('dlang')
-dlang.generate_dub_file(meson.project_name().to_lower(), meson.source_root(),
+dlang.generate_dub_file(meson.project_name().to_lower(), meson.build_root(),
                         authors: 'Meson Team',
                         description: 'Test executable',
                         copyright: 'Copyright © 2018, Meson Team',

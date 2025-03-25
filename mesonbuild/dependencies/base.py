@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2018 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
@@ -111,7 +111,7 @@ class Dependency(HoldableObject):
         # This allows two Dependencies to be compared even after being copied.
         # The purpose is to allow the name to be changed, but still have a proper comparison
         self._id = uuid.uuid4().int
-        self.name = f'dep{id(self)}'
+        self.name = f'dep{self._id}'
         self.version:  T.Optional[str] = None
         self.language: T.Optional[str] = None # None means C-like
         self.is_found = False
@@ -278,7 +278,8 @@ class InternalDependency(Dependency):
                  extra_files: T.Sequence[mesonlib.File],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, str],
                  d_module_versions: T.List[T.Union[str, int]], d_import_dirs: T.List['IncludeDirs'],
-                 objects: T.List['ExtractedObjects']):
+                 objects: T.List['ExtractedObjects'],
+                 name: T.Optional[str] = None):
         super().__init__(DependencyTypeName('internal'), {})
         self.version = version
         self.is_found = True
@@ -296,6 +297,8 @@ class InternalDependency(Dependency):
             self.d_features['versions'] = d_module_versions
         if d_import_dirs:
             self.d_features['import_dirs'] = d_import_dirs
+        if name:
+            self.name = name
 
     def __deepcopy__(self, memo: T.Dict[int, 'InternalDependency']) -> 'InternalDependency':
         result = self.__class__.__new__(self.__class__)
@@ -335,7 +338,7 @@ class InternalDependency(Dependency):
         return InternalDependency(
             self.version, final_includes, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
-            final_sources, final_extra_files, final_deps, self.variables, [], [], [])
+            final_sources, final_extra_files, final_deps, self.variables, [], [], [], self.name)
 
     def get_include_dirs(self) -> T.List['IncludeDirs']:
         return self.include_directories
@@ -368,14 +371,14 @@ class InternalDependency(Dependency):
 
     def get_as_static(self, recursive: bool) -> InternalDependency:
         new_dep = copy.copy(self)
-        new_dep.libraries = [lib.get('static') for lib in self.libraries]
+        new_dep.libraries = [lib.get('static', recursive) for lib in self.libraries]
         if recursive:
             new_dep.ext_deps = [dep.get_as_static(True) for dep in self.ext_deps]
         return new_dep
 
     def get_as_shared(self, recursive: bool) -> InternalDependency:
         new_dep = copy.copy(self)
-        new_dep.libraries = [lib.get('shared') for lib in self.libraries]
+        new_dep.libraries = [lib.get('shared', recursive) for lib in self.libraries]
         if recursive:
             new_dep.ext_deps = [dep.get_as_shared(True) for dep in self.ext_deps]
         return new_dep
@@ -400,7 +403,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         self.version_reqs: T.Optional[T.List[str]] = version_reqs
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
-        self.static = kwargs.get('static', self.env.coredata.get_option(OptionKey('prefer_static')))
+        self.static = kwargs.get('static', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')

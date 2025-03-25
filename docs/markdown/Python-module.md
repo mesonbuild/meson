@@ -87,10 +87,22 @@ added methods.
 str py_installation.path()
 ```
 
-*Added 0.50.0*
+*(since 0.50.0)*
 
-Works like the path method of other `ExternalProgram` objects. Was not
-provided prior to 0.50.0 due to a bug.
+*Deprecated in 0.55: use `full_path()` instead*
+
+Works like the path method of `ExternalProgram` objects. Was not provided prior
+to 0.50.0 due to a bug.
+
+#### `full_path()`
+
+```meson
+str py_installation.full_path()
+```
+
+*(since 0.55.0)*
+
+Works like the `full_path()` method of `ExternalProgram` objects: [[external_program.full_path]]
 
 #### `extension_module()`
 

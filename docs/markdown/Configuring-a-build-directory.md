@@ -61,7 +61,7 @@ a sample output for a simple project.
       ------        ------------- ---------------                                                                                               -----------
       c_args        []                                                                                                                          Extra arguments passed to the C compiler
       c_link_args   []                                                                                                                          Extra arguments passed to the C linker
-      c_std         c99           [none, c89, c99, c11, c17, c18, c2x, c23, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x, gnu23]                                C language standard to use
+      c_std         c99           [none, c89, c99, c11, c17, c18, c2x, c23, c2y, gnu89, gnu99, gnu11, gnu17, gnu18, gnu2x, gnu23, gnu2y]                                C language standard to use
       cpp_args      []                                                                                                                          Extra arguments passed to the C++ compiler
       cpp_debugstl  false         [true, false]                                                                                                 STL debug mode
       cpp_link_args []                                                                                                                          Extra arguments passed to the C++ linker
@@ -119,3 +119,40 @@ by invoking [`meson configure`](Commands.md#configure) with the
 project source directory or the path to the root `meson.build`. In
 this case, Meson will print the default values of all options similar
 to the example output from above.
+
+## Per project subproject options rewrite (Since 1.8)
+
+A common requirement when building large projects with many
+subprojects is to build some (or all) subprojects with project options
+that are different from the "main project". This has been sort of
+possible in a limited way but is now natively supported. Per project
+options can be added, changed and removed at runtime using the command
+line, in other words, without editing existing `meson.build` files.
+
+Starting with version 1.8 you can specify per-project option settings.
+These can be specified for every top level (i.e. not project) options.
+Suppose you have a project that has a single subproject called
+`numbercruncher` that does heavy computation. During development you
+want to build that subproject with optimizations enabled but your main
+project without optimizations. This can be done by specifying a custom
+value to the given subproject:
+
+    meson configure -Dnumbercruncher:optimization=3
+
+Another case might be that you want to build with warnings as errors,
+but some subproject does not support it. To configure `werror` per
+subproject you can do:
+
+    meson configure -Dwerror=true -Dnaughty:werror=false
+
+You can also specify a different value on the top level project. For
+example you could enable optimizations on all subprojects but not the
+top level project:
+
+    meson configure -Doptimization=2 -D:optimization=0
+
+Note the colon after the second `D`.
+
+Subproject specific values can be removed with -U
+
+    meson configure -Usubproject:optionnname

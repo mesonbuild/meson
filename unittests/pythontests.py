@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
 
-import glob, os, pathlib, shutil, subprocess, unittest
+import glob, os, pathlib, shutil, subprocess, sys, unittest
 
 from run_tests import (
     Backend
@@ -64,7 +64,12 @@ python = pymod.find_installation('python3', required: true)
             for file in files:
                 realfile = os.path.join(root, file)
                 if file.endswith('.py'):
-                    cached = glob.glob(realfile+'?') + glob.glob(os.path.join(root, '__pycache__', os.path.splitext(file)[0] + '*.pyc'))
+                    # FIXME: relpath must be adjusted for windows path behaviour
+                    if getattr(sys, "pycache_prefix", None) is not None:
+                        root = os.path.join(sys.pycache_prefix, os.path.relpath(root, '/'))
+                    else:
+                        root = os.path.join(root, '__pycache__')
+                    cached = glob.glob(realfile+'?') + glob.glob(os.path.join(root, os.path.splitext(file)[0] + '*.pyc'))
                     if py2 and cc.get_id() == 'msvc':
                         # MSVC python installs python2/python3 into the same directory
                         self.assertLength(cached, 4)

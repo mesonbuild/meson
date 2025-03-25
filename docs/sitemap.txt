@@ -88,6 +88,7 @@ index.md
 		Wrap-best-practices-and-tips.md
 		Shipping-prebuilt-binaries-as-wraps.md
 	Release-notes.md
+		Release-notes-for-1.7.0.md
 		Release-notes-for-1.6.0.md
 		Release-notes-for-1.5.0.md
 		Release-notes-for-1.4.0.md
@@ -133,6 +134,7 @@ index.md
 		Contact-information.md
 		Continuous-Integration.md
 		Design-rationale.md
+		Donating.md
 		IndepthTutorial.md
 		In-the-press.md
 		Mixing-build-systems.md
@@ -146,5 +148,6 @@ index.md
 	Contributing.md
 		Yaml-RefMan.md
 		MesonCI.md
+	Releasing.md
 	legal.md
 	Videos.md

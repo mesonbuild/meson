@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2021 The Meson development team
-# Copyright © 2021-2024 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 from __future__ import annotations
 
 import collections
@@ -11,7 +11,6 @@ import itertools
 import typing as T
 
 from .. import build
-from .. import coredata
 from .. import dependencies
 from .. import options
 from .. import mesonlib
@@ -270,10 +269,9 @@ class CompilerHolder(ObjectHolder['Compiler']):
             for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
         if not kwargs['no_builtin_args']:
-            opts = coredata.OptionsView(self.environment.coredata.optstore, self.subproject)
-            args += self.compiler.get_option_compile_args(opts)
+            args += self.compiler.get_option_compile_args(None, self.interpreter.environment, self.subproject)
             if mode is CompileCheckMode.LINK:
-                args.extend(self.compiler.get_option_link_args(opts))
+                args.extend(self.compiler.get_option_link_args(None, self.interpreter.environment, self.subproject))
         if kwargs.get('werror', False):
             args.extend(self.compiler.get_werror_args())
         args.extend(kwargs['args'])
@@ -587,7 +585,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
                     compiler = clist[SUFFIX_TO_LANG[suffix]]
 
         extra_args = functools.partial(self._determine_args, kwargs)
-        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False)
+        deps, msg = self._determine_dependencies(kwargs['dependencies'], compile_only=False, endl=None)
         result, cached = self.compiler.links(code, self.environment,
                                              compiler=compiler,
                                              extra_args=extra_args,
@@ -718,7 +716,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
 
         search_dirs = extract_search_dirs(kwargs)
 
-        prefer_static = self.environment.coredata.get_option(OptionKey('prefer_static'))
+        prefer_static = self.environment.coredata.optstore.get_value_for(OptionKey('prefer_static'))
         if kwargs['static'] is True:
             libtype = mesonlib.LibType.STATIC
         elif kwargs['static'] is False:

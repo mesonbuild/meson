@@ -30,8 +30,6 @@ from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
 
 if T.TYPE_CHECKING:
     import argparse
-    from typing import Any
-    from .options import UserOption
 
     from .interpreter import Interpreter
     from .mparser import BaseNode
@@ -166,7 +164,7 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
     return plan
 
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
-    if coredata.get_option(OptionKey('layout')) == 'flat':
+    if coredata.optstore.get_value_for(OptionKey('layout')) == 'flat':
         return 'meson-out'
     else:
         return subdir
@@ -211,6 +209,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
             'build_by_default': i['build_by_default'],
             'target_sources': [{
                 'language': 'unknown',
+                'machine': i['machine'],
                 'compiler': [],
                 'parameters': [],
                 'sources': [str(x) for x in sources],
@@ -305,7 +304,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
                 for s in subprojects:
                     core_options[k.evolve(subproject=s)] = v
 
-    def add_keys(opts: 'T.Union[dict[OptionKey, UserOption[Any]], cdata.KeyedOptionDictType]', section: str) -> None:
+    def add_keys(opts: T.Union[cdata.MutableKeyedOptionDictType, options.OptionStore], section: str) -> None:
         for key, opt in sorted(opts.items()):
             optdict = {'name': str(key), 'value': opt.value, 'section': section,
                        'machine': key.machine.get_lower_case_name() if coredata.is_per_machine_option(key) else 'any'}
@@ -314,16 +313,17 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
             elif isinstance(opt, options.UserBooleanOption):
                 typestr = 'boolean'
             elif isinstance(opt, options.UserComboOption):
-                optdict['choices'] = opt.choices
+                optdict['choices'] = opt.printable_choices()
                 typestr = 'combo'
-            elif isinstance(opt, options.UserIntegerOption):
+            elif isinstance(opt, (options.UserIntegerOption, options.UserUmaskOption)):
                 typestr = 'integer'
-            elif isinstance(opt, options.UserArrayOption):
+            elif isinstance(opt, options.UserStringArrayOption):
                 typestr = 'array'
-                if opt.choices:
-                    optdict['choices'] = opt.choices
+                c = opt.printable_choices()
+                if c:
+                    optdict['choices'] = c
             else:
-                raise RuntimeError("Unknown option type")
+                raise RuntimeError('Unknown option type: ', repr(type(opt)))
             optdict['type'] = typestr
             optdict['description'] = opt.description
             optlist.append(optdict)
@@ -336,7 +336,15 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
         'compiler',
     )
     add_keys(dir_options, 'directory')
-    add_keys({k: v for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
+
+    def project_option_key_to_introname(key: OptionKey) -> OptionKey:
+        assert key.subproject is not None
+        if key.subproject == '':
+            return key.evolve(subproject=None)
+        return key
+
+    add_keys({project_option_key_to_introname(k): v
+              for k, v in coredata.optstore.items() if coredata.optstore.is_project_option(k)}, 'user')
     add_keys(test_options, 'test')
     return optlist
 

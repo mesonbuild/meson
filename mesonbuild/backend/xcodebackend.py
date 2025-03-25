@@ -230,7 +230,7 @@ class XCodeBackend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
-        self.buildtype = T.cast('str', self.environment.coredata.get_option(OptionKey('buildtype')))
+        self.buildtype = T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype')))
         self.project_conflist = self.gen_id()
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
@@ -272,7 +272,7 @@ class XCodeBackend(backends.Backend):
 
     @functools.lru_cache(maxsize=None)
     def get_target_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
-        dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.get_option(OptionKey('buildtype'))))
+        dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
         #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -1686,9 +1686,8 @@ class XCodeBackend(backends.Backend):
                 if compiler is None:
                     continue
                 # Start with warning args
-                warn_args = compiler.get_warn_args(target.get_option(OptionKey('warning_level')))
-                copt_proxy = target.get_options()
-                std_args = compiler.get_option_compile_args(copt_proxy)
+                warn_args = compiler.get_warn_args(self.get_target_option(target, 'warning_level'))
+                std_args = compiler.get_option_compile_args(target, self.environment, target.subproject)
                 # Add compile args added using add_project_arguments()
                 pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
                 # Add compile args added using add_global_arguments()
@@ -1703,12 +1702,12 @@ class XCodeBackend(backends.Backend):
                     for d in swift_dep_dirs:
                         args += compiler.get_include_args(d, False)
                 if args:
-                    lang_cargs = cargs
+                    cti_args = []
                     if compiler and target.implicit_include_directories:
                         # It is unclear what is the cwd when xcode runs. -I. does not seem to
                         # add the root build dir to the search path. So add an absolute path instead.
                         # This may break reproducible builds, in which case patches are welcome.
-                        lang_cargs += self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
+                        cti_args = self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
                     # Xcode cannot handle separate compilation flags for C and ObjectiveC. They are both
                     # put in OTHER_CFLAGS. Same with C++ and ObjectiveC++.
                     if lang == 'objc':
@@ -1716,12 +1715,9 @@ class XCodeBackend(backends.Backend):
                     elif lang == 'objcpp':
                         lang = 'cpp'
                     langname = LANGNAMEMAP[lang]
-                    if langname in langargs:
-                        langargs[langname] += args
-                    else:
-                        langargs[langname] = args
-                    langargs[langname] += lang_cargs
-            symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
+                    langargs.setdefault(langname, [])
+                    langargs[langname] = cargs + cti_args + args
+            symroot = os.path.join(self.environment.get_build_dir(), target.subdir).rstrip('/')
             bt_dict = PbxDict()
             objects_dict.add_item(valid, bt_dict, buildtype)
             bt_dict.add_item('isa', 'XCBuildConfiguration')
@@ -1739,9 +1735,9 @@ class XCodeBackend(backends.Backend):
             if target.suffix:
                 suffix = '.' + target.suffix
                 settings_dict.add_item('EXECUTABLE_SUFFIX', suffix)
-            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[target.get_option(OptionKey('debug'))])
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[self.get_target_option(target, 'debug')])
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            opt_flag = OPT2XCODEOPT[target.get_option(OptionKey('optimization'))]
+            opt_flag = OPT2XCODEOPT[self.get_target_option(target, 'optimization')]
             if opt_flag is not None:
                 settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', opt_flag)
             if target.has_pch:
@@ -1759,19 +1755,12 @@ class XCodeBackend(backends.Backend):
                     settings_dict.add_item('GCC_PREFIX_HEADER', f'$(PROJECT_DIR)/{relative_pch_path}')
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
-            header_arr = PbxArray()
-            unquoted_headers = []
-            unquoted_headers.append(self.get_target_private_dir_abs(target))
+            unquoted_headers = [self.get_target_private_dir_abs(target)]
             if target.implicit_include_directories:
                 unquoted_headers.append(os.path.join(self.environment.get_build_dir(), target.get_subdir()))
                 unquoted_headers.append(os.path.join(self.environment.get_source_dir(), target.get_subdir()))
-            if headerdirs:
-                for i in headerdirs:
-                    i = os.path.normpath(i)
-                    unquoted_headers.append(i)
-            for i in unquoted_headers:
-                header_arr.add_item(f'"{i}"')
-            settings_dict.add_item('HEADER_SEARCH_PATHS', header_arr)
+            unquoted_headers += headerdirs
+            settings_dict.add_item('HEADER_SEARCH_PATHS', self.normalize_header_search_paths(unquoted_headers))
             settings_dict.add_item('INSTALL_PATH', install_path)
             settings_dict.add_item('LIBRARY_SEARCH_PATHS', '')
             if isinstance(target, build.SharedModule):
@@ -1798,6 +1787,15 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('WARNING_CFLAGS', warn_array)
             warn_array.add_item('"$(inherited)"')
             bt_dict.add_item('name', buildtype)
+
+    def normalize_header_search_paths(self, header_dirs) -> PbxArray:
+        header_arr = PbxArray()
+        for i in header_dirs:
+            np = os.path.normpath(i)
+            # Make sure Xcode will not split single path into separate entries, escaping space with a slash is not enough
+            item = f'"\\\"{np}\\\""' if ' ' in np else f'"{np}"'
+            header_arr.add_item(item)
+        return header_arr
 
     def add_otherargs(self, settings_dict, langargs):
         for langname, args in langargs.items():

@@ -98,6 +98,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
         'cython': detect_cython_compiler,
         'nasm': detect_nasm_compiler,
         'masm': detect_masm_compiler,
+        'linearasm': detect_linearasm_compiler,
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
@@ -240,6 +241,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
                 return linkers.MetrowerksStaticLinkerARM(linker)
             else:
                 return linkers.MetrowerksStaticLinkerEmbeddedPowerPC(linker)
+        if 'TASKING VX-toolset' in err:
+            return linkers.TaskingStaticLinker(linker)
         if p.returncode == 0:
             return linkers.ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('usage'): # OSX
@@ -605,6 +608,23 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             return cls(
                 ccache, compiler, compiler_version, for_machine, is_cross, info,
                 full_version=full_version, linker=linker)
+        if 'TASKING VX-toolset' in err:
+            cls = c.TaskingCCompiler
+            lnk = linkers.TaskingLinker
+
+            tasking_ver_match = re.search(r'v([0-9]+)\.([0-9]+)r([0-9]+) Build ([0-9]+)', err)
+            assert tasking_ver_match is not None, 'for mypy'
+            tasking_version = '.'.join(x for x in tasking_ver_match.groups() if x is not None)
+
+            env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+            ld = env.lookup_binary_entry(for_machine, cls.language + '_ld')
+            if ld is None:
+                raise MesonException(f'{cls.language}_ld was not properly defined in your cross file')
+
+            linker = lnk(ld, for_machine, version=tasking_version)
+            return cls(
+                ccache, compiler, tasking_version, for_machine, is_cross, info,
+                full_version=full_version, linker=linker)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException(f'Unknown compiler {compilers}')
@@ -877,9 +897,13 @@ def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: 
             version = _get_gnu_version_from_defines(defines)
             comp = objc.GnuObjCCompiler if lang == 'objc' else objcpp.GnuObjCPPCompiler
             linker = guess_nix_linker(env, compiler, comp, version, for_machine)
-            return comp(
+            c = comp(
                 ccache, compiler, version, for_machine, is_cross, info,
                 defines, linker=linker)
+            if not c.compiles('int main(void) { return 0; }', env)[0]:
+                popen_exceptions[join_args(compiler)] = f'GCC was not built with support for {"objective-c" if lang == "objc" else "objective-c++"}'
+                continue
+            return c
         if 'clang' in out:
             linker = None
             defines = _get_clang_compiler_defines(compiler, lang)
@@ -1023,7 +1047,11 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             popen_exceptions[join_args(compiler + arg)] = e
             continue
 
-        version = search_version(out)
+        # Full version contains the "-nightly" or "-beta" suffixes, but version
+        # should just be X.Y.Z
+        full_version = search_version(out)
+        version = full_version.split('-', 1)[0]
+
         cls: T.Type[RustCompiler] = rust.RustCompiler
 
         # Clippy is a wrapper around rustc, but it doesn't have rustc in its
@@ -1039,9 +1067,14 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             except OSError as e:
                 popen_exceptions[join_args(compiler + arg)] = e
                 continue
-            version = search_version(out)
+            full_version = search_version(out)
+            version = full_version.split('-', 1)[0]
 
             cls = rust.ClippyRustCompiler
+            mlog.deprecation(
+                'clippy-driver is not intended as a general purpose compiler. '
+                'You can use "ninja clippy" in order to run clippy on a '
+                'meson project.')
 
         if 'rustc' in out:
             # On Linux and mac rustc will invoke gcc (clang for mac
@@ -1115,7 +1148,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
             return cls(
                 compiler, version, for_machine, is_cross, info,
-                linker=linker)
+                linker=linker, full_version=full_version)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
@@ -1158,7 +1191,11 @@ def detect_d_compiler(env: 'Environment', for_machine: MachineChoice) -> Compile
         version = search_version(out)
         full_version = out.split('\n', 1)[0]
 
-        if 'LLVM D compiler' in out:
+        # The OpenD fork should stay close enough to upstream D (in
+        # the areas that interest us) to allow supporting them both
+        # without much hassle.
+        # See: https://github.com/orgs/opendlang/discussions/56
+        if 'LLVM D compiler' in out or 'LLVM Open D compiler' in out:
             cls = d.LLVMDCompiler
             # LDC seems to require a file
             # We cannot use NamedTemporaryFile on windows, its documented
@@ -1341,6 +1378,26 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         arg = '-h'
     else:
         raise EnvironmentException(f'Platform {info.cpu_family} not supported by MASM')
+
+    popen_exceptions: T.Dict[str, Exception] = {}
+    try:
+        output = Popen_safe(comp + [arg])[2]
+        version = search_version(output)
+        env.coredata.add_lang_args(comp_class.language, comp_class, for_machine, env)
+        return comp_class([], comp, version, for_machine, info, cc.linker, is_cross=is_cross)
+    except OSError as e:
+        popen_exceptions[' '.join(comp + [arg])] = e
+    _handle_exceptions(popen_exceptions, [comp])
+    raise EnvironmentException('Unreachable code (exception to make mypy happy)')
+
+def detect_linearasm_compiler(env: Environment, for_machine: MachineChoice) -> Compiler:
+    from .asm import TILinearAsmCompiler
+    comp = ['cl6x']
+    comp_class: T.Type[Compiler] = TILinearAsmCompiler
+    arg = '-h'
+    info = env.machines[for_machine]
+    cc = detect_c_compiler(env, for_machine)
+    is_cross = env.is_cross_build(for_machine)
 
     popen_exceptions: T.Dict[str, Exception] = {}
     try:

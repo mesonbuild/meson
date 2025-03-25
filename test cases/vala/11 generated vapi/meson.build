@@ -1,5 +1,9 @@
 project('vapi-test', ['c', 'vala'])
 
+if host_machine.system() == 'cygwin'
+  error('MESON_SKIP_TEST Does not work with the Vala currently packaged in cygwin')
+endif
+
 gnome = import('gnome')
 subdir('libfoo')
 subdir('libbar')

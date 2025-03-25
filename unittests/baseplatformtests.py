@@ -42,7 +42,6 @@ from run_tests import (
 # e.g. for assertXXX helpers.
 __unittest = True
 
-@mock.patch.dict(os.environ)
 class BasePlatformTests(TestCase):
     prefix = '/usr'
     libdir = 'lib'
@@ -87,8 +86,17 @@ class BasePlatformTests(TestCase):
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
             cls.no_rebuild_stdout = [f'UNKNOWN BACKEND {cls.backend.name!r}']
+
+        cls.env_patch = mock.patch.dict(os.environ)
+        cls.env_patch.start()
+
         os.environ['COLUMNS'] = '80'
         os.environ['PYTHONIOENCODING'] = 'utf8'
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        super().tearDownClass()
+        cls.env_patch.stop()
 
     def setUp(self):
         super().setUp()
@@ -112,18 +120,6 @@ class BasePlatformTests(TestCase):
         # Keep builddirs inside the source tree so that virus scanners
         # don't complain
         newdir = tempfile.mkdtemp(dir=os.getcwd())
-        # In case the directory is inside a symlinked directory, find the real
-        # path otherwise we might not find the srcdir from inside the builddir.
-        newdir = os.path.realpath(newdir)
-        self.change_builddir(newdir)
-
-    def new_builddir_in_tempdir(self):
-        # Can't keep the builddir inside the source tree for the umask tests:
-        # https://github.com/mesonbuild/meson/pull/5546#issuecomment-509666523
-        # And we can't do this for all tests because it causes the path to be
-        # a short-path which breaks other tests:
-        # https://github.com/mesonbuild/meson/pull/9497
-        newdir = tempfile.mkdtemp()
         # In case the directory is inside a symlinked directory, find the real
         # path otherwise we might not find the srcdir from inside the builddir.
         newdir = os.path.realpath(newdir)
@@ -291,6 +287,8 @@ class BasePlatformTests(TestCase):
         else:
             arg = list(arg)
         self._run(self.mconf_command + arg + [self.builddir])
+        if will_build:
+            self.build()
 
     def getconf(self, optname: str):
         opts = self.introspect('--buildoptions')

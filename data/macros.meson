@@ -45,3 +45,11 @@
         --num-processes %{_smp_build_ncpus} \
         --print-errorlogs \
         %{nil}}
+
+# Declarative buildsystem, requires RPM 4.20+ to work
+# https://rpm-software-management.github.io/rpm/manual/buildsystem.html
+%buildsystem_meson_conf() %meson %*
+%buildsystem_meson_generate_buildrequires() %{nil}
+%buildsystem_meson_build() %meson_build %*
+%buildsystem_meson_install() %meson_install %*
+%buildsystem_meson_check() %meson_test %*

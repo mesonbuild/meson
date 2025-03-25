@@ -17,6 +17,7 @@ import os
 import shutil
 import collections
 import urllib.parse
+import itertools
 import typing as T
 
 from . import builder
@@ -458,8 +459,9 @@ def _extra_deps_varname() -> str:
 
 
 class PackageState:
-    def __init__(self, manifest: Manifest) -> None:
+    def __init__(self, manifest: Manifest, downloaded: bool) -> None:
         self.manifest = manifest
+        self.downloaded = downloaded
         self.features: T.Set[str] = set()
         self.required_deps: T.Set[str] = set()
         self.optional_deps_features: T.Dict[str, T.Set[str]] = collections.defaultdict(set)
@@ -519,7 +521,10 @@ class Interpreter:
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', meson_depname))
         manifest = self._load_manifest(subdir)
-        pkg = PackageState(manifest)
+        downloaded = \
+            meson_depname in self.environment.wrap_resolver.wraps and \
+            self.environment.wrap_resolver.wraps[meson_depname].type is not None
+        pkg = PackageState(manifest, downloaded)
         self.packages[key] = pkg
         # Fetch required dependencies recursively.
         for depname, dep in manifest.dependencies.items():
@@ -546,8 +551,13 @@ class Interpreter:
     def _add_dependency(self, pkg: PackageState, depname: str) -> None:
         if depname in pkg.required_deps:
             return
+        dep = pkg.manifest.dependencies.get(depname)
+        if not dep:
+            if depname in itertools.chain(pkg.manifest.dev_dependencies, pkg.manifest.build_dependencies):
+                # FIXME: Not supported yet
+                return
+            raise MesonException(f'Dependency {depname} not defined in {pkg.manifest.package.name} manifest')
         pkg.required_deps.add(depname)
-        dep = pkg.manifest.dependencies[depname]
         dep_pkg, _ = self._fetch_package(dep.package, dep.api)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
@@ -580,9 +590,10 @@ class Interpreter:
                         pkg.optional_deps_features[depname].add(dep_f)
                 else:
                     self._add_dependency(pkg, depname)
-                    dep = pkg.manifest.dependencies[depname]
-                    dep_pkg = self._dep_package(dep)
-                    self._enable_feature(dep_pkg, dep_f)
+                    dep = pkg.manifest.dependencies.get(depname)
+                    if dep:
+                        dep_pkg = self._dep_package(dep)
+                        self._enable_feature(dep_pkg, dep_f)
             elif f.startswith('dep:'):
                 self._add_dependency(pkg, f[4:])
             else:
@@ -595,6 +606,11 @@ class Interpreter:
         :param build: The AST builder
         :return: a list nodes
         """
+        default_options: T.List[mparser.BaseNode] = []
+        default_options.append(build.string(f'rust_std={pkg.manifest.package.edition}'))
+        if pkg.downloaded:
+            default_options.append(build.string('warning_level=0'))
+
         args: T.List[mparser.BaseNode] = []
         args.extend([
             build.string(pkg.manifest.package.name),
@@ -606,7 +622,7 @@ class Interpreter:
             # This will warn when when we generate deprecated code, which is helpful
             # for the upkeep of the module
             'meson_version': build.string(f'>= {coredata.stable_version}'),
-            'default_options': build.array([build.string(f'rust_std={pkg.manifest.package.edition}')]),
+            'default_options': build.array(default_options),
         }
         if pkg.manifest.package.license:
             kwargs['license'] = build.string(pkg.manifest.package.license)

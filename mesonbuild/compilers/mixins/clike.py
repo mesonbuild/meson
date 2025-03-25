@@ -53,9 +53,9 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
 
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
-    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
+    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,-rpath,', '-Wl,-rpath-link,')
     dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
-    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
+    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread', '-Wl,--export-dynamic')
 
     def to_native(self, copy: bool = False) -> T.List[str]:
         # This seems to be allowed, but could never work?
@@ -378,7 +378,7 @@ class CLikeCompiler(Compiler):
             try:
                 crt_val = env.coredata.optstore.get_value('b_vscrt')
                 buildtype = env.coredata.optstore.get_value('buildtype')
-                cargs += self.get_crt_compile_args(crt_val, buildtype)
+                cargs += self.get_crt_compile_args(crt_val, buildtype) # type: ignore[arg-type]
             except (KeyError, AttributeError):
                 pass
 
@@ -475,6 +475,21 @@ class CLikeCompiler(Compiler):
         if isinstance(guess, int):
             if self._compile_int(f'{expression} == {guess}', prefix, env, extra_args, dependencies):
                 return guess
+
+        # Try to expand the expression and evaluate it on the build machines compiler
+        if self.language in env.coredata.compilers.build:
+            try:
+                expanded, _ = self.get_define(expression, prefix, env, extra_args, dependencies, False)
+                evaluate_expanded = f'''
+                #include <stdio.h>
+                #include <stdint.h>
+                int main(void) {{ int expression = {expanded}; printf("%d", expression); return 0; }}'''
+                run = env.coredata.compilers.build[self.language].run(evaluate_expanded, env)
+                if run and run.compiled and run.returncode == 0:
+                    if self._compile_int(f'{expression} == {run.stdout}', prefix, env, extra_args, dependencies):
+                        return int(run.stdout)
+            except mesonlib.EnvironmentException:
+                pass
 
         # If no bounds are given, compute them in the limit of int32
         maxint = 0x7fffffff
@@ -1075,17 +1090,17 @@ class CLikeCompiler(Compiler):
         return sorted(filtered, key=tuple_key, reverse=True)
 
     @classmethod
-    def _get_trials_from_pattern(cls, pattern: str, directory: str, libname: str) -> T.List[Path]:
-        f = Path(directory) / pattern.format(libname)
+    def _get_trials_from_pattern(cls, pattern: str, directory: str, libname: str) -> T.List[str]:
+        f = os.path.join(directory, pattern.format(libname))
         # Globbing for OpenBSD
         if '*' in pattern:
             # NOTE: globbing matches directories and broken symlinks
             # so we have to do an isfile test on it later
-            return [Path(x) for x in cls._sort_shlibs_openbsd(glob.glob(str(f)))]
+            return cls._sort_shlibs_openbsd(glob.glob(f))
         return [f]
 
     @staticmethod
-    def _get_file_from_list(env: Environment, paths: T.List[Path]) -> T.Optional[Path]:
+    def _get_file_from_list(env: Environment, paths: T.List[str]) -> T.Optional[Path]:
         '''
         We just check whether the library exists. We can't do a link check
         because the library might have unresolved symbols that require other
@@ -1093,16 +1108,16 @@ class CLikeCompiler(Compiler):
         architecture.
         '''
         for p in paths:
-            if p.is_file():
+            if os.path.isfile(p):
 
                 if env.machines.host.is_darwin() and env.machines.build.is_darwin():
                     # Run `lipo` and check if the library supports the arch we want
-                    archs = mesonlib.darwin_get_object_archs(str(p))
+                    archs = mesonlib.darwin_get_object_archs(p)
                     if not archs or env.machines.host.cpu_family not in archs:
                         mlog.debug(f'Rejected {p}, supports {archs} but need {env.machines.host.cpu_family}')
                         continue
 
-                return p
+                return Path(p)
 
         return None
 
@@ -1270,10 +1285,16 @@ class CLikeCompiler(Compiler):
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
             # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
             # check the equivalent enable flag too "-Wforgotten-towel".
-            # Make an exception for -Wno-attributes=x as -Wattributes=x is invalid
-            # for GCC at least.
-            if arg.startswith('-Wno-') and not arg.startswith('-Wno-attributes='):
-                new_args.append('-W' + arg[5:])
+            if arg.startswith('-Wno-'):
+                # Make an exception for -Wno-attributes=x as -Wattributes=x is invalid
+                # for GCC at least.  Also, the opposite of -Wno-vla-larger-than is
+                # -Wvla-larger-than=N
+                if arg.startswith('-Wno-attributes='):
+                    pass
+                elif arg == '-Wno-vla-larger-than':
+                    new_args.append('-Wvla-larger-than=1000')
+                else:
+                    new_args.append('-W' + arg[5:])
             if arg.startswith('-Wl,'):
                 mlog.warning(f'{arg} looks like a linker argument, '
                              'but has_argument and other similar methods only '

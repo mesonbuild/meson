@@ -56,6 +56,9 @@ if cpp.get_id() == 'gcc' and cpp.version().version_compare('>=12.1.0')
   # Handle special -Wno-attributes=foo where -Wattributes=foo is invalid
   # i.e. our usual -Wno-foo -Wfoo hack doesn't work for -Wattributes=foo.
   assert(cpp.has_argument('-Wno-attributes=meson::i_do_not_exist'))
+  # Likewise, the positive counterpart to -Wno-vla-larger-than is
+  # -Wvla-larger-than=N
+  assert(cpp.has_argument('-Wno-vla-larger-than'))
 endif
 
 if cc.get_id() == 'clang' and cc.version().version_compare('<=4.0.0')

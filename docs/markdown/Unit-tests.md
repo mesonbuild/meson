@@ -83,15 +83,17 @@ possible.
 
 By default Meson uses as many concurrent processes as there are cores
 on the test machine. You can override this with the environment
-variable `MESON_TESTTHREADS` like this.
+variable `MESON_TESTTHREADS` or, *since 1.7.0*, `MESON_NUM_PROCESSES`:
 
 ```console
-$ MESON_TESTTHREADS=5 meson test
+$ MESON_NUM_PROCESSES=5 meson test
 ```
 
-Setting `MESON_TESTTHREADS` to 0 enables the default behavior (core
+Setting `MESON_NUM_PROCESSES` to 0 enables the default behavior (core
 count), whereas setting an invalid value results in setting the job
 count to 1.
+
+If both environment variables are present, `MESON_NUM_PROCESSES` prevails.
 
 ## Priorities
 
@@ -204,6 +206,11 @@ name(s), the test name(s) must be contained in the suite(s). This
 however is redundant-- it would be more useful to specify either
 specific test names or suite(s).
 
+Since version *1.8.0*, you can pass `--slice i/n` to split up the set of tests
+into `n` slices and execute the `ith` such slice. This allows you to distribute
+a set of long-running tests across multiple machines to decrease the overall
+runtime of tests.
+
 ### Other test options
 
 Sometimes you need to run the tests multiple times, which is done like this:
@@ -259,6 +266,11 @@ be specified *(added 0.52.0)*:
 $ meson test --gdb --gdb-path /path/to/gdb testname
 ```
 
+Meson can print the error logs produced by failing tests via the
+`--print-errorlogs` option. The logs can include stack traces and environmental
+variables. This is especially useful when you run the tests on GitHub, Travis,
+Jenkins and the like:
+
 ```console
 $ meson test --print-errorlogs
 ```
@@ -272,11 +284,6 @@ shell is spawned if it fails *(added 1.5.0)*:
 ```console
 $ meson test --interactive testname
 ```
-
-Meson will report the output produced by the failing tests along with
-other useful information as the environmental variables. This is
-useful, for example, when you run the tests on Travis-CI, Jenkins and
-the like.
 
 By default, the output from tests will be limited to the last 100 lines. The
 maximum number of lines to show can be configured with the `--max-lines` option

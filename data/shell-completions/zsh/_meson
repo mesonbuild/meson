@@ -215,9 +215,14 @@ local -a meson_commands=(
   local curcontext="$curcontext"
   local -a specs=(
     "$__meson_cd"
-    '--no-rebuild[Do not rebuild before installing]'
-    '--only-changed[Do not overwrite files that are older than the copied file]'
-    '(--quiet -q)'{'--quiet','-q'}'[Do not print every file that was installed]'
+    '--no-rebuild[do not rebuild before installing]'
+    '--only-changed[do not overwrite files that are older than the copied file]'
+    '(--quiet -q)'{'--quiet','-q'}'[do not print every file that was installed]'
+    '--destdir[set or override DESTDIR environment]: :_directories'
+    '(--dry-run -d)'{'--dry-run','-d'}'[do not actually install, only print logs]'
+    '--skip-subprojects[do not install files from given subprojects]: : '
+    '--tags[install only targets having one of the given tags]: :_values -s , tag devel runtime python-runtime man doc i18n typelib bin bin-devel tests systemtap'
+    '--strip[strip targets even if strip option was not set during configure]'
   )
 _arguments \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
@@ -251,7 +256,7 @@ _arguments \
     '(-n --name)'{'-n','--name'}'=[the name of the project (defaults to directory name)]'
     '(-e --executable)'{'-e','--executable'}'=[the name of the executable target to create (defaults to project name)]'
     '(-d --deps)'{'-d','--deps'}'=[comma separated list of dependencies]'
-    '(-l --language)'{'-l','--language'}'=[comma separated list of languages (autodetected based on sources if unset)]:languages:_values , (c cpp cs cuda d fortran java objc objcpp rust)'
+    '(-l --language)'{'-l','--language'}'=[comma separated list of languages (autodetected based on sources if unset)]:languages:_values -s , language c cpp cs cuda d fortran java objc objcpp rust'
     '(-b --build)'{'-b','--build'}'[build the project immediately after generation]'
     '--builddir=[directory for building]:directory:_directories'
     '(-f --force)'{'-f','--force'}'[overwrite any existing files and directories]'

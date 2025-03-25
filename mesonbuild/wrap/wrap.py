@@ -870,4 +870,4 @@ class Resolver:
                     except PermissionError:
                         os.chmod(dst_file, stat.S_IWUSR)
                         os.remove(dst_file)
-                shutil.copy2(src_file, dst_dir)
+                shutil.copy2(src_file, dst_dir, follow_symlinks=False)

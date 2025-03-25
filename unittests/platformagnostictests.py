@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2021 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
 import json
 import os
 import pickle
+import subprocess
 import tempfile
 import subprocess
 import textwrap
@@ -32,11 +33,11 @@ class PlatformAgnosticTests(BasePlatformTests):
         Tests that find_program() with a relative path does not find the program
         in current workdir.
         '''
-        testdir = os.path.join(self.unit_test_dir, '100 relative find program')
+        testdir = os.path.join(self.unit_test_dir, '101 relative find program')
         self.init(testdir, workdir=testdir)
 
     def test_invalid_option_names(self):
-        store = OptionStore()
+        store = OptionStore(False)
         interp = OptionInterpreter(store, '')
 
         def write_file(code: str):
@@ -70,14 +71,14 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_option_validation(self):
         """Test cases that are not catch by the optinterpreter itself."""
-        store = OptionStore()
+        store = OptionStore(False)
         interp = OptionInterpreter(store, '')
 
         def write_file(code: str):
             with tempfile.NamedTemporaryFile('w', dir=self.builddir, encoding='utf-8', delete=False) as f:
                 f.write(code)
                 return f.name
-        
+
         fname = write_file("option('intminmax', type: 'integer', value: 10, min: 0, max: 5)")
         self.assertRaisesRegex(MesonException, 'Value 10 for option "intminmax" is more than maximum value 5.',
                                interp.process, fname)
@@ -85,17 +86,17 @@ class PlatformAgnosticTests(BasePlatformTests):
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['one', 'four'])")
         self.assertRaisesRegex(MesonException, 'Value "four" for option "array" is not in allowed choices: "one, two, three"',
                                interp.process, fname)
-        
+
         fname = write_file("option('array', type: 'array', choices : ['one', 'two', 'three'], value : ['four', 'five', 'six'])")
         self.assertRaisesRegex(MesonException, 'Values "four, five, six" for option "array" are not in allowed choices: "one, two, three"',
                                interp.process, fname)
 
     def test_python_dependency_without_pkgconfig(self):
-        testdir = os.path.join(self.unit_test_dir, '102 python without pkgconfig')
+        testdir = os.path.join(self.unit_test_dir, '103 python without pkgconfig')
         self.init(testdir, override_envvars={'PKG_CONFIG': 'notfound'})
 
     def test_debug_function_outputs_to_meson_log(self):
-        testdir = os.path.join(self.unit_test_dir, '104 debug function')
+        testdir = os.path.join(self.unit_test_dir, '105 debug function')
         log_msg = 'This is an example debug output, should only end up in debug log'
         output = self.init(testdir)
 
@@ -107,7 +108,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn(log_msg, mesonlog)
 
     def test_new_subproject_reconfigure(self):
-        testdir = os.path.join(self.unit_test_dir, '108 new subproject on reconfigure')
+        testdir = os.path.join(self.unit_test_dir, '109 new subproject on reconfigure')
         self.init(testdir)
         self.build()
 
@@ -166,21 +167,25 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.init(testdir)
 
         # no-op change works
-        self.setconf(f'--backend=ninja')
-        self.init(testdir, extra_args=['--reconfigure', '--backend=ninja'])
+        with self.subTest('set the option to the same value'):
+            self.setconf('--backend=ninja')
+            self.init(testdir, extra_args=['--reconfigure', '--backend=ninja'])
 
         # Change backend option is not allowed
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.setconf('-Dbackend=none')
-        self.assertIn("ERROR: Tried modify read only option 'backend'", cm.exception.stdout)
+        with self.subTest('Changing the backend'):
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.setconf('-Dbackend=none')
+            self.assertIn("ERROR: Tried to modify read only option 'backend'", cm.exception.stdout)
 
-        # Reconfigure with a different backend is not allowed
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testdir, extra_args=['--reconfigure', '--backend=none'])
-        self.assertIn("ERROR: Tried modify read only option 'backend'", cm.exception.stdout)
+        # Check that the new value was not written in the store.
+        with self.subTest('option is stored correctly'):
+            self.assertEqual(self.getconf('backend'), 'ninja')
 
         # Wipe with a different backend is allowed
-        self.init(testdir, extra_args=['--wipe', '--backend=none'])
+        with self.subTest('Changing the backend with wipe'):
+            self.init(testdir, extra_args=['--wipe', '--backend=none'])
+
+            self.assertEqual(self.getconf('backend'), 'none')
 
     def test_validate_dirs(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
@@ -266,7 +271,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         thing to do as new features are added, but keeping track of them is
         good.
         '''
-        testdir = os.path.join(self.unit_test_dir, '116 empty project')
+        testdir = os.path.join(self.unit_test_dir, '117 empty project')
 
         self.init(testdir)
         self._run(self.meson_command + ['--internal', 'regenerate', '--profile-self', testdir, self.builddir])
@@ -281,7 +286,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_meson_package_cache_dir(self):
         # Copy testdir into temporary directory to not pollute meson source tree.
-        testdir = os.path.join(self.unit_test_dir, '118 meson package cache dir')
+        testdir = os.path.join(self.unit_test_dir, '119 meson package cache dir')
         srcdir = os.path.join(self.builddir, 'srctree')
         shutil.copytree(testdir, srcdir)
         builddir = os.path.join(srcdir, '_build')
@@ -290,7 +295,7 @@ class PlatformAgnosticTests(BasePlatformTests):
 
     def test_cmake_openssl_not_found_bug(self):
         """Issue #12098"""
-        testdir = os.path.join(self.unit_test_dir, '119 openssl cmake bug')
+        testdir = os.path.join(self.unit_test_dir, '120 openssl cmake bug')
         self.meson_native_files.append(os.path.join(testdir, 'nativefile.ini'))
         out = self.init(testdir, allow_fail=True)
         self.assertNotIn('Unhandled python exception', out)
@@ -325,7 +330,7 @@ class PlatformAgnosticTests(BasePlatformTests):
             ('a.txt', '{a,b,c}.txt', True),
             ('a.txt', '*.{txt,tex,cpp}', True),
             ('a.hpp', '*.{txt,tex,cpp}', False),
-            
+
             ('a1.txt', 'a{0..9}.txt', True),
             ('a001.txt', 'a{0..9}.txt', True),
             ('a-1.txt', 'a{-10..10}.txt', True),
@@ -375,14 +380,14 @@ class PlatformAgnosticTests(BasePlatformTests):
         for code in ('', '\n'):
             formatted = formatter.format(code, Path())
             self.assertEqual('\n', formatted)
-    
+
     def test_format_indent_comment_in_brackets(self) -> None:
         """Ensure comments in arrays and dicts are correctly indented"""
         formatter = Formatter(None, use_editor_config=False, fetch_subdirs=False)
         code = 'a = [\n    # comment\n]\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
-        
+
         code = 'a = [\n    # comment\n    1,\n]\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
@@ -390,7 +395,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         code = 'a = {\n    # comment\n}\n'
         formatted = formatter.format(code, Path())
         self.assertEqual(code, formatted)
-        
+
     def test_error_configuring_subdir(self):
         testdir = os.path.join(self.common_test_dir, '152 index customtarget')
         out = self.init(os.path.join(testdir, 'subdir'), allow_fail=True)
@@ -400,23 +405,29 @@ class PlatformAgnosticTests(BasePlatformTests):
         self.assertIn(f'Did you mean to run meson from the directory: "{testdir}"?', out)
 
     def test_reconfigure_base_options(self):
-        testdir = os.path.join(self.unit_test_dir, '122 reconfigure base options')
+        testdir = os.path.join(self.unit_test_dir, '123 reconfigure base options')
         out = self.init(testdir, extra_args=['-Db_ndebug=true'])
         self.assertIn('\nMessage: b_ndebug: true\n', out)
         self.assertIn('\nMessage: c_std: c89\n', out)
 
         out = self.init(testdir, extra_args=['--reconfigure', '-Db_ndebug=if-release', '-Dsub:b_ndebug=false', '-Dc_std=c99', '-Dsub:c_std=c11'])
-        self.assertIn('\nMessage: b_ndebug: if-release\n', out)
-        self.assertIn('\nMessage: c_std: c99\n', out)
-        self.assertIn('\nsub| Message: b_ndebug: false\n', out)
-        self.assertIn('\nsub| Message: c_std: c11\n', out)
+        self.assertIn('\n    b_ndebug    : if-release\n', out)
+        self.assertIn('\n    c_std       : c99\n', out)
+        self.assertIn('\n    sub:b_ndebug: false\n', out)
+        self.assertIn('\n    sub:c_std   : c11\n', out)
 
     def test_setup_with_unknown_option(self):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
 
-        for option in ('not_an_option', 'b_not_an_option'):
-            out = self.init(testdir, extra_args=['--wipe', f'-D{option}=1'], allow_fail=True)
-            self.assertIn(f'ERROR: Unknown options: "{option}"', out)
+        with self.subTest('unknown user option'):
+            out = self.init(testdir, extra_args=['-Dnot_an_option=1'], allow_fail=True)
+            self.assertIn('ERROR: Unknown options: "not_an_option"', out)
+
+        with self.subTest('unknown builtin option'):
+            self.new_builddir()
+            out = self.init(testdir, extra_args=['-Db_not_an_option=1'], allow_fail=True)
+            self.assertIn('ERROR: Unknown options: "b_not_an_option"', out)
+
 
     def test_configure_new_option(self) -> None:
         """Adding a new option without reconfiguring should work."""
@@ -440,7 +451,7 @@ class PlatformAgnosticTests(BasePlatformTests):
                 f.write(line)
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.setconf('-Dneg_int_opt=0')
-        self.assertIn('Unknown options: "neg_int_opt"', e.exception.stdout)
+        self.assertIn('Unknown options: ":neg_int_opt"', e.exception.stdout)
 
     def test_configure_option_changed_constraints(self) -> None:
         """Changing the constraints of an option without reconfiguring should work."""
@@ -480,7 +491,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         os.unlink(os.path.join(testdir, 'meson_options.txt'))
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.setconf('-Dneg_int_opt=0')
-        self.assertIn('Unknown options: "neg_int_opt"', e.exception.stdout)
+        self.assertIn('Unknown options: ":neg_int_opt"', e.exception.stdout)
 
     def test_configure_options_file_added(self) -> None:
         """A new project option file should be detected."""
@@ -508,3 +519,17 @@ class PlatformAgnosticTests(BasePlatformTests):
             f.write("option('new_option', type : 'boolean', value : false)")
         self.setconf('-Dsubproject:new_option=true')
         self.assertEqual(self.getconf('subproject:new_option'), True)
+
+    def test_mtest_rebuild_deps(self):
+        testdir = os.path.join(self.unit_test_dir, '107 underspecified mtest')
+        self.init(testdir)
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._run(self.mtest_command)
+        self.clean()
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._run(self.mtest_command + ['runner-without-dep'])
+        self.clean()
+
+        self._run(self.mtest_command + ['runner-with-exedep'])

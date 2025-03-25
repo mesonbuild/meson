@@ -13,6 +13,9 @@ from .mesonlib import EnvironmentException, HoldableObject
 from . import mlog
 from pathlib import Path
 
+if T.TYPE_CHECKING:
+    from .options import ElementaryOptionValues
+
 
 # These classes contains all the data pulled from configuration files (native
 # and cross file currently), and also assists with the reading environment
@@ -64,6 +67,7 @@ known_cpu_families = (
     'wasm64',
     'x86',
     'x86_64',
+    'tricore'
 )
 
 # It would feel more natural to call this "64_BIT_CPU_FAMILIES", but
@@ -152,7 +156,7 @@ class CMakeSkipCompilerTest(Enum):
 class Properties:
     def __init__(
             self,
-            properties: T.Optional[T.Dict[str, T.Optional[T.Union[str, bool, int, T.List[str]]]]] = None,
+            properties: T.Optional[T.Dict[str, ElementaryOptionValues]] = None,
     ):
         self.properties = properties or {}
 
@@ -269,7 +273,13 @@ class MachineInfo(HoldableObject):
         return f'<MachineInfo: {self.system} {self.cpu_family} ({self.cpu})>'
 
     @classmethod
-    def from_literal(cls, literal: T.Dict[str, str]) -> 'MachineInfo':
+    def from_literal(cls, raw: T.Dict[str, ElementaryOptionValues]) -> 'MachineInfo':
+        # We don't have enough type information to be sure of what we loaded
+        # So we need to accept that this might have ElementaryOptionValues, but
+        # then ensure that it's actually strings, since that's what the
+        # [*_machine] section should have.
+        assert all(isinstance(v, str) for v in raw.values()), 'for mypy'
+        literal = T.cast('T.Dict[str, str]', raw)
         minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
         if set(literal) < minimum_literal:
             raise EnvironmentException(
@@ -388,7 +398,7 @@ class BinaryTable:
 
     def __init__(
             self,
-            binaries: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
+            binaries: T.Optional[T.Mapping[str, ElementaryOptionValues]] = None,
     ):
         self.binaries: T.Dict[str, T.List[str]] = {}
         if binaries:
@@ -438,16 +448,19 @@ class BinaryTable:
 
     @classmethod
     def parse_entry(cls, entry: T.Union[str, T.List[str]]) -> T.Tuple[T.List[str], T.List[str]]:
-        compiler = mesonlib.stringlistify(entry)
+        parts = mesonlib.stringlistify(entry)
         # Ensure ccache exists and remove it if it doesn't
-        if compiler[0] == 'ccache':
-            compiler = compiler[1:]
+        if parts[0] == 'ccache':
+            compiler = parts[1:]
             ccache = cls.detect_ccache()
-        elif compiler[0] == 'sccache':
-            compiler = compiler[1:]
+        elif parts[0] == 'sccache':
+            compiler = parts[1:]
             ccache = cls.detect_sccache()
         else:
+            compiler = parts
             ccache = []
+        if not compiler:
+            raise EnvironmentException(f'Compiler cache specified without compiler: {parts[0]}')
         # Return value has to be a list of compiler 'choices'
         return compiler, ccache
 

@@ -207,7 +207,7 @@ def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str]:
     # var which is the list of library paths MSVC will search for import
     # libraries while linking.
     for lib in (['lib'], get_tool('llvm-lib')):
-        output, e = call_tool_nowarn(lib + ['-list', impfilename])
+        output, e = call_tool_nowarn(lib + ['-list', '-nologo', impfilename])
         if output:
             # The output is a list of DLLs that each symbol exported by the import
             # library is available in. We only build import libraries that point to
@@ -269,7 +269,10 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         # In case of cross builds just always relink. In theory we could
         # determine the correct toolset, but we would need to use the correct
         # `nm`, `readelf`, etc, from the cross info which requires refactoring.
-        dummy_syms(outfilename)
+        if cross_host == 'windows' and os.path.isfile(impfilename):
+            windows_syms(impfilename, outfilename)
+        else:
+            dummy_syms(outfilename)
     elif mesonlib.is_linux() or mesonlib.is_hurd():
         gnu_syms(libfilename, outfilename)
     elif mesonlib.is_osx():

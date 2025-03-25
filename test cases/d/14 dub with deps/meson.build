@@ -6,18 +6,15 @@ if not dub_exe.found()
 endif
 
 dub_ver = dub_exe.version()
-if dub_ver.version_compare('>1.31.1') and dub_ver.version_compare('<1.35.0')
+if dub_ver.version_compare('>1.31.1', '<1.35.0')
   error('MESON_SKIP_TEST: Incompatible Dub version')
 endif
 
 if meson.get_compiler('d').get_id() == 'gcc'
     error('MESON_SKIP_TEST: can\'t build dependencies with GDC')
-elif meson.get_compiler('d').get_id() == 'llvm'
-    dc = 'ldc2'
-elif meson.get_compiler('d').get_id() == 'dmd'
-    dc = 'dmd'
 endif
 
+dc = meson.get_compiler('d').cmd_array()[0]
 arch = host_machine.cpu_family()
 
 if host_machine.system() == 'windows'

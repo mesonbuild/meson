@@ -7,6 +7,7 @@ from ..mesonlib import EnvironmentException, get_meson_command
 from ..options import OptionKey
 from .compilers import Compiler
 from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
+from .mixins.ti import TICompiler
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -257,6 +258,34 @@ class MasmARMCompiler(Compiler):
 
     def depfile_for_object(self, objfile: str) -> T.Optional[str]:
         return None
+
+
+# https://downloads.ti.com/docs/esd/SPRUI04/
+class TILinearAsmCompiler(TICompiler, Compiler):
+    language = 'linearasm'
+
+    def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
+                 for_machine: MachineChoice, info: MachineInfo,
+                 linker: T.Optional[DynamicLinker] = None,
+                 full_version: T.Optional[str] = None, is_cross: bool = False):
+        Compiler.__init__(self, ccache, exelist, version, for_machine, info, linker, full_version, is_cross)
+        TICompiler.__init__(self)
+
+    def needs_static_linker(self) -> bool:
+        return True
+
+    def get_always_args(self) -> T.List[str]:
+        return []
+
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        return []
+
+    def sanity_check(self, work_dir: str, environment: Environment) -> None:
+        if self.info.cpu_family not in {'c6000'}:
+            raise EnvironmentException(f'TI Linear ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
+
+    def get_depfile_suffix(self) -> str:
+        return 'd'
 
 
 class MetrowerksAsmCompiler(MetrowerksCompiler, Compiler):

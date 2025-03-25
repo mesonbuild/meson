@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019-2022 The meson development team
+# Copyright © 2023 Intel Corporation
 
 from __future__ import annotations
 
@@ -8,7 +9,6 @@ from __future__ import annotations
 import abc
 import functools
 import os
-import multiprocessing
 import pathlib
 import re
 import subprocess
@@ -16,11 +16,12 @@ import typing as T
 
 from ... import mesonlib
 from ... import mlog
-from ...options import OptionKey
+from ...options import OptionKey, UserStdOption
 from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
+    from ...coredata import MutableKeyedOptionDictType
     from ...environment import Environment
     from ..compilers import Compiler
 else:
@@ -204,6 +205,7 @@ gnu_common_warning_args: T.Dict[str, T.List[str]] = {
 #   -Wdeclaration-after-statement
 #   -Wtraditional
 #   -Wtraditional-conversion
+#   -Wunsuffixed-float-constants
 gnu_c_warning_args: T.Dict[str, T.List[str]] = {
     "0.0.0": [
         "-Wbad-function-cast",
@@ -217,9 +219,6 @@ gnu_c_warning_args: T.Dict[str, T.List[str]] = {
     ],
     "4.1.0": [
         "-Wc++-compat",
-    ],
-    "4.5.0": [
-        "-Wunsuffixed-float-constants",
     ],
 }
 
@@ -497,11 +496,11 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # for their specific arguments
         return ['-flto']
 
-    def sanitizer_compile_args(self, value: str) -> T.List[str]:
-        if value == 'none':
-            return []
-        args = ['-fsanitize=' + value]
-        if 'address' in value:  # for -fsanitize=address,undefined
+    def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
+        if not value:
+            return value
+        args = ['-fsanitize=' + ','.join(value)]
+        if 'address' in value:
             args.append('-fno-omit-frame-pointer')
         return args
 
@@ -610,15 +609,16 @@ class GnuCompiler(GnuLikeCompiler):
         # error.
         return ['-Werror=attributes']
 
-    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
-        return ['-r', '-o', prelink_name] + obj_list
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        return [prelink_name], ['-r', '-o', prelink_name] + obj_list
 
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         if threads == 0:
             if self._has_lto_auto_support:
                 return ['-flto=auto']
-            # This matches clang's behavior of using the number of cpus
-            return [f'-flto={multiprocessing.cpu_count()}']
+            # This matches clang's behavior of using the number of cpus, but
+            # obeying meson's MESON_NUM_PROCESSES convention.
+            return [f'-flto={mesonlib.determine_worker_count()}']
         elif threads > 0:
             return [f'-flto={threads}']
         return super().get_lto_compile_args(threads=threads)
@@ -631,3 +631,55 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_profile_use_args(self) -> T.List[str]:
         return super().get_profile_use_args() + ['-fprofile-correction']
+
+
+class GnuCStds(Compiler):
+
+    """Mixin class for gcc based compilers for setting C standards."""
+
+    _C18_VERSION = '>=8.0.0'
+    _C2X_VERSION = '>=9.0.0'
+    _C23_VERSION = '>=14.0.0'
+    _C2Y_VERSION = '>=15.0.0'
+
+    def get_options(self) -> MutableKeyedOptionDictType:
+        opts = super().get_options()
+        stds = ['c89', 'c99', 'c11']
+        if mesonlib.version_compare(self.version, self._C18_VERSION):
+            stds += ['c17', 'c18']
+        if mesonlib.version_compare(self.version, self._C2X_VERSION):
+            stds += ['c2x']
+        if mesonlib.version_compare(self.version, self._C23_VERSION):
+            stds += ['c23']
+        if mesonlib.version_compare(self.version, self._C2Y_VERSION):
+            stds += ['c2y']
+        key = self.form_compileropt_key('std')
+        std_opt = opts[key]
+        assert isinstance(std_opt, UserStdOption), 'for mypy'
+        std_opt.set_versions(stds, gnu=True)
+        return opts
+
+
+class GnuCPPStds(Compiler):
+
+    """Mixin class for GNU based compilers for setting CPP standards."""
+
+    _CPP23_VERSION = '>=11.0.0'
+    _CPP26_VERSION = '>=14.0.0'
+
+    def get_options(self) -> MutableKeyedOptionDictType:
+        opts = super().get_options()
+
+        stds = [
+            'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
+            'c++2a', 'c++20',
+        ]
+        if mesonlib.version_compare(self.version, self._CPP23_VERSION):
+            stds.append('c++23')
+        if mesonlib.version_compare(self.version, self._CPP26_VERSION):
+            stds.append('c++26')
+        key = self.form_compileropt_key('std')
+        std_opt = opts[key]
+        assert isinstance(std_opt, UserStdOption), 'for mypy'
+        std_opt.set_versions(stds, gnu=True)
+        return opts

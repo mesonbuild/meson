@@ -9,6 +9,7 @@ from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
 from copy import deepcopy
 from dataclasses import dataclass, field, fields, asdict
 from pathlib import Path
+import sys
 
 from . import mparser
 from .mesonlib import MesonException
@@ -960,17 +961,31 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help='meson source files'
     )
 
+def get_meson_format(sources: T.List[Path]) -> T.Optional[Path]:
+    for src_file in sources:
+        for parent in src_file.resolve().parents:
+            target = parent / 'meson.format'
+            if target.is_file():
+                return target
+    return None
+
 def run(options: argparse.Namespace) -> int:
     if options.output and len(options.sources) != 1:
         raise MesonException('--output argument implies having exactly one source file')
     if options.recursive and not (options.inplace or options.check_only):
         raise MesonException('--recursive argument requires either --inplace or --check-only option')
 
+    from_stdin = len(options.sources) == 1 and options.sources[0].name == '-' and options.sources[0].parent == Path()
+    if options.recursive and from_stdin:
+        raise MesonException('--recursive argument is not compatible with stdin input')
+    if options.inplace and from_stdin:
+        raise MesonException('--inplace argument is not compatible with stdin input')
+
     sources: T.List[Path] = options.sources.copy() or [Path(build_filename)]
+
     if not options.configuration:
-        default_config_path = sources[0].parent / 'meson.format'
-        if default_config_path.exists():
-            options.configuration = default_config_path
+        options.configuration = get_meson_format(sources)
+
     formatter = Formatter(options.configuration, options.editor_config, options.recursive)
 
     while sources:
@@ -979,7 +994,11 @@ def run(options: argparse.Namespace) -> int:
             src_file = src_file / build_filename
 
         try:
-            code = src_file.read_text(encoding='utf-8')
+            if from_stdin:
+                src_file = Path('STDIN')  # used for error messages and introspection
+                code = sys.stdin.read()
+            else:
+                code = src_file.read_text(encoding='utf-8')
         except IOError as e:
             raise MesonException(f'Unable to read from {src_file}') from e
 
@@ -1002,7 +1021,7 @@ def run(options: argparse.Namespace) -> int:
                 with options.output.open('w', encoding='utf-8', newline=formatter.current_config.newline) as of:
                     of.write(formatted)
             except IOError as e:
-                raise MesonException(f'Unable to write to {src_file}') from e
+                raise MesonException(f'Unable to write to {options.output}') from e
         else:
             print(formatted, end='')
 

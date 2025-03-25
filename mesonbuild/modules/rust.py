@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2020-2024 Intel Corporation
+# Copyright © 2020-2025 Intel Corporation
 
 from __future__ import annotations
 import itertools
@@ -12,7 +12,7 @@ from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mesonlib, mlog
 from ..build import (BothLibraries, BuildTarget, CustomTargetIndex, Executable, ExtractedObjects, GeneratedList,
                      CustomTarget, InvalidArguments, Jar, StructuredSources, SharedLibrary)
-from ..compilers.compilers import are_asserts_disabled, lang_suffixes
+from ..compilers.compilers import are_asserts_disabled_for_subproject, lang_suffixes
 from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, SHARED_LIB_KWS, TEST_KWS, OUTPUT_KW,
     INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
@@ -24,6 +24,7 @@ from ..programs import ExternalProgram
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..build import IncludeDirs, LibTypes
+    from ..compilers.rust import RustCompiler
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
     from ..interpreter import kwargs as _kwargs
@@ -58,10 +59,17 @@ class RustModule(ExtensionModule):
     """A module that holds helper functions for rust."""
 
     INFO = ModuleInfo('rust', '0.57.0', stabilized='1.0.0')
+    _bindgen_rust_target: T.Optional[str]
 
     def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
         self._bindgen_bin: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
+        if 'rust' in interpreter.compilers.host:
+            rustc = T.cast('RustCompiler', interpreter.compilers.host['rust'])
+            self._bindgen_rust_target = 'nightly' if rustc.is_nightly else rustc.version
+        else:
+            self._bindgen_rust_target = None
+        self._bindgen_set_std = False
         self.methods.update({
             'test': self.test,
             'bindgen': self.bindgen,
@@ -234,7 +242,7 @@ class RustModule(ExtensionModule):
             # bindgen always uses clang, so it's safe to hardcode -I here
             clang_args.extend([f'-I{x}' for x in i.to_string_list(
                 state.environment.get_source_dir(), state.environment.get_build_dir())])
-        if are_asserts_disabled(state.environment.coredata.optstore):
+        if are_asserts_disabled_for_subproject(state.subproject, state.environment):
             clang_args.append('-DNDEBUG')
 
         for de in kwargs['dependencies']:
@@ -250,6 +258,21 @@ class RustModule(ExtensionModule):
 
         if self._bindgen_bin is None:
             self._bindgen_bin = state.find_program('bindgen', wanted=kwargs['bindgen_version'])
+            if self._bindgen_rust_target is not None:
+                # ExternalCommand.command's type is bonkers
+                _, _, err = mesonlib.Popen_safe(
+                    T.cast('T.List[str]', self._bindgen_bin.get_command()) +
+                    ['--rust-target', self._bindgen_rust_target])
+                # < 0.71: Sometimes this is "invalid Rust target" and
+                # sometimes "invalid # rust target"
+                # >= 0.71: error: invalid value '...' for '--rust-target <RUST_TARGET>': "..." is not a valid Rust target, accepted values are of the form ...
+                # It's also much harder to hit this in 0.71 than in previous versions
+                if 'Got an invalid' in err or 'is not a valid Rust target' in err:
+                    self._bindgen_rust_target = None
+
+            # TODO: Executable needs to learn about get_version
+            if isinstance(self._bindgen_bin, ExternalProgram):
+                self._bindgen_set_std = mesonlib.version_compare(self._bindgen_bin.get_version(), '>= 0.71')
 
         name: str
         if isinstance(header, File):
@@ -317,9 +340,18 @@ class RustModule(ExtensionModule):
                 '@INPUT@', '--output',
                 os.path.join(state.environment.build_dir, '@OUTPUT0@')
             ] + \
-            kwargs['args'] + inline_wrapper_args + ['--'] + \
-            kwargs['c_args'] + clang_args + \
-            ['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@']
+            kwargs['args'] + inline_wrapper_args
+        if self._bindgen_rust_target and '--rust-target' not in cmd:
+            cmd.extend(['--rust-target', self._bindgen_rust_target])
+        if self._bindgen_set_std and '--rust-edition' not in cmd:
+            rust_std = state.environment.coredata.optstore.get_value('rust_std')
+            assert isinstance(rust_std, str), 'for mypy'
+            if rust_std != 'none':
+                cmd.extend(['--rust-edition', rust_std])
+        cmd.append('--')
+        cmd.extend(kwargs['c_args'])
+        cmd.extend(clang_args)
+        cmd.extend(['-MD', '-MQ', '@INPUT@', '-MF', '@DEPFILE@'])
 
         target = CustomTarget(
             f'rustmod-bindgen-{name}'.replace('/', '_'),

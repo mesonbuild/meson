@@ -94,7 +94,7 @@ class FeatureOptionHolder(ObjectHolder[options.UserFeatureOption]):
         super().__init__(option, interpreter)
         if option and option.is_auto():
             # TODO: we need to cast here because options is not a TypedDict
-            auto = T.cast('options.UserFeatureOption', self.env.coredata.optstore.get_value_object('auto_features'))
+            auto = T.cast('options.UserFeatureOption', self.env.coredata.optstore.get_value_object_for('auto_features'))
             self.held_object = copy.copy(auto)
             self.held_object.name = option.name
         self.methods.update({'enabled': self.enabled_method,
@@ -958,7 +958,10 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @noKwargs
     @typed_pos_args('extract_objects', varargs=(mesonlib.File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     def extract_objects_method(self, args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, 'build.GeneratedTypes']]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
-        return self._target_object.extract_objects(args[0])
+        tobj = self._target_object
+        unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
+        is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
+        return tobj.extract_objects(args[0], is_unity)
 
     @noPosargs
     @typed_kwargs(
@@ -1001,8 +1004,6 @@ class SharedLibraryHolder(BuildTargetHolder[build.SharedLibrary]):
 
 class BothLibrariesHolder(BuildTargetHolder[build.BothLibraries]):
     def __init__(self, libs: build.BothLibraries, interp: 'Interpreter'):
-        # FIXME: This build target always represents the shared library, but
-        # that should be configurable.
         super().__init__(libs, interp)
         self.methods.update({'get_shared_lib': self.get_shared_lib_method,
                              'get_static_lib': self.get_static_lib_method,
@@ -1017,12 +1018,16 @@ class BothLibrariesHolder(BuildTargetHolder[build.BothLibraries]):
     @noPosargs
     @noKwargs
     def get_shared_lib_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.SharedLibrary:
-        return self.held_object.shared
+        lib = copy.copy(self.held_object.shared)
+        lib.both_lib = None
+        return lib
 
     @noPosargs
     @noKwargs
     def get_static_lib_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.StaticLibrary:
-        return self.held_object.static
+        lib = copy.copy(self.held_object.static)
+        lib.both_lib = None
+        return lib
 
 class SharedModuleHolder(BuildTargetHolder[build.SharedModule]):
     pass

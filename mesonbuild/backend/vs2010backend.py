@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
+# Copyright © 2023-2024 Intel Corporation
 
 from __future__ import annotations
 import copy
@@ -266,13 +267,13 @@ class Vs2010Backend(backends.Backend):
         else:
             raise MesonException('Unsupported Visual Studio platform: ' + build_machine)
 
-        self.buildtype = self.environment.coredata.get_option(OptionKey('buildtype'))
-        self.optimization = self.environment.coredata.get_option(OptionKey('optimization'))
-        self.debug = self.environment.coredata.get_option(OptionKey('debug'))
+        self.buildtype = self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))
+        self.optimization = self.environment.coredata.optstore.get_value_for(OptionKey('optimization'))
+        self.debug = self.environment.coredata.optstore.get_value_for(OptionKey('debug'))
         try:
-            self.sanitize = self.environment.coredata.get_option(OptionKey('b_sanitize'))
-        except MesonException:
-            self.sanitize = 'none'
+            self.sanitize = self.environment.coredata.optstore.get_value_for(OptionKey('b_sanitize'))
+        except KeyError:
+            self.sanitize = []
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects(vslite_ctx)
         self.gen_testproj()
@@ -421,7 +422,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('# Visual Studio %s\n' % self.sln_version_comment)
             prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
             for prj in projlist:
-                if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
+                if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
                     self.generate_solution_dirs(ofile, prj[1].parents)
                 target = self.build.targets[prj[0]]
                 lang = 'default'
@@ -996,9 +997,9 @@ class Vs2010Backend(backends.Backend):
         for l, comp in target.compilers.items():
             if l in file_args:
                 file_args[l] += compilers.get_base_compile_args(
-                    target.get_options(), comp, self.environment)
+                    target, comp, self.environment)
                 file_args[l] += comp.get_option_compile_args(
-                    target.get_options())
+                    target, self.environment, target.subproject)
 
         # Add compile args added using add_project_arguments()
         for l, args in self.build.projects_args[target.for_machine].get(target.subproject, {}).items():
@@ -1012,7 +1013,7 @@ class Vs2010Backend(backends.Backend):
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
         for lang in file_args.keys():
-            file_args[lang] += target.get_option(OptionKey(f'{lang}_args', machine=target.for_machine))
+            file_args[lang] += self.get_target_option(target, OptionKey(f'{lang}_args', machine=target.for_machine))
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1302,7 +1303,7 @@ class Vs2010Backend(backends.Backend):
         if True in ((dep.name == 'openmp') for dep in target.get_external_deps()):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
         # CRT type; debug or release
-        vscrt_type = target.get_option(OptionKey('b_vscrt'))
+        vscrt_type = self.get_target_option(target, 'b_vscrt')
         vscrt_val = compiler.get_crt_val(vscrt_type, self.buildtype)
         if vscrt_val == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
@@ -1340,7 +1341,7 @@ class Vs2010Backend(backends.Backend):
         # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
         # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
         if 'cpp' in target.compilers:
-            eh = target.get_option(OptionKey('cpp_eh', machine=target.for_machine))
+            eh = self.environment.coredata.get_option_for_target(target, OptionKey('cpp_eh', machine=target.for_machine))
             if eh == 'a':
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
             elif eh == 's':
@@ -1358,10 +1359,10 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
-        warning_level = T.cast('str', target.get_option(OptionKey('warning_level')))
+        warning_level = T.cast('str', self.get_target_option(target, 'warning_level'))
         warning_level = 'EnableAllWarnings' if warning_level == 'everything' else 'Level' + str(1 + int(warning_level))
         ET.SubElement(clconf, 'WarningLevel').text = warning_level
-        if target.get_option(OptionKey('werror')):
+        if self.get_target_option(target, 'werror'):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Optimization flags
         o_flags = split_o_flags_args(build_args)
@@ -1402,7 +1403,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(link, 'GenerateDebugInformation').text = 'false'
         if not isinstance(target, build.StaticLibrary):
             if isinstance(target, build.SharedModule):
-                extra_link_args += compiler.get_std_shared_module_link_args(target.get_options())
+                extra_link_args += compiler.get_std_shared_module_link_args(target)
             # Add link args added using add_project_link_arguments()
             extra_link_args += self.build.get_project_link_args(compiler, target.subproject, target.for_machine)
             # Add link args added using add_global_link_arguments()
@@ -1435,7 +1436,7 @@ class Vs2010Backend(backends.Backend):
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        extra_link_args += compiler.get_option_link_args(target.get_options())
+        extra_link_args += compiler.get_option_link_args(target, self.environment, target.subproject)
         (additional_libpaths, additional_links, extra_link_args) = self.split_link_args(extra_link_args.to_native())
 
         # Add more libraries to be linked if needed
@@ -1463,7 +1464,7 @@ class Vs2010Backend(backends.Backend):
                         if self.environment.is_source(src):
                             target_private_dir = self.relpath(self.get_target_private_dir(t),
                                                               self.get_target_dir(t))
-                            rel_obj = self.object_filename_from_source(t, src, target_private_dir)
+                            rel_obj = self.object_filename_from_source(t, compiler, src, target_private_dir)
                             extra_link_args.append(rel_obj)
 
                     extra_link_args.extend(self.flatten_object_list(t))
@@ -1534,7 +1535,8 @@ class Vs2010Backend(backends.Backend):
         # /nologo
         ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
         # /release
-        if not target.get_option(OptionKey('debug')):
+        addchecksum = self.get_target_option(target, 'buildtype') != 'debug'
+        if addchecksum:
             ET.SubElement(link, 'SetChecksum').text = 'true'
 
     # Visual studio doesn't simply allow the src files of a project to be added with the 'Condition=...' attribute,
@@ -1596,7 +1598,7 @@ class Vs2010Backend(backends.Backend):
             raise MesonException(f'Unknown target type for {target.get_basename()}')
 
         (sources, headers, objects, _languages) = self.split_sources(target.sources)
-        if target.is_unity:
+        if self.is_unity(target):
             sources = self.generate_unity_files(target, sources)
         if target.for_machine is MachineChoice.BUILD:
             platform = self.build_platform
@@ -1725,7 +1727,7 @@ class Vs2010Backend(backends.Backend):
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
                         ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
-                            self.object_filename_from_source(target, s)
+                            self.object_filename_from_source(target, compiler, s)
             for s in gen_src:
                 if path_normalize_add(s, previous_sources):
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
@@ -1739,7 +1741,7 @@ class Vs2010Backend(backends.Backend):
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
                         s = File.from_built_file(target.get_subdir(), s)
                         ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + \
-                            self.object_filename_from_source(target, s)
+                            self.object_filename_from_source(target, compiler, s)
             for lang, headers in pch_sources.items():
                 impl = headers[1]
                 if impl and path_normalize_add(impl, previous_sources):
@@ -1789,7 +1791,7 @@ class Vs2010Backend(backends.Backend):
             # build system as possible.
             self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
-        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
+        if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
             self.gen_vcxproj_filters(target, ofname)
         return True
 
@@ -1958,9 +1960,9 @@ class Vs2010Backend(backends.Backend):
                 meson_build_dir_for_buildtype = build_dir_tail[:-2] + buildtype # Get the buildtype suffixed 'builddir_[debug/release/etc]' from 'builddir_vs', for example.
                 proj_to_build_dir_for_buildtype = str(os.path.join(proj_to_multiconfigured_builds_parent_dir, meson_build_dir_for_buildtype))
                 test_cmd = f'{nmake_base_meson_command} test -C "{proj_to_build_dir_for_buildtype}" --no-rebuild'
-                if not self.environment.coredata.get_option(OptionKey('stdsplit')):
+                if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit')):
                     test_cmd += ' --no-stdsplit'
-                if self.environment.coredata.get_option(OptionKey('errorlogs')):
+                if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs')):
                     test_cmd += ' --print-errorlogs'
                 condition = f'\'$(Configuration)|$(Platform)\'==\'{buildtype}|{self.platform}\''
                 prop_group = ET.SubElement(root, 'PropertyGroup', Condition=condition)
@@ -1982,9 +1984,9 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
             # FIXME: No benchmarks?
             test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
-            if not self.environment.coredata.get_option(OptionKey('stdsplit')):
+            if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit')):
                 test_command += ['--no-stdsplit']
-            if self.environment.coredata.get_option(OptionKey('errorlogs')):
+            if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs')):
                 test_command += ['--print-errorlogs']
             self.serialize_tests()
             self.add_custom_build(root, 'run_tests', '"%s"' % ('" "'.join(test_command)))
