@@ -1,0 +1,13 @@
+{
+  "env": {
+    "CFLAGS": "-D_FORTIFY_SOURCE=2"
+  },
+  "matrix": {
+    "options": {
+      "buildtype": [
+        { "val": "debug" },
+        { "val": "release" }
+      ]
+    }
+  }
+}
