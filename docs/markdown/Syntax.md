@@ -150,6 +150,8 @@ combined = str1 + '_' + str2 # combined is now abc_xyz
 
 You can concatenate any two strings using `/` as an operator to build paths.
 This will always use `/` as the path separator on all platforms.
+If any one of the individual segments is an absolute path, all segments before
+it are dropped.  For example:
 
 ```meson
 joined = '/usr/share' / 'projectname'    # => /usr/share/projectname
