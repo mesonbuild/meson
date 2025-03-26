@@ -473,7 +473,7 @@ The following options are recognized:
 - tab_width (int): Width of tab stops, used to compute line length
     when `indent_by` uses tab characters (default is 4).
 - sort_files (bool): When true, arguments of `files()` function are
-    sorted alphabetically (default is false).
+    sorted alphabetically (default is true).
 - group_arg_value (bool): When true, string argument with `--` prefix
     followed by string argument without `--` prefix are grouped on the
     same line, in multiline arguments (default is false).
