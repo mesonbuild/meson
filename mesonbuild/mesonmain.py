@@ -305,7 +305,7 @@ def run(original_args: T.List[str], mainfile: str) -> int:
 
 def main() -> int:
     # Always resolve the command path so Ninja can find it for regen, tests, etc.
-    if 'meson.exe' in sys.executable:
+    if getattr(sys, 'frozen', False):
         assert os.path.isabs(sys.executable)
         launcher = sys.executable
     else:
