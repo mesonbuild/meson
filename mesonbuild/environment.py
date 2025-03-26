@@ -759,8 +759,6 @@ class Environment:
                 for strk, v in values.items():
                     # Project options are always for the host machine
                     key = self.mfilestr2key(strk, section_subproject, machine)
-                    if key.subproject:
-                        raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
                     self.options[key] = v
 
     def _set_default_options_from_env(self) -> None:
