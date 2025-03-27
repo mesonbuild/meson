@@ -44,6 +44,7 @@ class ResourceCompilerType(enum.Enum):
     windres = 1
     rc = 2
     wrc = 3
+    cgrc = 4
 
 class WindowsModule(ExtensionModule):
 
@@ -79,6 +80,8 @@ class WindowsModule(ExtensionModule):
             if comp.id in {'msvc', 'clang-cl', 'intel-cl'} or (comp.linker and comp.linker.id in {'link', 'lld-link'}):
                 # Microsoft compilers uses rc irrespective of the frontend
                 rescomp = ExternalProgram('rc', silent=True)
+            elif comp.id == 'bccclang' and (comp.linker and comp.linker.id == 'ilink') and not comp.info.is_64_bit:
+                rescomp = ExternalProgram('cgrc', silent=True)
             else:
                 rescomp = ExternalProgram('windres', silent=True)
 
@@ -86,6 +89,7 @@ class WindowsModule(ExtensionModule):
             raise MesonException('Could not find Windows resource compiler')
 
         for (arg, match, rc_type) in [
+                ('-?', '^.*CodeGear Resource Compiler/Binder.*$', ResourceCompilerType.cgrc),
                 ('/?', '^.*Microsoft.*Resource Compiler.*$', ResourceCompilerType.rc),
                 ('/?', 'LLVM Resource Converter.*$', ResourceCompilerType.rc),
                 ('--version', '^.*GNU windres.*$', ResourceCompilerType.windres),
@@ -130,6 +134,12 @@ class WindowsModule(ExtensionModule):
             # CVTRES internally to convert this to a COFF object)
             suffix = 'res'
             res_args = extra_args + ['/nologo', '/fo@OUTPUT@', '@INPUT@']
+        elif rescomp_type == ResourceCompilerType.cgrc:
+            suffix = 'res'
+            extra_args += state.get_include_args([
+                build.IncludeDirs('', [], False, [os.path.join(os.path.dirname(rescomp.get_path()), '..', 'include', 'windows', 'sdk')])
+            ])
+            res_args = extra_args + ['-r', '-fo@OUTPUT@', '@INPUT@']
         elif rescomp_type == ResourceCompilerType.windres:
             # ld only supports object files, so windres is used to generate a
             # COFF object
