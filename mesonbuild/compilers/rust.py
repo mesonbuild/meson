@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import functools
-import subprocess, os.path
+import os.path
 import textwrap
 import re
 import typing as T
@@ -141,17 +141,7 @@ class RustCompiler(Compiler):
         if pc.returncode != 0:
             raise EnvironmentException(f'Rust compiler {self.name_string()} cannot compile programs.')
         self._native_static_libs(work_dir, source_name)
-        if self.is_cross:
-            if not environment.has_exe_wrapper():
-                # Can't check if the binaries run so we have to assume they do
-                return
-            cmdlist = environment.exe_wrapper.get_command() + [output_name]
-        else:
-            cmdlist = [output_name]
-        pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException(f'Executables created by Rust compiler {self.name_string()} are not runnable.')
+        self.run_sanity_check(environment, [output_name], work_dir)
 
     def _native_static_libs(self, work_dir: str, source_name: str) -> None:
         # Get libraries needed to link with a Rust staticlib
