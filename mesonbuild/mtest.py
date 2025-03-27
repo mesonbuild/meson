@@ -1485,6 +1485,15 @@ class SingleTestRunner:
         if ('MSAN_OPTIONS' not in env or not env['MSAN_OPTIONS']):
             env['MSAN_OPTIONS'] = 'halt_on_error=1:abort_on_error=1:print_summary=1:print_stacktrace=1'
 
+        # Valgrind also doesn't reflect errors in its exit code by default.
+        if 'VALGRIND_OPTS' not in env or not env['VALGRIND_OPTS']:
+            try:
+                wrapper_name = TestHarness.get_wrapper(self.options)[0]
+                if 'valgrind' in wrapper_name:
+                    env['VALGRIND_OPTS'] = '--error-exitcode=1'
+            except IndexError:
+                pass
+
         if self.options.interactive or self.test.timeout is None or self.test.timeout <= 0:
             timeout = None
         elif self.options.timeout_multiplier is None:
@@ -2055,15 +2064,16 @@ class TestHarness:
 
     @staticmethod
     def get_wrapper(options: argparse.Namespace) -> T.List[str]:
-        wrap: T.List[str] = []
         if options.gdb:
             wrap = [options.gdb_path, '--quiet']
             if options.repeat > 1:
                 wrap += ['-ex', 'run', '-ex', 'quit']
             # Signal the end of arguments to gdb
             wrap += ['--args']
-        if options.wrapper:
-            wrap += options.wrapper
+        elif options.wrapper:
+            wrap = options.wrapper
+        else:
+            wrap = []
         return wrap
 
     def get_pretty_suite(self, test: TestSerialisation) -> str:
