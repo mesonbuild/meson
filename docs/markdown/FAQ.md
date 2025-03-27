@@ -141,7 +141,7 @@ wanted to build a shared library in one dir and link tests against it
 in another dir, you would do something like this:
 
 ```meson
-project('simple', 'c')
+project('simple', host_machine_languages : 'c')
 subdir('src')   # library is built here
 subdir('tests') # test binaries would link against the library here
 ```
@@ -223,14 +223,14 @@ executable('foobar', ...
 You probably had a project that looked something like this:
 
 ```meson
-project('foobar', 'cpp')
+project('foobar', host_machine_languages : 'cpp')
 ```
 
 This defaults to `c++11` on GCC compilers. Suppose you want to use
 `c++14` instead, so you change the definition to this:
 
 ```meson
-project('foobar', 'cpp', default_options : ['cpp_std=c++14'])
+project('foobar', host_machine_languages : 'cpp', default_options : ['cpp_std=c++14'])
 ```
 
 But when you recompile, it still uses `c++11`. The reason for this is

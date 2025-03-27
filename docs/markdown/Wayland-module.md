@@ -12,7 +12,7 @@ might be removed from Meson altogether.
 ## Quick Usage
 
 ```meson
-project('hello-wayland', 'c')
+project('hello-wayland', host_machine_languages : 'c')
 
 wl_dep = dependency('wayland-client')
 wl_mod = import('unstable-wayland')

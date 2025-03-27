@@ -213,6 +213,8 @@ class Project(TypedDict):
     license: T.List[str]
     license_files: T.List[str]
     subproject_dir: str
+    build_machine_languages: T.List[str]
+    host_machine_languages: T.List[str]
 
 
 class _FoundProto(Protocol):

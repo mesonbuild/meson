@@ -47,7 +47,7 @@ AC_PROG_CC
 ```
 `meson.build`:
 ```meson
-project('appstream-glib', 'c', version : '0.3.6')
+project('appstream-glib', host_machine_languages : 'c', version : '0.3.6')
 ```
 Note that this must be the first line of your `meson.build` file.
 
