@@ -78,6 +78,7 @@ class BasePlatformTests(TestCase):
         cls.objc_test_dir = os.path.join(src_root, 'test cases/objc')
         cls.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
         cls.darwin_test_dir = os.path.join(src_root, 'test cases/darwin')
+        cls.fortran_test_dir = os.path.join(src_root, 'test cases/fortran')
 
         # Misc stuff
         if cls.backend is Backend.ninja:
