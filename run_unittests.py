@@ -40,14 +40,6 @@ from unittests.subprojectscommandtests import SubprojectsCommandTests
 from unittests.windowstests import WindowsTests
 from unittests.platformagnostictests import PlatformAgnosticTests
 
-def unset_envs():
-    # For unit tests we must fully control all command lines
-    # so that there are no unexpected changes coming from the
-    # environment, for example when doing a package build.
-    varnames = ['CPPFLAGS', 'LDFLAGS'] + list(mesonbuild.compilers.compilers.CFLAGS_MAPPING.values())
-    for v in varnames:
-        if v in os.environ:
-            del os.environ[v]
 
 def convert_args(argv):
     # If we got passed a list of tests, pass it on
@@ -101,7 +93,6 @@ def setup_backend():
     sys.argv = filtered
 
 def main():
-    unset_envs()
     setup_backend()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',

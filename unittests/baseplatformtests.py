@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2016-2021 The Meson development team
-# Copyright © 2024 Intel Corporation
+# Copyright © 2024-2025 Intel Corporation
 
 from __future__ import annotations
 from pathlib import PurePath
@@ -29,7 +29,7 @@ from mesonbuild.mesonlib import (
 )
 import mesonbuild.modules.pkgconfig
 
-
+from .baseclass import BaseMesonTest
 from run_tests import (
     Backend, get_backend_commands,
     get_builddir_target_args, get_meson_script, run_configure_inprocess,
@@ -42,7 +42,8 @@ from run_tests import (
 # e.g. for assertXXX helpers.
 __unittest = True
 
-class BasePlatformTests(TestCase):
+
+class BasePlatformTests(BaseMesonTest):
     prefix = '/usr'
     libdir = 'lib'
 
@@ -86,17 +87,6 @@ class BasePlatformTests(TestCase):
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
             cls.no_rebuild_stdout = [f'UNKNOWN BACKEND {cls.backend.name!r}']
-
-        cls.env_patch = mock.patch.dict(os.environ)
-        cls.env_patch.start()
-
-        os.environ['COLUMNS'] = '80'
-        os.environ['PYTHONIOENCODING'] = 'utf8'
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        super().tearDownClass()
-        cls.env_patch.stop()
 
     def setUp(self):
         super().setUp()
