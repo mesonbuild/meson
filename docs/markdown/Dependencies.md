@@ -878,7 +878,7 @@ $ wx-config --libs std stc
 ## Zlib
 
 Zlib ships with pkg-config and cmake support, but on some operating
-systems (windows, macOs, FreeBSD, dragonflybsd, android), it is provided as
+systems (Windows, macOS, FreeBSD, DragonFlyBSD, Anndroid), it is provided as
 part of the base operating system without pkg-config support. The new
 System finder can be used on these OSes to link with the bundled
 version.
