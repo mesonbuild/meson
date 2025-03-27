@@ -7,7 +7,6 @@ __all__ = [
     'RunResult',
 
     'all_languages',
-    'BASE_OPTIONS',
     'clib_langs',
     'clink_langs',
     'c_suffixes',
@@ -48,7 +47,6 @@ from .compilers import (
     Compiler,
     RunResult,
     all_languages,
-    BASE_OPTIONS,
     clib_langs,
     clink_langs,
     c_suffixes,

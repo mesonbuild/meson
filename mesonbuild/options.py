@@ -753,6 +753,34 @@ BUILTIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
     OptionKey('python.purelibdir'): {},
 }
 
+MSCRT_VALS = ['none', 'md', 'mdd', 'mt', 'mtd']
+
+COMPILER_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
+    OptionKey(o.name): o for o in T.cast('T.List[AnyOptionType]', [
+        UserBooleanOption('b_pch', 'Use precompiled headers', True),
+        UserBooleanOption('b_lto', 'Use link time optimization', False),
+        UserIntegerOption('b_lto_threads', 'Use multiple threads for Link Time Optimization', 0),
+        UserComboOption('b_lto_mode', 'Select between different LTO modes.', 'default', choices=['default', 'thin']),
+        UserBooleanOption('b_thinlto_cache', 'Use LLVM ThinLTO caching for faster incremental builds', False),
+        UserStringOption('b_thinlto_cache_dir', 'Directory to store ThinLTO cache objects', ''),
+        UserStringArrayOption('b_sanitize', 'Code sanitizer to use', []),
+        UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
+        UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
+        UserComboOption(
+            'b_pgo', 'Use profile guided optimization', 'off', choices=['off', 'generate', 'use']),
+        UserBooleanOption('b_coverage', 'Enable coverage tracking.', False),
+        UserComboOption(
+            'b_colorout', 'Use colored output', 'always', choices=['auto', 'always', 'never']),
+        UserComboOption(
+            'b_ndebug', 'Disable asserts', 'false', choices=['true', 'false', 'if-release']),
+        UserBooleanOption('b_staticpic', 'Build static libraries as position independent', True),
+        UserBooleanOption('b_pie', 'Build executables as position independent', False),
+        UserBooleanOption('b_bitcode', 'Generate and embed bitcode (only macOS/iOS/tvOS)', False),
+        UserComboOption(
+            'b_vscrt', 'VS run-time library type to use.', 'from_buildtype',
+            choices=MSCRT_VALS + ['from_buildtype', 'static_from_buildtype']),
+    ])
+}
 
 class OptionStore:
     DEFAULT_DEPENDENTS = {'plain': ('plain', False),
@@ -770,11 +798,15 @@ class OptionStore:
         self.all_languages = set(all_languages)
         self.project_options = set()
         self.augments: T.Dict[str, str] = {}
-        self.pending_project_options: T.Dict[OptionKey, str] = {}
         self.is_cross = is_cross
 
+        # Pending options are options that need to be initialized later, either
+        # configuration dependent options like compiler options, or options for
+        # a different subproject
+        self.pending_options: T.Dict[OptionKey, ElementaryOptionValues] = {}
+
     def clear_pending(self) -> None:
-        self.pending_project_options = {}
+        self.pending_options = {}
 
     def ensure_and_validate_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
         if isinstance(key, str):
@@ -861,7 +893,7 @@ class OptionStore:
             assert isinstance(valobj.name, str)
         if key not in self.options:
             self.options[key] = valobj
-            pval = self.pending_project_options.pop(key, None)
+            pval = self.pending_options.pop(key, None)
             if pval is not None:
                 self.set_option(key, pval)
 
@@ -874,7 +906,7 @@ class OptionStore:
     def add_project_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         assert key.subproject is not None
-        pval = self.pending_project_options.pop(key, None)
+        pval = self.pending_options.pop(key, None)
         if key in self.options:
             raise MesonException(f'Internal error: tried to add a project option {key} that already exists.')
         else:
@@ -1058,9 +1090,8 @@ class OptionStore:
 
     def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
         assert self.is_base_option(key)
-        from .compilers.compilers import BASE_OPTIONS
         try:
-            return T.cast('ElementaryOptionValues', BASE_OPTIONS[key.evolve(subproject=None)].default)
+            return T.cast('ElementaryOptionValues', COMPILER_OPTIONS[key.evolve(subproject=None)].default)
         except KeyError:
             raise MesonBugException(f'Requested base option {key} which does not exist.')
 
@@ -1100,6 +1131,11 @@ class OptionStore:
     def is_project_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a project option."""
         return key in self.project_options
+
+    def is_per_machine_option(self, optname: OptionKey) -> bool:
+        if optname.evolve(subproject=None, machine=MachineChoice.HOST) in BUILTIN_OPTIONS_PER_MACHINE:
+            return True
+        return self.is_compiler_option(optname)
 
     def is_reserved_name(self, key: OptionKey) -> bool:
         if key.name in _BUILTIN_NAMES:
@@ -1197,14 +1233,14 @@ class OptionStore:
     def first_handle_prefix(self,
                             project_default_options: T.Union[T.List[str], OptionStringLikeDict],
                             cmd_line_options: T.Union[T.List[str], OptionStringLikeDict],
-                            native_file_options: T.Union[T.List[str], OptionStringLikeDict]) \
+                            machine_file_options: T.Union[T.List[str], OptionStringLikeDict]) \
             -> T.Tuple[T.Union[T.List[str], OptionStringLikeDict],
                        T.Union[T.List[str], OptionStringLikeDict],
                        T.Union[T.List[str], OptionStringLikeDict]]:
         prefix = None
         (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
         prefix = prefix if possible_prefix is None else possible_prefix
-        (possible_prefix, nopref_native_file_options) = self.prefix_split_options(native_file_options)
+        (possible_prefix, nopref_native_file_options) = self.prefix_split_options(machine_file_options)
         prefix = prefix if possible_prefix is None else possible_prefix
         (possible_prefix, nopref_cmd_line_options) = self.prefix_split_options(cmd_line_options)
         prefix = prefix if possible_prefix is None else possible_prefix
@@ -1229,24 +1265,28 @@ class OptionStore:
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
                                                cmd_line_options_in: T.Union[T.List[str], OptionStringLikeDict],
-                                               native_file_options_in: T.Union[T.List[str], OptionStringLikeDict]) -> None:
+                                               machine_file_options_in: T.Union[T.List[str], OptionStringLikeDict]) -> None:
         first_invocation = True
-        (project_default_options, cmd_line_options, native_file_options) = self.first_handle_prefix(project_default_options_in,
-                                                                                                    cmd_line_options_in,
-                                                                                                    native_file_options_in)
+        (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
+                                                                                                     cmd_line_options_in,
+                                                                                                     machine_file_options_in)
         if isinstance(project_default_options, str):
             project_default_options = [project_default_options]
         if isinstance(project_default_options, list):
             project_default_options = self.optlist2optdict(project_default_options) # type: ignore [assignment]
         if project_default_options is None:
             project_default_options = {}
-        assert isinstance(native_file_options, dict)
-        for keystr, valstr in native_file_options.items():
+        assert isinstance(machine_file_options, dict)
+        for keystr, valstr in machine_file_options.items():
             if isinstance(keystr, str):
                 # FIXME, standardise on Key or string.
                 key = OptionKey.from_string(keystr)
             else:
                 key = keystr
+            # Due to backwards compatibility we ignore all cross options when building
+            # natively.
+            if not self.is_cross and key.is_for_build():
+                continue
             if key.subproject is not None:
                 #self.pending_project_options[key] = valstr
                 augstr = str(key)
@@ -1258,7 +1298,7 @@ class OptionStore:
                 if proj_key in self.options:
                     self.options[proj_key].set_value(valstr)
                 else:
-                    self.pending_project_options[key] = valstr
+                    self.pending_options[key] = valstr
         assert isinstance(project_default_options, dict)
         for keystr, valstr in project_default_options.items():
             # Ths is complicated by the fact that a string can have two meanings:
@@ -1279,7 +1319,7 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key.subproject is not None:
-                self.pending_project_options[key] = valstr
+                self.pending_options[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
             else:
@@ -1291,7 +1331,7 @@ class OptionStore:
                 if self.is_project_option(proj_key):
                     self.set_option(proj_key, valstr)
                 else:
-                    self.pending_project_options[key] = valstr
+                    self.pending_options[key] = valstr
         assert isinstance(cmd_line_options, dict)
         for keystr, valstr in cmd_line_options.items():
             if isinstance(keystr, str):
@@ -1317,9 +1357,9 @@ class OptionStore:
                     # Permitting them all is not strictly correct.
                     if not self.is_compiler_option(key) and not self.is_base_option(key):
                         raise MesonException(f'Unknown options: "{keystr}"')
-                    self.pending_project_options[key] = valstr
+                    self.pending_options[key] = valstr
             else:
-                self.pending_project_options[key] = valstr
+                self.pending_options[key] = valstr
 
     def hacky_mchackface_back_to_list(self, optdict: T.Dict[str, str]) -> T.List[str]:
         if isinstance(optdict, dict):
@@ -1346,7 +1386,7 @@ class OptionStore:
             if key in self.project_options:
                 self.set_option(key, valstr, is_first_invocation)
             else:
-                self.pending_project_options.pop(key, None)
+                self.pending_options.pop(key, None)
                 aug_str = f'{subproject}:{keystr}'
                 self.augments[aug_str] = valstr
         # Check for pending options
@@ -1356,7 +1396,7 @@ class OptionStore:
                 key = OptionKey.from_string(key)
             if key.subproject != subproject:
                 continue
-            self.pending_project_options.pop(key, None)
+            self.pending_options.pop(key, None)
             if key in self.options:
                 self.set_option(key, valstr, is_first_invocation)
             else:
