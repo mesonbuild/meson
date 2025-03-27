@@ -2064,15 +2064,16 @@ class TestHarness:
 
     @staticmethod
     def get_wrapper(options: argparse.Namespace) -> T.List[str]:
-        wrap: T.List[str] = []
         if options.gdb:
             wrap = [options.gdb_path, '--quiet']
             if options.repeat > 1:
                 wrap += ['-ex', 'run', '-ex', 'quit']
             # Signal the end of arguments to gdb
             wrap += ['--args']
-        if options.wrapper:
-            wrap += options.wrapper
+        elif options.wrapper:
+            wrap = options.wrapper
+        else:
+            wrap = []
         return wrap
 
     def get_pretty_suite(self, test: TestSerialisation) -> str:
