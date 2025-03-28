@@ -432,9 +432,8 @@ class ConverterTarget:
         def non_optional(inputs: T.Iterable[T.Optional[Path]]) -> T.List[Path]:
             return [p for p in inputs if p is not None]
 
-        build_dir_rel = self.build_dir.relative_to(Path(self.env.get_build_dir()) / subdir)
         self.generated_raw = non_optional(rel_path(x, False, True) for x in self.generated_raw)
-        self.includes = non_optional(itertools.chain((rel_path(x, True, False) for x in OrderedSet(self.includes)), [build_dir_rel]))
+        self.includes = non_optional(itertools.chain((rel_path(x, True, False) for x in OrderedSet(self.includes))))
         self.sys_includes = non_optional(rel_path(x, True, False) for x in OrderedSet(self.sys_includes))
         self.sources = non_optional(rel_path(x, False, False) for x in self.sources)
 
