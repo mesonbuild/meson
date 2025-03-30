@@ -15,7 +15,7 @@ hello_cpp_template = '''#include <iostream>
 #define PROJECT_NAME "{project_name}"
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         std::cout << argv[0] <<  "takes no arguments.\\n";
         return 1;
     }}
@@ -97,7 +97,7 @@ lib_cpp_test_template = '''#include <{header_file}>
 #include <iostream>
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         std::cout << argv[0] << " takes no arguments.\\n";
         return 1;
     }}

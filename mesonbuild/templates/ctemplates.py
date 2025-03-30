@@ -48,7 +48,7 @@ lib_c_test_template = '''#include <{header_file}>
 #include <stdio.h>
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         printf("%s takes no arguments.\\n", argv[0]);
         return 1;
     }}
@@ -113,7 +113,7 @@ hello_c_template = '''#include <stdio.h>
 #define PROJECT_NAME "{project_name}"
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         printf("%s takes no arguments.\\n", argv[0]);
         return 1;
     }}
