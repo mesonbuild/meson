@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2016-2021 The Meson development team
+# Copyright 2016-2025 The Meson development team
 
 from configparser import ConfigParser
 from pathlib import Path
@@ -672,6 +672,8 @@ class InternalTests(unittest.TestCase):
                 instance_method.return_value = FakeInstance(env, MachineChoice.HOST, silent=True)
                 kwargs = {'required': True, 'silent': True, 'native': MachineChoice.HOST}
                 foo_dep = PkgConfigDependency('foo', env, kwargs)
+                p1 = p1.resolve()
+                p2 = p2.resolve()
                 self.assertEqual(foo_dep.get_link_args(),
                                  [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
                 bar_dep = PkgConfigDependency('bar', env, kwargs)
