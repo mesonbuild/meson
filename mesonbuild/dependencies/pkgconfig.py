@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2013-2021 The Meson development team
+# Copyright 2013-2025 The Meson development team
 
 from __future__ import annotations
 
@@ -411,11 +411,11 @@ class PkgConfigDependency(ExternalDependency):
                 if not os.path.isabs(path):
                     # Resolve the path as a compiler in the build directory would
                     path = os.path.join(self.env.get_build_dir(), path)
-                prefix_libpaths.add(path)
+                prefix_libpaths.add(os.path.realpath(path))
         # Library paths are not always ordered in a meaningful way
         #
         # Instead of relying on pkg-config or pkgconf to provide -L flags in a
-        # specific order, we reorder library paths ourselves, according to th
+        # specific order, we reorder library paths ourselves, according to the
         # order specified in PKG_CONFIG_PATH. See:
         # https://github.com/mesonbuild/meson/issues/4271
         #
