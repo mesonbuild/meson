@@ -48,7 +48,7 @@ lib_objcpp_test_template = '''#import <{header_file}>
 #import <iostream>
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         std::cout << argv[0] << " takes no arguments." << std::endl;
         return 1;
     }}
@@ -113,7 +113,7 @@ hello_objcpp_template = '''#import <iostream>
 #define PROJECT_NAME "{project_name}"
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         std::cout << argv[0] << " takes no arguments." << std::endl;
         return 1;
     }}

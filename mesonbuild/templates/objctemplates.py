@@ -48,7 +48,7 @@ lib_objc_test_template = '''#import <{header_file}>
 #import <stdio.h>
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         printf("%s takes no arguments.\\n", argv[0]);
         return 1;
     }}
@@ -112,7 +112,7 @@ hello_objc_template = '''#import <stdio.h>
 #define PROJECT_NAME "{project_name}"
 
 int main(int argc, char **argv) {{
-    if(argc != 1) {{
+    if (argc != 1) {{
         printf("%s takes no arguments.\\n", argv[0]);
         return 1;
     }}

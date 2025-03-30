@@ -13,7 +13,7 @@ public class {class_name} {{
     final static String PROJECT_NAME = "{project_name}";
 
     public static void main (String args[]) {{
-        if(args.length != 0) {{
+        if (args.length != 0) {{
             System.out.println(args + " takes no arguments.");
             System.exit(0);
         }}
@@ -62,7 +62,7 @@ lib_java_test_template = '''
 
 public class {class_test} {{
     public static void main (String args[]) {{
-        if(args.length != 0) {{
+        if (args.length != 0) {{
             System.out.println(args + " takes no arguments.");
             System.exit(1);
         }}
