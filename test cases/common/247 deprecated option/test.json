@@ -1,4 +1,29 @@
 {
+  "matrix": {
+    "options": {
+      "o1_e": [
+        { "val": "false" }
+      ],
+      "o2_e": [
+        { "val": "a,b" }
+      ],
+      "o3_e": [
+        { "val": "a,b" }
+      ],
+      "o4_e": [
+        { "val": "true" }
+      ],
+      "o5_e": [
+        { "val": "auto" }
+      ],
+      "o6_e": [
+        { "val": "false" }
+      ],
+      "o8_e": [
+        { "val": "/foo" }
+      ]
+    }
+  },
   "stdout": [
     {
       "line": ".*DEPRECATION: Option 'o1' is deprecated",
