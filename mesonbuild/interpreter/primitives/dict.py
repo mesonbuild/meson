@@ -9,6 +9,7 @@ from ...interpreterbase import (
     IterableObject,
     MesonOperator,
     ObjectHolder,
+    FeatureNew,
     typed_operator,
     noKwargs,
     noPosargs,
@@ -48,6 +49,9 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
     def size(self) -> int:
         return len(self.held_object)
 
+    def _keys_getter(self) -> T.List[str]:
+        return sorted(self.held_object)
+
     @noKwargs
     @typed_pos_args('dict.has_key', str)
     @InterpreterObject.method('has_key')
@@ -58,7 +62,14 @@ class DictHolder(ObjectHolder[T.Dict[str, TYPE_var]], IterableObject):
     @noPosargs
     @InterpreterObject.method('keys')
     def keys_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
-        return sorted(self.held_object)
+        return self._keys_getter()
+
+    @noKwargs
+    @noPosargs
+    @InterpreterObject.method('values')
+    @FeatureNew('dict.values', '1.10.0')
+    def values_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[TYPE_var]:
+        return [self.held_object[k] for k in self._keys_getter()]
 
     @noArgsFlattening
     @noKwargs

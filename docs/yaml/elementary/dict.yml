@@ -46,3 +46,8 @@ methods:
 - name: keys
   returns: array[str]
   description: Returns an array of keys in the dictionary.
+
+- name: values
+  returns: array[any]
+  description: Returns an array of values in the dictionary.
+  since: 1.10.0
