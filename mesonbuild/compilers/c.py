@@ -660,9 +660,6 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
         std_opt.set_versions(['c89', 'c99'])
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
-        return []
-
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
