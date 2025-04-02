@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
 import argparse
+import copy
 import dataclasses
 import itertools
 import os
@@ -1236,21 +1237,28 @@ class OptionStore:
     def first_handle_prefix(self,
                             project_default_options: T.Union[T.List[str], OptionStringLikeDict],
                             cmd_line_options: T.Union[T.List[str], OptionStringLikeDict],
-                            machine_file_options: T.Union[T.List[str], OptionStringLikeDict]) \
+                            machine_file_options: T.Mapping[OptionKey, ElementaryOptionValues]) \
             -> T.Tuple[T.Union[T.List[str], OptionStringLikeDict],
                        T.Union[T.List[str], OptionStringLikeDict],
-                       T.Union[T.List[str], OptionStringLikeDict]]:
+                       T.MutableMapping[OptionKey, ElementaryOptionValues]]:
+        # Copy to avoid later mutation
+        nopref_machine_file_options = T.cast(
+            'T.MutableMapping[OptionKey, ElementaryOptionValues]', copy.copy(machine_file_options))
+
         prefix = None
         (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
         prefix = prefix if possible_prefix is None else possible_prefix
-        (possible_prefix, nopref_native_file_options) = self.prefix_split_options(machine_file_options)
-        prefix = prefix if possible_prefix is None else possible_prefix
+
+        possible_prefixv = nopref_machine_file_options.pop(OptionKey('prefix'), None)
+        assert possible_prefixv is None or isinstance(possible_prefixv, str), 'mypy: prefix from machine file was not a string?'
+        prefix = prefix if possible_prefixv is None else possible_prefixv
+
         (possible_prefix, nopref_cmd_line_options) = self.prefix_split_options(cmd_line_options)
         prefix = prefix if possible_prefix is None else possible_prefix
 
         if prefix is not None:
             self.hard_reset_from_prefix(prefix)
-        return (nopref_project_default_options, nopref_cmd_line_options, nopref_native_file_options)
+        return (nopref_project_default_options, nopref_cmd_line_options, nopref_machine_file_options)
 
     def hard_reset_from_prefix(self, prefix: str) -> None:
         prefix = self.sanitize_prefix(prefix)
@@ -1268,7 +1276,7 @@ class OptionStore:
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
                                                cmd_line_options_in: T.Union[T.List[str], OptionStringLikeDict],
-                                               machine_file_options_in: T.Union[T.List[str], OptionStringLikeDict]) -> None:
+                                               machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
         first_invocation = True
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
