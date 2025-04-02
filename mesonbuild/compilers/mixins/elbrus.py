@@ -83,7 +83,7 @@ class ElbrusCompiler(GnuLikeCompiler):
         # Actually it's not supported for now, but probably will be supported in future
         return 'pch'
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         key = OptionKey(f'{self.language}_std', subproject=subproject, machine=self.for_machine)
         if target:

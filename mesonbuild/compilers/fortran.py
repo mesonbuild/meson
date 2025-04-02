@@ -285,7 +285,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         self._update_language_stds(opts, fortran_stds)
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
@@ -419,7 +419,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         self._update_language_stds(opts, ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018'])
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
@@ -473,7 +473,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
         self._update_language_stds(opts, ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018'])
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}

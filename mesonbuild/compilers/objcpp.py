@@ -81,7 +81,7 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
                                          self.supported_warn_args(gnu_common_warning_args) +
                                          self.supported_warn_args(gnu_objc_warning_args))}
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         key = OptionKey('cpp_std', subproject=subproject, machine=self.for_machine)
         if target:
@@ -110,7 +110,7 @@ class ClangObjCPPCompiler(ClangCPPStds, ClangCompiler, ObjCPPCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
         key = OptionKey('cpp_std', machine=self.for_machine)
         std = self.get_compileropt_value(key, env, target, subproject)
