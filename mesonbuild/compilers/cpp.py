@@ -999,9 +999,6 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
     def get_always_args(self) -> T.List[str]:
         return ['-nologo', '-lang=cpp']
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
-        return []
-
     def get_compile_only_args(self) -> T.List[str]:
         return []
 
