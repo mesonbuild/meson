@@ -2,13 +2,16 @@ project('D Features', 'd', meson_version: '>=1.6', default_options : ['debug=fal
 
 dc = meson.get_compiler('d')
 
-# GDC 13 hard errors if options are given number values.
-# https://github.com/mesonbuild/meson/pull/11996
-
-if dc.get_id() == 'gcc' and dc.version().version_compare('>=13')
-    number_options_supported = false
+# See: https://dlang.org/changelog/2.111.0.html#dmd.deprecation-version-debug-number
+# GDC fails even before that: https://github.com/mesonbuild/meson/pull/11996
+if dc.get_id() == 'gcc'
+  number_options_supported = dc.version().version_compare('<13')
+elif dc.get_id() == 'dmd'
+  number_options_supported = dc.version().version_compare('<2.111')
+elif dc.get_id() == 'llvm'
+  number_options_supported = dc.version().version_compare('<1.41')
 else
-    number_options_supported = true
+  error(f'Unknown D compiler id')
 endif
 
 # ONLY FOR BACKWARDS COMPATIBILITY.
