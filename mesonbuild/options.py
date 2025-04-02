@@ -1357,10 +1357,10 @@ class OptionStore:
                 continue
             if key in self.options:
                 self.set_option(key, valstr, True)
-            elif key.subproject is None:
-                projectkey = key.as_root()
-                if projectkey in self.options:
-                    self.options[projectkey].set_value(valstr)
+            else:
+                proj_key = key.as_root()
+                if proj_key in self.options:
+                    self.options[proj_key].set_value(valstr)
                 else:
                     # Fail on unknown options that we can know must
                     # exist at this point in time. Subproject and compiler
@@ -1368,11 +1368,9 @@ class OptionStore:
                     #
                     # Some base options (sanitizers etc) might get added later.
                     # Permitting them all is not strictly correct.
-                    if not self.is_compiler_option(key) and not self.is_base_option(key):
+                    if key.subproject is None and not self.is_compiler_option(key) and not self.is_base_option(key):
                         raise MesonException(f'Unknown options: "{keystr}"')
                     self.pending_options[key] = valstr
-            else:
-                self.pending_options[key] = valstr
 
     def hacky_mchackface_back_to_list(self, optdict: T.Dict[str, str]) -> T.List[str]:
         if isinstance(optdict, dict):
