@@ -1278,8 +1278,7 @@ class OptionStore:
                 key = OptionKey.from_string(keystr)
             else:
                 key = keystr
-            if key.subproject is not None:
-                #self.pending_project_options[key] = valstr
+            if key.subproject:
                 augstr = str(key)
                 self.augments[augstr] = valstr
             elif key in self.options:
@@ -1287,7 +1286,7 @@ class OptionStore:
             else:
                 proj_key = key.as_root()
                 if proj_key in self.options:
-                    self.options[proj_key].set_value(valstr)
+                    self.set_option(proj_key, valstr, first_invocation)
                 else:
                     self.pending_options[key] = valstr
         assert isinstance(project_default_options, dict)
@@ -1305,11 +1304,11 @@ class OptionStore:
             # and defaults to A.
             assert isinstance(keystr, str)
             key = OptionKey.from_string(keystr)
-            # Due to backwards compatibility we ignore all cross options when building
+            # Due to backwards compatibility we ignore all build-machine options when building
             # natively.
             if not self.is_cross and key.is_for_build():
                 continue
-            if key.subproject is not None:
+            if key.subproject:
                 self.pending_options[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
@@ -1333,12 +1332,14 @@ class OptionStore:
             # natively.
             if not self.is_cross and key.is_for_build():
                 continue
-            if key in self.options:
+            if key.subproject:
+                self.pending_options[key] = valstr
+            elif key in self.options:
                 self.set_option(key, valstr, True)
-            elif key.subproject is None:
-                projectkey = key.as_root()
-                if projectkey in self.options:
-                    self.options[projectkey].set_value(valstr)
+            else:
+                proj_key = key.as_root()
+                if proj_key in self.options:
+                    self.set_option(proj_key, valstr, True)
                 else:
                     # Fail on unknown options that we can know must
                     # exist at this point in time. Subproject and compiler
@@ -1346,11 +1347,9 @@ class OptionStore:
                     #
                     # Some base options (sanitizers etc) might get added later.
                     # Permitting them all is not strictly correct.
-                    if not self.is_compiler_option(key) and not self.is_base_option(key):
+                    if key.subproject is None and not self.is_compiler_option(key) and not self.is_base_option(key):
                         raise MesonException(f'Unknown options: "{keystr}"')
                     self.pending_options[key] = valstr
-            else:
-                self.pending_options[key] = valstr
 
     def hacky_mchackface_back_to_list(self, optdict: T.Dict[str, str]) -> T.List[str]:
         if isinstance(optdict, dict):
