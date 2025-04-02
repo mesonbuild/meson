@@ -1836,6 +1836,7 @@ class NinjaBackend(backends.Backend):
         args += cython.get_debug_args(self.get_target_option(target, 'debug'))
         args += cython.get_optimization_args(self.get_target_option(target, 'optimization'))
         args += cython.get_option_compile_args(target, self.environment, target.subproject)
+        args += cython.get_option_std_args(target, self.environment, target.subproject)
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
