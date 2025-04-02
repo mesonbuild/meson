@@ -24,6 +24,9 @@ cleanup_pkgs=(go)
 AUR_USER=docker
 PACMAN_OPTS='--needed --noprogressbar --noconfirm'
 
+# Workaround for cmake-4.0 vs wxwidgets-gtk2
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
+
 # Patch config files
 sed -i 's/#Color/Color/g'                            /etc/pacman.conf
 sed -i 's,#MAKEFLAGS="-j2",MAKEFLAGS="-j$(nproc)",g' /etc/makepkg.conf
