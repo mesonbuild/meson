@@ -476,7 +476,10 @@ class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
         self.parse_modules(kwargs)
 
         for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
-        if environment.machines[for_machine].is_darwin() and self.check_macOS_recent_enough():
+        if (
+            (environment.machines[for_machine].system == 'darwin' and self.check_macOS_recent_enough())
+            or (environment.machines[for_machine].system == 'ios' and self.check_iOS_recent_enough())
+        ):
             self.detect(kwargs)
 
     def check_macOS_recent_enough(self) -> bool:
@@ -489,6 +492,18 @@ class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
         cmd = ['xcrun', '-sdk', 'macosx', '--show-sdk-version']
         sdk_version = subprocess.run(cmd, capture_output=True, check=True, text=True).stdout.strip()
         return mesonlib.version_compare(sdk_version, '>=13.3')
+
+    def check_iOS_recent_enough(self) -> bool:
+        ios_version = platform.ios_ver().system
+        deploy_target = os.environ.get('IPHONEOS_DEPLOYMENT_TARGET', ios_version)
+        if not mesonlib.version_compare(deploy_target, '>=16.4'):
+            return False
+
+        # We also need the SDK to be >=16.4
+        sdk = "iphonesimulator" if platform.ios_ver().is_simulator else "iphoneos"
+        cmd = ['xcrun', '-sdk', sdk, '--show-sdk-version']
+        sdk_version = subprocess.run(cmd, capture_output=True, check=True, text=True).stdout.strip()
+        return mesonlib.version_compare(sdk_version, '>=16.4')
 
     def detect(self, kwargs: T.Dict[str, T.Any]) -> None:
         from .framework import ExtraFrameworkDependency

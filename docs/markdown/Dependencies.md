@@ -436,11 +436,12 @@ anything else will raise an error.
 ### Accelerate
 
 Apple's Accelerate framework provides BLAS and LAPACK. It received a major update
-in macOS 13.3, with LAPACK updated from 3.2 to 3.9, ILP64 support added, and
+in macOS 13.3 and iOS 16.4, with LAPACK updated from 3.2 to 3.9, ILP64 support added, and
 many longstanding bugs fixed. The `accelerate` dependency therefore only supports
-this new version, and won't return a result on macOS <13.3 (note: the
+this new version, and won't return a result on macOS <13.3 or iOS <16.4 (note: the
 corresponding 13.3 XCode SDK must also be installed) or if
-`MACOS_DEPLOYMENT_TARGET` is set to a version lower than 13.3.
+`MACOS_DEPLOYMENT_TARGET` is set to a version lower than 13.3, or
+`IPHONEOS_DEPLOYMENT_TARGET` is set to a version lower than 16.4.
 
 ```meson
 accelerate_dep = dependency('accelerate', modules: [interface: 'lp64'])
