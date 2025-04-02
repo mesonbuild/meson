@@ -1,4 +1,4 @@
-
+import std.conv;
 import std.stdio;
 import std.array : split;
 import std.string : strip;
@@ -14,6 +14,22 @@ auto getMenu ()
 auto getPeople ()
 {
     return import ("people.txt").strip.split ("\n");
+}
+
+// Put these in templates to prevent the compiler from failing to parse them
+// since frontend version 2.111
+template VersionInt (int v) {
+    mixin(`version(` ~ v.to!string ~ `)
+        enum VersionInt = true;
+    else
+        enum VersionInt = false;`);
+}
+template DebugInt (int v) {
+    import std.conv;
+    mixin(`debug(` ~ v.to!string ~ `)
+        enum DebugInt = true;
+    else
+        enum DebugInt = false;`);
 }
 
 void main (string[] args)
@@ -43,13 +59,13 @@ void main (string[] args)
     }
 
     version (With_VersionInteger)
-        version(3) exit(0);
+        static if (VersionInt!3) exit(0);
 
     version (With_Debug)
         debug exit(0);
 
     version (With_DebugInteger)
-        debug(3) exit(0);
+        static if (DebugInt!(3)) exit(0);
 
     version (With_DebugIdentifier)
         debug(DebugIdentifier) exit(0);
@@ -57,9 +73,9 @@ void main (string[] args)
     version (With_DebugAll) {
         int dbg = 0;
         debug dbg++;
-        debug(2) dbg++;
-        debug(3) dbg++;
-        debug(4) dbg++;
+        static if (DebugInt!2) dbg++;
+        static if (DebugInt!3) dbg++;
+        static if (DebugInt!4) dbg++;
         debug(DebugIdentifier) dbg++;
 
         if (dbg == 5)
