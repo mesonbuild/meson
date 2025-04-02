@@ -1278,8 +1278,7 @@ class OptionStore:
                 key = OptionKey.from_string(keystr)
             else:
                 key = keystr
-            if key.subproject is not None:
-                #self.pending_project_options[key] = valstr
+            if key.subproject:
                 augstr = str(key)
                 self.augments[augstr] = valstr
             elif key in self.options:
@@ -1309,7 +1308,7 @@ class OptionStore:
             # natively.
             if not self.is_cross and key.is_for_build():
                 continue
-            if key.subproject is not None:
+            if key.subproject:
                 self.pending_options[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
@@ -1333,7 +1332,9 @@ class OptionStore:
             # natively.
             if not self.is_cross and key.is_for_build():
                 continue
-            if key in self.options:
+            if key.subproject:
+                self.pending_options[key] = valstr
+            elif key in self.options:
                 self.set_option(key, valstr, True)
             else:
                 proj_key = key.as_root()
