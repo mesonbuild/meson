@@ -9,7 +9,7 @@ pkgs=(
   ninja make git autoconf automake patch libjpeg-devel
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-obj-c++ vala rust bison flex curl lcov
   mono-core gtkmm3-devel gtest gmock protobuf-devel wxGTK3-3_2-devel gobject-introspection-devel
-  itstool gtk3-devel java-17-openjdk-devel gtk-doc llvm-devel clang-devel libSDL2-devel graphviz-devel zlib-devel zlib-devel-static
+  itstool gtk3-devel java-17-openjdk-devel gtk-doc llvm-devel clang-devel sdl2-compat-devel graphviz-devel zlib-devel zlib-devel-static
   #hdf5-devel netcdf-devel libscalapack2-openmpi3-devel libscalapack2-gnu-openmpi3-hpc-devel openmpi3-devel
   doxygen vulkan-devel vulkan-validationlayers openssh mercurial libpcap-devel libgpgme-devel
   libqt5-qtbase-devel libqt5-qttools-devel libqt5-linguist libqt5-qtbase-private-headers-devel
