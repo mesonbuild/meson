@@ -268,17 +268,13 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', env, target, subproject)
         rtti = self.get_compileropt_value('rtti', env, target, subproject)
         debugstl = self.get_compileropt_value('debugstl', env, target, subproject)
         eh = self.get_compileropt_value('eh', env, target, subproject)
 
-        assert isinstance(std, str)
         assert isinstance(rtti, bool)
         assert isinstance(eh, str)
         assert isinstance(debugstl, bool)
-        if std != 'none':
-            args.append(self._find_best_cpp_std(std))
 
         non_msvc_eh_options(eh, args)
 
@@ -294,6 +290,14 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         if not rtti:
             args.append('-fno-rtti')
 
+        return args
+
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        std = self.get_compileropt_value('std', env, target, subproject)
+        assert isinstance(std, str)
+        if std != 'none':
+            args.append(self._find_best_cpp_std(std))
         return args
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
@@ -368,7 +372,7 @@ class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
                                   info, linker=linker,
                                   defines=defines, full_version=full_version)
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
@@ -412,7 +416,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
         std_opt.set_versions(['c++98', 'c++03', 'c++11', 'c++14', 'c++17'], gnu=True)
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
@@ -481,18 +485,13 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', env, target, subproject)
         rtti = self.get_compileropt_value('rtti', env, target, subproject)
         debugstl = self.get_compileropt_value('debugstl', env, target, subproject)
         eh = self.get_compileropt_value('eh', env, target, subproject)
 
-        assert isinstance(std, str)
         assert isinstance(rtti, bool)
         assert isinstance(eh, str)
         assert isinstance(debugstl, bool)
-
-        if std != 'none':
-            args.append(self._find_best_cpp_std(std))
 
         non_msvc_eh_options(eh, args)
 
@@ -501,6 +500,14 @@ class GnuCPPCompiler(_StdCPPLibMixin, GnuCPPStds, GnuCompiler, CPPCompiler):
 
         if debugstl:
             args.append('-D_GLIBCXX_DEBUG=1')
+        return args
+
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        std = self.get_compileropt_value('std', env, target, subproject)
+        assert isinstance(std, str)
+        if std != 'none':
+            args.append(self._find_best_cpp_std(std))
         return args
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
@@ -634,11 +641,6 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
     # Elbrus C++ compiler does not support RTTI, so don't check for it.
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
-        assert isinstance(std, str)
-        if std != 'none':
-            args.append(self._find_best_cpp_std(std))
-
         eh = self.get_compileropt_value('eh', env, target, subproject)
         assert isinstance(eh, str)
 
@@ -648,6 +650,14 @@ class ElbrusCPPCompiler(ElbrusCompiler, CPPCompiler):
         assert isinstance(debugstl, str)
         if debugstl:
             args.append('-D_GLIBCXX_DEBUG=1')
+        return args
+
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        std = self.get_compileropt_value('std', env, target, subproject)
+        assert isinstance(std, str)
+        if std != 'none':
+            args.append(self._find_best_cpp_std(std))
         return args
 
 
@@ -711,28 +721,33 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', env, target, subproject)
         rtti = self.get_compileropt_value('rtti', env, target, subproject)
         debugstl = self.get_compileropt_value('debugstl', env, target, subproject)
         eh = self.get_compileropt_value('eh', env, target, subproject)
 
-        assert isinstance(std, str)
         assert isinstance(rtti, bool)
         assert isinstance(eh, str)
         assert isinstance(debugstl, bool)
 
-        if std != 'none':
-            remap_cpp03 = {
-                'c++03': 'c++98',
-                'gnu++03': 'gnu++98'
-            }
-            args.append('-std=' + remap_cpp03.get(std, std))
         if eh == 'none':
             args.append('-fno-exceptions')
         if rtti:
             args.append('-fno-rtti')
         if debugstl:
             args.append('-D_GLIBCXX_DEBUG=1')
+        return args
+
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        std = self.get_compileropt_value('std', env, target, subproject)
+        assert isinstance(std, str)
+        if std != 'none':
+            remap_cpp03 = {
+                'c++03': 'c++98',
+                'gnu++03': 'gnu++98'
+            }
+            args.append('-std=' + remap_cpp03.get(std, std))
+
         return args
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
@@ -801,11 +816,9 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', env, target, subproject)
         eh = self.get_compileropt_value('eh', env, target, subproject)
         rtti = self.get_compileropt_value('rtti', env, target, subproject)
 
-        assert isinstance(std, str)
         assert isinstance(rtti, bool)
         assert isinstance(eh, str)
 
@@ -819,14 +832,18 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         if not rtti:
             args.append('/GR-')
 
-        permissive, ver = self.VC_VERSION_MAP[std]
+        return args
 
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+        args: T.List[str] = []
+        std = self.get_compileropt_value('std', env, target, subproject)
+        assert isinstance(std, str)
+
+        permissive, ver = self.VC_VERSION_MAP[std]
         if ver is not None:
             args.append(f'/std:c++{ver}')
-
         if not permissive:
             args.append('/permissive-')
-
         return args
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
@@ -840,7 +857,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
     This is a limitation of Clang and MSVC that ICL doesn't share.
     """
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         # Note: there is no explicit flag for supporting C++11; we attempt to do the best we can
         # which means setting the C++ standard version to C++14, in compilers that support it
         # (i.e., after VS2015U3)
@@ -854,7 +871,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
             mlog.warning(self.id, 'does not support C++11;',
                          'attempting best effort; setting the standard to C++14',
                          once=True, fatal=False)
-        original_args = super().get_option_compile_args(target, env, subproject)
+        original_args = super().get_option_std_args(target, env, subproject)
         std_mapping = {'/std:c++11': '/std:c++14',
                        '/std:c++14': '/std:vc++14'}
         processed_args = [std_mapping.get(x, x) for x in original_args]
@@ -891,12 +908,12 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
             cpp_stds.extend(['c++20', 'vc++20'])
         return self._get_options_impl(super().get_options(), cpp_stds)
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         std = self.get_compileropt_value('std', env, target, subproject)
         if std != 'none' and version_compare(self.version, '<19.00.24210'):
             mlog.warning('This version of MSVC does not support cpp_std arguments', fatal=False)
 
-        args = super().get_option_compile_args(target, env, subproject)
+        args = super().get_option_std_args(target, env, subproject)
 
         if version_compare(self.version, '<19.11'):
             try:
@@ -969,7 +986,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
         std_opt.set_versions(['c++03', 'c++11'])
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
@@ -1028,7 +1045,7 @@ class TICPPCompiler(TICompiler, CPPCompiler):
         std_opt.set_versions(['c++03'])
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
@@ -1068,7 +1085,7 @@ class MetrowerksCPPCompilerARM(MetrowerksCompiler, CPPCompiler):
         self._update_language_stds(opts, [])
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
@@ -1096,7 +1113,7 @@ class MetrowerksCPPCompilerEmbeddedPowerPC(MetrowerksCompiler, CPPCompiler):
         self._update_language_stds(opts, [])
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
