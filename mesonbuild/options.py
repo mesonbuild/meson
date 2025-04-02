@@ -1305,7 +1305,7 @@ class OptionStore:
             # and defaults to A.
             assert isinstance(keystr, str)
             key = OptionKey.from_string(keystr)
-            # Due to backwards compatibility we ignore all cross options when building
+            # Due to backwards compatibility we ignore all build-machine options when building
             # natively.
             if not self.is_cross and key.is_for_build():
                 continue
