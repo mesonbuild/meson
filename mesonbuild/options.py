@@ -1307,7 +1307,7 @@ class OptionStore:
             else:
                 proj_key = key.as_root()
                 if proj_key in self.options:
-                    self.options[proj_key].set_value(valstr)
+                    self.set_option(proj_key, valstr, first_invocation)
                 else:
                     self.pending_options[key] = valstr
         assert isinstance(project_default_options, dict)
@@ -1360,7 +1360,7 @@ class OptionStore:
             else:
                 proj_key = key.as_root()
                 if proj_key in self.options:
-                    self.options[proj_key].set_value(valstr)
+                    self.set_option(proj_key, valstr, True)
                 else:
                     # Fail on unknown options that we can know must
                     # exist at this point in time. Subproject and compiler
