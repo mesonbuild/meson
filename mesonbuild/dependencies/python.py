@@ -236,7 +236,7 @@ class _PythonDependencyBase(_Base):
                 else:
                     library = self.variables.get('LIBRARY', '')
                     base_name, ext = os.path.splitext(library)
-                    if ext.lower() == '.lib':
+                    if ext.lower() == '.dll':
                         libpath = Path('libs') / f'{base_name}.lib'
                     else:
                         if self.is_freethreaded:
