@@ -257,7 +257,8 @@ with `b_asneeded`, so that option will be silently disabled.
 
 [[shared_module]]s will not have
 bitcode embedded because `-Wl,-bitcode_bundle` is incompatible with
-`-Wl,-undefined,dynamic_lookup` which is necessary for shared modules to work.
+both `-bundle` and `-Wl,-undefined,dynamic_lookup` which are necessary
+for shared modules to work.
 
 ## Compiler options
 
