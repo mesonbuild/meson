@@ -56,9 +56,11 @@ def get_install_paths():
             install_paths = get_distutils_paths(scheme='deb_system', prefix='')
             return paths, install_paths
 
+    # PEXHACK: The hard-coding of posix_prefix here is necessary until we
+    # migrate the entire MCU to use dist-packages instead of site-packages
     paths = sysconfig.get_paths(scheme=scheme)
     empty_vars = {'base': '', 'platbase': '', 'installed_base': ''}
-    install_paths = sysconfig.get_paths(scheme=scheme, vars=empty_vars)
+    install_paths = sysconfig.get_paths(scheme='posix_prefix', vars=empty_vars)
     return paths, install_paths
 
 paths, install_paths = get_install_paths()
