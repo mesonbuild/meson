@@ -243,7 +243,7 @@ class _PythonDependencyBase(_Base):
                             libpath = Path('libs') / f'python{vernum}t.lib'
                         else:
                             libpath = Path('libs') / f'python{vernum}.lib'
-                    mlog.debug("Using python static library: {!r}".format(str(libpath))
+                    mlog.debug("Using python static library: {!r}".format(str(libpath)))
                     # For a debug build, pyconfig.h may force linking with
                     # pythonX_d.lib (see meson#10776). This cannot be avoided
                     # and won't work unless we also have a debug build of
