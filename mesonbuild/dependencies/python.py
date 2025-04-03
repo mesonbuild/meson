@@ -390,10 +390,19 @@ class _PythonDependencyBase(_Base):
                         else:
                             libpath = Path(f'python{vernum}.dll')
                 else:
-                    if self.is_freethreaded:
-                        libpath = Path('libs') / f'python{vernum}t.lib'
+                    library = self.variables.get('LIBRARY', '')
+                    base_name, ext = os.path.splitext(library)
+                    if ext.lower() == '.dll':
+                        if limited_api:
+                            # e.g. python313_d.dll -> python3_d.lib.
+                            base_name = base_name.replace(self.variables.get('py_version_nodot'), vernum, 1)
+                        libpath = Path('libs') / f'{base_name}.lib'
                     else:
-                        libpath = Path('libs') / f'python{vernum}.lib'
+                        if self.is_freethreaded:
+                            libpath = Path('libs') / f'python{vernum}t.lib'
+                        else:
+                            libpath = Path('libs') / f'python{vernum}.lib'
+                    mlog.debug(f'Using python import library: {str(libpath)!r}')
                     # For a debug build, pyconfig.h may force linking with
                     # pythonX_d.lib (see meson#10776). This cannot be avoided
                     # and won't work unless we also have a debug build of
