@@ -1027,19 +1027,13 @@ class NinjaBackend(backends.Backend):
             pch_objects = []
 
         o, od = self.flatten_object_list(target)
-        obj_targets = [t for t in od if t.uses_fortran()]
         obj_list.extend(o)
+        fortran_order_deps = self.get_fortran_order_deps(od)
 
-        # We don't need this order dep if we're using dyndeps, as the
-        # depscanner will handle this for us, which produces a better dependency
-        # graph
-        fortran_order_deps: T.List[File] = []
-        if not self.use_dyndeps_for_fortran():
-            fortran_order_deps = [File(True, *os.path.split(self.get_target_filename(t))) for t in obj_targets]
         fortran_inc_args: T.List[str] = []
         if target.uses_fortran():
             fortran_inc_args = mesonlib.listify([target.compilers['fortran'].get_include_args(
-                self.get_target_private_dir(t), is_system=False) for t in obj_targets])
+                self.get_target_private_dir(t), is_system=False) for t in od if t.uses_fortran()])
 
             # add the private directories of all transitive dependencies, which
             # are needed for their mod files
@@ -2517,6 +2511,16 @@ class NinjaBackend(backends.Backend):
         rather than up front. Remove this and all old scanning code once Ninja
         minimum version is bumped to 1.10.'''
         return self.ninja_has_dyndeps
+
+    def get_fortran_order_deps(self, deps: T.List[build.BuildTarget]) -> T.List[File]:
+        # We don't need this order dep if we're using dyndeps, as the
+        # depscanner will handle this for us, which produces a better dependency
+        # graph
+        if self.use_dyndeps_for_fortran():
+            return []
+
+        return [File(True, *os.path.split(self.get_target_filename(t))) for t in deps
+                if t.uses_fortran()]
 
     def generate_fortran_dep_hack(self, crstr: str) -> None:
         if self.use_dyndeps_for_fortran():
