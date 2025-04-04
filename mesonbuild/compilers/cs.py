@@ -102,10 +102,7 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
             cmdlist = [self.runner, obj]
         else:
             cmdlist = [os.path.join(work_dir, obj)]
-        pe = subprocess.Popen(cmdlist, cwd=work_dir)
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by Mono compiler %s are not runnable.' % self.name_string())
+        self.run_sanity_check(environment, cmdlist, work_dir, use_exe_wrapper_for_cross=False)
 
     def needs_static_linker(self) -> bool:
         return False
