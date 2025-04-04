@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/135 misspelled method kwargs/meson.build:4:11: ERROR: Got unknown keyword arguments \"deps\", \"srcs\" (did you mean \"sources\"?)"
+    }
+  ]
+}
