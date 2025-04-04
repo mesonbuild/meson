@@ -33,7 +33,7 @@ from ..mesonlib import (
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path
 from ..options import OptionKey
-from .backends import CleanTrees
+from .backends import CleanTrees, get_rsp_threshold
 from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
@@ -91,25 +91,6 @@ def gcc_rsp_quote(s: str) -> str:
     s = s.replace('\\', '\\\\')
 
     return quote_func(s)
-
-def get_rsp_threshold() -> int:
-    '''Return a conservative estimate of the commandline size in bytes
-    above which a response file should be used.  May be overridden for
-    debugging by setting environment variable MESON_RSP_THRESHOLD.'''
-
-    if mesonlib.is_windows():
-        # Usually 32k, but some projects might use cmd.exe,
-        # and that has a limit of 8k.
-        limit = 8192
-    else:
-        # Unix-like OSes usually have very large command line limits, (On Linux,
-        # for example, this is limited by the kernel's MAX_ARG_STRLEN). However,
-        # some programs place much lower limits, notably Wine which enforces a
-        # 32k limit like Windows. Therefore, we limit the command line to 32k.
-        limit = 32768
-    # Be conservative
-    limit = limit // 2
-    return int(os.environ.get('MESON_RSP_THRESHOLD', limit))
 
 # a conservative estimate of the command-line length limit
 rsp_threshold = get_rsp_threshold()
@@ -1242,6 +1223,7 @@ class NinjaBackend(backends.Backend):
                                                 capture=ofilenames[0] if target.capture else None,
                                                 feed=srcs[0] if target.feed else None,
                                                 env=target.env,
+                                                can_use_rsp_file=target.rspable,
                                                 verbose=target.console)
         if reason:
             cmd_type = f' (wrapped by meson {reason})'

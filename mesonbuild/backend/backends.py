@@ -58,6 +58,25 @@ if T.TYPE_CHECKING:
         generated_sources: T.List[str]
 
 
+def get_rsp_threshold() -> int:
+    '''Return a conservative estimate of the commandline size in bytes
+    above which a response file should be used.  May be overridden for
+    debugging by setting environment variable MESON_RSP_THRESHOLD.'''
+
+    if mesonlib.is_windows():
+        # Usually 32k, but some projects might use cmd.exe,
+        # and that has a limit of 8k.
+        limit = 8192
+    else:
+        # Unix-like OSes usually have very large command line limits, (On Linux,
+        # for example, this is limited by the kernel's MAX_ARG_STRLEN). However,
+        # some programs place much lower limits, notably Wine which enforces a
+        # 32k limit like Windows. Therefore, we limit the command line to 32k.
+        limit = 32768
+    # Be conservative
+    limit = limit // 2
+    return int(os.environ.get('MESON_RSP_THRESHOLD', limit))
+
 # Languages that can mix with C or C++ but don't support unity builds yet
 # because the syntax we use for unity builds is specific to C/++/ObjC/++.
 # Assembly files cannot be unitified and neither can LLVM IR files
@@ -533,6 +552,7 @@ class Backend:
             capture: T.Optional[str] = None,
             feed: T.Optional[str] = None,
             env: T.Optional[mesonlib.EnvironmentVariables] = None,
+            can_use_rsp_file: bool = False,
             tag: T.Optional[str] = None,
             verbose: bool = False,
             installdir_map: T.Optional[T.Dict[str, str]] = None) -> 'ExecutableSerialisation':
@@ -594,6 +614,19 @@ class Backend:
             exe_wrapper = None
 
         workdir = workdir or self.environment.get_build_dir()
+
+        needs_rsp_file = can_use_rsp_file and sum(len(i) for i in cmd_args) >= get_rsp_threshold()
+
+        if needs_rsp_file:
+            hasher = hashlib.sha1()
+            hasher.update(bytes(str(cmd_args), encoding='utf-8'))
+            digest = hasher.hexdigest()
+            scratch_file = f'meson_rsp_{digest}.rsp'
+            rsp_file = os.path.join(self.environment.get_scratch_dir(), scratch_file)
+            with open(rsp_file, 'w', encoding='utf-8', newline='\n') as f:
+                f.write(shlex.join(cmd_args))
+                cmd_args = [f'@{rsp_file}']
+
         return ExecutableSerialisation(exe_cmd + cmd_args, env,
                                        exe_wrapper, workdir,
                                        extra_paths, capture, feed, tag, verbose, installdir_map)
@@ -606,6 +639,7 @@ class Backend:
                              feed: T.Optional[str] = None,
                              force_serialize: bool = False,
                              env: T.Optional[mesonlib.EnvironmentVariables] = None,
+                             can_use_rsp_file: bool = False,
                              verbose: bool = False) -> T.Tuple[T.List[str], str]:
         '''
         Serialize an executable for running with a generator or a custom target
@@ -613,7 +647,7 @@ class Backend:
         cmd: T.List[T.Union[str, mesonlib.File, build.BuildTarget, build.CustomTarget, programs.ExternalProgram]] = []
         cmd.append(exe)
         cmd.extend(cmd_args)
-        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, verbose=verbose)
+        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, feed, env, can_use_rsp_file, verbose=verbose)
         reasons: T.List[str] = []
         if es.extra_paths:
             reasons.append('to set PATH')
@@ -652,6 +686,9 @@ class Backend:
             for k, v in env.get_env({}).items():
                 envlist.append(f'{k}={v}')
             return ['env'] + envlist + es.cmd_args, ', '.join(reasons)
+
+        if any(a.startswith('@') for a in es.cmd_args):
+            reasons.append('because command is too long')
 
         if not force_serialize:
             if not capture and not feed:
@@ -1556,7 +1593,7 @@ class Backend:
 
     def eval_custom_target_command(
             self, target: build.CustomTarget, absolute_outputs: bool = False) -> \
-            T.Tuple[T.List[str], T.List[str], T.List[str]]:
+            T.Tuple[T.List[str], T.List[str], T.List[str | programs.ExternalProgram]]:
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
@@ -1605,6 +1642,9 @@ class Backend:
                     if not target.absolute_paths:
                         pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
+            elif isinstance(i, programs.ExternalProgram):
+                # Let it pass and be extended elsewhere
+                pass
             else:
                 raise RuntimeError(f'Argument {i} is of unknown type {type(i)}')
             cmd.append(i)
@@ -1629,7 +1669,8 @@ class Backend:
         # fixed.
         #
         # https://github.com/mesonbuild/meson/pull/737
-        cmd = [i.replace('\\', '/') for i in cmd]
+        if os.altsep:
+            cmd = [i.replace(os.sep, os.altsep) if isinstance(i, str) else i for i in cmd]
         return inputs, outputs, cmd
 
     def get_introspect_command(self) -> str:
@@ -1990,6 +2031,8 @@ class Backend:
                         compiler += [j]
                     elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
                         compiler += j.get_outputs()
+                    elif isinstance(j, programs.ExternalProgram):
+                        compiler += j.get_command()
                     else:
                         raise RuntimeError(f'Type "{type(j).__name__}" is not supported in get_introspection_data. This is a bug')
 
