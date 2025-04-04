@@ -1323,8 +1323,10 @@ class OptionStore:
             #
             # The key parsing function can not handle the difference between the two
             # and defaults to A.
-            assert isinstance(keystr, str)
-            key = OptionKey.from_string(keystr)
+            if isinstance(keystr, str):
+                key = OptionKey.from_string(keystr)
+            else:
+                key = keystr
             # Due to backwards compatibility we ignore all cross options when building
             # natively.
             if not self.is_cross and key.is_for_build():
