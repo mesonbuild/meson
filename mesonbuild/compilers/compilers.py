@@ -148,6 +148,12 @@ def is_assembly(fname: 'mesonlib.FileOrString') -> bool:
     suffix = fname.split('.')[-1]
     return suffix in assembler_suffixes
 
+def is_java(fname: mesonlib.FileOrString) -> bool:
+    if isinstance(fname, mesonlib.File):
+        fname = fname.fname
+    suffix = fname.split('.')[-1]
+    return suffix in lang_suffixes['java']
+
 def is_llvm_ir(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):
         fname = fname.fname
