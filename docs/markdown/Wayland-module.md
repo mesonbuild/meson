@@ -9,7 +9,7 @@ xmls and to generate .c and .h files using wayland-scanner
 ## Quick Usage
 
 ```meson
-project('hello-wayland', 'c')
+project('hello-wayland', host_machine_languages : 'c')
 
 wl_dep = dependency('wayland-client')
 wl_mod = import('wayland')
