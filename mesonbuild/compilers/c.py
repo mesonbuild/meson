@@ -155,6 +155,13 @@ class ArmLtdClangCCompiler(ClangCCompiler):
 
     id = 'armltdclang'
 
+class BorlandClangCCompiler(ClangCCompiler):
+
+    id = 'bccclang'
+
+    # Override CCompiler.get_always_args
+    def get_always_args(self) -> T.List[str]:
+        return ['-q']
 
 class AppleClangCCompiler(AppleCompilerMixin, AppleCStdsMixin, ClangCCompiler):
 
