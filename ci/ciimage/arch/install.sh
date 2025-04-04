@@ -12,7 +12,7 @@ pkgs=(
   libelf gcc gcc-fortran gcc-objc vala rust bison flex cython go dlang-dmd
   mono boost qt5-base gtkmm3 gtest gmock protobuf gobject-introspection
   itstool glib2-devel gtk3 java-environment=8 gtk-doc llvm clang sdl2 graphviz
-  doxygen vulkan-validation-layers openssh mercurial gtk-sharp-2 qt5-tools
+  doxygen vulkan-headers vulkan-icd-loader vulkan-validation-layers openssh mercurial gtk-sharp-2 qt5-tools
   libwmf cmake netcdf-fortran openmpi nasm gnustep-base gettext
   python-lxml hotdoc rust-bindgen qt6-base qt6-tools qt6-declarative wayland wayland-protocols
   # cuda
@@ -23,6 +23,9 @@ cleanup_pkgs=(go)
 
 AUR_USER=docker
 PACMAN_OPTS='--needed --noprogressbar --noconfirm'
+
+# Workaround for cmake-4.0 vs wxwidgets-gtk2
+export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # Patch config files
 sed -i 's/#Color/Color/g'                            /etc/pacman.conf
