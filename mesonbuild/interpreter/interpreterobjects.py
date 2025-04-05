@@ -468,6 +468,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
                              'as_link_whole': self.as_link_whole_method,
                              'as_static': self.as_static_method,
                              'as_shared': self.as_shared_method,
+                             'as_json': self.as_json,
                              })
 
     def found(self) -> bool:
@@ -609,6 +610,31 @@ class DependencyHolder(ObjectHolder[Dependency]):
         if not isinstance(self.held_object, InternalDependency):
             raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
         return self.held_object.get_as_shared(kwargs['recursive'])
+
+    @FeatureNew('dependency.as_json', '1.8.0')
+    @noPosargs
+    @noKwargs
+    def as_json(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.CustomTarget:
+        name = self.held_object.name
+        output = f'meson_depjson_{name}.json'
+        cmd = self.env.get_build_command()
+        cmd += ['--internal', 'depjson', name, '@OUTPUT@', os.path.join(self.env.info_dir, 'intro-dependencies.json')]
+
+        tgt = build.CustomTarget(
+            output,
+            self.interpreter.subdir,
+            self.interpreter.subproject,
+            self.interpreter.environment,
+            cmd,
+            [],
+            [output],
+            backend=self.interpreter.backend,
+            # TODO: this name is awful for internal dependencies
+            description=f'Generating dependency json for {name}'
+        )
+
+        self.interpreter.add_target(tgt.name, tgt)
+        return tgt
 
 _EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
 
