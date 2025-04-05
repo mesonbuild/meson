@@ -615,10 +615,18 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @noPosargs
     @noKwargs
     def as_json(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> build.CustomTarget:
-        name = self.held_object.name
+        d = self.held_object.as_dict(self.interpreter.backend)
+        name = d.pop('name')
         output = f'meson_depjson_{name}.json'
+
+        # Serialize all dependency information as a command, that way the target is only rebuilt when
+        # the dependency information changes
         cmd = self.env.get_build_command()
-        cmd += ['--internal', 'depjson', name, '@OUTPUT@', os.path.join(self.env.info_dir, 'intro-dependencies.json')]
+        cmd += ['--internal', 'depjson', '@OUTPUT@', name, d.pop('type'), d.pop('version')]
+        for k, lv in d.items():
+            if lv:
+                for v in lv:
+                    cmd += [f'--{k}', v]
 
         tgt = build.CustomTarget(
             output,
