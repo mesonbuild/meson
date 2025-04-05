@@ -407,3 +407,17 @@ class RewriterTests(BasePlatformTests):
         # Do it line per line because it is easier to debug like that
         for orig_line, new_line in zip_longest(original_contents.splitlines(), new_contents.splitlines()):
             self.assertEqual(orig_line, new_line)
+
+    def test_rewrite_prefix(self) -> None:
+        self.prime('7 prefix')
+        out = self.rewrite_raw(self.builddir, ['kwargs', 'info', 'project', '/'])
+        expected = {
+            'kwargs': {
+                'project#/': {
+                    "default_options": [
+                        'prefix=/export/doocs'
+                    ]
+                }
+            }
+        }
+        self.assertDictEqual(out, expected)

@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from itertools import chain
 import argparse
+import copy
 import dataclasses
 import itertools
 import os
@@ -35,12 +36,15 @@ from . import mlog
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
+    from .interpreterbase import SubProject
+
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
     AnyOptionType: TypeAlias = T.Union[
         'UserBooleanOption', 'UserComboOption', 'UserFeatureOption',
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
+    MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
 
@@ -1233,21 +1237,28 @@ class OptionStore:
     def first_handle_prefix(self,
                             project_default_options: T.Union[T.List[str], OptionStringLikeDict],
                             cmd_line_options: T.Union[T.List[str], OptionStringLikeDict],
-                            machine_file_options: T.Union[T.List[str], OptionStringLikeDict]) \
+                            machine_file_options: T.Mapping[OptionKey, ElementaryOptionValues]) \
             -> T.Tuple[T.Union[T.List[str], OptionStringLikeDict],
                        T.Union[T.List[str], OptionStringLikeDict],
-                       T.Union[T.List[str], OptionStringLikeDict]]:
+                       T.MutableMapping[OptionKey, ElementaryOptionValues]]:
+        # Copy to avoid later mutation
+        nopref_machine_file_options = T.cast(
+            'T.MutableMapping[OptionKey, ElementaryOptionValues]', copy.copy(machine_file_options))
+
         prefix = None
         (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
         prefix = prefix if possible_prefix is None else possible_prefix
-        (possible_prefix, nopref_native_file_options) = self.prefix_split_options(machine_file_options)
-        prefix = prefix if possible_prefix is None else possible_prefix
+
+        possible_prefixv = nopref_machine_file_options.pop(OptionKey('prefix'), None)
+        assert possible_prefixv is None or isinstance(possible_prefixv, str), 'mypy: prefix from machine file was not a string?'
+        prefix = prefix if possible_prefixv is None else possible_prefixv
+
         (possible_prefix, nopref_cmd_line_options) = self.prefix_split_options(cmd_line_options)
         prefix = prefix if possible_prefix is None else possible_prefix
 
         if prefix is not None:
             self.hard_reset_from_prefix(prefix)
-        return (nopref_project_default_options, nopref_cmd_line_options, nopref_native_file_options)
+        return (nopref_project_default_options, nopref_cmd_line_options, nopref_machine_file_options)
 
     def hard_reset_from_prefix(self, prefix: str) -> None:
         prefix = self.sanitize_prefix(prefix)
@@ -1265,7 +1276,7 @@ class OptionStore:
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
                                                cmd_line_options_in: T.Union[T.List[str], OptionStringLikeDict],
-                                               machine_file_options_in: T.Union[T.List[str], OptionStringLikeDict]) -> None:
+                                               machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
         first_invocation = True
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
@@ -1312,8 +1323,10 @@ class OptionStore:
             #
             # The key parsing function can not handle the difference between the two
             # and defaults to A.
-            assert isinstance(keystr, str)
-            key = OptionKey.from_string(keystr)
+            if isinstance(keystr, str):
+                key = OptionKey.from_string(keystr)
+            else:
+                key = keystr
             # Due to backwards compatibility we ignore all cross options when building
             # natively.
             if not self.is_cross and key.is_for_build():
@@ -1401,3 +1414,31 @@ class OptionStore:
                 self.set_option(key, valstr, is_first_invocation)
             else:
                 self.augments[str(key)] = valstr
+
+    def update_project_options(self, project_options: MutableKeyedOptionDictType, subproject: SubProject) -> None:
+        for key, value in project_options.items():
+            if key not in self.options:
+                self.add_project_option(key, value)
+                continue
+            if key.subproject != subproject:
+                raise MesonBugException(f'Tried to set an option for subproject {key.subproject} from {subproject}!')
+
+            oldval = self.get_value_object(key)
+            if type(oldval) is not type(value):
+                self.set_option(key, value.value)
+            elif choices_are_different(oldval, value):
+                # If the choices have changed, use the new value, but attempt
+                # to keep the old options. If they are not valid keep the new
+                # defaults but warn.
+                self.set_value_object(key, value)
+                try:
+                    value.set_value(oldval.value)
+                except MesonException:
+                    mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).',
+                                 fatal=False)
+
+        # Find any extranious keys for this project and remove them
+        potential_removed_keys = self.options.keys() - project_options.keys()
+        for key in potential_removed_keys:
+            if self.is_project_option(key) and key.subproject == subproject:
+                self.remove(key)

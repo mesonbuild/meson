@@ -18,7 +18,7 @@ from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
-    from ...coredata import MutableKeyedOptionDictType
+    from ...options import MutableKeyedOptionDictType
     from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
     from ..compilers import Compiler

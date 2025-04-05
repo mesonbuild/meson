@@ -15,7 +15,6 @@ from collections import OrderedDict
 import textwrap
 
 from .mesonlib import (
-    MesonBugException,
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
     default_prefix,
@@ -43,7 +42,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import ElementaryOptionValues
+    from .options import ElementaryOptionValues, MutableKeyedOptionDictType
     from .build import BuildTarget
 
     class SharedCMDOptions(Protocol):
@@ -62,7 +61,6 @@ if T.TYPE_CHECKING:
         native_file: T.List[str]
 
     OptionDictType = T.Dict[str, options.AnyOptionType]
-    MutableKeyedOptionDictType = T.Dict['OptionKey', options.AnyOptionType]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, FileOrString, T.Tuple[str, ...], CompileCheckMode]
     # code, args
     RunCheckCacheKey = T.Tuple[str, T.Tuple[str, ...]]
@@ -500,34 +498,6 @@ class CoreData:
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value_for(linkkey))
 
-    def update_project_options(self, project_options: 'MutableKeyedOptionDictType', subproject: SubProject) -> None:
-        for key, value in project_options.items():
-            if key not in self.optstore:
-                self.optstore.add_project_option(key, value)
-                continue
-            if key.subproject != subproject:
-                raise MesonBugException(f'Tried to set an option for subproject {key.subproject} from {subproject}!')
-
-            oldval = self.optstore.get_value_object(key)
-            if type(oldval) is not type(value):
-                self.optstore.set_option(key, value.value)
-            elif options.choices_are_different(oldval, value):
-                # If the choices have changed, use the new value, but attempt
-                # to keep the old options. If they are not valid keep the new
-                # defaults but warn.
-                self.optstore.set_value_object(key, value)
-                try:
-                    value.set_value(oldval.value)
-                except MesonException:
-                    mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).',
-                                 fatal=False)
-
-        # Find any extranious keys for this project and remove them
-        potential_removed_keys = self.optstore.keys() - project_options.keys()
-        for key in potential_removed_keys:
-            if self.optstore.is_project_option(key) and key.subproject == subproject:
-                self.optstore.remove(key)
-
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:
             return False
@@ -594,51 +564,6 @@ class CoreData:
             dirty |= self.copy_build_options_from_regular_ones()
 
         return dirty
-
-    def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
-        # Main project can set default options on subprojects, but subprojects
-        # can only set default options on themselves.
-        # Preserve order: if env.options has 'buildtype' it must come after
-        # 'optimization' if it is in default_options.
-        options_: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
-        for k, v in default_options.items():
-            if isinstance(k, str):
-                k = OptionKey.from_string(k)
-            if not subproject or k.subproject == subproject:
-                options_[k] = v
-        options_.update(env.options)
-        env.options = options_
-
-        # Create a subset of options, keeping only project and builtin
-        # options for this subproject.
-        # Language and backend specific options will be set later when adding
-        # languages and setting the backend (builtin options must be set first
-        # to know which backend we'll use).
-        options_ = OrderedDict()
-
-        for k, v in env.options.items():
-            if isinstance(k, str):
-                k = OptionKey.from_string(k)
-            # If this is a subproject, don't use other subproject options
-            if k.subproject and k.subproject != subproject:
-                continue
-            # If the option is a builtin and is yielding then it's not allowed per subproject.
-            #
-            # Always test this using the HOST machine, as many builtin options
-            # are not valid for the BUILD machine, but the yielding value does
-            # not differ between them even when they are valid for both.
-            if subproject and self.optstore.is_builtin_option(k) and self.optstore.get_value_object(k.evolve(subproject=None, machine=MachineChoice.HOST)).yielding:
-                continue
-            # Skip base, compiler, and backend options, they are handled when
-            # adding languages and setting backend.
-            if self.optstore.is_compiler_option(k) or self.optstore.is_backend_option(k):
-                continue
-            if self.optstore.is_base_option(k) and k.evolve(subproject=None) in options.COMPILER_BASE_OPTIONS:
-                # set_options will report unknown base options
-                continue
-            options_[k] = v
-
-        self.set_options(options_, subproject=subproject, first_invocation=env.first_invocation)
 
     def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
                              env: Environment, subproject: str) -> None:

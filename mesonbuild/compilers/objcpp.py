@@ -15,12 +15,12 @@ from .mixins.clang import ClangCompiler, ClangCPPStds
 from .mixins.clike import CLikeCompiler
 
 if T.TYPE_CHECKING:
-    from .. import coredata
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
     from ..mesonlib import MachineChoice
     from ..build import BuildTarget
+    from ..options import MutableKeyedOptionDictType
 
 
 class ObjCPPCompiler(CLikeCompiler, Compiler):
@@ -54,7 +54,7 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
         code = '#import<stdio.h>\nclass MyClass;int main(void) { return 0; }\n'
         return self._sanity_check_impl(work_dir, environment, 'sanitycheckobjcpp.mm', code)
 
-    def get_options(self) -> coredata.MutableKeyedOptionDictType:
+    def get_options(self) -> MutableKeyedOptionDictType:
         opts = super().get_options()
         key = self.form_compileropt_key('std')
         opts.update({

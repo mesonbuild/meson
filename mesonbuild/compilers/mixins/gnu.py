@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2019-2022 The meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from mesonbuild.compilers.compilers import CompileCheckMode
 
 if T.TYPE_CHECKING:
     from ..._typing import ImmutableListProtocol
-    from ...coredata import MutableKeyedOptionDictType
+    from ...options import MutableKeyedOptionDictType
     from ...environment import Environment
     from ..compilers import Compiler
 else:
