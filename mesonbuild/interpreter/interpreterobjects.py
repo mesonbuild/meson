@@ -3,6 +3,7 @@ import os
 import shlex
 import subprocess
 import copy
+import json
 import textwrap
 
 from pathlib import Path, PurePath
@@ -468,6 +469,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
                              'as_link_whole': self.as_link_whole_method,
                              'as_static': self.as_static_method,
                              'as_shared': self.as_shared_method,
+                             'as_json': self.as_json,
                              })
 
     def found(self) -> bool:
@@ -609,6 +611,27 @@ class DependencyHolder(ObjectHolder[Dependency]):
         if not isinstance(self.held_object, InternalDependency):
             raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
         return self.held_object.get_as_shared(kwargs['recursive'])
+
+    @FeatureNew('dependency.as_json', '1.9.0')
+    @noPosargs
+    @noKwargs
+    def as_json(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
+        d = self.held_object.as_dict(self.interpreter.backend)
+        name = d.pop('name')
+        # TODO: the name of internal dependencies changes
+        output = f'meson_depjson_{name}.json'
+
+        (ofile_path, ofile_fname) = os.path.split(os.path.join(self.interpreter.subdir, output))
+        ofile_abs = os.path.join(self.env.build_dir, ofile_path, ofile_fname)
+        dst_tmp = ofile_abs + '~'
+
+        with open(dst_tmp, "w", encoding="utf-8") as fp:
+            json.dump(d, fp)
+
+        mesonlib.replace_if_different(ofile_abs, dst_tmp)
+
+        return mesonlib.File.from_built_file(self.interpreter.subdir, output)
+
 
 _EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
 
