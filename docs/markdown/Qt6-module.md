@@ -69,7 +69,7 @@ It takes no positional arguments, and the following keyword arguments:
     directory. For instance, when a file called `subdir/one.input` is processed
     it generates a file `{target private directory}/subdir/one.out` when `true`,
     and `{target private directory}/one.out` when `false` (default).
-  - `output_json` bool: *New in 1.7.0*. If `true`, generates additionnaly a
+  - `output_json` bool: *New in 1.7.0*. If `true`, generates additionally a
     JSON representation which may be used by external tools such as qmltyperegistrar
 
 ## preprocess
