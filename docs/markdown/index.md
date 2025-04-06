@@ -17,7 +17,7 @@ code.
 ## Features
 
 *   multiplatform support for Linux, macOS, Windows, GCC, Clang, Visual Studio and others
-*   supported languages include C, C++, D, Fortran, Java, Rust
+*   supported languages include C, C++, C#, D, Fortran, Java, Rust
 *   build definitions in a very readable and user friendly non-Turing complete DSL
 *   cross compilation for many operating systems as well as bare metal
 *   optimized for extremely fast full and incremental builds without sacrificing correctness
