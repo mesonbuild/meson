@@ -312,7 +312,7 @@ For further information see the command line help of Meson by running
 
 ## Legacy notes
 
-If `meson test` does not work for you, you likely have a old version
+If `meson test` does not work for you, you likely have an old version
 of Meson. In that case you should call `mesontest` instead. If
 `mesontest` doesn't work either you have a very old version prior to
 0.37.0 and should upgrade.

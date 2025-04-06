@@ -285,7 +285,7 @@ or they are not called (due to e.g. `if/else`) then nothing is
 downloaded.
 
 If this is not sufficient for you, starting from release 0.40.0 Meson
-has a option called `wrap-mode` which can be used to disable wrap
+has an option called `wrap-mode` which can be used to disable wrap
 downloads altogether with `--wrap-mode=nodownload`. You can also
 disable dependency fallbacks altogether with `--wrap-mode=nofallback`,
 which also implies the `nodownload` option.

@@ -76,7 +76,7 @@ machine](#specifying-options-per-machine) section for details.
 | -------------------------------------- | ------------- | -----------                                                    | -------------- | ----------------- |
 | auto_features {enabled, disabled, auto} | auto         | Override value of all 'auto' features                          | no             | no                |
 | backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode, none} | ninja | Backend to use    | no             | no                |
-| genvslite {vs2022}                     | vs2022        | Setup multi-builtype ninja build directories and Visual Studio solution | no | no |
+| genvslite {vs2022}                     | vs2022        | Setup multi-buildtype ninja build directories and Visual Studio solution | no | no |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | no                |
 | debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
 | default_both_libraries {shared, static, auto} | shared | Default library type for both_libraries                        | no             | no                |
@@ -115,7 +115,7 @@ for a lighter automated build pipeline.
 Setup multiple buildtype-suffixed, ninja-backend build directories (e.g.
 [builddir]_[debug/release/etc.]) and generate [builddir]_vs containing a Visual
 Studio solution with multiple configurations that invoke a meson compile of the
-setup build directories, as appropriate for the current configuration (builtype).
+setup build directories, as appropriate for the current configuration (buildtype).
 
 This has the effect of a simple setup macro of multiple 'meson setup ...'
 invocations with a set of different buildtype values.  E.g.
@@ -152,7 +152,7 @@ All other combinations of `debug` and `optimization` set `buildtype` to `'custom
 
 #### Details for `warning_level`
 
-Exact flags per warning level is compiler specific, but there is an approximative
+Exact flags per warning level is compiler specific, but there is an approximate
 table for most common compilers.
 
 | Warning level | GCC/Clang                | MSVC  |

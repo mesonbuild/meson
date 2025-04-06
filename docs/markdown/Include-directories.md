@@ -7,7 +7,7 @@ short-description: Instructions on handling include directories
 Most `C`/`C++` projects have headers in different directories than
 sources. Thus you need to specify include directories. Let's assume
 that we are at some subdirectory and wish to add its `include`
-subdirectory to some target's search path. To create a include
+subdirectory to some target's search path. To create an include
 directory object we do this:
 
 ```meson
