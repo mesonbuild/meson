@@ -10,7 +10,7 @@ this problem, Meson provides an API that makes it easy for any IDE or
 build tools to integrate Meson builds and provide an experience
 comparable to a solution native to the IDE.
 
-All the resources required for such a IDE integration can be found in
+All the resources required for such an IDE integration can be found in
 the `meson-info` directory in the build directory.
 
 The first thing to do when setting up a Meson project in an IDE is to

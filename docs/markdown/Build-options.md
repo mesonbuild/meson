@@ -222,7 +222,7 @@ a colon:
 $ meson configure -Dsubproject:option=newvalue
 ```
 
-**NOTE:** If you cannot call `meson configure` you likely have a old
+**NOTE:** If you cannot call `meson configure` you likely have an old
   version of Meson. In that case you can call `mesonconf` instead, but
   that is deprecated in newer versions
 
