@@ -122,6 +122,53 @@ def solaris_syms(libfilename: str, outfilename: str) -> None:
     finally:
         os.environ['PATH'] = origpath
 
+def aix_syms(libfilename: str, outfilename: str) -> None:
+    # Get the list of all symbols exported via nm.
+    # AIX nm options -B - BSD format, -g - global symbols
+    output = call_tool('nm', ['-Bg', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
+    result = set()
+    for line in output.split('\n'):
+        if not line:
+            continue
+        line_split = line.split()
+        # AIX nm -B output format: [address] [type] [symbol_name]
+        # Undefined symbols have 'U' as type and no address. So skip.
+        if len(line_split) < 2:
+            continue
+
+        # Skip undefined symbol.
+        if line_split[0].upper() == 'U':
+            continue
+
+        if len(line_split) < 3:
+            # 3rd field is what we want i.e. the symbol name.
+            continue
+
+        symbol_type = line_split[1].upper()
+        # Only export Text, Data and BSS symbols. Ignore rest.
+        if symbol_type not in {'T', 'D', 'B'}:
+            continue
+
+        symbol_name = line_split[2]
+
+        # Skip symbols with . since they are internal implementation.
+        if symbol_name.startswith('.'):
+            continue
+        # In AIX we will also not keep compiler symbols that start with $
+        if '$' in symbol_name:
+            continue
+        # Do not export internal symbols like _GLOBAL* or start with __
+        if symbol_name.startswith('_GLOBAL') or symbol_name.startswith('__'):
+            continue
+        result.add(symbol_name)
+
+    # Remove duplicate symbols if any to avoid duplicate symbol warning from linker.
+    unique_symbols = sorted(result)
+    write_if_changed('\n'.join(unique_symbols) + '\n', outfilename)
+
 def osx_syms(libfilename: str, outfilename: str) -> None:
     # Get the name of the library
     output = call_tool('otool', ['-l', libfilename])
@@ -325,6 +372,8 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.
             dummy_syms(outfilename)
+    elif mesonlib.is_aix():
+        aix_syms(libfilename, outfilename)
     else:
         if not os.path.exists(TOOL_WARNING_FILE):
             mlog.warning('Symbol extracting has not been implemented for this '
