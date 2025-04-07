@@ -151,7 +151,7 @@ More information is available on the tool's documentation page.
 
 A .dmg installer is similarly quite simple, at its core it is
 basically a fancy compressed archive. A good description can be found
-on [this page](https://el-tramo.be/guides/fancy-dmg/). Please read it
+on [this page](https://mko.re/blog/fancy-dmg/). Please read it
 and create a template image file according to its instructions.
 
 The actual process of creating the installer is very simple: you mount
