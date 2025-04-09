@@ -40,6 +40,14 @@ your build dir. After that you just run the build command. Meson will
 autodetect changes in your source tree and regenerate all files
 needed to build the project.
 
+Meson includes many built-in options that can be used to tweak the
+configuration of a build directory; projects can also add their
+own options.  To set values for the options, use the \-D command
+line argument like this:
+
+.B meson setup \-Dopt1=value1 \-Dopt2=value2
+.I rest of the command line...
+
 .SS "options:"
 .TP
 \fB\-\-version\fR
