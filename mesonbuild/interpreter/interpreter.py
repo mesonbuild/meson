@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import hashlib, json
+import hashlib, json, io, sys
 
 from .. import mparser
 from .. import environment
@@ -906,10 +906,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         try:
             subdir, method = r.resolve(subp_name, force_method)
         except wrap.WrapException as e:
+            if force_method is not None:
+                prefix = force_method.title() + ' subproject'
+            else:
+                prefix = 'Subproject'
+            msg = [prefix, mlog.bold(subp_name), 'is buildable:', mlog.red('NO')]
             if not required:
                 mlog.log(e)
-                mlog.log('Subproject ', mlog.bold(subp_name), 'is buildable:', mlog.red('NO'), '(disabling)')
+                mlog.log(*msg, '(disabling)')
                 return self.disabled_subproject(subp_name, exception=e)
+            mlog.error(*msg)
             raise e
 
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
@@ -1474,10 +1480,18 @@ class Interpreter(InterpreterBase, HoldableObject):
         class ExpectErrorObject(ContextManagerObject):
             def __init__(self, msg: str, how: str, subproject: str) -> None:
                 super().__init__(subproject)
+                self.old_stdout = sys.stdout
+                sys.stdout = self.new_stdout = io.StringIO()
                 self.msg = msg
                 self.how = how
 
             def __exit__(self, exc_type, exc_val, exc_tb):
+                sys.stdout = self.old_stdout
+                for l in self.new_stdout.getvalue().splitlines():
+                    if 'ERROR:' in l:
+                        print(l.replace('ERROR', 'ERROR (msbuild proof)'))
+                    else:
+                        print(l)
                 if exc_val is None:
                     raise InterpreterException('Expecting an error but code block succeeded')
                 if isinstance(exc_val, mesonlib.MesonException):
@@ -3190,6 +3204,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         results: T.List['SourceOutputs'] = []
         for s in sources:
             if isinstance(s, str):
+                if s.endswith(' '):
+                    raise MesonException(f'{s!r} ends with a space. This is probably an error.')
                 if not strict and s.startswith(self.environment.get_build_dir()):
                     results.append(s)
                     mlog.warning(f'Source item {s!r} cannot be converted to File object, because it is a generated file. '

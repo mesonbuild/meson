@@ -398,7 +398,7 @@ class File(HoldableObject):
 
     @staticmethod
     @lru_cache(maxsize=None)
-    def from_source_file(source_root: str, subdir: str, fname: str) -> 'File':
+    def from_source_file(source_root: str, subdir: str, fname: str) -> File:
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
             raise MesonException(f'File {fname} does not exist.')
         return File(False, subdir, fname)
@@ -1915,7 +1915,7 @@ def _make_tree_writable(topdir: T.Union[str, Path]) -> None:
         os.chmod(d, os.stat(d).st_mode | stat.S_IWRITE | stat.S_IREAD)
         for fname in files:
             fpath = os.path.join(d, fname)
-            if os.path.isfile(fpath):
+            if not os.path.islink(fpath) and os.path.isfile(fpath):
                 os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)
 
 
