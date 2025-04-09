@@ -24,8 +24,6 @@ like Meson, rather than Meson work more like rust.
 rustmod.test(name, target, ...)
 ```
 
-*Since 1.8.0*
-
 This function creates a new rust unittest target from an existing rust
 based target, which may be a library or executable. It does this by
 copying the sources and arguments passed to the original target and
@@ -49,6 +47,8 @@ This function  also accepts all of the keyword arguments accepted by the
 ```meson
 rustmod.doctest(name, target, ...)
 ```
+
+*Since 1.8.0*
 
 This function creates a new `test()` target from an existing rust
 based library target. The test will use `rustdoc` to extract and run
