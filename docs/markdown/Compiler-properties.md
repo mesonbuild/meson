@@ -194,6 +194,18 @@ correctly report the function as missing. Without the header however,
 it would lack the necessary availability information and incorrectly
 report the function as available.
 
+## Is a macro defined?
+
+Macro detection can often be useful to determine if non-standard features
+are supported on your target platform. Fortunately, Meson makes it
+easy to check if a macro is defined:
+
+```meson
+if [[#compiler.has_define]]('__SIZEOF_INT128__')
+  # macro is defined, do whatever is required
+endif
+```
+
 ## Does a structure contain a member?
 
 Some platforms have different standard structures. Here's how one
