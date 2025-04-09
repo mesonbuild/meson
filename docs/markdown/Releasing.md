@@ -21,4 +21,4 @@ For each new meson release, several different artifacts are created:
 - Eli Schwartz. PGP key: [BD27B07A5EF45C2ADAF70E0484818A6819AF4A9B](https://keyserver.ubuntu.com/pks/lookup?search=0xBD27B07A5EF45C2ADAF70E0484818A6819AF4A9B&op=index)
 - Dylan Baker. PGP key: [71C4B75620BC75708B4BDB254C95FAAB3EB073EC](https://keyserver.ubuntu.com/pks/lookup?search=0x71C4B75620BC75708B4BDB254C95FAAB3EB073EC&op=index)
 
-The default release manager for new versions of Meson is Jussi Pakkanen. Starting with meson 1.8.0, the release team has been expanded with fallback options to reduce the bus factor, but but will continue to be done by Jussi when possible.
+The default release manager for new versions of Meson is Jussi Pakkanen. Starting with meson 1.8.0, the release team has been expanded with fallback options to reduce the bus factor, but will continue to be done by Jussi when possible.
