@@ -3390,6 +3390,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 kwargs['language_args'][lang].extend(args)
                 kwargs['depend_files'].extend(deps)
         if targetclass is not build.Jar:
+            self.check_for_jar_sources(sources, targetclass)
             kwargs['d_import_dirs'] = self.extract_incdirs(kwargs, 'd_import_dirs')
 
         # Filter out kwargs from other target types. For example 'soversion'
@@ -3478,6 +3479,13 @@ class Interpreter(InterpreterBase, HoldableObject):
             fname = os.path.join(subdir, s)
             if not os.path.isfile(fname):
                 raise InterpreterException(f'Tried to add non-existing source file {s}.')
+
+    def check_for_jar_sources(self, sources, targetclass):
+        for s in sources:
+            if isinstance(s, (str, mesonlib.File)) and compilers.is_java(s):
+                raise InvalidArguments(f'Build target of type "{targetclass.typename}" cannot build java source: "{s}". Use "{build.Jar.typename}" instead.')
+            elif isinstance(s, build.StructuredSources):
+                self.check_for_jar_sources(s.as_list(), targetclass)
 
     # Only permit object extraction from the same subproject
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
