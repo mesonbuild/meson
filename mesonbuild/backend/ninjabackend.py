@@ -33,7 +33,7 @@ from ..mesonlib import (
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path
 from ..options import OptionKey
-from .backends import CleanTrees
+from .backends import CleanTrees, get_rsp_threshold
 from ..build import GeneratedList, InvalidArguments
 
 if T.TYPE_CHECKING:
@@ -1223,6 +1223,7 @@ class NinjaBackend(backends.Backend):
                                                 capture=ofilenames[0] if target.capture else None,
                                                 feed=srcs[0] if target.feed else None,
                                                 env=target.env,
+                                                can_use_rsp_file=target.rspable,
                                                 verbose=target.console)
         if reason:
             cmd_type = f' (wrapped by meson {reason})'
