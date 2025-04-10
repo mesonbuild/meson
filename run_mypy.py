@@ -91,6 +91,7 @@ additional = [
     'tools',
     'docs/genrefman.py',
     'docs/refman',
+    'unittests/baseclass.py',
     'unittests/helpers.py',
 ]
 
