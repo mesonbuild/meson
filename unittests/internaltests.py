@@ -661,6 +661,8 @@ class InternalTests(unittest.TestCase):
                 instance_method.return_value = FakeInstance(env, MachineChoice.HOST, silent=True)
                 kwargs = {'required': True, 'silent': True}
                 foo_dep = PkgConfigDependency('foo', env, kwargs)
+                p1 = p1.resolve()
+                p2 = p2.resolve()
                 self.assertEqual(foo_dep.get_link_args(),
                                  [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
                 bar_dep = PkgConfigDependency('bar', env, kwargs)
