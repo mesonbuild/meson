@@ -120,6 +120,7 @@ __all__ = [
     'is_freebsd',
     'is_haiku',
     'is_hurd',
+    'is_ios',
     'is_irix',
     'is_linux',
     'is_netbsd',
@@ -128,6 +129,8 @@ __all__ = [
     'is_parent_path',
     'is_qnx',
     'is_sunos',
+    'is_tvos',
+    'is_watchos',
     'is_windows',
     'is_wsl',
     'iter_regexin_iter',
@@ -624,6 +627,18 @@ def is_sunos() -> bool:
 
 def is_osx() -> bool:
     return platform.system().lower() == 'darwin'
+
+
+def is_ios() -> bool:
+    return platform.system().lower() == 'ios'
+
+
+def is_tvos() -> bool:
+    return platform.system().lower() == 'tvos'
+
+
+def is_watchos() -> bool:
+    return platform.system().lower() == 'watchos'
 
 
 def is_linux() -> bool:

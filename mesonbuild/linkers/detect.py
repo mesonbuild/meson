@@ -222,7 +222,10 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     elif 'xtools-' in o.split('\n', maxsplit=1)[0]:
         xtools = o.split(' ', maxsplit=1)[0]
         v = xtools.split('-', maxsplit=2)[1]
-        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+        linker = linkers.AppleDynamicLinker(
+            compiler, for_machine, comp_class.LINKER_PREFIX, override,
+            system=env.machines[for_machine].system, version=v
+        )
     # detect linker on MacOS - must be after other platforms because the
     # "(use -v to see invocation)" will match clang on other platforms,
     # but the rest of the checks will fail and call __failed_to_detect_linker.
@@ -241,7 +244,10 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
                 break
         else:
             __failed_to_detect_linker(compiler, check_args, o, e)
-        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
+        linker = linkers.AppleDynamicLinker(
+            compiler, for_machine, comp_class.LINKER_PREFIX, override,
+            system=env.machines[for_machine].system, version=v
+        )
     else:
         __failed_to_detect_linker(compiler, check_args, o, e)
     return linker
