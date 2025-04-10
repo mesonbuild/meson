@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/143 misspelled variable name subproject.get_variable/meson.build:3:10: ERROR: Requested variable \"hello\" not found. Did you mean \"jello\"?"
+    }
+  ]
+}

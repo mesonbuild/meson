@@ -79,7 +79,12 @@ class InterpreterObject:
             if not getattr(method, 'no-second-level-holder-flattening', False):
                 args, kwargs = resolve_second_level_holders(args, kwargs)
             return method(args, kwargs)
-        raise InvalidCode(f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.')
+        ustr = f'Unknown method "{method_name}" in object {self} of type {type(self).__name__}.'
+        from difflib import get_close_matches
+        close_matches = get_close_matches(method_name, self.methods)
+        if close_matches:
+            ustr += f' Did you mean "{close_matches[0]}"?'
+        raise InvalidCode(ustr)
 
     def operator_call(self, operator: MesonOperator, other: TYPE_var) -> TYPE_var:
         if operator in self.trivial_operators:
