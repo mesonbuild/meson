@@ -857,7 +857,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         install_name = ['@rpath/', prefix, shlib_name]
         if soversion is not None:
             install_name.append('.' + soversion)
-        install_name.append('.dylib')
+        install_name.append('.' + suffix)
         args = ['-install_name', ''.join(install_name)]
         if darwin_versions:
             args.extend(['-compatibility_version', darwin_versions[0],
