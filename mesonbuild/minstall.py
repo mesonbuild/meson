@@ -507,6 +507,9 @@ class Installer:
                 abs_src = os.path.join(root, d)
                 filepart = os.path.relpath(abs_src, start=src_dir)
                 abs_dst = os.path.join(dst_dir, filepart)
+                if os.path.islink(abs_src):
+                    files.append(d)
+                    continue
                 # Remove these so they aren't visited by os.walk at all.
                 if filepart in exclude_dirs:
                     dirs.remove(d)
