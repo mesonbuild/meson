@@ -52,6 +52,23 @@ assert(gdbus_src.length() == 3, 'expected 3 targets')
 assert(gdbus_src[0].full_path().endswith('.c'), 'expected 1 c source file')
 assert(gdbus_src[1].full_path().endswith('.h'), 'expected 1 c header file')
 
+if not pretend_glib_old and glib.version().version_compare('>=2.75.2')
+  gdbus_src_docs = gnome.gdbus_codegen('generated-gdbus-docs',
+    sources : files('data/com.example.Sample.xml'),
+    interface_prefix : 'com.example.',
+    namespace : 'Sample',
+    docbook : 'generated-gdbus-docs-doc',
+    rst : 'generated-gdbus-docs-rst',
+    markdown : 'generated-gdbus-docs-md',
+  )
+  assert(gdbus_src_docs.length() == 5, 'expected 5 targets')
+  assert(gdbus_src_docs[0].full_path().endswith('.c'), 'expected 1 c source file')
+  assert(gdbus_src_docs[1].full_path().endswith('.h'), 'expected 1 c header file')
+  assert('generated-gdbus-docs-doc' in gdbus_src_docs[2].full_path(), 'expected 1 docbook file')
+  assert('generated-gdbus-docs-rst' in gdbus_src_docs[3].full_path(), 'expected 1 reStructuredText file')
+  assert('generated-gdbus-docs-md' in gdbus_src_docs[4].full_path(), 'expected 1 markdown file')
+endif
+
 if not pretend_glib_old and glib.version().version_compare('>=2.51.3')
   includes = []
 else
