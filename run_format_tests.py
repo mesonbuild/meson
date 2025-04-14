@@ -51,7 +51,7 @@ def check_format() -> None:
         'work area',
         '.eggs', '_cache',              # e.g. .mypy_cache
         'venv',                         # virtualenvs have DOS line endings
-        '121 rewrite',                  # we explicitly test for tab in meson.build file
+        '120 rewrite',                  # we explicitly test for tab in meson.build file
         '3 editorconfig',
     }
     for (root, _, filenames) in os.walk('.'):
