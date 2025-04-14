@@ -137,6 +137,8 @@ if T.TYPE_CHECKING:
         install_header: bool
         install_dir: T.Optional[str]
         docbook: T.Optional[str]
+        rst: T.Optional[str]
+        markdown: T.Optional[str]
         autocleanup: Literal['all', 'none', 'objects', 'default']
 
     class GenMarshal(TypedDict):
@@ -1619,6 +1621,8 @@ class GnomeModule(ExtensionModule):
         ),
         KwargInfo('install_header', bool, default=False, since='0.46.0'),
         KwargInfo('docbook', (str, NoneType)),
+        KwargInfo('rst', (str, NoneType), since='1.9.0'),
+        KwargInfo('markdown', (str, NoneType), since='1.9.0'),
         KwargInfo(
             'autocleanup', str, default='default', since='0.47.0',
             validator=in_set_validator({'all', 'none', 'objects'})),
@@ -1674,6 +1678,26 @@ class GnomeModule(ExtensionModule):
                 docbook = kwargs['docbook']
 
                 cmd += ['--generate-docbook', docbook]
+
+            if kwargs['rst'] is not None:
+                if not mesonlib.version_compare(glib_version, '>= 2.71.1'):
+                    mlog.error(f'Glib version ({glib_version}) is too old to '
+                               'support the \'rst\' kwarg, need 2.71.1 or '
+                               'newer')
+
+                rst = kwargs['rst']
+
+                cmd += ['--generate-rst', rst]
+
+            if kwargs['markdown'] is not None:
+                if not mesonlib.version_compare(glib_version, '>= 2.75.2'):
+                    mlog.error(f'Glib version ({glib_version}) is too old to '
+                               'support the \'markdown\' kwarg, need 2.75.2 '
+                               'or newer')
+
+                markdown = kwargs['markdown']
+
+                cmd += ['--generate-md', markdown]
 
             # https://git.gnome.org/browse/glib/commit/?id=ee09bb704fe9ccb24d92dd86696a0e6bb8f0dc1a
             if mesonlib.version_compare(glib_version, '>= 2.51.3'):
@@ -1749,6 +1773,48 @@ class GnomeModule(ExtensionModule):
                 description='Generating gdbus docbook {}',
             )
             targets.append(docbook_custom_target)
+
+        if kwargs['rst'] is not None:
+            rst = kwargs['rst']
+            # The rst output is always ${rst}-${name_of_xml_file}
+            output = namebase + '-rst'
+            outputs = []
+            for f in xml_files:
+                outputs.append('{}-{}'.format(rst, os.path.basename(str(f))))
+
+            rst_custom_target = CustomTarget(
+                output,
+                state.subdir,
+                state.subproject,
+                state.environment,
+                cmd + ['--output-directory', '@OUTDIR@', '--generate-rst', rst, '@INPUT@'],
+                xml_files,
+                outputs,
+                build_by_default=build_by_default,
+                description='Generating gdbus reStructuredText {}',
+            )
+            targets.append(rst_custom_target)
+
+        if kwargs['markdown'] is not None:
+            markdown = kwargs['markdown']
+            # The markdown output is always ${markdown}-${name_of_xml_file}
+            output = namebase + '-markdown'
+            outputs = []
+            for f in xml_files:
+                outputs.append('{}-{}'.format(markdown, os.path.basename(str(f))))
+
+            markdown_custom_target = CustomTarget(
+                output,
+                state.subdir,
+                state.subproject,
+                state.environment,
+                cmd + ['--output-directory', '@OUTDIR@', '--generate-md', markdown, '@INPUT@'],
+                xml_files,
+                outputs,
+                build_by_default=build_by_default,
+                description='Generating gdbus markdown {}',
+            )
+            targets.append(markdown_custom_target)
 
         return ModuleReturnValue(targets, targets)
 

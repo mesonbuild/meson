@@ -1,4 +1,4 @@
-project('gobject-introspection', 'c', meson_version: '>= 1.2.0')
+project('gobject-introspection', 'c', meson_version: '>= 1.9.0')
 
 copyfile = find_program('copyfile.py')
 copyfile_gen = generator(copyfile,
