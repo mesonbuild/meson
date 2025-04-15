@@ -141,9 +141,11 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     def __init__(self, exelist: T.List[str],
                  for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
-                 always_args: T.List[str], *, version: str = 'unknown version'):
+                 always_args: T.List[str], *, system: str = 'unknown system',
+                 version: str = 'unknown version'):
         self.exelist = exelist
         self.for_machine = for_machine
+        self.system = system
         self.version = version
         self.prefix_arg = prefix_arg
         self.always_args = always_args
