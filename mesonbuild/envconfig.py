@@ -320,9 +320,9 @@ class MachineInfo(HoldableObject):
 
     def is_darwin(self) -> bool:
         """
-        Machine is Darwin (iOS/tvOS/OS X)?
+        Machine is Darwin (macOS/iOS/tvOS/visionOS/watchOS)?
         """
-        return self.system in {'darwin', 'ios', 'tvos'}
+        return self.system in {'darwin', 'ios', 'tvos', 'visionos', 'watchos'}
 
     def is_android(self) -> bool:
         """
