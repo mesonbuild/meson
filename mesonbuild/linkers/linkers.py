@@ -811,10 +811,17 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return self._apply_prefix('-dead_strip_dylibs')
 
     def get_allow_undefined_args(self) -> T.List[str]:
-        return self._apply_prefix('-undefined,dynamic_lookup')
+        # iOS doesn't allow undefined symbols when linking
+        if self.system == 'ios':
+            return []
+        else:
+            return self._apply_prefix('-undefined,dynamic_lookup')
 
     def get_std_shared_module_args(self, target: 'BuildTarget') -> T.List[str]:
-        return ['-dynamiclib'] + self._apply_prefix('-undefined,dynamic_lookup')
+        if self.system == 'ios':
+            return ['-dynamiclib']
+        else:
+            return ['-bundle'] + self.get_allow_undefined_args()
 
     def get_pie_args(self) -> T.List[str]:
         return []
