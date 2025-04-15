@@ -316,6 +316,11 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
 
         if self.language_stdlib_provider(self.environment) == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
+        else:
+            if version_compare(self.version, '>=17'):
+                return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
+            elif version_compare(self.version, '>=15'):
+                return ['-D_LIBCPP_ENABLE_ASSERTIONS=1']
 
         return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
 
