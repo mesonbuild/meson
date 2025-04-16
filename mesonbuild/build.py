@@ -2043,6 +2043,8 @@ class Executable(BuildTarget):
             else:
                 self.suffix = machine.get_exe_suffix()
         self.filename = self.name
+        if self.prefix:
+            self.filename = self.prefix + self.filename
         if self.suffix:
             self.filename += '.' + self.suffix
         self.outputs[0] = self.filename
