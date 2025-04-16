@@ -112,7 +112,7 @@ known_build_target_kwargs = (
     rust_kwargs |
     cs_kwargs)
 
-known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs'}
+known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs', 'android_exe_type'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs', 'rust_abi'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink', 'rust_abi'}
@@ -1996,6 +1996,7 @@ class Executable(BuildTarget):
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
+        assert kwargs.get('android_exe_type') is None or kwargs.get('android_exe_type') in {'application', 'executable'}
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
         if not isinstance(self.export_dynamic, bool):
