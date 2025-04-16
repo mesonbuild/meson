@@ -701,6 +701,12 @@ _EXCLUSIVE_EXECUTABLE_KWS: T.List[KwargInfo] = [
         convertor=lambda x: x.lower() if isinstance(x, str) else None,
         validator=_validate_win_subsystem,
     ),
+    KwargInfo(
+        'android_exe_type',
+        (str, NoneType),
+        validator=in_set_validator({'application', 'executable'}),
+        since='1.8.0'
+    ),
 ]
 
 # The total list of arguments used by Executable
