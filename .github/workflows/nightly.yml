@@ -1,0 +1,32 @@
+name: Nightly Wheels
+
+concurrency:
+  group: wheels
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "mesonbuild/*"
+
+permissions:
+  contents: read
+
+jobs:
+  wheel:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Build wheel
+      run: |
+        python -m pip install build setuptools_scm
+        python -m build -nwx
+    - name: Upload wheel
+      uses: scientific-python/upload-nightly-action@main
+      with:
+        artifacts_path: dist
+        anaconda_nightly_upload_token: ${{secrets.ANACONDA_ORG_UPLOAD_TOKEN}}
