@@ -945,8 +945,9 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
     def __init__(self, exelist: T.List[str],
                  for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
-                 always_args: T.List[str], *, version: str = 'unknown version'):
-        super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)
+                 always_args: T.List[str], *, system: str = 'unknown system',
+                 version: str = 'unknown version'):
+        super().__init__(exelist, for_machine, prefix_arg, always_args, system=system, version=version)
 
         # Some targets don't seem to support this argument (windows, wasm, ...)
         self.has_allow_shlib_undefined = self._supports_flag('--allow-shlib-undefined', always_args)
