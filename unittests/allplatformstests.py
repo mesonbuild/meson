@@ -1361,6 +1361,36 @@ class AllPlatformTests(BasePlatformTests):
         self.utime(os.path.join(testdir, 'srcgen.py'))
         self.assertRebuiltTarget('basic')
 
+    def test_long_opt_vs_D(self):
+        '''
+        Test that conflicts between -D for builtin options and the corresponding
+        long option are detected without false positives or negatives.
+        '''
+        testdir = os.path.join(self.unit_test_dir, '128 long opt vs D')
+
+        for opt in ['-Dsysconfdir=/etc', '-Dsysconfdir2=/etc']:
+            exception_raised = False
+            try:
+                self.init(testdir, extra_args=[opt, '--sysconfdir=/etc'])
+            except subprocess.CalledProcessError:
+                exception_raised = True
+            if 'sysconfdir2' in opt:
+                self.assertFalse(exception_raised, f'{opt} --sysconfdir raised an exception')
+            else:
+                self.assertTrue(exception_raised, f'{opt} --sysconfdir did not raise an exception')
+
+            exception_raised = False
+            try:
+                self.init(testdir, extra_args=['--sysconfdir=/etc', opt])
+            except subprocess.CalledProcessError:
+                exception_raised = True
+            if 'sysconfdir2' in opt:
+                self.assertFalse(exception_raised, f'--sysconfdir {opt} raised an exception')
+            else:
+                self.assertTrue(exception_raised, f'--sysconfdir {opt} did not raise an exception')
+
+            self.wipe()
+
     def test_static_library_lto(self):
         '''
         Test that static libraries can be built with LTO and linked to
