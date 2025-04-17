@@ -247,7 +247,7 @@ def validate_original_args(args):
     #longs = [x for x in args if x.startswith('--')]
     for optionkey in itertools.chain(mesonbuild.options.BUILTIN_DIR_OPTIONS, mesonbuild.options.BUILTIN_CORE_OPTIONS):
         longarg = mesonbuild.options.argparse_name_to_arg(optionkey.name)
-        shortarg = f'-D{optionkey.name}'
+        shortarg = f'-D{optionkey.name}='
         if has_startswith(args, longarg) and has_startswith(args, shortarg):
             sys.exit(
                 f'Got argument {optionkey.name} as both {shortarg} and {longarg}. Pick one.')

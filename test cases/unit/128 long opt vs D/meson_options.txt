@@ -1,0 +1,1 @@
+option('sysconfdir2', type: 'string', value: '')
