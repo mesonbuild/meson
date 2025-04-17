@@ -511,7 +511,9 @@ def suite_convertor(suite: T.List[str]) -> T.List[str]:
     return suite
 
 TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
-    KwargInfo('should_fail', bool, default=False),
+    KwargInfo('should_fail', (bool, NoneType), deprecated='1.9.0', deprecated_message='Use expected_fail instead of should_fail'),
+    KwargInfo('expected_fail', (bool, NoneType), since='1.9.0'),
+    KwargInfo('expected_exitcode', (int, NoneType), since='1.9.0'),
     KwargInfo('timeout', int, default=30),
     KwargInfo('workdir', (str, NoneType), default=None,
               validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
