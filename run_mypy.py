@@ -111,8 +111,6 @@ def check_mypy() -> None:
         sys.exit(1)
 
 def main() -> int:
-    check_mypy()
-
     root = Path(__file__).absolute().parent
 
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -124,6 +122,9 @@ def main() -> int:
     parser.add_argument('--allver', action='store_true', help='Check all supported versions of python')
 
     opts, args = parser.parse_known_args()
+    if not opts.mypy:
+        check_mypy()
+
     if opts.pretty:
         args.append('--pretty')
 
