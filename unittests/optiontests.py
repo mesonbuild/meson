@@ -35,6 +35,20 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_top_level_project_call({OptionKey('someoption'): new_value}, {}, {})
         self.assertEqual(optstore.get_value_for(k), new_value)
 
+    def test_subproject_system_option(self):
+        """Test that subproject system options get their default value from the global
+           option (e.g. "sub:b_lto" can be initialized from "b_lto")."""
+        optstore = OptionStore(False)
+        name = 'someoption'
+        default_value = 'somevalue'
+        new_value = 'new_value'
+        k = OptionKey(name)
+        subk = k.evolve(subproject='sub')
+        optstore.initialize_from_top_level_project_call({}, {}, {OptionKey(name): new_value})
+        vo = UserStringOption(k.name, 'An option of some sort', default_value)
+        optstore.add_system_option(subk, vo)
+        self.assertEqual(optstore.get_value_for(subk), new_value)
+
     def test_parsing(self):
         with self.subTest('subproject'):
             s1 = OptionKey.from_string('sub:optname')
