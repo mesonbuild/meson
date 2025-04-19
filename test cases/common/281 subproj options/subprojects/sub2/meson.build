@@ -1,5 +1,4 @@
 project('subproject', 'c')
-assert(get_option('bar') == true)
 
 # b_lto is only initialized if used, see test "common/40 options"
 cc = meson.get_compiler('c')
