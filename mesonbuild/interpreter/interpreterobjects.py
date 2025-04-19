@@ -621,13 +621,14 @@ class DependencyHolder(ObjectHolder[Dependency]):
         # TODO: the name of internal dependencies changes
         output = f'meson_depjson_{name}.json'
 
-        ofile_path = os.path.join(self.interpreter.subdir, output)
-        dst_tmp = ofile_path + '~'
+        (ofile_path, ofile_fname) = os.path.split(os.path.join(self.interpreter.subdir, output))
+        ofile_abs = os.path.join(self.env.build_dir, ofile_path, ofile_fname)
+        dst_tmp = ofile_abs + '~'
 
         with open(dst_tmp, "w", encoding="utf-8") as fp:
             json.dump(d, fp)
 
-        mesonlib.replace_if_different(ofile_path, dst_tmp)
+        mesonlib.replace_if_different(ofile_abs, dst_tmp)
 
         return mesonlib.File.from_built_file(self.interpreter.subdir, output)
 
