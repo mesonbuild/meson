@@ -568,14 +568,6 @@ class CoreData:
     def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
                              env: Environment, subproject: str) -> None:
         for k, o in c_options.items():
-            value = env.options.get(k)
-            if value is not None:
-                o.set_value(value)
-                if not subproject:
-                    # FIXME, add augment
-                    #self.optstore[k] = o  # override compiler option on reconfigure
-                    pass
-
             comp_key = OptionKey(f'{k.name}', None, for_machine)
             if lang == 'objc' and k.name == 'c_std':
                 # For objective C, always fall back to c_std.
@@ -605,17 +597,7 @@ class CoreData:
                 skey = key
             if skey not in self.optstore:
                 self.optstore.add_system_option(skey, copy.deepcopy(options.COMPILER_BASE_OPTIONS[key]))
-                if skey in env.options:
-                    self.optstore.set_option(skey, env.options[skey])
-                elif subproject and key in env.options:
-                    self.optstore.set_option(skey, env.options[key])
-                # FIXME
-                #if subproject and not self.optstore.has_option(key):
-                #    self.optstore[key] = copy.deepcopy(self.optstore[skey])
-            elif skey in env.options:
-                self.optstore.set_option(skey, env.options[skey])
-            elif subproject and key in env.options:
-                self.optstore.set_option(skey, env.options[key])
+
         self.emit_base_options_warnings()
 
     def emit_base_options_warnings(self) -> None:
