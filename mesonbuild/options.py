@@ -895,11 +895,13 @@ class OptionStore:
         assert isinstance(valobj, UserOption)
         if not isinstance(valobj.name, str):
             assert isinstance(valobj.name, str)
-        if key not in self.options:
-            self.options[key] = valobj
-            pval = self.pending_options.pop(key, None)
-            if pval is not None:
-                self.set_option(key, pval)
+        if key in self.options:
+            return
+
+        self.options[key] = valobj
+        pval = self.pending_options.pop(key, None)
+        if pval is not None:
+            self.set_option(key, pval)
 
     def add_compiler_option(self, language: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
@@ -910,14 +912,14 @@ class OptionStore:
     def add_project_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
         assert key.subproject is not None
-        pval = self.pending_options.pop(key, None)
         if key in self.options:
             raise MesonException(f'Internal error: tried to add a project option {key} that already exists.')
-        else:
-            self.options[key] = valobj
-            self.project_options.add(key)
-            if pval is not None:
-                self.set_option(key, pval)
+
+        self.options[key] = valobj
+        self.project_options.add(key)
+        pval = self.pending_options.pop(key, None)
+        if pval is not None:
+            self.set_option(key, pval)
 
     def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
