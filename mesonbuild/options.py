@@ -899,6 +899,12 @@ class OptionStore:
 
         self.options[key] = valobj
         pval = self.pending_options.pop(key, None)
+        if key.subproject:
+            proj_key = key.evolve(subproject=None)
+            self.add_system_option_internal(proj_key, valobj)
+            if pval is None:
+                pval = self.options[proj_key].value
+
         if pval is not None:
             self.set_option(key, pval)
 
