@@ -416,11 +416,11 @@ class CMakeDependency(ExternalDependency):
         if not self.is_found:
             not_found_message = self.traceparser.get_cmake_var('PACKAGE_NOT_FOUND_MESSAGE')
             if len(not_found_message) > 0:
-                mlog.warning(
+                mlog.notice(
                     'CMake reported that the package {} was not found with the following reason:\n'
-                    '{}'.format(name, not_found_message[0]))
+                    '{}'.format(name, not_found_message[0]), fatal=False)
             else:
-                mlog.warning(
+                mlog.debug(
                     'CMake reported that the package {} was not found, '
                     'even though Meson\'s preliminary check succeeded.'.format(name))
             raise self._gen_exception('PACKAGE_FOUND is false')
