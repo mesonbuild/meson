@@ -57,40 +57,39 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
     else:
         gcov_exe_args = []
 
-    if not outputs or 'xml' in outputs:
-        if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
-            subprocess.check_call(gcovr_base_cmd + gcovr_config +
-                                  ['-x',
-                                   '-o', os.path.join(log_dir, 'coverage.xml')
-                                   ] + gcov_exe_args)
-            outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
-        elif outputs:
-            print('gcovr >= 3.3 needed to generate Xml coverage report')
-            exitcode = 1
+    if gcovr_exe:
+        gcovr_targets = [x for x in mesonlib.GCOVR_COVERAGE_TARGETS if mesonlib.version_compare(gcovr_version, x.version_requirement)]
+        if outputs:
+            gcovr_targets = [x for x in gcovr_targets if x.pretty_name in outputs]
 
-    if not outputs or 'sonarqube' in outputs:
-        if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=4.2'):
-            subprocess.check_call(gcovr_base_cmd + gcovr_config +
-                                  ['--sonarqube',
-                                   '-o', os.path.join(log_dir, 'sonarqube.xml'),
-                                   ] + gcov_exe_args)
-            outfiles.append(('Sonarqube', pathlib.Path(log_dir, 'sonarqube.xml')))
-        elif outputs:
-            print('gcovr >= 4.2 needed to generate Xml coverage report')
-            exitcode = 1
+        # The --txt option did not exist up until 5.0
+        if not mesonlib.version_compare(gcovr_version, '>=5.0'):
+            len_pre = len(gcovr_targets)
+            gcovr_targets = [x for x in gcovr_targets if x.pretty_name != 'text']
+            if len_pre > len(gcovr_targets):
+                subprocess.check_call(gcovr_base_cmd + gcovr_config + ['-o', os.path.join(log_dir, 'coverage.txt')] + gcov_exe_args)
+                outfiles.append(('text', pathlib.Path(log_dir, 'coverage.txt')))
 
-    if not outputs or 'text' in outputs:
-        if gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
-            subprocess.check_call(gcovr_base_cmd + gcovr_config +
-                                  ['-o', os.path.join(log_dir, 'coverage.txt')] +
-                                  gcov_exe_args)
-            outfiles.append(('Text', pathlib.Path(log_dir, 'coverage.txt')))
-        elif outputs:
-            print('gcovr >= 3.3 needed to generate text coverage report')
-            exitcode = 1
+        # Generate all report types in one invocation
+        args = [x for pair in [[x.gcovr_argument, os.path.join(log_dir, x.output_file)] for x in gcovr_targets] for x in pair]
 
-    if not outputs or 'html' in outputs:
-        if lcov_exe and genhtml_exe:
+        if (not outputs or 'html' in outputs) and mesonlib.version_compare(gcovr_version, '>=3.3'):
+            htmloutdir = os.path.join(log_dir, 'coveragereport')
+            os.makedirs(htmloutdir, exist_ok=True)
+            # Use `--html-details` if gcovr version < 6.0, otherwise
+            # use `--html-nested`.
+            html_arg = '--html-details'
+            if mesonlib.version_compare(gcovr_version, '>=6.0'):
+                html_arg = '--html-nested'
+            args += [html_arg, os.path.join(htmloutdir, 'index.html')]
+            outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
+
+        subprocess.check_call(gcovr_base_cmd + gcovr_config + args + gcov_exe_args)
+        for target in gcovr_targets:
+            outfiles.append((target.pretty_name.capitalize(), pathlib.Path(log_dir, target.output_file)))
+
+    if not gcovr_exe:
+        if (not outputs or 'html' in outputs) and (lcov_exe and genhtml_exe):
             htmloutdir = os.path.join(log_dir, 'coveragereport')
             covinfo = os.path.join(log_dir, 'coverage.info')
             initial_tracefile = covinfo + '.initial'
@@ -158,22 +157,6 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
                                    '--branch-coverage',
                                    covinfo] + lcov_config)
             outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
-        elif gcovr_exe and mesonlib.version_compare(gcovr_version, '>=3.3'):
-            htmloutdir = os.path.join(log_dir, 'coveragereport')
-            if not os.path.isdir(htmloutdir):
-                os.mkdir(htmloutdir)
-            # Use `--html-details` if gcovr version < 6.0, otherwise
-            # use `--html-nested`.
-            html_arg = '--html-details'
-            if mesonlib.version_compare(gcovr_version, '>=6.0'):
-                html_arg = '--html-nested'
-            subprocess.check_call(gcovr_base_cmd + gcovr_config +
-                                  ['--html',
-                                   html_arg,
-                                   '--print-summary',
-                                   '-o', os.path.join(htmloutdir, 'index.html'),
-                                   ] + gcov_exe_args)
-            outfiles.append(('Html', pathlib.Path(htmloutdir, 'index.html')))
         elif outputs:
             print('lcov/genhtml or gcovr >= 3.3 needed to generate Html coverage report')
             exitcode = 1
@@ -194,14 +177,12 @@ def run(args: T.List[str]) -> int:
         print('Coverage currently only works with the Ninja backend.')
         return 1
     parser = argparse.ArgumentParser(description='Generate coverage reports')
-    parser.add_argument('--text', dest='outputs', action='append_const',
-                        const='text', help='generate Text report')
-    parser.add_argument('--xml', dest='outputs', action='append_const',
-                        const='xml', help='generate Xml report')
-    parser.add_argument('--sonarqube', dest='outputs', action='append_const',
-                        const='sonarqube', help='generate Sonarqube Xml report')
+    for target in mesonlib.GCOVR_COVERAGE_TARGETS:
+        parser.add_argument(target.gcovr_argument, dest='outputs', action='append_const',
+                            const=target.pretty_name,
+                            help=f'generate {target.pretty_name.capitalize()} coverage report')
     parser.add_argument('--html', dest='outputs', action='append_const',
-                        const='html', help='generate Html report')
+                        const='html', help='generate Html coverage report')
     parser.add_argument('--use-llvm-cov', action='store_true',
                         help='use llvm-cov')
     parser.add_argument('--gcovr', action='store', default='',
