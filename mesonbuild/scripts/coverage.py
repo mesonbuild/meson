@@ -62,6 +62,13 @@ def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build
         if outputs:
             gcovr_targets = [x for x in gcovr_targets if x.pretty_name in outputs]
 
+        if not os.path.exists(pathlib.Path(source_root) / '.git'):
+            if outputs and 'coveralls' in outputs:
+                print('The coveralls coverage target requires the project to be a git repository')
+                exitcode = 1
+                return exitcode
+            gcovr_targets = [x for x in gcovr_targets if x.pretty_name != 'coveralls']
+
         # The --txt option did not exist up until 5.0
         if not mesonlib.version_compare(gcovr_version, '>=5.0'):
             len_pre = len(gcovr_targets)

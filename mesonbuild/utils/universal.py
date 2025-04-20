@@ -182,6 +182,12 @@ GCOVR_COVERAGE_TARGETS = [
     CoverageTarget('text', 'coverage.txt', '--txt', '>=3.3'),
     CoverageTarget('xml', 'coverage.xml', '--xml', '>=3.3'), # The --cobertura alias was only added in 5.1
     CoverageTarget('sonarqube', 'sonarqube.xml', '--sonarqube', '>=4.2'),
+    CoverageTarget('json-gcovr', 'coverage-gcovr.json', '--json', '>=4.2'),
+    CoverageTarget('coveralls', 'coveralls.json', '--coveralls', '>=5.0'),
+    CoverageTarget('csv-gcovr', 'coverage-gcovr.csv', '--csv', '>=5.0'),
+    CoverageTarget('lcov', 'lcov.txt', '--lcov', '>=7.0'),
+    CoverageTarget('clover', 'clover.xml', '--clover', '>=7.0'),
+    CoverageTarget('jacoco', 'jacoco.xml', '--jacoco', '>=7.0'),
 ]
 
 
