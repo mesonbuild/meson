@@ -1095,13 +1095,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             if not value:
                 return 'none'
             return ','.join(sorted(value))
-        elif isinstance(value_object, options.UserOption):
-            if isinstance(value_object.value, str):
-                return P_OBJ.OptionString(value, f'{{{optname}}}')
-            return value
-        ocopy = copy.copy(value_object)
-        ocopy.value = value
-        return ocopy
+
+        if isinstance(value_object.value, str):
+            return P_OBJ.OptionString(value, f'{{{optname}}}')
+        return value
 
     @typed_pos_args('configuration_data', optargs=[dict])
     @noKwargs
