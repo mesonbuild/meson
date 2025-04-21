@@ -1059,7 +1059,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     @typed_pos_args('get_option', str)
     @noKwargs
     def func_get_option(self, node: mparser.BaseNode, args: T.Tuple[str],
-                        kwargs: kwtypes.FuncGetOption) -> T.Union[options.UserOption, 'TYPE_var']:
+                        kwargs: TYPE_kwargs) -> T.Union[options.UserOption, 'TYPE_var']:
         optname = args[0]
 
         if ':' in optname:
