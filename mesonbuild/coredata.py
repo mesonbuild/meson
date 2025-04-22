@@ -572,8 +572,7 @@ class CoreData:
 
         return dirty
 
-    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
-                             env: Environment, subproject: str) -> None:
+    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice) -> None:
         for k, o in c_options.items():
             assert k.subproject is None and k.machine is for_machine
             if lang == 'objc' and k.name == 'c_std':
@@ -594,8 +593,8 @@ class CoreData:
         for gopt_key, gopt_valobj in compilers.get_global_options(lang, comp, for_machine, env).items():
             self.optstore.add_compiler_option(lang, gopt_key, gopt_valobj)
 
-    def process_compiler_options(self, lang: str, comp: Compiler, env: Environment, subproject: str) -> None:
-        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env, subproject)
+    def process_compiler_options(self, lang: str, comp: Compiler, subproject: str) -> None:
+        self.add_compiler_options(comp.get_options(), lang, comp.for_machine)
 
         for key in comp.base_options:
             if subproject:
