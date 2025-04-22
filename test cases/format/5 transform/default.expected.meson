@@ -36,6 +36,20 @@ a2 = [
 # space array
 a3 = [1, 2, 3]
 
+# multi line expression
+is_foo = (
+    true
+    and false
+    and true
+    and false
+    and true
+    and false
+    and true
+    and false
+    and true
+    and false
+)
+
 # no single comma function
 fct = files(
     'meson.build',  # force multiline

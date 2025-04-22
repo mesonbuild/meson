@@ -536,7 +536,7 @@ class TrimWhitespaces(FullAstVisitor):
     def visit_ParenthesizedNode(self, node: mparser.ParenthesizedNode) -> None:
         self.enter_node(node)
 
-        is_multiline = node.lpar.whitespaces and '#' in node.lpar.whitespaces.value
+        is_multiline = node.lpar.lineno != node.rpar.lineno
         if is_multiline:
             self.indent_comments += self.config.indent_by
 
@@ -546,7 +546,8 @@ class TrimWhitespaces(FullAstVisitor):
         if is_multiline:
             node.inner.whitespaces.value = self.dedent(node.inner.whitespaces.value)
             self.indent_comments = self.dedent(self.indent_comments)
-            self.add_nl_after(node.inner)
+            if node.lpar.whitespaces and '\n' in node.lpar.whitespaces.value:
+                self.add_nl_after(node.inner)
 
         node.rpar.accept(self)
         self.move_whitespaces(node.rpar, node)
