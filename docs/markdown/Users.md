@@ -2,7 +2,7 @@
 title: Users
 ...
 
-# Notable projects using Meson
+# Notable projects and organizations using Meson
 
 If you're aware of a notable project that uses Meson, please
 [file a pull-request](https://github.com/mesonbuild/meson/edit/master/docs/markdown/Users.md)
@@ -10,6 +10,29 @@ for it. For other projects using Meson, you may be interested in this
 [GitHub search](https://github.com/search?q=path%3A%2F%28%5E%7C%5C%2F%29meson%5C.build%24%2F&type=code).
 Some additional projects are listed in the [`meson` GitHub
 topic](https://github.com/topics/meson).
+
+## [Xorg](https://www.x.org)
+
+ - [Xserver](https://gitlab.freedesktop.org/xorg/xserver), the X.org display server (not the default yet)
+
+## [Gnome](https://www.gnome.org)
+
+ - [GTK+](https://gitlab.gnome.org/GNOME/gtk), the multi-platform toolkit used by GNOME
+ - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
+
+## [Enlightenment](https://www.enlightenment.org/)
+
+ - [EFL](https://www.enlightenment.org/about-efl), multiplatform set of libraries, used by the Enlightenment windows manager and other projects
+
+## [Elementary OS](https://github.com/elementary/)
+
+## [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop)
+
+ - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
+
+## [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop)
+
+## Other Notable projects
 
  - [2048.cpp](https://github.com/plibither8/2048.cpp), a fully featured terminal version of the game "2048" written in C++
  - [aawordsearch](https://github.com/theimpossibleastronaut/aawordsearch), generate wordsearch puzzles using random words in different languages
@@ -23,13 +46,11 @@ topic](https://github.com/topics/meson).
  - [bolt](https://gitlab.freedesktop.org/bolt/bolt), userspace daemon to enable security levels for Thunderbolt™ 3 on Linux
  - [bsdutils](https://github.com/dcantrell/bsdutils), alternative to GNU coreutils using software from FreeBSD
  - [Bubblewrap](https://github.com/containers/bubblewrap), unprivileged sandboxing tool
- - [Budgie Desktop](https://github.com/budgie-desktop/budgie-desktop), a desktop environment built on GNOME technologies
  - [Bzip2](https://gitlab.com/federicomenaquintero/bzip2), the bzip2 compressor/decompressor
  - [Cage](https://github.com/Hjdskes/cage), a Wayland kiosk
  - [canfigger](https://github.com/andy5995/canfigger), simple configuration file parser library
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
  - [cglm](https://github.com/recp/cglm), a highly optimized graphics math library for C
- - [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop), the cinnamon desktop library
  - [Cozy](https://github.com/geigi/cozy), a modern audio book player for Linux and macOS using GTK+ 3
  - [Criterion](https://github.com/Snaipe/Criterion), extensible cross-platform C and C++ unit testing framework
  - [dav1d](https://code.videolan.org/videolan/dav1d), an AV1 decoder
@@ -37,39 +58,22 @@ topic](https://github.com/topics/meson).
  - [DOSBox Staging](https://github.com/dosbox-staging/dosbox-staging), DOS/x86 emulator
  - [DPDK](http://dpdk.org/browse/dpdk), Data Plane Development Kit, a set of libraries and drivers for fast packet processing
  - [DXVK](https://github.com/doitsujin/dxvk), a Vulkan-based Direct3D 11 implementation for Linux using Wine
- - [EFL](https://www.enlightenment.org/about-efl), multiplatform set of libraries, used by the Enlightenment windows manager and other projects
- - [Enlightenment](https://www.enlightenment.org/), windows manager, compositor and minimal desktop for Linux
- - [elementary OS](https://github.com/elementary/), Linux desktop oriented distribution
  - [Emeus](https://github.com/ebassi/emeus), constraint based layout manager for GTK+
  - [Entangle](https://entangle-photo.org/), tethered camera control and capture desktop application
  - [ESP8266 Arduino sample project](https://github.com/trilader/arduino-esp8266-meson), sample project for using the ESP8266 Arduino port with Meson
  - [FeedReader](https://github.com/jangernert/FeedReader), a modern desktop application designed to complement existing web-based RSS accounts
  - [Flecs](https://github.com/SanderMertens/flecs), a Fast and Lightweight ECS (Entity Component System) C library
  - [Foliate](https://github.com/johnfactotum/foliate), a simple and modern GTK eBook reader, built with GJS and Epub.js
- - [Fractal](https://wiki.gnome.org/Apps/Fractal/), a Matrix messaging client for GNOME
  - [Frida](https://github.com/frida/frida-core), a dynamic binary instrumentation toolkit
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
  - [GameMode](https://github.com/FeralInteractive/gamemode), a daemon/lib combo for Linux that allows games to request a set of optimisations be temporarily applied to the host OS
- - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop
  - [GIMP](https://gitlab.gnome.org/GNOME/gimp), an image manipulation program (master branch)
  - [Git](https://git-scm.com/), ["the information manager from hell"](https://github.com/git/git/commit/e83c5163316f89bfbde7d9ab23ca2e25604af290)
- - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
  - [Glorytun](https://github.com/angt/glorytun), a multipath UDP tunnel
- - [GNOME Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a GNOME hypervisor
- - [GNOME Builder](https://gitlab.gnome.org/GNOME/gnome-builder), an IDE for the GNOME platform
- - [GNOME MPV](https://github.com/gnome-mpv/gnome-mpv), GNOME frontend to the mpv video player
- - [GNOME Recipes](https://gitlab.gnome.org/GNOME/recipes), application for cooking recipes
- - [GNOME Software](https://gitlab.gnome.org/GNOME/gnome-software), an app store for GNOME
- - [GNOME Twitch](https://github.com/vinszent/gnome-twitch), an app for viewing Twitch streams on GNOME desktop
- - [GNOME Usage](https://gitlab.gnome.org/GNOME/gnome-usage), a GNOME application for visualizing system resources
- - [GNOME Web](https://gitlab.gnome.org/GNOME/epiphany), a browser for a simple, clean, beautiful view of the web
  - [GNU FriBidi](https://github.com/fribidi/fribidi), the open source implementation of the Unicode Bidirectional Algorithm
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
- - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
  - [GStreamer](https://gitlab.freedesktop.org/gstreamer/gstreamer), multimedia framework
- - [GTK+](https://gitlab.gnome.org/GNOME/gtk), the multi-platform toolkit used by GNOME
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
- - [GVfs](https://git.gnome.org/browse/gvfs/), a userspace virtual filesystem designed to work with the I/O abstraction of GIO
  - [Hardcode-Tray](https://github.com/bil-elmoussaoui/Hardcode-Tray), fixes hardcoded tray icons in Linux
  - [HarfBuzz](https://github.com/harfbuzz/harfbuzz), a text shaping engine
  - [HelenOS](http://helenos.org), a portable microkernel-based multiserver operating system
@@ -82,7 +86,6 @@ topic](https://github.com/topics/meson).
  - [Janet](https://github.com/janet-lang/janet), a functional and imperative programming language and bytecode interpreter
  - [json](https://github.com/nlohmann/json), JSON for Modern C++
  - [JsonCpp](https://github.com/open-source-parsers/jsoncpp), a C++ library for interacting with JSON
- - [Json-glib](https://gitlab.gnome.org/GNOME/json-glib), GLib-based JSON manipulation library
  - [Kiwix libraries](https://github.com/kiwix/kiwix-lib)
  - [Knot Resolver](https://gitlab.labs.nic.cz/knot/knot-resolver), Full caching DNS resolver implementation
  - [Ksh](https://github.com/att/ast), a Korn Shell
@@ -94,9 +97,7 @@ topic](https://github.com/topics/meson).
  - [libeconf](https://github.com/openSUSE/libeconf), Enhanced config file parsing library, which merges config files placed in several locations into one
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
- - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib), a GLib wrapper for libgit2
  - [libglvnd](https://gitlab.freedesktop.org/glvnd/libglvnd), Vendor neutral OpenGL dispatch library for Unix-like OSes
- - [Libhttpseverywhere](https://git.gnome.org/browse/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
  - [libmodulemd](https://github.com/fedora-modularity/libmodulemd), a GObject Introspected library for managing [Fedora Project](https://getfedora.org/) module metadata
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location
 lookup based on OpenStreetMap data
@@ -118,8 +119,6 @@ format files
  - [MiracleCast](https://github.com/albfan/miraclecast), connect external monitors to your system via WiFi-Display specification aka Miracast
  - [mpv](https://github.com/mpv-player/mpv), a free, open source, and cross-platform media player
  - [mrsh](https://github.com/emersion/mrsh), a minimal POSIX shell
- - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
- - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
  - [netatalk](https://netatalk.io/), a free and open source AFP file server for Mac and Apple II
  - [NetPanzer](https://github.com/netpanzer/netpanzer), a 2D online multiplayer tactical warfare game designed for fast action combat
  - [NumPy](https://numpy.org/), a Python package for scientific computing
@@ -134,7 +133,6 @@ format files
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style Meson example project
  - [p11-kit](https://github.com/p11-glue/p11-kit), PKCS#11 module aggregator
  - [Pacman](https://gitlab.archlinux.org/pacman/pacman.git), a package manager for Arch Linux
- - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library
  - [Parzip](https://github.com/jpakkane/parzip), a multithreaded reimplementation of Zip
  - [Peek](https://github.com/phw/peek), simple animated GIF screen recorder with an easy to use interface
  - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM
@@ -144,7 +142,6 @@ format files
  - [Pitivi](https://github.com/pitivi/pitivi/), a nonlinear video editor
  - [Planner](https://github.com/alainm23/planner), task manager with Todoist support designed for GNU/Linux
  - [Playerctl](https://github.com/acrisci/playerctl), mpris command-line controller and library for spotify, vlc, audacious, bmp, cmus, and others
- - [Polari](https://gitlab.gnome.org/GNOME/polari), an IRC client
  - [PostgreSQL](https://www.postgresql.org/), an advanced open source relational database
  - [qboot](https://github.com/bonzini/qboot), a minimal x86 firmware for booting Linux kernels
  - [QEMU](https://qemu.org), a processor emulator and virtualizer
@@ -158,10 +155,8 @@ format files
  - [Sequeler](https://github.com/Alecaddd/sequeler), a friendly SQL client for Linux, built with Vala and Gtk
  - [Siril](https://gitlab.com/free-astro/siril), an image processing software for amateur astronomy
  - [slapt-get](https://github.com/jaos/slapt-get), an APT like system for Slackware package management
- - [Spot](https://github.com/xou816/spot), Rust based Spotify client for the GNOME desktop
  - [SSHFS](https://github.com/libfuse/sshfs), allows you to mount a remote filesystem using SFTP
  - [sway](https://github.com/swaywm/sway), i3-compatible Wayland compositor
- - [Sysprof](https://git.gnome.org/browse/sysprof), a profiling tool
  - [systemd](https://github.com/systemd/systemd), the init system
  - [szl](https://github.com/dimkr/szl), a lightweight, embeddable scripting language
  - [Taisei Project](https://taisei-project.org/), an open-source Touhou Project clone and fangame
@@ -179,13 +174,7 @@ format files
  - [Wayland](https://gitlab.freedesktop.org/wayland/wayland) and [Weston](https://gitlab.freedesktop.org/wayland/weston), a next generation display server
  - [wlroots](https://gitlab.freedesktop.org/wlroots/wlroots), a modular Wayland compositor library
  - [xi-gtk](https://github.com/eyelash/xi-gtk), a GTK+ front-end for the Xi editor
- - [Xorg](https://gitlab.freedesktop.org/xorg/xserver), the X.org display server (not the default yet)
- - [X Test Suite](https://gitlab.freedesktop.org/xorg/test/xts), The X.org test suite
  - [zathura](https://github.com/pwmt/zathura), a highly customizable and functional document viewer based on the
 girara user interface library and several document libraries
  - [Zrythm](https://git.sr.ht/~alextee/zrythm), a cross-platform digital audio workstation written in C using GTK4
  - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91), a compression algorithm developed at Facebook (not used by default)
-
-Note that a more up-to-date list of GNOME projects that use Meson can
-be found
-[here](https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting).
