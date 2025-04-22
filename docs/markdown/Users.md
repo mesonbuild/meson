@@ -13,7 +13,7 @@ topic](https://github.com/topics/meson).
 
 ## [Xorg](https://www.x.org)
 
- - [Xserver](https://gitlab.freedesktop.org/xorg/xserver), the X.org display server (not the default yet)
+ - [Xserver](https://gitlab.freedesktop.org/xorg/xserver), the X.org display server
 
 ## [Gnome](https://www.gnome.org)
 
