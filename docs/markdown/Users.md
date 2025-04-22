@@ -2,14 +2,13 @@
 title: Users
 ...
 
-# List of projects using Meson
+# Notable projects using Meson
 
-If you have a project that uses Meson that you want to add to this
-list, please [file a
-pull-request](https://github.com/mesonbuild/meson/edit/master/docs/markdown/Users.md)
-for it. All the software on this list is tested for regressions before
-release, so it's highly recommended that projects add themselves
-here. Some additional projects are listed in the [`meson` GitHub
+If you're aware of a notable project that uses Meson, please
+[file a pull-request](https://github.com/mesonbuild/meson/edit/master/docs/markdown/Users.md)
+for it. For other projects using Meson, you may be interested in this
+[GitHub search](https://github.com/search?q=path%3A%2F%28%5E%7C%5C%2F%29meson%5C.build%24%2F&type=code).
+Some additional projects are listed in the [`meson` GitHub
 topic](https://github.com/topics/meson).
 
  - [2048.cpp](https://github.com/plibither8/2048.cpp), a fully featured terminal version of the game "2048" written in C++
