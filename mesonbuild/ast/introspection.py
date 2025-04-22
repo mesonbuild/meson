@@ -205,7 +205,7 @@ class IntrospectionInterpreter(AstInterpreter):
                     else:
                         continue
                 if comp:
-                    self.coredata.process_compiler_options(lang, comp, self.environment, self.subproject)
+                    self.coredata.process_compiler_options(lang, comp, self.subproject)
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         args = self.flatten_args(args)
