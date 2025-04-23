@@ -757,6 +757,20 @@ class VcsData:
     rev_regex: str
     dep: str
     wc_dir: T.Optional[str] = None
+    repo_can_be_file: bool = False
+
+    def repo_exists(self, curdir: Path) -> bool:
+        if not shutil.which(self.cmd):
+            return False
+
+        repo = curdir / self.repo_dir
+        if repo.is_dir():
+            return True
+        if repo.is_file() and self.repo_can_be_file:
+            return True
+
+        return False
+
 
 def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[VcsData]:
     vcs_systems = [
@@ -767,6 +781,7 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[VcsData]:
             get_rev = ['git', 'describe', '--dirty=+', '--always'],
             rev_regex = '(.*)',
             dep = '.git/logs/HEAD',
+            repo_can_be_file=True,
         ),
         VcsData(
             name = 'mercurial',
@@ -802,9 +817,7 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[VcsData]:
     parent_paths_and_self.appendleft(source_dir)
     for curdir in parent_paths_and_self:
         for vcs in vcs_systems:
-            repodir = vcs.repo_dir
-            cmd = vcs.cmd
-            if curdir.joinpath(repodir).is_dir() and shutil.which(cmd):
+            if vcs.repo_exists(curdir):
                 vcs.wc_dir = str(curdir)
                 return vcs
     return None
