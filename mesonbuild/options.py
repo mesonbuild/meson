@@ -890,8 +890,7 @@ class OptionStore:
             raise MesonException(f'Internal error: non-module option has a period in its name {key.name}.')
         self.add_system_option_internal(key, valobj)
 
-    def add_system_option_internal(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
-        key = self.ensure_and_validate_key(key)
+    def add_system_option_internal(self, key: OptionKey, valobj: AnyOptionType) -> None:
         assert isinstance(valobj, UserOption)
         if not isinstance(valobj.name, str):
             assert isinstance(valobj.name, str)
