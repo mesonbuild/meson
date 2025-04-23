@@ -17,7 +17,7 @@ topic](https://github.com/topics/meson).
 
 ## [Gnome](https://www.gnome.org)
 
- - [GTK+](https://gitlab.gnome.org/GNOME/gtk), the multi-platform toolkit used by GNOME
+ - [GTK](https://gitlab.gnome.org/GNOME/gtk), the multi-platform toolkit used by GNOME
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
 
 ## [Enlightenment](https://www.enlightenment.org/)
