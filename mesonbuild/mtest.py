@@ -173,6 +173,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='Maximum number of lines to show from a long test log. Since 1.5.0.')
     parser.add_argument('--slice', default=None, type=test_slice, metavar='SLICE/NUM_SLICES',
                         help='Split tests into NUM_SLICES slices and execute slice SLICE. Since 1.8.0.')
+    parser.add_argument('--sigterm-timeout', default=1, type=int,
+                        help='Set the timeout in seconds to use when a test times out or is interrupted. Since 1.9.0.')
     parser.add_argument('args', nargs='*',
                         help='Optional list of test names to run. "testname" to run all tests with that name, '
                         '"subprojname:testname" to specifically run "testname" from "subprojname", '
@@ -1337,12 +1339,14 @@ async def complete_all(futures: T.Iterable[asyncio.Future],
 class TestSubprocess:
     def __init__(self, p: asyncio.subprocess.Process,
                  stdout: T.Optional[int], stderr: T.Optional[int],
+                 sigterm_timeout: int,
                  postwait_fn: T.Callable[[], None] = None):
         self._process = p
         self.stdout = stdout
         self.stderr = stderr
         self.stdo_task: T.Optional[asyncio.Task[None]] = None
         self.stde_task: T.Optional[asyncio.Task[None]] = None
+        self.sigterm_timeout = sigterm_timeout
         self.postwait_fn = postwait_fn
         self.all_futures: T.List[asyncio.Future] = []
         self.queue: T.Optional[asyncio.Queue[T.Optional[str]]] = None
@@ -1394,7 +1398,7 @@ class TestSubprocess:
                 # Make sure the termination signal actually kills the process
                 # group, otherwise retry with a SIGKILL.
                 with suppress(asyncio.TimeoutError):
-                    await asyncio.wait_for(p.wait(), timeout=0.5)
+                    await asyncio.wait_for(p.wait(), timeout=self.sigterm_timeout)
                 if p.returncode is not None:
                     return None
 
@@ -1602,6 +1606,7 @@ class SingleTestRunner:
                                                  cwd=cwd,
                                                  preexec_fn=preexec_fn if not is_windows() else None)
         return TestSubprocess(p, stdout=stdout, stderr=stderr,
+                              sigterm_timeout=self.options.sigterm_timeout,
                               postwait_fn=postwait_fn if not is_windows() else None)
 
     async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
