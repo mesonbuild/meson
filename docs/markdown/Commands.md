@@ -496,6 +496,9 @@ or `--inline` arguments.
 *Since 1.9.0* Using `-` as source file with `--editor-config` now requires
 `--source-file-path` argument to ensure consistent results.
 
+*Since 1.10.0* When `--check-diff` is specified, instead of silently exiting
+with an error code, `meson format` will print a diff of the formatting changes.
+
 
 #### Differences with `muon fmt`
 

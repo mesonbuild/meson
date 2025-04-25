@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import difflib
 import re
 import typing as T
 from configparser import ConfigParser, MissingSectionHeaderError, ParsingError
@@ -996,7 +997,13 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     inplace_group.add_argument(
         '-q', '--check-only',
         action='store_true',
-        help='exit with 1 if files would be modified by meson format'
+        help='silently exit with 1 if files would be modified by meson format'
+    )
+    inplace_group.add_argument(
+        '-d', '--check-diff',
+        action='store_true',
+        default=False,
+        help='exit with 1 and show diff if files would be modified by meson format'
     )
     inplace_group.add_argument(
         '-i', '--inplace',
@@ -1092,9 +1099,14 @@ def run(options: argparse.Namespace) -> int:
                     sf.write(formatted)
             except IOError as e:
                 raise MesonException(f'Unable to write to {src_file}') from e
-        elif options.check_only:
-            # TODO: add verbose output showing diffs
+        elif options.check_only or options.check_diff:
             if code != formatted:
+                if options.check_diff:
+                    diff = difflib.unified_diff(code.splitlines(), formatted.splitlines(),
+                                                str(src_file), str(src_file),
+                                                '(original)', '(reformatted)',
+                                                lineterm='')
+                    print('\n'.join(diff))
                 return 1
         elif options.output:
             try:
