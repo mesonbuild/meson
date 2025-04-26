@@ -125,7 +125,7 @@ TRANSFER_DEPENDENCIES_FROM: T.Collection[str] = ['header_only']
 _cmake_name_regex = re.compile(r'[^_a-zA-Z0-9]')
 def _sanitize_cmake_name(name: str) -> str:
     name = _cmake_name_regex.sub('_', name)
-    if name in FORBIDDEN_TARGET_NAMES or name.startswith('meson'):
+    if name in FORBIDDEN_TARGET_NAMES or name.startswith('meson') or name[0].isdigit():
         name = 'cm_' + name
     return name
 
