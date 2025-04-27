@@ -36,6 +36,7 @@ pkgg.generate(
   requires : 'glib-2.0', # Not really, but only here to test that this works.
   requires_private : ['gio-2.0', 'gobject-2.0'],
   libraries_private : [lib, '-lz'],
+  license : 'Apache-2.0',
 )
 
 env = environment()

@@ -176,6 +176,12 @@ class LinuxlikeTests(BasePlatformTests):
                 self.assertTrue(ct_dep.found())
                 self.assertIn('-lct', ct_dep.get_link_args(raw=True))
 
+        # Test for License variable
+        privatedir1 = self.privatedir
+        with open(os.path.join(privatedir1, 'simple.pc'), encoding='utf-8') as f:
+            content = f.read()
+            self.assertIn('License: Apache-2.0', content)
+
     def test_pkgconfig_gen_deps(self):
         '''
         Test that generated pkg-config files correctly handle dependencies

@@ -72,6 +72,7 @@ keyword arguments.
 - `dataonly` field. (*since 0.54.0*) this is used for architecture-independent
    pkg-config files in projects which also have architecture-dependent outputs.
 - `conflicts` (*since 0.36.0, incorrectly issued a warning prior to 0.54.0*) list of strings to be put in the `Conflicts` field.
+- `license` a string specifying the package license in the SPDX license tag.
 
 Since 0.46 a `StaticLibrary` or `SharedLibrary` object can optionally
 be passed as first positional argument. If one is provided a default
