@@ -15,8 +15,11 @@ tests of our project.
 To start things up, here is the top level `meson.build` file.
 
 ```meson
-project('c++ foolib', 'cpp',
+project(
+  'c++ foolib',
+  host_machine_languages : 'cpp',
   version : '1.0.0',
+  meson_version : '>= 1.8.0',
   license : 'MIT')
 add_global_arguments('-DSOME_TOKEN=value', language : 'cpp')
 glib_dep = dependency('glib-2.0')
