@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright 2013-2024 The Meson development team
+# Copyright 2013-2025 The Meson development team
 # Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
@@ -72,7 +72,7 @@ if T.TYPE_CHECKING:
 #
 # Pip requires that RCs are named like this: '0.1.0.rc1'
 # But the corresponding Git tag needs to be '0.1.0rc1'
-version = '1.8.0.rc2'
+version = '1.8.0'
 
 # The next stable version when we are in dev. This is used to allow projects to
 # require meson version >=1.2.0 when using 1.1.99. FeatureNew won't warn when
