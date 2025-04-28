@@ -139,6 +139,22 @@ of a wrapper, these lines are all you need to write. Meson will
 automatically use the given wrapper when it needs to run host
 binaries. This happens e.g. when running the project's test suite.
 
+Note that `exe_wrapper` in the cross file is handled separately
+from the `exe_wrapper` argument in
+[`add_test_setup`](Reference-manual_functions.md#add_test_setup_exe_wrapper)
+and [`meson test --wrapper`](Unit-tests.md#other-test-options)
+command line argument. Meson must have `exe_wrapper` specified in the
+cross file or else it will skip tests that attempt to run cross
+compiled binaries. Only the cross file `exe_wrapper` value will be
+stored in the `MESON_EXE_WRAPPER` environment variable. If another
+wrapper is given in the test setup with `exe_wrapper` or as a
+`meson test --wrapper` command line argument, then meson will prepend
+the additional wrapper before the cross file wrapper like the
+following command:
+```
+[prepend_wrapper] <cross_file_wrapper> <exe_binary> <args...>
+```
+
 ### Properties
 
 In addition to the properties allowed in [all machine
