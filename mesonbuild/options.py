@@ -1249,7 +1249,7 @@ class OptionStore:
 
     def first_handle_prefix(self,
                             project_default_options: T.Union[T.List[str], OptionStringLikeDict],
-                            cmd_line_options: T.Union[T.List[str], OptionStringLikeDict],
+                            cmd_line_options: OptionStringLikeDict,
                             machine_file_options: T.Mapping[OptionKey, ElementaryOptionValues]) \
             -> T.Tuple[T.Union[T.List[str], OptionStringLikeDict],
                        T.Union[T.List[str], OptionStringLikeDict],
@@ -1288,7 +1288,7 @@ class OptionStore:
 
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
-                                               cmd_line_options_in: T.Union[T.List[str], OptionStringLikeDict],
+                                               cmd_line_options_in: OptionStringLikeDict,
                                                machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
         first_invocation = True
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
