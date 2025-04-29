@@ -1376,15 +1376,27 @@ class OptionStore:
                 if proj_key in self.options:
                     self.set_option(proj_key, valstr, True)
                 else:
-                    # Fail on unknown options that we can know must
-                    # exist at this point in time. Subproject and compiler
-                    # options are resolved later.
-                    #
-                    # Some base options (sanitizers etc) might get added later.
-                    # Permitting them all is not strictly correct.
-                    if key.subproject is None and not self.is_compiler_option(key) and not self.is_base_option(key):
-                        raise MesonException(f'Unknown options: "{keystr}"')
                     self.pending_options[key] = valstr
+
+    def validate_cmd_line_options(self, cmd_line_options: OptionStringLikeDict) -> None:
+        unknown_options = []
+        for keystr, valstr in cmd_line_options.items():
+            if isinstance(keystr, str):
+                key = OptionKey.from_string(keystr)
+            else:
+                key = keystr
+            # Fail on unknown options that we can know must exist at this point in time.
+            # Subproject and compiler options are resolved later.
+            #
+            # Some base options (sanitizers etc) might get added later.
+            # Permitting them all is not strictly correct.
+            if key.subproject is None and not self.is_compiler_option(key) and not self.is_base_option(key) and \
+               key in self.pending_options:
+                unknown_options.append(f'"{key}"')
+
+        if unknown_options:
+            keys = ', '.join(unknown_options)
+            raise MesonException(f'Unknown options: {keys}')
 
     def hacky_mchackface_back_to_list(self, optdict: T.Dict[str, str]) -> T.List[str]:
         if isinstance(optdict, dict):
