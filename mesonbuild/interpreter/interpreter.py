@@ -1201,6 +1201,19 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject():
+            # We have to activate VS before adding languages and before calling
+            # self.set_backend() otherwise it wouldn't be able to detect which
+            # vs backend version we need. But after setting default_options in case
+            # the project sets vs backend by default.
+            backend = self.coredata.optstore.get_value_for(OptionKey('backend'))
+            assert backend is None or isinstance(backend, str), 'for mypy'
+            vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'))
+            assert isinstance(vsenv, bool), 'for mypy'
+            force_vsenv = vsenv or backend.startswith('vs')
+            mesonlib.setup_vsenv(force_vsenv)
+        self.set_backend()
+
+        if not self.is_subproject():
             self.coredata.optstore.validate_cmd_line_options(self.user_defined_options.cmd_line_options)
             self.build.project_name = proj_name
         self.active_projectname = proj_name
@@ -1271,22 +1284,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
 
-        if not self.is_subproject():
-            # We have to activate VS before adding languages and before calling
-            # self.set_backend() otherwise it wouldn't be able to detect which
-            # vs backend version we need. But after setting default_options in case
-            # the project sets vs backend by default.
-            backend = self.coredata.optstore.get_value_for(OptionKey('backend'))
-            assert backend is None or isinstance(backend, str), 'for mypy'
-            vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'))
-            assert isinstance(vsenv, bool), 'for mypy'
-            force_vsenv = vsenv or backend.startswith('vs')
-            mesonlib.setup_vsenv(force_vsenv)
-
         self.add_languages(proj_langs, True, MachineChoice.HOST)
         self.add_languages(proj_langs, False, MachineChoice.BUILD)
 
-        self.set_backend()
         if not self.is_subproject():
             self.check_stdlibs()
 
