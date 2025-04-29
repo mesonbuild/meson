@@ -529,7 +529,8 @@ class AllPlatformTests(BasePlatformTests):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'{self.backend.name!r} backend can\'t install files')
         testdir = os.path.join(self.common_test_dir, '8 install')
-        self.init(testdir)
+        # sneak in a test that covers backend options...
+        self.init(testdir, extra_args=['-Dbackend_max_links=4'])
         intro = self.introspect('--targets')
         if intro[0]['type'] == 'executable':
             intro = intro[::-1]
