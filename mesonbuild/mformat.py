@@ -837,7 +837,7 @@ class Formatter:
         # See https://editorconfig.org/
         config = EditorConfig()
 
-        for p in source_file.parents:
+        for p in source_file.resolve().parents:
             editorconfig_file = p / '.editorconfig'
             if not editorconfig_file.exists():
                 continue
