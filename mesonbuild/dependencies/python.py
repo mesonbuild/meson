@@ -330,7 +330,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         # But not Apple, because it's a framework
         if self.env.machines.host.is_darwin() and 'PYTHONFRAMEWORKPREFIX' in self.variables:
             framework_prefix = self.variables['PYTHONFRAMEWORKPREFIX']
-            # Add rpath, will be de-duplicated if necessary
+            # Add rpath, will be de-duplicated if necessary
             if framework_prefix.startswith('/Applications/Xcode.app/'):
                 self.link_args += ['-Wl,-rpath,' + framework_prefix]
                 self.raw_link_args += ['-Wl,-rpath,' + framework_prefix]
