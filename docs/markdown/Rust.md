@@ -83,7 +83,7 @@ Meson will generate a `rust-project.json` file in the root of the build
 directory if there are any rust targets in the project. Most IDEs will need to
 be configured to use the file as it's not in the source root (Meson does not
 write files into the source directory). [See the upstream
-docs](https://rust-analyzer.github.io/manual.html#non-cargo-based-projects) for
+docs](https://rust-analyzer.github.io/book/non_cargo_based_projects.html) for
 more information on how to configure that.
 
 ## Linking with standard libraries
