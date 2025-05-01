@@ -1142,3 +1142,14 @@ class StructuredSourcesHolder(ObjectHolder[build.StructuredSources]):
 
     def __init__(self, sources: build.StructuredSources, interp: 'Interpreter'):
         super().__init__(sources, interp)
+
+class OverrideExecutableHolder(BuildTargetHolder[build.OverrideExecutable]):
+    def __init__(self, exe: build.OverrideExecutable, interpreter: 'Interpreter') -> None:
+        super().__init__(exe, interpreter)
+        self.methods.update({'version': self.version_method})
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('OverrideExecutable.version', '1.9.0')
+    def version_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.held_object.get_version(self.interpreter)
