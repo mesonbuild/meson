@@ -825,9 +825,7 @@ class Backend:
                 paths.update(self.rpaths_for_non_system_absolute_shared_libraries(i, exclude_system))
         return list(paths)
 
-    # This may take other types
-    def determine_rpath_dirs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]
-                             ) -> T.Tuple[str, ...]:
+    def determine_rpath_dirs(self, target: build.BuildTarget) -> T.Tuple[str, ...]:
         result: OrderedSet[str]
         if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
             # Need a copy here
@@ -835,9 +833,8 @@ class Backend:
         else:
             result = OrderedSet()
             result.add('meson-out')
-        if isinstance(target, build.BuildTarget):
-            result.update(self.rpaths_for_non_system_absolute_shared_libraries(target))
-            target.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
+        result.update(self.rpaths_for_non_system_absolute_shared_libraries(target))
+        target.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
         return tuple(result)
 
     @staticmethod
