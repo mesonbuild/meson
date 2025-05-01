@@ -3578,9 +3578,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             linker.build_rpath_args(self.environment,
                                     self.environment.get_build_dir(),
                                     target_slashname_workaround_dir,
-                                    self.determine_rpath_dirs(target),
-                                    target.build_rpath,
-                                    target.install_rpath))
+                                    target))
         return rpath_args
 
     def generate_link(self, target: build.BuildTarget, outname, obj_list, linker: T.Union['Compiler', 'StaticLinker'], extra_args=None, stdlib_args=None):
