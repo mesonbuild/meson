@@ -18,7 +18,6 @@ from ..mesonlib import (
 from .compilers import Compiler, CompileCheckMode
 
 if T.TYPE_CHECKING:
-    from ..backend.backends import Backend
     from ..build import BuildTarget
     from ..options import MutableKeyedOptionDictType
     from ..dependencies import Dependency
@@ -732,9 +731,9 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(self.host_compiler.get_optimization_link_args(optimization_level), Phase.LINKER)
 
     def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
-                         backend: Backend, target: BuildTarget) -> T.Tuple[T.List[str], T.Set[bytes]]:
+                         target: BuildTarget) -> T.Tuple[T.List[str], T.Set[bytes]]:
         (rpath_args, rpath_dirs_to_remove) = self.host_compiler.build_rpath_args(
-            env, build_dir, from_dir, backend, target)
+            env, build_dir, from_dir, target)
         return (self._to_host_flags(rpath_args, Phase.LINKER), rpath_dirs_to_remove)
 
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:

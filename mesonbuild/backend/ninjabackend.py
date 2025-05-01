@@ -3552,7 +3552,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             linker.build_rpath_args(self.environment,
                                     self.environment.get_build_dir(),
                                     target_slashname_workaround_dir,
-                                    self,
                                     target))
         return rpath_args
 
