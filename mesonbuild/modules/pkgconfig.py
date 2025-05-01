@@ -519,18 +519,18 @@ class PkgConfigModule(NewExtensionModule):
                 ofile.write(f'{k}={v}\n')
             ofile.write('\n')
             ofile.write(f'Name: {name}\n')
-            if len(description) > 0:
+            if description:
                 ofile.write(f'Description: {description}\n')
-            if len(url) > 0:
+            if url:
                 ofile.write(f'URL: {url}\n')
             ofile.write(f'Version: {version}\n')
             reqs_str = deps.format_reqs(deps.pub_reqs)
-            if len(reqs_str) > 0:
+            if reqs_str:
                 ofile.write(f'Requires: {reqs_str}\n')
             reqs_str = deps.format_reqs(deps.priv_reqs)
-            if len(reqs_str) > 0:
+            if reqs_str:
                 ofile.write(f'Requires.private: {reqs_str}\n')
-            if len(conflicts) > 0:
+            if conflicts:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
             def generate_libs_flags(libs: T.List[LIBS]) -> T.Iterable[str]:
@@ -571,9 +571,9 @@ class PkgConfigModule(NewExtensionModule):
                         if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)) or 'cs' not in l.compilers:
                             yield f'-l{lname}'
 
-            if len(deps.pub_libs) > 0:
+            if deps.pub_libs:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))
-            if len(deps.priv_libs) > 0:
+            if deps.priv_libs:
                 ofile.write('Libs.private: {}\n'.format(' '.join(generate_libs_flags(deps.priv_libs))))
 
             cflags: T.List[str] = []
