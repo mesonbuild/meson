@@ -38,6 +38,7 @@ if T.TYPE_CHECKING:
         filebase: T.Optional[str]
         description: T.Optional[str]
         url: str
+        license: str
         subdirs: T.List[str]
         conflicts: T.List[str]
         dataonly: bool
@@ -441,6 +442,7 @@ class PkgConfigModule(NewExtensionModule):
     def _generate_pkgconfig_file(self, state: ModuleState, deps: DependenciesHelper,
                                  subdirs: T.List[str], name: str,
                                  description: str, url: str, version: str,
+                                 license: str,
                                  pcfile: str, conflicts: T.List[str],
                                  variables: T.List[T.Tuple[str, str]],
                                  unescaped_variables: T.List[T.Tuple[str, str]],
@@ -523,6 +525,8 @@ class PkgConfigModule(NewExtensionModule):
                 ofile.write(f'Description: {description}\n')
             if url:
                 ofile.write(f'URL: {url}\n')
+            if license:
+                ofile.write(f'License: {license}\n')
             ofile.write(f'Version: {version}\n')
             reqs_str = deps.format_reqs(deps.pub_reqs)
             if reqs_str:
@@ -605,6 +609,7 @@ class PkgConfigModule(NewExtensionModule):
         KwargInfo('name', (str, NoneType), validator=lambda x: 'must not be an empty string' if x == '' else None),
         KwargInfo('subdirs', ContainerTypeInfo(list, str), default=[], listify=True),
         KwargInfo('url', str, default=''),
+        KwargInfo('license', str, default='', since='1.9.0'),
         KwargInfo('version', (str, NoneType)),
         VARIABLES_KW.evolve(name="unescaped_uninstalled_variables", since='0.59.0'),
         VARIABLES_KW.evolve(name="unescaped_variables", since='0.59.0'),
@@ -659,6 +664,7 @@ class PkgConfigModule(NewExtensionModule):
         filebase = kwargs['filebase'] if kwargs['filebase'] is not None else name
         description = kwargs['description'] if kwargs['description'] is not None else default_description
         url = kwargs['url']
+        license = kwargs['license']
         conflicts = kwargs['conflicts']
 
         # Prepend the main library to public libraries list. This is required
@@ -713,7 +719,7 @@ class PkgConfigModule(NewExtensionModule):
                 pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
         relocatable = state.get_option('pkgconfig.relocatable')
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
-                                      version, pcfile, conflicts, variables,
+                                      version, license, pcfile, conflicts, variables,
                                       unescaped_variables, False, dataonly,
                                       pkgroot=pkgroot if relocatable else None)
         res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, pkgroot_name, None, state.subproject, install_tag='devel')
@@ -722,7 +728,7 @@ class PkgConfigModule(NewExtensionModule):
 
         pcfile = filebase + '-uninstalled.pc'
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,
-                                      version, pcfile, conflicts, variables,
+                                      version, license, pcfile, conflicts, variables,
                                       unescaped_variables, uninstalled=True, dataonly=dataonly)
         # Associate the main library with this generated pc file. If the library
         # is used in any subsequent call to the generated, it will generate a

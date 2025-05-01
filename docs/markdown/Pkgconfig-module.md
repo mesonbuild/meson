@@ -47,6 +47,7 @@ keyword arguments.
    `pkgconfig.generate()` was used on to put in the `Requires` field
 - `requires_private` the same as `requires` but for the `Requires.private` field
 - `url` a string with a url for the library
+- `license` (*Since 1.9.0*) a string with a SPDX license to add to the generated file.
 - `variables` a list of strings with custom variables to add to the
   generated file. The strings must be in the form `name=value` and may
   reference other pkgconfig variables,
@@ -89,6 +90,9 @@ application. That will cause pkg-config to prefer those
 `-uninstalled.pc` files and find libraries and headers from the Meson
 builddir. This is an experimental feature provided on a best-effort
 basis, it might not work in all use-cases.
+
+*Since 1.9.0* you can specify a license identifier. To use the current project
+licence, simply use `license: meson.project_license()` as argument to `generate()`.
 
 ### Implicit dependencies
 
