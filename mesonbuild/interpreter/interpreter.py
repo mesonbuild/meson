@@ -2584,6 +2584,15 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.build.install_dirs.append(idir)
         return idir
 
+    # Make sure build_subdir doesn't exist in the source tree
+    # and doesn't contain '..'
+    def _validate_build_subdir(self, build_subdir: str, output: str):
+        if build_subdir and build_subdir != '.':
+            if os.path.exists(os.path.join(self.source_root, self.subdir, build_subdir)):
+                raise InvalidArguments(f'Build subdir "{build_subdir}" in "{output}" exists in source tree.')
+            if '..' in build_subdir:
+                raise InvalidArguments(f'Build subdir "{build_subdir}" in "{output}" contains ..')
+
     @noPosargs
     @typed_kwargs(
         'configure_file',
@@ -2677,14 +2686,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             self.configure_file_outputs[ofile_rpath] = self.current_node.lineno
 
-        # Validate build_subdir
         build_subdir = kwargs['build_subdir']
+        self._validate_build_subdir(build_subdir, output)
         self.build_subdir = build_subdir
-        if self.build_subdir and self.build_subdir != '.':
-            if os.path.exists(os.path.join(self.source_root, self.subdir, build_subdir)):
-                raise InvalidArguments(f'Build subdir "{build_subdir}" in output "{output}" exists in source tree.')
-            if '..' in build_subdir:
-                raise InvalidArguments(f'Build subdir "{build_subdir}" in output "{output}" contains ..')
 
         (ofile_path, ofile_fname) = os.path.split(os.path.join(self.subdir, self.build_subdir, output))
         ofile_abs = os.path.join(self.environment.build_dir, ofile_path, ofile_fname)
@@ -3227,14 +3231,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                     in the meson.build file in that directory.
             '''))
 
-        # Make sure build_subdir doesn't exist in the source tree and
-        # doesn't contain ..
         build_subdir = tobj.get_build_subdir()
-        if build_subdir and build_subdir != '.':
-            if os.path.exists(os.path.join(self.source_root, self.subdir, build_subdir)):
-                raise InvalidArguments(f'Build subdir "{build_subdir}" in target "{name}" exists in source tree.')
-            if '..' in build_subdir:
-                raise InvalidArguments(f'Build subdir "{build_subdir}" in target "{name}" contains ..')
+        self._validate_build_subdir(build_subdir, name)
 
         self.validate_forbidden_targets(name)
         # To permit an executable and a shared library to have the
