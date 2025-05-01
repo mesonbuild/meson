@@ -221,7 +221,7 @@ class Lexer:
                     yield Token(tid, filename, curline_start, curline, col, bytespan, value)
                     break
             if not matched:
-                raise ParseException(f'lexer: unrecognized token {self.code[loc]!r}', self.getline(line_start), lineno, col)
+                raise ParseException(f'lexer: unrecognized token {self.code[loc]!r}', self.getline(line_start), lineno, loc - line_start)
 
 @dataclass
 class BaseNode:
