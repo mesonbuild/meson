@@ -25,6 +25,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from .. import coredata
+    from ..backend.backends import Backend
     from ..build import BuildTarget, DFeatures
     from ..options import MutableKeyedOptionDictType
     from ..envconfig import MachineInfo
@@ -933,11 +934,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         return None
 
-    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
-                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
-                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
+                         backend: Backend, target: BuildTarget) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return self.linker.build_rpath_args(
-            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+            env, build_dir, from_dir, backend, target)
 
     def get_archive_name(self, filename: str) -> str:
         return self.linker.get_archive_name(filename)

@@ -17,6 +17,7 @@ import typing as T
 from ...mesonlib import EnvironmentException, MesonException, is_windows
 
 if T.TYPE_CHECKING:
+    from ...backend.backends import Backend
     from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...build import BuildTarget
@@ -101,9 +102,8 @@ class BasicLinkerIsCompilerMixin(Compiler):
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         raise MesonException("This linker doesn't support soname args")
 
-    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
-                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
-                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
+                         backend: Backend, target: BuildTarget) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
     def get_asneeded_args(self) -> T.List[str]:

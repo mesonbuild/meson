@@ -26,7 +26,8 @@ from .mixins.gnu import gnu_common_warning_args
 
 if T.TYPE_CHECKING:
     from . import compilers
-    from ..build import DFeatures
+    from ..backend.backends import Backend
+    from ..build import BuildTarget, DFeatures
     from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -175,9 +176,8 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
 
-    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
-                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
-                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
+                         backend: Backend, target: BuildTarget) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if self.info.is_windows():
             return ([], set())
 
@@ -188,7 +188,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             # split into two separate arguments both prefaced with the -L=.
             args: T.List[str] = []
             (rpath_args, rpath_dirs_to_remove) = super().build_rpath_args(
-                    env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+                    env, build_dir, from_dir, backend, target)
             for r in rpath_args:
                 if ',' in r:
                     a, b = r.split(',', maxsplit=1)
@@ -199,7 +199,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             return (args, rpath_dirs_to_remove)
 
         return super().build_rpath_args(
-            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+            env, build_dir, from_dir, backend, target)
 
     @classmethod
     def _translate_args_to_nongnu(cls, args: T.List[str], info: MachineInfo, link_id: str) -> T.List[str]:
