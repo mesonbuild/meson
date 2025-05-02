@@ -1407,7 +1407,7 @@ class OptionStore:
 
     def initialize_from_subproject_call(self,
                                         subproject: str,
-                                        spcall_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
+                                        spcall_default_options_in: OptionStringLikeDict,
                                         project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
                                         cmd_line_options: OptionStringLikeDict) -> None:
         is_first_invocation = True
