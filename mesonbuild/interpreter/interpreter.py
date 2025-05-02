@@ -296,9 +296,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
         if default_project_options:
-            self.default_project_options = default_project_options if isinstance(default_project_options, str) else default_project_options.copy()
-            if isinstance(default_project_options, dict):
-                pass
+            assert isinstance(default_project_options, dict)
+            self.default_project_options = default_project_options
         else:
             self.default_project_options = {}
         self.project_default_options: T.List[str] = []
@@ -878,6 +877,10 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
         default_options = kwargs['default_options']
+        if isinstance(default_options, str):
+            default_options = [default_options]
+        if isinstance(default_options, list):
+            default_options = dict((x.split('=', 1) for x in default_options))
 
         if subp_name == '':
             raise InterpreterException('Subproject name must not be empty.')
@@ -952,7 +955,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise e
 
     def _do_subproject_meson(self, subp_name: str, subdir: str,
-                             default_options: T.List[str],
+                             default_options: T.Dict[str, options.ElementaryOptionValues],
                              kwargs: kwtypes.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
                              build_def_files: T.Optional[T.List[str]] = None,
@@ -1012,7 +1015,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name: str, subdir: str,
-                             default_options: T.List[str],
+                             default_options: T.Dict[str, options.ElementaryOptionValues],
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
@@ -1039,7 +1042,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return result
 
     def _do_subproject_cargo(self, subp_name: str, subdir: str,
-                             default_options: T.List[str],
+                             default_options: T.Dict[str, options.ElementaryOptionValues],
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
