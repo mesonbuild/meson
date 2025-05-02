@@ -311,6 +311,9 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
             return libs
         return []
 
+    def is_libcpp_enable_assertions_deprecated(self) -> bool:
+        return version_compare(self.version, ">=18")
+
     def get_assert_args(self, disable: bool, env: 'Environment') -> T.List[str]:
         if disable:
             return ['-DNDEBUG']
@@ -323,7 +326,7 @@ class ClangCPPCompiler(_StdCPPLibMixin, ClangCPPStds, ClangCompiler, CPPCompiler
         if self.language_stdlib_provider(env) == 'stdc++':
             return ['-D_GLIBCXX_ASSERTIONS=1']
         else:
-            if version_compare(self.version, '>=18'):
+            if self.is_libcpp_enable_assertions_deprecated():
                 return ['-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST']
             elif version_compare(self.version, '>=15'):
                 return ['-D_LIBCPP_ENABLE_ASSERTIONS=1']
@@ -343,7 +346,12 @@ class ArmLtdClangCPPCompiler(ClangCPPCompiler):
 
 
 class AppleClangCPPCompiler(AppleCompilerMixin, AppleCPPStdsMixin, ClangCPPCompiler):
-    pass
+    def is_libcpp_enable_assertions_deprecated(self) -> bool:
+        # Upstream libc++ deprecated _LIBCPP_ENABLE_ASSERTIONS
+        # in favor of _LIBCPP_HARDENING_MODE from version 18 onwards,
+        # but Apple Clang 17's libc++ has back-ported that change.
+        # See: https://github.com/mesonbuild/meson/issues/14440
+        return version_compare(self.version, ">=17")
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
