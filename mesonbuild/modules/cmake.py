@@ -154,10 +154,11 @@ class CMakeSubproject(ModuleObject):
 
     @noKwargs
     @typed_pos_args('cmake.subproject.include_directories', str)
-    def include_directories(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> build.IncludeDirs:
+    def include_directories(self, state: ModuleState, args: T.Tuple[str], kwargs: TYPE_kwargs) -> T.List[build.IncludeDirs]:
         info = self._args_to_info(args[0])
         inc = self.get_variable(state, [info['inc']], kwargs)
-        assert isinstance(inc, build.IncludeDirs), 'for mypy'
+        assert isinstance(inc, list), 'for mypy'
+        assert isinstance(inc[0], build.IncludeDirs), 'for mypy'
         return inc
 
     @noKwargs
