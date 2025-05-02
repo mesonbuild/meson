@@ -1344,7 +1344,8 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key.subproject:
-                self.pending_options[key] = valstr
+                augstr = str(key)
+                self.augments[augstr] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
             else:
@@ -1368,7 +1369,8 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key.subproject:
-                self.pending_options[key] = valstr
+                augstr = str(key)
+                self.augments[augstr] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, True)
             else:
