@@ -867,7 +867,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subprojects[subp_name] = sub
         return sub
 
-    def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None) -> SubprojectHolder:
+    def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
+                      extra_default_options: T.Optional[T.Dict[str, options.ElementaryOptionValues]] = None) -> SubprojectHolder:
         if subp_name == 'sub_static':
             pass
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
@@ -881,6 +882,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             default_options = [default_options]
         if isinstance(default_options, list):
             default_options = dict((x.split('=', 1) for x in default_options))
+        if extra_default_options:
+            default_options = {**extra_default_options, **default_options}
 
         if subp_name == '':
             raise InterpreterException('Subproject name must not be empty.')
