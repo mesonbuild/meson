@@ -9,8 +9,8 @@ import shutil
 import typing as T
 
 from glob import glob
-from .wrap import (open_wrapdburl, WrapException, get_releases, get_releases_data,
-                   parse_patch_url)
+from .wrap import (open_wrapdburl, read_and_decompress, WrapException, get_releases,
+                   get_releases_data, parse_patch_url)
 from pathlib import Path
 
 from .. import mesonlib, msubprojects
@@ -99,9 +99,9 @@ def install(options: 'argparse.Namespace') -> None:
     if os.path.exists(wrapfile):
         raise SystemExit('Wrap file already exists.')
     (version, revision) = get_latest_version(name, options.allow_insecure)
-    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap', options.allow_insecure, True)
+    url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{version}-{revision}/{name}.wrap', options.allow_insecure, True, True)
     with open(wrapfile, 'wb') as f:
-        f.write(url.read())
+        f.write(read_and_decompress(url))
     print(f'Installed {name} version {version} revision {revision}')
 
 def get_current_version(wrapfile: str) -> T.Tuple[str, str, str, str, T.Optional[str]]:
