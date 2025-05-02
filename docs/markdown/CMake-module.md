@@ -138,8 +138,8 @@ and supports the following methods:
    `include_type` kwarg *(new in 0.56.0)* controls the include type of the
    returned dependency object similar to the same kwarg in the
    [[dependency]] function.
- - `include_directories(target)` returns a Meson [[@inc]]
-   object for the specified target. Using this method is not necessary
+ - `include_directories(target)` returns an array of Meson [[@inc]]
+   objects for the specified target. Using this method is not necessary
    if the dependency object is used.
  - `target(target)` returns the raw build target.
  - `target_type(target)` returns the type of the target as a string
