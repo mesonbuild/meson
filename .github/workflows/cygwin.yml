@@ -37,6 +37,7 @@ jobs:
         include:
           - NAME: gccx64ninja
             ARCH: x86_64
+            INSTALL_DIR: D:\cygwin
     env:
       MESON_CI_JOBNAME: cygwin-${{ matrix.NAME }}
 
@@ -49,7 +50,7 @@ jobs:
         id: restore-cache
         with:
           # should use 'pip3 cache dir' to discover this path
-          path: C:\cygwin\home\runneradmin\.cache\pip
+          path: ${{ matrix.INSTALL_DIR }}\home\runneradmin\.cache\pip
           key: cygwin-pip-${{ github.run_number }}
           restore-keys: cygwin-pip-
 
@@ -60,6 +61,7 @@ jobs:
       - uses: cygwin/cygwin-install-action@v5
         with:
           platform: ${{ matrix.ARCH }}
+          install-dir: ${{ matrix.INSTALL_DIR }}
           packages: |
             cmake
             gcc-fortran
@@ -84,16 +86,26 @@ jobs:
             vala
             zlib-devel
 
+      - name: Create cygwin shell wrapper and add to PATH
+        shell: pwsh
+        env:
+          INSTALL_DIR: ${{ matrix.INSTALL_DIR }}
+        run: |
+          $wrapperDir = Join-Path $env:RUNNER_TEMP "_cygwin_shell"
+          New-Item -Path $wrapperDir -ItemType Directory -Force | Out-Null
+          Set-Content -Path (Join-Path $wrapperDir "cygwin.cmd") -Value "@echo off`r`n$env:INSTALL_DIR\\bin\\bash.exe --noprofile --norc -o igncr -eo pipefail %*"
+          echo "$wrapperDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
           python3 -m pip --disable-pip-version-check install gcovr fastjsonschema pefile pytest pytest-subtests pytest-xdist coverage
-        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+        shell: cygwin '{0}'
 
       - uses: actions/cache/save@v4
         with:
           # should use 'pip3 cache dir' to discover this path
-          path: C:\cygwin\home\runneradmin\.cache\pip
+          path: ${{ matrix.INSTALL_DIR }}\home\runneradmin\.cache\pip
           key: cygwin-pip-${{ github.run_number }}
 
       - name: Run tests
@@ -104,7 +116,7 @@ jobs:
           # Cygwin's static boost installation is broken (some static library
           # variants such as boost_thread are not present)
           SKIP_STATIC_BOOST: 1
-        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+        shell: cygwin '{0}'
 
       - uses: actions/upload-artifact@v4
         with:
@@ -117,7 +129,7 @@ jobs:
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
           ./ci/combine_cov.sh
-        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
+        shell: cygwin '{0}'
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v3
