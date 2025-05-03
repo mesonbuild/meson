@@ -1401,22 +1401,19 @@ class OptionStore:
             keys = ', '.join(unknown_options)
             raise MesonException(f'Unknown options: {keys}')
 
-    def hacky_mchackface_back_to_list(self, optdict: T.Union[T.List[str], OptionDict]) -> T.List[str]:
-        if isinstance(optdict, dict):
-            return [f'{k}={v}' for k, v in optdict.items()]
-        return optdict
-
     def initialize_from_subproject_call(self,
                                         subproject: str,
-                                        spcall_default_options_in: OptionDict,
-                                        project_default_options_in: T.Union[T.List[str], OptionDict],
+                                        spcall_default_options: OptionDict,
+                                        project_default_options: T.Union[T.List[str], OptionDict],
                                         cmd_line_options: OptionDict) -> None:
         is_first_invocation = True
-        spcall_default_options = self.hacky_mchackface_back_to_list(spcall_default_options_in)
-        project_default_options = self.hacky_mchackface_back_to_list(project_default_options_in)
-        for o in itertools.chain(project_default_options, spcall_default_options):
-            keystr, valstr = o.split('=', 1)
-            key = OptionKey.from_string(keystr)
+        if isinstance(project_default_options, list):
+            project_default_options = self.optlist2optdict(project_default_options)
+        for keystr, valstr in itertools.chain(project_default_options.items(), spcall_default_options.items()):
+            if isinstance(keystr, str):
+                key = OptionKey.from_string(keystr)
+            else:
+                key = keystr
             if key.subproject is None:
                 key = key.evolve(subproject=subproject)
             elif key.subproject == subproject:
