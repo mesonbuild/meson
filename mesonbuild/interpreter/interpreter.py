@@ -2588,10 +2588,14 @@ class Interpreter(InterpreterBase, HoldableObject):
     # and doesn't contain '..'
     def _validate_build_subdir(self, build_subdir: str, output: str):
         if build_subdir and build_subdir != '.':
-            if os.path.exists(os.path.join(self.source_root, self.subdir, build_subdir)):
-                raise InvalidArguments(f'Build subdir "{build_subdir}" in "{output}" exists in source tree.')
-            if '..' in build_subdir:
-                raise InvalidArguments(f'Build subdir "{build_subdir}" in "{output}" contains ..')
+            top_dir = build_subdir
+            remain_dir = build_subdir
+            while remain_dir:
+                (remain_dir, top_dir) = os.path.split(remain_dir)
+                if top_dir == '..':
+                    raise InvalidArguments(f'Build subdir "{build_subdir}" in "{output}" contains ..')
+            if os.path.exists(os.path.join(self.source_root, self.subdir, top_dir)):
+                raise InvalidArguments(f'Build subdir "{top_dir}" in "{output}" exists in source tree.')
 
     @noPosargs
     @typed_kwargs(
