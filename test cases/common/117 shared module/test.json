@@ -5,6 +5,9 @@
     {"type": "pdb", "file": "usr/lib/modules/nosyms"},
     {"type": "expr", "file": "usr/lib/modules/subdir/libmymodule2?so"},
     {"type": "implib", "file": "usr/lib/modules/subdir/libmymodule2"},
-    {"type": "pdb", "file": "usr/lib/modules/subdir/mymodule2"}
+    {"type": "pdb", "file": "usr/lib/modules/subdir/mymodule2"},
+    {"type": "expr", "file": "usr/lib/modules/subdira/subdirb/libmymodule2?so"},
+    {"type": "implib", "file": "usr/lib/modules/subdira/subdirb/libmymodule2"},
+    {"type": "pdb", "file": "usr/lib/modules/subdira/subdirb/mymodule2"}
   ]
 }
