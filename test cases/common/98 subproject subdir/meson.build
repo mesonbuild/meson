@@ -83,7 +83,7 @@ d = dependency('subsubsub')
 assert(d.found(), 'Should be able to fallback to sub-sub-subproject')
 
 # Verify that `static: true` implies 'default_library=static'.
-d = dependency('sub_static', static: true)
+d = dependency('sub_static', static: true, default_options: ['bar=true'])
 assert(d.found())
 # Verify that when not specifying static kwarg we can still get fallback dep.
 d = dependency('sub_static')
