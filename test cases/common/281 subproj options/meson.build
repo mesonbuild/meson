@@ -1,4 +1,3 @@
-project('pkg_opt_test')
+project('pkg_opt_test', default_options: ['werror=false', 'sub:from_toplevel=true', 'sub:werror=true'])
 
-subproject('sub')
-subproject('sub2')
+subproject('sub', default_options: ['sub2:from_subp=true'])
