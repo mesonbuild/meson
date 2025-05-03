@@ -1412,15 +1412,18 @@ class OptionStore:
         for o in itertools.chain(project_default_options, spcall_default_options):
             keystr, valstr = o.split('=', 1)
             key = OptionKey.from_string(keystr)
-            assert key.subproject is None
-            key = key.evolve(subproject=subproject)
+            if key.subproject is None:
+                key = key.evolve(subproject=subproject)
+            elif key.subproject == subproject:
+                without_subp = key.evolve(subproject=None)
+                raise MesonException(f'subproject name not needed in default_options; use "{without_subp}" instead of "{key}"')
             # If the key points to a project option, set the value from that.
             # Otherwise set an augment.
             if key in self.project_options:
                 self.set_option(key, valstr, is_first_invocation)
             else:
                 self.pending_options.pop(key, None)
-                aug_str = f'{subproject}:{keystr}'
+                aug_str = str(key)
                 self.augments[aug_str] = valstr
         # Check for pending options
         assert isinstance(cmd_line_options, dict)
