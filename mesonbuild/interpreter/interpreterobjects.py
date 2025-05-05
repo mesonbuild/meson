@@ -965,7 +965,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @typed_pos_args('extract_objects', varargs=(mesonlib.File, str, build.CustomTarget, build.CustomTargetIndex, build.GeneratedList))
     def extract_objects_method(self, args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, 'build.GeneratedTypes']]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
         tobj = self._target_object
-        unity_value = self.interpreter.coredata.optstore.get_option_for_target(tobj, OptionKey("unity"))
+        unity_value = self.interpreter.coredata.optstore.get_option_for_target(tobj, OptionKey("unity"), str)
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
         return tobj.extract_objects(args[0], is_unity)
 
