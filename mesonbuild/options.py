@@ -810,7 +810,7 @@ class OptionStore:
         from .compilers import all_languages
         self.all_languages = set(all_languages)
         self.project_options = set()
-        self.augments: T.Dict[str, str] = {}
+        self.augments: T.Dict[str, ElementaryOptionValues] = {}
         self.is_cross = is_cross
 
         # Pending options are options that need to be initialized later, either
