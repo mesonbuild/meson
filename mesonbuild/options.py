@@ -1232,40 +1232,31 @@ class OptionStore:
                 perproject_global_options.append(strvaluetuple)
         return (global_options, perproject_global_options, project_options)
 
-    def optlist2optdict(self, optlist: T.List[str]) -> T.Dict[str, str]:
-        optdict = {}
+    def optlist2optdict(self, optlist: T.List[str]) -> OptionStringLikeDict:
+        optdict: OptionStringLikeDict = {}
         for p in optlist:
             k, v = p.split('=', 1)
             optdict[k] = v
         return optdict
 
-    def prefix_split_options(self, coll: T.Union[T.List[str], OptionStringLikeDict]) -> T.Tuple[str, T.Union[T.List[str], OptionStringLikeDict]]:
+    def prefix_split_options(self, coll: OptionStringLikeDict) -> T.Tuple[str, OptionStringLikeDict]:
         prefix = None
-        if isinstance(coll, list):
-            others: T.List[str] = []
-            for e in coll:
-                if e.startswith('prefix='):
-                    prefix = e.split('=', 1)[1]
-                else:
-                    others.append(e)
-            return (prefix, others)
-        else:
-            others_d: OptionStringLikeDict = {}
-            for k, v in coll.items():
-                if isinstance(k, OptionKey) and k.name == 'prefix':
-                    prefix = v
-                elif k == 'prefix':
-                    prefix = v
-                else:
-                    others_d[k] = v
-            return (prefix, others_d)
+        others_d: OptionStringLikeDict = {}
+        for k, v in coll.items():
+            if isinstance(k, OptionKey) and k.name == 'prefix':
+                prefix = v
+            elif k == 'prefix':
+                prefix = v
+            else:
+                others_d[k] = v
+        return (prefix, others_d)
 
     def first_handle_prefix(self,
-                            project_default_options: T.Union[T.List[str], OptionStringLikeDict],
+                            project_default_options: OptionStringLikeDict,
                             cmd_line_options: OptionStringLikeDict,
                             machine_file_options: T.Mapping[OptionKey, ElementaryOptionValues]) \
-            -> T.Tuple[T.Union[T.List[str], OptionStringLikeDict],
-                       T.Union[T.List[str], OptionStringLikeDict],
+            -> T.Tuple[OptionStringLikeDict,
+                       OptionStringLikeDict,
                        T.MutableMapping[OptionKey, ElementaryOptionValues]]:
         # Copy to avoid later mutation
         nopref_machine_file_options = T.cast(
@@ -1304,16 +1295,11 @@ class OptionStore:
                                                cmd_line_options_in: OptionStringLikeDict,
                                                machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
         first_invocation = True
+        if isinstance(project_default_options_in, list):
+            project_default_options_in = self.optlist2optdict(project_default_options_in)
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
                                                                                                      machine_file_options_in)
-        if isinstance(project_default_options, str):
-            project_default_options = [project_default_options]
-        if isinstance(project_default_options, list):
-            project_default_options = self.optlist2optdict(project_default_options) # type: ignore [assignment]
-        if project_default_options is None:
-            project_default_options = {}
-        assert isinstance(project_default_options, dict)
         for keystr, valstr in project_default_options.items():
             # Ths is complicated by the fact that a string can have two meanings:
             #
@@ -1349,7 +1335,6 @@ class OptionStore:
                     self.set_option(proj_key, valstr)
                 else:
                     self.pending_options[key] = valstr
-        assert isinstance(machine_file_options, dict)
         for key, valstr in machine_file_options.items():
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
@@ -1366,7 +1351,6 @@ class OptionStore:
                     self.set_option(proj_key, valstr, first_invocation)
                 else:
                     self.pending_options[key] = valstr
-        assert isinstance(cmd_line_options, dict)
         for keystr, valstr in cmd_line_options.items():
             if isinstance(keystr, str):
                 key = OptionKey.from_string(keystr)
