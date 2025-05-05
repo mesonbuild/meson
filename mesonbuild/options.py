@@ -810,7 +810,7 @@ class OptionStore:
         from .compilers import all_languages
         self.all_languages = set(all_languages)
         self.project_options = set()
-        self.augments: T.Dict[str, ElementaryOptionValues] = {}
+        self.augments: T.Dict[OptionKey, ElementaryOptionValues] = {}
         self.is_cross = is_cross
 
         # Pending options are options that need to be initialized later, either
@@ -885,9 +885,8 @@ class OptionStore:
         vobject = self.get_value_object_for(key)
         computed_value = vobject.value
         if key.subproject is not None:
-            keystr = str(key)
-            if keystr in self.augments:
-                computed_value = vobject.validate_value(self.augments[keystr])
+            if key in self.augments:
+                computed_value = vobject.validate_value(self.augments[key])
         return (vobject, computed_value)
 
     def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
@@ -1080,17 +1079,18 @@ class OptionStore:
             dirty |= self.set_option_maybe_root(key, valstr)
         for key, valstr in project_options:
             dirty |= self.set_option_maybe_root(key, valstr)
-        for keystr, valstr in perproject_global_options:
-            if keystr in self.augments:
-                if self.augments[keystr] != valstr:
-                    self.augments[keystr] = valstr
+        for key, valstr in perproject_global_options:
+            if key in self.augments:
+                if self.augments[key] != valstr:
+                    self.augments[key] = valstr
                     dirty = True
             else:
-                self.augments[keystr] = valstr
+                self.augments[key] = valstr
                 dirty = True
-        for delete in U_args:
-            if delete in self.augments:
-                del self.augments[delete]
+        for keystr in U_args:
+            key = OptionKey.from_string(keystr)
+            if key in self.augments:
+                del self.augments[key]
                 dirty = True
         return dirty
 
@@ -1213,7 +1213,7 @@ class OptionStore:
         return key in self.module_options
 
     def classify_D_arguments(self, D: T.List[str]) -> T.Tuple[T.List[T.Tuple[OptionKey, str]],
-                                                              T.List[T.Tuple[str, str]],
+                                                              T.List[T.Tuple[OptionKey, str]],
                                                               T.List[T.Tuple[OptionKey, str]]]:
         global_options = []
         project_options = []
@@ -1227,9 +1227,7 @@ class OptionStore:
             elif key.subproject is None:
                 global_options.append(valuetuple)
             else:
-                # FIXME, augments are currently stored as strings, not OptionKeys
-                strvaluetuple = (keystr, valstr)
-                perproject_global_options.append(strvaluetuple)
+                perproject_global_options.append(valuetuple)
         return (global_options, perproject_global_options, project_options)
 
     def optlist2optdict(self, optlist: T.List[str]) -> OptionDict:
@@ -1321,8 +1319,7 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key.subproject:
-                augstr = str(key)
-                self.augments[augstr] = valstr
+                self.augments[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
             else:
@@ -1341,8 +1338,7 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key.subproject:
-                augstr = str(key)
-                self.augments[augstr] = valstr
+                self.augments[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
             else:
@@ -1361,8 +1357,7 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key.subproject:
-                augstr = str(key)
-                self.augments[augstr] = valstr
+                self.augments[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, True)
             else:
@@ -1425,8 +1420,7 @@ class OptionStore:
                 self.set_option(key, valstr, is_first_invocation)
             else:
                 self.pending_options.pop(key, None)
-                aug_str = str(key)
-                self.augments[aug_str] = valstr
+                self.augments[key] = valstr
         # Check for pending options
         for key, valstr in cmd_line_options.items(): # type: ignore [assignment]
             if not isinstance(key, OptionKey):
@@ -1437,7 +1431,7 @@ class OptionStore:
             if key in self.options:
                 self.set_option(key, valstr, is_first_invocation)
             else:
-                self.augments[str(key)] = valstr
+                self.augments[key] = valstr
 
     def update_project_options(self, project_options: MutableKeyedOptionDictType, subproject: SubProject) -> None:
         for key, value in project_options.items():
