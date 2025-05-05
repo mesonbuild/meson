@@ -251,8 +251,8 @@ class RustCompiler(Compiler):
 
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = []
-        std = self.get_compileropt_value('std', env, target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         if std != 'none':
             args.append('--edition=' + std)
         return args

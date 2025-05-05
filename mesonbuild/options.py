@@ -926,6 +926,12 @@ class OptionStore:
             return v
         raise MesonBugException(f'Expected "{key}" to be of type "{type_}", but was of type "{type(v)}"')
 
+    def get_target_or_global_option(self, target: T.Optional[BuildTarget], key: OptionKey, type_: T.Type[ElementaryOptionTypes],
+                                    *, fallback: T.Optional[ElementaryOptionTypes] = None) -> ElementaryOptionTypes:
+        if target:
+            return self.get_option_for_target(target, key, type_, fallback=fallback)
+        return self.get_value_for(key, type_, fallback=fallback)
+
     def get_value_for_unsafe(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject)

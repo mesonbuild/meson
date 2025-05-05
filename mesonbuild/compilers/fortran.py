@@ -287,8 +287,8 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -421,9 +421,9 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        key = self.form_compileropt_key('std', subproject)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
-        assert isinstance(std, str)
         if std != 'none':
             args.append('-stand=' + stds[std])
         return args
@@ -480,9 +480,9 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('std', env, target, subproject)
+        key = self.form_compileropt_key('std', subproject)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
-        assert isinstance(std, str)
         if std != 'none':
             args.append('/stand:' + stds[std])
         return args

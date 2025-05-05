@@ -551,7 +551,7 @@ class CudaCompiler(Compiler):
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self.get_ccbin_args(None, env, '')
+        flags += self.get_ccbin_args(None, env, T.cast('SubProject', ''))
 
         # If cross-compiling, we can't run the sanity check, only compile it.
         if self.is_cross and not env.has_exe_wrapper():
@@ -660,8 +660,8 @@ class CudaCompiler(Compiler):
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
-            std = self.get_compileropt_value('std', env, target, subproject)
-            assert isinstance(std, str)
+            key = self.form_compileropt_key('std', subproject)
+            std = env.coredata.optstore.get_target_or_global_option(target, key, str)
             if std != 'none':
                 return ['--std=' + std]
 
@@ -783,12 +783,9 @@ class CudaCompiler(Compiler):
     def get_ccbin_args(self,
                        target: 'T.Optional[BuildTarget]',
                        env: 'Environment',
-                       subproject: T.Optional[str] = None) -> T.List[str]:
-        key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
-        if target:
-            ccbindir = env.coredata.optstore.get_option_for_target_unsafe(target, key)
-        else:
-            ccbindir = env.coredata.optstore.get_value_for_unsafe(key)
+                       subproject: T.Optional[SubProject] = None) -> T.List[str]:
+        key = self.form_compileropt_key('ccbindir', subproject)
+        ccbindir = env.coredata.optstore.get_target_or_global_option(target, key, str)
         if isinstance(ccbindir, str) and ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
         else:

@@ -1349,21 +1349,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """
         raise EnvironmentException(f'{self.get_id()} does not support preprocessor')
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
-        return OptionKey(f'{self.language}_{basename}', machine=self.for_machine)
-
-    def get_compileropt_value(self,
-                              key: T.Union[str, OptionKey],
-                              env: Environment,
-                              target: T.Optional[BuildTarget],
-                              subproject: T.Optional[str] = None
-                              ) -> options.ElementaryOptionValues:
-        if isinstance(key, str):
-            key = self.form_compileropt_key(key)
-        if target:
-            return env.coredata.optstore.get_option_for_target_unsafe(target, key)
-        else:
-            return env.coredata.optstore.get_value_for_unsafe(key.evolve(subproject=subproject))
+    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
+        return OptionKey(f'{self.language}_{basename}', subproject, self.for_machine)
 
     def _update_language_stds(self, opts: MutableKeyedOptionDictType, value: T.List[str]) -> None:
         key = self.form_compileropt_key('std')
