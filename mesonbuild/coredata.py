@@ -41,8 +41,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
-    from .options import ElementaryOptionValues, MutableKeyedOptionDictType
-    from .build import BuildTarget
+    from .options import MutableKeyedOptionDictType
 
     class SharedCMDOptions(Protocol):
 
@@ -394,23 +393,6 @@ class CoreData:
                 'backend_startup_project',
                 'Default project to execute in Visual Studio',
                 ''))
-
-    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
-        if isinstance(key, str):
-            assert ':' not in key
-            newkey = OptionKey(key, target.subproject)
-        else:
-            newkey = key
-        if newkey.subproject != target.subproject:
-            # FIXME: this should be an error. The caller needs to ensure that
-            # key and target have the same subproject for consistency.
-            # Now just do this to get things going.
-            newkey = newkey.evolve(subproject=target.subproject)
-        (option_object, value) = self.optstore.get_value_object_and_value_for(newkey)
-        override = target.get_override(newkey.name)
-        if override is not None:
-            return option_object.validate_value(override)
-        return value
 
     def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
         unset_opts = getattr(options, 'unset_opts', [])

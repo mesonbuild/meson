@@ -1363,7 +1363,7 @@ class Vs2010Backend(backends.Backend):
         # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
         # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
         if 'cpp' in target.compilers:
-            eh = self.environment.coredata.get_option_for_target(target, OptionKey('cpp_eh', machine=target.for_machine))
+            eh = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('cpp_eh', machine=target.for_machine))
             if eh == 'a':
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
             elif eh == 's':
