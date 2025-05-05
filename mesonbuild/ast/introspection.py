@@ -11,7 +11,6 @@ import os
 import typing as T
 
 from .. import compilers, environment, mesonlib, options
-from .. import coredata as cdata
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
 from ..interpreterbase import InvalidArguments, SubProject
@@ -99,6 +98,16 @@ class IntrospectionInterpreter(AstInterpreter):
                 return [node.value]
             return None
 
+        def create_options_dict(options: T.List[str], subproject: str = '') -> T.Mapping[OptionKey, str]:
+            result: T.MutableMapping[OptionKey, str] = {}
+            for o in options:
+                try:
+                    (key, value) = o.split('=', 1)
+                except ValueError:
+                    raise mesonlib.MesonException(f'Option {o!r} must have a value separated by equals sign.')
+                result[OptionKey(key)] = value
+            return result
+
         proj_name = args[0]
         proj_vers = kwargs.get('version', 'undefined')
         if isinstance(proj_vers, ElementaryNode):
@@ -116,20 +125,19 @@ class IntrospectionInterpreter(AstInterpreter):
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
-        string_dict = cdata.create_options_dict(_project_default_options, self.subproject)
-        self.project_default_options = {OptionKey(s): v for s, v in string_dict.items()}
+        self.project_default_options = create_options_dict(_project_default_options, self.subproject)
         self.default_options.update(self.project_default_options)
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
             if self.subproject == '':
                 self.coredata.optstore.initialize_from_top_level_project_call(
-                    T.cast('T.Dict[T.Union[OptionKey, str], str]', string_dict),
+                    T.cast('T.Dict[T.Union[OptionKey, str], str]', self.project_default_options),
                     {},  # TODO: not handled by this Interpreter.
                     self.environment.options)
             else:
                 self.coredata.optstore.initialize_from_subproject_call(
                     self.subproject,
                     {},  # TODO: this isn't handled by the introspection interpreter...
-                    T.cast('T.Dict[T.Union[OptionKey, str], str]', string_dict),
+                    T.cast('T.Dict[T.Union[OptionKey, str], str]', self.project_default_options),
                     {})  # TODO: this isn't handled by the introspection interpreter...
                 self.coredata.initialized_subprojects.add(self.subproject)
 
