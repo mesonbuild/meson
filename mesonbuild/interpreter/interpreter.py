@@ -115,6 +115,7 @@ if T.TYPE_CHECKING:
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
+    from ..options import OptionDict
     from ..programs import OverrideProgram
     from .type_checking import SourcesVarargsType
 
@@ -868,7 +869,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return sub
 
     def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
-                      extra_default_options: T.Optional[T.Dict[str, options.ElementaryOptionValues]] = None) -> SubprojectHolder:
+                      extra_default_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
         if subp_name == 'sub_static':
             pass
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
