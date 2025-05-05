@@ -1347,12 +1347,7 @@ class OptionStore:
                 else:
                     self.pending_options[key] = valstr
         assert isinstance(machine_file_options, dict)
-        for keystr, valstr in machine_file_options.items():
-            if isinstance(keystr, str):
-                # FIXME, standardise on Key or string.
-                key = OptionKey.from_string(keystr)
-            else:
-                key = keystr
+        for key, valstr in machine_file_options.items():
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
