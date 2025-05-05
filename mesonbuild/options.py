@@ -310,7 +310,7 @@ class OptionKey:
         return self.machine is MachineChoice.BUILD
 
 if T.TYPE_CHECKING:
-    OptionStringLikeDict: TypeAlias = T.Dict[T.Union[OptionKey, str], str]
+    OptionDict: TypeAlias = T.Dict[T.Union[OptionKey, str], ElementaryOptionValues]
 
 @dataclasses.dataclass
 class UserOption(T.Generic[_T], HoldableObject):
@@ -1222,31 +1222,31 @@ class OptionStore:
                 perproject_global_options.append(strvaluetuple)
         return (global_options, perproject_global_options, project_options)
 
-    def optlist2optdict(self, optlist: T.List[str]) -> OptionStringLikeDict:
-        optdict: OptionStringLikeDict = {}
+    def optlist2optdict(self, optlist: T.List[str]) -> OptionDict:
+        optdict: OptionDict = {}
         for p in optlist:
             k, v = p.split('=', 1)
             optdict[k] = v
         return optdict
 
-    def prefix_split_options(self, coll: OptionStringLikeDict) -> T.Tuple[str, OptionStringLikeDict]:
+    def prefix_split_options(self, coll: OptionDict) -> T.Tuple[T.Optional[str], OptionDict]:
         prefix = None
-        others_d: OptionStringLikeDict = {}
+        others_d: OptionDict = {}
         for k, v in coll.items():
-            if isinstance(k, OptionKey) and k.name == 'prefix':
-                prefix = v
-            elif k == 'prefix':
+            if k == 'prefix' or (isinstance(k, OptionKey) and k.name == 'prefix'):
+                if not isinstance(v, str):
+                    raise MesonException('Incorrect type for prefix option (expected string)')
                 prefix = v
             else:
                 others_d[k] = v
         return (prefix, others_d)
 
     def first_handle_prefix(self,
-                            project_default_options: OptionStringLikeDict,
-                            cmd_line_options: OptionStringLikeDict,
+                            project_default_options: OptionDict,
+                            cmd_line_options: OptionDict,
                             machine_file_options: T.Mapping[OptionKey, ElementaryOptionValues]) \
-            -> T.Tuple[OptionStringLikeDict,
-                       OptionStringLikeDict,
+            -> T.Tuple[OptionDict,
+                       OptionDict,
                        T.MutableMapping[OptionKey, ElementaryOptionValues]]:
         # Copy to avoid later mutation
         nopref_machine_file_options = T.cast(
@@ -1281,8 +1281,8 @@ class OptionStore:
         self.options[OptionKey('prefix')].set_value(prefix)
 
     def initialize_from_top_level_project_call(self,
-                                               project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
-                                               cmd_line_options_in: OptionStringLikeDict,
+                                               project_default_options_in: T.Union[T.List[str], OptionDict],
+                                               cmd_line_options_in: OptionDict,
                                                machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
         first_invocation = True
         if isinstance(project_default_options_in, list):
@@ -1362,7 +1362,7 @@ class OptionStore:
                 else:
                     self.pending_options[key] = valstr
 
-    def validate_cmd_line_options(self, cmd_line_options: OptionStringLikeDict) -> None:
+    def validate_cmd_line_options(self, cmd_line_options: OptionDict) -> None:
         unknown_options = []
         for keystr, valstr in cmd_line_options.items():
             if isinstance(keystr, str):
@@ -1382,16 +1382,16 @@ class OptionStore:
             keys = ', '.join(unknown_options)
             raise MesonException(f'Unknown options: {keys}')
 
-    def hacky_mchackface_back_to_list(self, optdict: T.Union[T.List[str], OptionStringLikeDict]) -> T.List[str]:
+    def hacky_mchackface_back_to_list(self, optdict: T.Union[T.List[str], OptionDict]) -> T.List[str]:
         if isinstance(optdict, dict):
             return [f'{k}={v}' for k, v in optdict.items()]
         return optdict
 
     def initialize_from_subproject_call(self,
                                         subproject: str,
-                                        spcall_default_options_in: OptionStringLikeDict,
-                                        project_default_options_in: T.Union[T.List[str], OptionStringLikeDict],
-                                        cmd_line_options: OptionStringLikeDict) -> None:
+                                        spcall_default_options_in: OptionDict,
+                                        project_default_options_in: T.Union[T.List[str], OptionDict],
+                                        cmd_line_options: OptionDict) -> None:
         is_first_invocation = True
         spcall_default_options = self.hacky_mchackface_back_to_list(spcall_default_options_in)
         project_default_options = self.hacky_mchackface_back_to_list(project_default_options_in)
