@@ -85,7 +85,7 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
         args: T.List[str] = []
         key = OptionKey('cpp_std', subproject=subproject, machine=self.for_machine)
         if target:
-            std = env.coredata.get_option_for_target(target, key)
+            std = env.coredata.optstore.get_option_for_target(target, key)
         else:
             std = env.coredata.optstore.get_value_for_unsafe(key)
         assert isinstance(std, str)

@@ -789,7 +789,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         # need a typeddict for this
         key = self.form_compileropt_key('winlibs').evolve(subproject=subproject)
         if target:
-            value = env.coredata.get_option_for_target(target, key)
+            value = env.coredata.optstore.get_option_for_target(target, key)
         else:
             value = env.coredata.optstore.get_value_for_unsafe(key)
         return T.cast('T.List[str]', value)[:]
@@ -872,7 +872,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         # if one is using anything before that point, one cannot set the standard.
         stdkey = self.form_compileropt_key('std').evolve(subproject=subproject)
         if target is not None:
-            std = env.coredata.get_option_for_target(target, stdkey)
+            std = env.coredata.optstore.get_option_for_target(target, stdkey)
         else:
             std = env.coredata.optstore.get_value_for_unsafe(stdkey)
         if std in {'vc++11', 'c++11'}:

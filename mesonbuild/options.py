@@ -36,6 +36,7 @@ from . import mlog
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
+    from .build import BuildTarget
     from .interpreterbase import SubProject
 
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
@@ -900,6 +901,23 @@ class OptionStore:
         if isinstance(v, type_):
             return v
         raise MesonBugException(f'Expected "{key}" to be of type "{type_}", but was of type "{type(v)}"')
+
+    def get_option_for_target(self, target: BuildTarget, key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
+        if isinstance(key, str):
+            assert ':' not in key
+            newkey = OptionKey(key, target.subproject)
+        else:
+            newkey = key
+        if newkey.subproject != target.subproject:
+            # FIXME: this should be an error. The caller needs to ensure that
+            # key and target have the same subproject for consistency.
+            # Now just do this to get things going.
+            newkey = newkey.evolve(subproject=target.subproject)
+        option_object, value = self.get_value_object_and_value_for(newkey)
+        override = target.get_override(newkey.name)
+        if override is not None:
+            return option_object.validate_value(override)
+        return value
 
     def get_value_for_unsafe(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
