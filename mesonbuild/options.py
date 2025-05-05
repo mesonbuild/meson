@@ -902,7 +902,7 @@ class OptionStore:
             return v
         raise MesonBugException(f'Expected "{key}" to be of type "{type_}", but was of type "{type(v)}"')
 
-    def get_option_for_target(self, target: BuildTarget, key: OptionKey) -> ElementaryOptionValues:
+    def get_option_for_target_unsafe(self, target: BuildTarget, key: OptionKey) -> ElementaryOptionValues:
         if key.subproject != target.subproject:
             # FIXME: this should be an error. The caller needs to ensure that
             # key and target have the same subproject for consistency.
@@ -913,6 +913,18 @@ class OptionStore:
         if override is not None:
             return option_object.validate_value(override)
         return value
+
+    def get_option_for_target(self, target: BuildTarget, key: OptionKey, type_: T.Type[ElementaryOptionTypes],
+                              *, fallback: T.Optional[ElementaryOptionTypes] = None) -> ElementaryOptionTypes:
+        try:
+            v = self.get_option_for_target_unsafe(target, key)
+        except KeyError:
+            if fallback is not None:
+                return fallback
+            raise MesonBugException(f'Tried to get option value for "{key}", but there is not such option')
+        if isinstance(v, type_):
+            return v
+        raise MesonBugException(f'Expected "{key}" to be of type "{type_}", but was of type "{type(v)}"')
 
     def get_value_for_unsafe(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):

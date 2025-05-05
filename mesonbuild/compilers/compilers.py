@@ -218,34 +218,6 @@ clike_debug_args: T.Dict[bool, T.List[str]] = {
 }
 
 
-def option_enabled(boptions: T.Set[OptionKey],
-                   target: 'BuildTarget',
-                   env: 'Environment',
-                   option: T.Union[str, OptionKey]) -> bool:
-    if isinstance(option, str):
-        option = OptionKey(option)
-    try:
-        if option not in boptions:
-            return False
-        ret = env.coredata.optstore.get_option_for_target(target, option)
-        assert isinstance(ret, bool), 'must return bool'  # could also be str
-        return ret
-    except KeyError:
-        return False
-
-
-def get_option_value_for_target(env: 'Environment', target: 'BuildTarget', opt: OptionKey, fallback: '_T') -> '_T':
-    """Get the value of an option, or the fallback value."""
-    try:
-        v = env.coredata.optstore.get_option_for_target(target, opt)
-    except (KeyError, AttributeError):
-        return fallback
-
-    assert isinstance(v, type(fallback)), f'Should have {type(fallback)!r} but was {type(v)!r}'
-    # Mypy doesn't understand that the above assert ensures that v is type _T
-    return v
-
-
 def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
     """Should debug assertions be disabled
 
@@ -254,9 +226,9 @@ def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
     :return: whether to disable assertions or not
     """
     key = OptionKey('b_ndebug')
-    return (env.coredata.optstore.get_option_for_target(target, key) == 'true' or
-            (env.coredata.optstore.get_option_for_target(target, key) == 'if-release' and
-             env.coredata.optstore.get_option_for_target(target, OptionKey('buildtype')) in {'release', 'plain'}))
+    return (env.coredata.optstore.get_option_for_target(target, key, str) == 'true' or
+            (env.coredata.optstore.get_option_for_target(target, key, str) == 'if-release' and
+             env.coredata.optstore.get_option_for_target(target, OptionKey('buildtype'), str) in {'release', 'plain'}))
 
 
 def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> bool:
@@ -269,23 +241,21 @@ def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> 
 def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
     args: T.List[str] = []
     try:
-        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto')):
-            num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
-            ltomode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
+        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto'), bool):
+            num_threads = env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto_threads'), int, fallback=0)
+            ltomode = env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto_mode'), str, fallback='default')
             args.extend(compiler.get_lto_compile_args(
                 threads=num_threads,
                 mode=ltomode))
     except (KeyError, AttributeError):
         pass
     try:
-        clrout = env.coredata.optstore.get_option_for_target(target, OptionKey('b_colorout'))
-        assert isinstance(clrout, str)
-        args += compiler.get_colorout_args(clrout)
+        args += compiler.get_colorout_args(
+            env.coredata.optstore.get_option_for_target(target, OptionKey('b_colorout'), str))
     except KeyError:
         pass
     try:
-        sanitize = env.coredata.optstore.get_option_for_target(target, OptionKey('b_sanitize'))
-        assert isinstance(sanitize, list)
+        sanitize = env.coredata.optstore.get_option_for_target(target, OptionKey('b_sanitize'), list)
         if sanitize == ['none']:
             sanitize = []
         sanitize_args = compiler.sanitizer_compile_args(sanitize)
@@ -298,7 +268,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except KeyError:
         pass
     try:
-        pgo_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_pgo'))
+        pgo_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_pgo'), str)
         if pgo_val == 'generate':
             args.extend(compiler.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -306,7 +276,7 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except (KeyError, AttributeError):
         pass
     try:
-        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_coverage')):
+        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_coverage'), bool, fallback=False):
             args += compiler.get_coverage_args()
     except (KeyError, AttributeError):
         pass
@@ -315,13 +285,11 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
     except KeyError:
         pass
     # This does not need a try...except
-    if option_enabled(compiler.base_options, target, env, 'b_bitcode'):
+    if env.coredata.optstore.get_option_for_target(target, OptionKey('b_bitcode'), bool, fallback=False):
         args.append('-fembed-bitcode')
     try:
-        crt_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_vscrt'))
-        assert isinstance(crt_val, str)
-        buildtype = env.coredata.optstore.get_option_for_target(target, OptionKey('buildtype'))
-        assert isinstance(buildtype, str)
+        crt_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_vscrt'), str)
+        buildtype = env.coredata.optstore.get_option_for_target(target, OptionKey('buildtype'), str)
         try:
             args += compiler.get_crt_compile_args(crt_val, buildtype)
         except AttributeError:
@@ -336,18 +304,18 @@ def get_base_link_args(target: 'BuildTarget',
     args: T.List[str] = []
     build_dir = env.get_build_dir()
     try:
-        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto')):
-            if env.coredata.optstore.get_option_for_target(target, OptionKey('werror')):
+        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto'), bool, fallback=False):
+            if env.coredata.optstore.get_option_for_target(target, OptionKey('werror'), bool):
                 args.extend(linker.get_werror_args())
 
             thinlto_cache_dir = None
             cachedir_key = OptionKey('b_thinlto_cache')
-            if get_option_value_for_target(env, target, cachedir_key, False):
-                thinlto_cache_dir = get_option_value_for_target(env, target, OptionKey('b_thinlto_cache_dir'), '')
+            if env.coredata.optstore.get_option_for_target(target, cachedir_key, bool, fallback=False):
+                thinlto_cache_dir = env.coredata.optstore.get_option_for_target(target, OptionKey('b_thin_lto_cache_dir'), str, fallback='')
                 if thinlto_cache_dir == '':
                     thinlto_cache_dir = os.path.join(build_dir, 'meson-private', 'thinlto-cache')
-            num_threads = get_option_value_for_target(env, target, OptionKey('b_lto_threads'), 0)
-            lto_mode = get_option_value_for_target(env, target, OptionKey('b_lto_mode'), 'default')
+            num_threads = env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto_threads'), int, fallback=0)
+            lto_mode = env.coredata.optstore.get_option_for_target(target, OptionKey('b_lto_mode'), str, fallback='default')
             args.extend(linker.get_lto_link_args(
                 threads=num_threads,
                 mode=lto_mode,
@@ -355,8 +323,7 @@ def get_base_link_args(target: 'BuildTarget',
     except (KeyError, AttributeError):
         pass
     try:
-        sanitizer = env.coredata.optstore.get_option_for_target(target, OptionKey('b_sanitize'))
-        assert isinstance(sanitizer, list)
+        sanitizer = env.coredata.optstore.get_option_for_target(target, OptionKey('b_sanitize'), list)
         if sanitizer == ['none']:
             sanitizer = []
         sanitizer_args = linker.sanitizer_link_args(sanitizer)
@@ -369,7 +336,7 @@ def get_base_link_args(target: 'BuildTarget',
     except KeyError:
         pass
     try:
-        pgo_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_pgo'))
+        pgo_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_pgo'), str)
         if pgo_val == 'generate':
             args.extend(linker.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -377,13 +344,13 @@ def get_base_link_args(target: 'BuildTarget',
     except (KeyError, AttributeError):
         pass
     try:
-        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_coverage')):
+        if env.coredata.optstore.get_option_for_target(target, OptionKey('b_coverage'), bool):
             args += linker.get_coverage_link_args()
     except (KeyError, AttributeError):
         pass
 
-    as_needed = option_enabled(linker.base_options, target, env, 'b_asneeded')
-    bitcode = option_enabled(linker.base_options, target, env, 'b_bitcode')
+    as_needed = env.coredata.optstore.get_option_for_target(target, OptionKey('b_asneeded'), bool, fallback=False)
+    bitcode = env.coredata.optstore.get_option_for_target(target, OptionKey('b_bitcode'), bool, fallback=False)
     # Shared modules cannot be built with bitcode_bundle because
     # -bitcode_bundle is incompatible with -undefined and -bundle
     if bitcode and not target.typename == 'shared module':
@@ -398,16 +365,14 @@ def get_base_link_args(target: 'BuildTarget',
         from ..build import SharedModule
         args.extend(linker.headerpad_args())
         if (not isinstance(target, SharedModule) and
-                option_enabled(linker.base_options, target, env, 'b_lundef')):
+                env.coredata.optstore.get_option_for_target(target, OptionKey('b_lundef'), bool, fallback=False)):
             args.extend(linker.no_undefined_link_args())
         else:
             args.extend(linker.get_allow_undefined_link_args())
 
     try:
-        crt_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_vscrt'))
-        assert isinstance(crt_val, str)
-        buildtype = env.coredata.optstore.get_option_for_target(target, OptionKey('buildtype'))
-        assert isinstance(buildtype, str)
+        crt_val = env.coredata.optstore.get_option_for_target(target, OptionKey('b_vscrt'), str)
+        buildtype = env.coredata.optstore.get_option_for_target(target, OptionKey('buildtype'), str)
         try:
             crtargs = linker.get_crt_link_args(crt_val, buildtype)
             assert isinstance(crtargs, list)
@@ -1407,7 +1372,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if isinstance(key, str):
             key = self.form_compileropt_key(key)
         if target:
-            return env.coredata.optstore.get_option_for_target(target, key)
+            return env.coredata.optstore.get_option_for_target_unsafe(target, key)
         else:
             return env.coredata.optstore.get_value_for_unsafe(key.evolve(subproject=subproject))
 

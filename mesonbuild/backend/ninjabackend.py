@@ -1105,9 +1105,10 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        cppversion = self.get_target_option(target, OptionKey('cpp_std',
-                                                              machine=target.for_machine,
-                                                              subproject=target.subproject))
+        cppversion = self.environment.coredata.optstore.get_option_for_target(
+            target,
+            OptionKey('cpp_std', machine=target.for_machine, subproject=target.subproject),
+            str)
         if cppversion not in ('latest', 'c++latest', 'vc++latest'):
             return False
         if not mesonlib.current_vs_supports_modules():
@@ -1730,7 +1731,7 @@ class NinjaBackend(backends.Backend):
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
-        args += valac.get_colorout_args(self.get_target_option(target, 'b_colorout'))
+        args += valac.get_colorout_args(self.environment.coredata.optstore.get_option_for_target(target, OptionKey('b_colorout'), str))
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
@@ -1811,15 +1812,18 @@ class NinjaBackend(backends.Backend):
 
         args: T.List[str] = []
         args += cython.get_always_args()
-        args += cython.get_debug_args(self.get_target_option(target, 'debug'))
-        args += cython.get_optimization_args(self.get_target_option(target, 'optimization'))
+        args += cython.get_debug_args(
+            self.environment.coredata.optstore.get_option_for_target(target, OptionKey('debug'), bool))
+        args += cython.get_optimization_args(
+            self.environment.coredata.optstore.get_option_for_target(target, OptionKey('optimization'), str))
         args += cython.get_option_compile_args(target, self.environment, target.subproject)
         args += cython.get_option_std_args(target, self.environment, target.subproject)
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
 
-        ext = self.get_target_option(target, OptionKey('cython_language', machine=target.for_machine))
+        ext = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('cython_language', machine=target.for_machine), str)
 
         pyx_sources = []  # Keep track of sources we're adding to build
 
@@ -2017,12 +2021,12 @@ class NinjaBackend(backends.Backend):
         # by Meson options instead.
         # https://github.com/rust-lang/rust/issues/39016
         if not isinstance(target, build.StaticLibrary):
-            try:
-                buildtype = self.get_target_option(target, 'buildtype')
-                crt = self.get_target_option(target, 'b_vscrt')
+            crt = self.environment.coredata.optstore.get_option_for_target(
+                target, OptionKey('b_vscrt'), str, fallback='sentinel')
+            if crt != 'sentinel':
+                buildtype = self.environment.coredata.optstore.get_option_for_target(
+                    target, OptionKey('buildtype'), str)
                 args += rustc.get_crt_link_args(crt, buildtype)
-            except (KeyError, AttributeError):
-                pass
 
         if mesonlib.version_compare(rustc.version, '>= 1.67.0'):
             verbatim = '+verbatim'
@@ -3598,9 +3602,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        commands += linker.get_optimization_link_args(self.get_target_option(target, 'optimization'))
+        commands += linker.get_optimization_link_args(
+             self.environment.coredata.optstore.get_option_for_target(target, OptionKey('optimization'), str))
         # Add /DEBUG and the pdb filename when using MSVC
-        if self.get_target_option(target, 'debug'):
+        if self.environment.coredata.optstore.get_option_for_target(target, OptionKey('debug'), bool):
             commands += self.get_link_debugfile_args(linker, target)
             debugfile = self.get_link_debugfile_name(linker, target)
             if debugfile is not None:

@@ -1035,7 +1035,8 @@ class Vs2010Backend(backends.Backend):
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
         for lang in file_args.keys():
-            file_args[lang] += self.get_target_option(target, OptionKey(f'{lang}_args', machine=target.for_machine))
+            file_args[lang] += self.environment.coredata.optstore.get_option_for_target(
+                target, OptionKey(f'{lang}_args', machine=target.for_machine), list)
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1325,7 +1326,7 @@ class Vs2010Backend(backends.Backend):
         if True in ((dep.name == 'openmp') for dep in target.get_external_deps()):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
         # CRT type; debug or release
-        vscrt_type = self.get_target_option(target, 'b_vscrt')
+        vscrt_type = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('b_vscrt'), str)
         vscrt_val = compiler.get_crt_val(vscrt_type, self.buildtype)
         if vscrt_val == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
@@ -1363,7 +1364,7 @@ class Vs2010Backend(backends.Backend):
         # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
         # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
         if 'cpp' in target.compilers:
-            eh = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('cpp_eh', machine=target.for_machine))
+            eh = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('cpp_eh', machine=target.for_machine), str)
             if eh == 'a':
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
             elif eh == 's':
@@ -1381,10 +1382,10 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
-        warning_level = T.cast('str', self.get_target_option(target, 'warning_level'))
+        warning_level = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('warning_level'), str)
         warning_level = 'EnableAllWarnings' if warning_level == 'everything' else 'Level' + str(1 + int(warning_level))
         ET.SubElement(clconf, 'WarningLevel').text = warning_level
-        if self.get_target_option(target, 'werror'):
+        if self.environment.coredata.optstore.get_option_for_target(target, OptionKey('werror'), bool):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Optimization flags
         o_flags = split_o_flags_args(build_args)
@@ -1558,8 +1559,8 @@ class Vs2010Backend(backends.Backend):
         # /nologo
         ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
         # /release
-        addchecksum = self.get_target_option(target, 'buildtype') != 'debug'
-        if addchecksum:
+        buildtype = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('buildtype'), str)
+        if buildtype != 'debug':
             ET.SubElement(link, 'SetChecksum').text = 'true'
 
     # Visual studio doesn't simply allow the src files of a project to be added with the 'Condition=...' attribute,
