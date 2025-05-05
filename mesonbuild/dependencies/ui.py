@@ -239,7 +239,7 @@ class VulkanDependencySystem(SystemDependency):
                                                                  low=0, high=None, guess=e,
                                                                  prefix='#include <vulkan/vulkan.h>',
                                                                  env=environment,
-                                                                 extra_args=None,
+                                                                 extra_args=self.compile_args,
                                                                  dependencies=None))
                               # list containing vulkan version components and their expected value
                               for c, e in [('MAJOR', 1), ('MINOR', 3), ('PATCH', None)]]
