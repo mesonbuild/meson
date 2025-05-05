@@ -346,10 +346,10 @@ class UserOption(T.Generic[_T], HoldableObject):
     # Check that the input is a valid value and return the
     # "cleaned" or "native" version. For example the Boolean
     # option could take the string "true" and return True.
-    def validate_value(self, value: T.Any) -> _T:
+    def validate_value(self, value: object) -> _T:
         raise RuntimeError('Derived option class did not override validate_value.')
 
-    def set_value(self, newvalue: T.Any) -> bool:
+    def set_value(self, newvalue: object) -> bool:
         oldvalue = self.value
         self.value = self.validate_value(newvalue)
         return self.value != oldvalue
@@ -367,7 +367,7 @@ class EnumeratedUserOption(UserOption[_T]):
 
 class UserStringOption(UserOption[str]):
 
-    def validate_value(self, value: T.Any) -> str:
+    def validate_value(self, value: object) -> str:
         if not isinstance(value, str):
             raise MesonException(f'The value of option "{self.name}" is "{value}", which is not a string.')
         return value
@@ -380,7 +380,7 @@ class UserBooleanOption(EnumeratedUserOption[bool]):
     def __bool__(self) -> bool:
         return self.value
 
-    def validate_value(self, value: T.Any) -> bool:
+    def validate_value(self, value: object) -> bool:
         if isinstance(value, bool):
             return value
         if not isinstance(value, str):
@@ -412,7 +412,7 @@ class _UserIntegerBase(UserOption[_T]):
     def printable_choices(self) -> T.Optional[T.List[str]]:
         return [self.__choices]
 
-    def validate_value(self, value: T.Any) -> _T:
+    def validate_value(self, value: object) -> _T:
         if isinstance(value, str):
             value = T.cast('_T', self.toint(value))
         if not isinstance(value, int):
@@ -456,7 +456,7 @@ class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]
             return format(self.value, '04o')
         return self.value
 
-    def validate_value(self, value: T.Any) -> T.Union[Literal['preserve'], OctalInt]:
+    def validate_value(self, value: object) -> T.Union[Literal['preserve'], OctalInt]:
         if value == 'preserve':
             return 'preserve'
         return OctalInt(super().validate_value(value))
@@ -471,7 +471,7 @@ class UserUmaskOption(_UserIntegerBase[T.Union["Literal['preserve']", OctalInt]]
 @dataclasses.dataclass
 class UserComboOption(EnumeratedUserOption[str]):
 
-    def validate_value(self, value: T.Any) -> str:
+    def validate_value(self, value: object) -> str:
         if value not in self.choices:
             if isinstance(value, bool):
                 _type = 'boolean'
@@ -509,13 +509,13 @@ class UserArrayOption(UserOption[T.List[_T]]):
 @dataclasses.dataclass
 class UserStringArrayOption(UserArrayOption[str]):
 
-    def listify(self, value: ElementaryOptionValues) -> T.List[str]:
+    def listify(self, value: object) -> T.List[str]:
         try:
             return listify_array_value(value, self.split_args)
         except MesonException as e:
             raise MesonException(f'error in option "{self.name}": {e!s}')
 
-    def validate_value(self, value: T.Union[str, T.List[str]]) -> T.List[str]:
+    def validate_value(self, value: object) -> T.List[str]:
         newvalue = self.listify(value)
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
@@ -612,11 +612,14 @@ class UserStdOption(UserComboOption):
             else:
                 self.choices += gnu_stds_map.keys()
 
-    def validate_value(self, value: T.Union[str, T.List[str]]) -> str:
+    def validate_value(self, value: object) -> str:
         try:
             candidates = listify_array_value(value)
         except MesonException as e:
             raise MesonException(f'error in option "{self.name}": {e!s}')
+        for std in candidates:
+            if not isinstance(std, str):
+                raise MesonException(f'String array element "{candidates!s}" for option "{self.name}" is not a string.')
         unknown = ','.join(std for std in candidates if std not in self.all_stds)
         if unknown:
             raise MesonException(f'Unknown option "{self.name}" value {unknown}. Possible values are {self.all_stds}.')
