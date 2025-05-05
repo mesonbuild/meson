@@ -87,11 +87,7 @@ class ElbrusCompiler(GnuLikeCompiler):
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args: T.List[str] = []
         key = OptionKey(f'{self.language}_std', subproject=subproject, machine=self.for_machine)
-        if target:
-            std = env.coredata.optstore.get_option_for_target_unsafe(target, key)
-        else:
-            std = env.coredata.optstore.get_value_for_unsafe(key)
-        assert isinstance(std, str)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args

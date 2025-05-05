@@ -52,10 +52,10 @@ class ObjCCompiler(CLikeCompiler, Compiler):
         code = '#import<stddef.h>\nint main(void) { return 0; }\n'
         return self._sanity_check_impl(work_dir, environment, 'sanitycheckobjc.m', code)
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
+    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
         if basename == 'std':
-            return OptionKey(f'c_{basename}', machine=self.for_machine)
-        return super().form_compileropt_key(basename)
+            return OptionKey(f'c_{basename}', subproject, self.for_machine)
+        return super().form_compileropt_key(basename, subproject)
 
 
 class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
@@ -79,11 +79,7 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args: T.List[str] = []
         key = OptionKey('c_std', subproject=subproject, machine=self.for_machine)
-        if target:
-            std = env.coredata.optstore.get_option_for_target_unsafe(target, key)
-        else:
-            std = env.coredata.optstore.get_value_for_unsafe(key)
-        assert isinstance(std, str)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -104,11 +100,6 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
-        if basename == 'std':
-            return OptionKey('c_std', machine=self.for_machine)
-        return super().form_compileropt_key(basename)
-
     def make_option_name(self, key: OptionKey) -> str:
         if key.name == 'std':
             return 'c_std'
@@ -117,7 +108,7 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = []
         key = OptionKey('c_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, env, target, subproject)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
