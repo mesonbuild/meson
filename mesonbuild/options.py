@@ -902,19 +902,14 @@ class OptionStore:
             return v
         raise MesonBugException(f'Expected "{key}" to be of type "{type_}", but was of type "{type(v)}"')
 
-    def get_option_for_target(self, target: BuildTarget, key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
-        if isinstance(key, str):
-            assert ':' not in key
-            newkey = OptionKey(key, target.subproject)
-        else:
-            newkey = key
-        if newkey.subproject != target.subproject:
+    def get_option_for_target(self, target: BuildTarget, key: OptionKey) -> ElementaryOptionValues:
+        if key.subproject != target.subproject:
             # FIXME: this should be an error. The caller needs to ensure that
             # key and target have the same subproject for consistency.
             # Now just do this to get things going.
-            newkey = newkey.evolve(subproject=target.subproject)
-        option_object, value = self.get_value_object_and_value_for(newkey)
-        override = target.get_override(newkey.name)
+            key = key.evolve(subproject=target.subproject)
+        option_object, value = self.get_value_object_and_value_for(key)
+        override = target.get_override(key.name)
         if override is not None:
             return option_object.validate_value(override)
         return value
