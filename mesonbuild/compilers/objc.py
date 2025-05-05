@@ -79,11 +79,7 @@ class GnuObjCCompiler(GnuCStds, GnuCompiler, ObjCCompiler):
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
         key = OptionKey('c_std', subproject=subproject, machine=self.for_machine)
-        if target:
-            std = env.coredata.optstore.get_option_for_target_unsafe(target, key)
-        else:
-            std = env.coredata.optstore.get_value_for_unsafe(key)
-        assert isinstance(std, str)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -117,7 +113,7 @@ class ClangObjCCompiler(ClangCStds, ClangCompiler, ObjCCompiler):
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
         key = OptionKey('c_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, env, target, subproject)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)
