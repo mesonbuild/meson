@@ -374,7 +374,7 @@ def run(options: argparse.Namespace) -> int:
     if not buildfile.is_file():
         raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
-    need_vsenv = T.cast('bool', b.environment.coredata.optstore.get_value_for(OptionKey('vsenv')))
+    need_vsenv = b.environment.coredata.optstore.get_value_for(OptionKey('vsenv'), bool)
     setup_vsenv(need_vsenv)
     src_root = b.environment.source_dir
     bld_root = b.environment.build_dir
