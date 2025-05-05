@@ -1,6 +1,8 @@
 project('vulkan test', 'c')
 
-vulkan_dep = dependency('vulkan', required : false)
+method = get_option('method')
+
+vulkan_dep = dependency('vulkan', required : false, method : method)
 if not vulkan_dep.found()
   error('MESON_SKIP_TEST: vulkan not found.')
 endif
