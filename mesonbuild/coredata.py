@@ -151,8 +151,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value_for_safe(self.__pkg_conf_key, list),
-            DependencyCacheType.CMAKE: self.__builtins.get_value_for_safe(self.__cmake_key, list),
+            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value_for(self.__pkg_conf_key, list),
+            DependencyCacheType.CMAKE: self.__builtins.get_value_for(self.__cmake_key, list),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
@@ -432,7 +432,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.optstore.get_value_for_safe(OptionKey('buildtype'), str)
+        value = self.optstore.get_value_for(OptionKey('buildtype'), str)
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -451,8 +451,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.optstore.get_value_for_safe(OptionKey('optimization'), str)
-        actual_debug = self.optstore.get_value_for_safe(OptionKey('debug'), bool)
+        actual_opt = self.optstore.get_value_for(OptionKey('optimization'), str)
+        actual_debug = self.optstore.get_value_for(OptionKey('debug'), bool)
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -495,7 +495,7 @@ class CoreData:
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return self.optstore.get_value_for_safe(linkkey, list)
+        return self.optstore.get_value_for(linkkey, list)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:

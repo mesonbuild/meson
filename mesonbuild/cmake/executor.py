@@ -52,7 +52,7 @@ class CMakeExecutor:
             self.cmakebin = None
             return
 
-        self.prefix_paths = self.environment.coredata.optstore.get_value_for_safe(OptionKey('cmake_prefix_path'), list)
+        self.prefix_paths = self.environment.coredata.optstore.get_value_for(OptionKey('cmake_prefix_path'), list)
         if self.prefix_paths:
             self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]
 

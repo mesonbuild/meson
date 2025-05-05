@@ -410,7 +410,7 @@ class I18nModule(ExtensionModule):
         targets.append(pottarget)
 
         install = kwargs['install']
-        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for_safe(OptionKey('localedir'), str)
+        install_dir = kwargs['install_dir'] or state.environment.coredata.optstore.get_value_for(OptionKey('localedir'), str)
         if not languages:
             languages = read_linguas(path.join(state.environment.source_dir, state.subdir))
         for l in languages:

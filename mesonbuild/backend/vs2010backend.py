@@ -267,10 +267,10 @@ class Vs2010Backend(backends.Backend):
         else:
             raise MesonException('Unsupported Visual Studio platform: ' + build_machine)
 
-        self.buildtype = self.environment.coredata.optstore.get_value_for_safe(OptionKey('buildtype'), str)
-        self.optimization = self.environment.coredata.optstore.get_value_for_safe(OptionKey('optimization'), str)
-        self.debug = self.environment.coredata.optstore.get_value_for_safe(OptionKey('debug'), bool)
-        self.sanitize = self.environment.coredata.optstore.get_value_for_safe(OptionKey('b_sanitize'), list, fallback=[])
+        self.buildtype = self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
+        self.optimization = self.environment.coredata.optstore.get_value_for(OptionKey('optimization'), str)
+        self.debug = self.environment.coredata.optstore.get_value_for(OptionKey('debug'), bool)
+        self.sanitize = self.environment.coredata.optstore.get_value_for(OptionKey('b_sanitize'), list, fallback=[])
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects(vslite_ctx)
         self.gen_testproj()
@@ -419,7 +419,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('# Visual Studio %s\n' % self.sln_version_comment)
             prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
             for prj in projlist:
-                if self.environment.coredata.optstore.get_value_for_safe(OptionKey('layout'), str) == 'mirror':
+                if self.environment.coredata.optstore.get_value_for(OptionKey('layout'), str) == 'mirror':
                     self.generate_solution_dirs(ofile, prj[1].parents)
                 target = self.build.targets[prj[0]]
                 lang = 'default'
@@ -1790,7 +1790,7 @@ class Vs2010Backend(backends.Backend):
             # build system as possible.
             self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
-        if self.environment.coredata.optstore.get_value_for_safe(OptionKey('layout'), str) == 'mirror':
+        if self.environment.coredata.optstore.get_value_for(OptionKey('layout'), str) == 'mirror':
             self.gen_vcxproj_filters(target, ofname)
         return True
 
@@ -1959,9 +1959,9 @@ class Vs2010Backend(backends.Backend):
                 meson_build_dir_for_buildtype = build_dir_tail[:-2] + buildtype # Get the buildtype suffixed 'builddir_[debug/release/etc]' from 'builddir_vs', for example.
                 proj_to_build_dir_for_buildtype = str(os.path.join(proj_to_multiconfigured_builds_parent_dir, meson_build_dir_for_buildtype))
                 test_cmd = f'{nmake_base_meson_command} test -C "{proj_to_build_dir_for_buildtype}" --no-rebuild'
-                if not self.environment.coredata.optstore.get_value_for_safe(OptionKey('stdsplit'), bool):
+                if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit'), bool):
                     test_cmd += ' --no-stdsplit'
-                if self.environment.coredata.optstore.get_value_for_safe(OptionKey('errorlogs'), bool):
+                if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs'), bool):
                     test_cmd += ' --print-errorlogs'
                 condition = f'\'$(Configuration)|$(Platform)\'==\'{buildtype}|{self.platform}\''
                 prop_group = ET.SubElement(root, 'PropertyGroup', Condition=condition)
@@ -1983,9 +1983,9 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
             # FIXME: No benchmarks?
             test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
-            if not self.environment.coredata.optstore.get_value_for_safe(OptionKey('stdsplit'), bool):
+            if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit'), bool):
                 test_command += ['--no-stdsplit']
-            if self.environment.coredata.optstore.get_value_for_safe(OptionKey('errorlogs'), bool):
+            if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs'), bool):
                 test_command += ['--print-errorlogs']
             self.serialize_tests()
             self.add_custom_build(root, 'run_tests', '"%s"' % ('" "'.join(test_command)))

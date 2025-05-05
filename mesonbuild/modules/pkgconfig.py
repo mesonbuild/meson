@@ -487,7 +487,7 @@ class PkgConfigModule(NewExtensionModule):
             srcdir = PurePath(state.environment.get_source_dir())
         else:
             outdir = state.environment.scratch_dir
-            prefix = PurePath(coredata.optstore.get_value_for_safe(OptionKey('prefix'), str))
+            prefix = PurePath(coredata.optstore.get_value_for(OptionKey('prefix'), str))
             if pkgroot:
                 pkgroot_ = PurePath(pkgroot)
                 if not pkgroot_.is_absolute():
@@ -504,7 +504,7 @@ class PkgConfigModule(NewExtensionModule):
                     if optname == 'prefix':
                         ofile.write('prefix={}\n'.format(self._escape(prefix)))
                     else:
-                        dirpath = PurePath(coredata.optstore.get_value_for_safe(OptionKey(optname), str))
+                        dirpath = PurePath(coredata.optstore.get_value_for(OptionKey(optname), str))
                         ofile.write('{}={}\n'.format(optname, self._escape('${prefix}' / dirpath)))
             if uninstalled and not dataonly:
                 ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
@@ -704,13 +704,13 @@ class PkgConfigModule(NewExtensionModule):
         if pkgroot is None:
             m = state.environment.machines.host
             if m.is_freebsd():
-                pkgroot = os.path.join(state.environment.coredata.optstore.get_value_for_safe(OptionKey('prefix'), str), 'libdata', 'pkgconfig')
+                pkgroot = os.path.join(state.environment.coredata.optstore.get_value_for(OptionKey('prefix'), str), 'libdata', 'pkgconfig')
                 pkgroot_name = os.path.join('{prefix}', 'libdata', 'pkgconfig')
             elif m.is_haiku():
-                pkgroot = os.path.join(state.environment.coredata.optstore.get_value_for_safe(OptionKey('prefix'), str), 'develop', 'lib', 'pkgconfig')
+                pkgroot = os.path.join(state.environment.coredata.optstore.get_value_for(OptionKey('prefix'), str), 'develop', 'lib', 'pkgconfig')
                 pkgroot_name = os.path.join('{prefix}', 'develop', 'lib', 'pkgconfig')
             else:
-                pkgroot = os.path.join(state.environment.coredata.optstore.get_value_for_safe(OptionKey('libdir'), str), 'pkgconfig')
+                pkgroot = os.path.join(state.environment.coredata.optstore.get_value_for(OptionKey('libdir'), str), 'pkgconfig')
                 pkgroot_name = os.path.join('{libdir}', 'pkgconfig')
         relocatable = state.get_option('pkgconfig.relocatable')
         self._generate_pkgconfig_file(state, deps, subdirs, name, description, url,

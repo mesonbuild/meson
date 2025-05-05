@@ -75,10 +75,10 @@ class ExternalProject(NewExtensionModule):
         self.src_dir = Path(self.env.get_source_dir(), self.subdir)
         self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
         self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
-        self.prefix = Path(self.env.coredata.optstore.get_value_for_safe(OptionKey('prefix'), str))
-        self.libdir = Path(self.env.coredata.optstore.get_value_for_safe(OptionKey('libdir'), str))
-        self.bindir = Path(self.env.coredata.optstore.get_value_for_safe(OptionKey('bindir'), str))
-        self.includedir = Path(self.env.coredata.optstore.get_value_for_safe(OptionKey('includedir'), str))
+        self.prefix = Path(self.env.coredata.optstore.get_value_for(OptionKey('prefix'), str))
+        self.libdir = Path(self.env.coredata.optstore.get_value_for(OptionKey('libdir'), str))
+        self.bindir = Path(self.env.coredata.optstore.get_value_for(OptionKey('bindir'), str))
+        self.includedir = Path(self.env.coredata.optstore.get_value_for(OptionKey('includedir'), str))
         self.name = self.src_dir.name
 
         # On Windows if the prefix is "c:/foo" and DESTDIR is "c:/bar", `make`
