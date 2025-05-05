@@ -1,3 +1,14 @@
 {
+  "env": {
+    "VULKAN_SDK": "/usr"
+  },
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "pkg-config" },
+        { "val": "system" }
+      ]
+    }
+  },
   "expect_skip_on_jobname": ["azure", "cygwin", "macos", "msys2"]
 }
