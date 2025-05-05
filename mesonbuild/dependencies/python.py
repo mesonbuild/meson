@@ -244,9 +244,8 @@ class _PythonDependencyBase(_Base):
                     # Python itself (except with pybind11, which has an ugly
                     # hack to work around this) - so emit a warning to explain
                     # the cause of the expected link error.
-                    buildtype = self.env.coredata.optstore.get_value_for(OptionKey('buildtype'))
-                    assert isinstance(buildtype, str)
-                    debug = self.env.coredata.optstore.get_value_for(OptionKey('debug'))
+                    buildtype = self.env.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
+                    debug = self.env.coredata.optstore.get_value_for(OptionKey('debug'), bool)
                     # `debugoptimized` buildtype may not set debug=True currently, see gh-11645
                     is_debug_build = debug or buildtype == 'debug'
                     vscrt_debug = False

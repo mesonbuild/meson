@@ -1029,7 +1029,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
-            prefix = self.coredata.optstore.get_value_for('prefix')
+            prefix = self.coredata.optstore.get_value_for(OptionKey('prefix'), str)
 
             from ..modules.cmake import CMakeSubprojectOptions
             kw_opts = kwargs.get('options') or CMakeSubprojectOptions()
@@ -1144,10 +1144,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         if OptionKey('genvslite') in self.user_defined_options.cmd_line_options:
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
-            backend_name = self.coredata.optstore.get_value_for(OptionKey('genvslite'))
+            backend_name = self.coredata.optstore.get_value_for(OptionKey('genvslite'), str)
             self.backend = backends.get_genvslite_backend(backend_name, self.build, self)
         else:
-            backend_name = self.coredata.optstore.get_value_for(OptionKey('backend'))
+            backend_name = self.coredata.optstore.get_value_for(OptionKey('backend'), str)
             self.backend = backends.get_backend_from_name(backend_name, self.build, self)
 
         if self.backend is None:
@@ -1216,10 +1216,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             # self.set_backend() otherwise it wouldn't be able to detect which
             # vs backend version we need. But after setting default_options in case
             # the project sets vs backend by default.
-            backend = self.coredata.optstore.get_value_for(OptionKey('backend'))
-            assert backend is None or isinstance(backend, str), 'for mypy'
-            vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'))
-            assert isinstance(vsenv, bool), 'for mypy'
+            backend = self.coredata.optstore.get_value_for(OptionKey('backend'), str)
+            vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'), bool)
             force_vsenv = vsenv or backend.startswith('vs')
             mesonlib.setup_vsenv(force_vsenv)
         self.set_backend()
@@ -1285,7 +1283,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Load wrap files from this (sub)project.
         subprojects_dir = os.path.join(self.subdir, spdirname)
         if not self.is_subproject():
-            wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
+            wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode'), str))
             self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
         else:
             assert self.environment.wrap_resolver is not None, 'for mypy'
@@ -1695,7 +1693,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
 
         fallback = None
-        wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
+        wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode'), str))
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:
@@ -3267,9 +3265,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
-        preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
+        preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries'), str)
         if preferred_library == 'auto':
-            preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_library'))
+            preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_library'), str)
             if preferred_library == 'both':
                 preferred_library = 'shared'
 
@@ -3310,8 +3308,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return build.BothLibraries(shared_lib, static_lib, preferred_library)
 
     def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library):
-        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
-        assert isinstance(default_library, str), 'for mypy'
+        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject), str)
         if default_library == 'shared':
             return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.SharedLibrary)
         elif default_library == 'static':

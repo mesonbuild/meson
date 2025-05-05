@@ -980,7 +980,7 @@ class BuildTarget(Target):
             value = self.get_override('cython_language')
             if value is None:
                 key = OptionKey('cython_language', machine=self.for_machine)
-                value = self.environment.coredata.optstore.get_value_for(key)
+                value = self.environment.coredata.optstore.get_value_for(key, str)
             try:
                 self.compilers[value] = self.all_compilers[value]
             except KeyError:
@@ -1270,10 +1270,8 @@ class BuildTarget(Target):
         k = OptionKey(option)
         if kwargs.get(arg) is not None:
             val = T.cast('bool', kwargs[arg])
-        elif k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore.get_value_for(k.name, k.subproject)
         else:
-            val = False
+            val = self.environment.coredata.optstore.get_value_for(k, bool, fallback=False)
 
         if not isinstance(val, bool):
             raise InvalidArguments(f'Argument {arg} to {self.name!r} must be boolean')
@@ -1753,7 +1751,7 @@ class BuildTarget(Target):
         self.process_link_depends(path)
 
     def extract_targets_as_list(self, kwargs: T.Dict[str, T.Union[LibTypes, T.Sequence[LibTypes]]], key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
-        bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
+        bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'), str)
         if bl_type == 'auto':
             if isinstance(self, StaticLibrary):
                 bl_type = 'static'
@@ -1978,7 +1976,7 @@ class Executable(BuildTarget):
             kwargs):
         key = OptionKey('b_pie')
         if 'pie' not in kwargs and key in environment.coredata.optstore:
-            kwargs['pie'] = environment.coredata.optstore.get_value_for(key)
+            kwargs['pie'] = environment.coredata.optstore.get_value_for(key, bool)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
@@ -2056,7 +2054,7 @@ class Executable(BuildTarget):
             machine.is_windows()
             and ('cs' in self.compilers or self.uses_rust() or self.get_using_msvc())
             # .pdb file is created only when debug symbols are enabled
-            and self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+            and self.environment.coredata.optstore.get_value_for(OptionKey("debug"), bool)
         )
         if create_debug_file:
             # If the target is has a standard exe extension (i.e. 'foo.exe'),
@@ -2345,14 +2343,14 @@ class SharedLibrary(BuildTarget):
                 # Import library is called foo.dll.lib
                 import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
                 # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"), bool)
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.lib
                 import_filename_tpl = '{0.prefix}{0.name}.lib'
                 # .pdb file is only created when debug symbols are enabled
-                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
+                create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"), bool)
             # Assume GCC-compatible naming
             else:
                 # Shared library is of the form libfoo.dll

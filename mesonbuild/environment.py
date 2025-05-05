@@ -60,11 +60,6 @@ NON_LANG_ENV_OPTIONS = [
 build_filename = 'meson.build'
 
 
-def _as_str(val: object) -> str:
-    assert isinstance(val, str), 'for mypy'
-    return val
-
-
 def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T.Optional[str]:
     """
     Returns the exact env var and the value.
@@ -982,25 +977,25 @@ class Environment:
         return self.get_libdir()
 
     def get_prefix(self) -> str:
-        return _as_str(self.coredata.optstore.get_value_for(OptionKey('prefix')))
+        return self.coredata.optstore.get_value_for(OptionKey('prefix'), str)
 
     def get_libdir(self) -> str:
-        return _as_str(self.coredata.optstore.get_value_for(OptionKey('libdir')))
+        return self.coredata.optstore.get_value_for(OptionKey('libdir'), str)
 
     def get_libexecdir(self) -> str:
-        return _as_str(self.coredata.optstore.get_value_for(OptionKey('libexecdir')))
+        return self.coredata.optstore.get_value_for(OptionKey('libexecdir'), str)
 
     def get_bindir(self) -> str:
-        return _as_str(self.coredata.optstore.get_value_for(OptionKey('bindir')))
+        return self.coredata.optstore.get_value_for(OptionKey('bindir'), str)
 
     def get_includedir(self) -> str:
-        return _as_str(self.coredata.optstore.get_value_for(OptionKey('includedir')))
+        return self.coredata.optstore.get_value_for(OptionKey('includedir'), str)
 
     def get_mandir(self) -> str:
-        return _as_str(self.coredata.optstore.get_value_for(OptionKey('mandir')))
+        return self.coredata.optstore.get_value_for(OptionKey('mandir'), str)
 
     def get_datadir(self) -> str:
-        return _as_str(self.coredata.optstore.get_value_for(OptionKey('datadir')))
+        return self.coredata.optstore.get_value_for(OptionKey('datadir'), str)
 
     def get_compiler_system_lib_dirs(self, for_machine: MachineChoice) -> T.List[str]:
         for comp in self.coredata.compilers[for_machine].values():

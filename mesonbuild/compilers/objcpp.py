@@ -87,7 +87,7 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
         if target:
             std = env.coredata.get_option_for_target(target, key)
         else:
-            std = env.coredata.optstore.get_value_for(key)
+            std = env.coredata.optstore.get_value_for_unsafe(key)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)

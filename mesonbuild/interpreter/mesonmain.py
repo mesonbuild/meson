@@ -302,7 +302,7 @@ class MesonMain(MesonInterpreterObject):
     @noKwargs
     @InterpreterObject.method('is_unity')
     def is_unity_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> bool:
-        optval = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('unity'))
+        optval = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('unity'), str)
         return optval == 'on' or (optval == 'subprojects' and self.interpreter.is_subproject())
 
     @noPosargs
@@ -357,8 +357,7 @@ class MesonMain(MesonInterpreterObject):
         dep.name = name
 
         optkey = OptionKey('default_library', subproject=self.interpreter.subproject)
-        default_library = self.interpreter.coredata.optstore.get_value_for(optkey)
-        assert isinstance(default_library, str), 'for mypy'
+        default_library = self.interpreter.coredata.optstore.get_value_for(optkey, str)
         static = kwargs['static']
         if static is None:
             # We don't know if dep represents a static or shared library, could

@@ -788,7 +788,7 @@ class CudaCompiler(Compiler):
         if target:
             ccbindir = env.coredata.get_option_for_target(target, key)
         else:
-            ccbindir = env.coredata.optstore.get_value_for(key)
+            ccbindir = env.coredata.optstore.get_value_for_unsafe(key)
         if isinstance(ccbindir, str) and ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
         else:

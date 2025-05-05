@@ -44,6 +44,7 @@ if T.TYPE_CHECKING:
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
+    ElementaryOptionTypes = T.TypeVar('ElementaryOptionTypes', str, int, bool, T.List[str])
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
@@ -888,7 +889,19 @@ class OptionStore:
                 computed_value = vobject.validate_value(self.augments[key])
         return (vobject, computed_value)
 
-    def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
+    def get_value_for(self, key: OptionKey, type_: T.Type[ElementaryOptionTypes],
+                      *, fallback: T.Optional[ElementaryOptionTypes] = None) -> ElementaryOptionTypes:
+        try:
+            v = self.get_value_object_and_value_for(key)[1]
+        except KeyError:
+            if fallback is not None:
+                return fallback
+            raise MesonBugException(f'Tried to get option value for "{key}", but there is not such option')
+        if isinstance(v, type_):
+            return v
+        raise MesonBugException(f'Expected "{key}" to be of type "{type_}", but was of type "{type(v)}"')
+
+    def get_value_for_unsafe(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject)
         else:
@@ -1006,8 +1019,7 @@ class OptionStore:
             assert isinstance(new_value, str), 'for mypy'
             new_value = self.sanitize_prefix(new_value)
         elif self.is_builtin_option(key):
-            prefix = self.get_value_for('prefix')
-            assert isinstance(prefix, str), 'for mypy'
+            prefix = self.get_value_for(OptionKey('prefix'), str)
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 
         try:

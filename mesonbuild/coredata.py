@@ -18,7 +18,6 @@ from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
     default_prefix,
-    stringlistify,
     pickle_load
 )
 
@@ -152,8 +151,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins.get_value_for(self.__pkg_conf_key)),
-            DependencyCacheType.CMAKE: stringlistify(self.__builtins.get_value_for(self.__cmake_key)),
+            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value_for(self.__pkg_conf_key, list),
+            DependencyCacheType.CMAKE: self.__builtins.get_value_for(self.__cmake_key, list),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
@@ -441,7 +440,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.optstore.get_value_for('buildtype')
+        value = self.optstore.get_value_for(OptionKey('buildtype'), str)
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -460,8 +459,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.optstore.get_value_for('optimization')
-        actual_debug = self.optstore.get_value_for('debug')
+        actual_opt = self.optstore.get_value_for(OptionKey('optimization'), str)
+        actual_debug = self.optstore.get_value_for(OptionKey('debug'), bool)
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -504,7 +503,7 @@ class CoreData:
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value_for(linkkey))
+        return self.optstore.get_value_for(linkkey, list)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:

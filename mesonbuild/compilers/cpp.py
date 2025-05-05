@@ -791,7 +791,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
         if target:
             value = env.coredata.get_option_for_target(target, key)
         else:
-            value = env.coredata.optstore.get_value_for(key)
+            value = env.coredata.optstore.get_value_for_unsafe(key)
         return T.cast('T.List[str]', value)[:]
 
     def _get_options_impl(self, opts: 'MutableKeyedOptionDictType', cpp_stds: T.List[str]) -> 'MutableKeyedOptionDictType':
@@ -874,7 +874,7 @@ class CPP11AsCPP14Mixin(CompilerMixinBase):
         if target is not None:
             std = env.coredata.get_option_for_target(target, stdkey)
         else:
-            std = env.coredata.optstore.get_value_for(stdkey)
+            std = env.coredata.optstore.get_value_for_unsafe(stdkey)
         if std in {'vc++11', 'c++11'}:
             mlog.warning(self.id, 'does not support C++11;',
                          'attempting best effort; setting the standard to C++14',

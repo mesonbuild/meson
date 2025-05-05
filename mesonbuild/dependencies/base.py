@@ -408,7 +408,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         self.version_reqs: T.Optional[T.List[str]] = version_reqs
         self.required = kwargs.get('required', True)
         self.silent = kwargs.get('silent', False)
-        self.static = kwargs.get('static', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
+        self.static = kwargs.get('static', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static'), bool))
         self.libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')

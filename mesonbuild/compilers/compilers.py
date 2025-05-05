@@ -260,9 +260,9 @@ def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
 
 def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> bool:
     key = OptionKey('b_ndebug', subproject)
-    return (env.coredata.optstore.get_value_for(key) == 'true' or
-            (env.coredata.optstore.get_value_for(key) == 'if-release' and
-             env.coredata.optstore.get_value_for(key.evolve(name='buildtype')) in {'release', 'plain'}))
+    return (env.coredata.optstore.get_value_for(key, str) == 'true' or
+            (env.coredata.optstore.get_value_for(key, str) == 'if-release' and
+             env.coredata.optstore.get_value_for(key.evolve(name='buildtype'), str) in {'release', 'plain'}))
 
 
 def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
@@ -1408,7 +1408,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if target:
             return env.coredata.get_option_for_target(target, key)
         else:
-            return env.coredata.optstore.get_value_for(key.evolve(subproject=subproject))
+            return env.coredata.optstore.get_value_for_unsafe(key.evolve(subproject=subproject))
 
     def _update_language_stds(self, opts: MutableKeyedOptionDictType, value: T.List[str]) -> None:
         key = self.form_compileropt_key('std')
