@@ -260,9 +260,9 @@ def are_asserts_disabled(target: 'BuildTarget', env: 'Environment') -> bool:
 
 def are_asserts_disabled_for_subproject(subproject: str, env: 'Environment') -> bool:
     key = OptionKey('b_ndebug', subproject)
-    return (env.coredata.optstore.get_value_for(key) == 'true' or
-            (env.coredata.optstore.get_value_for(key) == 'if-release' and
-             env.coredata.optstore.get_value_for(key.evolve(name='buildtype')) in {'release', 'plain'}))
+    return (env.coredata.optstore.get_value_for_safe(key, str) == 'true' or
+            (env.coredata.optstore.get_value_for_safe(key, str) == 'if-release' and
+             env.coredata.optstore.get_value_for_safe(key.evolve(name='buildtype'), str) in {'release', 'plain'}))
 
 
 def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Environment') -> T.List[str]:
