@@ -270,7 +270,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                default_project_options: T.Optional[T.Dict[OptionKey, str]] = None,
+                invoker_method_default_options: T.Optional[T.Dict[OptionKey, str]] = None,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
                 user_defined_options: T.Optional[coredata.SharedCMDOptions] = None,
@@ -295,11 +295,11 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subproject_stack: T.List[str] = []
         self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
-        if default_project_options:
-            assert isinstance(default_project_options, dict)
-            self.default_project_options = default_project_options
+        if invoker_method_default_options:
+            assert isinstance(invoker_method_default_options, dict)
+            self.invoker_method_default_options = invoker_method_default_options
         else:
-            self.default_project_options = {}
+            self.invoker_method_default_options = {}
         self.project_default_options: T.List[str] = []
         self.build_func_dict()
         self.build_holder_map()
@@ -1199,9 +1199,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                                                                               self.user_defined_options.cmd_line_options,
                                                                               self.environment.options)
             else:
-                invoker_method_default_options = self.default_project_options
                 self.coredata.optstore.initialize_from_subproject_call(self.subproject,
-                                                                       invoker_method_default_options,
+                                                                       self.invoker_method_default_options,
                                                                        self.project_default_options,
                                                                        self.user_defined_options.cmd_line_options)
                 self.coredata.initialized_subprojects.add(self.subproject)
