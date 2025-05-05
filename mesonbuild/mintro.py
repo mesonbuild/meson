@@ -167,7 +167,7 @@ def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[s
     return plan
 
 def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
-    if coredata.optstore.get_value_for(OptionKey('layout')) == 'flat':
+    if coredata.optstore.get_value_for(OptionKey('layout'), str) == 'flat':
         return 'meson-out'
     else:
         return subdir
