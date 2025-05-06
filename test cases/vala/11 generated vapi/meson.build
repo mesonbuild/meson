@@ -7,6 +7,7 @@ endif
 gnome = import('gnome')
 subdir('libfoo')
 subdir('libbar')
+subdir('libbaz')
 
 vapiexe = executable('vapigen-test',
   'main.vala',
