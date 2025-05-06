@@ -23,7 +23,7 @@ from .mesonlib import (
     HoldableObject, SecondLevelHolder,
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
-    get_filenames_templates_dict, substitute_values, has_path_sep,
+    get_filenames_templates_dict, substitute_values, has_path_sep, relpath,
     is_parent_path, PerMachineDefaultable,
     MesonBugException, EnvironmentVariables, pickle_load, lazy_property,
 )
@@ -31,7 +31,7 @@ from .options import OptionKey
 
 from .compilers import (
     is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
-    is_known_suffix, detect_static_linker
+    is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS
 )
 from .interpreterbase import FeatureNew, FeatureDeprecated
 
@@ -1787,6 +1787,122 @@ class BuildTarget(Target):
     def get(self, lib_type: T.Literal['static', 'shared']) -> LibTypes:
         """Base case used by BothLibraries"""
         return self
+
+    def determine_rpath_dirs(self) -> T.Tuple[str, ...]:
+        result: OrderedSet[str]
+        if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
+            # Need a copy here
+            result = OrderedSet(self.get_link_dep_subdirs())
+        else:
+            result = OrderedSet()
+            result.add('meson-out')
+        result.update(self.rpaths_for_non_system_absolute_shared_libraries())
+        self.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
+        return tuple(result)
+
+    @lru_cache(maxsize=None)
+    def rpaths_for_non_system_absolute_shared_libraries(self, exclude_system: bool = True) -> ImmutableListProtocol[str]:
+        paths: OrderedSet[str] = OrderedSet()
+        srcdir = self.environment.get_source_dir()
+
+        system_dirs = set()
+        if exclude_system:
+            for cc in self.compilers.values():
+                system_dirs.update(cc.get_library_dirs(self.environment))
+
+        external_rpaths = self.get_external_rpath_dirs()
+        build_to_src = relpath(self.environment.get_source_dir(),
+                               self.environment.get_build_dir())
+
+        for dep in self.external_deps:
+            if dep.type_name not in {'library', 'pkgconfig', 'cmake'}:
+                continue
+            for libpath in dep.link_args:
+                if libpath.startswith('-'):
+                    continue
+                # For all link args that are absolute paths to a library file, add RPATH args
+                if not os.path.isabs(libpath):
+                    continue
+                libdir, libname = os.path.split(libpath)
+                # Windows doesn't support rpaths, but we use this function to
+                # emulate rpaths by setting PATH
+                # .dll is there for mingw gcc
+                # .so's may be extended with version information, e.g. libxyz.so.1.2.3
+                if not (
+                    libname.endswith(('.dll', '.lib', '.so', '.dylib'))
+                    or '.so.' in libname
+                ):
+                    continue
+                # Don't remove rpaths specified in LDFLAGS.
+                if libdir in external_rpaths:
+                    continue
+                if system_dirs and os.path.normpath(libdir) in system_dirs:
+                    # No point in adding system paths.
+                    continue
+
+                if is_parent_path(srcdir, libdir):
+                    rel_to_src = libdir[len(srcdir) + 1:]
+                    paths.add(os.path.join(build_to_src, rel_to_src))
+                else:
+                    paths.add(libdir)
+            # Don't remove rpaths specified by the dependency
+            paths.difference_update(self.get_rpath_dirs_from_link_args(tuple(dep.link_args)))
+        for i in itertools.chain(self.link_targets, self.link_whole_targets):
+            if isinstance(i, BuildTarget):
+                paths.update(i.rpaths_for_non_system_absolute_shared_libraries(exclude_system))
+        return list(paths)
+
+    def get_external_rpath_dirs(self) -> T.Set[str]:
+        args: T.List[str] = []
+        for lang in LANGUAGES_USING_LDFLAGS:
+            try:
+                args += self.environment.coredata.get_external_link_args(self.for_machine, lang)
+            except KeyError:
+                pass
+        return self.get_rpath_dirs_from_link_args(tuple(args))
+
+    # Match rpath formats:
+    # -Wl,-rpath=
+    # -Wl,-rpath,
+    # Match solaris style compat runpath formats:
+    # -Wl,-R
+    # -Wl,-R,
+    # Match symbols formats:
+    # -Wl,--just-symbols=
+    # -Wl,--just-symbols,
+    _rpath_regex = re.compile(r'-Wl,(-rpath[=,]|-R,?|--just-symbols[=,])([^,]+)')
+
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def get_rpath_dirs_from_link_args(args: T.Tuple[str]) -> T.Set[str]:
+        dirs: T.Set[str] = set()
+        for arg in args:
+            if not arg.startswith('-Wl,'):
+                continue
+
+            rpath_match = BuildTarget._rpath_regex.match(arg)
+            if rpath_match is None:
+                continue
+
+            fmt, opts = rpath_match.groups()
+
+            if fmt.startswith('-rpath'):
+                dirs.update(opts.split(':'))
+
+            elif fmt.startswith('-R'):
+                for dir in opts.split(':'):
+                    # The symbols arg is an rpath if the path is a directory
+                    if os.path.isdir(dir):
+                        dirs.add(dir)
+
+            else:  # fmt.startswith('--just-symbols')
+                for dir in opts.split(':'):
+                    # Prevent usage of --just-symbols to specify rpath
+                    if os.path.isdir(dir):
+                        raise MesonException(f'Invalid arg for --just-symbols, {dir} is a directory.')
+
+        return dirs
+
 
 class FileInTargetPrivateDir:
     """Represents a file with the path '/path/to/build/target_private_dir/fname'.
