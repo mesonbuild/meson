@@ -296,6 +296,8 @@ methods:
     is_new = version.version_compare('>=2.0')
     # is_new now has the boolean value false
     # Supports the following operators: '>', '<', '>=', '<=', '!=', '==', '='
+    # as well as since 1.8.1, multiple conditions can be combined using commas
+    is_proper = version.version_compare('>=2.0,!=2.5,<3.0')
     ```
 
     Meson version comparison conventions include:
@@ -310,6 +312,13 @@ methods:
 
     ```meson
     '3.6'.version_compare('>=3', '<4.0') == true
+    ```
+
+    *Since 1.8.1* multiple versions can be compared using comma-separated string:
+
+    ```meson
+    '3.6'.version_compare('>=3,<4.0') == true
+    '2027'.version_compare('>=2021,<2024') == false
     ```
 
   posargs:
