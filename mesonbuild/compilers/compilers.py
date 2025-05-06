@@ -1424,12 +1424,19 @@ def get_global_options(lang: str,
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey(f'{lang}_args', machine=for_machine)
     largkey = OptionKey(f'{lang}_link_args', machine=for_machine)
-    envkey = OptionKey(f'{lang}_env_args', machine=for_machine)
 
-    comp_key = argkey if argkey in env.options else envkey
+    comp_args_from_envvar = False
+    comp_options = env.coredata.optstore.get_pending_value(argkey)
+    if comp_options is None:
+        comp_args_from_envvar = True
+        comp_options = env.env_opts.get(argkey, [])
 
-    comp_options = env.options.get(comp_key, [])
-    link_options = env.options.get(largkey, [])
+    link_args_from_envvar = False
+    link_options = env.coredata.optstore.get_pending_value(largkey)
+    if link_options is None:
+        link_args_from_envvar = True
+        link_options = env.env_opts.get(largkey, [])
+
     assert isinstance(comp_options, (str, list)), 'for mypy'
     assert isinstance(link_options, (str, list)), 'for mypy'
 
@@ -1443,7 +1450,7 @@ def get_global_options(lang: str,
         description + ' linker',
         link_options, split_args=True, allow_dups=True)
 
-    if comp.INVOKES_LINKER and comp_key == envkey:
+    if comp.INVOKES_LINKER and comp_args_from_envvar and link_args_from_envvar:
         # If the compiler acts as a linker driver, and we're using the
         # environment variable flags for both the compiler and linker
         # arguments, then put the compiler flags in the linker flags as well.
