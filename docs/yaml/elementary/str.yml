@@ -296,7 +296,7 @@ methods:
     is_new = version.version_compare('>=2.0')
     # is_new now has the boolean value false
     # Supports the following operators: '>', '<', '>=', '<=', '!=', '==', '='
-    # as well as since 1.8.1, multiple conditions can be combined using commas
+    # as well as since 1.9.0, multiple conditions can be combined using commas
     is_proper = version.version_compare('>=2.0,!=2.5,<3.0')
     ```
 
@@ -314,7 +314,7 @@ methods:
     '3.6'.version_compare('>=3', '<4.0') == true
     ```
 
-    *Since 1.8.1* multiple versions can be compared using comma-separated string:
+    *Since 1.9.0* multiple versions can be compared using comma-separated string:
 
     ```meson
     '3.6'.version_compare('>=3,<4.0') == true

@@ -174,7 +174,7 @@ class StringHolder(ObjectHolder[str]):
         if len(args[0]) > 1:
             FeatureNew.single_use('version_compare() with multiple arguments', '1.8.0', self.subproject, location=self.current_node)
         if args[0].count(',') > 0:
-            FeatureNew.single_use('version_compare() with comma-separated string', '1.8.1', self.subproject, location=self.current_node)
+            FeatureNew.single_use('version_compare() with comma-separated string', '1.9.0', self.subproject, location=self.current_node)
         return version_compare_many(self.held_object, args[0])[0]
 
     @staticmethod
