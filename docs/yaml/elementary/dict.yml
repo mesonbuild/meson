@@ -45,4 +45,11 @@ methods:
 
 - name: keys
   returns: list[str]
-  description: Returns an array of keys in the dictionary.
+  description: Returns an array of keys in the dictionary, sorted in ascending order.
+
+- name: values
+  returns: list[any]
+  since: 1.8.0
+  description: |
+    Returns an array of values in the dictionary, sorted by the
+    corresponding keys in ascending order.

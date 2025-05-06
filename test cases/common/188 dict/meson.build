@@ -16,11 +16,23 @@ endforeach
 
 assert(i == 3, 'There should be three elements in that dictionary')
 
+# Test keys() works as expected (note that it sorts the keys)
+assert(dict.keys() == ['baz', 'foo', 'foo bar'], 'Keys returned unexpected list')
+
+# Test values() works as expected (note that it sorts first, to match keys())
+assert(dict.values() == ['foo', 'bar', 'baz'])
+
 empty_dict = {}
 
 foreach key, value : empty_dict
   assert(false, 'This dict should be empty')
 endforeach
+
+# Test keys() returns an empty list
+assert(empty_dict.keys() == [], 'Keys for an empty dict should be an empty list')
+
+# Test values() returns an empty list
+assert(empty_dict.values() == [], 'Values for an empty dict should be an empty list')
 
 d1 = empty_dict + {'a' : 'b'}
 assert(d1 == {'a' : 'b'}, 'dict addition is not working')
