@@ -126,7 +126,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         if static is not None:
             default_library = 'static' if static else 'shared'
             mlog.log(f'Building fallback subproject with default_library={default_library}')
-            extra_default_options['default_library'] = default_library
+            extra_default_options[OptionKey('default_library')] = default_library
 
         # Configure the subproject
         subp_name = self.subproject_name
