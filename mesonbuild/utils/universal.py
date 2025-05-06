@@ -912,9 +912,13 @@ def _version_extract_cmpop(vstr2: str) -> T.Tuple[T.Callable[[T.Any, T.Any], boo
     return (cmpop, vstr2)
 
 
+# compares actual version vstr1 with comma-separated list of version constraints vstr2
 def version_compare(vstr1: str, vstr2: str) -> bool:
-    (cmpop, vstr2) = _version_extract_cmpop(vstr2)
-    return cmpop(Version(vstr1), Version(vstr2))
+    return all(
+        cmpop(Version(vstr1), Version(vstr))
+        for vstr in vstr2.split(',')
+        for cmpop, vstr in [_version_extract_cmpop(vstr)]
+    )
 
 
 def version_compare_many(vstr1: str, conditions: T.Union[str, T.Iterable[str]]) -> T.Tuple[bool, T.List[str], T.List[str]]:
