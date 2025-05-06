@@ -879,10 +879,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
         default_options = kwargs['default_options']
-        if isinstance(default_options, str):
-            default_options = [default_options]
-        if isinstance(default_options, list):
-            default_options = dict((x.split('=', 1) for x in default_options))
         if extra_default_options:
             default_options = {**extra_default_options, **default_options}
 

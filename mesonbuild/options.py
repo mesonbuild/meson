@@ -1230,13 +1230,6 @@ class OptionStore:
                 perproject_global_options.append(valuetuple)
         return (global_options, perproject_global_options, project_options)
 
-    def optlist2optdict(self, optlist: T.List[str]) -> OptionDict:
-        optdict: OptionDict = {}
-        for p in optlist:
-            k, v = p.split('=', 1)
-            optdict[k] = v
-        return optdict
-
     def prefix_split_options(self, coll: OptionDict) -> T.Tuple[T.Optional[str], OptionDict]:
         prefix = None
         others_d: OptionDict = {}
@@ -1289,12 +1282,10 @@ class OptionStore:
         self.options[OptionKey('prefix')].set_value(prefix)
 
     def initialize_from_top_level_project_call(self,
-                                               project_default_options_in: T.Union[T.List[str], OptionDict],
+                                               project_default_options_in: OptionDict,
                                                cmd_line_options_in: OptionDict,
                                                machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
         first_invocation = True
-        if isinstance(project_default_options_in, list):
-            project_default_options_in = self.optlist2optdict(project_default_options_in)
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
                                                                                                      machine_file_options_in)
@@ -1399,11 +1390,9 @@ class OptionStore:
     def initialize_from_subproject_call(self,
                                         subproject: str,
                                         spcall_default_options: OptionDict,
-                                        project_default_options: T.Union[T.List[str], OptionDict],
+                                        project_default_options: OptionDict,
                                         cmd_line_options: OptionDict) -> None:
         is_first_invocation = True
-        if isinstance(project_default_options, list):
-            project_default_options = self.optlist2optdict(project_default_options)
         for keystr, valstr in itertools.chain(project_default_options.items(), spcall_default_options.items()):
             if isinstance(keystr, str):
                 key = OptionKey.from_string(keystr)

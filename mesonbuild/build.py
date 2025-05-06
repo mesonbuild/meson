@@ -656,28 +656,10 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
 
-        self.raw_overrides = self.parse_overrides(kwargs)
+        self.raw_overrides = kwargs.get('override_options', {})
 
     def get_override(self, name: str) -> T.Optional[str]:
         return self.raw_overrides.get(name, None)
-
-    @staticmethod
-    def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[str, str]:
-        opts = kwargs.get('override_options', [])
-
-        # In this case we have an already parsed and ready to go dictionary
-        # provided by typed_kwargs
-        if isinstance(opts, dict):
-            return T.cast('T.Dict[OptionKey, str]', opts)
-
-        result: T.Dict[str, str] = {}
-        overrides = stringlistify(opts)
-        for o in overrides:
-            if '=' not in o:
-                raise InvalidArguments('Overrides must be of form "key=value"')
-            k, v = o.split('=', 1)
-            result[k] = v
-        return result
 
     def is_linkable_target(self) -> bool:
         return False
