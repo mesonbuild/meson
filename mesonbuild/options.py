@@ -327,7 +327,13 @@ class UserOption(T.Generic[_T], HoldableObject):
         # Final isn't technically allowed in a __post_init__ method
         self.default: Final[_T] = self.value  # type: ignore[misc]
 
-    def listify(self, value: T.Any) -> T.List[T.Any]:
+    def listify(self, value: ElementaryOptionValues) -> T.List[str]:
+        if isinstance(value, list):
+            return value
+        if isinstance(value, bool):
+            return ['true'] if value else ['false']
+        if isinstance(value, int):
+            return [str(value)]
         return [value]
 
     def printable_value(self) -> ElementaryOptionValues:
@@ -503,7 +509,7 @@ class UserArrayOption(UserOption[T.List[_T]]):
 @dataclasses.dataclass
 class UserStringArrayOption(UserArrayOption[str]):
 
-    def listify(self, value: T.Any) -> T.List[T.Any]:
+    def listify(self, value: ElementaryOptionValues) -> T.List[str]:
         try:
             return listify_array_value(value, self.split_args)
         except MesonException as e:
@@ -1005,7 +1011,7 @@ class OptionStore:
                 if v in opt.deprecated:
                     mlog.deprecation(f'Option {key.name!r} value {v!r} is deprecated')
         elif isinstance(opt.deprecated, dict):
-            def replace(v: T.Any) -> T.Any:
+            def replace(v: str) -> str:
                 assert isinstance(opt.deprecated, dict) # No, Mypy can not tell this from two lines above
                 newvalue = opt.deprecated.get(v)
                 if newvalue is not None:
