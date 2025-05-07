@@ -1578,7 +1578,7 @@ def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
             result.append(i)
     return result
 
-def listify_array_value(value: T.Union[str, T.List[str]], shlex_split_args: bool = False) -> T.List[str]:
+def listify_array_value(value: object, shlex_split_args: bool = False) -> T.List[str]:
     if isinstance(value, str):
         if value.startswith('['):
             try:

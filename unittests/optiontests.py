@@ -202,3 +202,14 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         value = optstore.get_default_for_b_option(OptionKey('b_vscrt'))
         self.assertEqual(value, 'from_buildtype')
+
+    def test_deprecated_nonstring_value(self):
+        # TODO: add a lot more deprecated option tests
+        optstore = OptionStore(False)
+        name = 'deprecated'
+        do = UserStringOption(name, 'An option with some deprecation', '0',
+                              deprecated={'true': '1'})
+        optstore.add_system_option(name, do)
+        optstore.set_option(OptionKey(name), True)
+        value = optstore.get_value(name)
+        self.assertEqual(value, '1')
