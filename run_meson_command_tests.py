@@ -46,6 +46,11 @@ def get_pybindir():
         return sysconfig.get_path('scripts', scheme=scheme, vars={'base': ''}).strip('\\/')
     return sysconfig.get_path('scripts', vars={'base': ''}).strip('\\/')
 
+def has_python_module(module: str) -> bool:
+    result = subprocess.run(python_command + ['-c', f'import {module}'])
+    return result.returncode == 0
+
+
 class CommandTests(unittest.TestCase):
     '''
     Test that running meson in various ways works as expected by checking the
@@ -145,11 +150,17 @@ class CommandTests(unittest.TestCase):
         # distutils complains that prefix isn't contained in PYTHONPATH
         os.environ['PYTHONPATH'] = os.path.join(str(pylibdir), '')
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
-        self._run(python_command + ['setup.py', 'install', '--prefix', str(prefix)])
-        # Fix importlib-metadata by appending all dirs in pylibdir
-        PYTHONPATHS = [pylibdir] + [x for x in pylibdir.iterdir() if x.name.endswith('.egg')]
-        PYTHONPATHS = [os.path.join(str(x), '') for x in PYTHONPATHS]
-        os.environ['PYTHONPATH'] = os.pathsep.join(PYTHONPATHS)
+        if has_python_module('gpep517'):
+            self._run(python_command + ['-m', 'gpep517', 'install-from-source', '--destdir', '/', '--prefix', str(prefix)])
+        elif has_python_module('pip'):
+            self._run(python_command + ['-m', 'pip', 'install', '--prefix', str(prefix), '.'])
+        else:
+            # Legacy deprecated setuptools command used as fallback
+            self._run(python_command + ['setup.py', 'install', '--prefix', str(prefix)])
+            # Fix importlib-metadata by appending all dirs in pylibdir
+            PYTHONPATHS = [pylibdir] + [x for x in pylibdir.iterdir() if x.name.endswith('.egg')]
+            PYTHONPATHS = [os.path.join(str(x), '') for x in PYTHONPATHS]
+            os.environ['PYTHONPATH'] = os.pathsep.join(PYTHONPATHS)
         # Check that all the files were installed correctly
         self.assertTrue(bindir.is_dir())
         self.assertTrue(pylibdir.is_dir())
