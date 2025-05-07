@@ -843,9 +843,9 @@ class Environment:
                             key = key.evolve(f'{lang}_env_args')
                         env_opts[key].extend(p_list)
 
-        # Only store options that are not already in self.options,
-        # otherwise we'd override the machine files
         for k, v in env_opts.items():
+            # Only store options that are not already in self.options,
+            # otherwise we'd override the machine files
             if k not in self.options:
                 self.options[k] = v
 
