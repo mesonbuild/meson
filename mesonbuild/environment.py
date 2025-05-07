@@ -50,6 +50,13 @@ if T.TYPE_CHECKING:
     CompilersDict = T.Dict[str, Compiler]
 
 
+NON_LANG_ENV_OPTIONS = [
+    ('PKG_CONFIG_PATH', 'pkg_config_path'),
+    ('CMAKE_PREFIX_PATH', 'cmake_prefix_path'),
+    ('LDFLAGS', 'ldflags'),
+    ('CPPFLAGS', 'cppflags'),
+]
+
 build_filename = 'meson.build'
 
 
@@ -777,12 +784,7 @@ class Environment:
     def _set_default_options_from_env(self) -> None:
         opts: T.List[T.Tuple[str, str]] = (
             [(v, f'{k}_args') for k, v in compilers.compilers.CFLAGS_MAPPING.items()] +
-            [
-                ('PKG_CONFIG_PATH', 'pkg_config_path'),
-                ('CMAKE_PREFIX_PATH', 'cmake_prefix_path'),
-                ('LDFLAGS', 'ldflags'),
-                ('CPPFLAGS', 'cppflags'),
-            ]
+            NON_LANG_ENV_OPTIONS
         )
 
         env_opts: T.DefaultDict[OptionKey, T.List[str]] = collections.defaultdict(list)
