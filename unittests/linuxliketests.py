@@ -986,6 +986,22 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertEqual(got_rpath, yonder_libdir, rpath_format)
 
     @skip_if_not_base_option('b_sanitize')
+    def test_env_cflags_ldflags(self):
+        if is_cygwin():
+            raise SkipTest('asan not available on Cygwin')
+        if is_openbsd():
+            raise SkipTest('-fsanitize=address is not supported on OpenBSD')
+
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        env = {'CFLAGS': '-fsanitize=address', 'LDFLAGS': '-I.'}
+        self.init(testdir, override_envvars=env)
+        self.build()
+        compdb = self.get_compdb()
+        for i in compdb:
+            self.assertIn("-fsanitize=address", i["command"])
+        self.wipe()
+
+    @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
         if is_cygwin():
             raise SkipTest('asan not available on Cygwin')
