@@ -181,6 +181,7 @@ class XgettextProgram:
             install_dir = [install_dir] if install_dir else None,
             install_tag = [install_tag] if install_tag else None,
             description = 'Extracting translations to {}',
+            console = True,
         )
 
         for source_id in self._get_source_id(sources):
