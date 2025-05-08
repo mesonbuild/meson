@@ -50,6 +50,13 @@ if T.TYPE_CHECKING:
     CompilersDict = T.Dict[str, Compiler]
 
 
+NON_LANG_ENV_OPTIONS = [
+    ('PKG_CONFIG_PATH', 'pkg_config_path'),
+    ('CMAKE_PREFIX_PATH', 'cmake_prefix_path'),
+    ('LDFLAGS', 'ldflags'),
+    ('CPPFLAGS', 'cppflags'),
+]
+
 build_filename = 'meson.build'
 
 
@@ -641,6 +648,11 @@ class Environment:
         # 'optimization' and 'debug' keys, it override them.
         self.options: T.MutableMapping[OptionKey, ElementaryOptionValues] = collections.OrderedDict()
 
+        # Environment variables with the name converted into an OptionKey type.
+        # These have subtly different behavior compared to machine files, so do
+        # not store them in self.options.  See _set_default_options_from_env.
+        self.env_opts: T.MutableMapping[OptionKey, ElementaryOptionValues] = {}
+
         self.machinestore = machinefile.MachineFileStore(self.coredata.config_files, self.coredata.cross_files, self.source_dir)
 
         ## Read in native file(s) to override build machine configuration
@@ -777,12 +789,7 @@ class Environment:
     def _set_default_options_from_env(self) -> None:
         opts: T.List[T.Tuple[str, str]] = (
             [(v, f'{k}_args') for k, v in compilers.compilers.CFLAGS_MAPPING.items()] +
-            [
-                ('PKG_CONFIG_PATH', 'pkg_config_path'),
-                ('CMAKE_PREFIX_PATH', 'cmake_prefix_path'),
-                ('LDFLAGS', 'ldflags'),
-                ('CPPFLAGS', 'cppflags'),
-            ]
+            NON_LANG_ENV_OPTIONS
         )
 
         env_opts: T.DefaultDict[OptionKey, T.List[str]] = collections.defaultdict(list)
@@ -817,35 +824,35 @@ class Environment:
                             env_opts[key].extend(p_list)
                     elif keyname == 'cppflags':
                         for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
-                            key = OptionKey(f'{lang}_env_args', machine=for_machine)
+                            key = OptionKey(f'{lang}_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
                         if evar in compilers.compilers.CFLAGS_MAPPING.values():
-                            # If this is an environment variable, we have to
-                            # store it separately until the compiler is
-                            # instantiated, as we don't know whether the
-                            # compiler will want to use these arguments at link
-                            # time and compile time (instead of just at compile
-                            # time) until we're instantiating that `Compiler`
-                            # object. This is required so that passing
-                            # `-Dc_args=` on the command line and `$CFLAGS`
-                            # have subtly different behavior. `$CFLAGS` will be
-                            # added to the linker command line if the compiler
-                            # acts as a linker driver, `-Dc_args` will not.
-                            #
-                            # We still use the original key as the base here, as
-                            # we want to inherit the machine and the compiler
-                            # language
                             lang = key.name.split('_', 1)[0]
-                            key = key.evolve(f'{lang}_env_args')
+                            key = key.evolve(f'{lang}_args')
                         env_opts[key].extend(p_list)
 
-        # Only store options that are not already in self.options,
-        # otherwise we'd override the machine files
-        for k, v in env_opts.items():
-            if k not in self.options:
-                self.options[k] = v
+        # If this is an environment variable, we have to
+        # store it separately until the compiler is
+        # instantiated, as we don't know whether the
+        # compiler will want to use these arguments at link
+        # time and compile time (instead of just at compile
+        # time) until we're instantiating that `Compiler`
+        # object. This is required so that passing
+        # `-Dc_args=` on the command line and `$CFLAGS`
+        # have subtly different behavior. `$CFLAGS` will be
+        # added to the linker command line if the compiler
+        # acts as a linker driver, `-Dc_args` will not.
+        for (_, keyname), for_machine in itertools.product(NON_LANG_ENV_OPTIONS, MachineChoice):
+            key = OptionKey.from_string(keyname).evolve(machine=for_machine)
+            # Only store options that are not already in self.options,
+            # otherwise we'd override the machine files
+            if key in env_opts and key not in self.options:
+                self.options[key] = env_opts[key]
+                del env_opts[key]
+
+        self.env_opts.update(env_opts)
 
     def _set_default_binaries_from_env(self) -> None:
         """Set default binaries from the environment.
