@@ -7,12 +7,46 @@ from __future__ import annotations
 
 from .. import mparser
 from .visitor import AstVisitor, FullAstVisitor
+from ..mesonlib import MesonBugException
 
 import re
 import typing as T
 
 
+# Also known as "order of operations" or "binding power".
+# This is the counterpart to Parser.e1, Parser.e2, Parser.e3, Parser.e4, Parser.e5, Parser.e6, Parser.e7, Parser.e8, Parser.e9, Parser.e10
+def precedence_level(node: mparser.BaseNode) -> int:
+    if isinstance(node, (mparser.PlusAssignmentNode, mparser.AssignmentNode, mparser.TernaryNode)):
+        return 1
+    elif isinstance(node, mparser.OrNode):
+        return 2
+    elif isinstance(node, mparser.AndNode):
+        return 3
+    elif isinstance(node, mparser.ComparisonNode):
+        return 4
+    elif isinstance(node, mparser.ArithmeticNode):
+        if node.operation in {'add', 'sub'}:
+            return 5
+        elif node.operation in {'mod', 'mul', 'div'}:
+            return 6
+    elif isinstance(node, (mparser.NotNode, mparser.UMinusNode)):
+        return 7
+    elif isinstance(node, mparser.FunctionNode):
+        return 8
+    elif isinstance(node, (mparser.ArrayNode, mparser.DictNode)):
+        return 9
+    elif isinstance(node, (mparser.BooleanNode, mparser.IdNode, mparser.NumberNode, mparser.StringNode, mparser.EmptyNode)):
+        return 10
+    elif isinstance(node, mparser.ParenthesizedNode):
+        # Parenthesize have the highest binding power, but since the AstPrinter
+        # ignores ParanthesizedNode, the binding power of the inner node is
+        # relevant.
+        return precedence_level(node.inner)
+    raise MesonBugException('Unhandled node type')
+
 class AstPrinter(AstVisitor):
+    escape_trans: T.Dict[int, str] = str.maketrans({'\\': '\\\\', "'": "\'"})
+
     def __init__(self, indent: int = 2, arg_newline_cutoff: int = 5, update_ast_line_nos: bool = False):
         self.result = ''
         self.indent = indent
@@ -57,7 +91,7 @@ class AstPrinter(AstVisitor):
         node.lineno = self.curr_line or node.lineno
 
     def escape(self, val: str) -> str:
-        return val.replace('\\', '\\\\').replace("'", "\'")
+        return val.translate(self.escape_trans)
 
     def visit_StringNode(self, node: mparser.StringNode) -> None:
         assert isinstance(node.value, str)
@@ -108,11 +142,21 @@ class AstPrinter(AstVisitor):
         node.lineno = self.curr_line or node.lineno
         node.right.accept(self)
 
+    def maybe_parentheses(self, outer: mparser.BaseNode, inner: mparser.BaseNode, parens: bool) -> None:
+        if parens:
+            self.append('(', inner)
+        inner.accept(self)
+        if parens:
+            self.append(')', inner)
+
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
-        node.left.accept(self)
+        prec = precedence_level(node)
+        prec_left = precedence_level(node.left)
+        prec_right = precedence_level(node.right)
+        self.maybe_parentheses(node, node.left, prec > prec_left)
         self.append_padded(node.operator.value, node)
         node.lineno = self.curr_line or node.lineno
-        node.right.accept(self)
+        self.maybe_parentheses(node, node.right, prec > prec_right or (prec == prec_right and node.operation in {'sub', 'div', 'mod'}))
 
     def visit_NotNode(self, node: mparser.NotNode) -> None:
         node.lineno = self.curr_line or node.lineno
