@@ -69,7 +69,7 @@ class ExternalProject:
         run_env = os.environ.copy()
         if env:
             run_env.update(env)
-        
+
         m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
         m += 'With environment variables:\n'
         for k, v in sorted(run_env.items()):
