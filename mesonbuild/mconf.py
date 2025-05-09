@@ -125,9 +125,6 @@ class Conf:
     def clear_cache(self) -> None:
         self.coredata.clear_cache()
 
-    def set_options(self, options: T.Dict[OptionKey, str]) -> bool:
-        return self.coredata.set_options(options)
-
     def save(self) -> None:
         # Do nothing when using introspection
         if self.default_values_only:
