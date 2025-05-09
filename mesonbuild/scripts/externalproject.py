@@ -71,12 +71,12 @@ class ExternalProject:
             run_env.update(env)
 
         m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
-        m += 'With environment variables:\n'
-        for k, v in sorted(run_env.items()):
-            m += f'  {k}={v}\n'
         log_filename = Path(self.log_dir, f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
+            m += 'With environment variables:\n'
+            for k, v in sorted(run_env.items()):
+                m += f'  {k}={v}\n'
             output = open(log_filename, 'w', encoding='utf-8')
             output.write(m + '\n')
             output.flush()

@@ -201,12 +201,12 @@ class ExternalProject(NewExtensionModule):
     def _run(self, step: str, command: T.List[str], workdir: Path) -> None:
         mlog.log(f'External project {self.name}:', mlog.bold(step))
         m = 'Running command ' + str(command) + ' in directory ' + str(workdir) + '\n'
-        m += 'With environment variables:\n'
-        for k, v in sorted(self.run_env.items()):
-            m += f'  {k}={v}\n'
         log_filename = Path(mlog.get_log_dir(), f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
+            m += 'With environment variables:\n'
+            for k, v in sorted(self.run_env.items()):
+                m += f'  {k}={v}\n'
             output = open(log_filename, 'w', encoding='utf-8')
             output.write(m + '\n')
             output.flush()
