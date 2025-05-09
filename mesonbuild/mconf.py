@@ -125,9 +125,6 @@ class Conf:
     def clear_cache(self) -> None:
         self.coredata.clear_cache()
 
-    def set_options(self, options: T.Dict[OptionKey, str]) -> bool:
-        return self.coredata.set_options(options)
-
     def save(self) -> None:
         # Do nothing when using introspection
         if self.default_values_only:
@@ -373,11 +370,7 @@ def run_impl(options: CMDOptions, builddir: str) -> int:
 
         save = False
         if has_option_flags(options):
-            unset_opts = getattr(options, 'unset_opts', [])
-            all_D = options.projectoptions[:]
-            for keystr, valstr in options.cmd_line_options.items():
-                all_D.append(f'{keystr}={valstr}')
-            save |= c.coredata.optstore.set_from_configure_command(all_D, unset_opts)
+            save |= c.coredata.set_from_configure_command(options)
             coredata.update_cmd_line_file(builddir, options)
         if options.clearcache:
             c.clear_cache()

@@ -412,6 +412,13 @@ class CoreData:
             return option_object.validate_value(override)
         return value
 
+    def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
+        unset_opts = getattr(options, 'unset_opts', [])
+        all_D = options.projectoptions[:]
+        for keystr, valstr in options.cmd_line_options.items():
+            all_D.append(f'{keystr}={valstr}')
+        return self.optstore.set_from_configure_command(all_D, unset_opts)
+
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
         dirty = False
         try:
