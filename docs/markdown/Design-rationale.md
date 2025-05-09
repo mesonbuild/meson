@@ -34,9 +34,9 @@ may not work. In some cases the executable file is a binary whereas at
 other times it is a wrapper shell script that invokes the real binary
 which resides in a hidden subdirectory. GDB invocation fails if the
 binary is a script but succeeds if it is not. The user has to remember
-the type of each one of his executables (which is an implementation
-detail of the build system) just to be able to debug them. Several
-other such pain points can be found in [this blog
+the type of each executable (which is an implementation detail of the
+build system) just to be able to debug them. Several other such pain
+points can be found in [this blog
 post](http://voices.canonical.com/jussi.pakkanen/2011/09/13/autotools/).
 
 Given these idiosyncrasies it is no wonder that most people don't want
@@ -132,7 +132,7 @@ and so on.
 
 Sometimes you just have to compile files with only given compiler
 flags and no others, or install files in weird places. The system must
-allow the user to do this if he really wants to.
+allow the user to do this.
 
 Overview of the solution
 --
@@ -151,7 +151,7 @@ passing around compiler flags and linker flags. In the proposed system
 the user just declares that a given build target uses a given external
 dependency. The build system then takes care of passing all flags and
 settings to their proper locations. This means that the user can focus
-on his own code rather than marshalling command line arguments from
+on their own code rather than marshalling command line arguments from
 one place to another.
 
 A DSL is more work than the approach taken by SCons, which is to
