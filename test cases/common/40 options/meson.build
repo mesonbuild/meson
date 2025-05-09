@@ -40,8 +40,7 @@ if get_option('integer_opt') != 3
 endif
 
 negint = get_option('neg_int_opt')
-
-if negint != -3 and negint != -10
+if negint not in [-2, -3, -10]
   error('Incorrect value @0@ in negative integer option.'.format(negint))
 endif
 
