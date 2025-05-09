@@ -34,6 +34,22 @@ test('import test', e, args : m)
 m2 = build_target('mymodule2', 'module.c', target_type: 'shared_module')
 test('import test 2', e, args : m2)
 
+# Same as above, but built and installed in a sub directory
+m2_subdir = build_target('mymodule2', 'module.c',
+                         target_type: 'shared_module',
+                         build_subdir: 'subdir',
+                         install: true,
+                         install_dir: join_paths(get_option('libdir'), 'modules/subdir'))
+test('import test 2 subdir', e, args : m2_subdir)
+
+# Same as above, but built and installed in a sub-sub directory
+m2_subsubdir = build_target('mymodule2', 'module.c',
+                            target_type: 'shared_module',
+                            build_subdir: 'subdira/subdirb',
+                            install: true,
+                            install_dir: join_paths(get_option('libdir'), 'modules/subdira/subdirb'))
+test('import test 2 subsubdir', e, args : m2_subsubdir)
+
 # Shared module that does not export any symbols
 shared_module('nosyms', 'nosyms.c',
   override_options: ['werror=false'],
