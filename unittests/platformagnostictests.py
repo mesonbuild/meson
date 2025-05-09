@@ -453,6 +453,16 @@ class PlatformAgnosticTests(BasePlatformTests):
             self.setconf('-Dneg_int_opt=0')
         self.assertIn('Unknown options: ":neg_int_opt"', e.exception.stdout)
 
+    def test_reconfigure_option(self) -> None:
+        testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
+        self.init(testdir)
+        self.assertEqual(self.getconf('neg_int_opt'), -3)
+        with self.assertRaises(subprocess.CalledProcessError) as e:
+            self.init(testdir, extra_args=['--reconfigure', '-Dneg_int_opt=0'])
+        self.assertEqual(self.getconf('neg_int_opt'), -3)
+        self.init(testdir, extra_args=['--reconfigure', '-Dneg_int_opt=-2'])
+        self.assertEqual(self.getconf('neg_int_opt'), -2)
+
     def test_configure_option_changed_constraints(self) -> None:
         """Changing the constraints of an option without reconfiguring should work."""
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
