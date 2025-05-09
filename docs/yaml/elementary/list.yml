@@ -40,3 +40,8 @@ methods:
 - name: length
   returns: int
   description: Returns the current size of the array / list.
+
+- name: flatten
+  returns: list[any]
+  since: 1.9.0
+  description: Returns a flattened copy of the array, with all nested arrays removed.
