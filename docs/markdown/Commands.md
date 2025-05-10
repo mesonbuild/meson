@@ -493,6 +493,9 @@ or `--check-only` option).
 input instead of reading it from a file. This cannot be used with `--recursive`
 or `--inline` arguments.
 
+*Since 1.9.0* When `--check-diff` is specified, instead of silently exiting
+with an error code, `meson format` will print a diff of the formatting changes.
+
 
 #### Differences with `muon fmt`
 
