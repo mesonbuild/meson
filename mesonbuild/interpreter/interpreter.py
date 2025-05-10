@@ -1531,7 +1531,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                     self.backend.allow_thin_archives[for_machine] = False
             else:
                 # update new values from commandline, if it applies
-                self.coredata.process_compiler_options(lang, comp, self.environment, self.subproject)
+                self.coredata.process_compiler_options(lang, comp, self.subproject)
 
             if for_machine == MachineChoice.HOST or self.environment.is_cross_build():
                 logger_fun = mlog.log

@@ -6,7 +6,6 @@
 # or an interpreter-based tool
 
 from __future__ import annotations
-import copy
 import os
 import typing as T
 
@@ -205,13 +204,8 @@ class IntrospectionInterpreter(AstInterpreter):
                         raise
                     else:
                         continue
-                if self.subproject:
-                    options = {}
-                    for k in comp.get_options():
-                        v = copy.copy(self.coredata.optstore.get_value_object(k))
-                        k = k.evolve(subproject=self.subproject)
-                        options[k] = v
-                    self.coredata.add_compiler_options(options, lang, for_machine, self.environment, self.subproject)
+                if comp:
+                    self.coredata.process_compiler_options(lang, comp, self.subproject)
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> None:
         args = self.flatten_args(args)

@@ -565,17 +565,16 @@ class CoreData:
 
         return dirty
 
-    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
-                             env: Environment, subproject: str) -> None:
+    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice) -> None:
         for k, o in c_options.items():
-            comp_key = OptionKey(f'{k.name}', None, for_machine)
+            assert k.subproject is None and k.machine is for_machine
             if lang == 'objc' and k.name == 'c_std':
                 # For objective C, always fall back to c_std.
-                self.optstore.add_compiler_option('c', comp_key, o)
+                self.optstore.add_compiler_option('c', k, o)
             elif lang == 'objcpp' and k.name == 'cpp_std':
-                self.optstore.add_compiler_option('cpp', comp_key, o)
+                self.optstore.add_compiler_option('cpp', k, o)
             else:
-                self.optstore.add_compiler_option(lang, comp_key, o)
+                self.optstore.add_compiler_option(lang, k, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
@@ -587,8 +586,8 @@ class CoreData:
         for gopt_key, gopt_valobj in compilers.get_global_options(lang, comp, for_machine, env).items():
             self.optstore.add_compiler_option(lang, gopt_key, gopt_valobj)
 
-    def process_compiler_options(self, lang: str, comp: Compiler, env: Environment, subproject: str) -> None:
-        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env, subproject)
+    def process_compiler_options(self, lang: str, comp: Compiler, subproject: str) -> None:
+        self.add_compiler_options(comp.get_options(), lang, comp.for_machine)
 
         for key in comp.base_options:
             if subproject:
