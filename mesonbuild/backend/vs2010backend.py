@@ -619,7 +619,8 @@ class Vs2010Backend(backends.Backend):
                              conftype='Utility',
                              target_ext=None,
                              target_platform=None,
-                             gen_manifest=True) -> T.Tuple[ET.Element, ET.Element]:
+                             gen_manifest=True,
+                             masm_type: T.Optional[T.Literal['masm', 'marmasm']] = None) -> T.Tuple[ET.Element, ET.Element]:
         root = ET.Element('Project', {'DefaultTargets': "Build",
                                       'ToolsVersion': '4.0',
                                       'xmlns': 'http://schemas.microsoft.com/developer/msbuild/2003'})
@@ -657,6 +658,13 @@ class Vs2010Backend(backends.Backend):
         #   "The build tools for v142 (Platform Toolset = 'v142') cannot be found. ... please install v142 build tools."
         # This is extremely unhelpful and misleading since the v14x build tools ARE installed.
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
+        ext_settings_grp = ET.SubElement(root, 'ImportGroup', Label='ExtensionSettings')
+        if masm_type:
+            ET.SubElement(
+                ext_settings_grp,
+                'Import',
+                Project=rf'$(VCTargetsPath)\BuildCustomizations\{masm_type}.props',
+            )
 
         # This attribute makes sure project names are displayed as expected in solution files even when their project file names differ
         pname = ET.SubElement(globalgroup, 'ProjectName')
@@ -692,7 +700,10 @@ class Vs2010Backend(backends.Backend):
             if target_ext:
                 ET.SubElement(direlem, 'TargetExt').text = target_ext
 
-            ET.SubElement(direlem, 'EmbedManifest').text = 'false'
+            # Fix weird mt.exe error:
+            # mt.exe is trying to compile a non-existent .generated.manifest file and link it
+            # with the target. This does not happen without masm props.
+            ET.SubElement(direlem, 'EmbedManifest').text = 'true' if masm_type else 'false'
             if not gen_manifest:
                 ET.SubElement(direlem, 'GenerateManifest').text = 'false'
 
@@ -775,12 +786,19 @@ class Vs2010Backend(backends.Backend):
             platform = self.build_platform
         else:
             platform = self.platform
+
+        masm = self.get_masm_type(target)
+
         (root, type_config) = self.create_basic_project(target.name,
                                                         temp_dir=target.get_id(),
                                                         guid=guid,
                                                         target_platform=platform,
-                                                        gen_manifest=self.get_gen_manifest(target))
+                                                        gen_manifest=self.get_gen_manifest(target),
+                                                        masm_type=masm)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ext_tgt_grp = ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
+        if masm:
+            ET.SubElement(ext_tgt_grp, 'Import', Project=rf'$(VCTargetsPath)\BuildCustomizations\{masm}.targets')
         target.generated = [self.compile_target_to_generator(target)]
         target.sources = []
         self.generate_custom_generator_commands(target, root)
@@ -795,6 +813,8 @@ class Vs2010Backend(backends.Backend):
             return 'c'
         if ext in compilers.cpp_suffixes:
             return 'cpp'
+        if ext in compilers.lang_suffixes['masm']:
+            return 'masm'
         raise MesonException(f'Could not guess language from source file {src}.')
 
     def add_pch(self, pch_sources, lang, inc_cl):
@@ -956,13 +976,13 @@ class Vs2010Backend(backends.Backend):
                 other.append(arg)
         return lpaths, libs, other
 
-    def _get_cl_compiler(self, target):
+    def _get_cl_compiler(self, target: build.BuildTarget):
         for lang, c in target.compilers.items():
             if lang in {'c', 'cpp'}:
                 return c
-        # No source files, only objects, but we still need a compiler, so
+        # No C/C++ source files, only objects/assembly source, but we still need a compiler, so
         # return a found compiler
-        if len(target.objects) > 0:
+        if len(target.objects) > 0 or len(target.sources) > 0:
             for lang, c in self.environment.coredata.compilers[target.for_machine].items():
                 if lang in {'c', 'cpp'}:
                     return c
@@ -1607,6 +1627,8 @@ class Vs2010Backend(backends.Backend):
         else:
             platform = self.platform
 
+        masm = self.get_masm_type(target)
+
         tfilename = os.path.splitext(target.get_filename())
 
         (root, type_config) = self.create_basic_project(tfilename[0],
@@ -1615,7 +1637,8 @@ class Vs2010Backend(backends.Backend):
                                                         conftype=conftype,
                                                         target_ext=tfilename[1],
                                                         target_platform=platform,
-                                                        gen_manifest=self.get_gen_manifest(target))
+                                                        gen_manifest=self.get_gen_manifest(target),
+                                                        masm_type=masm)
 
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(
             target, root)
@@ -1719,12 +1742,17 @@ class Vs2010Backend(backends.Backend):
             for s in sources:
                 relpath = os.path.join(proj_to_build_root, s.rel_to_builddir(self.build_to_src))
                 if path_normalize_add(relpath, previous_sources):
-                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                    lang = Vs2010Backend.lang_from_source_file(s)
+                    if lang == 'masm' and masm:
+                        inc_cl = ET.SubElement(inc_src, masm.upper(), Include=relpath)
+                    else:
+                        inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+
                     if self.gen_lite:
                         self.add_project_nmake_defs_incs_and_opts(inc_cl, relpath, defs_paths_opts_per_lang_and_buildtype, platform)
                     else:
-                        lang = Vs2010Backend.lang_from_source_file(s)
-                        self.add_pch(pch_sources, lang, inc_cl)
+                        if lang != 'masm':
+                            self.add_pch(pch_sources, lang, inc_cl)
                         self.add_additional_options(lang, inc_cl, file_args)
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
@@ -1732,12 +1760,17 @@ class Vs2010Backend(backends.Backend):
                             self.object_filename_from_source(target, compiler, s)
             for s in gen_src:
                 if path_normalize_add(s, previous_sources):
-                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
+                    lang = Vs2010Backend.lang_from_source_file(s)
+                    if lang == 'masm' and masm:
+                        inc_cl = ET.SubElement(inc_src, masm.upper(), Include=s)
+                    else:
+                        inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
+
                     if self.gen_lite:
                         self.add_project_nmake_defs_incs_and_opts(inc_cl, s, defs_paths_opts_per_lang_and_buildtype, platform)
                     else:
-                        lang = Vs2010Backend.lang_from_source_file(s)
-                        self.add_pch(pch_sources, lang, inc_cl)
+                        if lang != 'masm':
+                            self.add_pch(pch_sources, lang, inc_cl)
                         self.add_additional_options(lang, inc_cl, file_args)
                         self.add_preprocessor_defines(lang, inc_cl, file_defines)
                         self.add_include_dirs(lang, inc_cl, file_inc_dirs)
@@ -1786,6 +1819,9 @@ class Vs2010Backend(backends.Backend):
                     ET.SubElement(inc_objs, 'Object', Include=s)
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
+        ext_tgt_grp = ET.SubElement(root, 'ImportGroup', Label='ExtensionTargets')
+        if masm:
+            ET.SubElement(ext_tgt_grp, 'Import', Project=rf'$(VCTargetsPath)\BuildCustomizations\{masm}.targets')
         self.add_regen_dependency(root)
         if not self.gen_lite:
             # Injecting further target dependencies into this vcxproj implies and forces a Visual Studio BUILD dependency,
@@ -2096,7 +2132,7 @@ class Vs2010Backend(backends.Backend):
         pass
 
     # Returns if a target generates a manifest or not.
-    def get_gen_manifest(self, target):
+    def get_gen_manifest(self, target: T.Optional[build.BuildTarget]):
         if not isinstance(target, build.BuildTarget):
             return True
 
@@ -2116,3 +2152,26 @@ class Vs2010Backend(backends.Backend):
             if arg == '/MANIFEST' or arg.startswith('/MANIFEST:'):
                 break
         return True
+
+    # FIXME: add a way to distinguish between arm64ec+marmasm (written in ARM assembly)
+    # and arm64ec+masm (written in x64 assembly).
+    #
+    # For now, assume it's the native ones. (same behavior as ninja backend)
+    def get_masm_type(self, target: build.BuildTarget):
+        if not isinstance(target, build.BuildTarget):
+            return None
+
+        if 'masm' not in target.compilers:
+            return None
+
+        if target.for_machine == MachineChoice.BUILD:
+            platform = self.build_platform
+        elif target.for_machine == MachineChoice.HOST:
+            platform = self.platform
+        else:
+            return None
+
+        if platform in {'ARM', 'arm64', 'arm64ec'}:
+            return 'marmasm'
+        else:
+            return 'masm'
