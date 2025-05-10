@@ -187,12 +187,9 @@ class VulkanDependencySystem(SystemDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
         super().__init__(name, environment, kwargs, language=language)
 
-        try:
-            self.vulkan_sdk = os.environ.get('VULKAN_SDK', os.environ['VK_SDK_PATH'])
-            if not os.path.isabs(self.vulkan_sdk):
-                raise DependencyException('VULKAN_SDK must be an absolute path.')
-        except KeyError:
-            self.vulkan_sdk = None
+        self.vulkan_sdk = os.environ.get('VULKAN_SDK', os.environ.get('VK_SDK_PATH'))
+        if self.vulkan_sdk and not os.path.isabs(self.vulkan_sdk):
+            raise DependencyException('VULKAN_SDK must be an absolute path.')
 
         if self.vulkan_sdk:
             # TODO: this config might not work on some platforms, fix bugs as reported
@@ -242,7 +239,7 @@ class VulkanDependencySystem(SystemDependency):
                                                                  low=0, high=None, guess=e,
                                                                  prefix='#include <vulkan/vulkan.h>',
                                                                  env=environment,
-                                                                 extra_args=None,
+                                                                 extra_args=self.compile_args,
                                                                  dependencies=None))
                               # list containing vulkan version components and their expected value
                               for c, e in [('MAJOR', 1), ('MINOR', 3), ('PATCH', None)]]
