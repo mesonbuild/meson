@@ -317,11 +317,11 @@ class RustCompiler(Compiler):
         return exelist + args
 
     def has_multi_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
-        return self.compiles('fn main { std::process::exit(0) };\n', env, extra_args=args, mode=CompileCheckMode.COMPILE)
+        return self.compiles('fn main() { std::process::exit(0) }\n', env, extra_args=args, mode=CompileCheckMode.COMPILE)
 
     def has_multi_link_arguments(self, args: T.List[str], env: Environment) -> T.Tuple[bool, bool]:
         args = self.linker.fatal_warnings() + args
-        return self.compiles('fn main { std::process::exit(0) };\n', env, extra_args=args, mode=CompileCheckMode.LINK)
+        return self.compiles('fn main() { std::process::exit(0) }\n', env, extra_args=args, mode=CompileCheckMode.LINK)
 
     @functools.lru_cache(maxsize=None)
     def get_rustdoc(self, env: 'Environment') -> T.Optional[RustdocTestCompiler]:
