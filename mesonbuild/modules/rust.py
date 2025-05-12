@@ -242,6 +242,10 @@ class RustModule(ExtensionModule):
     def doctest(self, state: ModuleState, args: T.Tuple[str, T.Union[SharedLibrary, StaticLibrary]], kwargs: FuncDoctest) -> ModuleReturnValue:
         name, base_target = args
 
+        if state.environment.is_cross_build() and state.environment.need_exe_wrapper(base_target.for_machine):
+            mlog.notice('skipping Rust doctests due to cross compilation', once=True)
+            return ModuleReturnValue(None, [])
+
         # Link the base target's crate into the tests
         kwargs['link_with'].append(base_target)
         kwargs['depends'].append(base_target)
