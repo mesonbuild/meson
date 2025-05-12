@@ -692,9 +692,8 @@ class Vs2010Backend(backends.Backend):
             if target_ext:
                 ET.SubElement(direlem, 'TargetExt').text = target_ext
 
-            ET.SubElement(direlem, 'EmbedManifest').text = 'false'
-            if not gen_manifest:
-                ET.SubElement(direlem, 'GenerateManifest').text = 'false'
+            ET.SubElement(direlem, 'EmbedManifest').text = 'true' if gen_manifest == 'embed' else 'false'
+            ET.SubElement(direlem, 'GenerateManifest').text = 'true' if gen_manifest else 'false'
 
         return (root, type_config)
 
@@ -2097,6 +2096,7 @@ class Vs2010Backend(backends.Backend):
         pass
 
     # Returns if a target generates a manifest or not.
+    # Returns 'embed' if the generated manifest is embedded.
     def get_gen_manifest(self, target):
         if not isinstance(target, build.BuildTarget):
             return True
@@ -2114,6 +2114,8 @@ class Vs2010Backend(backends.Backend):
             arg = arg.upper()
             if arg == '/MANIFEST:NO':
                 return False
+            if arg.startswith('/MANIFEST:EMBED'):
+                return 'embed'
             if arg == '/MANIFEST' or arg.startswith('/MANIFEST:'):
                 break
         return True
