@@ -203,10 +203,10 @@ class PlatformAgnosticTests(BasePlatformTests):
         # Reconfigure of not empty builddir should work
         self.new_builddir()
         Path(self.builddir, 'dummy').touch()
-        self.init(testdir, extra_args=['--reconfigure'])
+        self.init(testdir, extra_args=['--reconfigure', '--buildtype=custom'])
 
         # Setup a valid builddir should update options but not reconfigure
-        self.assertEqual(self.getconf('buildtype'), 'debug')
+        self.assertEqual(self.getconf('buildtype'), 'custom')
         o = self.init(testdir, extra_args=['-Dbuildtype=release'])
         self.assertIn('Directory already configured', o)
         self.assertNotIn('The Meson build system', o)
