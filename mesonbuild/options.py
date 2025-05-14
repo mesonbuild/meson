@@ -1046,7 +1046,7 @@ class OptionStore:
             assert isinstance(new_value, str), 'for mypy'
             self.reset_prefixed_options(old_value, new_value)
 
-        if changed and key.name == 'buildtype':
+        if changed and key.name == 'buildtype' and new_value != 'custom':
             assert isinstance(new_value, str), 'for mypy'
             optimization, debug = self.DEFAULT_DEPENDENTS[new_value]
             dkey = key.evolve(name='debug')
