@@ -4,6 +4,7 @@ import os, subprocess
 import argparse
 import tempfile
 import shutil
+import sys
 import itertools
 import typing as T
 
@@ -226,8 +227,14 @@ def run(options: argparse.Namespace) -> int:
         args[0] = abs_path or args[0]
 
     try:
-        os.chdir(workdir)
-        os.execvpe(args[0], args, env=devenv)
+        if is_windows():
+            # execvpe doesn't return exit code on Windows
+            # see https://github.com/python/cpython/issues/63323
+            result = subprocess.run(args, env=devenv, cwd=workdir)
+            sys.exit(result.returncode)
+        else:
+            os.chdir(workdir)
+            os.execvpe(args[0], args, env=devenv)
     except FileNotFoundError:
         raise MesonException(f'Command not found: {args[0]}')
     except OSError as e:
