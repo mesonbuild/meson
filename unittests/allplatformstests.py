@@ -4453,6 +4453,10 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn(f'TEST_C="{expected}"', o)
         self.assertIn('export TEST_C', o)
 
+        cmd = self.meson_command + ['devenv', '-C', self.builddir] + python_command + ['-c', 'import sys; sys.exit(42)']
+        result = subprocess.run(cmd, encoding='utf-8')
+        self.assertEqual(result.returncode, 42)
+
     def test_clang_format_check(self):
         if self.backend is not Backend.ninja:
             raise SkipTest(f'Skipping clang-format tests with {self.backend.name} backend')
