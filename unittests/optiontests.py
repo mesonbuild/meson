@@ -35,6 +35,22 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_top_level_project_call({OptionKey('someoption'): new_value}, {}, {})
         self.assertEqual(optstore.get_value_for(k), new_value)
 
+    def test_machine_vs_project(self):
+        optstore = OptionStore(False)
+        name = 'backend'
+        default_value = 'ninja'
+        proj_value = 'xcode'
+        mfile_value = 'vs2010'
+        k = OptionKey(name)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        vo = UserStringOption(k.name, 'You know what this is', default_value)
+        optstore.add_system_option(k.name, vo)
+        self.assertEqual(optstore.get_value_for(k), default_value)
+        optstore.initialize_from_top_level_project_call({OptionKey(name): proj_value}, {},
+                                                        {OptionKey(name): mfile_value})
+        self.assertEqual(optstore.get_value_for(k), mfile_value)
+
     def test_subproject_system_option(self):
         """Test that subproject system options get their default value from the global
            option (e.g. "sub:b_lto" can be initialized from "b_lto")."""

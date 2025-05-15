@@ -1289,21 +1289,6 @@ class OptionStore:
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
                                                                                                      machine_file_options_in)
-        for key, valstr in machine_file_options.items():
-            # Due to backwards compatibility we ignore all build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
-            if key.subproject:
-                self.augments[key] = valstr
-            elif key in self.options:
-                self.set_option(key, valstr, first_invocation)
-            else:
-                proj_key = key.as_root()
-                if proj_key in self.options:
-                    self.set_option(proj_key, valstr, first_invocation)
-                else:
-                    self.pending_options[key] = valstr
         for keystr, valstr in project_default_options.items():
             # Ths is complicated by the fact that a string can have two meanings:
             #
@@ -1336,6 +1321,21 @@ class OptionStore:
                 proj_key = key.as_root()
                 if self.is_project_option(proj_key):
                     self.set_option(proj_key, valstr)
+                else:
+                    self.pending_options[key] = valstr
+        for key, valstr in machine_file_options.items():
+            # Due to backwards compatibility we ignore all build-machine options
+            # when building natively.
+            if not self.is_cross and key.is_for_build():
+                continue
+            if key.subproject:
+                self.augments[key] = valstr
+            elif key in self.options:
+                self.set_option(key, valstr, first_invocation)
+            else:
+                proj_key = key.as_root()
+                if proj_key in self.options:
+                    self.set_option(proj_key, valstr, first_invocation)
                 else:
                     self.pending_options[key] = valstr
         for keystr, valstr in cmd_line_options.items():
