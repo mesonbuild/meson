@@ -150,6 +150,10 @@ the two-way mapping:
 
 All other combinations of `debug` and `optimization` set `buildtype` to `'custom'`.
 
+Note that `-Ddebug=false` does not cause the compiler preprocessor macro
+`NDEBUG` to be defined.
+The macro can be defined using the base option `b_ndebug`, described below.
+
 #### Details for `warning_level`
 
 Exact flags per warning level is compiler specific, but there is an approximate
