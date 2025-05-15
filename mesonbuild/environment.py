@@ -833,9 +833,6 @@ class Environment:
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
-                        if evar in compilers.compilers.CFLAGS_MAPPING.values():
-                            lang = key.name.split('_', 1)[0]
-                            key = key.evolve(f'{lang}_args')
                         env_opts[key].extend(p_list)
 
         # If this is an environment variable, we have to
