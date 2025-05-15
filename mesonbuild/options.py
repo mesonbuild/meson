@@ -1310,28 +1310,6 @@ class OptionStore:
             project_default_options = self.optlist2optdict(project_default_options) # type: ignore [assignment]
         if project_default_options is None:
             project_default_options = {}
-        assert isinstance(machine_file_options, dict)
-        for keystr, valstr in machine_file_options.items():
-            if isinstance(keystr, str):
-                # FIXME, standardise on Key or string.
-                key = OptionKey.from_string(keystr)
-            else:
-                key = keystr
-            # Due to backwards compatibility we ignore all build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
-            if key.subproject:
-                augstr = str(key)
-                self.augments[augstr] = valstr
-            elif key in self.options:
-                self.set_option(key, valstr, first_invocation)
-            else:
-                proj_key = key.as_root()
-                if proj_key in self.options:
-                    self.set_option(proj_key, valstr, first_invocation)
-                else:
-                    self.pending_options[key] = valstr
         assert isinstance(project_default_options, dict)
         for keystr, valstr in project_default_options.items():
             # Ths is complicated by the fact that a string can have two meanings:
@@ -1366,6 +1344,28 @@ class OptionStore:
                 proj_key = key.as_root()
                 if self.is_project_option(proj_key):
                     self.set_option(proj_key, valstr)
+                else:
+                    self.pending_options[key] = valstr
+        assert isinstance(machine_file_options, dict)
+        for keystr, valstr in machine_file_options.items():
+            if isinstance(keystr, str):
+                # FIXME, standardise on Key or string.
+                key = OptionKey.from_string(keystr)
+            else:
+                key = keystr
+            # Due to backwards compatibility we ignore all build-machine options
+            # when building natively.
+            if not self.is_cross and key.is_for_build():
+                continue
+            if key.subproject:
+                augstr = str(key)
+                self.augments[augstr] = valstr
+            elif key in self.options:
+                self.set_option(key, valstr, first_invocation)
+            else:
+                proj_key = key.as_root()
+                if proj_key in self.options:
+                    self.set_option(proj_key, valstr, first_invocation)
                 else:
                     self.pending_options[key] = valstr
         assert isinstance(cmd_line_options, dict)
