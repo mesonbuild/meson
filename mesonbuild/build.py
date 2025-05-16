@@ -2179,7 +2179,10 @@ class StaticLibrary(BuildTarget):
                     self.suffix = 'a'
             else:
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking':
-                    self.suffix = 'ma' if self.options.get_value('b_lto') and not self.prelink else 'a'
+                    if self.environment.coredata.optstore.get_option_for_target(self, OptionKey('b_lto'), bool) and not self.prelink:
+                        self.suffix = 'ma'
+                    else:
+                        self.suffix = 'a'
                 else:
                     self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
