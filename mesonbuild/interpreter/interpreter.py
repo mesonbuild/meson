@@ -3080,18 +3080,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                 break
 
     def check_clang_asan_lundef(self) -> None:
-        if OptionKey('b_lundef') not in self.coredata.optstore:
-            return
-        if OptionKey('b_sanitize') not in self.coredata.optstore:
-            return
-        if (self.coredata.optstore.get_value('b_lundef') and
-                self.coredata.optstore.get_value('b_sanitize')):
-            value = self.coredata.optstore.get_value('b_sanitize')
-            mlog.warning(textwrap.dedent(f'''\
-                    Trying to use {value} sanitizer on Clang with b_lundef.
-                    This will probably not work.
-                    Try setting b_lundef to false instead.'''),
-                location=self.current_node)  # noqa: E128
+        if self.coredata.optstore.get_value_for(OptionKey('b_lundef'), bool, fallback=False):
+            value = self.coredata.optstore.get_value_for(OptionKey('b_sanitize'), list, fallback=[])
+            if value:
+                mlog.warning(textwrap.dedent(f'''\
+                        Trying to use {value} sanitizer on Clang with b_lundef.
+                        This will probably not work.
+                        Try setting b_lundef to false instead.'''),
+                    location=self.current_node)  # noqa: E128
 
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing

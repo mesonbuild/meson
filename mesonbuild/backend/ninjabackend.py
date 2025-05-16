@@ -3836,8 +3836,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if extra_arg:
             target_name += f'-{extra_arg}'
             extra_args.append(f'--{extra_arg}')
-        colorout = self.environment.coredata.optstore.get_value('b_colorout') \
-            if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
+        colorout = self.environment.coredata.optstore.get_value_for(OptionKey('b_colorout'), str, fallback='always')
         extra_args.extend(['--color', colorout])
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):

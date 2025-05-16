@@ -2751,35 +2751,35 @@ class AllPlatformTests(BasePlatformTests):
         out = self.init(testdir, extra_args=['--profile-self', '--fatal-meson-warnings'])
         self.assertNotIn('[default: true]', out)
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('default_library'), 'static')
-        self.assertEqual(obj.optstore.get_value('warning_level'), '1')
-        self.assertEqual(obj.optstore.get_value(OptionKey('set_sub_opt', '')), True)
-        self.assertEqual(obj.optstore.get_value(OptionKey('subp_opt', 'subp')), 'default3')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('default_library'), 'static')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '1')
+        self.assertEqual(obj.optstore.get_value_for_unsafe(OptionKey('set_sub_opt', '')), True)
+        self.assertEqual(obj.optstore.get_value_for_unsafe(OptionKey('subp_opt', 'subp')), 'default3')
         self.wipe()
 
         # warning_level is special, it's --warnlevel instead of --warning-level
         # for historical reasons
         self.init(testdir, extra_args=['--warnlevel=2', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '2')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '2')
         self.setconf('--warnlevel=3')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '3')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '3')
         self.setconf('--warnlevel=everything')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), 'everything')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), 'everything')
         self.wipe()
 
         # But when using -D syntax, it should be 'warning_level'
         self.init(testdir, extra_args=['-Dwarning_level=2', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '2')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '2')
         self.setconf('-Dwarning_level=3')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '3')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '3')
         self.setconf('-Dwarning_level=everything')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), 'everything')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), 'everything')
         self.wipe()
 
         # Mixing --option and -Doption is forbidden
@@ -2803,15 +2803,15 @@ class AllPlatformTests(BasePlatformTests):
         # --default-library should override default value from project()
         self.init(testdir, extra_args=['--default-library=both', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('default_library'), 'both')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('default_library'), 'both')
         self.setconf('--default-library=shared')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('default_library'), 'shared')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('default_library'), 'shared')
         if self.backend is Backend.ninja:
             # reconfigure target works only with ninja backend
             self.build('reconfigure')
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value('default_library'), 'shared')
+            self.assertEqual(obj.optstore.get_value_for_unsafe('default_library'), 'shared')
         self.wipe()
 
         # Should fail on unknown options
@@ -2848,22 +2848,22 @@ class AllPlatformTests(BasePlatformTests):
         # Test we can set subproject option
         self.init(testdir, extra_args=['-Dsubp:subp_opt=foo', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('subp_opt', 'subp')), 'foo')
+        self.assertEqual(obj.optstore.get_value_for_unsafe(OptionKey('subp_opt', 'subp')), 'foo')
         self.wipe()
 
         # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
+        self.assertEqual(obj.optstore.get_value_for_unsafe(OptionKey('c_args')), ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.optstore.get_value_for_unsafe(OptionKey('c_args')), ['foo bar', 'one', 'two'])
         self.wipe()
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value(OptionKey('set_percent_opt', '')), 'myoption%')
+        self.assertEqual(obj.optstore.get_value_for_unsafe(OptionKey('set_percent_opt', '')), 'myoption%')
         self.wipe()
 
         # Setting a 2nd time the same option should override the first value
@@ -2874,19 +2874,19 @@ class AllPlatformTests(BasePlatformTests):
                                            '-Dc_args=-Dfoo', '-Dc_args=-Dbar',
                                            '-Db_lundef=false', '--fatal-meson-warnings'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value('bindir'), 'bar')
-            self.assertEqual(obj.optstore.get_value('buildtype'), 'release')
-            self.assertEqual(obj.optstore.get_value('b_sanitize'), ['thread'])
-            self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dbar'])
+            self.assertEqual(obj.optstore.get_value_for_unsafe('bindir'), 'bar')
+            self.assertEqual(obj.optstore.get_value_for_unsafe('buildtype'), 'release')
+            self.assertEqual(obj.optstore.get_value_for_unsafe('b_sanitize'), ['thread'])
+            self.assertEqual(obj.optstore.get_value_for_unsafe(OptionKey('c_args')), ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
                           '-Dc_args=-Dbar', '-Dc_args=-Dfoo'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.optstore.get_value('bindir'), 'foo')
-            self.assertEqual(obj.optstore.get_value('buildtype'), 'plain')
-            self.assertEqual(obj.optstore.get_value('b_sanitize'), ['address'])
-            self.assertEqual(obj.optstore.get_value(OptionKey('c_args')), ['-Dfoo'])
+            self.assertEqual(obj.optstore.get_value_for_unsafe('bindir'), 'foo')
+            self.assertEqual(obj.optstore.get_value_for_unsafe('buildtype'), 'plain')
+            self.assertEqual(obj.optstore.get_value_for_unsafe('b_sanitize'), ['address'])
+            self.assertEqual(obj.optstore.get_value_for_unsafe(OptionKey('c_args')), ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not
@@ -2900,25 +2900,25 @@ class AllPlatformTests(BasePlatformTests):
         # Verify default values when passing no args
         self.init(testdir)
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '0')
         self.wipe()
 
         # verify we can override w/ --warnlevel
         self.init(testdir, extra_args=['--warnlevel=1'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '1')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '1')
         self.setconf('--warnlevel=0')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '0')
         self.wipe()
 
         # verify we can override w/ -Dwarning_level
         self.init(testdir, extra_args=['-Dwarning_level=1'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '1')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '1')
         self.setconf('-Dwarning_level=0')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.optstore.get_value('warning_level'), '0')
+        self.assertEqual(obj.optstore.get_value_for_unsafe('warning_level'), '0')
         self.wipe()
 
     def test_feature_check_usage_subprojects(self):

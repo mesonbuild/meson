@@ -310,5 +310,5 @@ class OptionTests(unittest.TestCase):
                               deprecated={'true': '1'})
         optstore.add_system_option(name, do)
         optstore.set_option(OptionKey(name), True)
-        value = optstore.get_value(name)
+        value = optstore.get_value_for_unsafe(name)
         self.assertEqual(value, '1')
