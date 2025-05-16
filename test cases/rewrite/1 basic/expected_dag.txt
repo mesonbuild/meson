@@ -1,0 +1,129 @@
+Data flowing to FunctionNode(1:0):
+    StringNode(1:8)
+    StringNode(1:23)
+Data flowing to ArrayNode(3:7):
+    StringNode(3:8)
+    StringNode(3:20)
+Data flowing to FunctionNode(4:7):
+    ArrayNode(4:13)
+Data flowing to ArrayNode(4:13):
+    StringNode(4:14)
+    StringNode(4:27)
+Data flowing to IdNode(5:7):
+    ArrayNode(3:7)
+Data flowing to ArrayNode(6:7):
+    IdNode(6:8)
+Data flowing to IdNode(6:8):
+    IdNode(5:7)
+Data flowing to ArithmeticNode(7:7):
+    ArrayNode(7:7)
+    ArrayNode(8:8)
+Data flowing to ArrayNode(7:7):
+    StringNode(7:8)
+    StringNode(7:20)
+Data flowing to ArrayNode(8:8):
+    StringNode(8:9)
+Data flowing to ArrayNode(9:7):
+    StringNode(9:8)
+    StringNode(9:20)
+Data flowing to FunctionNode(10:7):
+    IdNode(10:13)
+Data flowing to IdNode(10:13):
+    ArrayNode(9:7)
+Data flowing to ArrayNode(11:7):
+    StringNode(11:8)
+    StringNode(11:20)
+Data flowing to IdNode(12:7):
+    ArrayNode(11:7)
+Data flowing to ArrayNode(13:7):
+    StringNode(13:8)
+    StringNode(13:21)
+Data flowing to FunctionNode(15:13):
+    StringNode(14:7)
+    StringNode(15:26)
+Data flowing to FunctionNode(20:7):
+    StringNode(20:18)
+    ArithmeticNode(20:34)
+Data flowing to ArithmeticNode(20:34):
+    IdNode(20:34)
+    IdNode(20:41)
+Data flowing to IdNode(20:34):
+    ArrayNode(3:7)
+Data flowing to IdNode(20:41):
+    FunctionNode(4:7)
+Data flowing to FunctionNode(21:7):
+    StringNode(21:18)
+    IdNode(21:34)
+Data flowing to IdNode(21:34):
+    ArrayNode(3:7)
+Data flowing to FunctionNode(22:7):
+    StringNode(22:18)
+    ArrayNode(22:34)
+Data flowing to ArrayNode(22:34):
+    IdNode(22:35)
+Data flowing to IdNode(22:35):
+    FunctionNode(4:7)
+Data flowing to FunctionNode(23:7):
+    StringNode(23:18)
+    ArrayNode(23:34)
+Data flowing to ArrayNode(23:34):
+    StringNode(23:35)
+    StringNode(23:47)
+Data flowing to FunctionNode(24:7):
+    StringNode(24:18)
+    ArrayNode(24:34)
+Data flowing to ArrayNode(24:34):
+    StringNode(24:35)
+    ArrayNode(24:47)
+Data flowing to ArrayNode(24:47):
+    StringNode(24:48)
+Data flowing to FunctionNode(25:7):
+    StringNode(25:18)
+    ArrayNode(25:34)
+Data flowing to ArrayNode(25:34):
+    IdNode(25:35)
+    StringNode(25:41)
+Data flowing to IdNode(25:35):
+    FunctionNode(4:7)
+Data flowing to FunctionNode(26:7):
+    StringNode(26:18)
+    StringNode(26:34)
+    StringNode(26:46)
+Data flowing to FunctionNode(27:7):
+    StringNode(27:18)
+    StringNode(27:34)
+    FunctionNode(27:47)
+    StringNode(27:69)
+Data flowing to FunctionNode(27:47):
+    ArrayNode(3:7)
+    StringNode(27:60)
+Data flowing to FunctionNode(28:7):
+    StringNode(28:18)
+    IdNode(28:34)
+Data flowing to IdNode(28:34):
+    IdNode(5:7)
+Data flowing to FunctionNode(29:0):
+    StringNode(29:11)
+    IdNode(29:27)
+Data flowing to IdNode(29:27):
+    ArrayNode(6:7)
+Data flowing to FunctionNode(30:0):
+    StringNode(30:11)
+    IdNode(30:28)
+Data flowing to IdNode(30:28):
+    ArithmeticNode(7:7)
+Data flowing to FunctionNode(31:0):
+    StringNode(31:11)
+    IdNode(31:28)
+Data flowing to IdNode(31:28):
+    FunctionNode(10:7)
+Data flowing to FunctionNode(32:0):
+    StringNode(32:11)
+    IdNode(32:28)
+Data flowing to IdNode(32:28):
+    IdNode(12:7)
+Data flowing to FunctionNode(33:0):
+    IdNode(33:11)
+    StringNode(33:23)
+Data flowing to IdNode(33:11):
+    FunctionNode(15:13)
