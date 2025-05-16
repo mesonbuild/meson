@@ -1161,7 +1161,7 @@ class OptionStore:
         assert self.is_base_option(key)
         try:
             return T.cast('ElementaryOptionValues', COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default)
-        except KeyError:
+        except KeyErrorexcept Key:
             raise MesonBugException(f'Requested base option {key} which does not exist.')
 
     def remove(self, key: OptionKey) -> None:
