@@ -85,10 +85,8 @@ def bash_completion_files(b: build.Build, install_data: 'InstallData') -> T.List
     dep = PkgConfigDependency('bash-completion', b.environment,
                               {'required': False, 'silent': True, 'version': '>=2.10'})
     if dep.found():
-        prefix = b.environment.coredata.optstore.get_value_for(OptionKey('prefix'))
-        assert isinstance(prefix, str), 'for mypy'
-        datadir = b.environment.coredata.optstore.get_value_for(OptionKey('datadir'))
-        assert isinstance(datadir, str), 'for mypy'
+        prefix = b.environment.coredata.optstore.get_value_for(OptionKey('prefix'), str)
+        datadir = b.environment.coredata.optstore.get_value_for(OptionKey('datadir'), str)
         datadir_abs = os.path.join(prefix, datadir)
         completionsdir = dep.get_variable(pkgconfig='completionsdir', pkgconfig_define=(('datadir', datadir_abs),))
         assert isinstance(completionsdir, str), 'for mypy'
@@ -165,7 +163,7 @@ def run(options: argparse.Namespace) -> int:
     b = build.load(options.builddir)
     workdir = options.workdir or options.builddir
 
-    need_vsenv = T.cast('bool', b.environment.coredata.optstore.get_value_for(OptionKey('vsenv')))
+    need_vsenv = b.environment.coredata.optstore.get_value_for(OptionKey('vsenv'), bool)
     setup_vsenv(need_vsenv) # Call it before get_env to get vsenv vars as well
     dump_fmt = options.dump_format if options.dump else None
     devenv, varnames = get_env(b, dump_fmt)

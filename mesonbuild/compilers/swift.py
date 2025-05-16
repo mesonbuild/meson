@@ -133,8 +133,8 @@ class SwiftCompiler(Compiler):
     def get_option_std_args(self, target: build.BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', env, target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std')
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
 
         if std != 'none':
             args += ['-swift-version', std]

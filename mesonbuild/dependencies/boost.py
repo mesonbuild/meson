@@ -341,8 +341,7 @@ class BoostLibraryFile():
 class BoostDependency(SystemDependency):
     def __init__(self, environment: Environment, kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__('boost', environment, kwargs, language='cpp')
-        buildtype = environment.coredata.optstore.get_value_for(OptionKey('buildtype'))
-        assert isinstance(buildtype, str)
+        buildtype = environment.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
         self.debug = buildtype.startswith('debug')
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
 
@@ -580,14 +579,10 @@ class BoostDependency(SystemDependency):
     def filter_libraries(self, libs: T.List[BoostLibraryFile], lib_vers: str) -> T.List[BoostLibraryFile]:
         # MSVC is very picky with the library tags
         vscrt = ''
-        try:
-            crt_val = self.env.coredata.optstore.get_value('b_vscrt')
-            assert isinstance(crt_val, str)
-            buildtype = self.env.coredata.optstore.get_value('buildtype')
-            assert isinstance(buildtype, str)
+        crt_val = self.env.coredata.optstore.get_value_for(OptionKey('b_vscrt'), str, fallback='meson-sentinel')
+        if crt_val != 'meson-sentinel':
+            buildtype = self.env.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
             vscrt = self.clib_compiler.get_crt_compile_args(crt_val, buildtype)[0]
-        except (KeyError, IndexError, AttributeError):
-            pass
 
         # mlog.debug('    - static: {}'.format(self.static))
         # mlog.debug('    - not explicit static: {}'.format(not self.explicit_static))
