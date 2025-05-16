@@ -27,6 +27,7 @@ from ... import mesonlib
 from ... import mlog
 from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType
+from ...options import OptionKey
 from .. import compilers
 from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
@@ -360,12 +361,10 @@ class CLikeCompiler(Compiler):
             # One example is when trying to do a compiler check that involves
             # linking with static libraries since MSVC won't select a CRT for
             # us in that case and will error out asking us to pick one.
-            try:
-                crt_val = env.coredata.optstore.get_value('b_vscrt')
-                buildtype = env.coredata.optstore.get_value('buildtype')
-                cargs += self.get_crt_compile_args(crt_val, buildtype) # type: ignore[arg-type]
-            except (KeyError, AttributeError):
-                pass
+            crt_val = env.coredata.optstore.get_value_for(OptionKey('b_vscrt'), str, fallback='meson-sentinel')
+            if crt_val != 'meson-sentinel':
+                buildtype = env.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
+                cargs += self.get_crt_compile_args(crt_val, buildtype)
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
         sys_args = env.coredata.get_external_args(self.for_machine, self.language)
