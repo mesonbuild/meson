@@ -8,7 +8,7 @@ import subprocess, os.path
 import typing as T
 
 from .. import mlog, options
-from ..mesonlib import MesonException, version_compare
+from ..mesonlib import first, MesonException, version_compare
 from .compilers import Compiler, clike_debug_args
 
 
@@ -138,6 +138,12 @@ class SwiftCompiler(Compiler):
 
         if std != 'none':
             args += ['-swift-version', std]
+
+        # Pass C compiler -std=... arg to swiftc
+        c_lang = first(['objc', 'c'], lambda x: x in target.compilers)
+        if c_lang is not None:
+            cc = target.compilers[c_lang]
+            args.extend(arg for c_arg in cc.get_option_std_args(target, env, subproject) for arg in ['-Xcc', c_arg])
 
         return args
 
