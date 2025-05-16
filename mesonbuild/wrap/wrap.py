@@ -21,6 +21,7 @@ import time
 import typing as T
 import textwrap
 import json
+import gzip
 
 from base64 import b64encode
 from netrc import netrc
@@ -66,16 +67,23 @@ def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
         raise WrapException(f'WrapDB did not have expected SSL https url, instead got {urlstr}')
     return url
 
-def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool = False) -> 'http.client.HTTPResponse':
+def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool = False, allow_compression: bool = False) -> http.client.HTTPResponse:
     if have_opt:
         insecure_msg = '\n\n    To allow connecting anyway, pass `--allow-insecure`.'
     else:
         insecure_msg = ''
 
+    def do_urlopen(url: urllib.parse.ParseResult) -> http.client.HTTPResponse:
+        headers = {}
+        if allow_compression:
+            headers['Accept-Encoding'] = 'gzip'
+        req = urllib.request.Request(urllib.parse.urlunparse(url), headers=headers)
+        return T.cast('http.client.HTTPResponse', urllib.request.urlopen(req, timeout=REQ_TIMEOUT))
+
     url = whitelist_wrapdb(urlstring)
     if has_ssl:
         try:
-            return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urllib.parse.urlunparse(url), timeout=REQ_TIMEOUT))
+            return do_urlopen(url)
         except OSError as excp:
             msg = f'WrapDB connection failed to {urlstring} with error {excp}.'
             if isinstance(excp, urllib.error.URLError) and isinstance(excp.reason, ssl.SSLCertVerificationError):
@@ -92,15 +100,24 @@ def open_wrapdburl(urlstring: str, allow_insecure: bool = False, have_opt: bool 
         mlog.warning(f'SSL module not available in {sys.executable}: WrapDB traffic not authenticated.', once=True)
 
     # If we got this far, allow_insecure was manually passed
-    nossl_url = url._replace(scheme='http')
     try:
-        return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urllib.parse.urlunparse(nossl_url), timeout=REQ_TIMEOUT))
+        return do_urlopen(url._replace(scheme='http'))
     except OSError as excp:
         raise WrapException(f'WrapDB connection failed to {urlstring} with error {excp}')
 
+def read_and_decompress(resp: http.client.HTTPResponse) -> bytes:
+    data = resp.read()
+    encoding = resp.headers['Content-Encoding']
+    if encoding == 'gzip':
+        return gzip.decompress(data)
+    elif encoding:
+        raise WrapException(f'Unexpected Content-Encoding for {resp.url}: {encoding}')
+    else:
+        return data
+
 def get_releases_data(allow_insecure: bool) -> bytes:
-    url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True)
-    return url.read()
+    url = open_wrapdburl('https://wrapdb.mesonbuild.com/v2/releases.json', allow_insecure, True, True)
+    return read_and_decompress(url)
 
 @lru_cache(maxsize=None)
 def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
@@ -109,9 +126,9 @@ def get_releases(allow_insecure: bool) -> T.Dict[str, T.Any]:
 
 def update_wrap_file(wrapfile: str, name: str, new_version: str, new_revision: str, allow_insecure: bool) -> None:
     url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{name}_{new_version}-{new_revision}/{name}.wrap',
-                         allow_insecure, True)
+                         allow_insecure, True, True)
     with open(wrapfile, 'wb') as f:
-        f.write(url.read())
+        f.write(read_and_decompress(url))
 
 def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
     u = urllib.parse.urlparse(patch_url)
@@ -384,10 +401,10 @@ class Resolver:
         self.check_can_download()
         latest_version = info['versions'][0]
         version, revision = latest_version.rsplit('-', 1)
-        url = urllib.request.urlopen(f'https://wrapdb.mesonbuild.com/v2/{subp_name}_{version}-{revision}/{subp_name}.wrap')
+        url = open_wrapdburl(f'https://wrapdb.mesonbuild.com/v2/{subp_name}_{version}-{revision}/{subp_name}.wrap', allow_compression=True)
         fname = Path(self.subdir_root, f'{subp_name}.wrap')
         with fname.open('wb') as f:
-            f.write(url.read())
+            f.write(read_and_decompress(url))
         mlog.log(f'Installed {subp_name} version {version} revision {revision}')
         wrap = PackageDefinition.from_wrap_file(str(fname))
         self.wraps[wrap.name] = wrap
