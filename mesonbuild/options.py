@@ -846,9 +846,6 @@ class OptionStore:
             return self.options[key].value
         return self.pending_options.get(key, default)
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
-        return self.get_value_object(key).value
-
     def __len__(self) -> int:
         return len(self.options)
 
@@ -1161,7 +1158,7 @@ class OptionStore:
         assert self.is_base_option(key)
         try:
             return T.cast('ElementaryOptionValues', COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default)
-        except KeyErrorexcept Key:
+        except KeyError:
             raise MesonBugException(f'Requested base option {key} which does not exist.')
 
     def remove(self, key: OptionKey) -> None:
