@@ -535,7 +535,7 @@ class Vs2010Backend(backends.Backend):
         replace_if_different(sln_filename, sln_filename_tmp)
 
     def generate_projects(self, vslite_ctx: dict = None) -> T.List[Project]:
-        startup_project = self.environment.coredata.optstore.get_value('backend_startup_project')
+        startup_project = self.environment.coredata.optstore.get_value_for(OptionKey('backend_startup_project'), str)
         projlist: T.List[Project] = []
         startup_idx = 0
         for (i, (name, target)) in enumerate(self.build.targets.items()):
