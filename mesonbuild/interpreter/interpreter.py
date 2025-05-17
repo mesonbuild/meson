@@ -1207,7 +1207,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 self.coredata.optstore.initialize_from_subproject_call(self.subproject,
                                                                        self.invoker_method_default_options,
                                                                        self.project_default_options,
-                                                                       self.user_defined_options.cmd_line_options)
+                                                                       self.user_defined_options.cmd_line_options,
+                                                                       self.environment.options)
                 self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject():
