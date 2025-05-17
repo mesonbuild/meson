@@ -1256,15 +1256,17 @@ class OptionStore:
                 others_d[k] = v
         return (prefix, others_d)
 
-    def first_handle_prefix(self,
-                            project_default_options: OptionDict,
-                            cmd_line_options: OptionDict,
-                            machine_file_options: OptionDict) \
-            -> T.Tuple[OptionDict, OptionDict, OptionDict]:
+    def combine_and_order_options(self,
+                                  project_default_options: OptionDict,
+                                  cmd_line_options: OptionDict,
+                                  machine_file_options: OptionDict) -> OptionDict:
         # Copy to avoid later mutation
         nopref_machine_file_options = copy.copy(machine_file_options)
 
         prefix = None
+        # Setting a project option with default_options should
+        # arguably be a hard error; the default value of project option
+        # should be set in the option file, not in the project call.
         (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
         prefix = prefix if possible_prefix is None else possible_prefix
 
@@ -1277,7 +1279,7 @@ class OptionStore:
 
         if prefix is not None:
             self.hard_reset_from_prefix(prefix)
-        return (nopref_project_default_options, nopref_cmd_line_options, nopref_machine_file_options)
+        return {**nopref_project_default_options, **nopref_machine_file_options, **nopref_cmd_line_options}
 
     def hard_reset_from_prefix(self, prefix: str) -> None:
         prefix = self.sanitize_prefix(prefix)
@@ -1296,33 +1298,11 @@ class OptionStore:
                                                project_default_options_in: OptionDict,
                                                cmd_line_options_in: OptionDict,
                                                machine_file_options_in: OptionDict) -> None:
-        (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
-                                                                                                     cmd_line_options_in,
-                                                                                                     machine_file_options_in)
-        for key, valstr in project_default_options.items():
+        all_options = self.combine_and_order_options(project_default_options_in,
+                                                     cmd_line_options_in,
+                                                     machine_file_options_in)
+        for key, valstr in all_options.items():
             # Due to backwards compatibility we ignore build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
-            if key.subproject:
-                self.augments[key] = valstr
-            else:
-                # Setting a project option with default_options
-                # should arguably be a hard error; the default
-                # value of project option should be set in the option
-                # file, not in the project call.
-                self.set_option_maybe_root(key, valstr, True)
-        for key, valstr in machine_file_options.items():
-            # Due to backwards compatibility we ignore all build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
-            if key.subproject:
-                self.augments[key] = valstr
-            else:
-                self.set_option_maybe_root(key, valstr, True)
-        for key, valstr in cmd_line_options.items():
-            # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
                 continue
