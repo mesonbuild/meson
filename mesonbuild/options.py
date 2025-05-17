@@ -1318,14 +1318,7 @@ class OptionStore:
 
         # ignore subprojects for now for machine file and command line
         # options; they are applied later
-        for key, valstr in machine_file_options.items():
-            # Due to backwards compatibility we ignore all build-machine options
-            # when building natively.
-            if not self.is_cross and key.is_for_build():
-                continue
-            if not key.subproject:
-                self.set_user_option(key, valstr, True)
-        for key, valstr in cmd_line_options.items():
+        for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
