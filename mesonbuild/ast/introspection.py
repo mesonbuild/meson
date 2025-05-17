@@ -139,7 +139,8 @@ class IntrospectionInterpreter(AstInterpreter):
                     self.subproject,
                     {},  # TODO: this isn't handled by the introspection interpreter...
                     T.cast('OptionDict', self.project_default_options),
-                    {})  # TODO: this isn't handled by the introspection interpreter...
+                    {},  # TODO: this isn't handled by the introspection interpreter...
+                    self.environment.options)
                 self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject() and 'subproject_dir' in kwargs:
