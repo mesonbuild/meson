@@ -240,6 +240,38 @@ class OptionTests(unittest.TestCase):
         self.assertFalse(optstore.accept_as_pending_option(OptionKey('foo', subproject='found'), subprojects))
         self.assertTrue(optstore.accept_as_pending_option(OptionKey('foo', subproject='whatisthis'), subprojects))
 
+    def test_subproject_cmdline_override_global(self):
+        optstore = OptionStore(False)
+        subp = 'subp'
+        name = 'optimization'
+        default_value = '3'
+        new_value = '0'
+        o = UserComboOption('name', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])
+        optstore.add_system_option(name, o)
+        optstore.initialize_from_subproject_call(
+            subp,
+            {},
+            {OptionKey('optimization'): default_value},
+            {OptionKey('optimization'): new_value},
+            {})
+        self.assertEqual(optstore.get_value_for(name, subp), new_value)
+
+    def test_subproject_cmdline_override_global_and_augment(self):
+        optstore = OptionStore(False)
+        subp = 'subp'
+        name = 'optimization'
+        default_value = '3'
+        new_value = '0'
+        o = UserComboOption('name', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])
+        optstore.add_system_option(name, o)
+        optstore.initialize_from_subproject_call(
+            subp,
+            {},
+            {OptionKey('optimization'): default_value},
+            {OptionKey('optimization'): 's', OptionKey('optimization', subproject=subp): new_value},
+            {})
+        self.assertEqual(optstore.get_value_for(name, subp), new_value)
+
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
         optstore = OptionStore(False)
