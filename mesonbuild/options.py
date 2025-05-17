@@ -1380,7 +1380,6 @@ class OptionStore:
                                         spcall_default_options: OptionDict,
                                         project_default_options: OptionDict,
                                         cmd_line_options: OptionDict) -> None:
-        is_first_invocation = True
         for keystr, valstr in itertools.chain(project_default_options.items(), spcall_default_options.items()):
             if isinstance(keystr, str):
                 key = OptionKey.from_string(keystr)
@@ -1394,7 +1393,7 @@ class OptionStore:
             # If the key points to a project option, set the value from that.
             # Otherwise set an augment.
             if key in self.project_options:
-                self.set_option(key, valstr, is_first_invocation)
+                self.set_option(key, valstr, True)
             else:
                 self.pending_options.pop(key, None)
                 self.augments[key] = valstr
@@ -1406,7 +1405,7 @@ class OptionStore:
                 continue
             self.pending_options.pop(key, None)
             if key in self.options:
-                self.set_option(key, valstr, is_first_invocation)
+                self.set_option(key, valstr, True)
             else:
                 self.augments[key] = valstr
 
