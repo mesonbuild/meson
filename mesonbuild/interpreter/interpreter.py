@@ -115,7 +115,7 @@ if T.TYPE_CHECKING:
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
-    from ..options import OptionDict
+    from ..options import ElementaryOptionValues, OptionDict
     from ..programs import OverrideProgram
     from .type_checking import SourcesVarargsType
 
@@ -301,7 +301,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.invoker_method_default_options = invoker_method_default_options
         else:
             self.invoker_method_default_options = {}
-        self.project_default_options: T.List[str] = []
+        self.project_default_options: T.Mapping[OptionKey, ElementaryOptionValues] = {}
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
@@ -1189,9 +1189,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self._load_option_file()
 
         self.project_default_options = kwargs['default_options']
-        if isinstance(self.project_default_options, str):
-            self.project_default_options = [self.project_default_options]
-        assert isinstance(self.project_default_options, (list, dict))
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
             if self.subproject == '':
                 self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options,
