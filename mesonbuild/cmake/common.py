@@ -19,6 +19,7 @@ language_map = {
     'cuda': 'CUDA',
     'objc': 'OBJC',
     'objcpp': 'OBJCXX',
+    'nasm': 'ASM_NASM',
     'cs': 'CSharp',
     'java': 'Java',
     'fortran': 'Fortran',
