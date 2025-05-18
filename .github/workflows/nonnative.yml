@@ -51,3 +51,12 @@ jobs:
         name: "Ubuntu nonnative"
         fail_ci_if_error: false
         verbose: true
+
+  cross-cuda:
+    runs-on: ubuntu-latest
+    container: mesonbuild/cuda-cross:latest
+    env:
+      MESON_CI_JOBNAME: cuda-cross-${{ github.job }}
+    steps:
+    - name: Run tests
+      run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py $CI_ARGS --cross cuda-cross.json --cross-only'
