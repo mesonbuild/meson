@@ -175,7 +175,12 @@ class CMakeToolchain:
 
         # Set the compiler variables
         for lang, comp_obj in self.compilers.items():
-            prefix = 'CMAKE_{}_'.format(language_map.get(lang, lang.upper()))
+            language = language_map.get(lang, None)
+
+            if not language:
+                continue # unsupported language
+
+            prefix = 'CMAKE_{}_'.format(language)
 
             exe_list = comp_obj.get_exelist()
             if not exe_list:
@@ -211,7 +216,7 @@ class CMakeToolchain:
         # Generate the CMakeLists.txt
         mlog.debug('CMake Toolchain: Calling CMake once to generate the compiler state')
         languages = list(self.compilers.keys())
-        lang_ids = [language_map.get(x, x.upper()) for x in languages]
+        lang_ids = [language_map.get(x) for x in languages if x in language_map]
         cmake_content = dedent(f'''
             cmake_minimum_required(VERSION 3.10)
             project(CompInfo {' '.join(lang_ids)})
