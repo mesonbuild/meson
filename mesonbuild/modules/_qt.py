@@ -178,6 +178,13 @@ if T.TYPE_CHECKING:
         install_dir: str
         install: bool
 
+    class GenerateQrcKwArgs(TypedDict):
+
+        files: T.Sequence[T.Union[FileOrString, build.GeneratedTypes]]
+        output: str
+        prefix: str
+
+
 def _list_in_set_validator(choices: T.Set[str]) -> T.Callable[[T.List[str]], T.Optional[str]]:
     """Check that the choice given was one of the given set."""
     def inner(checklist: T.List[str]) -> T.Optional[str]:
@@ -219,6 +226,7 @@ class QtBaseModule(ExtensionModule):
             'compile_ui': self.compile_ui,
             'compile_moc': self.compile_moc,
             'qml_module': self.qml_module,
+            'generate_qrc': self.generate_qrc,
         })
 
     def compilers_detect(self, state: ModuleState, qt_dep: QtDependencyType) -> None:
@@ -1170,3 +1178,37 @@ class QtBaseModule(ExtensionModule):
             output.extend(self._compile_resources_impl(state, compile_resource_kwargs))
 
         return ModuleReturnValue(output, [output])
+
+    @FeatureNew('qt.generate_qrc', '1.8')
+    @noPosargs
+    @typed_kwargs(
+        'qt.generate_qrc',
+        KwargInfo('output', str, required=True),
+        KwargInfo('files', ContainerTypeInfo(list, (File, str, build.CustomTarget)), listify=True, required=True),
+        KwargInfo('prefix', str, default=''),
+    )
+    def generate_qrc(self, state: ModuleState, args: T.Tuple[str], kwargs: GenerateQrcKwArgs) -> ModuleReturnValue:
+        command = [
+            '--internal',
+            'generate_qrc',
+            '--output',
+            '@OUTPUT@',
+        ]
+
+        if kwargs['prefix'] != '':
+            command += ['--prefix', kwargs['prefix']]
+
+        command.append('@INPUT')
+
+        qrc_target = build.CustomTarget(
+            "generate_qrc_" + kwargs['output'],
+            state.subdir,
+            state.subproject,
+            state.environment,
+            state.environment.get_build_command() + command,
+            kwargs['files'],
+            [kwargs['output']],
+            description='Generate qrc ' + kwargs["output"],
+        )
+
+        return ModuleReturnValue(qrc_target, [qrc_target])
