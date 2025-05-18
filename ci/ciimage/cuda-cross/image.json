@@ -1,0 +1,8 @@
+{
+  "base_image": "ubuntu:22.04",
+  "args": ["--only", "cuda", "--cross", "cuda-cross.json"],
+  "env": {
+    "CI": "1",
+    "MESON_CI_JOBNAME": "linux-cuda-cross"
+  }
+}

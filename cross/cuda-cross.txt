@@ -1,0 +1,17 @@
+[binaries]
+c = ['/usr/bin/aarch64-linux-gnu-gcc']
+cpp = ['/usr/bin/aarch64-linux-gnu-g++']
+cuda = ['/usr/local/cuda/bin/nvcc']
+ar = '/usr/bin/aarch64-linux-gnu-ar'
+strip = '/usr/bin/aarch64-linux-gnu-strip'
+ld = '/usr/bin/aarch64-linux-gnu-ld'
+
+[host_machine]
+system = 'linux'
+cpu_family = 'aarch64'
+cpu = 'aarch64'
+endian = 'little'
+
+[built-in options]
+cuda_link_args = ['-lstdc++']
+cuda_ccbindir = '/usr/bin/aarch64-linux-gnu-gcc'
