@@ -20,6 +20,7 @@ if T.TYPE_CHECKING:
     from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...build import BuildTarget
+    from ...mesonlib import SubProject
     from ...options import OptionStore
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -60,7 +61,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
     def get_linker_lib_prefix(self) -> str:
         return ''
 
-    def get_option_link_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
     def has_multi_link_args(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:

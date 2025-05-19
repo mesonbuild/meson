@@ -19,7 +19,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
 
 swift_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
@@ -130,7 +130,7 @@ class SwiftCompiler(Compiler):
 
         return opts
 
-    def get_option_std_args(self, target: T.Optional[build.BuildTarget], env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[build.BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args: T.List[str] = []
 
         std = self.get_compileropt_value('std', env, target, subproject)
