@@ -60,7 +60,8 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from .visitor import AstVisitor
     from ..interpreter import Interpreter
-    from ..interpreterbase import SubProject, TYPE_var, TYPE_nvar
+    from ..interpreterbase import TYPE_var, TYPE_nvar
+    from ..mesonlib import SubProject
     from ..mparser import (
         AndNode,
         ComparisonNode,

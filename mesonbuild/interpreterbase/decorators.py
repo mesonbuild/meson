@@ -19,7 +19,8 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     from .. import mparser
-    from .baseobjects import InterpreterObject, SubProject, TV_func, TYPE_var, TYPE_kwargs
+    from ..mesonlib import SubProject
+    from .baseobjects import InterpreterObject, TV_func, TYPE_var, TYPE_kwargs
     from .operator import MesonOperator
 
     _TV_IntegerObject = T.TypeVar('_TV_IntegerObject', bound=InterpreterObject, contravariant=True)

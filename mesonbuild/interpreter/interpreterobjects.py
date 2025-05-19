@@ -33,7 +33,8 @@ if T.TYPE_CHECKING:
     from . import kwargs
     from ..cmake.interpreter import CMakeInterpreter
     from ..envconfig import MachineInfo
-    from ..interpreterbase import FeatureCheckBase, SubProject, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs
+    from ..interpreterbase import FeatureCheckBase, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs
+    from ..mesonlib import SubProject
     from .interpreter import Interpreter
 
     from typing_extensions import TypedDict
