@@ -16,7 +16,7 @@ if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..dependencies import Dependency
     from ..build import BuildTarget
 
@@ -141,7 +141,7 @@ class ValaCompiler(Compiler):
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
     def build_wrapper_args(self, env: 'Environment',

@@ -16,7 +16,7 @@ from .. import mlog
 from .. import mesonlib
 from .. import options
 from ..mesonlib import (
-    HoldableObject,
+    HoldableObject, SubProject,
     EnvironmentException, MesonException,
     Popen_safe_logged, LibType, TemporaryDirectoryWinProof,
 )
@@ -551,13 +551,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         return {}
 
-    def get_option_compile_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
-    def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return self.linker.get_option_link_args(target, env, subproject)
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,

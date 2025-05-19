@@ -12,7 +12,7 @@ import typing as T
 from .. import options
 from .. import mlog
 from ..mesonlib import (
-    EnvironmentException, Popen_safe,
+    EnvironmentException, Popen_safe, SubProject,
     is_windows, LibType, version_compare
 )
 from .compilers import Compiler, CompileCheckMode
@@ -650,12 +650,12 @@ class CudaCompiler(Compiler):
 
         return opts
 
-    def get_option_compile_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
         host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)
         return args + self._to_host_flags(host_compiler_args)
 
-    def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
@@ -668,7 +668,7 @@ class CudaCompiler(Compiler):
         host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)
         return self._to_host_flags(host_compiler_args)
 
-    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
         return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)
 
