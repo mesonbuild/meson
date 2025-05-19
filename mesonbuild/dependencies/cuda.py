@@ -14,6 +14,7 @@ from .. import mlog
 from ..environment import detect_cpu_family
 from .base import DependencyException, SystemDependency
 from .detect import packages
+from ..mesonlib import LibType
 
 
 if T.TYPE_CHECKING:
@@ -59,6 +60,9 @@ class CudaDependency(SystemDependency):
         arch_libdir = self._detect_arch_libdir()
         self.libdir = os.path.join(self.cuda_path, arch_libdir)
         mlog.debug('CUDA library directory is', mlog.bold(self.libdir))
+
+        if 'static' not in kwargs:
+            self.libtype = LibType.PREFER_STATIC
 
         self.is_found = self._find_requested_libraries()
 
@@ -236,13 +240,7 @@ class CudaDependency(SystemDependency):
         all_found = True
 
         for module in self.requested_modules:
-            args = self.clib_compiler.find_library(module, self.env, [self.libdir])
-            if module == 'cudart_static' and self.language != 'cuda':
-                machine = self.env.machines[self.for_machine]
-                if machine.is_linux():
-                    # extracted by running
-                    #   nvcc -v foo.o
-                    args += ['-lrt', '-lpthread', '-ldl']
+            args = self.clib_compiler.find_library(module, self.env, [self.libdir], self.libtype, ignore_system_dirs=True)
 
             if args is None:
                 self._report_dependency_error(f'Couldn\'t find requested CUDA module \'{module}\'')
@@ -284,23 +282,26 @@ class CudaDependency(SystemDependency):
         return candidates
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
+        # when using nvcc to link, we should instead use the native driver options
+        REWRITE_MODULES = {
+            'cudart': ['-cudart', 'shared'],
+            'cudart_static': ['-cudart', 'static'],
+            'cudadevrt': ['-cudadevrt'],
+        }
+
         args: T.List[str] = []
         for lib in self.requested_modules:
             link_args = self.lib_modules[lib]
-            # Turn canonical arguments like
-            #   /opt/cuda/lib64/libcublas.so
-            # back into
-            #   -lcublas
-            # since this is how CUDA modules were passed to nvcc since time immemorial
-            if language == 'cuda':
-                if lib in frozenset(['cudart', 'cudart_static']):
-                    # nvcc always links these unconditionally
-                    mlog.debug(f'Not adding \'{lib}\' to dependency, since nvcc will link it implicitly')
-                    link_args = []
-                elif link_args and link_args[0].startswith(self.libdir):
-                    # module included with CUDA, nvcc knows how to find these itself
-                    mlog.debug(f'CUDA module \'{lib}\' found in CUDA libdir')
-                    link_args = ['-l' + lib]
+            if language == 'cuda' and lib in REWRITE_MODULES:
+                link_args = REWRITE_MODULES[lib]
+                mlog.debug(f'Rewriting module \'{lib}\' to \'{link_args}\'')
+            elif lib == 'cudart_static':
+                machine = self.env.machines[self.for_machine]
+                if machine.is_linux():
+                    # extracted by running
+                    #   nvcc -v foo.o
+                    link_args += ['-lrt', '-lpthread', '-ldl']
+
             args += link_args
 
         return args
