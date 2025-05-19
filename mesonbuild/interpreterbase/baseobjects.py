@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
 
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
+    from ..mesonlib import SubProject
 
     __T = T.TypeVar('__T', bound='TYPE_var', contravariant=True)
 
@@ -34,8 +35,6 @@ TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
 TYPE_kwargs = T.Dict[str, TYPE_var]
 TYPE_nkwargs = T.Dict[str, TYPE_nvar]
 TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
-
-SubProject = T.NewType('SubProject', str)
 
 class InterpreterObject:
     def __init__(self, *, subproject: T.Optional['SubProject'] = None) -> None:
@@ -54,7 +53,7 @@ class InterpreterObject:
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node:  mparser.BaseNode = None
-        self.subproject = subproject or SubProject('')
+        self.subproject = subproject or T.cast('SubProject', '')
 
         # Some default operators supported by all objects
         self.operators.update({

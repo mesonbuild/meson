@@ -16,7 +16,7 @@ from .interpreter.type_checking import NoneType, in_set_validator
 
 if T.TYPE_CHECKING:
     from .interpreterbase import TYPE_var, TYPE_kwargs
-    from .interpreterbase import SubProject
+    from .mesonlib import SubProject
     from typing_extensions import TypedDict, Literal
     from .options import OptionStore
 

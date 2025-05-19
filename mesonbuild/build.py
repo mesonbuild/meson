@@ -44,9 +44,8 @@ if T.TYPE_CHECKING:
     from .compilers import Compiler
     from .interpreter.interpreter import SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
-    from .interpreterbase import SubProject
     from .linkers.linkers import StaticLinker
-    from .mesonlib import ExecutableSerialisation, FileMode, FileOrString
+    from .mesonlib import ExecutableSerialisation, FileMode, FileOrString, SubProject
     from .modules import ModuleState
     from .mparser import BaseNode
 

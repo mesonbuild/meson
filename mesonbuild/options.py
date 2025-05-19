@@ -37,7 +37,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
     from .build import BuildTarget
-    from .interpreterbase import SubProject
+    from .mesonlib import SubProject
 
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
     AnyOptionType: TypeAlias = T.Union[
