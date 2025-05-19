@@ -11,7 +11,7 @@ import typing as T
 
 from . import build, coredata, environment, interpreter, mesonlib, mintro, mlog
 from .mesonlib import MesonException
-from .options import COMPILER_BASE_OPTIONS, OptionKey
+from .options import OptionKey
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -191,18 +191,14 @@ class MesonApp:
         with mesonlib.BuildDirLock(self.build_dir):
             return self._generate(env, capture, vslite_ctx)
 
-    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Any, all_subprojects: T.Any) -> None:
+    def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Any, all_subprojects: T.Mapping[str, object]) -> None:
         pending = coredata.optstore.pending_options
         errlist: T.List[str] = []
+        known_subprojects = all_subprojects.keys()
         for opt in pending:
-            # It is not an error to set wrong option for unknown subprojects or
-            # language because we don't have control on which one will be selected.
-            if opt.subproject and opt.subproject not in all_subprojects:
-                continue
-            if coredata.optstore.is_compiler_option(opt):
-                continue
-            if (coredata.optstore.is_base_option(opt) and
-                    opt.evolve(subproject=None, machine=mesonlib.MachineChoice.HOST) in COMPILER_BASE_OPTIONS):
+            # It is not an error to set wrong option for unknown subprojects
+            # because they might be used in future reconfigurations
+            if coredata.optstore.accept_as_pending_option(opt, known_subprojects):
                 continue
             keystr = str(opt)
             if keystr in cmd_line_options:
