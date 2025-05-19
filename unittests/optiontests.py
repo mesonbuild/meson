@@ -208,6 +208,10 @@ class OptionTests(unittest.TestCase):
         assert optstore.accept_as_pending_option(OptionKey('b_ndebug'))
         assert not optstore.accept_as_pending_option(OptionKey('b_whatever'))
 
+    def test_reconfigure_b_nonexistent(self):
+        optstore = OptionStore(False)
+        optstore.set_from_configure_command(['b_ndebug=true'], [])
+
     def test_subproject_nonexistent(self):
         optstore = OptionStore(False)
         subprojects = {'found'}
