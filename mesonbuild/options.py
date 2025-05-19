@@ -1059,8 +1059,13 @@ class OptionStore:
     def set_option_maybe_root(self, o: OptionKey, new_value: str) -> bool:
         if o in self.options:
             return self.set_option(o, new_value)
-        o = o.as_root()
-        return self.set_option(o, new_value)
+        if self.accept_as_pending_option(o):
+            old_value = self.pending_options.get(o, None)
+            self.pending_options[o] = new_value
+            return old_value is None or str(old_value) == new_value
+        else:
+            o = o.as_root()
+            return self.set_option(o, new_value)
 
     def set_from_configure_command(self, D_args: T.List[str], U_args: T.List[str]) -> bool:
         dirty = False
