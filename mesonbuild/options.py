@@ -1056,11 +1056,7 @@ class OptionStore:
 
         return changed
 
-    def set_option_from_string(self, keystr: T.Union[OptionKey, str], new_value: str) -> bool:
-        if isinstance(keystr, OptionKey):
-            o = keystr
-        else:
-            o = OptionKey.from_string(keystr)
+    def set_option_maybe_root(self, o: OptionKey, new_value: str) -> bool:
         if o in self.options:
             return self.set_option(o, new_value)
         o = o.as_root()
@@ -1072,9 +1068,9 @@ class OptionStore:
         (global_options, perproject_global_options, project_options) = self.classify_D_arguments(D_args)
         U_args = [] if U_args is None else U_args
         for key, valstr in global_options:
-            dirty |= self.set_option_from_string(key, valstr)
+            dirty |= self.set_option_maybe_root(key, valstr)
         for key, valstr in project_options:
-            dirty |= self.set_option_from_string(key, valstr)
+            dirty |= self.set_option_maybe_root(key, valstr)
         for key, valstr in perproject_global_options:
             if key in self.augments:
                 if self.augments[key] != valstr:
