@@ -421,12 +421,12 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         with self.subTest('unknown user option'):
             out = self.init(testdir, extra_args=['-Dnot_an_option=1'], allow_fail=True)
-            self.assertIn('ERROR: Unknown options: "not_an_option"', out)
+            self.assertIn('ERROR: Unknown option: "not_an_option"', out)
 
         with self.subTest('unknown builtin option'):
             self.new_builddir()
             out = self.init(testdir, extra_args=['-Db_not_an_option=1'], allow_fail=True)
-            self.assertIn('ERROR: Unknown options: "b_not_an_option"', out)
+            self.assertIn('ERROR: Unknown option: "b_not_an_option"', out)
 
 
     def test_configure_new_option(self) -> None:
