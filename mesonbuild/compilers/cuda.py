@@ -654,7 +654,7 @@ class CudaCompiler(Compiler):
         args = self.get_ccbin_args(target, env, subproject)
 
         try:
-            host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)
+            host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)  # type: ignore[call-overload]
         except KeyError:
             host_compiler_args = []
         return args + self._to_host_flags(host_compiler_args)
@@ -670,14 +670,14 @@ class CudaCompiler(Compiler):
                 return ['--std=' + std]
 
         try:
-            host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)
+            host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)  # type: ignore[call-overload]
         except KeyError:
             host_compiler_args = []
         return self._to_host_flags(host_compiler_args)
 
     def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
-        return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)
+        return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)  # type: ignore[call-overload]
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
