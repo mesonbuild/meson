@@ -1055,6 +1055,9 @@ class OptionStore:
         return changed
 
     def set_option_maybe_root(self, o: OptionKey, new_value: str) -> bool:
+        if not self.is_cross and o.is_for_build():
+            return False
+
         if o in self.options:
             return self.set_option(o, new_value)
         if self.accept_as_pending_option(o):
