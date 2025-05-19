@@ -1060,19 +1060,30 @@ class OptionStore:
 
         return changed
 
-    def set_option_maybe_root(self, o: OptionKey, new_value: str) -> bool:
+    def set_option_maybe_root(self, o: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
         if not self.is_cross and o.is_for_build():
             return False
 
+        # This is complicated by the fact that a string can have two meanings:
+        #
+        # default_options: 'foo=bar'
+        #
+        # can be either
+        #
+        # A) a system option in which case the subproject is None
+        # B) a project option, in which case the subproject is '' (this method is only called from top level)
+        #
+        # The key parsing function can not handle the difference between the two
+        # and defaults to A.
         if o in self.options:
-            return self.set_option(o, new_value)
-        if self.accept_as_pending_option(o):
+            return self.set_option(o, new_value, first_invocation)
+        if self.accept_as_pending_option(o, first_invocation=first_invocation):
             old_value = self.pending_options.get(o, None)
             self.pending_options[o] = new_value
             return old_value is None or str(old_value) == new_value
         else:
             o = o.as_root()
-            return self.set_option(o, new_value)
+            return self.set_option(o, new_value, first_invocation)
 
     def set_from_configure_command(self, D_args: T.List[str], U_args: T.List[str]) -> bool:
         dirty = False
@@ -1289,22 +1300,10 @@ class OptionStore:
                                                project_default_options_in: OptionDict,
                                                cmd_line_options_in: OptionDict,
                                                machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
-        first_invocation = True
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
                                                                                                      machine_file_options_in)
         for keystr, valstr in project_default_options.items():
-            # Ths is complicated by the fact that a string can have two meanings:
-            #
-            # default_options: 'foo=bar'
-            #
-            # can be either
-            #
-            # A) a system option in which case the subproject is None
-            # B) a project option, in which case the subproject is '' (this method is only called from top level)
-            #
-            # The key parsing function can not handle the difference between the two
-            # and defaults to A.
             if isinstance(keystr, str):
                 key = OptionKey.from_string(keystr)
             else:
@@ -1315,18 +1314,12 @@ class OptionStore:
                 continue
             if key.subproject:
                 self.augments[key] = valstr
-            elif key in self.options:
-                self.set_option(key, valstr, first_invocation)
             else:
-                # Setting a project option with default_options.
-                # Argubly this should be a hard error, the default
+                # Setting a project option with default_options
+                # should arguably be a hard error; the default
                 # value of project option should be set in the option
                 # file, not in the project call.
-                proj_key = key.as_root()
-                if self.is_project_option(proj_key):
-                    self.set_option(proj_key, valstr)
-                else:
-                    self.pending_options[key] = valstr
+                self.set_option_maybe_root(key, valstr, True)
         for key, valstr in machine_file_options.items():
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
@@ -1334,14 +1327,8 @@ class OptionStore:
                 continue
             if key.subproject:
                 self.augments[key] = valstr
-            elif key in self.options:
-                self.set_option(key, valstr, first_invocation)
             else:
-                proj_key = key.as_root()
-                if proj_key in self.options:
-                    self.set_option(proj_key, valstr, first_invocation)
-                else:
-                    self.pending_options[key] = valstr
+                self.set_option_maybe_root(key, valstr, True)
         for keystr, valstr in cmd_line_options.items():
             if isinstance(keystr, str):
                 key = OptionKey.from_string(keystr)
@@ -1353,14 +1340,8 @@ class OptionStore:
                 continue
             if key.subproject:
                 self.augments[key] = valstr
-            elif key in self.options:
-                self.set_option(key, valstr, True)
             else:
-                proj_key = key.as_root()
-                if proj_key in self.options:
-                    self.set_option(proj_key, valstr, True)
-                else:
-                    self.pending_options[key] = valstr
+                self.set_option_maybe_root(key, valstr, True)
 
     def accept_as_pending_option(self, key: OptionKey, known_subprojects: T.Optional[T.Container[str]] = None,
                                  first_invocation: bool = False) -> bool:
