@@ -38,9 +38,8 @@ if T.TYPE_CHECKING:
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
     from .environment import Environment
-    from .mesonlib import FileOrString
+    from .mesonlib import FileOrString, SubProject
     from .cmake.traceparser import CMakeCacheEntry
-    from .interpreterbase import SubProject
     from .options import MutableKeyedOptionDictType
 
     class SharedCMDOptions(Protocol):
