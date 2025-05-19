@@ -128,7 +128,7 @@ class CLikeCompiler(Compiler):
         warn_args: T.Dict[str, T.List[str]] = {}
 
     # TODO: Replace this manual cache with functools.lru_cache
-    find_library_cache: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], str, LibType], T.Optional[T.List[str]]] = {}
+    find_library_cache: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], str, LibType, bool], T.Optional[T.List[str]]] = {}
     find_framework_cache: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], bool], T.Optional[T.List[str]]] = {}
     internal_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS
 
@@ -1113,7 +1113,7 @@ class CLikeCompiler(Compiler):
         '''
         return self.sizeof('void *', '', env)[0] == 8
 
-    def _find_library_real(self, libname: str, env: 'Environment', extra_dirs: T.List[str], code: str, libtype: LibType, lib_prefix_warning: bool) -> T.Optional[T.List[str]]:
+    def _find_library_real(self, libname: str, env: 'Environment', extra_dirs: T.List[str], code: str, libtype: LibType, lib_prefix_warning: bool, ignore_system_dirs: bool) -> T.Optional[T.List[str]]:
         # First try if we can just add the library as -l.
         # Gcc + co seem to prefer builtin lib dirs to -L dirs.
         # Only try to find std libs if no extra dirs specified.
@@ -1144,7 +1144,7 @@ class CLikeCompiler(Compiler):
         except (mesonlib.MesonException, KeyError): # TODO evaluate if catching KeyError is wanted here
             elf_class = 0
         # Search in the specified dirs, and then in the system libraries
-        for d in itertools.chain(extra_dirs, self.get_library_dirs(env, elf_class)):
+        for d in itertools.chain(extra_dirs, [] if ignore_system_dirs else self.get_library_dirs(env, elf_class)):
             for p in patterns:
                 trials = self._get_trials_from_pattern(p, d, libname)
                 if not trials:
@@ -1158,15 +1158,15 @@ class CLikeCompiler(Compiler):
         return None
 
     def _find_library_impl(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                           code: str, libtype: LibType, lib_prefix_warning: bool) -> T.Optional[T.List[str]]:
+                           code: str, libtype: LibType, lib_prefix_warning: bool, ignore_system_dirs: bool) -> T.Optional[T.List[str]]:
         # These libraries are either built-in or invalid
         if libname in self.ignore_libs:
             return []
         if isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
-        key = (tuple(self.exelist), libname, tuple(extra_dirs), code, libtype)
+        key = (tuple(self.exelist), libname, tuple(extra_dirs), code, libtype, ignore_system_dirs)
         if key not in self.find_library_cache:
-            value = self._find_library_real(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
+            value = self._find_library_real(libname, env, extra_dirs, code, libtype, lib_prefix_warning, ignore_system_dirs)
             self.find_library_cache[key] = value
         else:
             value = self.find_library_cache[key]
@@ -1175,9 +1175,9 @@ class CLikeCompiler(Compiler):
         return value.copy()
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
+                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
         code = 'int main(void) { return 0; }\n'
-        return self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning)
+        return self._find_library_impl(libname, env, extra_dirs, code, libtype, lib_prefix_warning, ignore_system_dirs)
 
     def find_framework_paths(self, env: 'Environment') -> T.List[str]:
         '''
