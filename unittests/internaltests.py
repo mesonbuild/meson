@@ -555,9 +555,9 @@ class InternalTests(unittest.TestCase):
                       'libbar.so.7.10', 'libbar.so.7.9', 'libbar.so.7.9.3']:
                 libpath = Path(tmpdir) / i
                 libpath.write_text('', encoding='utf-8')
-            found = cc._find_library_real('foo', env, [tmpdir], '', LibType.PREFER_SHARED, lib_prefix_warning=True)
+            found = cc._find_library_real('foo', env, [tmpdir], '', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
             self.assertEqual(os.path.basename(found[0]), 'libfoo.so.54.0')
-            found = cc._find_library_real('bar', env, [tmpdir], '', LibType.PREFER_SHARED, lib_prefix_warning=True)
+            found = cc._find_library_real('bar', env, [tmpdir], '', LibType.PREFER_SHARED, lib_prefix_warning=True, ignore_system_dirs=False)
             self.assertEqual(os.path.basename(found[0]), 'libbar.so.7.10')
 
     def test_find_library_patterns(self):

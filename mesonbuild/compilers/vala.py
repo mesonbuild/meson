@@ -113,7 +113,7 @@ class ValaCompiler(Compiler):
                 raise EnvironmentException(msg)
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
+                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if

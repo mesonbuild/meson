@@ -763,8 +763,8 @@ class CudaCompiler(Compiler):
         return self._to_host_flags(self.host_compiler.get_std_exe_link_args(), Phase.LINKER)
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
-                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True) -> T.Optional[T.List[str]]:
-        return self.host_compiler.find_library(libname, env, extra_dirs, libtype, lib_prefix_warning)
+                     libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:
+        return self.host_compiler.find_library(libname, env, extra_dirs, libtype, lib_prefix_warning, ignore_system_dirs)
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_crt_compile_args(crt_val, buildtype))
