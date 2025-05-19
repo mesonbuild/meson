@@ -203,6 +203,17 @@ class OptionTests(unittest.TestCase):
         value = optstore.get_default_for_b_option(OptionKey('b_vscrt'))
         self.assertEqual(value, 'from_buildtype')
 
+    def test_b_nonexistent(self):
+        optstore = OptionStore(False)
+        assert optstore.accept_as_pending_option(OptionKey('b_ndebug'))
+        assert not optstore.accept_as_pending_option(OptionKey('b_whatever'))
+
+    def test_subproject_nonexistent(self):
+        optstore = OptionStore(False)
+        subprojects = {'found'}
+        assert not optstore.accept_as_pending_option(OptionKey('foo', subproject='found'), subprojects)
+        assert optstore.accept_as_pending_option(OptionKey('foo', subproject='whatisthis'), subprojects)
+
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
         optstore = OptionStore(False)
