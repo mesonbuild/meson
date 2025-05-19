@@ -249,7 +249,7 @@ class RustCompiler(Compiler):
         # provided by the linker flags.
         return []
 
-    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args = []
         std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
