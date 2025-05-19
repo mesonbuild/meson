@@ -652,7 +652,7 @@ class CudaCompiler(Compiler):
 
     def get_option_compile_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
-        host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)
+        host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)  # type: ignore[call-overload]
         return args + self._to_host_flags(host_compiler_args)
 
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
@@ -665,12 +665,12 @@ class CudaCompiler(Compiler):
             if std != 'none':
                 return ['--std=' + std]
 
-        host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)
+        host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)  # type: ignore[call-overload]
         return self._to_host_flags(host_compiler_args)
 
     def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
-        return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)
+        return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)  # type: ignore[call-overload]
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,

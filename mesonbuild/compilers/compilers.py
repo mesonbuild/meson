@@ -551,14 +551,32 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_options(self) -> 'MutableKeyedOptionDictType':
         return {}
 
+    @T.overload
+    def get_option_compile_args(self, target: BuildTarget, env: 'Environment') -> T.List[str]: ...
+
+    @T.overload
+    def get_option_compile_args(self, target: None, env: 'Environment', subproject: SubProject) -> T.List[str]: ...
+
     def get_option_compile_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
+
+    @T.overload
+    def get_option_std_args(self, target: BuildTarget, env: Environment) -> T.List[str]: ...
+
+    @T.overload
+    def get_option_std_args(self, target: None, env: Environment, subproject: SubProject) -> T.List[str]: ...
 
     def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
-        return self.linker.get_option_link_args(target, env, subproject)
+    @T.overload
+    def get_option_link_args(self, target: BuildTarget, env: Environment) -> T.List[str]: ...
+
+    @T.overload
+    def get_option_link_args(self, target: None, env: Environment, subproject: SubProject) -> T.List[str]: ...
+
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
+        return T.cast('T.List[str]', self.linker.get_option_link_args(target, env, subproject))  # type: ignore[call-overload]
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]] = None,

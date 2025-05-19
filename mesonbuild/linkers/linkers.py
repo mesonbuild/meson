@@ -190,7 +190,13 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_option_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
+    @T.overload
+    def get_option_link_args(self, target: BuildTarget, env: Environment) -> T.List[str]: ...
+
+    @T.overload
+    def get_option_link_args(self, target: None, env: Environment, subproject: SubProject) -> T.List[str]: ...
+
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:

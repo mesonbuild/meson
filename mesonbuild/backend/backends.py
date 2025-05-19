@@ -1038,8 +1038,8 @@ class Backend:
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
-        commands += compiler.get_option_compile_args(target, self.environment, target.subproject)
-        commands += compiler.get_option_std_args(target, self.environment, target.subproject)
+        commands += compiler.get_option_compile_args(target, self.environment)
+        commands += compiler.get_option_std_args(target, self.environment)
 
         optimization = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('optimization'), str)
         commands += compiler.get_optimization_args(optimization)
