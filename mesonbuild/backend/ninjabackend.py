@@ -3128,9 +3128,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # If TASKING compiler family is used and MIL linking is enabled for the target,
         # then compilation rule name is a special one to output MIL files
         # instead of object files for .c files
-        key = OptionKey('b_lto')
         if compiler.get_id() == 'tasking':
-            if ((isinstance(target, build.StaticLibrary) and target.prelink) or target.get_option(key)) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
+            target_lto = self.get_target_option(target, OptionKey('b_lto', machine=target.for_machine, subproject=target.subproject))
+            if ((isinstance(target, build.StaticLibrary) and target.prelink) or target_lto) and src.rsplit('.', 1)[1] in compilers.lang_suffixes['c']:
                 compiler_name = self.get_compiler_rule_name('tasking_mil_compile', compiler.for_machine)
             else:
                 compiler_name = self.compiler_to_rule_name(compiler)
@@ -3689,7 +3689,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
         if linker.get_id() == 'tasking':
-            if len([x for x in dep_targets + custom_target_libraries if x.endswith('.ma')]) > 0 and not target.get_option(OptionKey('b_lto')):
+            if len([x for x in dep_targets + custom_target_libraries if x.endswith('.ma')]) > 0 and not self.get_target_option(target, OptionKey('b_lto', target.subproject, target.for_machine)):
                 raise MesonException(f'Tried to link the target named \'{target.name}\' with a MIL archive without LTO enabled! This causes the compiler to ignore the archive.')
 
         # Compiler args must be included in TI C28x linker commands.
