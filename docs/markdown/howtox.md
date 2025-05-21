@@ -73,7 +73,7 @@ There is a table of all environment variables supported
 ## Set default C/C++ language version
 
 ```meson
-project('myproj', 'c', 'cpp',
+project('myproj', host_machine_languages : ['c', 'cpp'],
         default_options : ['c_std=c11', 'cpp_std=c++11'])
 ```
 
