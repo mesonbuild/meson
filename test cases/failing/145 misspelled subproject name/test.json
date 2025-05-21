@@ -1,0 +1,7 @@
+{
+    "stdout": [
+      {
+        "line": "test cases/failing/145 misspelled subproject name/meson.build:2:6: ERROR: Neither a subproject directory nor a welp.wrap file was found. Did you mean \"help\"?"
+      }
+    ]
+  }

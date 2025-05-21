@@ -456,7 +456,12 @@ class InterpreterBase:
                 except InvalidArguments as e:
                     raise InvalidArguments(f'f-string: {str(e)}')
             except KeyError:
-                raise InvalidCode(f'Identifier "{var}" does not name a variable.')
+                ustr = f'Identifier "{var}" does not name a variable.'
+                from difflib import get_close_matches
+                close_matches = get_close_matches(var, self.variables.keys())
+                if close_matches:
+                    ustr += f' Did you mean "{close_matches[0]}"?'
+                raise InvalidCode(ustr)
 
         res = re.sub(r'@([_a-zA-Z][_0-9a-zA-Z]*)@', replace, node.value)
         return self._holderify(res)
@@ -536,6 +541,10 @@ class InterpreterBase:
             res = func(node, func_args, kwargs)
             return self._holderify(res) if res is not None else None
         else:
+            from difflib import get_close_matches
+            close_matches = get_close_matches(func_name, self.funcs.keys())
+            if close_matches:
+                raise InvalidCode(f'Unknown function "{func_name}". Did you mean "{close_matches[0]}"?')
             self.unknown_function_called(func_name)
             return None
 
@@ -673,7 +682,12 @@ class InterpreterBase:
             return self.builtin[varname]
         if varname in self.variables:
             return self.variables[varname]
-        raise InvalidCode(f'Unknown variable "{varname}".')
+        ustr = f'Unknown variable name "{varname}".'
+        from difflib import get_close_matches
+        close_matches = get_close_matches(varname, self.variables.keys())
+        if close_matches:
+            ustr += f' Did you mean "{close_matches[0]}"?'
+        raise InvalidCode(ustr)
 
     def validate_extraction(self, buildtarget: mesonlib.HoldableObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')

@@ -1,0 +1,7 @@
+{
+    "stdout": [
+      {
+        "line": "test cases/failing/144 misspelled module name/meson.build:2:5: ERROR: Module \"pythin\" does not exist. Did you mean \"python\"?"
+      }
+    ]
+  }

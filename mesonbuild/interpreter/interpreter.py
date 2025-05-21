@@ -31,7 +31,7 @@ from ..interpreterbase import Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureBroken, FeatureNewKwargs
 from ..interpreterbase import ObjectHolder, ContextManagerObject
 from ..interpreterbase import stringifyUserArguments
-from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule
+from ..modules import ExtensionModule, ModuleObject, MutableModuleObject, NewExtensionModule, NotFoundExtensionModule, __path__ as modules_path
 from ..optinterpreter import optname_regex
 
 from . import interpreterobjects as OBJ
@@ -629,7 +629,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                     mlog.debug(line)
 
             if required:
-                raise InvalidArguments(f'Module "{modname}" does not exist')
+                ustr = f'Module "{modname}" does not exist.'
+                from difflib import get_close_matches
+                from pkgutil import iter_modules
+                modnames = [mod.name for mod in iter_modules(modules_path) if not mod.name.startswith('_')]
+                close_matches = get_close_matches(modname, modnames)
+                if close_matches:
+                    ustr += f' Did you mean "{close_matches[0]}"?'
+                raise InvalidArguments(ustr)
             ext_module = NotFoundExtensionModule(real_modname)
         else:
             ext_module = module.initialize(self)
@@ -3541,7 +3548,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         except KeyError:
             if fallback is not None:
                 return self._holderify(fallback)
-        raise InterpreterException(f'Tried to get unknown variable "{varname}".')
+        ustr = f'Tried to get unknown variable "{varname}".'
+        from difflib import get_close_matches
+        close_matches = get_close_matches(varname, self.variables.keys())
+        if close_matches:
+            ustr += f' Did you mean "{close_matches[0]}"?'
+        raise InterpreterException(ustr)
 
     @typed_pos_args('is_variable', str)
     @noKwargs
@@ -3556,7 +3568,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         try:
             del self.variables[varname]
         except KeyError:
-            raise InterpreterException(f'Tried to unset unknown variable "{varname}".')
+            ustr = f'Tried to unset unknown variable "{varname}".'
+            from difflib import get_close_matches
+            close_matches = get_close_matches(varname, self.variables.keys())
+            if close_matches:
+                ustr += f' Did you mean "{close_matches[0]}"?'
+            raise InterpreterException(ustr)
 
     @staticmethod
     def machine_from_native_kwarg(kwargs: T.Dict[str, T.Any]) -> MachineChoice:

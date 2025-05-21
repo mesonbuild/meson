@@ -454,7 +454,12 @@ class Resolver:
         if wrap is None:
             wrap = self.get_from_wrapdb(packagename)
             if wrap is None:
-                raise WrapNotFoundException(f'Neither a subproject directory nor a {packagename}.wrap file was found.')
+                ustr = f'Neither a subproject directory nor a {packagename}.wrap file was found.'
+                from difflib import get_close_matches
+                close_matches = get_close_matches(packagename, self.wraps.keys())
+                if close_matches:
+                    ustr += f' Did you mean "{close_matches[0]}"?'
+                raise WrapNotFoundException(ustr)
         self.wrap = wrap
         self.directory = self.wrap.directory
         self.dirname = os.path.join(self.wrap.subprojects_dir, self.wrap.directory)
