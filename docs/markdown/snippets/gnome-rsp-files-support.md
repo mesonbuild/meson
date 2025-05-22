@@ -1,4 +1,4 @@
-# Support response files for custom targets
+## Support response files for custom targets
 
 When using the Ninja backend, Meson can now pass arguments to supported tools
 through response files.
