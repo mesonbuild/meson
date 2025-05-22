@@ -18,7 +18,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..build import BuildTarget
     from ..options import MutableKeyedOptionDictType
 
@@ -36,10 +36,10 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
                           linker=linker)
         CLikeCompiler.__init__(self)
 
-    def form_compileropt_key(self, basename: str) -> OptionKey:
+    def form_compileropt_key(self, basename: str, subproject: T.Optional[SubProject] = None) -> OptionKey:
         if basename == 'std':
-            return OptionKey('cpp_std', machine=self.for_machine)
-        return super().form_compileropt_key(basename)
+            return OptionKey(f'cpp_{basename}', subproject, self.for_machine)
+        return super().form_compileropt_key(basename, subproject)
 
     def make_option_name(self, key: OptionKey) -> str:
         if key.name == 'std':
@@ -81,14 +81,10 @@ class GnuObjCPPCompiler(GnuCPPStds, GnuCompiler, ObjCPPCompiler):
                                          self.supported_warn_args(gnu_common_warning_args) +
                                          self.supported_warn_args(gnu_objc_warning_args))}
 
-    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args: T.List[str] = []
         key = OptionKey('cpp_std', subproject=subproject, machine=self.for_machine)
-        if target:
-            std = env.coredata.get_option_for_target(target, key)
-        else:
-            std = env.coredata.optstore.get_value_for(key)
-        assert isinstance(std, str)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         if std != 'none':
             args.append('-std=' + std)
         return args
@@ -110,10 +106,10 @@ class ClangObjCPPCompiler(ClangCPPStds, ClangCompiler, ObjCPPCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic'],
                           'everything': ['-Weverything']}
 
-    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = []
         key = OptionKey('cpp_std', machine=self.for_machine)
-        std = self.get_compileropt_value(key, env, target, subproject)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
         assert isinstance(std, str)
         if std != 'none':
             args.append('-std=' + std)

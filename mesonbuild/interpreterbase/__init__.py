@@ -47,8 +47,6 @@ __all__ = [
 
     'InterpreterBase',
 
-    'SubProject',
-
     'TV_func',
     'TYPE_elementary',
     'TYPE_var',
@@ -77,8 +75,6 @@ from .baseobjects import (
     TYPE_nkwargs,
     TYPE_key_resolver,
     TYPE_HoldableTypes,
-
-    SubProject,
 
     HoldableTypes,
 )

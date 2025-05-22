@@ -30,9 +30,8 @@ from functools import lru_cache
 
 from . import WrapMode
 from .. import coredata
-from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree, Popen_safe
+from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException, windows_proof_rmtree, Popen_safe, SubProject
 from ..interpreterbase import FeatureNew
-from ..interpreterbase import SubProject
 from .. import mesonlib
 
 if T.TYPE_CHECKING:
