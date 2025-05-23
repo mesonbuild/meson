@@ -657,7 +657,7 @@ not provide them, it will search for the standard wrapper executables,
 are not in your path, they can be specified by setting the standard
 environment variables `MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or
 `MPIF77`, during configuration. It will also try to use the Microsoft
-implementation on windows via the `system` method.
+and Intel implementations on Windows via the `system` method.
 
 `method` may be `auto`, `config-tool`, `pkg-config` or `system`.
 
