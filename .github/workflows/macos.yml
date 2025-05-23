@@ -94,17 +94,10 @@ jobs:
         # productive -- only victim blaming -- however it bites particularly badly because this is a container/VM
         # See commit 5c479d7a13a518c18ccb4dc3b6bdd7bfc2a9bdb5 for a more thorough analysis.
         find /opt/homebrew/Cellar/python* -name EXTERNALLY-MANAGED -print0 | xargs -0 rm -vf
-        # Homebrew's installation of pip 25.0.1 in Python 3.13.3 is broken; it
-        # doesn't include a RECORD file, so it can't be upgraded by pip. Create
-        # a dummy RECORD file.
-        PIP_RECORD=$(python3 -c "import pip, os; print(f'{os.path.dirname(pip.__file__)}-{pip.__version__}.dist-info/RECORD')")
-        touch $PIP_RECORD
     # use python3 from homebrew because it is a valid framework, unlike the actions one:
     # https://github.com/actions/setup-python/issues/58
     - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 boost-python3 gtk-doc zstd ncurses objfw libomp
     - run: |
-        python3 -m pip install --upgrade setuptools
-        python3 -m pip install --upgrade pip
         python3 -m pip install cython coverage
     - env:
         CPPFLAGS: "-I/opt/homebrew/include"
