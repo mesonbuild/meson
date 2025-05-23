@@ -1,4 +1,4 @@
-project('vapi-test', ['c', 'vala'])
+project('vapi-test', ['c', 'vala'], default_options: ['b_legal_code=false'])
 
 if host_machine.system() == 'cygwin'
   error('MESON_SKIP_TEST Does not work with the Vala currently packaged in cygwin')
