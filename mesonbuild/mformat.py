@@ -837,7 +837,15 @@ class Formatter:
         # See https://editorconfig.org/
         config = EditorConfig()
 
-        for p in source_file.parents:
+        if source_file == Path('STDIN'):
+            raise MesonException('Using editorconfig with stdin requires --source-file-path argument')
+
+        try:
+            source_file_path = source_file.resolve()
+        except FileNotFoundError:
+            raise MesonException(f'Unable to resolve path for "{source_file}"')
+
+        for p in source_file_path.parents:
             editorconfig_file = p / '.editorconfig'
             if not editorconfig_file.exists():
                 continue
@@ -956,6 +964,11 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         help='output file (implies having exactly one input)'
     )
     parser.add_argument(
+        '--source-file-path',
+        type=Path,
+        help='path to use, when reading from stdin'
+    )
+    parser.add_argument(
         'sources',
         nargs='*',
         type=Path,
@@ -981,6 +994,10 @@ def run(options: argparse.Namespace) -> int:
         raise MesonException('--recursive argument is not compatible with stdin input')
     if options.inplace and from_stdin:
         raise MesonException('--inplace argument is not compatible with stdin input')
+    if options.source_file_path and not from_stdin:
+        raise MesonException('--source-file-path argument is only compatible with stdin input')
+    if from_stdin and options.editor_config and not options.source_file_path:
+        raise MesonException('using --editor-config with stdin input requires --source-file-path argument')
 
     sources: T.List[Path] = options.sources.copy() or [Path(build_filename)]
 
@@ -996,7 +1013,7 @@ def run(options: argparse.Namespace) -> int:
 
         try:
             if from_stdin:
-                src_file = Path('STDIN')  # used for error messages and introspection
+                src_file = options.source_file_path or Path('STDIN')  # used for error messages and introspection
                 code = sys.stdin.read()
             else:
                 code = src_file.read_text(encoding='utf-8')
