@@ -491,13 +491,14 @@ class CompilerHolder(ObjectHolder['Compiler']):
         define_name = args[0]
         extra_args = functools.partial(self._determine_args, kwargs)
         deps, msg = self._determine_dependencies(kwargs['dependencies'], endl=None)
-        value, cached = self.compiler.get_define(define_name, kwargs['prefix'],
-                                                 extra_args=extra_args, dependencies=deps)
+        has_value, cached = self.compiler.has_define(define_name, kwargs['prefix'],
+                                                     extra_args=extra_args,
+                                                     dependencies=deps)
         cached_msg = mlog.blue('(cached)') if cached else ''
-        h = mlog.green('YES') if value is not None else mlog.red('NO')
+        h = mlog.green('YES') if has_value else mlog.red('NO')
         mlog.log('Checking if define', mlog.bold(define_name, True), msg, 'exists:', h, cached_msg)
 
-        return value is not None
+        return has_value
 
     @typed_pos_args('compiler.compiles', (str, mesonlib.File))
     @TypedArgs('compiler.compiles', kw_types=_COMPILES_KWS)
