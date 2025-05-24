@@ -564,9 +564,7 @@ class Backend:
         cmd_args: T.List[str] = []
         for c in raw_cmd_args:
             if isinstance(c, programs.ExternalProgram):
-                p = c.get_path()
-                assert isinstance(p, str)
-                cmd_args.append(p)
+                cmd_args += c.get_command()
             elif isinstance(c, (build.BuildTarget, build.CustomTarget)):
                 cmd_args.append(self.get_target_filename_abs(c))
             elif isinstance(c, mesonlib.File):
