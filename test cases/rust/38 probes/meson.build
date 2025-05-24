@@ -25,3 +25,9 @@ cargo_host = rustmod.compiler_target(native: true)
 message('Build Rust target triple: ' + cargo_host)
 assert(cargo_host != '', 'compiler_target(native: true) should return a non-empty string')
 assert(cargo_host.contains('-'), 'compiler_target(native: true) should return a triple containing dashes')
+
+# Test has_define()
+assert(not rustc.has_define('meson_probe_cfg', args: []),
+       'has_define() should not find a cfg symbol that was never defined')
+assert(rustc.has_define('meson_probe_cfg', args: ['--cfg', 'meson_probe_cfg']),
+       'has_define() should find a cfg symbol defined via --cfg')

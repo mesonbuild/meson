@@ -267,10 +267,19 @@ class RustCompiler(Compiler):
         return stdo.split('\n', maxsplit=1)[0]
 
     @functools.lru_cache(maxsize=None)
-    def get_cfgs(self) -> T.List[str]:
-        cmd = self.get_exelist(ccache=False) + ['--print', 'cfg']
+    def _get_cfgs(self, extra_args: T.Tuple[str, ...] = ()) -> T.List[str]:
+        cmd = [*self.get_exelist(ccache=False), *extra_args, '--print', 'cfg']
         p, stdo, stde = Popen_safe_logged(cmd)
         return stdo.splitlines()
+
+    def get_cfgs(self, extra_args: T.List[str] | T.Callable[[CompileCheckMode], T.List[str]] | None = None) -> T.List[str]:
+        if extra_args is None:
+            args = ()
+        elif callable(extra_args):
+            args = tuple(extra_args(CompileCheckMode.COMPILE))
+        else:
+            args = tuple(extra_args)
+        return self._get_cfgs(args)
 
     @functools.lru_cache(maxsize=None)
     def get_target_triple(self) -> str:
@@ -288,7 +297,7 @@ class RustCompiler(Compiler):
 
     @functools.lru_cache(maxsize=None)
     def get_crt_static(self) -> bool:
-        return 'target_feature="crt-static"' in self.get_cfgs()
+        return 'target_feature="crt-static"' in self._get_cfgs()
 
     def get_nightly(self, target: T.Optional[BuildTarget]) -> bool:
         if not target:
@@ -348,6 +357,16 @@ class RustCompiler(Compiler):
             return None
         libname = libname[3:]
         return libname
+
+    def has_define(self, dname: str, prefix: str,
+                   extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
+                   dependencies: T.List['Dependency'],
+                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        if prefix:
+            raise MesonException('Rust compiler does not support prefix for has_define')
+        if dependencies:
+            raise MesonException('Rust compiler does not support dependencies for has_define')
+        return dname in self.get_cfgs(extra_args), False
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
@@ -699,8 +718,8 @@ class RustdocTestCompiler(RustCompiler):
         return self.rustc.get_target_libdir()
 
     @functools.lru_cache(maxsize=None)
-    def get_cfgs(self) -> T.List[str]:
-        return self.rustc.get_cfgs()
+    def _get_cfgs(self, extra_args: T.Tuple[str, ...] = ()) -> T.List[str]:
+        return self.rustc._get_cfgs(extra_args)
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return []
