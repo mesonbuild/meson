@@ -648,6 +648,13 @@ class Compiler(HoldableObject, metaclass=SimpleABC):
                    disable_cache: bool = False) -> T.Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
+    def has_define(self, dname: str, prefix: str,
+                   extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
+                   dependencies: T.List['Dependency'],
+                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        value, cached = self.get_define(dname, prefix, extra_args, dependencies, disable_cache)
+        return value is not None, cached
+
     def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
                     guess: T.Optional[int], prefix: str, *,
                     extra_args: T.Union[None, T.List[str], T.Callable[[CompileCheckMode], T.List[str]]],
