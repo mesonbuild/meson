@@ -69,7 +69,7 @@ rustup target add arm-unknown-linux-gnueabihf
 # Use the GitHub API to get the latest release information
 LATEST_RELEASE=$(wget -qO- "https://api.github.com/repos/ziglang/zig/releases/latest")
 ZIGVER=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
-ZIG_BASE="zig-linux-x86_64-$ZIGVER"
+ZIG_BASE="zig-x86_64-linux-$ZIGVER"
 wget "https://ziglang.org/download/$ZIGVER/$ZIG_BASE.tar.xz"
 tar xf "$ZIG_BASE.tar.xz"
 rm -rf "$ZIG_BASE.tar.xz"
