@@ -741,9 +741,18 @@ class MachineHolder(ObjectHolder['MachineInfo']):
             return self.held_object.subsystem
         raise InterpreterException('Subsystem not defined or could not be autodetected.')
 
-
 class IncludeDirsHolder(ObjectHolder[build.IncludeDirs]):
-    pass
+    def __init__(self, target: build.IncludeDirs, interpreter: Interpreter):
+        super().__init__(target, interpreter)
+        self.methods.update({'to_list': self.to_list_method})
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('inc.to_list', '1.5.0')
+    def to_list_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.List[str]:
+        if self.held_object.is_system:
+            return self.held_object.get_incdirs()
+        return self.held_object.to_string_list(self.env.source_dir, self.env.build_dir)
 
 class FileHolder(ObjectHolder[mesonlib.File]):
     def __init__(self, file: mesonlib.File, interpreter: 'Interpreter'):
