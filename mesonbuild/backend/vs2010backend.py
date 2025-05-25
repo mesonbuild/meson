@@ -703,9 +703,8 @@ class Vs2010Backend(backends.Backend):
             # Fix weird mt.exe error:
             # mt.exe is trying to compile a non-existent .generated.manifest file and link it
             # with the target. This does not happen without masm props.
-            ET.SubElement(direlem, 'EmbedManifest').text = 'true' if masm_type else 'false'
-            if not gen_manifest:
-                ET.SubElement(direlem, 'GenerateManifest').text = 'false'
+            ET.SubElement(direlem, 'EmbedManifest').text = 'true' if masm_type or gen_manifest == 'embed' else 'false'
+            ET.SubElement(direlem, 'GenerateManifest').text = 'true' if gen_manifest else 'false'
 
         return (root, type_config)
 
@@ -1513,8 +1512,9 @@ class Vs2010Backend(backends.Backend):
             additional_links.append(self.relpath(lib, self.get_target_dir(target)))
 
         if len(extra_link_args) > 0:
-            extra_link_args.append('%(AdditionalOptions)')
-            ET.SubElement(link, "AdditionalOptions").text = ' '.join(extra_link_args)
+            args = [self.escape_additional_option(arg) for arg in extra_link_args]
+            args.append('%(AdditionalOptions)')
+            ET.SubElement(link, "AdditionalOptions").text = ' '.join(args)
         if len(additional_libpaths) > 0:
             additional_libpaths.insert(0, '%(AdditionalLibraryDirectories)')
             ET.SubElement(link, 'AdditionalLibraryDirectories').text = ';'.join(additional_libpaths)
@@ -2132,6 +2132,7 @@ class Vs2010Backend(backends.Backend):
         pass
 
     # Returns if a target generates a manifest or not.
+    # Returns 'embed' if the generated manifest is embedded.
     def get_gen_manifest(self, target: T.Optional[build.BuildTarget]):
         if not isinstance(target, build.BuildTarget):
             return True
@@ -2149,6 +2150,8 @@ class Vs2010Backend(backends.Backend):
             arg = arg.upper()
             if arg == '/MANIFEST:NO':
                 return False
+            if arg.startswith('/MANIFEST:EMBED'):
+                return 'embed'
             if arg == '/MANIFEST' or arg.startswith('/MANIFEST:'):
                 break
         return True
