@@ -1,0 +1,5 @@
+{
+  "file": "cuda-cross.txt",
+  "tests": ["cuda"],
+  "env": {}
+}
