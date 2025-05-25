@@ -143,7 +143,7 @@ class CommandTests(unittest.TestCase):
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
         self._run(python_command + ['setup.py', 'install', '--prefix', str(prefix)])
         # Fix importlib-metadata by appending all dirs in pylibdir
-        PYTHONPATHS = [pylibdir] + [x for x in pylibdir.iterdir()]
+        PYTHONPATHS = [pylibdir] + [x for x in pylibdir.iterdir() if x.name.endswith('.egg')]
         PYTHONPATHS = [os.path.join(str(x), '') for x in PYTHONPATHS]
         os.environ['PYTHONPATH'] = os.pathsep.join(PYTHONPATHS)
         # Check that all the files were installed correctly
