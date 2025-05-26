@@ -224,6 +224,12 @@ class OptionTests(unittest.TestCase):
         self.assertTrue(optstore.accept_as_pending_option(OptionKey('b_ndebug')))
         self.assertFalse(optstore.accept_as_pending_option(OptionKey('b_whatever')))
 
+    def test_backend_option_pending(self):
+        optstore = OptionStore(False)
+        # backend options are known after the first invocation
+        self.assertTrue(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), True))
+        self.assertFalse(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), False))
+
     def test_reconfigure_b_nonexistent(self):
         optstore = OptionStore(False)
         optstore.set_from_configure_command(['b_ndebug=true'], [])
