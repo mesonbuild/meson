@@ -26,77 +26,77 @@
   },
   "stdout": [
     {
-      "line": ".*DEPRECATION: Option 'o1' is deprecated",
+      "line": ".*DEPRECATION: Option \"o1\" is deprecated",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'o2' value 'a' is deprecated",
+      "line": ".*DEPRECATION: Option \"o2\" value 'a' is deprecated",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'o3' value 'a' is replaced by 'c'",
+      "line": ".*DEPRECATION: Option \"o3\" value 'a' is replaced by 'c'",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'o4' value 'true' is replaced by 'enabled'",
+      "line": ".*DEPRECATION: Option \"o4\" value 'true' is replaced by 'enabled'",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'o5' value 'auto' is replaced by 'false'",
+      "line": ".*DEPRECATION: Option \"o5\" value 'auto' is replaced by 'false'",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'p1' is deprecated",
+      "line": ".*DEPRECATION: Option \"p1\" is deprecated",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'p2' value 'a' is deprecated",
+      "line": ".*DEPRECATION: Option \"p2\" value 'a' is deprecated",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'p3' value 'a' is replaced by 'c'",
+      "line": ".*DEPRECATION: Option \"p3\" value 'a' is replaced by 'c'",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'p4' value 'true' is replaced by 'enabled'",
+      "line": ".*DEPRECATION: Option \"p4\" value 'true' is replaced by 'enabled'",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'p5' value 'auto' is replaced by 'false'",
+      "line": ".*DEPRECATION: Option \"p5\" value 'auto' is replaced by 'false'",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'c1' is deprecated",
+      "line": ".*DEPRECATION: Option \"c1\" is deprecated",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'c2' value 'a' is deprecated",
+      "line": ".*DEPRECATION: Option \"c2\" value 'a' is deprecated",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'c3' value 'a' is replaced by 'c'",
+      "line": ".*DEPRECATION: Option \"c3\" value 'a' is replaced by 'c'",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'c4' value 'true' is replaced by 'enabled'",
+      "line": ".*DEPRECATION: Option \"c4\" value 'true' is replaced by 'enabled'",
       "match": "re",
       "count": 1
     },
     {
-      "line": ".*DEPRECATION: Option 'c5' value 'auto' is replaced by 'false'",
+      "line": ".*DEPRECATION: Option \"c5\" value 'auto' is replaced by 'false'",
       "match": "re",
       "count": 1
     }

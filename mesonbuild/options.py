@@ -999,6 +999,10 @@ class OptionStore:
         return value.as_posix()
 
     def set_option(self, key: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
+        error_key = key
+        if error_key.subproject == '':
+            error_key = error_key.evolve(subproject=None)
+
         if key.name == 'prefix':
             assert isinstance(new_value, str), 'for mypy'
             new_value = self.sanitize_prefix(new_value)
@@ -1010,26 +1014,26 @@ class OptionStore:
         try:
             opt = self.get_value_object_for(key)
         except KeyError:
-            raise MesonException(f'Unknown options: "{key!s}" not found.')
+            raise MesonException(f'Unknown option: "{error_key}".')
 
         if opt.deprecated is True:
-            mlog.deprecation(f'Option {key.name!r} is deprecated')
+            mlog.deprecation(f'Option "{error_key}" is deprecated')
         elif isinstance(opt.deprecated, list):
             for v in opt.listify(new_value):
                 if v in opt.deprecated:
-                    mlog.deprecation(f'Option {key.name!r} value {v!r} is deprecated')
+                    mlog.deprecation(f'Option "{error_key}" value {v!r} is deprecated')
         elif isinstance(opt.deprecated, dict):
             def replace(v: str) -> str:
                 assert isinstance(opt.deprecated, dict) # No, Mypy can not tell this from two lines above
                 newvalue = opt.deprecated.get(v)
                 if newvalue is not None:
-                    mlog.deprecation(f'Option {key.name!r} value {v!r} is replaced by {newvalue!r}')
+                    mlog.deprecation(f'Option "{error_key}" value {v!r} is replaced by {newvalue!r}')
                     return newvalue
                 return v
             valarr = [replace(v) for v in opt.listify(new_value)]
             new_value = ','.join(valarr)
         elif isinstance(opt.deprecated, str):
-            mlog.deprecation(f'Option {key.name!r} is replaced by {opt.deprecated!r}')
+            mlog.deprecation(f'Option "{error_key}" is replaced by {opt.deprecated!r}')
             # Change both this aption and the new one pointed to.
             dirty = self.set_option(key.evolve(name=opt.deprecated), new_value)
             dirty |= opt.set_value(new_value)
@@ -1039,7 +1043,7 @@ class OptionStore:
         changed = opt.set_value(new_value)
 
         if opt.readonly and changed and not first_invocation:
-            raise MesonException(f'Tried to modify read only option {str(key)!r}')
+            raise MesonException(f'Tried to modify read only option "{error_key}"')
 
         if key.name == 'prefix' and first_invocation and changed:
             assert isinstance(old_value, str), 'for mypy'
