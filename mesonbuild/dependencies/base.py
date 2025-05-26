@@ -21,6 +21,7 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
+    from ..backend.backends import Backend
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
@@ -273,6 +274,35 @@ class Dependency(HoldableObject):
     def get_as_shared(self, recursive: bool) -> Dependency:
         """Used as base case for internal_dependency"""
         return self
+
+    def as_dict(self, backend: Backend) -> T.Dict[str, T.Any]:
+        """Used for introspection and for dependency.as_json"""
+
+        from .. import build
+
+        def _src_to_str(src_file: T.Union[mesonlib.FileOrString, build.CustomTarget, build.StructuredSources, build.CustomTargetIndex, build.GeneratedList]) -> T.List[str]:
+            if isinstance(src_file, str):
+                return [src_file]
+            if isinstance(src_file, mesonlib.File):
+                return [src_file.absolute_path(backend.source_dir, backend.build_dir)]
+            if isinstance(src_file, (build.CustomTarget, build.CustomTargetIndex, build.GeneratedList)):
+                return src_file.get_outputs()
+            if isinstance(src_file, build.StructuredSources):
+                return [f for s in src_file.as_list() for f in _src_to_str(s)]
+            raise mesonlib.MesonBugException(f'Invalid file type {type(src_file)}.')
+
+        return {
+            'name': self.name,
+            'type': self.type_name,
+            'version': self.get_version(),
+            'compile_args': self.get_compile_args(),
+            'link_args': self.get_link_args(),
+            'include_directories': [i for idirs in self.get_include_dirs() for i in idirs.to_string_list(backend.source_dir, backend.build_dir)],
+            'sources': [f for s in self.get_sources() for f in _src_to_str(s)],
+            'extra_files': [f for s in self.get_extra_files() for f in _src_to_str(s)],
+            'dependencies': [e.name for e in self.ext_deps],
+            'depends': [lib.get_id() for lib in getattr(self, 'libraries', [])],
+        }
 
 class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List['IncludeDirs'], compile_args: T.List[str],
