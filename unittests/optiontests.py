@@ -55,9 +55,9 @@ class OptionTests(unittest.TestCase):
         """Test that subproject system options get their default value from the global
            option (e.g. "sub:b_lto" can be initialized from "b_lto")."""
         optstore = OptionStore(False)
-        name = 'someoption'
-        default_value = 'somevalue'
-        new_value = 'new_value'
+        name = 'b_lto'
+        default_value = 'false'
+        new_value = 'true'
         k = OptionKey(name)
         subk = k.evolve(subproject='sub')
         optstore.initialize_from_top_level_project_call({}, {}, {OptionKey(name): new_value})
