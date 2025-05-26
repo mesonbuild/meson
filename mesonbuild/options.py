@@ -1362,7 +1362,8 @@ class OptionStore:
                 else:
                     self.pending_options[key] = valstr
 
-    def accept_as_pending_option(self, key: OptionKey, known_subprojects: T.Optional[T.Union[T.Set[str], T.KeysView[str]]] = None) -> bool:
+    def accept_as_pending_option(self, key: OptionKey, known_subprojects: T.Optional[T.Union[T.Set[str], T.KeysView[str]]] = None,
+                                 first_invocation: bool = False) -> bool:
         # Fail on unknown options that we can know must exist at this point in time.
         # Subproject and compiler options are resolved later.
         #
@@ -1372,6 +1373,8 @@ class OptionStore:
             if known_subprojects is None or key.subproject not in known_subprojects:
                 return True
         if self.is_compiler_option(key):
+            return True
+        if first_invocation and self.is_backend_option(key):
             return True
         return (self.is_base_option(key) and
                 key.evolve(subproject=None, machine=MachineChoice.HOST) in COMPILER_BASE_OPTIONS)
