@@ -60,7 +60,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
         self.cross_file = cross_file
         self.backend = backend
-        self.default_options = {OptionKey('backend'): self.backend}
+        self.default_options: OptionDict = {OptionKey('backend'): self.backend}
         self.project_data: T.Dict[str, T.Any] = {}
         self.targets: T.List[T.Dict[str, T.Any]] = []
         self.dependencies: T.List[T.Dict[str, T.Any]] = []
@@ -98,8 +98,8 @@ class IntrospectionInterpreter(AstInterpreter):
                 return [node.value]
             return None
 
-        def create_options_dict(options: T.List[str], subproject: str = '') -> T.Mapping[OptionKey, str]:
-            result: T.MutableMapping[OptionKey, str] = {}
+        def create_options_dict(options: T.List[str], subproject: str = '') -> OptionDict:
+            result: OptionDict = {}
             for o in options:
                 try:
                     (key, value) = o.split('=', 1)
@@ -130,14 +130,14 @@ class IntrospectionInterpreter(AstInterpreter):
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
             if self.subproject == '':
                 self.coredata.optstore.initialize_from_top_level_project_call(
-                    T.cast('OptionDict', self.project_default_options),
+                    self.project_default_options,
                     {},  # TODO: not handled by this Interpreter.
                     self.environment.options)
             else:
                 self.coredata.optstore.initialize_from_subproject_call(
                     self.subproject,
                     {},  # TODO: this isn't handled by the introspection interpreter...
-                    T.cast('OptionDict', self.project_default_options),
+                    self.project_default_options,
                     {})  # TODO: this isn't handled by the introspection interpreter...
                 self.coredata.initialized_subprojects.add(self.subproject)
 
