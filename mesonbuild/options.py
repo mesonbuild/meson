@@ -310,7 +310,7 @@ class OptionKey:
         return self.machine is MachineChoice.BUILD
 
 if T.TYPE_CHECKING:
-    OptionDict: TypeAlias = T.Dict[T.Union[OptionKey, str], ElementaryOptionValues]
+    OptionDict: TypeAlias = T.Dict[OptionKey, ElementaryOptionValues]
 
 @dataclasses.dataclass
 class UserOption(T.Generic[_T], HoldableObject):
@@ -809,13 +809,13 @@ class OptionStore:
         self.module_options: T.Set[OptionKey] = set()
         from .compilers import all_languages
         self.all_languages = set(all_languages)
-        self.augments: T.Dict[OptionKey, ElementaryOptionValues] = {}
+        self.augments: OptionDict = {}
         self.is_cross = is_cross
 
         # Pending options are options that need to be initialized later, either
         # configuration dependent options like compiler options, or options for
         # a different subproject
-        self.pending_options: T.Dict[OptionKey, ElementaryOptionValues] = {}
+        self.pending_options: OptionDict = {}
 
     def clear_pending(self) -> None:
         self.pending_options = {}
@@ -1248,7 +1248,7 @@ class OptionStore:
         prefix = None
         others_d: OptionDict = {}
         for k, v in coll.items():
-            if k == 'prefix' or (isinstance(k, OptionKey) and k.name == 'prefix'):
+            if k.name == 'prefix':
                 if not isinstance(v, str):
                     raise MesonException('Incorrect type for prefix option (expected string)')
                 prefix = v
@@ -1259,13 +1259,10 @@ class OptionStore:
     def first_handle_prefix(self,
                             project_default_options: OptionDict,
                             cmd_line_options: OptionDict,
-                            machine_file_options: T.Mapping[OptionKey, ElementaryOptionValues]) \
-            -> T.Tuple[OptionDict,
-                       OptionDict,
-                       T.MutableMapping[OptionKey, ElementaryOptionValues]]:
+                            machine_file_options: OptionDict) \
+            -> T.Tuple[OptionDict, OptionDict, OptionDict]:
         # Copy to avoid later mutation
-        nopref_machine_file_options = T.cast(
-            'T.MutableMapping[OptionKey, ElementaryOptionValues]', copy.copy(machine_file_options))
+        nopref_machine_file_options = copy.copy(machine_file_options)
 
         prefix = None
         (possible_prefix, nopref_project_default_options) = self.prefix_split_options(project_default_options)
@@ -1298,15 +1295,11 @@ class OptionStore:
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: OptionDict,
                                                cmd_line_options_in: OptionDict,
-                                               machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
+                                               machine_file_options_in: OptionDict) -> None:
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
                                                                                                      machine_file_options_in)
-        for keystr, valstr in project_default_options.items():
-            if isinstance(keystr, str):
-                key = OptionKey.from_string(keystr)
-            else:
-                key = keystr
+        for key, valstr in project_default_options.items():
             # Due to backwards compatibility we ignore build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
@@ -1328,11 +1321,7 @@ class OptionStore:
                 self.augments[key] = valstr
             else:
                 self.set_option_maybe_root(key, valstr, True)
-        for keystr, valstr in cmd_line_options.items():
-            if isinstance(keystr, str):
-                key = OptionKey.from_string(keystr)
-            else:
-                key = keystr
+        for key, valstr in cmd_line_options.items():
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
@@ -1361,12 +1350,7 @@ class OptionStore:
 
     def validate_cmd_line_options(self, cmd_line_options: OptionDict) -> None:
         unknown_options = []
-        for keystr, valstr in cmd_line_options.items():
-            if isinstance(keystr, str):
-                key = OptionKey.from_string(keystr)
-            else:
-                key = keystr
-
+        for key, valstr in cmd_line_options.items():
             if key in self.pending_options and not self.accept_as_pending_option(key):
                 unknown_options.append(f'"{key}"')
 
@@ -1379,11 +1363,7 @@ class OptionStore:
                                         spcall_default_options: OptionDict,
                                         project_default_options: OptionDict,
                                         cmd_line_options: OptionDict) -> None:
-        for keystr, valstr in itertools.chain(project_default_options.items(), spcall_default_options.items()):
-            if isinstance(keystr, str):
-                key = OptionKey.from_string(keystr)
-            else:
-                key = keystr
+        for key, valstr in itertools.chain(project_default_options.items(), spcall_default_options.items()):
             if key.subproject is None:
                 key = key.evolve(subproject=subproject)
             elif key.subproject == subproject:
@@ -1397,9 +1377,7 @@ class OptionStore:
                 self.pending_options.pop(key, None)
                 self.augments[key] = valstr
         # Check for pending options
-        for key, valstr in cmd_line_options.items(): # type: ignore [assignment]
-            if not isinstance(key, OptionKey):
-                key = OptionKey.from_string(key)
+        for key, valstr in cmd_line_options.items():
             if key.subproject != subproject:
                 continue
             self.pending_options.pop(key, None)
