@@ -1258,6 +1258,7 @@ class Backend:
                 extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = list(exe.get_transitive_build_target_deps())
+                extra_bdeps.extend(t.depends)
                 extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
                 for a in t.cmd_args:
                     if isinstance(a, build.BuildTarget):
