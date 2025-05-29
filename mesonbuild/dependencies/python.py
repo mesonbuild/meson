@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import functools, json, os, sys, textwrap
+import functools, json, operator, os, sys, textwrap
 from pathlib import Path
 import typing as T
 
@@ -101,10 +101,7 @@ class PythonBuildConfig:
         self._expand_paths()
 
     def __getitem__(self, key: str) -> T.Any:
-        value = self._data
-        for part in key.split('.'):
-            value = value[part]
-        return value
+        return functools.reduce(operator.getitem, key.split('.'), self._data)
 
     def __contains__(self, key: str) -> bool:
         try:
