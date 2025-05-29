@@ -2181,10 +2181,16 @@ class StaticLibrary(BuildTarget):
                 elif self.rust_crate_type == 'staticlib':
                     self.suffix = 'a'
             else:
-                if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking':
-                    self.suffix = 'ma' if self.options.get_value('b_lto') and not self.prelink else 'a'
-                else:
-                    self.suffix = 'a'
+                self.suffix = 'a'
+                if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
+                    key = OptionKey('b_lto', self.subproject, self.for_machine)
+                    try:
+                        v = self.environment.coredata.get_option_for_target(self, key)
+                    except KeyError:
+                        v = self.environment.coredata.optstore.get_value_for(key)
+                    assert isinstance(v, bool), 'for mypy'
+                    if v:
+                        self.suffix = 'ma'
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs[0] = self.filename
 
