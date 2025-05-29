@@ -608,6 +608,7 @@ class Interpreter:
         """
         default_options: T.List[mparser.BaseNode] = []
         default_options.append(build.string(f'rust_std={pkg.manifest.package.edition}'))
+        default_options.append(build.string(f'build.rust_std={pkg.manifest.package.edition}'))
         if pkg.downloaded:
             default_options.append(build.string('warning_level=0'))
 
