@@ -15,7 +15,7 @@ from ..interpreterbase import (
     ContainerTypeInfo, ObjectHolder, KwargInfo, typed_pos_args, typed_kwargs,
     noPosargs, noKwargs, disablerIfNotFound, InterpreterObject
 )
-from ..mesonlib import File, MesonException, Popen_safe
+from ..mesonlib import File, MesonException, Popen_safe, version_compare
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..utils.core import HoldableObject
 from .. import mlog
@@ -34,6 +34,7 @@ if T.TYPE_CHECKING:
 
     Program: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
     LexImpls = Literal['lex', 'flex', 'reflex', 'win_flex']
+    YaccImpls = Literal['yacc', 'byacc', 'bison', 'win_bison']
 
     class LexGenerateKwargs(TypedDict):
 
@@ -50,6 +51,23 @@ if T.TYPE_CHECKING:
         reflex_version: T.List[str]
         win_flex_version: T.List[str]
         implementations: T.List[LexImpls]
+        native: MachineChoice
+
+    class YaccGenerateKWargs(TypedDict):
+
+        args: T.List[str]
+        source: T.Optional[str]
+        header: T.Optional[str]
+        locations: T.Optional[str]
+        plainname: bool
+
+    class FindYaccKwargs(ExtractRequired):
+
+        yacc_version: T.List[str]
+        byacc_version: T.List[str]
+        bison_version: T.List[str]
+        win_bison_version: T.List[str]
+        implementations: T.List[YaccImpls]
         native: MachineChoice
 
 
@@ -177,6 +195,80 @@ class LexHolder(ObjectHolder[LexGenerator]):
         return target
 
 
+@dataclasses.dataclass
+class YaccGenerator(_CodeGenerator):
+    pass
+
+
+class YaccHolder(ObjectHolder[YaccGenerator]):
+
+    @noPosargs
+    @noKwargs
+    @InterpreterObject.method('implementation')
+    def implementation_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
+        return self.held_object.name
+
+    @noPosargs
+    @noKwargs
+    @InterpreterObject.method('found')
+    def found_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> bool:
+        return self.held_object.found()
+
+    @typed_pos_args('codegen.yacc.generate', (str, File, GeneratedList, CustomTarget, CustomTargetIndex))
+    @typed_kwargs(
+        'codegen.yacc.generate',
+        KwargInfo('args', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('source', (str, NoneType)),
+        KwargInfo('header', (str, NoneType)),
+        KwargInfo('locations', (str, NoneType)),
+        KwargInfo('plainname', bool, default=False),
+    )
+    @InterpreterObject.method('generate')
+    def generate_method(self, args: T.Tuple[T.Union[str, File, CustomTarget, CustomTargetIndex, GeneratedList]], kwargs: YaccGenerateKWargs) -> CustomTarget:
+        if not self.held_object.found():
+            raise MesonException('Attempted to call generate without finding a yacc implementation')
+
+        input = self.interpreter.source_strings_to_files([args[0]])[0]
+        if isinstance(input, File):
+            is_cpp = input.endswith(".yy")
+            name = os.path.splitext(input.fname)[0]
+        else:
+            gen_input = input.get_outputs()
+            if len(gen_input) != 1:
+                raise MesonException('codegen.lex.generate: generated type inputs must have exactly one output, index into them to select the correct input')
+            is_cpp = gen_input[0].endswith('.yy')
+            name = os.path.splitext(gen_input[0])[0]
+        name = os.path.basename(name)
+
+        command = self.held_object.command()
+        command.extend(kwargs['args'])
+
+        source_ext = 'cpp' if is_cpp else 'c'
+        header_ext = 'hpp' if is_cpp else 'h'
+
+        base = '@PLAINNAME@' if kwargs['plainname'] else '@BASENAME@'
+        outputs: T.List[str] = []
+        outputs.append(f'{base}.{source_ext}' if kwargs['source'] is None else kwargs['source'])
+        outputs.append(f'{base}.{header_ext}' if kwargs['header'] is None else kwargs['header'])
+        if kwargs['locations'] is not None:
+            outputs.append(kwargs['locations'])
+
+        for_machine = self.held_object.program.for_machine
+        target = CustomTarget(
+            f'codegen-yacc-{name}-{for_machine.get_lower_case_name()}',
+            self.interpreter.subdir,
+            self.interpreter.subproject,
+            self.interpreter.environment,
+            command,
+            [input],
+            outputs,
+            backend=self.interpreter.backend,
+            description='Generating parser {{}} with {}'.format(self.held_object.name),
+        )
+        self.interpreter.add_target(target.name, target)
+        return target
+
+
 class CodeGenModule(ExtensionModule):
 
     """Module with helpers for codegen wrappers."""
@@ -187,6 +279,7 @@ class CodeGenModule(ExtensionModule):
         super().__init__(interpreter)
         self.methods.update({
             'lex': self.lex_method,
+            'yacc': self.yacc_method,
         })
 
     @noPosargs
@@ -268,7 +361,85 @@ class CodeGenModule(ExtensionModule):
         lex_args.extend(['-o', '@OUTPUT0@'])
         return LexGenerator(name, bin, T.cast('ImmutableListProtocol[str]', lex_args))
 
+    @noPosargs
+    @typed_kwargs(
+        'codegen.yacc',
+        KwargInfo('yacc_version', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('byacc_version', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('bison_version', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo('win_bison_version', ContainerTypeInfo(list, str), default=[], listify=True),
+        KwargInfo(
+            'implementations',
+            ContainerTypeInfo(list, str),
+            default=[],
+            listify=True,
+            validator=is_subset_validator({'yacc', 'byacc', 'bison', 'win_bison'})
+        ),
+        REQUIRED_KW,
+        DISABLER_KW,
+        NATIVE_KW,
+    )
+    @disablerIfNotFound
+    def yacc_method(self, state: ModuleState, args: T.Tuple, kwargs: FindYaccKwargs) -> YaccGenerator:
+        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject)
+        if disabled:
+            mlog.log('generator yacc skipped: feature', mlog.bold(feature), 'disabled')
+            return YaccGenerator('yacc', NonExistingExternalProgram('yacc'))
+        names: T.List[YaccImpls]
+        if kwargs['implementations']:
+            names = kwargs['implementations']
+        else:
+            assert state.environment.machines[kwargs['native']] is not None, 'for mypy'
+            if state.environment.machines[kwargs['native']].system == 'windows':
+                names = ['win_bison', 'bison', 'yacc']
+            else:
+                names = ['bison', 'byacc', 'yacc']
+
+        versions: T.Mapping[YaccImpls, T.List[str]] = {
+            'yacc': kwargs['yacc_version'],
+            'byacc': kwargs['byacc_version'],
+            'bison': kwargs['bison_version'],
+            'win_bison': kwargs['win_bison_version'],
+        }
+
+        for name in names:
+            bin = state.find_program(
+                name, wanted=versions[name], for_machine=kwargs['native'], required=False)
+            if bin.found():
+                break
+        else:
+            if required:
+                raise MesonException.from_node(
+                    'Could not find a yacc implementation. Tried: ', ", ".join(names),
+                    node=state.current_node)
+            return YaccGenerator(name, bin)
+
+        yacc_args: T.List[str] = ['@INPUT@', '-o', '@OUTPUT0@']
+
+        impl = T.cast('YaccImpls', bin.name)
+        if impl == 'yacc' and isinstance(bin, ExternalProgram):
+            _, out, _ = Popen_safe(bin.get_command() + ['--version'])
+            if 'GNU Bison' in out:
+                impl = 'bison'
+            elif out.startswith('yacc - 2'):
+                impl = 'byacc'
+
+        if impl in {'bison', 'win_bison'}:
+            yacc_args.append('--defines=@OUTPUT1@')
+            if isinstance(bin, ExternalProgram) and version_compare(bin.get_version(), '>= 3.4'):
+                yacc_args.append('--color=always')
+        elif impl == 'byacc':
+            yacc_args.extend(['-H', '@OUTPUT1@'])
+        else:
+            mlog.warning('This yacc does not appear to be bison or byacc, the '
+                         'POSIX specification does not require that header '
+                         'output location be configurable, and may not work.',
+                         fatal=False)
+            yacc_args.append('-H')
+        return YaccGenerator(name, bin, T.cast('ImmutableListProtocol[str]', yacc_args))
+
 
 def initialize(interpreter: Interpreter) -> CodeGenModule:
     interpreter.append_holder_map(LexGenerator, LexHolder)
+    interpreter.append_holder_map(YaccGenerator, YaccHolder)
     return CodeGenModule(interpreter)

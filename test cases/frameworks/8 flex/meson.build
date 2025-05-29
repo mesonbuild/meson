@@ -10,7 +10,7 @@ project('flex and bison', 'c')
 # TODO: handle win_flex/win_bison
 
 flex = find_program('reflex', 'flex', 'lex', required: false)
-bison = find_program('bison', required: false)
+bison = find_program('bison', 'byacc', 'yacc', required: false)
 
 if not flex.found()
   error('MESON_SKIP_TEST flex not found.')
@@ -24,11 +24,8 @@ codegen = import('unstable-codegen')
 lex = codegen.lex(implementations : ['flex', 'reflex', 'lex'])
 lfiles = lex.generate('lexer.l')
 
-pgen = generator(bison,
-output : ['@BASENAME@.tab.c', '@BASENAME@.tab.h'],
-arguments : ['@INPUT@', '--defines=@OUTPUT1@', '--output=@OUTPUT0@'])
-
-pfiles = pgen.process('parser.y')
+yacc = codegen.yacc(implementations : ['byacc', 'bison', 'yacc'])
+pfiles = yacc.generate('parser.y', header : '@BASENAME@.tab.h')
 
 e = executable(
   'pgen',
