@@ -1099,110 +1099,117 @@ class AllPlatformTests(BasePlatformTests):
         for lang, evar in langs:
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
-                ecc = compiler_from_language(env, lang, MachineChoice.HOST)
-                self.assertTrue(ecc.version)
-                elinker = detect_static_linker(env, ecc)
-                # Pop it so we don't use it for the next detection
-                evalue = os.environ.pop(evar)
-                # Very rough/strict heuristics. Would never work for actual
-                # compiler detection, but should be ok for the tests.
-                ebase = os.path.basename(evalue)
-                if ebase.startswith('g') or ebase.endswith(('-gcc', '-g++')):
-                    self.assertIsInstance(ecc, gnu)
-                    self.assertIsInstance(elinker, ar)
-                elif 'clang-cl' in ebase:
-                    self.assertIsInstance(ecc, clangcl)
-                    self.assertIsInstance(elinker, lib)
-                elif 'clang' in ebase:
-                    self.assertIsInstance(ecc, clang)
-                    self.assertIsInstance(elinker, ar)
-                elif ebase.startswith('ic'):
-                    self.assertIsInstance(ecc, intel)
-                    self.assertIsInstance(elinker, ar)
-                elif ebase.startswith('cl'):
-                    self.assertIsInstance(ecc, msvc)
-                    self.assertIsInstance(elinker, lib)
-                else:
-                    raise AssertionError(f'Unknown compiler {evalue!r}')
-                # Check that we actually used the evalue correctly as the compiler
-                self.assertEqual(ecc.get_exelist(), split_args(evalue))
-            # Do auto-detection of compiler based on platform, PATH, etc.
-            cc = compiler_from_language(env, lang, MachineChoice.HOST)
-            self.assertTrue(cc.version)
-            linker = detect_static_linker(env, cc)
-            # Check compiler type
-            if isinstance(cc, gnu):
-                self.assertIsInstance(linker, ar)
-                if is_osx():
-                    self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
-                elif is_sunos():
-                    self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
-                else:
-                    self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
-            if isinstance(cc, clangcl):
-                self.assertIsInstance(linker, lib)
-                self.assertIsInstance(cc.linker, linkers.ClangClDynamicLinker)
-            if isinstance(cc, clang):
-                self.assertIsInstance(linker, ar)
-                if is_osx():
-                    self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
-                elif is_windows():
-                    # This is clang, not clang-cl. This can be either an
-                    # ld-like linker of link.exe-like linker (usually the
-                    # former for msys2, the latter otherwise)
-                    self.assertIsInstance(cc.linker, (linkers.MSVCDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
-                elif is_sunos():
-                    self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
-                else:
-                    self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
-            if isinstance(cc, intel):
-                self.assertIsInstance(linker, ar)
-                if is_osx():
-                    self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
-                elif is_windows():
-                    self.assertIsInstance(cc.linker, linkers.XilinkDynamicLinker)
-                else:
-                    self.assertIsInstance(cc.linker, linkers.GnuDynamicLinker)
-            if isinstance(cc, msvc):
-                self.assertTrue(is_windows())
-                self.assertIsInstance(linker, lib)
-                self.assertEqual(cc.id, 'msvc')
-                self.assertTrue(hasattr(cc, 'is_64'))
-                self.assertIsInstance(cc.linker, linkers.MSVCDynamicLinker)
-                # If we're on Windows CI, we know what the compiler will be
-                if 'arch' in os.environ:
-                    if os.environ['arch'] == 'x64':
-                        self.assertTrue(cc.is_64)
+                with self.subTest(lang=lang, evar=evar):
+                    ecc = compiler_from_language(env, lang, MachineChoice.HOST)
+                    self.assertTrue(ecc.version)
+                    elinker = detect_static_linker(env, ecc)
+                    # Pop it so we don't use it for the next detection
+                    evalue = os.environ.pop(evar)
+                    # Very rough/strict heuristics. Would never work for actual
+                    # compiler detection, but should be ok for the tests.
+                    ebase = os.path.basename(evalue)
+                    if ebase.startswith('g') or ebase.endswith(('-gcc', '-g++')):
+                        self.assertIsInstance(ecc, gnu)
+                        self.assertIsInstance(elinker, ar)
+                    elif 'clang-cl' in ebase:
+                        self.assertIsInstance(ecc, clangcl)
+                        self.assertIsInstance(elinker, lib)
+                    elif 'clang' in ebase:
+                        self.assertIsInstance(ecc, clang)
+                        self.assertIsInstance(elinker, ar)
+                    elif ebase.startswith('ic'):
+                        self.assertIsInstance(ecc, intel)
+                        self.assertIsInstance(elinker, ar)
+                    elif ebase.startswith('cl'):
+                        self.assertIsInstance(ecc, msvc)
+                        self.assertIsInstance(elinker, lib)
                     else:
-                        self.assertFalse(cc.is_64)
+                        self.fail(f'Unknown compiler {evalue!r}')
+                    # Check that we actually used the evalue correctly as the compiler
+                    self.assertEqual(ecc.get_exelist(), split_args(evalue))
+
+            # Do auto-detection of compiler based on platform, PATH, etc.
+            with self.subTest(lang=lang):
+                cc = compiler_from_language(env, lang, MachineChoice.HOST)
+                self.assertTrue(cc.version)
+                linker = detect_static_linker(env, cc)
+                # Check compiler type
+                if isinstance(cc, gnu):
+                    self.assertIsInstance(linker, ar)
+                    if is_osx():
+                        self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
+                    elif is_sunos():
+                        self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
+                    else:
+                        self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
+                if isinstance(cc, clangcl):
+                    self.assertIsInstance(linker, lib)
+                    self.assertIsInstance(cc.linker, linkers.ClangClDynamicLinker)
+                if isinstance(cc, clang):
+                    self.assertIsInstance(linker, ar)
+                    if is_osx():
+                        self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
+                    elif is_windows():
+                        # This is clang, not clang-cl. This can be either an
+                        # ld-like linker of link.exe-like linker (usually the
+                        # former for msys2, the latter otherwise)
+                        self.assertIsInstance(cc.linker, (linkers.MSVCDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
+                    elif is_sunos():
+                        self.assertIsInstance(cc.linker, (linkers.SolarisDynamicLinker, linkers.GnuLikeDynamicLinkerMixin))
+                    else:
+                        self.assertIsInstance(cc.linker, linkers.GnuLikeDynamicLinkerMixin)
+                if isinstance(cc, intel):
+                    self.assertIsInstance(linker, ar)
+                    if is_osx():
+                        self.assertIsInstance(cc.linker, linkers.AppleDynamicLinker)
+                    elif is_windows():
+                        self.assertIsInstance(cc.linker, linkers.XilinkDynamicLinker)
+                    else:
+                        self.assertIsInstance(cc.linker, linkers.GnuDynamicLinker)
+                if isinstance(cc, msvc):
+                    self.assertTrue(is_windows())
+                    self.assertIsInstance(linker, lib)
+                    self.assertEqual(cc.id, 'msvc')
+                    self.assertTrue(hasattr(cc, 'is_64'))
+                    self.assertIsInstance(cc.linker, linkers.MSVCDynamicLinker)
+                    # If we're on Windows CI, we know what the compiler will be
+                    if 'arch' in os.environ:
+                        if os.environ['arch'] == 'x64':
+                            self.assertTrue(cc.is_64)
+                        else:
+                            self.assertFalse(cc.is_64)
+
             # Set evar ourselves to a wrapper script that just calls the same
             # exelist + some argument. This is meant to test that setting
             # something like `ccache gcc -pipe` or `distcc ccache gcc` works.
-            wrapper = os.path.join(testdir, 'compiler wrapper.py')
-            wrappercc = python_command + [wrapper] + cc.get_exelist() + ['-DSOME_ARG']
-            os.environ[evar] = ' '.join(quote_arg(w) for w in wrappercc)
+            with self.subTest('wrapper script', lang=lang):
+                wrapper = os.path.join(testdir, 'compiler wrapper.py')
+                wrappercc = python_command + [wrapper] + cc.get_exelist() + ['-DSOME_ARG']
+                os.environ[evar] = ' '.join(quote_arg(w) for w in wrappercc)
 
-            # Check static linker too
-            wrapperlinker = python_command + [wrapper] + linker.get_exelist() + linker.get_always_args()
-            os.environ['AR'] = ' '.join(quote_arg(w) for w in wrapperlinker)
+                # Check static linker too
+                wrapperlinker = python_command + [wrapper] + linker.get_exelist() + linker.get_always_args()
+                os.environ['AR'] = ' '.join(quote_arg(w) for w in wrapperlinker)
 
-            # Need a new env to re-run environment loading
-            env = get_fake_env(testdir, self.builddir, self.prefix)
+                # Need a new env to re-run environment loading
+                env = get_fake_env(testdir, self.builddir, self.prefix)
 
-            wcc = compiler_from_language(env, lang, MachineChoice.HOST)
-            wlinker = detect_static_linker(env, wcc)
-            # Pop it so we don't use it for the next detection
-            os.environ.pop('AR')
-            # Must be the same type since it's a wrapper around the same exelist
-            self.assertIs(type(cc), type(wcc))
-            self.assertIs(type(linker), type(wlinker))
-            # Ensure that the exelist is correct
-            self.assertEqual(wcc.get_exelist(), wrappercc)
-            self.assertEqual(wlinker.get_exelist(), wrapperlinker)
-            # Ensure that the version detection worked correctly
-            self.assertEqual(cc.version, wcc.version)
-            if hasattr(cc, 'is_64'):
-                self.assertEqual(cc.is_64, wcc.is_64)
+                wcc = compiler_from_language(env, lang, MachineChoice.HOST)
+                wlinker = detect_static_linker(env, wcc)
+                del os.environ['AR']
+
+                # Must be the same type since it's a wrapper around the same exelist
+                self.assertIs(type(cc), type(wcc))
+                self.assertIs(type(linker), type(wlinker))
+
+                # Ensure that the exelist is correct
+                self.assertEqual(wcc.get_exelist(), wrappercc)
+                self.assertEqual(wlinker.get_exelist(), wrapperlinker)
+
+                # Ensure that the version detection worked correctly
+                self.assertEqual(cc.version, wcc.version)
+                if hasattr(cc, 'is_64'):
+                    self.assertEqual(cc.is_64, wcc.is_64)
 
     def test_always_prefer_c_compiler_for_asm(self):
         testdir = os.path.join(self.common_test_dir, '133 c cpp and asm')
