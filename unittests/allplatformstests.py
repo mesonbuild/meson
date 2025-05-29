@@ -1100,12 +1100,21 @@ class AllPlatformTests(BasePlatformTests):
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
                 with self.subTest(lang=lang, evar=evar):
-                    ecc = compiler_from_language(env, lang, MachineChoice.HOST)
+                    try:
+                        ecc = compiler_from_language(env, lang, MachineChoice.HOST)
+                    except EnvironmentException:
+                        # always raise in ci, we expect to have a valid ObjC and ObjC++ compiler of some kind
+                        if is_ci():
+                            self.fail(f'Could not find a compiler for {lang}')
+                        if sys.version_info < (3, 11):
+                            continue
+                        self.skipTest(f'No valid compiler for {lang}.')
+                    finally:
+                        # Pop it so we don't use it for the next detection
+                        evalue = os.environ.pop(evar)
                     assert ecc is not None, "Something went really wrong"
                     self.assertTrue(ecc.version)
                     elinker = detect_static_linker(env, ecc)
-                    # Pop it so we don't use it for the next detection
-                    evalue = os.environ.pop(evar)
                     # Very rough/strict heuristics. Would never work for actual
                     # compiler detection, but should be ok for the tests.
                     ebase = os.path.basename(evalue)
@@ -1131,7 +1140,15 @@ class AllPlatformTests(BasePlatformTests):
 
             # Do auto-detection of compiler based on platform, PATH, etc.
             with self.subTest(lang=lang):
-                cc = compiler_from_language(env, lang, MachineChoice.HOST)
+                try:
+                    cc = compiler_from_language(env, lang, MachineChoice.HOST)
+                except EnvironmentException:
+                    # always raise in ci, we expect to have a valid ObjC and ObjC++ compiler of some kind
+                    if is_ci():
+                        self.fail(f'Could not find a compiler for {lang}')
+                    if sys.version_info < (3, 11):
+                        continue
+                    self.skipTest(f'No valid compiler for {lang}.')
                 assert cc is not None, "Something went really wrong"
                 self.assertTrue(cc.version)
                 linker = detect_static_linker(env, cc)
@@ -1196,7 +1213,15 @@ class AllPlatformTests(BasePlatformTests):
                 # Need a new env to re-run environment loading
                 env = get_fake_env(testdir, self.builddir, self.prefix)
 
-                wcc = compiler_from_language(env, lang, MachineChoice.HOST)
+                try:
+                    wcc = compiler_from_language(env, lang, MachineChoice.HOST)
+                except EnvironmentException:
+                    # always raise in ci, we expect to have a valid ObjC and ObjC++ compiler of some kind
+                    if is_ci():
+                        self.fail(f'Could not find a compiler for {lang}')
+                    if sys.version_info < (3, 11):
+                        continue
+                    self.skipTest(f'No valid compiler for {lang}.')
                 wlinker = detect_static_linker(env, wcc)
                 del os.environ['AR']
 
