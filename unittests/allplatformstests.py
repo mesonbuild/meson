@@ -3023,18 +3023,23 @@ class AllPlatformTests(BasePlatformTests):
             },
             'libpython': {
                 'dynamic': sysconfig.get_config_var('LDLIBRARY'),
-                'dynamic_stableabi': sysconfig.get_config_var('PY3LIBRARY'),
                 'static': sysconfig.get_config_var('LIBRARY'),
                 'link_extensions': True,
             },
             'c_api': {
                 'headers': sysconfig.get_path('include'),
-                'pkgconfig_path': sysconfig.get_config_var('LIBPC'),
             }
         }
+
+        py3library = sysconfig.get_config_var('PY3LIBRARY')
+        if py3library is not None:
+            python_build_config['libpython']['dynamic_stableabi'] = py3library
+        libpc = sysconfig.get_config_var('LIBPC')
+        if libpc is not None:
+            python_build_config['c_api']['pkgconfig_path'] = libpc
+
         with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
             json.dump(python_build_config, fp=python_build_config_file)
-
         with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
             cross_file.write(
                 textwrap.dedent(f'''
