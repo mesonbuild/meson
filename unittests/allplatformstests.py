@@ -1101,6 +1101,7 @@ class AllPlatformTests(BasePlatformTests):
             if evar in os.environ:
                 with self.subTest(lang=lang, evar=evar):
                     ecc = compiler_from_language(env, lang, MachineChoice.HOST)
+                    assert ecc is not None, "Something went really wrong"
                     self.assertTrue(ecc.version)
                     elinker = detect_static_linker(env, ecc)
                     # Pop it so we don't use it for the next detection
@@ -1131,6 +1132,7 @@ class AllPlatformTests(BasePlatformTests):
             # Do auto-detection of compiler based on platform, PATH, etc.
             with self.subTest(lang=lang):
                 cc = compiler_from_language(env, lang, MachineChoice.HOST)
+                assert cc is not None, "Something went really wrong"
                 self.assertTrue(cc.version)
                 linker = detect_static_linker(env, cc)
                 # Check compiler type
@@ -1173,11 +1175,7 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertTrue(hasattr(cc, 'is_64'))
                     self.assertIsInstance(cc.linker, linkers.MSVCDynamicLinker)
                     # If we're on Windows CI, we know what the compiler will be
-                    if 'arch' in os.environ:
-                        if os.environ['arch'] == 'x64':
-                            self.assertTrue(cc.is_64)
-                        else:
-                            self.assertFalse(cc.is_64)
+                    self.assertTrue(cc.is_64, os.environ.get('arch', 'sentinel') == 'x64')
 
             # Set evar ourselves to a wrapper script that just calls the same
             # exelist + some argument. This is meant to test that setting
