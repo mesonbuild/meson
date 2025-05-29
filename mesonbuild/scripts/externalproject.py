@@ -66,18 +66,23 @@ class ExternalProject:
         return 0
 
     def _run(self, step: str, command: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> int:
+        run_env = os.environ.copy()
+        if env:
+            run_env.update(env)
+
         m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
         log_filename = Path(self.log_dir, f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
+            m += 'With environment variables:\n'
+            for k, v in sorted(run_env.items()):
+                m += f'  {k}={v}\n'
             output = open(log_filename, 'w', encoding='utf-8')
             output.write(m + '\n')
             output.flush()
         else:
             print(m)
-        run_env = os.environ.copy()
-        if env:
-            run_env.update(env)
+
         p, o, e = Popen_safe(command, stderr=subprocess.STDOUT, stdout=output,
                              cwd=self.build_dir,
                              env=run_env)
