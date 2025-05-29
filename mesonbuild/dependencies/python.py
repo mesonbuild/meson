@@ -449,11 +449,13 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         pkg_name = f'python-{installation.version}{pkg_embed}'
 
         if installation.build_config:
-            pkg_libdir = installation.build_config['c_api']['pkgconfig_path']
+            pkg_libdir = installation.build_config.get('c_api.pkgconfig_path')
             pkg_libdir_origin = 'c_api.pkgconfig_path from the Python build config'
         else:
             pkg_libdir = installation.info['variables'].get('LIBPC')
-            pkg_libdir_origin = 'LIBPC' if pkg_libdir else 'the default paths'
+            pkg_libdir_origin = 'LIBPC'
+        if pkg_libdir is None:
+            pkg_libdir_origin = 'the default paths'
         mlog.debug(f'Searching for {pkg_libdir!r} via pkgconfig lookup in {pkg_libdir_origin}')
         pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
 
