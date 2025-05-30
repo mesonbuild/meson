@@ -1766,6 +1766,9 @@ class NinjaBackend(backends.Backend):
                 girname = os.path.join(self.get_target_dir(target), target.vala_gir)
                 args += ['--gir', os.path.join('..', target.vala_gir)]
                 valac_outputs.append(girname)
+                shared_target = target.get('shared')
+                if isinstance(shared_target, build.SharedLibrary):
+                    args += ['--shared-library', self.get_target_filename_for_linking(shared_target)]
                 # Install GIR to default location if requested by user
                 if len(target.install_dir) > 3 and target.install_dir[3] is True:
                     target.install_dir[3] = os.path.join(self.environment.get_datadir(), 'gir-1.0')
