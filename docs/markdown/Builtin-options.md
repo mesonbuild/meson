@@ -460,3 +460,10 @@ all.
 *Since 1.3.0* The `python.allow_limited_api` option affects whether the
 `limited_api` keyword argument of the `extension_module` method is respected.
 If set to `false`, the effect of the `limited_api` argument is disabled.
+
+### Rust module
+
+| Option                    | Default value | Possible values      | Description |
+| ------                    | ------------- | -----------------    | ----------- |
+| cargo_features            | []            | comma-separated list | List of Cargo features to enable (e.g. "foo,mystuff/bar") (Since 1.9.0) |
+| cargo_no_default_features | false         | true, false          | Whether to disable default features (Since 1.9.0) |
