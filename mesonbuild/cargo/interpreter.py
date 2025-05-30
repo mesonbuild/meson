@@ -23,7 +23,8 @@ import typing as T
 from . import builder
 from . import version
 from ..mesonlib import MesonException, Popen_safe
-from .. import coredata, mlog
+from ..options import OptionKey
+from .. import coredata, mlog, options
 from ..wrap.wrap import PackageDefinition
 
 if T.TYPE_CHECKING:
@@ -450,6 +451,14 @@ def _dependency_varname(package_name: str) -> str:
     return f'{fixup_meson_varname(package_name)}_dep'
 
 
+_OPTION_NAME_PREFIX = 'feature-'
+
+
+def _option_name(feature: str) -> str:
+    # Add a prefix to avoid collision with Meson reserved options (e.g. "debug")
+    return _OPTION_NAME_PREFIX + feature
+
+
 def _extra_args_varname() -> str:
     return 'extra_args'
 
@@ -481,7 +490,7 @@ class Interpreter:
         # Map of cargo package (name + api) to its state
         self.packages: T.Dict[PackageKey, PackageState] = {}
 
-    def interpret(self, subdir: str) -> mparser.CodeBlockNode:
+    def interpret(self, subp_name: str, subdir: str, default_options: OptionDict) -> T.Tuple[mparser.CodeBlockNode, T.Dict[OptionKey, options.UserOption]]:
         manifest = self._load_manifest(subdir)
         pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
         if not cached:
@@ -489,15 +498,53 @@ class Interpreter:
             # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
             self._enable_feature(pkg, 'default')
 
+        # default_options -> features
+        for key in default_options.keys():
+            if key.name.startswith(_OPTION_NAME_PREFIX) and default_options[key] == True:
+                self._enable_feature(pkg, key.name[len(_OPTION_NAME_PREFIX):])
+
+        # features -> default_options
+        for f in pkg.features:
+            key = OptionKey(_option_name(f))
+            default_options[key] = True
+
         # Build an AST for this package
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
         build = builder.Builder(filename)
         ast = self._create_project(pkg, build)
+
+        # features = []
+        # features_args = []
+        ast += [
+            build.assign(build.array([]), 'features'),
+            build.assign(build.array([]), 'features_args')]
+
+        project_options: T.Dict[OptionKey, options.UserOption] = {}
+        for f in itertools.chain(pkg.manifest.dependencies.keys(), pkg.manifest.features.keys()):
+            if f == 'default':
+                continue
+
+            # option('f1', type: 'boolean', value: true/false, description: 'Cargo feature f1')
+            key = OptionKey(_option_name(f), subproject=subp_name)
+            project_options[key] = options.UserBooleanOption(key.name, f'Cargo feature {f}', False)
+
+            # if get_option('feature-f1')
+            #   features_args += ['--cfg', 'feature="f1"']
+            #   features += ['--f1']
+            # endif
+            lines = [
+                build.plusassign(build.array([build.string('--cfg'), build.string(f'feature="{f}"')]),
+                                 'features_args'),
+                build.plusassign(build.array([build.string(f)]),
+                                 'features')]
+
+            ast.append(build.if_(build.function('get_option', [build.string(_option_name(f))]), build.block(lines)))
+
         ast += [
             build.assign(build.function('import', [build.string('rust')]), 'rust'),
             build.function('message', [
                 build.string('Enabled features:'),
-                build.array([build.string(f) for f in pkg.features]),
+                build.method('join', build.string(','), [build.identifier('features')])
             ]),
         ]
         ast += self._create_dependencies(pkg, build)
@@ -509,7 +556,7 @@ class Interpreter:
             for crate_type in pkg.manifest.lib.crate_type:
                 ast.extend(self._create_lib(pkg, build, crate_type))
 
-        return build.block(ast)
+        return build.block(ast), project_options
 
     def _fetch_package(self, package_name: str, api: str) -> T.Tuple[PackageState, bool]:
         key = PackageKey(package_name, api)
@@ -671,8 +718,14 @@ class Interpreter:
 
     def _create_dependency(self, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
         pkg = self._dep_package(dep)
+
+        # { 'feature-f1': true }
+        options = build.dict({build.string(f'feature-{f}'): build.bool(True)
+                              for f in pkg.features})
+
         kw = {
             'version': build.array([build.string(s) for s in dep.version]),
+            'default_options': options,
         }
         # Lookup for this dependency with the features we want in default_options kwarg.
         #
@@ -715,7 +768,7 @@ class Interpreter:
             #     error()
             #   endif
             # endforeach
-            build.assign(build.array([build.string(f) for f in pkg.features]), 'needed_features'),
+            build.assign(build.array([build.string(f) for f in pkg.features if f != 'default']), 'needed_features'),
             build.foreach(['f'], build.identifier('needed_features'), build.block([
                 build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
                     build.function('error', [
@@ -795,16 +848,10 @@ class Interpreter:
                 kwargs['rust_abi'] = build.string('c')
             lib = build.function(target_type, posargs, kwargs)
 
-        features_args: T.List[mparser.BaseNode] = []
-        for f in pkg.features:
-            features_args += [build.string('--cfg'), build.string(f'feature="{f}"')]
-
-        # features_args = ['--cfg', 'feature="f1"', ...]
         # lib = xxx_library()
         # dep = declare_dependency()
         # meson.override_dependency()
         return [
-            build.assign(build.array(features_args), 'features_args'),
             build.assign(lib, 'lib'),
             build.assign(
                 build.function(
@@ -812,7 +859,7 @@ class Interpreter:
                     kw={
                         'link_with': build.identifier('lib'),
                         'variables': build.dict({
-                            build.string('features'): build.string(','.join(pkg.features)),
+                            build.string('features'): build.method('join', build.string(','), [build.identifier('features')]),
                         })
                     },
                 ),
