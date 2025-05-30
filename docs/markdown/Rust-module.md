@@ -168,3 +168,20 @@ Only a subset of [[shared_library]] keyword arguments are allowed:
 - link_depends
 - link_with
 - override_options
+
+### add_cargo_features()
+
+```meson
+rustmod.add_cargo_features('f1', ...)
+```
+
+*Since 1.9.0*
+
+Enable features on cargo subprojects, in addition to features enabled by the
+user with `-Drust.cargo_features=f1,...` option.
+
+The `'package-name/feature'` syntax can be used to enable a feature only on a
+specific crate.
+
+This method cannot be called after the first cargo subproject has been
+invoked, usually via a `dependency()` fallback.

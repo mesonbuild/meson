@@ -597,7 +597,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         disabled, required, _ = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             return NotFoundExtensionModule(modname)
+        return self._import_module(node, modname, required)
 
+    def _import_module(self, node: mparser.BaseNode, modname: str, required: bool) -> T.Union[ExtensionModule, NewExtensionModule, NotFoundExtensionModule]:
         # Always report implementation detail modules don't exist
         if modname.startswith('_'):
             raise InvalidArguments(f'Module "{modname}" does not exist')
@@ -1051,7 +1053,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                      once=True, location=self.current_node)
         if self.environment.cargo is None:
             self.add_languages(['rust'], True, MachineChoice.HOST)
-            self.environment.cargo = cargo.Interpreter(self.environment)
+            rustmod = self._import_module(self.current_node, 'rust', required=True)
+            self.environment.cargo = cargo.Interpreter(self.environment, rustmod.get_cargo_features())
         with mlog.nested(subp_name):
             ast = self.environment.cargo.interpret(subdir)
             return self._do_subproject_meson(

@@ -18,7 +18,8 @@ from ..interpreter.type_checking import (
     DEPENDENCIES_KW, LINK_WITH_KW, LINK_WHOLE_KW, SHARED_LIB_KWS, TEST_KWS, TEST_KWS_NO_ARGS,
     OUTPUT_KW, INCLUDE_DIRECTORIES, SOURCES_VARARGS, NoneType, in_set_validator
 )
-from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
+from ..interpreterbase import (ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args,
+                               noPosargs, noKwargs, permittedKwargs, TYPE_kwargs)
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import File, MesonException, PerMachine
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -97,11 +98,15 @@ class RustModule(ExtensionModule):
         else:
             self._bindgen_rust_target = None
         self._bindgen_set_std = False
+        self._cargo_features_frozen = False
+        self._cargo_features: T.Set[T.Tuple[str, str]] = set()
+        self._add_cargo_features(interpreter.coredata.optstore.get_string_list_for('rust.cargo_features'))
         self.methods.update({
             'test': self.test,
             'doctest': self.doctest,
             'bindgen': self.bindgen,
             'proc_macro': self.proc_macro,
+            'add_cargo_features': self.add_cargo_features,
         })
 
     def test_common(self, funcname: str, state: ModuleState, args: T.Tuple[str, BuildTarget], kwargs: FuncRustTest) -> T.Tuple[Executable, _kwargs.FuncTest]:
@@ -478,6 +483,24 @@ class RustModule(ExtensionModule):
         kwargs['rust_args'] = kwargs['rust_args'] + ['--extern', 'proc_macro']
         target = state._interpreter.build_target(state.current_node, args, kwargs, SharedLibrary)
         return target
+
+    @FeatureNew('rust.add_cargo_features', '1.9.0')
+    @noKwargs
+    @typed_pos_args('rust.add_cargo_features', varargs=str)
+    def add_cargo_features(self, state: ModuleState, args: T.Tuple[T.List[str]], kwargs: TYPE_kwargs) -> None:
+        if self._cargo_features_frozen:
+            raise InterpreterException('Cannot add cargo features after configuration of the first cargo subproject.')
+        self._add_cargo_features(args[0])
+
+    def _add_cargo_features(self, features: T.Union[T.List[str], T.Tuple[str]]) -> None:
+        for f in features:
+            parts = f.split('/', 1)
+            pair = (parts[0], parts[1]) if len(parts) == 2 else ('', parts[0])
+            self._cargo_features.add(pair)
+
+    def get_cargo_features(self) -> T.List[T.Tuple[str, str]]:
+        self._cargo_features_frozen = True
+        return list(self._cargo_features)
 
 
 def initialize(interp: Interpreter) -> RustModule:

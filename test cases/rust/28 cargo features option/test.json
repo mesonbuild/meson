@@ -1,0 +1,12 @@
+{
+  "matrix": {
+    "options": {
+      "rust.cargo_features": [
+        { "val": "f2" }
+      ],
+      "rust.cargo_no_default_features": [
+        { "val": true }
+      ]
+    }
+  }
+}
