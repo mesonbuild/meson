@@ -129,9 +129,10 @@ class Interpreter:
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
         ast: T.List[mparser.BaseNode] = [
+            build.assign(build.array([build.string(f) for f in pkg.features]), 'features'),
             build.function('message', [
                 build.string('Enabled features:'),
-                build.array([build.string(f) for f in pkg.features]),
+                build.identifier('features'),
             ]),
         ]
         ast += self._create_dependencies(pkg, build)
