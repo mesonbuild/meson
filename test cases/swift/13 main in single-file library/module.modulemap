@@ -1,0 +1,3 @@
+module CAux [extern_c] {
+  header "aux.h"
+}
