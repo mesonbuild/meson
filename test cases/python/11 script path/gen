@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+
+
+if __name__ == '__main__':
+    with open('x.c', 'w', encoding='utf-8') as f:
+        f.write('int main() { exit(0); }\n')
+    exit(0)
