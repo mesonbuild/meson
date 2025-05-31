@@ -474,7 +474,7 @@ class PackageKey:
 
 
 class Interpreter:
-    def __init__(self, env: Environment) -> None:
+    def __init__(self, env: Environment, global_features: T.List[T.Tuple[str, str]]) -> None:
         self.environment = env
         self.host_rustc = T.cast('RustCompiler', self.environment.coredata.compilers[MachineChoice.HOST]['rust'])
         # Map Cargo.toml's subdir to loaded manifest.
@@ -483,13 +483,15 @@ class Interpreter:
         self.packages: T.Dict[PackageKey, PackageState] = {}
         # Rustc's config
         self.cfgs = self._get_cfgs()
+        # Get user options
+        self.no_default_features = self.environment.coredata.optstore.get_bool_for('rust.cargo_no_default_features')
+        self.global_features = global_features
 
     def interpret(self, subdir: str) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
         pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
-        if not cached:
+        if not cached and not self.no_default_features:
             # This is an entry point, always enable the 'default' feature.
-            # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
             self._enable_feature(pkg, 'default')
 
         # Build an AST for this package
@@ -498,9 +500,10 @@ class Interpreter:
         ast = self._create_project(pkg, build)
         ast += [
             build.assign(build.function('import', [build.string('rust')]), 'rust'),
+            build.assign(build.array([build.string(f) for f in pkg.features]), 'features'),
             build.function('message', [
                 build.string('Enabled features:'),
-                build.array([build.string(f) for f in pkg.features]),
+                build.identifier('features'),
             ]),
         ]
         ast += self._create_dependencies(pkg, build)
@@ -537,6 +540,10 @@ class Interpreter:
         for depname, dep in manifest.dependencies.items():
             if not dep.optional:
                 self._add_dependency(pkg, depname)
+        # Enable features from user options.
+        for p, f in self.global_features:
+            if not p or p == pkg.manifest.package.name:
+                self._enable_feature(pkg, f)
         return pkg, False
 
     def _dep_package(self, dep: Dependency) -> PackageState:

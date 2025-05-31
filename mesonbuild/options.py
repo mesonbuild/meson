@@ -744,6 +744,10 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserStringOption('python.platlibdir', 'Directory for site-specific, platform-specific files.', ''),
         UserStringOption('python.purelibdir', 'Directory for site-specific, non-platform-specific files.', ''),
         UserBooleanOption('python.allow_limited_api', 'Whether to allow use of the Python Limited API', True),
+
+        # Rust module
+        UserStringArrayOption('rust.cargo_features', 'List of Cargo features to enable (e.g. "foo,mystuff/bar")', []),
+        UserBooleanOption('rust.cargo_no_default_features', 'Whether to disable default features', False),
     ])
 }
 
@@ -897,6 +901,30 @@ class OptionStore:
             key = name
         vobject, resolved_value = self.get_value_object_and_value_for(key)
         return resolved_value
+
+    def get_str_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> str:
+        value = self.get_value_for(name, subproject)
+        if not isinstance(value, str):
+            raise MesonException(f'Option "{name}" is not a string, it is {value!r}.')
+        return value
+
+    def get_int_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> int:
+        value = self.get_value_for(name, subproject)
+        if not isinstance(value, int):
+            raise MesonException(f'Option "{name}" is not an integer, it is {value!r}.')
+        return value
+
+    def get_bool_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> bool:
+        value = self.get_value_for(name, subproject)
+        if not isinstance(value, bool):
+            raise MesonException(f'Option "{name}" is not a boolean, it is {value!r}.')
+        return value
+
+    def get_string_list_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> T.List[str]:
+        value = self.get_value_for(name, subproject)
+        if not isinstance(value, list):
+            raise MesonException(f'Option "{name}" is not a list, it is {value!r}.')
+        return value
 
     def add_system_option(self, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
