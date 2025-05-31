@@ -1333,7 +1333,7 @@ def do_define_cmake(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
     cmake_bool_define = 'cmakedefine01' in line
 
     def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
-        arr = line.split()
+        arr = line[1:].split()
 
         if cmake_bool_define:
             (v, desc) = confdata.get(arr[1])
@@ -1348,7 +1348,7 @@ def do_define_cmake(regex: T.Pattern[str], line: str, confdata: 'ConfigurationDa
                 define_value += [token]
         return ' '.join(define_value)
 
-    arr = line.split()
+    arr = line[1:].split()
 
     if len(arr) != 2 and subproject is not None:
         from ..interpreterbase.decorators import FeatureNew
@@ -1442,7 +1442,7 @@ def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData'
 
     regex = get_variable_regex(variable_format)
 
-    search_token = '#cmakedefine'
+    search_token = 'cmakedefine'
 
     result: T.List[str] = []
     missing_variables: T.Set[str] = set()
@@ -1450,7 +1450,8 @@ def do_conf_str_cmake(src: str, data: T.List[str], confdata: 'ConfigurationData'
     # during substitution so we can warn the user to use the `copy:` kwarg.
     confdata_useless = not confdata.keys()
     for line in data:
-        if line.lstrip().startswith(search_token):
+        stripped_line = line.lstrip()
+        if len(stripped_line) >= 2 and stripped_line[0] == '#' and stripped_line[1:].lstrip().startswith(search_token):
             confdata_useless = False
             line = do_define_cmake(regex, line, confdata, at_only, subproject)
         else:
