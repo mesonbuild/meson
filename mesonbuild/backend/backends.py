@@ -25,6 +25,7 @@ from .. import programs
 from .. import mesonlib
 from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS, detect, lang_suffixes
+from ..compilers.mixins.clang import ClangCompiler
 from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
     ExecutableSerialisation, EnvironmentException,
@@ -304,6 +305,8 @@ class Backend:
             filename = t.get_outputs()[0]
         elif isinstance(t, build.CustomTargetIndex):
             filename = t.get_outputs()[0]
+        elif isinstance(t, build.BundleTarget):
+            filename = t.get_filename()
         else:
             assert isinstance(t, build.BuildTarget), t
             filename = t.get_filename()
@@ -345,22 +348,30 @@ class Backend:
         return compiler.get_include_args(curdir, False)
 
     def get_target_filename_for_linking(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> T.Optional[str]:
+        if isinstance(target, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+            target_filename = target.get_filename()
+
+            if isinstance(target, build.BundleTargetBase):
+                # TODO: what's the difference linking a framework like this vs. the bespoke framework arg on macOS's ld?
+                # (this also has the advantage of working on other platforms!)
+                target_filename = os.path.join(target_filename, target.get_bundle_info().get_executable_path())
+
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
         # file is called an import library, and we want to link against that.
         # On all other platforms, we link to the library directly.
         if isinstance(target, build.SharedLibrary):
-            link_lib = target.get_import_filename() or target.get_filename()
+            link_lib = target.get_import_filename() or target_filename
             # In AIX, if we archive .so, the blibpath must link to archived shared library otherwise to the .so file.
             if mesonlib.is_aix() and target.aix_so_archive:
                 link_lib = re.sub('[.][a]([.]?([0-9]+))*([.]?([a-z]+))*', '.a', link_lib.replace('.so', '.a'))
             return Path(self.get_target_dir(target), link_lib).as_posix()
         elif isinstance(target, build.StaticLibrary):
-            return Path(self.get_target_dir(target), target.get_filename()).as_posix()
+            return Path(self.get_target_dir(target), target_filename).as_posix()
         elif isinstance(target, (build.CustomTarget, build.CustomTargetIndex)):
             if not target.is_linkable_target():
                 raise MesonException(f'Tried to link against custom target "{target.name}", which is not linkable.')
-            return Path(self.get_target_dir(target), target.get_filename()).as_posix()
+            return Path(self.get_target_dir(target), target_filename).as_posix()
         elif isinstance(target, build.Executable):
             if target.import_filename:
                 return Path(self.get_target_dir(target), target.get_import_filename()).as_posix()
@@ -839,6 +850,7 @@ class Backend:
             # Need a copy here
             result = OrderedSet(target.get_link_dep_subdirs())
         else:
+            # TODO: Bundle handling
             result = OrderedSet()
             result.add('meson-out')
         if isinstance(target, build.BuildTarget):
@@ -1103,11 +1115,18 @@ class Backend:
                 commands += dep.get_exe_args(compiler)
             # For 'automagic' deps: Boost and GTest. Also dependency('threads').
             # pkg-config puts the thread flags itself via `Cflags:`
-        # Fortran requires extra include directives.
-        if compiler.language == 'fortran':
-            for lt in chain(target.link_targets, target.link_whole_targets):
+
+        for lt in chain(target.link_targets, target.link_whole_targets):
+            # Fortran requires extra include directives.
+            if compiler.language == 'fortran':
                 priv_dir = self.get_target_private_dir(lt)
                 commands += compiler.get_include_args(priv_dir, False)
+
+            # Add linked frameworks to include path
+            if isinstance(lt, build.FrameworkBundle):
+                # TODO: Handle this in the compiler class?
+                assert isinstance(compiler, ClangCompiler), 'Linking against frameworks requires clang'
+                commands += [f'-F{self.get_target_dir(lt)}', '-framework', lt.get_basename()]
         return commands
 
     def build_target_link_arguments(self, compiler: 'Compiler', deps: T.List[build.Target]) -> T.List[str]:
