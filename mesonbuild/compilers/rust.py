@@ -197,11 +197,9 @@ class RustCompiler(Compiler):
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return rust_optimization_args[optimization_level]
 
-    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
-                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
-                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        args, to_remove = super().build_rpath_args(env, build_dir, from_dir, rpath_paths,
-                                                   build_rpath, install_rpath)
+    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
+                         target: BuildTarget) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        args, to_remove = super().build_rpath_args(env, build_dir, from_dir, target)
 
         # ... but then add rustc's sysroot to account for rustup
         # installations
