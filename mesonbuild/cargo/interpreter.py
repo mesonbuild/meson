@@ -500,9 +500,10 @@ class Interpreter:
         ast = self._create_project(pkg, build)
         ast += [
             build.assign(build.function('import', [build.string('rust')]), 'rust'),
+            build.assign(build.array([build.string(f) for f in pkg.features]), 'features'),
             build.function('message', [
                 build.string('Enabled features:'),
-                build.array([build.string(f) for f in pkg.features]),
+                build.identifier('features'),
             ]),
         ]
         ast += self._create_dependencies(pkg, build)
