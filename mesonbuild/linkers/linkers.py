@@ -1235,6 +1235,12 @@ class QualcommLLVMDynamicLinker(LLVMDynamicLinker):
 
     id = 'ld.qcld'
 
+class ELDDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Qualcomm's opensource embedded linker"""
+
+    id = 'ld.eld'
+
 
 class NAGDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 

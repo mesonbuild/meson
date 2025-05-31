@@ -155,7 +155,10 @@ class ClangCompiler(GnuLikeCompiler):
         # llvm based) is retargetable, while GCC is not.
         #
 
-        # qcld: Qualcomm Snapdragon linker, based on LLVM
+        # eld: Qualcomm's opensource embedded linker
+        if linker == 'eld':
+            return ['-fuse-ld=eld']
+        # qcld: Qualcomm's deprecated linker
         if linker == 'qcld':
             return ['-fuse-ld=qcld']
         if linker == 'mold':

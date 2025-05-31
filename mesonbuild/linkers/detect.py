@@ -166,6 +166,9 @@ def guess_nix_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
 
         linker = lld_cls(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, system=system, version=v)
+    elif 'Hexagon' in o and 'LLVM' in o:
+        linker = linkers.ELDDynamicLinker(
+            compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
     elif 'Snapdragon' in e and 'LLVM' in e:
         linker = linkers.QualcommLLVMDynamicLinker(
             compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)

@@ -58,6 +58,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | Value      | Linker family                               |
 | -----      | ---------------                             |
 | ld.bfd     | The GNU linker                              |
+| ld.eld     | Qualcomm's embedded linker                  |
 | ld.gold    | The GNU gold linker                         |
 | ld.lld     | The LLVM linker, with the GNU interface     |
 | ld.mold    | The fast MOLD linker                        |
