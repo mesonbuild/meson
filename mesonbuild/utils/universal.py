@@ -1388,7 +1388,7 @@ def get_variable_regex(variable_format: Literal['meson', 'cmake', 'cmake@'] = 'm
             |                  # OR
             \\\${              # Match a backslash followed by a dollar sign and an opening curly brace
             |                  # OR
-            \${(?P<cmake_variable>[-a-zA-Z0-9_]+)}  # Match a variable enclosed in curly braces and capture the variable name
+            \${(?P<cmake_variable>[-a-zA-Z0-9_]*)}  # Match a variable enclosed in curly braces and capture the variable name
             |                  # OR
             (?<!\\)@(?P<variable>[-a-zA-Z0-9_]+)@  # Match a variable enclosed in @ symbols and capture the variable name; no matches beginning with '\@'
             |                  # OR
