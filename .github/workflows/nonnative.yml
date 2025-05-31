@@ -58,5 +58,6 @@ jobs:
     env:
       MESON_CI_JOBNAME: cuda-cross-${{ github.job }}
     steps:
+    - uses: actions/checkout@v4
     - name: Run tests
       run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py $CI_ARGS --cross cuda-cross.json --cross-only'
