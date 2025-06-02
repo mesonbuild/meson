@@ -99,7 +99,7 @@ class Interpreter:
 
         # Libs are always auto-discovered and there's no other way to handle them,
         # which is unfortunate for reproducability
-        if os.path.exists(os.path.join(self.environment.source_dir, subdir, pkg.manifest.path, pkg.manifest.lib.path)):
+        if os.path.exists(os.path.join(self.environment.source_dir, subdir, pkg.manifest.lib.path)):
             for crate_type in pkg.manifest.lib.crate_type:
                 ast.extend(self._create_lib(pkg, build, crate_type))
 

@@ -313,14 +313,12 @@ class Manifest:
     features: T.Dict[str, T.List[str]]
     target: T.Dict[str, T.Dict[str, Dependency]]
 
-    path: str = ''
-
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
         self.system_dependencies = {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
-    def from_raw(cls, raw: T.Dict[str, T.Any], path: str = '') -> Manifest:
+    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Manifest:
         return cls(
             Package.from_raw(raw['package']),
             {k: Dependency.from_raw(k, v) for k, v in raw.get('dependencies', {}).items()},
@@ -334,7 +332,6 @@ class Manifest:
             raw.get('features', {}),
             {k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
                 for k, v in raw.get('target', {}).items()},
-            path,
         )
 
 
