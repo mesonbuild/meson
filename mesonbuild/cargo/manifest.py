@@ -369,6 +369,7 @@ class CargoLockPackage:
     version: str
     source: T.Optional[str] = None
     checksum: T.Optional[str] = None
+    dependencies: T.List[str] = dataclasses.field(default_factory=list)
 
     @classmethod
     def from_raw(cls, raw: T.Dict[str, T.Any]) -> CargoLockPackage:
