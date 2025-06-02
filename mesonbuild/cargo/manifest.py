@@ -72,18 +72,17 @@ def _raw_mapping_to_attributes(raw: T.Dict[str, T.Any], cls: T.Union[DataclassIn
     return raw
 
 
-def _inherit_from_workspace(raw: T.Dict[str, T.Any], raw_from_workspace: T.Dict[str, T.Any]) -> None:
-    for key in list(raw.keys()):
-        value = raw[key]
-        if isinstance(value, dict) and value.get('workspace', False):
-            del value['workspace']
-            try:
-                new_value = raw_from_workspace[key]
-                if isinstance(new_value, dict):
-                    new_value.update(value)
-                raw[key] = new_value
-            except KeyError:
-                pass
+def _inherit_from_workspace(raw: T.Dict[str, T.Any], raw_from_workspace: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
+    if raw.get('workspace', False):
+        result = raw_from_workspace.copy()
+        result.update({k: v for k, v in raw.items() if k != 'workspace'})
+        return result
+    result = {}
+    for k, v in raw.items():
+        if isinstance(v, dict) and v.get('workspace', False):
+            v = raw_from_workspace[k]
+        result[k] = v
+    return result
 
 
 @dataclasses.dataclass
@@ -128,7 +127,7 @@ class Package:
     @classmethod
     def from_raw(cls, raw: T.Dict[str, T.Any], workspace: T.Optional[Workspace] = None) -> Self:
         if workspace:
-            _inherit_from_workspace(raw, workspace.package)
+            raw = _inherit_from_workspace(raw, workspace.package)
         fixed = _raw_mapping_to_attributes(raw, cls, f'Package entry {raw["name"]}')
         return cls(**fixed)
 
@@ -215,7 +214,7 @@ class Dependency:
         if isinstance(raw, str):
             return cls(name, version.convert(raw))
         if workspace:
-            _inherit_from_workspace(raw, workspace.dependencies)
+            raw = _inherit_from_workspace(raw, workspace.dependencies.get(name, {}))
         fixed = _raw_mapping_to_attributes(raw, cls, f'Dependency entry {name}', convert_version=True)
         return cls(name, **fixed)
 
