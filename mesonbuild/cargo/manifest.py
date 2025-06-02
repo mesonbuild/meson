@@ -4,244 +4,368 @@
 """Type definitions for cargo manifest files."""
 
 from __future__ import annotations
+
+import dataclasses
+import os
 import typing as T
 
-from typing_extensions import Literal, TypedDict, Required
+from . import version
+from ..mesonlib import MesonException, lazy_property
+from .. import mlog
 
-EDITION = Literal['2015', '2018', '2021']
-CRATE_TYPE = Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
+if T.TYPE_CHECKING:
+    from typing_extensions import Literal, Protocol, Self
 
-Package = TypedDict(
-    'Package',
-    {
-        'name': Required[str],
-        'version': Required[str],
-        'authors': T.List[str],
-        'edition': EDITION,
-        'rust-version': str,
-        'description': str,
-        'readme': str,
-        'license': str,
-        'license-file': str,
-        'keywords': T.List[str],
-        'categories': T.List[str],
-        'workspace': str,
-        'build': str,
-        'links': str,
-        'include': T.List[str],
-        'exclude': T.List[str],
-        'publish': bool,
-        'metadata': T.Dict[str, T.Dict[str, str]],
-        'default-run': str,
-        'autolib': bool,
-        'autobins': bool,
-        'autoexamples': bool,
-        'autotests': bool,
-        'autobenches': bool,
-    },
-    total=False,
+    # Copied from typeshed. Blarg that they don't expose this
+    class DataclassInstance(Protocol):
+        __dataclass_fields__: T.ClassVar[dict[str, dataclasses.Field[T.Any]]]
+
+    EDITION = Literal['2015', '2018', '2021']
+    CRATE_TYPE = Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
+    _DI = T.TypeVar('_DI', bound='DataclassInstance')
+
+
+_EXTRA_KEYS_WARNING = (
+    "This may (unlikely) be an error in the cargo manifest, or may be a missing "
+    "implementation in Meson. If this issue can be reproduced with the latest "
+    "version of Meson, please help us by opening an issue at "
+    "https://github.com/mesonbuild/meson/issues. Please include the crate and "
+    "version that is generating this warning if possible."
 )
-"""A description of the Package Dictionary."""
-
-class FixedPackage(TypedDict, total=False):
-
-    """A description of the Package Dictionary, fixed up."""
-
-    name: Required[str]
-    version: Required[str]
-    authors: T.List[str]
-    edition: EDITION
-    rust_version: str
-    description: str
-    readme: str
-    license: str
-    license_file: str
-    keywords: T.List[str]
-    categories: T.List[str]
-    workspace: str
-    build: str
-    links: str
-    include: T.List[str]
-    exclude: T.List[str]
-    publish: bool
-    metadata: T.Dict[str, T.Dict[str, str]]
-    default_run: str
-    autolib: bool
-    autobins: bool
-    autoexamples: bool
-    autotests: bool
-    autobenches: bool
 
 
-class Badge(TypedDict):
+def fixup_meson_varname(name: str) -> str:
+    """Fixup a meson variable name
 
-    """An entry in the badge section."""
-
-    status: Literal['actively-developed', 'passively-developed', 'as-is', 'experimental', 'deprecated', 'none']
-
-
-Dependency = TypedDict(
-    'Dependency',
-    {
-        'version': str,
-        'registry': str,
-        'git': str,
-        'branch': str,
-        'rev': str,
-        'path': str,
-        'optional': bool,
-        'package': str,
-        'default-features': bool,
-        'features': T.List[str],
-    },
-    total=False,
-)
-"""An entry in the *dependencies sections."""
+    :param name: The name to fix
+    :return: the fixed name
+    """
+    return name.replace('-', '_')
 
 
-class FixedDependency(TypedDict, total=False):
+def _raw_to_dataclass(raw: T.Dict[str, T.Any], cls: T.Type[_DI], msg: str, **kwargs: T.Callable[[T.Any], object]) -> _DI:
+    """Convert and validate raw cargo mappings to a Python dataclass.
 
-    """An entry in the *dependencies sections, fixed up."""
+    * Replaces any `-` with `_` in the keys.
+    * Remove and warn on keys that are coming from cargo, but are unknown to
+      our representations.
+    * If provided, call the validator function on values to validate and convert.
 
-    version: T.List[str]
-    registry: str
-    git: str
-    branch: str
-    rev: str
-    path: str
-    optional: bool
+    :param data: The raw data to look at
+    :param cls: The Dataclass derived type that will be created
+    :param msg: the header for the error message. Usually something like "In N structure".
+    :return: An instance of cls.
+    """
+    unexpected: T.Set[str] = set()
+    known = {x.name for x in dataclasses.fields(cls)}
+    result: T.Dict[str, T.Any] = {}
+    for k, v in raw.items():
+        k = fixup_meson_varname(k)
+        if k not in known:
+            unexpected.add(k)
+            continue
+        validator = kwargs.get(k)
+        if validator:
+            v = validator(v)
+        result[k] = v
+    if unexpected:
+        mlog.warning(msg, 'has unexpected keys', '"{}".'.format(', '.join(sorted(unexpected))),
+                     _EXTRA_KEYS_WARNING)
+    return cls(**result)
+
+
+@dataclasses.dataclass
+class Package:
+
+    """Representation of a Cargo Package entry, with defaults filled in."""
+
+    name: str
+    version: str
+    description: T.Optional[str] = None
+    resolver: T.Optional[str] = None
+    authors: T.List[str] = dataclasses.field(default_factory=list)
+    edition: EDITION = '2015'
+    rust_version: T.Optional[str] = None
+    documentation: T.Optional[str] = None
+    readme: T.Optional[str] = None
+    homepage: T.Optional[str] = None
+    repository: T.Optional[str] = None
+    license: T.Optional[str] = None
+    license_file: T.Optional[str] = None
+    keywords: T.List[str] = dataclasses.field(default_factory=list)
+    categories: T.List[str] = dataclasses.field(default_factory=list)
+    workspace: T.Optional[str] = None
+    build: T.Optional[str] = None
+    links: T.Optional[str] = None
+    exclude: T.List[str] = dataclasses.field(default_factory=list)
+    include: T.List[str] = dataclasses.field(default_factory=list)
+    publish: bool = True
+    metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    default_run: T.Optional[str] = None
+    autolib: bool = True
+    autobins: bool = True
+    autoexamples: bool = True
+    autotests: bool = True
+    autobenches: bool = True
+
+    @lazy_property
+    def api(self) -> str:
+        return version.api(self.version)
+
+    @classmethod
+    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Self:
+        return _raw_to_dataclass(raw, cls, f'Package entry {raw["name"]}')
+
+@dataclasses.dataclass
+class SystemDependency:
+
+    """ Representation of a Cargo system-deps entry
+        https://docs.rs/system-deps/latest/system_deps
+    """
+
+    name: str
+    version: str = ''
+    optional: bool = False
+    feature: T.Optional[str] = None
+    feature_overrides: T.Dict[str, T.Dict[str, str]] = dataclasses.field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> SystemDependency:
+        if isinstance(raw, str):
+            return cls(name, raw)
+        name = raw.get('name', name)
+        version = raw.get('version', '')
+        optional = raw.get('optional', False)
+        feature = raw.get('feature')
+        # Everything else are overrides when certain features are enabled.
+        feature_overrides = {k: v for k, v in raw.items() if k not in {'name', 'version', 'optional', 'feature'}}
+        return cls(name, version, optional, feature, feature_overrides)
+
+    @lazy_property
+    def meson_version(self) -> T.List[str]:
+        vers = self.version.split(',') if self.version else []
+        result: T.List[str] = []
+        for v in vers:
+            v = v.strip()
+            if v[0] not in '><=':
+                v = f'>={v}'
+            result.append(v)
+        return result
+
+    def enabled(self, features: T.Set[str]) -> bool:
+        return self.feature is None or self.feature in features
+
+
+@dataclasses.dataclass
+class Dependency:
+
+    """Representation of a Cargo Dependency Entry."""
+
     package: str
-    default_features: bool
-    features: T.List[str]
+    version: str = ''
+    registry: T.Optional[str] = None
+    git: T.Optional[str] = None
+    branch: T.Optional[str] = None
+    rev: T.Optional[str] = None
+    path: T.Optional[str] = None
+    optional: bool = False
+    default_features: bool = True
+    features: T.List[str] = dataclasses.field(default_factory=list)
+
+    @lazy_property
+    def api(self) -> str:
+        # Extract wanted API version from version constraints.
+        if not self.version:
+            return ''
+        api = set()
+        # FIXME: It is probably overkill to convert to Meson versions.
+        for v in self.meson_version:
+            if v.startswith(('>=', '==')):
+                api.add(version.api(v[2:].strip()))
+            elif v.startswith('='):
+                api.add(version.api(v[1:].strip()))
+        if len(api) == 1:
+            return api.pop()
+        else:
+            raise MesonException(f'Cannot determine minimum API version from {self.version}.')
+
+    @lazy_property
+    def meson_version(self) -> T.List[str]:
+        """Convert the version to a list of meson compatible versions."""
+        return version.convert(self.version) if self.version else []
+
+    @classmethod
+    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> Dependency:
+        """Create a dependency from a raw cargo dictionary"""
+        if isinstance(raw, str):
+            return cls(name, raw)
+        raw.setdefault('package', name)
+        return _raw_to_dataclass(raw, cls, f'Dependency entry {name}')
 
 
-DependencyV = T.Union[Dependency, str]
-"""A Dependency entry, either a string or a Dependency Dict."""
-
-
-_BaseBuildTarget = TypedDict(
-    '_BaseBuildTarget',
-    {
-        'path': str,
-        'test': bool,
-        'doctest': bool,
-        'bench': bool,
-        'doc': bool,
-        'plugin': bool,
-        'proc-macro': bool,
-        'harness': bool,
-        'edition': EDITION,
-        'crate-type': T.List[CRATE_TYPE],
-        'required-features': T.List[str],
-    },
-    total=False,
-)
-
-
-class BuildTarget(_BaseBuildTarget, total=False):
-
-    name: Required[str]
-
-class LibTarget(_BaseBuildTarget, total=False):
-
-    name: str
-
-
-class _BaseFixedBuildTarget(TypedDict, total=False):
-    path: str
-    test: bool
-    doctest: bool
-    bench: bool
-    doc: bool
-    plugin: bool
-    harness: bool
-    edition: EDITION
-    crate_type: T.List[CRATE_TYPE]
-    required_features: T.List[str]
-
-
-class FixedBuildTarget(_BaseFixedBuildTarget, total=False):
+@dataclasses.dataclass
+class BuildTarget:
 
     name: str
+    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
+    path: str = ''
 
-class FixedLibTarget(_BaseFixedBuildTarget, total=False):
+    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-test-field
+    # True for lib, bin, test
+    test: bool = True
 
-    name: Required[str]
-    proc_macro: bool
+    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-doctest-field
+    # True for lib
+    doctest: bool = False
+
+    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-bench-field
+    # True for lib, bin, benchmark
+    bench: bool = True
+
+    # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-doc-field
+    # True for libraries and binaries
+    doc: bool = False
+
+    harness: bool = True
+    edition: EDITION = '2015'
+    required_features: T.List[str] = dataclasses.field(default_factory=list)
+    plugin: bool = False
+
+    @classmethod
+    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Self:
+        return _raw_to_dataclass(raw, cls, f'{cls.__name__} entry {raw["name"]}')
 
 
-class Target(TypedDict):
+@dataclasses.dataclass
+class Library(BuildTarget):
 
-    """Target entry in the Manifest File."""
+    """Representation of a Cargo Library Entry."""
 
-    dependencies: T.Dict[str, DependencyV]
+    doctest: bool = True
+    doc: bool = True
+    path: str = os.path.join('src', 'lib.rs')
+    proc_macro: bool = False
+    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
+    doc_scrape_examples: bool = True
+
+    @classmethod
+    def from_raw(cls, raw: T.Dict[str, T.Any], fallback_name: str) -> Self: # type: ignore[override]
+        # We need to set the name field if it's not set manually, including if
+        # other fields are set in the lib section
+        raw.setdefault('name', fallback_name)
+        return _raw_to_dataclass(raw, cls, f'Library entry {raw["name"]}')
 
 
-class Workspace(TypedDict):
+@dataclasses.dataclass
+class Binary(BuildTarget):
 
-    """The representation of a workspace.
+    """Representation of a Cargo Bin Entry."""
 
-    In a vritual manifest the :attribute:`members` is always present, but in a
-    project manifest, an empty workspace may be provided, in which case the
-    workspace is implicitly filled in by values from the path based dependencies.
+    doc: bool = True
 
-    the :attribute:`exclude` is always optional
+
+@dataclasses.dataclass
+class Test(BuildTarget):
+
+    """Representation of a Cargo Test Entry."""
+
+    bench: bool = True
+
+
+@dataclasses.dataclass
+class Benchmark(BuildTarget):
+
+    """Representation of a Cargo Benchmark Entry."""
+
+    test: bool = True
+
+
+@dataclasses.dataclass
+class Example(BuildTarget):
+
+    """Representation of a Cargo Example Entry."""
+
+    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+
+
+@dataclasses.dataclass
+class Manifest:
+
+    """Cargo Manifest definition.
+
+    Most of these values map up to the Cargo Manifest, but with default values
+    if not provided.
+
+    Cargo subprojects can contain what Meson wants to treat as multiple,
+    interdependent, subprojects.
+
+    :param path: the path within the cargo subproject.
     """
 
-    members: T.List[str]
-    exclude: T.List[str]
+    package: Package
+    lib: Library
+    dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    dev_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    build_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    bin: T.List[Binary] = dataclasses.field(default_factory=list)
+    test: T.List[Test] = dataclasses.field(default_factory=list)
+    bench: T.List[Benchmark] = dataclasses.field(default_factory=list)
+    example: T.List[Example] = dataclasses.field(default_factory=list)
+    features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
+    target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.features.setdefault('default', [])
+
+    @lazy_property
+    def system_dependencies(self) -> T.Dict[str, SystemDependency]:
+        return {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
+
+    @classmethod
+    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Manifest:
+        name = raw['package']['name']
+        raw.setdefault('lib', {'name': name})
+        def dependencies_from_raw(x: T.Dict[str, T.Any]) -> T.Dict[str, Dependency]:
+            return {k: Dependency.from_raw(k, v) for k, v in x.items()}
+        return _raw_to_dataclass(raw, cls, f'Manifest {name}',
+                                 package=lambda x: Package.from_raw(x),
+                                 dependencies=dependencies_from_raw,
+                                 dev_dependencies=dependencies_from_raw,
+                                 build_dependencies=dependencies_from_raw,
+                                 lib=lambda x: Library.from_raw(x, name),
+                                 bin=lambda x: [Binary.from_raw(b) for b in x],
+                                 test=lambda x: [Test.from_raw(t) for t in x],
+                                 bench=lambda x: [Benchmark.from_raw(b) for b in x],
+                                 example=lambda x: [Example.from_raw(e) for e in x],
+                                 target=lambda x: {k: dependencies_from_raw(v.get('dependencies', {})) for k, v in x.items()})
 
 
-Manifest = TypedDict(
-    'Manifest',
-    {
-        'package': Required[Package],
-        'badges': T.Dict[str, Badge],
-        'dependencies': T.Dict[str, DependencyV],
-        'dev-dependencies': T.Dict[str, DependencyV],
-        'build-dependencies': T.Dict[str, DependencyV],
-        'lib': LibTarget,
-        'bin': T.List[BuildTarget],
-        'test': T.List[BuildTarget],
-        'bench': T.List[BuildTarget],
-        'example': T.List[BuildTarget],
-        'features': T.Dict[str, T.List[str]],
-        'target': T.Dict[str, Target],
-        'workspace': Workspace,
-
-        # TODO: patch?
-        # TODO: replace?
-    },
-    total=False,
-)
-"""The Cargo Manifest format."""
-
-
-class VirtualManifest(TypedDict):
-
-    """The Representation of a virtual manifest.
-
-    Cargo allows a root manifest that contains only a workspace, this is called
-    a virtual manifest. This doesn't really map 1:1 with any meson concept,
-    except perhaps the proposed "meta project".
-    """
-
-    workspace: Workspace
-
-class CargoLockPackage(TypedDict, total=False):
+@dataclasses.dataclass
+class CargoLockPackage:
 
     """A description of a package in the Cargo.lock file format."""
 
     name: str
     version: str
-    source: str
-    checksum: str
+    source: T.Optional[str] = None
+    checksum: T.Optional[str] = None
+    dependencies: T.List[str] = dataclasses.field(default_factory=list)
+
+    @classmethod
+    def from_raw(cls, raw: T.Dict[str, T.Any]) -> CargoLockPackage:
+        return _raw_to_dataclass(raw, cls, 'Cargo.lock package')
 
 
-class CargoLock(TypedDict, total=False):
+@dataclasses.dataclass
+class CargoLock:
 
     """A description of the Cargo.lock file format."""
 
-    version: str
-    package: T.List[CargoLockPackage]
-    metadata: T.Dict[str, str]
+    version: int = 1
+    package: T.List[CargoLockPackage] = dataclasses.field(default_factory=list)
+    metadata: T.Dict[str, str] = dataclasses.field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, raw: T.Dict[str, T.Any]) -> CargoLock:
+        return _raw_to_dataclass(raw, cls, 'Cargo.lock',
+                                 package=lambda x: [CargoLockPackage.from_raw(p) for p in x])

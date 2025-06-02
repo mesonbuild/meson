@@ -31,7 +31,7 @@ class TomlImplementationMissing(MesonException):
     pass
 
 
-def load_toml(filename: str) -> T.Any:
+def load_toml(filename: str) -> T.Dict[str, T.Any]:
     if tomllib:
         with open(filename, 'rb') as f:
             raw = tomllib.load(f)
@@ -45,4 +45,5 @@ def load_toml(filename: str) -> T.Any:
 
         raw = json.loads(out)
 
-    return raw
+    # tomllib.load() returns T.Dict[str, T.Any] but not other implementations.
+    return T.cast('T.Dict[str, T.Any]', raw)
