@@ -72,6 +72,20 @@ def _raw_mapping_to_attributes(raw: T.Dict[str, T.Any], cls: T.Union[DataclassIn
     return raw
 
 
+def _inherit_from_workspace(raw: T.Dict[str, T.Any], raw_from_workspace: T.Dict[str, T.Any]) -> None:
+    for key in list(raw.keys()):
+        value = raw[key]
+        if isinstance(value, dict) and value.get('workspace', False):
+            del value['workspace']
+            try:
+                new_value = raw_from_workspace[key]
+                if isinstance(new_value, dict):
+                    new_value.update(value)
+                raw[key] = new_value
+            except KeyError:
+                pass
+
+
 @dataclasses.dataclass
 class Package:
 
@@ -112,7 +126,9 @@ class Package:
         self.api = version.api(self.version)
 
     @classmethod
-    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Self:
+    def from_raw(cls, raw: T.Dict[str, T.Any], workspace: T.Optional[Workspace] = None) -> Self:
+        if workspace:
+            _inherit_from_workspace(raw, workspace.package)
         fixed = _raw_mapping_to_attributes(raw, cls, f'Package entry {raw["name"]}')
         return cls(**fixed)
 
@@ -194,10 +210,12 @@ class Dependency:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
     @classmethod
-    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> Dependency:
+    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str], workspace: T.Optional[Workspace] = None) -> Dependency:
         """Create a dependency from a raw cargo dictionary"""
         if isinstance(raw, str):
             return cls(name, version.convert(raw))
+        if workspace:
+            _inherit_from_workspace(raw, workspace.dependencies)
         fixed = _raw_mapping_to_attributes(raw, cls, f'Dependency entry {name}', convert_version=True)
         return cls(name, **fixed)
 
@@ -325,19 +343,19 @@ class Manifest:
         self.system_dependencies = {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
-    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Manifest:
+    def from_raw(cls, raw: T.Dict[str, T.Any], workspace: T.Optional[Workspace] = None) -> Manifest:
         return cls(
-            Package.from_raw(raw['package']),
-            {k: Dependency.from_raw(k, v) for k, v in raw.get('dependencies', {}).items()},
-            {k: Dependency.from_raw(k, v) for k, v in raw.get('dev-dependencies', {}).items()},
-            {k: Dependency.from_raw(k, v) for k, v in raw.get('build-dependencies', {}).items()},
+            Package.from_raw(raw['package'], workspace),
+            {k: Dependency.from_raw(k, v, workspace) for k, v in raw.get('dependencies', {}).items()},
+            {k: Dependency.from_raw(k, v, workspace) for k, v in raw.get('dev-dependencies', {}).items()},
+            {k: Dependency.from_raw(k, v, workspace) for k, v in raw.get('build-dependencies', {}).items()},
             Library.from_raw(raw.get('lib', {}), raw['package']['name']),
             [Binary.from_raw(b) for b in raw.get('bin', {})],
             [Test.from_raw(b) for b in raw.get('test', {})],
             [Benchmark.from_raw(b) for b in raw.get('bench', {})],
             [Example.from_raw(b) for b in raw.get('example', {})],
             raw.get('features', {}),
-            {k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
+            {k: {k2: Dependency.from_raw(k2, v2, workspace) for k2, v2 in v.get('dependencies', {}).items()}
                 for k, v in raw.get('target', {}).items()},
         )
 
@@ -375,3 +393,23 @@ class CargoLock:
             [CargoLockPackage.from_raw(i) for i in fixed['package']],
             fixed.get('metadata', {}),
         )
+
+@dataclasses.dataclass
+class Workspace:
+
+    """Cargo Workspace definition.
+    """
+
+    resolver: str = '2'
+    members: T.List[str] = dataclasses.field(default_factory=list)
+    exclude: T.List[str] = dataclasses.field(default_factory=list)
+    default_members: T.List[str] = dataclasses.field(default_factory=list)
+    package: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    dependencies: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    lints: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+
+    @classmethod
+    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Workspace:
+        fixed = _raw_mapping_to_attributes(raw, cls, 'Workspace')
+        return Workspace(**fixed)
