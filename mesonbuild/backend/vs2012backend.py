@@ -21,6 +21,8 @@ class Vs2012Backend(Vs2010Backend):
         self.vs_version = '2012'
         self.sln_file_version = '12.00'
         self.sln_version_comment = '2012'
+
+    def detect_toolset(self) -> None:
         if self.environment is not None:
             # TODO: we assume host == build
             comps = self.environment.coredata.compilers.host

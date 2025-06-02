@@ -22,6 +22,8 @@ class Vs2019Backend(Vs2010Backend):
         super().__init__(build, interpreter)
         self.sln_file_version = '12.00'
         self.sln_version_comment = 'Version 16'
+
+    def detect_toolset(self) -> None:
         if self.environment is not None:
             comps = self.environment.coredata.compilers.host
             if comps and all(c.id == 'clang-cl' for c in comps.values()):
