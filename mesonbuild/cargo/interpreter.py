@@ -11,23 +11,19 @@ port will be required.
 
 from __future__ import annotations
 import dataclasses
-import importlib
-import json
 import os
-import shutil
 import collections
 import urllib.parse
 import itertools
 import typing as T
 
 from . import builder, version, cfg
-from ..mesonlib import MesonException, Popen_safe, MachineChoice
+from .toml import load_toml, TomlImplementationMissing
+from ..mesonlib import MesonException, MachineChoice
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
 if T.TYPE_CHECKING:
-    from types import ModuleType
-
     from typing_extensions import Protocol, Self
 
     from . import manifest
@@ -45,25 +41,6 @@ if T.TYPE_CHECKING:
                               manifest.FixedBuildTarget)
 
 
-# tomllib is present in python 3.11, before that it is a pypi module called tomli,
-# we try to import tomllib, then tomli,
-# TODO: add a fallback to toml2json?
-tomllib: T.Optional[ModuleType] = None
-toml2json: T.Optional[str] = None
-for t in ['tomllib', 'tomli']:
-    try:
-        tomllib = importlib.import_module(t)
-        break
-    except ImportError:
-        pass
-else:
-    # TODO: it would be better to use an Executable here, which could be looked
-    # up in the cross file or provided by a wrap. However, that will have to be
-    # passed in externally, since we don't have (and I don't think we should),
-    # have access to the `Environment` for that in this module.
-    toml2json = shutil.which('toml2json')
-
-
 _EXTRA_KEYS_WARNING = (
     "This may (unlikely) be an error in the cargo manifest, or may be a missing "
     "implementation in Meson. If this issue can be reproduced with the latest "
@@ -71,29 +48,6 @@ _EXTRA_KEYS_WARNING = (
     "https://github.com/mesonbuild/meson/issues. Please include the crate and "
     "version that is generating this warning if possible."
 )
-
-class TomlImplementationMissing(MesonException):
-    pass
-
-
-def load_toml(filename: str) -> T.Dict[object, object]:
-    if tomllib:
-        with open(filename, 'rb') as f:
-            raw = tomllib.load(f)
-    else:
-        if toml2json is None:
-            raise TomlImplementationMissing('Could not find an implementation of tomllib, nor toml2json')
-
-        p, out, err = Popen_safe([toml2json, filename])
-        if p.returncode != 0:
-            raise MesonException('toml2json failed to decode output\n', err)
-
-        raw = json.loads(out)
-
-    if not isinstance(raw, dict):
-        raise MesonException("Cargo.toml isn't a dictionary? How did that happen?")
-
-    return raw
 
 
 def fixup_meson_varname(name: str) -> str:
