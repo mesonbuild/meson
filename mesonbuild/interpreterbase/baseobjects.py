@@ -127,6 +127,10 @@ class UnknownValue(MesonInterpreterObject):
     limitations in our code or because the value differs from machine to
     machine.'''
 
+class UndefinedVariable(MesonInterpreterObject):
+    '''This class is only used for the rewriter/static introspection tool and
+    represents the `value` a meson-variable has if it was never written to.'''
+
 HoldableTypes = (HoldableObject, int, bool, str, list, dict)
 TYPE_HoldableTypes = T.Union[TYPE_var, HoldableObject]
 InterpreterObjectTypeVar = T.TypeVar('InterpreterObjectTypeVar', bound=TYPE_HoldableTypes)

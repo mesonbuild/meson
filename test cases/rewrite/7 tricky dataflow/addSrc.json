@@ -68,5 +68,10 @@
         "type": "target",
         "target": "tgt6",
         "operation": "info"
+    },
+    {
+        "type": "target",
+        "target": "tgt7",
+        "operation": "info"
     }
 ]
