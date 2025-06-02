@@ -147,6 +147,9 @@ class Vs2010Backend(backends.Backend):
         self.handled_target_deps = {}
         self.gen_lite = gen_lite  # Synonymous with generating the simpler makefile-style multi-config projects that invoke 'meson compile' builds, avoiding native MSBuild complications
 
+    def detect_toolset(self) -> None:
+        pass
+
     def get_target_private_dir(self, target):
         return os.path.join(self.get_target_dir(target), target.get_id())
 
@@ -227,6 +230,7 @@ class Vs2010Backend(backends.Backend):
         # Check for (currently) unexpected capture arg use cases -
         if capture:
             raise MesonBugException('We do not expect any vs backend to generate with \'capture = True\'')
+        self.detect_toolset()
         host_machine = self.environment.machines.host.cpu_family
         if host_machine in {'64', 'x86_64'}:
             # amd64 or x86_64
