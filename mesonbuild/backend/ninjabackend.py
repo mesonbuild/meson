@@ -500,11 +500,6 @@ class NinjaBackend(backends.Backend):
         # - https://github.com/mesonbuild/meson/pull/9453
         # - https://github.com/mesonbuild/meson/issues/9479#issuecomment-953485040
         self.allow_thin_archives = PerMachine[bool](True, True)
-        if self.environment:
-            for for_machine in MachineChoice:
-                if 'cuda' in self.environment.coredata.compilers[for_machine]:
-                    mlog.debug('cuda enabled globally, disabling thin archives for {}, since nvcc/nvlink cannot handle thin archives natively'.format(for_machine))
-                    self.allow_thin_archives[for_machine] = False
 
     def create_phony_target(self, dummy_outfile: str, rulename: str, phony_infilename: str) -> NinjaBuildElement:
         '''
@@ -595,6 +590,12 @@ class NinjaBackend(backends.Backend):
             # We don't yet have a use case where we'd expect to make use of this,
             # so no harm in catching and reporting something unexpected.
             raise MesonBugException('We do not expect the ninja backend to be given a valid \'vslite_ctx\'')
+        if self.environment:
+            for for_machine in MachineChoice:
+                if 'cuda' in self.environment.coredata.compilers[for_machine]:
+                    mlog.debug('cuda enabled globally, disabling thin archives for {}, since nvcc/nvlink cannot handle thin archives natively'.format(for_machine))
+                    self.allow_thin_archives[for_machine] = False
+
         ninja = environment.detect_ninja_command_and_version(log=True)
         if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv')):
             builddir = Path(self.environment.get_build_dir())
