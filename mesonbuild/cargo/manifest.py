@@ -67,7 +67,7 @@ def _raw_mapping_to_attributes(raw: T.Dict[str, T.Any], cls: T.Union[DataclassIn
                      _EXTRA_KEYS_WARNING)
         for k in unexpected:
             del raw[k]
-    if convert_version:
+    if convert_version and 'version' in raw:
         raw['version'] = version.convert(raw['version'])
     return raw
 
@@ -177,7 +177,7 @@ class Dependency:
     """Representation of a Cargo Dependency Entry."""
 
     name: dataclasses.InitVar[str]
-    version: T.List[str]
+    version: T.List[str] = dataclasses.field(default_factory=list)
     registry: T.Optional[str] = None
     git: T.Optional[str] = None
     branch: T.Optional[str] = None
