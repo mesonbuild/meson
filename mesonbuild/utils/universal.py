@@ -1252,6 +1252,8 @@ def do_replacement_meson(regex: T.Pattern[str], line: str,
                 if isinstance(var, str):
                     var_str = var
                 elif isinstance(var, int):
+                    if isinstance(var, bool):
+                        mlog.deprecation('Variable substitution with boolean values is deprecated, please use configuration_data.set10 to convert it into an integer')
                     var_str = str(var)
                 else:
                     msg = f'Tried to replace variable {varname!r} value with ' \
