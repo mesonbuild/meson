@@ -366,23 +366,23 @@ class Manifest:
         self.features.setdefault('default', [])
         self.system_dependencies = {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
-
-def _convert_manifest(raw_manifest: raw.Manifest, subdir: str, path: str = '') -> Manifest:
-    return Manifest(
-        Package.from_raw(raw_manifest['package']),
-        {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('dependencies', {}).items()},
-        {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('dev-dependencies', {}).items()},
-        {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('build-dependencies', {}).items()},
-        Library.from_raw(raw_manifest.get('lib', {}), raw_manifest['package']['name']),
-        [Binary.from_raw(b) for b in raw_manifest.get('bin', {})],
-        [Test.from_raw(b) for b in raw_manifest.get('test', {})],
-        [Benchmark.from_raw(b) for b in raw_manifest.get('bench', {})],
-        [Example.from_raw(b) for b in raw_manifest.get('example', {})],
-        raw_manifest.get('features', {}),
-        {k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
-         for k, v in raw_manifest.get('target', {}).items()},
-        path,
-    )
+    @classmethod
+    def from_raw(cls, raw: raw.Manifest, path: str = '') -> Self:
+        return cls(
+            package=Package.from_raw(raw['package']),
+            dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('dependencies', {}).items()},
+            dev_dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('dev-dependencies', {}).items()},
+            build_dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('build-dependencies', {}).items()},
+            lib=Library.from_raw(raw.get('lib', {}), raw['package']['name']),
+            bin=[Binary.from_raw(b) for b in raw.get('bin', {})],
+            test=[Test.from_raw(b) for b in raw.get('test', {})],
+            bench=[Benchmark.from_raw(b) for b in raw.get('bench', {})],
+            example=[Example.from_raw(b) for b in raw.get('example', {})],
+            features=raw.get('features', {}),
+            target={k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
+                    for k, v in raw.get('target', {}).items()},
+            path=path,
+        )
 
 
 def _version_to_api(version: str) -> str:
@@ -508,7 +508,7 @@ class Interpreter:
             toml = load_toml(filename)
             if 'package' in toml:
                 raw_manifest = T.cast('raw.Manifest', toml)
-                manifest_ = _convert_manifest(raw_manifest, subdir)
+                manifest_ = Manifest.from_raw(raw_manifest)
                 self.manifests[subdir] = manifest_
             else:
                 raise MesonException(f'{subdir}/Cargo.toml does not have [package] section')
