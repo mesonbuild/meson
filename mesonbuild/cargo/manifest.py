@@ -367,21 +367,20 @@ class Manifest:
         if pkg.autolib and 'lib' not in raw and \
                 os.path.exists(os.path.join(path, 'src/lib.rs')):
             raw['lib'] = {}
-        return cls(
-            package=pkg,
-            dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('dependencies', {}).items()},
-            dev_dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('dev-dependencies', {}).items()},
-            build_dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('build-dependencies', {}).items()},
-            lib=Library.from_raw(raw['lib'], raw['package']['name']) if 'lib' in raw else None,
-            bin=[Binary.from_raw(b) for b in raw.get('bin', {})],
-            test=[Test.from_raw(b) for b in raw.get('test', {})],
-            bench=[Benchmark.from_raw(b) for b in raw.get('bench', {})],
-            example=[Example.from_raw(b) for b in raw.get('example', {})],
-            features=raw.get('features', {}),
-            target={k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
-                    for k, v in raw.get('target', {}).items()},
-            path=path,
-        )
+        fixed = _raw_to_dataclass(raw, cls, f'Cargo.toml package {raw["package"]["name"]}',
+                                  package=lambda x: pkg,
+                                  dependencies=lambda x: {k: Dependency.from_raw(k, v) for k, v in x.items()},
+                                  dev_dependencies=lambda x: {k: Dependency.from_raw(k, v) for k, v in x.items()},
+                                  build_dependencies=lambda x: {k: Dependency.from_raw(k, v) for k, v in x.items()},
+                                  lib=lambda x: Library.from_raw(x, raw['package']['name']),
+                                  bin=lambda x: [Binary.from_raw(b) for b in x],
+                                  test=lambda x: [Test.from_raw(b) for b in x],
+                                  bench=lambda x: [Benchmark.from_raw(b) for b in x],
+                                  example=lambda x: [Example.from_raw(b) for b in x],
+                                  target=lambda x: {k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
+                                                    for k, v in x.items()})
+        fixed.path = path
+        return fixed
 
 
 @dataclasses.dataclass
