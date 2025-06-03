@@ -36,10 +36,6 @@ if T.TYPE_CHECKING:
     class DataclassInstance(Protocol):
         __dataclass_fields__: T.ClassVar[dict[str, dataclasses.Field[T.Any]]]
 
-    _UnknownKeysT = T.TypeVar('_UnknownKeysT', manifest.FixedPackage,
-                              manifest.FixedDependency, manifest.FixedLibTarget,
-                              manifest.FixedBuildTarget)
-
 _R = T.TypeVar('_R', bound='raw._BaseBuildTarget')
 
 
@@ -61,19 +57,7 @@ def fixup_meson_varname(name: str) -> str:
     return name.replace('-', '_')
 
 
-# Pylance can figure out that these do not, in fact, overlap, but mypy can't
-@T.overload
-def _fixup_raw_mappings(d: raw.BuildTarget) -> manifest.FixedBuildTarget: ...  # type: ignore
-
-@T.overload
-def _fixup_raw_mappings(d: raw.LibTarget) -> manifest.FixedLibTarget: ...  # type: ignore
-
-@T.overload
-def _fixup_raw_mappings(d: raw.Dependency) -> manifest.FixedDependency: ...
-
-def _fixup_raw_mappings(d: T.Union[raw.BuildTarget, raw.LibTarget, raw.Dependency]
-                        ) -> T.Union[manifest.FixedBuildTarget, manifest.FixedLibTarget,
-                                     manifest.FixedDependency]:
+def _fixup_raw_mappings(d: T.Mapping[str, T.Any], convert_version: bool = True) -> T.MutableMapping[str, T.Any]:
     """Fixup raw cargo mappings to ones more suitable for python to consume.
 
     This does the following:
@@ -86,14 +70,14 @@ def _fixup_raw_mappings(d: T.Union[raw.BuildTarget, raw.LibTarget, raw.Dependenc
     :return: the fixed string
     """
     raw = {fixup_meson_varname(k): v for k, v in d.items()}
-    if 'version' in raw:
+    if convert_version and 'version' in raw:
         assert isinstance(raw['version'], str), 'for mypy'
         raw['version'] = version.convert(raw['version'])
-    return T.cast('T.Union[manifest.FixedBuildTarget, manifest.FixedLibTarget, manifest.FixedDependency]', raw)
+    return raw
 
 
-def _handle_unknown_keys(data: _UnknownKeysT, cls: T.Union[DataclassInstance, T.Type[DataclassInstance]],
-                         msg: str) -> _UnknownKeysT:
+def _handle_unknown_keys(data: T.MutableMapping[str, T.Any], cls: T.Union[DataclassInstance, T.Type[DataclassInstance]],
+                         msg: str) -> T.MutableMapping[str, T.Any]:
     """Remove and warn on keys that are coming from cargo, but are unknown to
     our representations.
 
@@ -111,8 +95,7 @@ def _handle_unknown_keys(data: _UnknownKeysT, cls: T.Union[DataclassInstance, T.
         mlog.warning(msg, 'has unexpected keys', '"{}".'.format(', '.join(sorted(unexpected))),
                      _EXTRA_KEYS_WARNING)
         for k in unexpected:
-            # Mypy and Pyright can't prove that this is okay
-            del data[k]  # type: ignore[misc]
+            del data[k]
     return data
 
 
@@ -156,8 +139,7 @@ class Package:
 
     @classmethod
     def from_raw(cls, raw: raw.Package) -> Self:
-        pkg = T.cast('manifest.FixedPackage',
-                     {fixup_meson_varname(k): v for k, v in raw.items()})
+        pkg = _fixup_raw_mappings(raw, convert_version=False)
         pkg = _handle_unknown_keys(pkg, cls, f'Package entry {pkg["name"]}')
         return cls(**pkg)
 
