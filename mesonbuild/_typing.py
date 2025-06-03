@@ -9,9 +9,11 @@ Holds typing helper classes, such as the ImmutableProtocol classes
 
 __all__ = [
     'Protocol',
+    'DataclassInstance',
     'ImmutableListProtocol'
 ]
 
+import dataclasses
 import typing
 
 # We can change this to typing when we require python 3.8
@@ -20,6 +22,10 @@ from typing_extensions import Protocol
 
 T = typing.TypeVar('T')
 
+
+# Copied from typeshed. Blarg that they don't expose this
+class DataclassInstance(Protocol):
+    __dataclass_fields__: typing.ClassVar[dict[str, dataclasses.Field[typing.Any]]]
 
 class StringProtocol(Protocol):
     def __str__(self) -> str: ...
