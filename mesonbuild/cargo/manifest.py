@@ -10,7 +10,7 @@ import typing as T
 
 from . import version
 from .. import mlog
-from ..mesonlib import MesonException
+from ..mesonlib import lazy_property, MesonException
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol, Self
@@ -119,10 +119,9 @@ class Package:
     autotests: bool = True
     autobenches: bool = True
 
-    api: str = dataclasses.field(init=False)
-
-    def __post_init__(self) -> None:
-        self.api = version.api(self.version)
+    @lazy_property
+    def api(self) -> str:
+        return version.api(self.version)
 
     @classmethod
     def from_raw(cls, raw_pkg: raw.Package) -> Self:
@@ -184,9 +183,8 @@ class Dependency:
     default_features: bool = True
     features: T.List[str] = dataclasses.field(default_factory=list)
 
-    api: str = dataclasses.field(init=False)
-
-    def __post_init__(self) -> None:
+    @lazy_property
+    def api(self) -> str:
         # Extract wanted API version from version constraints.
         api = set()
         for v in self.version:
@@ -195,9 +193,9 @@ class Dependency:
             elif v.startswith('='):
                 api.add(version.api(v[1:].strip()))
         if not api:
-            self.api = '0'
+            return '0'
         elif len(api) == 1:
-            self.api = api.pop()
+            return api.pop()
         else:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
@@ -343,7 +341,6 @@ class Manifest:
     dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     dev_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     build_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
-    system_dependencies: T.Dict[str, SystemDependency] = dataclasses.field(init=False)
     lib: T.Optional[Library] = None
     bin: T.List[Binary] = dataclasses.field(default_factory=list)
     test: T.List[Test] = dataclasses.field(default_factory=list)
@@ -356,7 +353,10 @@ class Manifest:
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
-        self.system_dependencies = {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
+
+    @lazy_property
+    def system_dependencies(self) -> T.Dict[str, SystemDependency]:
+        return {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
     def from_raw(cls, raw: raw.Manifest, path: str = '') -> Self:
