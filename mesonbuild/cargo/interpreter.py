@@ -19,6 +19,7 @@ import typing as T
 
 from . import builder, version, cfg
 from .toml import load_toml, TomlImplementationMissing
+from .manifest import fixup_meson_varname, CargoLock
 from ..mesonlib import MesonException, MachineChoice
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
@@ -46,15 +47,6 @@ _EXTRA_KEYS_WARNING = (
     "https://github.com/mesonbuild/meson/issues. Please include the crate and "
     "version that is generating this warning if possible."
 )
-
-
-def fixup_meson_varname(name: str) -> str:
-    """Fixup a meson variable name
-
-    :param name: The name to fix
-    :return: the fixed name
-    """
-    return name.replace('-', '_')
 
 
 def _fixup_raw_mappings(d: T.Mapping[str, T.Any], convert_version: bool = True) -> T.MutableMapping[str, T.Any]:
@@ -135,7 +127,7 @@ class Package:
     api: str = dataclasses.field(init=False)
 
     def __post_init__(self) -> None:
-        self.api = _version_to_api(self.version)
+        self.api = version.api(self.version)
 
     @classmethod
     def from_raw(cls, raw: raw.Package) -> Self:
@@ -206,9 +198,9 @@ class Dependency:
         api = set()
         for v in self.version:
             if v.startswith(('>=', '==')):
-                api.add(_version_to_api(v[2:].strip()))
+                api.add(version.api(v[2:].strip()))
             elif v.startswith('='):
-                api.add(_version_to_api(v[1:].strip()))
+                api.add(version.api(v[1:].strip()))
         if not api:
             self.api = '0'
         elif len(api) == 1:
@@ -365,18 +357,6 @@ class Manifest:
                     for k, v in raw.get('target', {}).items()},
             path=path,
         )
-
-
-def _version_to_api(version: str) -> str:
-    # x.y.z -> x
-    # 0.x.y -> 0.x
-    # 0.0.x -> 0
-    vers = version.split('.')
-    if int(vers[0]) != 0:
-        return vers[0]
-    elif len(vers) >= 2 and int(vers[1]) != 0:
-        return f'0.{vers[1]}'
-    return '0'
 
 
 def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
@@ -805,24 +785,23 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
     filename = os.path.join(source_dir, 'Cargo.lock')
     if os.path.exists(filename):
         try:
-            cargolock = T.cast('raw.CargoLock', load_toml(filename))
+            toml = load_toml(filename)
         except TomlImplementationMissing as e:
             mlog.warning('Failed to load Cargo.lock:', str(e), fatal=False)
             return wraps
-        for package in cargolock['package']:
-            name = package['name']
-            version = package['version']
-            subp_name = _dependency_name(name, _version_to_api(version))
-            source = package.get('source')
-            if source is None:
+        raw_cargolock = T.cast('raw.CargoLock', toml)
+        cargolock = CargoLock.from_raw(raw_cargolock)
+        for package in cargolock.package:
+            subp_name = _dependency_name(package.name, version.api(package.version))
+            if package.source is None:
                 # This is project's package, or one of its workspace members.
                 pass
-            elif source == 'registry+https://github.com/rust-lang/crates.io-index':
-                checksum = package.get('checksum')
+            elif package.source == 'registry+https://github.com/rust-lang/crates.io-index':
+                checksum = package.checksum
                 if checksum is None:
-                    checksum = cargolock['metadata'][f'checksum {name} {version} ({source})']
-                url = f'https://crates.io/api/v1/crates/{name}/{version}/download'
-                directory = f'{name}-{version}'
+                    checksum = cargolock.metadata[f'checksum {package.name} {package.version} ({package.source})']
+                url = f'https://crates.io/api/v1/crates/{package.name}/{package.version}/download'
+                directory = f'{package.name}-{package.version}'
                 wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'file', {
                     'directory': directory,
                     'source_url': url,
@@ -830,18 +809,18 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
                     'source_hash': checksum,
                     'method': 'cargo',
                 }))
-            elif source.startswith('git+'):
-                parts = urllib.parse.urlparse(source[4:])
+            elif package.source.startswith('git+'):
+                parts = urllib.parse.urlparse(package.source[4:])
                 query = urllib.parse.parse_qs(parts.query)
                 branch = query['branch'][0] if 'branch' in query else ''
                 revision = parts.fragment or branch
                 url = urllib.parse.urlunparse(parts._replace(params='', query='', fragment=''))
                 wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'git', {
-                    'directory': name,
+                    'directory': package.name,
                     'url': url,
                     'revision': revision,
                     'method': 'cargo',
                 }))
             else:
-                mlog.warning(f'Unsupported source URL in {filename}: {source}')
+                mlog.warning(f'Unsupported source URL in {filename}: {package.source}')
     return wraps
