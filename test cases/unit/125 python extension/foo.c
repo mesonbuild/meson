@@ -3,7 +3,7 @@
 
 
 static PyObject *
-bar_impl(PyObject *self)
+bar_impl(PyObject *self, PyObject *args)
 {
     return Py_None;
 }
