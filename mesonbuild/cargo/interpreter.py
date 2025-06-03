@@ -262,6 +262,7 @@ class Interpreter:
         return ast
 
     def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        # TODO: handle feature_overrides
         kw = {
             'version': build.array([build.string(s) for s in dep.version]),
             'required': build.bool(not dep.optional),
