@@ -455,7 +455,12 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
             pkg_libdir = installation.info['variables'].get('LIBPC')
             pkg_libdir_origin = 'LIBPC'
         if pkg_libdir is None:
-            pkg_libdir_origin = 'the default paths'
+            # we do not fall back to system directories, since this could lead
+            # to using pkg-config of another Python installation, for example
+            # we could end up using CPython .pc file for PyPy
+            mlog.debug(f'Skipping pkgconfig lookup, {pkg_libdir_origin} is unset')
+            self.is_found = False
+            return
         mlog.debug(f'Searching for {pkg_libdir!r} via pkgconfig lookup in {pkg_libdir_origin}')
         pkgconfig_paths = [pkg_libdir] if pkg_libdir else []
 
@@ -465,6 +470,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
         if pkg_libdir and not self.is_found:
             mlog.debug(f'{pkg_name!r} could not be found in {pkg_libdir_origin}, '
                         'this is likely due to a relocated python installation')
+            return
 
         # pkg-config files are usually accurate starting with python 3.8
         if not self.link_libpython and mesonlib.version_compare(self.version, '< 3.8'):
