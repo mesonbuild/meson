@@ -26,7 +26,7 @@ from ..wrap.wrap import PackageDefinition
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol, Self
 
-    from . import manifest
+    from . import manifest, raw
     from .. import mparser
     from ..environment import Environment
     from ..interpreterbase import SubProject
@@ -39,6 +39,8 @@ if T.TYPE_CHECKING:
     _UnknownKeysT = T.TypeVar('_UnknownKeysT', manifest.FixedPackage,
                               manifest.FixedDependency, manifest.FixedLibTarget,
                               manifest.FixedBuildTarget)
+
+_R = T.TypeVar('_R', bound='raw._BaseBuildTarget')
 
 
 _EXTRA_KEYS_WARNING = (
@@ -61,15 +63,15 @@ def fixup_meson_varname(name: str) -> str:
 
 # Pylance can figure out that these do not, in fact, overlap, but mypy can't
 @T.overload
-def _fixup_raw_mappings(d: manifest.BuildTarget) -> manifest.FixedBuildTarget: ...  # type: ignore
+def _fixup_raw_mappings(d: raw.BuildTarget) -> manifest.FixedBuildTarget: ...  # type: ignore
 
 @T.overload
-def _fixup_raw_mappings(d: manifest.LibTarget) -> manifest.FixedLibTarget: ...  # type: ignore
+def _fixup_raw_mappings(d: raw.LibTarget) -> manifest.FixedLibTarget: ...  # type: ignore
 
 @T.overload
-def _fixup_raw_mappings(d: manifest.Dependency) -> manifest.FixedDependency: ...
+def _fixup_raw_mappings(d: raw.Dependency) -> manifest.FixedDependency: ...
 
-def _fixup_raw_mappings(d: T.Union[manifest.BuildTarget, manifest.LibTarget, manifest.Dependency]
+def _fixup_raw_mappings(d: T.Union[raw.BuildTarget, raw.LibTarget, raw.Dependency]
                         ) -> T.Union[manifest.FixedBuildTarget, manifest.FixedLibTarget,
                                      manifest.FixedDependency]:
     """Fixup raw cargo mappings to ones more suitable for python to consume.
@@ -153,7 +155,7 @@ class Package:
         self.api = _version_to_api(self.version)
 
     @classmethod
-    def from_raw(cls, raw: manifest.Package) -> Self:
+    def from_raw(cls, raw: raw.Package) -> Self:
         pkg = T.cast('manifest.FixedPackage',
                      {fixup_meson_varname(k): v for k, v in raw.items()})
         pkg = _handle_unknown_keys(pkg, cls, f'Package entry {pkg["name"]}')
@@ -233,7 +235,7 @@ class Dependency:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
     @classmethod
-    def from_raw(cls, name: str, raw: manifest.DependencyV) -> Dependency:
+    def from_raw(cls, name: str, raw: raw.DependencyV) -> Dependency:
         """Create a dependency from a raw cargo dictionary"""
         if isinstance(raw, str):
             return cls(name, version.convert(raw))
@@ -242,7 +244,7 @@ class Dependency:
 
 
 @dataclasses.dataclass
-class BuildTarget:
+class BuildTarget(T.Generic[_R]):
 
     name: str
     crate_type: T.List[manifest.CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
@@ -270,13 +272,13 @@ class BuildTarget:
     plugin: bool = False
 
     @classmethod
-    def from_raw(cls, raw: manifest.BuildTarget) -> Self:
+    def from_raw(cls, raw: raw.BuildTarget) -> Self:
         name = raw.get('name', '<anonymous>')
         build = _handle_unknown_keys(_fixup_raw_mappings(raw), cls, f'Binary entry {name}')
         return cls(**build)
 
 @dataclasses.dataclass
-class Library(BuildTarget):
+class Library(BuildTarget['raw.LibTarget']):
 
     """Representation of a Cargo Library Entry."""
 
@@ -288,20 +290,20 @@ class Library(BuildTarget):
     doc_scrape_examples: bool = True
 
     @classmethod
-    def from_raw(cls, raw: manifest.LibTarget, fallback_name: str) -> Self:  # type: ignore[override]
+    def from_raw(cls, raw: raw.LibTarget, fallback_name: str) -> Self:  # type: ignore[override]
+        if 'name' not in raw:
+            raw['name'] = fallback_name
         fixed = _fixup_raw_mappings(raw)
 
         # We need to set the name field if it's not set manually, including if
         # other fields are set in the lib section
-        if 'name' not in fixed:
-            fixed['name'] = fallback_name
         fixed = _handle_unknown_keys(fixed, cls, f'Library entry {fixed["name"]}')
 
         return cls(**fixed)
 
 
 @dataclasses.dataclass
-class Binary(BuildTarget):
+class Binary(BuildTarget['raw.BuildTarget']):
 
     """Representation of a Cargo Bin Entry."""
 
@@ -309,7 +311,7 @@ class Binary(BuildTarget):
 
 
 @dataclasses.dataclass
-class Test(BuildTarget):
+class Test(BuildTarget['raw.BuildTarget']):
 
     """Representation of a Cargo Test Entry."""
 
@@ -317,7 +319,7 @@ class Test(BuildTarget):
 
 
 @dataclasses.dataclass
-class Benchmark(BuildTarget):
+class Benchmark(BuildTarget['raw.BuildTarget']):
 
     """Representation of a Cargo Benchmark Entry."""
 
@@ -325,7 +327,7 @@ class Benchmark(BuildTarget):
 
 
 @dataclasses.dataclass
-class Example(BuildTarget):
+class Example(BuildTarget['raw.BuildTarget']):
 
     """Representation of a Cargo Example Entry."""
 
@@ -365,7 +367,7 @@ class Manifest:
         self.system_dependencies = {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
 
-def _convert_manifest(raw_manifest: manifest.Manifest, subdir: str, path: str = '') -> Manifest:
+def _convert_manifest(raw_manifest: raw.Manifest, subdir: str, path: str = '') -> Manifest:
     return Manifest(
         Package.from_raw(raw_manifest['package']),
         {k: Dependency.from_raw(k, v) for k, v in raw_manifest.get('dependencies', {}).items()},
@@ -503,9 +505,9 @@ class Interpreter:
         manifest_ = self.manifests.get(subdir)
         if not manifest_:
             filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
-            raw = load_toml(filename)
-            if 'package' in raw:
-                raw_manifest = T.cast('manifest.Manifest', raw)
+            toml = load_toml(filename)
+            if 'package' in toml:
+                raw_manifest = T.cast('raw.Manifest', toml)
                 manifest_ = _convert_manifest(raw_manifest, subdir)
                 self.manifests[subdir] = manifest_
             else:
@@ -821,7 +823,7 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
     filename = os.path.join(source_dir, 'Cargo.lock')
     if os.path.exists(filename):
         try:
-            cargolock = T.cast('manifest.CargoLock', load_toml(filename))
+            cargolock = T.cast('raw.CargoLock', load_toml(filename))
         except TomlImplementationMissing as e:
             mlog.warning('Failed to load Cargo.lock:', str(e), fatal=False)
             return wraps
