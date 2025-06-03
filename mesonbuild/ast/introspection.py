@@ -100,16 +100,6 @@ class IntrospectionInterpreter(AstInterpreter):
                 return [node.value]
             return None
 
-        def create_options_dict(options: T.List[str], subproject: str = '') -> T.Mapping[OptionKey, str]:
-            result: T.MutableMapping[OptionKey, str] = {}
-            for o in options:
-                try:
-                    (key, value) = o.split('=', 1)
-                except ValueError:
-                    raise mesonlib.MesonException(f'Option {o!r} must have a value separated by equals sign.')
-                result[OptionKey(key)] = value
-            return result
-
         proj_name = args[0]
         proj_vers = kwargs.get('version', 'undefined')
         if isinstance(proj_vers, ElementaryNode):
