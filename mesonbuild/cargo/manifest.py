@@ -19,16 +19,14 @@ from ..mesonlib import MesonException, is_parent_path, lazy_property, MachineCho
 from .. import mlog
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Protocol, Self
+    from typing_extensions import Self
+    from .._typing import DataclassInstance
 
     from . import raw
     from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
     from ..options import ElementaryOptionValues
     from ..wrap.wrap import PackageDefinition
 
-    # Copied from typeshed. Blarg that they don't expose this
-    class DataclassInstance(Protocol):
-        __dataclass_fields__: T.ClassVar[dict[str, dataclasses.Field[T.Any]]]
 
 _DI = T.TypeVar('_DI', bound='DataclassInstance')
 
