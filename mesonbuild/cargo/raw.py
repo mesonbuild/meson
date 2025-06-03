@@ -11,7 +11,7 @@ CRATE_TYPE = T.Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'pr
 LINT_LEVEL = T.Literal['allow', 'deny', 'forbid', 'warn']
 
 
-class FromWorkspace(T.TypedDict):
+class FromWorkspace(T.TypedDict, total=False):
 
     """An entry or section that is copied from the workspace."""
 
@@ -53,7 +53,7 @@ Package = T.TypedDict(
 )
 """A description of the Package Dictionary."""
 
-class Badge(T.TypedDict):
+class Badge(T.TypedDict, total=False):
 
     """An entry in the badge section."""
 
@@ -113,7 +113,7 @@ class LibTarget(_BaseBuildTarget, total=False):
     name: str
 
 
-class Target(T.TypedDict):
+class Target(T.TypedDict, total=False):
 
     """Target entry in the Manifest File."""
 
@@ -140,7 +140,7 @@ LintV = T.Union[Lint, str]
 """A Lint entry, either a string or a Lint Dict."""
 
 
-class Workspace(T.TypedDict):
+class Workspace(T.TypedDict, total=False):
 
     """The representation of a workspace.
 
@@ -151,6 +151,7 @@ class Workspace(T.TypedDict):
     the :attribute:`exclude` is always optional
     """
 
+    resolver: str
     members: T.List[str]
     exclude: T.List[str]
     package: Package
