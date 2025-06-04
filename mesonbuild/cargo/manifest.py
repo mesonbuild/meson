@@ -341,17 +341,17 @@ class Manifest:
     """
 
     package: Package
-    dependencies: T.Dict[str, Dependency]
-    dev_dependencies: T.Dict[str, Dependency]
-    build_dependencies: T.Dict[str, Dependency]
+    dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    dev_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
+    build_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     system_dependencies: T.Dict[str, SystemDependency] = dataclasses.field(init=False)
-    lib: Library
-    bin: T.List[Binary]
-    test: T.List[Test]
-    bench: T.List[Benchmark]
-    example: T.List[Example]
-    features: T.Dict[str, T.List[str]]
-    target: T.Dict[str, T.Dict[str, Dependency]]
+    lib: T.Optional[Library] = None
+    bin: T.List[Binary] = dataclasses.field(default_factory=list)
+    test: T.List[Test] = dataclasses.field(default_factory=list)
+    bench: T.List[Benchmark] = dataclasses.field(default_factory=list)
+    example: T.List[Example] = dataclasses.field(default_factory=list)
+    features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
+    target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
 
     path: str = ''
 
@@ -361,12 +361,18 @@ class Manifest:
 
     @classmethod
     def from_raw(cls, raw: raw.Manifest, path: str = '') -> Self:
+        # Libs are always auto-discovered and there's no other way to handle them,
+        # which is unfortunate for reproducability
+        pkg = Package.from_raw(raw['package'])
+        if pkg.autolib and 'lib' not in raw and \
+                os.path.exists(os.path.join(path, 'src/lib.rs')):
+            raw['lib'] = {}
         return cls(
-            package=Package.from_raw(raw['package']),
+            package=pkg,
             dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('dependencies', {}).items()},
             dev_dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('dev-dependencies', {}).items()},
             build_dependencies={k: Dependency.from_raw(k, v) for k, v in raw.get('build-dependencies', {}).items()},
-            lib=Library.from_raw(raw.get('lib', {}), raw['package']['name']),
+            lib=Library.from_raw(raw['lib'], raw['package']['name']) if 'lib' in raw else None,
             bin=[Binary.from_raw(b) for b in raw.get('bin', {})],
             test=[Test.from_raw(b) for b in raw.get('test', {})],
             bench=[Benchmark.from_raw(b) for b in raw.get('bench', {})],
