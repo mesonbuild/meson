@@ -220,7 +220,7 @@ class BuildTarget(T.Generic[_R]):
 
     name: str
     path: str
-    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
+    crate_type: T.List[CRATE_TYPE]
 
     # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-test-field
     # True for lib, bin, test
@@ -274,6 +274,13 @@ class Binary(BuildTarget['raw.BuildTarget']):
     """Representation of a Cargo Bin Entry."""
 
     doc: bool = True
+    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+
+    @classmethod
+    def from_raw(cls, raw: raw.BuildTarget) -> Self:
+        if 'path' not in raw:
+            raw['path'] = os.path.join('bin', raw['name'] + '.rs')
+        return super().from_raw(raw)
 
 
 @dataclasses.dataclass
@@ -282,6 +289,13 @@ class Test(BuildTarget['raw.BuildTarget']):
     """Representation of a Cargo Test Entry."""
 
     bench: bool = True
+    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+
+    @classmethod
+    def from_raw(cls, raw: raw.BuildTarget) -> Self:
+        if 'path' not in raw:
+            raw['path'] = os.path.join('tests', raw['name'] + '.rs')
+        return super().from_raw(raw)
 
 @dataclasses.dataclass
 class Benchmark(BuildTarget['raw.BuildTarget']):
@@ -289,12 +303,27 @@ class Benchmark(BuildTarget['raw.BuildTarget']):
     """Representation of a Cargo Benchmark Entry."""
 
     test: bool = True
+    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+
+    @classmethod
+    def from_raw(cls, raw: raw.BuildTarget) -> Self:
+        if 'path' not in raw:
+            raw['path'] = os.path.join('benches', raw['name'] + '.rs')
+        return super().from_raw(raw)
 
 
 @dataclasses.dataclass
 class Example(BuildTarget['raw.BuildTarget']):
 
     """Representation of a Cargo Example Entry."""
+
+    crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+
+    @classmethod
+    def from_raw(cls, raw: raw.BuildTarget) -> Self:
+        if 'path' not in raw:
+            raw['path'] = os.path.join('examples', raw['name'] + '.rs')
+        return super().from_raw(raw)
 
 
 @dataclasses.dataclass
