@@ -245,7 +245,7 @@ for more information
 Generates a `.qrc` file that contains teh given files.
 
 It takes no positional arguments, and the following keyword arguments:
-  - `sources` (File | string | custom_target | custom_target index | generator_output)[]:
+  - `files` (File | string | custom_target | custom_target index | generator_output)[]:
     A list of files that to be included in the `.qrc`.<br/>
   - `output` string:
     The name of the `.qrc` file.<br/>
