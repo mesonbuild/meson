@@ -1176,7 +1176,6 @@ class QtBaseModule(ExtensionModule):
 
         return ModuleReturnValue(output, [output])
 
-
     @FeatureNew('qt.find_tool', '1.9')
     @typed_pos_args('qt.find_tool', str)
     @typed_kwargs(
