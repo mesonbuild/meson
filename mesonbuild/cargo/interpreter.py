@@ -100,9 +100,7 @@ class Interpreter:
         ast += self._create_dependencies(pkg, build)
         ast += self._create_meson_subdir(build)
 
-        # Libs are always auto-discovered and there's no other way to handle them,
-        # which is unfortunate for reproducability
-        if os.path.exists(os.path.join(self.environment.source_dir, subdir, pkg.manifest.path, pkg.manifest.lib.path)):
+        if pkg.manifest.lib:
             for crate_type in pkg.manifest.lib.crate_type:
                 ast.extend(self._create_lib(pkg, build, crate_type))
 
@@ -139,11 +137,12 @@ class Interpreter:
     def _load_manifest(self, subdir: str) -> Manifest:
         manifest_ = self.manifests.get(subdir)
         if not manifest_:
-            filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
+            path = os.path.join(self.environment.source_dir, subdir)
+            filename = os.path.join(path, 'Cargo.toml')
             toml = load_toml(filename)
             if 'package' in toml:
                 raw_manifest = T.cast('raw.Manifest', toml)
-                manifest_ = Manifest.from_raw(raw_manifest)
+                manifest_ = Manifest.from_raw(raw_manifest, path)
                 self.manifests[subdir] = manifest_
             else:
                 raise MesonException(f'{subdir}/Cargo.toml does not have [package] section')
