@@ -221,8 +221,8 @@ class OptionTests(unittest.TestCase):
 
     def test_b_nonexistent(self):
         optstore = OptionStore(False)
-        assert optstore.accept_as_pending_option(OptionKey('b_ndebug'))
-        assert not optstore.accept_as_pending_option(OptionKey('b_whatever'))
+        self.assertTrue(optstore.accept_as_pending_option(OptionKey('b_ndebug')))
+        self.assertFalse(optstore.accept_as_pending_option(OptionKey('b_whatever')))
 
     def test_reconfigure_b_nonexistent(self):
         optstore = OptionStore(False)
@@ -231,8 +231,8 @@ class OptionTests(unittest.TestCase):
     def test_subproject_nonexistent(self):
         optstore = OptionStore(False)
         subprojects = {'found'}
-        assert not optstore.accept_as_pending_option(OptionKey('foo', subproject='found'), subprojects)
-        assert optstore.accept_as_pending_option(OptionKey('foo', subproject='whatisthis'), subprojects)
+        self.assertFalse(optstore.accept_as_pending_option(OptionKey('foo', subproject='found'), subprojects))
+        self.assertTrue(optstore.accept_as_pending_option(OptionKey('foo', subproject='whatisthis'), subprojects))
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
