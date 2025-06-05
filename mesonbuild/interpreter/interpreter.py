@@ -2465,7 +2465,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
 
         if InterpreterRuleRelaxation.CARGO_SUBDIR in self.relaxations:
-            codeblock = self.environment.cargo.interpret(subdir, project_root=False)
+            codeblock = self.environment.cargo.interpret(subdir, self.root_subdir)
             self._save_ast(subdir, codeblock)
             self._evaluate_codeblock(codeblock, subdir)
         elif not self._evaluate_subdir(self.environment.get_source_dir(), subdir):

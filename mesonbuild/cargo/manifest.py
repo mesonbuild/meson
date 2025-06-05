@@ -175,7 +175,7 @@ class Dependency:
 
     """Representation of a Cargo Dependency Entry."""
 
-    name: dataclasses.InitVar[str]
+    package: str
     version: T.List[str] = dataclasses.field(default_factory=list)
     registry: T.Optional[str] = None
     git: T.Optional[str] = None
@@ -183,14 +183,12 @@ class Dependency:
     rev: T.Optional[str] = None
     path: T.Optional[str] = None
     optional: bool = False
-    package: str = ''
     default_features: bool = True
     features: T.List[str] = dataclasses.field(default_factory=list)
 
     api: str = dataclasses.field(init=False)
 
-    def __post_init__(self, name: str) -> None:
-        self.package = self.package or name
+    def __post_init__(self) -> None:
         self._update_api()
 
     def _update_api(self) -> None:
@@ -202,24 +200,31 @@ class Dependency:
             elif v.startswith('='):
                 api.add(version.api(v[1:].strip()))
         if not api:
-            self.api = '0'
+            self.api = ''
         elif len(api) == 1:
             self.api = api.pop()
         else:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
     @classmethod
-    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str], workspace: T.Optional[Workspace] = None) -> Dependency:
+    def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str], workspace: T.Optional[Workspace] = None, member_path: str = '') -> Dependency:
         """Create a dependency from a raw cargo dictionary"""
         if isinstance(raw, str):
             return cls(name, version.convert(raw))
         if workspace:
-            raw = _inherit_from_workspace(raw, workspace.dependencies.get(name, {}))
+            raw_ws_dep = workspace.raw.get('dependencies', {}).get(name, {})
+            if isinstance(raw_ws_dep, str):
+                raw_ws_dep = {'version': raw_ws_dep}
+            if 'path' in raw_ws_dep:
+                raw_ws_dep = raw_ws_dep.copy()
+                raw_ws_dep['path'] = os.path.relpath(raw_ws_dep['path'], member_path)
+            raw = _inherit_from_workspace(raw, raw_ws_dep)
         fixed = _raw_mapping_to_attributes(raw, cls, f'Dependency entry {name}', convert_version=True)
-        return cls(name, **fixed)
+        fixed.setdefault('package', name)
+        return cls(**fixed)
 
-    def update_version(self, v: str) -> None:
-        self.version = version.convert(v)
+    def update_version(self, v: T.Union[str, T.List[str]]) -> None:
+        self.version = version.convert(v) if isinstance(v, str) else v
         self._update_api()
 
 
@@ -228,7 +233,7 @@ class BuildTarget:
 
     name: str
     crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
-    path: dataclasses.InitVar[T.Optional[str]] = None
+    path: str = ''
 
     # https://doc.rust-lang.org/cargo/reference/cargo-targets.html#the-test-field
     # True for lib, bin, test
@@ -342,21 +347,61 @@ class Manifest:
         self.system_dependencies = {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
-    def from_raw(cls, raw: T.Dict[str, T.Any], workspace: T.Optional[Workspace] = None) -> Manifest:
+    def from_raw(cls, raw: T.Dict[str, T.Any], workspace: T.Optional[Workspace] = None, member_path: str = '') -> Manifest:
         return cls(
             Package.from_raw(raw['package'], workspace),
-            {k: Dependency.from_raw(k, v, workspace) for k, v in raw.get('dependencies', {}).items()},
-            {k: Dependency.from_raw(k, v, workspace) for k, v in raw.get('dev-dependencies', {}).items()},
-            {k: Dependency.from_raw(k, v, workspace) for k, v in raw.get('build-dependencies', {}).items()},
+            {k: Dependency.from_raw(k, v, workspace, member_path) for k, v in raw.get('dependencies', {}).items()},
+            {k: Dependency.from_raw(k, v, workspace, member_path) for k, v in raw.get('dev-dependencies', {}).items()},
+            {k: Dependency.from_raw(k, v, workspace, member_path) for k, v in raw.get('build-dependencies', {}).items()},
             Library.from_raw(raw.get('lib', {}), raw['package']['name']),
             [Binary.from_raw(b) for b in raw.get('bin', {})],
             [Test.from_raw(b) for b in raw.get('test', {})],
             [Benchmark.from_raw(b) for b in raw.get('bench', {})],
             [Example.from_raw(b) for b in raw.get('example', {})],
             raw.get('features', {}),
-            {k: {k2: Dependency.from_raw(k2, v2, workspace) for k2, v2 in v.get('dependencies', {}).items()}
+            {k: {k2: Dependency.from_raw(k2, v2, workspace, member_path) for k2, v2 in v.get('dependencies', {}).items()}
                 for k, v in raw.get('target', {}).items()},
         )
+
+
+@dataclasses.dataclass
+class Workspace:
+
+    """Cargo Workspace definition.
+    """
+
+    resolver: str
+    members: T.List[str]
+    exclude: T.List[str]
+    default_members: T.List[str]
+    package: T.Dict[str, T.Any]
+    dependencies: T.Dict[str, Dependency]
+    lints: T.Dict[str, T.Any]
+    metadata: T.Dict[str, T.Any]
+
+    # Keep the raw data for members to inherit from.
+    raw: T.Dict[str, T.Any]
+    # A workspace can also have a root package.
+    root_package: T.Optional[Manifest] = None
+
+    @classmethod
+    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Workspace:
+        ws_raw = raw['workspace']
+        fixed = _raw_mapping_to_attributes(ws_raw, cls, 'Workspace')
+        ws = Workspace(
+            fixed.get('resolver', '2'),
+            fixed.get('members', []),
+            fixed.get('exclude', []),
+            fixed.get('default_members', []),
+            fixed.get('package', {}),
+            {k: Dependency.from_raw(k, v) for k, v in fixed.get('dependencies', {}).items()},
+            fixed.get('lints', {}),
+            fixed.get('metadata', {}),
+            fixed,
+        )
+        if 'package' in raw:
+            ws.root_package = Manifest.from_raw(raw)
+        return ws
 
 
 @dataclasses.dataclass
@@ -389,27 +434,7 @@ class CargoLock:
     def from_raw(cls, raw: T.Dict[str, T.Any]) -> CargoLock:
         fixed = _raw_mapping_to_attributes(raw, cls, 'Cargo.lock')
         return cls(
-            fixed['version'],
+            fixed.get('version', '1'),
             [CargoLockPackage.from_raw(i) for i in fixed['package']],
             fixed.get('metadata', {}),
         )
-
-@dataclasses.dataclass
-class Workspace:
-
-    """Cargo Workspace definition.
-    """
-
-    resolver: str = '2'
-    members: T.List[str] = dataclasses.field(default_factory=list)
-    exclude: T.List[str] = dataclasses.field(default_factory=list)
-    default_members: T.List[str] = dataclasses.field(default_factory=list)
-    package: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
-    dependencies: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
-    lints: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
-    metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
-
-    @classmethod
-    def from_raw(cls, raw: T.Dict[str, T.Any]) -> Workspace:
-        fixed = _raw_mapping_to_attributes(raw, cls, 'Workspace')
-        return Workspace(**fixed)
