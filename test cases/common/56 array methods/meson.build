@@ -1,4 +1,4 @@
-project('array methods')
+project('array methods', meson_version : '>= 1.9')
 
 empty = []
 one = ['abc']
@@ -68,3 +68,10 @@ endif
 if not combined.contains('ghi')
   error('Combined claims not to contain ghi.')
 endif
+
+# test array flattening
+x = ['a', ['b'], [[[[[[['c'], 'd']]], 'e']]]]
+assert(x.length() == 3)
+assert(x.flatten().length() == 5)
+assert(x.flatten() == ['a', 'b', 'c', 'd', 'e'])
+assert(['a', ['b', 'c']].flatten() == ['a', 'b', 'c'])
