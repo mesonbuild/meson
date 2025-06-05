@@ -1362,7 +1362,7 @@ class OptionStore:
                 else:
                     self.pending_options[key] = valstr
 
-    def accept_as_pending_option(self, key: OptionKey, known_subprojects: T.Optional[T.Union[T.Set[str], T.KeysView[str]]] = None,
+    def accept_as_pending_option(self, key: OptionKey, known_subprojects: T.Optional[T.Container[str]] = None,
                                  first_invocation: bool = False) -> bool:
         # Fail on unknown options that we can know must exist at this point in time.
         # Subproject and compiler options are resolved later.
