@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2014-2016 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 import copy
@@ -271,13 +271,10 @@ class Vs2010Backend(backends.Backend):
         else:
             raise MesonException('Unsupported Visual Studio platform: ' + build_machine)
 
-        self.buildtype = self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))
-        self.optimization = self.environment.coredata.optstore.get_value_for(OptionKey('optimization'))
-        self.debug = self.environment.coredata.optstore.get_value_for(OptionKey('debug'))
-        try:
-            self.sanitize = self.environment.coredata.optstore.get_value_for(OptionKey('b_sanitize'))
-        except KeyError:
-            self.sanitize = []
+        self.buildtype = self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
+        self.optimization = self.environment.coredata.optstore.get_value_for(OptionKey('optimization'), str)
+        self.debug = self.environment.coredata.optstore.get_value_for(OptionKey('debug'), bool)
+        self.sanitize = self.environment.coredata.optstore.get_value_for(OptionKey('b_sanitize'), list, fallback=[])
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects(vslite_ctx)
         self.gen_testproj()
@@ -426,7 +423,7 @@ class Vs2010Backend(backends.Backend):
             ofile.write('# Visual Studio %s\n' % self.sln_version_comment)
             prj_templ = 'Project("{%s}") = "%s", "%s", "{%s}"\n'
             for prj in projlist:
-                if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
+                if self.environment.coredata.optstore.get_value_for(OptionKey('layout'), str) == 'mirror':
                     self.generate_solution_dirs(ofile, prj[1].parents)
                 target = self.build.targets[prj[0]]
                 lang = 'default'
@@ -538,7 +535,7 @@ class Vs2010Backend(backends.Backend):
         replace_if_different(sln_filename, sln_filename_tmp)
 
     def generate_projects(self, vslite_ctx: dict = None) -> T.List[Project]:
-        startup_project = self.environment.coredata.optstore.get_value('backend_startup_project')
+        startup_project = self.environment.coredata.optstore.get_value_for(OptionKey('backend_startup_project'), str)
         projlist: T.List[Project] = []
         startup_idx = 0
         for (i, (name, target)) in enumerate(self.build.targets.items()):
@@ -1038,7 +1035,8 @@ class Vs2010Backend(backends.Backend):
         # Compile args added from the env or cross file: CFLAGS/CXXFLAGS, etc. We want these
         # to override all the defaults, but not the per-target compile args.
         for lang in file_args.keys():
-            file_args[lang] += self.get_target_option(target, OptionKey(f'{lang}_args', machine=target.for_machine))
+            file_args[lang] += self.environment.coredata.optstore.get_option_for_target(
+                target, OptionKey(f'{lang}_args', machine=target.for_machine), list)
         for args in file_args.values():
             # This is where Visual Studio will insert target_args, target_defines,
             # etc, which are added later from external deps (see below).
@@ -1328,7 +1326,7 @@ class Vs2010Backend(backends.Backend):
         if True in ((dep.name == 'openmp') for dep in target.get_external_deps()):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
         # CRT type; debug or release
-        vscrt_type = self.get_target_option(target, 'b_vscrt')
+        vscrt_type = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('b_vscrt'), str)
         vscrt_val = compiler.get_crt_val(vscrt_type, self.buildtype)
         if vscrt_val == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
@@ -1366,7 +1364,7 @@ class Vs2010Backend(backends.Backend):
         # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
         # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
         if 'cpp' in target.compilers:
-            eh = self.environment.coredata.get_option_for_target(target, OptionKey('cpp_eh', machine=target.for_machine))
+            eh = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('cpp_eh', machine=target.for_machine), str)
             if eh == 'a':
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
             elif eh == 's':
@@ -1384,10 +1382,10 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
-        warning_level = T.cast('str', self.get_target_option(target, 'warning_level'))
+        warning_level = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('warning_level'), str)
         warning_level = 'EnableAllWarnings' if warning_level == 'everything' else 'Level' + str(1 + int(warning_level))
         ET.SubElement(clconf, 'WarningLevel').text = warning_level
-        if self.get_target_option(target, 'werror'):
+        if self.environment.coredata.optstore.get_option_for_target(target, OptionKey('werror'), bool):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Optimization flags
         o_flags = split_o_flags_args(build_args)
@@ -1561,8 +1559,8 @@ class Vs2010Backend(backends.Backend):
         # /nologo
         ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
         # /release
-        addchecksum = self.get_target_option(target, 'buildtype') != 'debug'
-        if addchecksum:
+        buildtype = self.environment.coredata.optstore.get_option_for_target(target, OptionKey('buildtype'), str)
+        if buildtype != 'debug':
             ET.SubElement(link, 'SetChecksum').text = 'true'
 
     # Visual studio doesn't simply allow the src files of a project to be added with the 'Condition=...' attribute,
@@ -1833,7 +1831,7 @@ class Vs2010Backend(backends.Backend):
             # build system as possible.
             self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
-        if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
+        if self.environment.coredata.optstore.get_value_for(OptionKey('layout'), str) == 'mirror':
             self.gen_vcxproj_filters(target, ofname)
         return True
 
@@ -2002,9 +2000,9 @@ class Vs2010Backend(backends.Backend):
                 meson_build_dir_for_buildtype = build_dir_tail[:-2] + buildtype # Get the buildtype suffixed 'builddir_[debug/release/etc]' from 'builddir_vs', for example.
                 proj_to_build_dir_for_buildtype = str(os.path.join(proj_to_multiconfigured_builds_parent_dir, meson_build_dir_for_buildtype))
                 test_cmd = f'{nmake_base_meson_command} test -C "{proj_to_build_dir_for_buildtype}" --no-rebuild'
-                if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit')):
+                if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit'), bool):
                     test_cmd += ' --no-stdsplit'
-                if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs')):
+                if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs'), bool):
                     test_cmd += ' --print-errorlogs'
                 condition = f'\'$(Configuration)|$(Platform)\'==\'{buildtype}|{self.platform}\''
                 prop_group = ET.SubElement(root, 'PropertyGroup', Condition=condition)
@@ -2026,9 +2024,9 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(midl, 'ProxyFileName').text = '%(Filename)_p.c'
             # FIXME: No benchmarks?
             test_command = self.environment.get_build_command() + ['test', '--no-rebuild']
-            if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit')):
+            if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit'), bool):
                 test_command += ['--no-stdsplit']
-            if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs')):
+            if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs'), bool):
                 test_command += ['--print-errorlogs']
             self.serialize_tests()
             self.add_custom_build(root, 'run_tests', '"%s"' % ('" "'.join(test_command)))

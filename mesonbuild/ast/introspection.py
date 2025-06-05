@@ -12,8 +12,8 @@ import typing as T
 from .. import compilers, environment, mesonlib, options
 from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..compilers import detect_compiler_for
-from ..interpreterbase import InvalidArguments, SubProject, UnknownValue
-from ..mesonlib import MachineChoice
+from ..interpreterbase import InvalidArguments, UnknownValue
+from ..mesonlib import MachineChoice, SubProject
 from ..options import OptionKey
 from ..mparser import BaseNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 from .interpreter import AstInterpreter, IntrospectionBuildTarget, IntrospectionDependency
@@ -284,7 +284,7 @@ class IntrospectionInterpreter(AstInterpreter):
         return new_target
 
     def build_library(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Union[IntrospectionBuildTarget, UnknownValue]:
-        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library'))
+        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library'), str)
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
         elif default_library == 'static':

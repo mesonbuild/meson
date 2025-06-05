@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# Copyright © 2022-2024 Intel Corporation
+# Copyright © 2022-2025 Intel Corporation
 
 """Interpreter for converting Cargo Toml definitions to Meson AST
 
@@ -33,8 +33,8 @@ if T.TYPE_CHECKING:
     from . import manifest
     from .. import mparser
     from ..environment import Environment
-    from ..interpreterbase import SubProject
     from ..compilers.rust import RustCompiler
+    from ..mesonlib import SubProject
 
     # Copied from typeshed. Blarg that they don't expose this
     class DataclassInstance(Protocol):

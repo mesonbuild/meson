@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
     from ..build import BuildTarget
     from ..compilers import Compiler
 
@@ -76,7 +76,7 @@ class StaticLinker:
     def openmp_flags(self, env: Environment) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
     @classmethod
@@ -187,10 +187,16 @@ class DynamicLinker(metaclass=abc.ABCMeta):
 
     # XXX: is use_ldflags a compiler or a linker attribute?
 
-    def get_option_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    @T.overload
+    def get_option_link_args(self, target: BuildTarget, env: Environment) -> T.List[str]: ...
+
+    @T.overload
+    def get_option_link_args(self, target: None, env: Environment, subproject: SubProject) -> T.List[str]: ...
+
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         return []
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:

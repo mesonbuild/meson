@@ -39,9 +39,10 @@ import typing as T
 import textwrap
 
 if T.TYPE_CHECKING:
-    from .baseobjects import InterpreterObjectTypeVar, SubProject, TYPE_kwargs, TYPE_var
+    from .baseobjects import InterpreterObjectTypeVar, TYPE_kwargs, TYPE_var
     from ..ast import AstVisitor
     from ..interpreter import Interpreter
+    from ..mesonlib import SubProject
 
     HolderMapType = T.Dict[
         T.Union[
