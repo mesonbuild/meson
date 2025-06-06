@@ -3613,6 +3613,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # Add link args added using add_global_link_arguments()
             # These override per-project link arguments
             commands += self.build.get_global_link_args(linker, target.for_machine)
+            # Add link args added from the env: SHAREDLIBRARY_LINK_FLAGS, EXECUTABLE_LINK_FLAGS.
+            # These will override global/per-project for all targets of a same type.
+            commands += self.environment.coredata.get_external_target_group_link_args(target.get_target_group(), target.for_machine, linker.get_language())
             # Link args added from the env: LDFLAGS. We want these to override
             # all the defaults but not the per-target link args.
             commands += self.environment.coredata.get_external_link_args(target.for_machine, linker.get_language())
