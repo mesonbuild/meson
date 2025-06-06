@@ -10,7 +10,7 @@ import typing as T
 
 from mesonbuild.cargo import cfg, load_wraps
 from mesonbuild.cargo.cfg import TokenType
-from mesonbuild.cargo.manifest import Manifest
+from mesonbuild.cargo.manifest import Dependency, Manifest, Package, Workspace
 from mesonbuild.cargo.toml import load_toml
 from mesonbuild.cargo.version import convert
 
@@ -271,6 +271,75 @@ class CargoTomlTest(unittest.TestCase):
             "pango-sys/v1_44",
         ]
     ''')
+
+    CARGO_TOML_WS = textwrap.dedent('''\
+        [workspace]
+        resolver = "2"
+        members = ["tutorial"]
+
+        [workspace.package]
+        version = "0.14.0-alpha.1"
+        repository = "https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs"
+        edition = "2021"
+        rust-version = "1.83"
+
+        [workspace.dependencies]
+        glib = { path = "glib" }
+        gtk = { package = "gtk4", version = "0.9" }
+        once_cell = "1.0"
+        syn = { version = "2", features = ["parse"] }
+    ''')
+
+    def test_cargo_toml_ws_package(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_WS)
+            workspace_toml = load_toml(fname)
+
+        workspace = Workspace.from_raw(workspace_toml)
+        pkg = Package.from_raw({'name': 'foo', 'version': {'workspace': True}}, workspace)
+        self.assertEqual(pkg.name, 'foo')
+        self.assertEqual(pkg.version, '0.14.0-alpha.1')
+        self.assertEqual(pkg.edition, '2015')
+        self.assertEqual(pkg.repository, None)
+
+    def test_cargo_toml_ws_dependency(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_WS)
+            workspace_toml = load_toml(fname)
+
+        workspace = Workspace.from_raw(workspace_toml)
+        dep = Dependency.from_raw('glib', {'workspace': True}, 'member', workspace)
+        self.assertEqual(dep.package, 'glib')
+        self.assertEqual(dep.version, '')
+        self.assertEqual(dep.meson_version, [])
+        self.assertEqual(dep.path, os.path.join('..', 'glib'))
+        self.assertEqual(dep.features, [])
+
+        dep = Dependency.from_raw('gtk', {'workspace': True}, 'member', workspace)
+        self.assertEqual(dep.package, 'gtk4')
+        self.assertEqual(dep.version, '0.9')
+        self.assertEqual(dep.meson_version, ['>= 0.9', '< 0.10'])
+        self.assertEqual(dep.api, '0.9')
+        self.assertEqual(dep.features, [])
+
+        dep = Dependency.from_raw('once_cell', {'workspace': True, 'optional': True}, 'member', workspace)
+        self.assertEqual(dep.package, 'once_cell')
+        self.assertEqual(dep.version, '1.0')
+        self.assertEqual(dep.meson_version, ['>= 1.0', '< 2'])
+        self.assertEqual(dep.api, '1')
+        self.assertEqual(dep.features, [])
+        self.assertTrue(dep.optional)
+
+        dep = Dependency.from_raw('syn', {'workspace': True, 'features': ['full']}, 'member', workspace)
+        self.assertEqual(dep.package, 'syn')
+        self.assertEqual(dep.version, '2')
+        self.assertEqual(dep.meson_version, ['>= 2', '< 3'])
+        self.assertEqual(dep.api, '2')
+        self.assertEqual(sorted(set(dep.features)), ['full', 'parse'])
 
     def test_cargo_toml_package(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
