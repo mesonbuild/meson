@@ -23,25 +23,25 @@ Package = TypedDict(
     'Package',
     {
         'name': Required[str],
-        'version': Required[str],
-        'authors': T.List[str],
-        'edition': EDITION,
-        'rust-version': str,
-        'description': str,
-        'readme': str,
-        'license': str,
-        'license-file': str,
-        'keywords': T.List[str],
-        'categories': T.List[str],
-        'homepage': str,
-        'repository': str,
-        'documentation': str,
+        'version': Required[T.Union[FromWorkspace, str]],
+        'authors': T.Union[FromWorkspace, T.List[str]],
+        'edition': T.Union[FromWorkspace, EDITION],
+        'rust-version': T.Union[FromWorkspace, str],
+        'description': T.Union[FromWorkspace, str],
+        'readme': T.Union[FromWorkspace, str],
+        'license': T.Union[FromWorkspace, str],
+        'license-file': T.Union[FromWorkspace, str],
+        'keywords': T.Union[FromWorkspace, T.List[str]],
+        'categories': T.Union[FromWorkspace, T.List[str]],
+        'homepage': T.Union[FromWorkspace, str],
+        'repository': T.Union[FromWorkspace, str],
+        'documentation': T.Union[FromWorkspace, str],
         'workspace': str,
         'build': str,
         'links': str,
-        'include': T.List[str],
-        'exclude': T.List[str],
-        'publish': bool,
+        'include': T.Union[FromWorkspace, T.List[str]],
+        'exclude': T.Union[FromWorkspace, T.List[str]],
+        'publish': T.Union[FromWorkspace, bool],
         'metadata': T.Dict[str, T.Dict[str, str]],
         'default-run': str,
         'autolib': bool,
@@ -117,7 +117,7 @@ class Target(TypedDict):
 
     """Target entry in the Manifest File."""
 
-    dependencies: T.Dict[str, DependencyV]
+    dependencies: T.Dict[str, T.Union[FromWorkspace, DependencyV]]
 
 
 class Workspace(TypedDict):
@@ -142,9 +142,9 @@ Manifest = TypedDict(
     {
         'package': Required[Package],
         'badges': T.Dict[str, Badge],
-        'dependencies': T.Dict[str, DependencyV],
-        'dev-dependencies': T.Dict[str, DependencyV],
-        'build-dependencies': T.Dict[str, DependencyV],
+        'dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
+        'dev-dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
+        'build-dependencies': T.Dict[str, T.Union[FromWorkspace, DependencyV]],
         'lib': LibTarget,
         'bin': T.List[BuildTarget],
         'test': T.List[BuildTarget],
@@ -162,7 +162,7 @@ Manifest = TypedDict(
 """The Cargo Manifest format."""
 
 
-class VirtualManifest(TypedDict):
+class VirtualManifest(TypedDict, total=False):
 
     """The Representation of a virtual manifest.
 
