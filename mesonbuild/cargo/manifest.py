@@ -322,6 +322,7 @@ class Example(BuildTarget['raw.BuildTarget']):
     """Representation of a Cargo Example Entry."""
 
     crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+    doc_scrape_examples: bool = False
 
     @classmethod
     def from_raw(cls, raw: raw.BuildTarget) -> Self:
@@ -356,9 +357,14 @@ class Manifest:
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
 
+    # irrelevant and should not warn
+    badges: dataclasses.InitVar[T.Optional[T.Dict[str, raw.Badge]]] = None
+
+    # missing: lints, profile
+
     path: str = ''
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, badges: T.Optional[T.Dict[str, raw.Badge]]) -> None:
         self.features.setdefault('default', [])
 
     @lazy_property
