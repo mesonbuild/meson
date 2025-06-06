@@ -11,6 +11,14 @@ from typing_extensions import Literal, TypedDict, Required
 EDITION = Literal['2015', '2018', '2021']
 CRATE_TYPE = Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']
 
+
+class FromWorkspace(TypedDict):
+
+    """An entry or section that is copied from the workspace."""
+
+    workspace: bool
+
+
 Package = TypedDict(
     'Package',
     {
