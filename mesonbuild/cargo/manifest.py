@@ -44,7 +44,13 @@ def fixup_meson_varname(name: str) -> str:
     return name.replace('-', '_')
 
 
-def _depv_to_dep(depv: raw.DependencyV) -> raw.Dependency:
+@T.overload
+def _depv_to_dep(depv: raw.FromWorkspace) -> raw.FromWorkspace: ...
+
+@T.overload
+def _depv_to_dep(depv: raw.DependencyV) -> raw.Dependency: ...
+
+def _depv_to_dep(depv: T.Union[raw.FromWorkspace, raw.DependencyV]) -> T.Union[raw.FromWorkspace, raw.Dependency]:
     return {'version': depv} if isinstance(depv, str) else depv
 
 
@@ -83,6 +89,51 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI],
         mlog.warning(msg, 'has unexpected keys', '"{}".'.format(', '.join(sorted(unexpected))),
                      _EXTRA_KEYS_WARNING)
     return cls(**new_dict)
+
+
+@T.overload
+def _inherit_from_workspace(raw: raw.Package,
+                            raw_from_workspace: T.Optional[T.Mapping[str, object]],
+                            msg: str,
+                            **kwargs: T.Callable[[T.Any, T.Any], object]) -> raw.Package: ...
+
+@T.overload
+def _inherit_from_workspace(raw: T.Union[raw.FromWorkspace, raw.Dependency],
+                            raw_from_workspace: T.Optional[T.Mapping[str, object]],
+                            msg: str,
+                            **kwargs: T.Callable[[T.Any, T.Any], object]) -> raw.Dependency: ...
+
+def _inherit_from_workspace(raw_: T.Union[raw.FromWorkspace, raw.Package, raw.Dependency], # type: ignore[misc]
+                            raw_from_workspace: T.Optional[T.Mapping[str, object]],
+                            msg: str,
+                            **kwargs: T.Callable[[T.Any, T.Any], object]) -> T.Mapping[str, object]:
+    # allow accesses by non-literal key below
+    raw = T.cast('T.Mapping[str, object]', raw_)
+
+    if not raw_from_workspace:
+        if raw.get('workspace', False) or \
+                any(isinstance(v, dict) and v.get('workspace', False) for v in raw):
+            raise MesonException(f'Cargo.toml file requests {msg} from workspace')
+
+        return raw
+
+    result = {k: v for k, v in raw.items() if k != 'workspace'}
+    for k, v in raw.items():
+        if isinstance(v, dict) and v.get('workspace', False):
+            if k in raw_from_workspace:
+                result[k] = raw_from_workspace[k]
+                if k in kwargs:
+                    result[k] = kwargs[k](v, result[k])
+            else:
+                del result[k]
+
+    if raw.get('workspace', False):
+        for k, v in raw_from_workspace.items():
+            if k not in result or k in kwargs:
+                if k in kwargs:
+                    v = kwargs[k](raw.get(k), v)
+                result[k] = v
+    return result
 
 
 @dataclasses.dataclass
@@ -124,7 +175,12 @@ class Package:
         return version.api(self.version)
 
     @classmethod
-    def from_raw(cls, raw_pkg: raw.Package) -> Self:
+    def from_raw(cls, raw_pkg: raw.Package, workspace: T.Optional[Workspace] = None) -> Self:
+        raw_ws_pkg = None
+        if workspace is not None:
+            raw_ws_pkg = workspace.package
+
+        raw_pkg = _inherit_from_workspace(raw_pkg, raw_ws_pkg, f'Package entry {raw_pkg["name"]}')
         return _raw_to_dataclass(raw_pkg, cls, f'Package entry {raw_pkg["name"]}')
 
 @dataclasses.dataclass
@@ -204,15 +260,24 @@ class Dependency:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
     @classmethod
-    def from_raw_dict(cls, name: str, raw_dep: raw.Dependency) -> Dependency:
+    def from_raw_dict(cls, name: str, raw_dep: T.Union[raw.FromWorkspace, raw.Dependency], member_path: str = '', raw_ws_dep: T.Optional[raw.Dependency] = None) -> Dependency:
+        raw_dep = _inherit_from_workspace(raw_dep, raw_ws_dep,
+                                          f'Dependency entry {name}',
+                                          path=lambda pkg_path, ws_path: os.path.relpath(ws_path, member_path),
+                                          features=lambda pkg_path, ws_path: (pkg_path or []) + (ws_path or []))
         raw_dep.setdefault('package', name)
         return _raw_to_dataclass(raw_dep, cls, f'Dependency entry {name}')
 
     @classmethod
-    def from_raw(cls, name: str, raw_depv: raw.DependencyV) -> Dependency:
+    def from_raw(cls, name: str, raw_depv: T.Union[raw.FromWorkspace, raw.DependencyV], member_path: str = '', workspace: T.Optional[Workspace] = None) -> Dependency:
         """Create a dependency from a raw cargo dictionary or string"""
+        raw_ws_dep: T.Optional[raw.Dependency] = None
+        if workspace is not None:
+            raw_ws_depv = workspace.dependencies.get(name, {})
+            raw_ws_dep = _depv_to_dep(raw_ws_depv)
+
         raw_dep = _depv_to_dep(raw_depv)
-        return cls.from_raw_dict(name, raw_dep)
+        return cls.from_raw_dict(name, raw_dep, member_path, raw_ws_dep)
 
 
 @dataclasses.dataclass
@@ -362,26 +427,53 @@ class Manifest:
         return {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
-    def from_raw(cls, raw: raw.Manifest, path: str = '') -> Self:
+    def from_raw(cls, raw: raw.Manifest, path: str = '', workspace: T.Optional[Workspace] = None, member_path: str = '') -> Self:
         # Libs are always auto-discovered and there's no other way to handle them,
         # which is unfortunate for reproducability
-        pkg = Package.from_raw(raw['package'])
+        pkg = Package.from_raw(raw['package'], workspace)
         if pkg.autolib and 'lib' not in raw and \
                 os.path.exists(os.path.join(path, 'src/lib.rs')):
             raw['lib'] = {}
         fixed = _raw_to_dataclass(raw, cls, f'Cargo.toml package {raw["package"]["name"]}',
                                   package=lambda x: pkg,
-                                  dependencies=lambda x: {k: Dependency.from_raw(k, v) for k, v in x.items()},
-                                  dev_dependencies=lambda x: {k: Dependency.from_raw(k, v) for k, v in x.items()},
-                                  build_dependencies=lambda x: {k: Dependency.from_raw(k, v) for k, v in x.items()},
+                                  dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
+                                  dev_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
+                                  build_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
                                   lib=lambda x: Library.from_raw(x, raw['package']['name']),
                                   bin=lambda x: [Binary.from_raw(b) for b in x],
                                   test=lambda x: [Test.from_raw(b) for b in x],
                                   bench=lambda x: [Benchmark.from_raw(b) for b in x],
                                   example=lambda x: [Example.from_raw(b) for b in x],
-                                  target=lambda x: {k: {k2: Dependency.from_raw(k2, v2) for k2, v2 in v.get('dependencies', {}).items()}
+                                  target=lambda x: {k: {k2: Dependency.from_raw(k2, v2, member_path, workspace) for k2, v2 in v.get('dependencies', {}).items()}
                                                     for k, v in x.items()})
         fixed.path = path
+        return fixed
+
+
+@dataclasses.dataclass
+class Workspace:
+
+    """Cargo Workspace definition.
+    """
+
+    resolver: str = dataclasses.field(default_factory=lambda: '2')
+    members: T.List[str] = dataclasses.field(default_factory=list)
+    exclude: T.List[str] = dataclasses.field(default_factory=list)
+    default_members: T.List[str] = dataclasses.field(default_factory=list)
+
+    # inheritable settings are kept in raw format, for use with _inherit_from_workspace
+    package: T.Optional[raw.Package] = None
+    dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
+    lints: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+
+    # A workspace can also have a root package.
+    root_package: T.Optional[Manifest] = dataclasses.field(init=False)
+
+    @classmethod
+    def from_raw(cls, raw: raw.VirtualManifest) -> Workspace:
+        ws_raw = raw['workspace']
+        fixed = _raw_to_dataclass(ws_raw, cls, 'Workspace')
         return fixed
 
 
