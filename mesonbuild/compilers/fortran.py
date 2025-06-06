@@ -643,7 +643,11 @@ class LlvmFlangFortranCompiler(ClangCompiler, FortranCompiler):
         # https://github.com/llvm/llvm-project/commit/8d5386669ed63548daf1bee415596582d6d78d7d;
         # it seems flang 18 doesn't work if something accidentally includes a program unit, see
         # https://github.com/llvm/llvm-project/issues/92496
-        return search_dirs + ['-lFortranRuntime', '-lFortranDecimal']
+        # Only link FortranRuntime and FortranDecimal for flang < 19, see
+        # https://github.com/scipy/scipy/issues/21562#issuecomment-2942938509
+        if version_compare(self.version, '<19'):
+            search_dirs += ['-lFortranRuntime', '-lFortranDecimal']
+        return search_dirs
 
 
 class Open64FortranCompiler(FortranCompiler):
