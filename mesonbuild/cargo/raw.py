@@ -25,6 +25,9 @@ Package = TypedDict(
         'license-file': str,
         'keywords': T.List[str],
         'categories': T.List[str],
+        'homepage': str,
+        'repository': str,
+        'documentation': str,
         'workspace': str,
         'build': str,
         'links': str,
@@ -122,6 +125,8 @@ class Workspace(TypedDict):
 
     members: T.List[str]
     exclude: T.List[str]
+    package: Package
+    dependencies: T.Dict[str, DependencyV]
 
 
 Manifest = TypedDict(
