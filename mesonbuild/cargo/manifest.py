@@ -403,6 +403,7 @@ class Example(BuildTarget['raw.BuildTarget']):
     """Representation of a Cargo Example Entry."""
 
     crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+    doc_scrape_examples: bool = False
 
     @classmethod
     def from_raw(cls, raw: raw.BuildTarget) -> Self:
@@ -494,6 +495,11 @@ class Manifest:
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
     lints: T.List[Lint] = dataclasses.field(default_factory=list)
+
+    # irrelevant and should not warn, but no need to convert it to dataclass
+    badges: T.Optional[T.Dict[str, raw.Badge]] = None
+
+    # missing: workspace, profile
 
     path: str = ''
 
