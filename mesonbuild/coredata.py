@@ -506,6 +506,14 @@ class CoreData:
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
         return T.cast('T.List[str]', self.optstore.get_value_for(linkkey))
 
+    @lru_cache(maxsize=None)
+    def get_external_target_group_link_args(self, target_group: str, for_machine: MachineChoice, lang: str) -> T.List[str]:
+        # mypy cannot analyze type of OptionKey
+        if target_group != "executable": # TODO: add support for other target groups
+            return []
+        linkkey = OptionKey(f'{lang}_{target_group}_link_args', machine=for_machine)
+        return T.cast('T.List[str]', self.optstore.get_value_for(linkkey))
+
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:
             return False
