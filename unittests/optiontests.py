@@ -55,9 +55,9 @@ class OptionTests(unittest.TestCase):
         """Test that subproject system options get their default value from the global
            option (e.g. "sub:b_lto" can be initialized from "b_lto")."""
         optstore = OptionStore(False)
-        name = 'someoption'
-        default_value = 'somevalue'
-        new_value = 'new_value'
+        name = 'b_lto'
+        default_value = 'false'
+        new_value = 'true'
         k = OptionKey(name)
         subk = k.evolve(subproject='sub')
         optstore.initialize_from_top_level_project_call({}, {}, {OptionKey(name): new_value})
@@ -223,6 +223,12 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         self.assertTrue(optstore.accept_as_pending_option(OptionKey('b_ndebug')))
         self.assertFalse(optstore.accept_as_pending_option(OptionKey('b_whatever')))
+
+    def test_backend_option_pending(self):
+        optstore = OptionStore(False)
+        # backend options are known after the first invocation
+        self.assertTrue(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), True))
+        self.assertFalse(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), False))
 
     def test_reconfigure_b_nonexistent(self):
         optstore = OptionStore(False)
