@@ -1276,12 +1276,9 @@ class Backend:
                 extra_bdeps: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
                 if isinstance(exe, build.CustomTarget):
                     extra_bdeps = list(exe.get_transitive_build_target_deps())
+                extra_bdeps.extend(t.depends)
+                extra_bdeps.extend(a for a in t.cmd_args if isinstance(a, build.BuildTarget))
                 extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
-                for a in t.cmd_args:
-                    if isinstance(a, build.BuildTarget):
-                        for p in self.determine_windows_extra_paths(a, []):
-                            if p not in extra_paths:
-                                extra_paths.append(p)
             else:
                 extra_paths = []
 
@@ -1307,8 +1304,12 @@ class Backend:
                 else:
                     raise MesonException('Bad object in test command.')
 
+            # set LD_LIBRARY_PATH for
+            # a) dependencies, as relying on rpath is not very safe:
+            #    https://github.com/mesonbuild/meson/pull/11119
+            # b) depends and targets passed via args.
             t_env = copy.deepcopy(t.env)
-            if not machine.is_windows() and not machine.is_cygwin() and not machine.is_darwin():
+            if not machine.is_windows() and not machine.is_cygwin():
                 ld_lib_path_libs: T.Set[build.SharedLibrary] = set()
                 for d in depends:
                     if isinstance(d, build.BuildTarget):
@@ -1321,6 +1322,8 @@ class Backend:
 
                 if ld_lib_path:
                     t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
+                    if machine.is_darwin():
+                        t_env.prepend('DYLD_LIBRARY_PATH', list(ld_lib_path), ':')
 
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
                                    exe_wrapper, self.environment.need_exe_wrapper(),

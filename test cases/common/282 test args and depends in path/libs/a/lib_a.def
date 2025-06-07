@@ -1,0 +1,3 @@
+LIBRARY LIBA
+EXPORTS
+  func_a
