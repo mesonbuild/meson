@@ -439,6 +439,7 @@ class RewriterTests(BasePlatformTests):
                 'tgt4@exe': {'name': 'tgt4', 'sources': ['unknown'], 'extra_files': []},
                 'tgt5@exe': {'name': 'tgt5', 'sources': ['unknown', 'new.c'], 'extra_files': []},
                 'tgt6@exe': {'name': 'tgt6', 'sources': ['unknown', 'new.c'], 'extra_files': []},
+                'tgt7@exe': {'name': 'tgt7', 'sources': ['unknown', 'unknown'], 'extra_files': []},
             }
         }
         self.assertEqualIgnoreOrder(out, expected)

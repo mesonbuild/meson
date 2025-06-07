@@ -13,7 +13,7 @@ from dataclasses import dataclass
 import itertools
 from pathlib import Path
 
-from .. import mparser, mesonlib
+from .. import mparser, mesonlib, mlog
 from .. import environment
 
 from ..interpreterbase import (
@@ -26,6 +26,7 @@ from ..interpreterbase import (
     default_resolve_key,
     is_disabled,
     UnknownValue,
+    UndefinedVariable,
     InterpreterObject,
 )
 
@@ -460,14 +461,14 @@ class AstInterpreter(InterpreterBase):
         self.nesting.pop()
         for var_name in self.cur_assignments:
             potential_values = []
-            oldval = self.get_cur_value(var_name, allow_none=True)
-            if oldval is not None:
+            oldval = self.get_cur_value_if_defined(var_name)
+            if not isinstance(oldval, UndefinedVariable):
                 potential_values.append(oldval)
             for nesting, value in self.cur_assignments[var_name]:
                 if len(nesting) > len(self.nesting):
                     potential_values.append(value)
             self.cur_assignments[var_name] = [(nesting, v) for (nesting, v) in self.cur_assignments[var_name] if len(nesting) <= len(self.nesting)]
-            if len(potential_values) > 1 or (len(potential_values) > 0 and oldval is None):
+            if len(potential_values) > 1 or (len(potential_values) > 0 and isinstance(oldval, UndefinedVariable)):
                 uv = UnknownValue()
                 for pv in potential_values:
                     self.dataflow_dag.add_edge(pv, uv)
@@ -484,19 +485,28 @@ class AstInterpreter(InterpreterBase):
                 raise TypeError
         return ret
 
-    def get_cur_value(self, var_name: str, allow_none: bool = False) -> T.Union[BaseNode, UnknownValue, None]:
+    def get_cur_value_if_defined(self, var_name: str) -> T.Union[BaseNode, UnknownValue, UndefinedVariable]:
         if var_name in {'meson', 'host_machine', 'build_machine', 'target_machine'}:
             return UnknownValue()
-        ret = None
+        ret: T.Union[BaseNode, UnknownValue, UndefinedVariable] = UndefinedVariable()
         for nesting, value in reversed(self.cur_assignments[var_name]):
             if len(self.nesting) >= len(nesting) and self.nesting[:len(nesting)] == nesting:
                 ret = value
                 break
-        if ret is None and allow_none:
-            return ret
-        if ret is None and self.tainted:
+        if isinstance(ret, UndefinedVariable) and self.tainted:
             return UnknownValue()
-        assert ret is not None
+        return ret
+
+    def get_cur_value(self, var_name: str) -> T.Union[BaseNode, UnknownValue]:
+        ret = self.get_cur_value_if_defined(var_name)
+        if isinstance(ret, UndefinedVariable):
+            path = mlog.get_relative_path(Path(self.current_node.filename), Path(os.getcwd()))
+            mlog.warning(f"{path}:{self.current_node.lineno}:{self.current_node.colno} will always crash if executed, since a variable named `{var_name}` is not defined")
+            # We could add more advanced analysis of code referencing undefined
+            # variables, but it is probably not worth the effort and the
+            # complexity. So we do the simplest thing, returning an
+            # UnknownValue.
+            return UnknownValue()
         return ret
 
     # The function `node_to_runtime_value` takes a node of the ast as an

@@ -190,5 +190,11 @@ if a \
   debug('help!')
 endif
 
+if false
+  # Should produce a warning, but should not crash
+  foo = not_defined
+  message(not_defined)
+endif
+
 
 # End of file comment with no linebreak

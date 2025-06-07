@@ -33,3 +33,9 @@ dont_add_here_6 = ['foo.c']
 gen = generator(find_program('cp'), output: '@BASENAME@_copy.c', arguments: ['@INPUT@', '@OUTPUT@'])
 generated = gen.process(dont_add_here_6)
 executable('tgt6', generated)
+
+if false
+    # Should produce a warning, but should not crash
+    var = not_defined_1
+    executable('tgt7', not_defined_2, var)
+endif

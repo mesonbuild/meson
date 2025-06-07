@@ -61,6 +61,7 @@ __all__ = [
     'HoldableTypes',
 
     'UnknownValue',
+    'UndefinedVariable',
 ]
 
 from .baseobjects import (
@@ -85,6 +86,7 @@ from .baseobjects import (
     HoldableTypes,
 
     UnknownValue,
+    UndefinedVariable,
 )
 
 from .decorators import (
