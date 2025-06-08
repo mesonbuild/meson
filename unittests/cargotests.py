@@ -193,6 +193,10 @@ class CargoLockTest(unittest.TestCase):
                     name = "bar"
                     version = "0.1"
                     source = "git+https://github.com/gtk-rs/gtk-rs-core?branch=0.19#23c5599424cc75ec66618891c915d9f490f6e4c2"
+                    [[package]]
+                    name = "member"
+                    version = "0.1"
+                    source = "git+https://github.com/gtk-rs/gtk-rs-core?branch=0.19#23c5599424cc75ec66618891c915d9f490f6e4c2"
                     '''))
             wraps = load_wraps(tmpdir, 'subprojects')
             self.assertEqual(len(wraps), 2)
@@ -202,12 +206,13 @@ class CargoLockTest(unittest.TestCase):
             self.assertEqual(wraps[0].get('method'), 'cargo')
             self.assertEqual(wraps[0].get('source_url'), 'https://crates.io/api/v1/crates/foo/0.1/download')
             self.assertEqual(wraps[0].get('source_hash'), '8a30b2e23b9e17a9f90641c7ab1549cd9b44f296d3ccbf309d2863cfe398a0cb')
-            self.assertEqual(wraps[1].name, 'bar-0.1-rs')
-            self.assertEqual(wraps[1].directory, 'bar')
+            self.assertEqual(wraps[1].name, 'gtk-rs-core-0.19')
+            self.assertEqual(wraps[1].directory, 'gtk-rs-core-0.19')
             self.assertEqual(wraps[1].type, 'git')
             self.assertEqual(wraps[1].get('method'), 'cargo')
             self.assertEqual(wraps[1].get('url'), 'https://github.com/gtk-rs/gtk-rs-core')
             self.assertEqual(wraps[1].get('revision'), '23c5599424cc75ec66618891c915d9f490f6e4c2')
+            self.assertEqual(list(wraps[1].provided_deps), ['gtk-rs-core-0.19', 'bar-0.1-rs', 'member-0.1-rs'])
 
 class CargoTomlTest(unittest.TestCase):
     CARGO_TOML_1 = textwrap.dedent('''\

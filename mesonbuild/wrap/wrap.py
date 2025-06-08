@@ -318,6 +318,9 @@ class PackageDefinition:
             with open(self.get_hashfile(subproject_directory), 'w', encoding='utf-8') as file:
                 file.write(self.wrapfile_hash + '\n')
 
+    def add_provided_dep(self, name: str) -> None:
+        self.provided_deps[name] = None
+
 def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
     if os.path.isfile(fname):
