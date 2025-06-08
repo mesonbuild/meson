@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "src/foo",
+    "src/member1"
+]
+default-members = ["src/foo"]
+
+[workspace.package]
+version = "1.0"
+
+[workspace.dependencies]
+member1 = { path="./src/member1" }
+member2 = { path="src/member2", features = ["f1"] }
