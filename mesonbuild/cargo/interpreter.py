@@ -458,13 +458,13 @@ def _extra_deps_varname() -> str:
     return 'extra_deps'
 
 
+@dataclasses.dataclass
 class PackageState:
-    def __init__(self, manifest: Manifest, downloaded: bool) -> None:
-        self.manifest = manifest
-        self.downloaded = downloaded
-        self.features: T.Set[str] = set()
-        self.required_deps: T.Set[str] = set()
-        self.optional_deps_features: T.Dict[str, T.Set[str]] = collections.defaultdict(set)
+    manifest: Manifest
+    downloaded: bool = False
+    features: T.Set[str] = dataclasses.field(default_factory=set)
+    required_deps: T.Set[str] = dataclasses.field(default_factory=set)
+    optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
 
 
 @dataclasses.dataclass(frozen=True)
