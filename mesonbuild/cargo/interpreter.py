@@ -86,23 +86,23 @@ class Interpreter:
             build_def_files.append(os.path.join(self.subdir, 'Cargo.lock'))
         return build_def_files
 
-    def interpret(self, subdir: str) -> mparser.CodeBlockNode:
+    def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
         build = builder.Builder(filename)
-        return self.interpret_package(manifest, build, subdir)
+        return self.interpret_package(manifest, build, subdir, project_root)
 
-    def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str) -> mparser.CodeBlockNode:
+    def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: T.Optional[str]) -> mparser.CodeBlockNode:
+        # Build an AST for this package
+        ast: T.List[mparser.BaseNode] = []
         pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
         if not cached:
             # This is an entry point, always enable the 'default' feature.
             # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
             self._enable_feature(pkg, 'default')
-
-        # Build an AST for this package
-        ast: T.List[mparser.BaseNode] = []
-        ast += self._create_project(pkg.manifest.package.name, pkg, build)
-        ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
+        if not project_root:
+            ast += self._create_project(pkg.manifest.package.name, pkg, build)
+            ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
         ast += self._create_package(pkg, build, subdir)
         return build.block(ast)
 
