@@ -235,6 +235,7 @@ class InterpreterRuleRelaxation(Enum):
     '''
 
     ALLOW_BUILD_DIR_FILE_REFERENCES = 1
+    CARGO_SUBDIR = 2
 
 permitted_dependency_kwargs = {
     'allow_fallback',
@@ -980,6 +981,19 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return self.disabled_subproject(subp_name, exception=e)
             raise e
 
+    def _save_ast(self, subdir: str, ast: mparser.CodeBlockNode) -> None:
+        # Debug print the generated meson file
+        from ..ast import AstIndentationGenerator, AstPrinter
+        printer = AstPrinter(update_ast_line_nos=True)
+        ast.accept(AstIndentationGenerator())
+        ast.accept(printer)
+        printer.post_process()
+        meson_filename = os.path.join(self.build.environment.get_build_dir(), subdir, 'meson.build')
+        with open(meson_filename, "w", encoding='utf-8') as f:
+            f.write(printer.result)
+        mlog.log('Generated Meson AST:', meson_filename)
+        mlog.cmd_ci_include(meson_filename)
+
     def _do_subproject_meson(self, subp_name: str, subdir: str,
                              default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject,
@@ -989,18 +1003,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              cargo: T.Optional[cargo.Interpreter] = None) -> SubprojectHolder:
         with mlog.nested(subp_name):
             if ast:
-                # Debug print the generated meson file
-                from ..ast import AstIndentationGenerator, AstPrinter
-                printer = AstPrinter(update_ast_line_nos=True)
-                ast.accept(AstIndentationGenerator())
-                ast.accept(printer)
-                printer.post_process()
-                meson_filename = os.path.join(self.build.environment.get_build_dir(), subdir, 'meson.build')
-                with open(meson_filename, "w", encoding='utf-8') as f:
-                    f.write(printer.result)
-                mlog.log('Generated Meson AST:', meson_filename)
-                mlog.cmd_ci_include(meson_filename)
-
+                self._save_ast(subdir, ast)
             new_build = self.build.copy()
             subi = Interpreter(new_build, self.backend, subp_name, subdir, self.subproject_dir,
                                default_options, ast=ast, relaxations=relaxations,
@@ -1086,6 +1089,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             ast = cargo_int.interpret(subdir)
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
+                relaxations={InterpreterRuleRelaxation.CARGO_SUBDIR},
                 cargo=cargo_int)
 
     @typed_pos_args('get_option', str)
@@ -2479,7 +2483,12 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         os.makedirs(os.path.join(self.environment.build_dir, subdir), exist_ok=True)
 
-        if not self._evaluate_subdir(self.environment.get_source_dir(), subdir):
+        if InterpreterRuleRelaxation.CARGO_SUBDIR in self.relaxations and \
+           os.path.exists(os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.toml')):
+            codeblock = self.cargo.interpret(subdir, self.root_subdir)
+            self._save_ast(subdir, codeblock)
+            self._evaluate_codeblock(codeblock, subdir)
+        elif not self._evaluate_subdir(self.environment.get_source_dir(), subdir):
             buildfilename = os.path.join(subdir, environment.build_filename)
             raise InterpreterException(f"Nonexistent build file '{buildfilename!s}'")
 
