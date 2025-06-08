@@ -91,6 +91,9 @@ class Interpreter:
         # Rustc's config
         self.cfgs = self._get_cfgs()
 
+    def get_build_def_files(self) -> T.List[str]:
+        return [os.path.join(subdir, 'Cargo.toml') for subdir in self.manifests]
+
     def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
