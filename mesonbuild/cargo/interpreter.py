@@ -441,9 +441,9 @@ def _version_to_api(version: str) -> str:
     return '0'
 
 
-def _dependency_name(package_name: str, api: str) -> str:
-    basename = package_name[:-3] if package_name.endswith('-rs') else package_name
-    return f'{basename}-{api}-rs'
+def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
+    basename = package_name[:-len(suffix)] if package_name.endswith(suffix) else package_name
+    return f'{basename}-{api}{suffix}'
 
 
 def _dependency_varname(package_name: str) -> str:
@@ -805,6 +805,9 @@ class Interpreter:
             'rust_args': build.array(rust_args),
         }
 
+        depname_suffix = '-rs' if crate_type in {'lib', 'rlib', 'proc-macro'} else f'-{crate_type}'
+        depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
+
         lib: mparser.BaseNode
         if pkg.manifest.lib.proc_macro or crate_type == 'proc-macro':
             lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
@@ -837,7 +840,8 @@ class Interpreter:
                         'link_with': build.identifier('lib'),
                         'variables': build.dict({
                             build.string('features'): build.string(','.join(pkg.features)),
-                        })
+                        }),
+                        'version': build.string(pkg.manifest.package.version),
                     },
                 ),
                 'dep'
@@ -846,7 +850,7 @@ class Interpreter:
                 'override_dependency',
                 build.identifier('meson'),
                 [
-                    build.string(_dependency_name(pkg.manifest.package.name, pkg.manifest.package.api)),
+                    build.string(depname),
                     build.identifier('dep'),
                 ],
             ),
