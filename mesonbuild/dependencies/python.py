@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-import functools, json, operator, os, sys, textwrap
+import functools, json, operator, os, textwrap
 from pathlib import Path
 import typing as T
 
@@ -469,7 +469,7 @@ class PythonPkgConfigDependency(PkgConfigDependency, _PythonDependencyBase):
 
         if pkg_libdir and not self.is_found:
             mlog.debug(f'{pkg_name!r} could not be found in {pkg_libdir_origin}, '
-                        'this is likely due to a relocated python installation')
+                       'this is likely due to a relocated python installation')
             return
 
         # pkg-config files are usually accurate starting with python 3.8
