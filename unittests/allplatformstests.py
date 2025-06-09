@@ -3131,6 +3131,11 @@ class AllPlatformTests(BasePlatformTests):
             os.path.join(self.builddir, 'foo' + EXTENSION_SUFFIX),
             os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX),
         ]
+        if is_cygwin():
+            expected_files += [
+                os.path.join(self.builddir, 'foo' + EXTENSION_SUFFIX.replace('.so', '.dll.a')),
+                os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX.replace('.so', '.dll.a')),
+            ]
 
         for extra_args in (
             ['--python.build-config', python_build_config_file.name],
