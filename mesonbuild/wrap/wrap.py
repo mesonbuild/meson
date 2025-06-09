@@ -295,6 +295,9 @@ class PackageDefinition:
             with open(self.get_hashfile(subproject_directory), 'w', encoding='utf-8') as file:
                 file.write(self.wrapfile_hash + '\n')
 
+    def add_provided_dep(self, name: str) -> None:
+        self.provided_deps[name] = None
+
 def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
     if os.path.isfile(fname):
@@ -331,6 +334,7 @@ class Resolver:
         self.wrapdb: T.Dict[str, T.Any] = {}
         self.wrapdb_provided_deps: T.Dict[str, str] = {}
         self.wrapdb_provided_programs: T.Dict[str, str] = {}
+        self.loaded_dirs: T.Set[str] = set()
         self.load_wraps()
         self.load_netrc()
         self.load_wrapdb()
@@ -372,13 +376,15 @@ class Resolver:
         # Add provided deps and programs into our lookup tables
         for wrap in self.wraps.values():
             self.add_wrap(wrap)
+        self.loaded_dirs.add(self.subdir)
 
     def add_wrap(self, wrap: PackageDefinition) -> None:
         for k in wrap.provided_deps.keys():
             if k in self.provided_deps:
                 prev_wrap = self.provided_deps[k]
-                m = f'Multiple wrap files provide {k!r} dependency: {wrap.name} and {prev_wrap.name}'
-                raise WrapException(m)
+                if prev_wrap.type is not None:
+                    m = f'Multiple wrap files provide {k!r} dependency: {wrap.name} and {prev_wrap.name}'
+                    raise WrapException(m)
             self.provided_deps[k] = wrap
         for k in wrap.provided_programs:
             if k in self.provided_programs:
@@ -416,16 +422,16 @@ class Resolver:
 
     def _merge_wraps(self, other_resolver: 'Resolver') -> None:
         for k, v in other_resolver.wraps.items():
-            self.wraps.setdefault(k, v)
-        for k, v in other_resolver.provided_deps.items():
-            self.provided_deps.setdefault(k, v)
-        for k, v in other_resolver.provided_programs.items():
-            self.provided_programs.setdefault(k, v)
+            # Allow replacing wraps that were created for a bare directory.
+            if k not in self.wraps or self.wraps[k].type is None:
+                self.wraps[k] = v
+                self.add_wrap(v)
 
     def load_and_merge(self, subdir: str, subproject: SubProject) -> None:
-        if self.wrap_mode != WrapMode.nopromote:
+        if self.wrap_mode != WrapMode.nopromote and subdir not in self.loaded_dirs:
             other_resolver = Resolver(self.source_dir, subdir, subproject, self.wrap_mode, self.wrap_frontend, self.allow_insecure, self.silent)
             self._merge_wraps(other_resolver)
+            self.loaded_dirs.add(subdir)
 
     def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
         # Python's ini parser converts all key values to lowercase.
