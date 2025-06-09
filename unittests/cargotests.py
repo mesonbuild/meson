@@ -8,7 +8,7 @@ import tempfile
 import textwrap
 import typing as T
 
-from mesonbuild.cargo import builder, cfg, load_wraps
+from mesonbuild.cargo import cfg, load_wraps
 from mesonbuild.cargo.cfg import TokenType
 from mesonbuild.cargo.version import convert
 
