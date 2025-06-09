@@ -10,8 +10,8 @@ import os
 import typing as T
 
 from . import version
+from ..mesonlib import MesonException, lazy_property
 from .. import mlog
-from ..mesonlib import MesonException
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol, Self
@@ -65,7 +65,6 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI],
     :param data: The raw data to look at
     :param cls: The Dataclass derived type that will be created
     :param msg: the header for the error message. Usually something like "In N structure".
-    :param convert_version: whether to convert the version field to a Meson compatible one.
     :return: The original data structure, but with all unknown keys removed.
     """
     new_dict = {}
@@ -120,10 +119,9 @@ class Package:
     autotests: bool = True
     autobenches: bool = True
 
-    api: str = dataclasses.field(init=False)
-
-    def __post_init__(self) -> None:
-        self.api = version.api(self.version)
+    @lazy_property
+    def api(self) -> str:
+        return version.api(self.version)
 
     @classmethod
     def from_raw(cls, raw_pkg: raw.Package) -> Self:
@@ -137,7 +135,7 @@ class SystemDependency:
     """
 
     name: str
-    version: T.List[str]
+    version: str = ''
     optional: bool = False
     feature: T.Optional[str] = None
     # TODO: convert values to dataclass
@@ -146,18 +144,18 @@ class SystemDependency:
     @classmethod
     def from_raw(cls, name: str, raw: T.Union[T.Dict[str, T.Any], str]) -> SystemDependency:
         if isinstance(raw, str):
-            return cls(name, SystemDependency.convert_version(raw))
+            raw = {'version': raw}
         name = raw.get('name', name)
-        version = SystemDependency.convert_version(raw.get('version', ''))
+        version = raw.get('version', '')
         optional = raw.get('optional', False)
         feature = raw.get('feature')
         # Everything else are overrides when certain features are enabled.
         feature_overrides = {k: v for k, v in raw.items() if k not in {'name', 'version', 'optional', 'feature'}}
         return cls(name, version, optional, feature, feature_overrides)
 
-    @staticmethod
-    def convert_version(version: T.Optional[str]) -> T.List[str]:
-        vers = version.split(',') if version else []
+    @lazy_property
+    def meson_version(self) -> T.List[str]:
+        vers = self.version.split(',') if self.version else []
         result: T.List[str] = []
         for v in vers:
             v = v.strip()
@@ -175,7 +173,7 @@ class Dependency:
     """Representation of a Cargo Dependency Entry."""
 
     package: str
-    version: T.List[str]
+    version: str = ''
     registry: T.Optional[str] = None
     git: T.Optional[str] = None
     branch: T.Optional[str] = None
@@ -185,28 +183,30 @@ class Dependency:
     default_features: bool = True
     features: T.List[str] = dataclasses.field(default_factory=list)
 
-    api: str = dataclasses.field(init=False)
+    @lazy_property
+    def meson_version(self) -> T.List[str]:
+        return version.convert(self.version)
 
-    def __post_init__(self) -> None:
+    @lazy_property
+    def api(self) -> str:
         # Extract wanted API version from version constraints.
         api = set()
-        for v in self.version:
+        for v in self.meson_version:
             if v.startswith(('>=', '==')):
                 api.add(version.api(v[2:].strip()))
             elif v.startswith('='):
                 api.add(version.api(v[1:].strip()))
         if not api:
-            self.api = '0'
+            return '0'
         elif len(api) == 1:
-            self.api = api.pop()
+            return api.pop()
         else:
             raise MesonException(f'Cannot determine minimum API version from {self.version}.')
 
     @classmethod
     def from_raw_dict(cls, name: str, raw_dep: raw.Dependency) -> Dependency:
         raw_dep.setdefault('package', name)
-        return _raw_to_dataclass(raw_dep, cls, f'Dependency entry {name}',
-                                 version=version.convert)
+        return _raw_to_dataclass(raw_dep, cls, f'Dependency entry {name}')
 
     @classmethod
     def from_raw(cls, name: str, raw_depv: raw.DependencyV) -> Dependency:
@@ -344,7 +344,6 @@ class Manifest:
     dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     dev_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
     build_dependencies: T.Dict[str, Dependency] = dataclasses.field(default_factory=dict)
-    system_dependencies: T.Dict[str, SystemDependency] = dataclasses.field(init=False)
     lib: T.Optional[Library] = None
     bin: T.List[Binary] = dataclasses.field(default_factory=list)
     test: T.List[Test] = dataclasses.field(default_factory=list)
@@ -357,7 +356,10 @@ class Manifest:
 
     def __post_init__(self) -> None:
         self.features.setdefault('default', [])
-        self.system_dependencies = {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
+
+    @lazy_property
+    def system_dependencies(self) -> T.Dict[str, SystemDependency]:
+        return {k: SystemDependency.from_raw(k, v) for k, v in self.package.metadata.get('system-deps', {}).items()}
 
     @classmethod
     def from_raw(cls, raw: raw.Manifest, path: str = '') -> Self:

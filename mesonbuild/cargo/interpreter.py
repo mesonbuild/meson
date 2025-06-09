@@ -263,7 +263,7 @@ class Interpreter:
     def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
         # TODO: handle feature_overrides
         kw = {
-            'version': build.array([build.string(s) for s in dep.version]),
+            'version': build.array([build.string(s) for s in dep.meson_version]),
             'required': build.bool(not dep.optional),
         }
         varname = f'{fixup_meson_varname(name)}_system_dep'
@@ -290,7 +290,7 @@ class Interpreter:
     def _create_dependency(self, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
         pkg = self._dep_package(dep)
         kw = {
-            'version': build.array([build.string(s) for s in dep.version]),
+            'version': build.array([build.string(s) for s in dep.meson_version]),
         }
         # Lookup for this dependency with the features we want in default_options kwarg.
         #
