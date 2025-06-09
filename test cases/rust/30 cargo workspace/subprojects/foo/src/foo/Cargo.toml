@@ -1,0 +1,10 @@
+[package]
+name = "foo"
+edition.workspace = true
+version.workspace = true
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+m1 = { path="../member1", package="member1" }
