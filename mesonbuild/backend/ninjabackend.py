@@ -2124,13 +2124,27 @@ class NinjaBackend(backends.Backend):
                                    and dep.rust_crate_type == 'dylib'
                                    for dep in target_deps)
 
-        if target.rust_crate_type in {'dylib', 'proc-macro'} or has_rust_shared_deps:
-            # add prefer-dynamic if any of the Rust libraries we link
+        if target.rust_crate_type in {'dylib', 'proc-macro'}:
+            # also add prefer-dynamic if any of the Rust libraries we link
             # against are dynamic or this is a dynamic library itself,
             # otherwise we'll end up with multiple implementations of libstd.
-            args += ['-C', 'prefer-dynamic']
+            has_rust_shared_deps = True
+        elif self.get_target_option(target, 'rust_dynamic_std'):
+            if target.rust_crate_type == 'staticlib':
+                # staticlib crates always include a copy of the Rust libstd,
+                # therefore it is not possible to also link it dynamically.
+                # The options to avoid this (-Z staticlib-allow-rdylib-deps and
+                # -Z staticlib-prefer-dynamic) are not yet stable; alternatively,
+                # one could use "--emit obj" (implemented in the pull request at
+                # https://github.com/mesonbuild/meson/pull/11213) or "--emit rlib"
+                # (officially not recommended for linking with C programs).
+                raise MesonException('rust_dynamic_std does not support staticlib crates yet')
+            # want libstd as a shared dep
+            has_rust_shared_deps = True
 
-        if isinstance(target, build.SharedLibrary) or has_shared_deps:
+        if has_rust_shared_deps:
+            args += ['-C', 'prefer-dynamic']
+        if has_shared_deps or has_rust_shared_deps:
             args += self.get_build_rpath_args(target, rustc)
 
         return deps, fortran_order_deps, project_deps, args
