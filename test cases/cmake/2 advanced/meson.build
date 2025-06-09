@@ -27,3 +27,7 @@ test('test3', sub_pro.target('testEXE'))
 # Test that we can add a new target with the same name as the CMake subproject
 exe4 = executable('testEXE', ['main.cpp'], dependencies: [sub_sta])
 test('test4', exe4)
+
+# Test if libraries are named correctly
+assert(sub_pro.target_type('cmModLib') == 'shared_library', 'Type should be shared_library')
+assert(sub_pro.target('cmModLib').full_path().endswith('1.0.1'), 'Shared library version not picked up correctly')

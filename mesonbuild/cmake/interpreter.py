@@ -243,6 +243,8 @@ class ConverterTarget:
         self.compile_opts: T.Dict[str, T.List[str]] = {}
         self.public_compile_opts: T.List[str] = []
         self.pie = False
+        self.version: T.Optional[str] = None
+        self.soversion: T.Optional[str] = None
 
         # Project default override options (c_std, cpp_std, etc.)
         self.override_options: T.List[str] = []
@@ -357,6 +359,8 @@ class ConverterTarget:
         tgt = trace.targets.get(self.cmake_name)
         if tgt:
             self.depends_raw = trace.targets[self.cmake_name].depends
+            self.version = trace.targets[self.cmake_name].properties.get('VERSION', [None])[0]
+            self.soversion = trace.targets[self.cmake_name].properties.get('SOVERSION', [None])[0]
 
             rtgt = resolve_cmake_trace_targets(self.cmake_name, trace, self.env, clib_compiler=self.clib_compiler)
             self.includes += [Path(x) for x in rtgt.include_directories]
@@ -1171,6 +1175,12 @@ class CMakeInterpreter:
                 'override_options': options.get_override_options(tgt.cmake_name, tgt.override_options),
                 'objects': [method(x, 'extract_all_objects') for x in objec_libs],
             }
+
+            # Only set version if we know it
+            if tgt.version:
+                tgt_kwargs['version'] = tgt.version
+            if tgt.soversion:
+                tgt_kwargs['soversion'] = tgt.soversion
 
             # Only set if installed and only override if it is set
             if install_tgt and tgt.install_dir:
