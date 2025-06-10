@@ -122,17 +122,17 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # dependency('foo', static: true) should implicitly add
         # default_options: ['default_library=static']
         static = kwargs.get('static')
-        extra_default_options = {}
+        forced_options = {}
         if static is not None:
             default_library = 'static' if static else 'shared'
             mlog.log(f'Building fallback subproject with default_library={default_library}')
-            extra_default_options[OptionKey('default_library')] = default_library
+            forced_options[OptionKey('default_library')] = default_library
 
         # Configure the subproject
         subp_name = self.subproject_name
         varname = self.subproject_varname
         func_kwargs.setdefault('version', [])
-        self.interpreter.do_subproject(subp_name, func_kwargs, extra_default_options=extra_default_options)
+        self.interpreter.do_subproject(subp_name, func_kwargs, forced_options=forced_options)
         return self._get_subproject_dep(subp_name, varname, kwargs)
 
     def _get_subproject(self, subp_name: str) -> T.Optional[SubprojectHolder]:
