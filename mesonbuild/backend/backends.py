@@ -362,7 +362,7 @@ class Backend:
                 raise MesonException(f'Tried to link against custom target "{target.name}", which is not linkable.')
             return Path(self.get_target_dir(target), target.get_filename()).as_posix()
         elif isinstance(target, build.Executable):
-            if target.import_filename:
+            if target.get_import_filename():
                 return Path(self.get_target_dir(target), target.get_import_filename()).as_posix()
             else:
                 return None

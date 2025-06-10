@@ -3368,7 +3368,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
     def get_import_filename(self, target) -> str:
-        return os.path.join(self.get_target_dir(target), target.import_filename)
+        return os.path.join(self.get_target_dir(target), target.get_import_filename())
 
     def get_target_type_link_args(self, target, linker):
         commands = []
@@ -3379,7 +3379,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if target.export_dynamic:
                 commands += linker.gen_export_dynamic_link_args(self.environment)
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
-            if target.import_filename:
+            if target.get_import_filename():
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
             if target.pie:
                 commands += linker.get_pie_link_args()
@@ -3401,7 +3401,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if target.vs_module_defs and hasattr(linker, 'gen_vs_module_defs_args'):
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
             # This is only visited when building for Windows using either GCC or Visual Studio
-            if target.import_filename:
+            if target.get_import_filename():
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
         elif isinstance(target, build.StaticLibrary):
             produce_thin_archive = self.allow_thin_archives[target.for_machine] and not target.should_install()

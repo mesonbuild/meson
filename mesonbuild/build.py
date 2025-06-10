@@ -1290,6 +1290,14 @@ class BuildTarget(Target):
         """
         return self.debug_filename
 
+    def get_import_filename(self) -> T.Optional[str]:
+        """
+        The name of the import library that will be outputted by the compiler
+
+        Returns None if there is no import library required for this platform
+        """
+        return None
+
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
@@ -2547,6 +2555,10 @@ class SharedModule(SharedLibrary):
 
     def get_default_install_dir(self) -> T.Union[T.Tuple[str, str], T.Tuple[None, None]]:
         return self.environment.get_shared_module_dir(), '{moduledir_shared}'
+
+    def get_import_filename(self) -> T.Optional[str]:
+        return None
+
 
 class BothLibraries(SecondLevelHolder):
     def __init__(self, shared: SharedLibrary, static: StaticLibrary, preferred_library: Literal['shared', 'static']) -> None:
