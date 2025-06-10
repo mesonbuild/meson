@@ -54,6 +54,7 @@ NON_LANG_ENV_OPTIONS = [
     ('PKG_CONFIG_PATH', 'pkg_config_path'),
     ('CMAKE_PREFIX_PATH', 'cmake_prefix_path'),
     ('LDFLAGS', 'ldflags'),
+    ('EXECUTABLE_LINK_FLAGS', 'executable_link_flags'),
     ('CPPFLAGS', 'cppflags'),
 ]
 
@@ -825,6 +826,10 @@ class Environment:
                     elif keyname == 'cppflags':
                         for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
                             key = OptionKey(f'{lang}_args', machine=for_machine)
+                            env_opts[key].extend(p_list)
+                    if keyname == 'executable_link_flags':
+                        for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
+                            key = OptionKey(name=f'{lang}_executable_link_args', machine=for_machine)
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
