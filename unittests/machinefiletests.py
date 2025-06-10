@@ -550,8 +550,8 @@ class NativeFileTests(BasePlatformTests):
         # into augments.
         self.assertEqual(found, 2, 'Did not find all two sections')
 
-    def test_builtin_options_subprojects_overrides_buildfiles(self):
-        # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
+    def test_builtin_options_machinefile_overrides_subproject(self):
+        # The buildfile says subproject(... default_library: static), the machinefile overrides it
         testcase = os.path.join(self.common_test_dir, '223 persubproject options')
         config = self.helper_create_native_file({'sub2:built-in options': {'default_library': 'shared'}})
 
@@ -563,8 +563,9 @@ class NativeFileTests(BasePlatformTests):
                 check = cm.exception.stdout
             self.assertIn(check, 'Parent should override default_library')
 
-    def test_builtin_options_subprojects_dont_inherits_parent_override(self):
-        # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
+    def test_builtin_options_machinefile_global_loses_over_subproject(self):
+        # The buildfile says subproject(... default_library: static), ensure that it overrides the machinefile
+        # FIXME: Should it??
         testcase = os.path.join(self.common_test_dir, '223 persubproject options')
         config = self.helper_create_native_file({'built-in options': {'default_library': 'both'}})
         self.init(testcase, extra_args=['--native-file', config])
