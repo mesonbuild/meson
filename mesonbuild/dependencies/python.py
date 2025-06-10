@@ -113,7 +113,7 @@ class PythonBuildConfig:
 
     def get(self, key: str, default: T.Any = None) -> T.Any:
         try:
-            self[key]
+            return self[key]
         except KeyError:
             return default
 
