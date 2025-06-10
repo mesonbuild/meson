@@ -959,8 +959,8 @@ class GnomeModule(ExtensionModule):
 
         return gir_filelist_filename
 
-    @staticmethod
     def _make_gir_target(
+            self,
             state: 'ModuleState',
             girfile: str,
             scan_command: T.Sequence[T.Union['FileOrString', Executable, ExternalProgram, OverrideProgram]],
@@ -990,6 +990,12 @@ class GnomeModule(ExtensionModule):
         run_env.set('CFLAGS', [quote_arg(x) for x in env_flags], ' ')
         run_env.merge(kwargs['env'])
 
+        gir_dep, _, _ = self._get_gir_dep(state)
+
+        # response file supported?
+        rspable = (mesonlib.is_windows or mesonlib.is_cygwin()) and \
+            mesonlib.version_compare(gir_dep.version, '>= 1.85.0')
+
         return GirTarget(
             girfile,
             state.subdir,
@@ -1004,6 +1010,7 @@ class GnomeModule(ExtensionModule):
             install_dir=[install_dir],
             install_tag=['devel'],
             env=run_env,
+            rspable=rspable,
         )
 
     @staticmethod
