@@ -28,7 +28,6 @@
     {"type": "file", "platform": "gcc", "file": "usr/lib/libonlysoversion.dll.a"},
     {"type": "expr", "platform": "gcc", "file": "usr/libexec/?libcustomdir.dll"},
     {"type": "file", "platform": "gcc", "file": "usr/libexec/libcustomdir.dll.a"},
-    {"type": "expr", "platform": "gcc", "file": "usr/lib/modules/?libmodule.dll"},
-    {"type": "file", "platform": "gcc", "file": "usr/lib/modules/libmodule.dll.a"}
+    {"type": "expr", "platform": "gcc", "file": "usr/lib/modules/?libmodule.dll"}
   ]
 }
