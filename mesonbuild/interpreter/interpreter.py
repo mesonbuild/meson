@@ -870,7 +870,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return sub
 
     def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
-                      extra_default_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
+                      forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
         if subp_name == 'sub_static':
             pass
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
@@ -880,8 +880,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
         default_options = kwargs['default_options']
-        if extra_default_options:
-            default_options = {**extra_default_options, **default_options}
+
+        # This in practice is only used for default_library.  forced_options is the
+        # only case in which a meson.build file overrides the machine file or the
+        # command line.
+        if forced_options:
+            for k, v in forced_options.items():
+                # FIXME: this should have no business poking at augments[],
+                # but set_option() does not do what we want
+                self.coredata.optstore.augments[k.evolve(subproject=subp_name)] = v
+            default_options = {**forced_options, **default_options}
 
         if subp_name == '':
             raise InterpreterException('Subproject name must not be empty.')
