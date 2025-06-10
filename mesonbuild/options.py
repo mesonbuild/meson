@@ -1339,8 +1339,13 @@ class OptionStore:
             return True
         if first_invocation and self.is_backend_option(key):
             return True
-        return (self.is_base_option(key) and
-                key.evolve(subproject=None, machine=MachineChoice.HOST) in COMPILER_BASE_OPTIONS)
+        if (self.is_base_option(key) and
+                key.evolve(subproject=None, machine=MachineChoice.HOST) in COMPILER_BASE_OPTIONS):
+            return True
+        if (self.is_builtin_option(key) and
+                key.evolve(subproject=None, machine=MachineChoice.HOST) in BUILTIN_OPTIONS):
+            return True
+        return False
 
     def validate_cmd_line_options(self, cmd_line_options: OptionDict) -> None:
         unknown_options = []
