@@ -468,6 +468,7 @@ class DependencyHolder(ObjectHolder[Dependency]):
                              'as_link_whole': self.as_link_whole_method,
                              'as_static': self.as_static_method,
                              'as_shared': self.as_shared_method,
+                             'as_dict': self.as_dict,
                              })
 
     def found(self) -> bool:
@@ -609,6 +610,13 @@ class DependencyHolder(ObjectHolder[Dependency]):
         if not isinstance(self.held_object, InternalDependency):
             raise InterpreterException('as_shared method is only supported on declare_dependency() objects')
         return self.held_object.get_as_shared(kwargs['recursive'])
+
+    @FeatureNew('dependency.as_json', '1.9.0')
+    @noPosargs
+    @noKwargs
+    def as_dict(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> T.Dict[str, T.Any]:
+        return self.held_object.as_dict(self.interpreter.backend)
+
 
 _EXTPROG = T.TypeVar('_EXTPROG', bound=ExternalProgram)
 
