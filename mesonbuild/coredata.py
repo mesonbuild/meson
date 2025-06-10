@@ -267,6 +267,9 @@ class CoreData:
         # This is used by mconf to reload the option file if it's changed.
         self.options_files: T.Dict[SubProject, T.Optional[T.Tuple[str, str]]] = {}
 
+        # TODO: add docs
+        self.main_project_options: T.Set[str] = set()
+
         # Set of subprojects that have already been initialized once, this is
         # required to be stored and reloaded with the coredata, as we don't
         # want to overwrite options for such subprojects.

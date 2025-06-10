@@ -1284,8 +1284,9 @@ class OptionStore:
     def initialize_from_top_level_project_call(self,
                                                project_default_options_in: OptionDict,
                                                cmd_line_options_in: OptionDict,
-                                               machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> None:
+                                               machine_file_options_in: T.Mapping[OptionKey, ElementaryOptionValues]) -> T.Set[str]:
         first_invocation = True
+        options = set()
         (project_default_options, cmd_line_options, machine_file_options) = self.first_handle_prefix(project_default_options_in,
                                                                                                      cmd_line_options_in,
                                                                                                      machine_file_options_in)
@@ -1313,6 +1314,7 @@ class OptionStore:
                 self.augments[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
+                options.add(key.name)
             else:
                 # Setting a project option with default_options.
                 # Argubly this should be a hard error, the default
@@ -1323,6 +1325,7 @@ class OptionStore:
                     self.set_option(proj_key, valstr)
                 else:
                     self.pending_options[key] = valstr
+                # TODO
         for key, valstr in machine_file_options.items():
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
@@ -1332,12 +1335,14 @@ class OptionStore:
                 self.augments[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, first_invocation)
+                options.add(key.name)
             else:
                 proj_key = key.as_root()
                 if proj_key in self.options:
                     self.set_option(proj_key, valstr, first_invocation)
                 else:
                     self.pending_options[key] = valstr
+                # TODO
         for keystr, valstr in cmd_line_options.items():
             if isinstance(keystr, str):
                 key = OptionKey.from_string(keystr)
@@ -1351,12 +1356,15 @@ class OptionStore:
                 self.augments[key] = valstr
             elif key in self.options:
                 self.set_option(key, valstr, True)
+                options.add(key.name)
             else:
                 proj_key = key.as_root()
                 if proj_key in self.options:
                     self.set_option(proj_key, valstr, True)
                 else:
                     self.pending_options[key] = valstr
+                # TODO
+        return options
 
     def accept_as_pending_option(self, key: OptionKey, known_subprojects: T.Optional[T.Union[T.Set[str], T.KeysView[str]]] = None) -> bool:
         # Fail on unknown options that we can know must exist at this point in time.
@@ -1391,7 +1399,8 @@ class OptionStore:
                                         subproject: str,
                                         spcall_default_options: OptionDict,
                                         project_default_options: OptionDict,
-                                        cmd_line_options: OptionDict) -> None:
+                                        cmd_line_options: OptionDict,
+                                        main_project_options: T.Set[str]) -> None:
         is_first_invocation = True
         for keystr, valstr in itertools.chain(project_default_options.items(), spcall_default_options.items()):
             if isinstance(keystr, str):
@@ -1409,7 +1418,8 @@ class OptionStore:
                 self.set_option(key, valstr, is_first_invocation)
             else:
                 self.pending_options.pop(key, None)
-                self.augments[key] = valstr
+                if key.name not in main_project_options:
+                    self.augments[key] = valstr
         # Check for pending options
         for key, valstr in cmd_line_options.items(): # type: ignore [assignment]
             if not isinstance(key, OptionKey):
