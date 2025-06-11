@@ -1085,11 +1085,6 @@ class Backend:
             if compiler.language == 'vala':
                 if dep.type_name == 'pkgconfig':
                     assert isinstance(dep, dependencies.ExternalDependency)
-                    if dep.name == 'glib-2.0' and dep.version_reqs is not None:
-                        for req in dep.version_reqs:
-                            if req.startswith(('>=', '==')):
-                                commands += ['--target-glib', req[2:]]
-                                break
                     commands += ['--pkg', dep.name]
                 elif isinstance(dep, dependencies.ExternalLibrary):
                     commands += dep.get_link_args('vala')
@@ -1101,6 +1096,32 @@ class Backend:
                 commands += dep.get_exe_args(compiler)
             # For 'automagic' deps: Boost and GTest. Also dependency('threads').
             # pkg-config puts the thread flags itself via `Cflags:`
+        if compiler.language == 'vala':
+            # Vala wants to know the minimum glib version
+            for dep in target.added_deps:
+                if dep.name == 'glib-2.0':
+                    if dep.type_name == 'pkgconfig':
+                        assert isinstance(dep, dependencies.ExternalDependency)
+                        if dep.version_reqs is not None:
+                            for req in dep.version_reqs:
+                                if req.startswith(('>=', '==')):
+                                    commands += ['--target-glib', req[2:]]
+                                    break
+                    elif isinstance(dep, dependencies.InternalDependency) and dep.version is not None:
+                        glib_version = dep.version.split('.')
+                        if len(glib_version) != 3:
+                            mlog.warning(f'GLib version has unexpected format: {dep.version}')
+                            break
+                        try:
+                            # If GLib version is a development version, downgrade
+                            # --target-glib to the previous version, as valac will
+                            # complain about non-even minor versions
+                            glib_version[1] = str((int(glib_version[1]) // 2) * 2)
+                        except ValueError:
+                            mlog.warning(f'GLib version has unexpected format: {dep.version}')
+                            break
+                        commands += ['--target-glib', f'{glib_version[0]}.{glib_version[1]}']
+
         # Fortran requires extra include directives.
         if compiler.language == 'fortran':
             for lt in chain(target.link_targets, target.link_whole_targets):
