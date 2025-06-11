@@ -250,4 +250,14 @@ methods:
       recursive:
         type: bool
         description: If true, this is recursively applied to dependencies
-  
+
+  - name: as_json
+    returns: file
+    since: 1.9.0
+    description: |
+      Provides all data about this dependency in JSON form, as a file that can
+      be used as a build input. The JSON is same as a dependency object output
+      by `meson introspect --dependencies`.
+
+      This exists to support advanced custom generation, you should only use this
+      as a last resort.
