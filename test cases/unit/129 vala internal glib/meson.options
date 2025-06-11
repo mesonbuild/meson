@@ -1,0 +1,1 @@
+option('glib-version', type: 'string', value: 'unset')
