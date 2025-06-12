@@ -19,7 +19,7 @@ from ..programs import ExternalProgram
 from ..options import OptionKey
 
 if T.TYPE_CHECKING:
-    from typing_extensions import TypedDict
+    from typing_extensions import Final, TypedDict
 
     from .factory import DependencyGenerator
     from ..environment import Environment
@@ -78,7 +78,7 @@ class PythonBuildConfig:
     """PEP 739 build-details.json config file."""
 
     """Schema version currently implemented."""
-    IMPLEMENTED_VERSION: T.Final[str] = '1.0'
+    IMPLEMENTED_VERSION: Final[str] = '1.0'
     """Path keys — may be relative, need to be expanded."""
     _PATH_KEYS = (
         'base_interpreter',
