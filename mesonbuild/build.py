@@ -2387,6 +2387,16 @@ class SharedLibrary(BuildTarget):
             suffix = 'so'
             # Android doesn't support shared_library versioning
             self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+        elif self.environment.machines[self.for_machine].is_zos():
+            # A z/OS PDSE member name if uppercase and up to 8 characters.
+            if len(self.name) <= 8 and self.name.isupper() and not self.prefix and not self.suffix:
+                prefix = ''
+                self.filename_tpl = '{0.name}'
+            else:
+                prefix = 'lib'
+                suffix = 'so'
+                self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
+            import_filename_tpl = '{0.prefix}{0.name}.x'
         else:
             prefix = 'lib'
             suffix = 'so'
@@ -2786,7 +2796,7 @@ class CustomTarget(Target, CustomTargetBase, CommandBase):
             return self.depfile
 
     def is_linkable_output(self, output: str) -> bool:
-        if output.endswith(('.a', '.dll', '.lib', '.so', '.dylib')):
+        if output.endswith(('.a', '.dll', '.lib', '.so', '.dylib', '.x')):
             return True
         # libfoo.so.X soname
         if re.search(r'\.so(\.\d+)*$', output):
