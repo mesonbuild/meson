@@ -55,9 +55,9 @@ class OptionTests(unittest.TestCase):
         """Test that subproject system options get their default value from the global
            option (e.g. "sub:b_lto" can be initialized from "b_lto")."""
         optstore = OptionStore(False)
-        name = 'someoption'
-        default_value = 'somevalue'
-        new_value = 'new_value'
+        name = 'b_lto'
+        default_value = 'false'
+        new_value = 'true'
         k = OptionKey(name)
         subk = k.evolve(subproject='sub')
         optstore.initialize_from_top_level_project_call({}, {}, {OptionKey(name): new_value})
@@ -224,6 +224,12 @@ class OptionTests(unittest.TestCase):
         self.assertTrue(optstore.accept_as_pending_option(OptionKey('b_ndebug')))
         self.assertFalse(optstore.accept_as_pending_option(OptionKey('b_whatever')))
 
+    def test_backend_option_pending(self):
+        optstore = OptionStore(False)
+        # backend options are known after the first invocation
+        self.assertTrue(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), True))
+        self.assertFalse(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), False))
+
     def test_reconfigure_b_nonexistent(self):
         optstore = OptionStore(False)
         optstore.set_from_configure_command(['b_ndebug=true'], [])
@@ -233,6 +239,38 @@ class OptionTests(unittest.TestCase):
         subprojects = {'found'}
         self.assertFalse(optstore.accept_as_pending_option(OptionKey('foo', subproject='found'), subprojects))
         self.assertTrue(optstore.accept_as_pending_option(OptionKey('foo', subproject='whatisthis'), subprojects))
+
+    def test_subproject_cmdline_override_global(self):
+        optstore = OptionStore(False)
+        subp = 'subp'
+        name = 'optimization'
+        default_value = '3'
+        new_value = '0'
+        o = UserComboOption('name', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])
+        optstore.add_system_option(name, o)
+        optstore.initialize_from_subproject_call(
+            subp,
+            {},
+            {OptionKey('optimization'): default_value},
+            {OptionKey('optimization'): new_value},
+            {})
+        self.assertEqual(optstore.get_value_for(name, subp), new_value)
+
+    def test_subproject_cmdline_override_global_and_augment(self):
+        optstore = OptionStore(False)
+        subp = 'subp'
+        name = 'optimization'
+        default_value = '3'
+        new_value = '0'
+        o = UserComboOption('name', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])
+        optstore.add_system_option(name, o)
+        optstore.initialize_from_subproject_call(
+            subp,
+            {},
+            {OptionKey('optimization'): default_value},
+            {OptionKey('optimization'): 's', OptionKey('optimization', subproject=subp): new_value},
+            {})
+        self.assertEqual(optstore.get_value_for(name, subp), new_value)
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests

@@ -1,7 +1,3 @@
 {
-    "matrix": {
-        "options": {
-            "default_library": [ { "val": "both" } ]
-        }
-    }
+  "skip_on_env": ["MESON_TEST_DDEFAULT_LIBRARY"]
 }
