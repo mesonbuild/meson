@@ -1357,6 +1357,10 @@ class BuildTarget(Target):
         deps = listify(deps)
         for dep in deps:
             if dep in self.added_deps:
+                # Prefer to add dependencies to added_deps which have a name
+                if dep.is_named():
+                    self.added_deps.remove(dep)
+                    self.added_deps.add(dep)
                 continue
 
             if isinstance(dep, dependencies.InternalDependency):
