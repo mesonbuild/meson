@@ -3111,23 +3111,6 @@ class AllPlatformTests(BasePlatformTests):
         py3library = sysconfig.get_config_var('PY3LIBRARY')
         if py3library is not None:
             python_build_config['libpython']['dynamic_stableabi'] = py3library
-        libpc = sysconfig.get_config_var('LIBPC')
-        if libpc is not None:
-            python_build_config['c_api']['pkgconfig_path'] = libpc
-
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
-            json.dump(python_build_config, fp=python_build_config_file)
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
-            cross_file.write(
-                textwrap.dedent(f'''
-                    [binaries]
-                    pkg-config = 'pkg-config'
-
-                    [built-in options]
-                    python.build_config = '{python_build_config_file.name}'
-                '''.strip())
-            )
-            cross_file.flush()
 
         intro_installed_file = os.path.join(self.builddir, 'meson-info', 'intro-installed.json')
         expected_files = [
@@ -3140,16 +3123,38 @@ class AllPlatformTests(BasePlatformTests):
                 os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX.replace('.so', '.dll.a')),
             ]
 
-        for extra_args in (
-            ['--python.build-config', python_build_config_file.name],
-            ['--cross-file', cross_file.name],
-        ):
-            with self.subTest(extra_args=extra_args):
-                self.init(testdir, extra_args=extra_args)
-                with open(intro_installed_file) as f:
-                    intro_installed = json.load(f)
-                self.assertEqual(expected_files, list(intro_installed))
-                self.wipe()
+        for with_pkgconfig in (False, True):
+            with self.subTest(with_pkgconfig=with_pkgconfig):
+                if with_pkgconfig:
+                    libpc = sysconfig.get_config_var('LIBPC')
+                    if libpc is None:
+                        continue
+                    python_build_config['c_api']['pkgconfig_path'] = libpc
+
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
+                    json.dump(python_build_config, fp=python_build_config_file)
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as cross_file:
+                    cross_file.write(
+                        textwrap.dedent(f'''
+                            [binaries]
+                            pkg-config = 'pkg-config'
+
+                            [built-in options]
+                            python.build_config = '{python_build_config_file.name}'
+                        '''.strip())
+                    )
+                    cross_file.flush()
+
+                for extra_args in (
+                    ['--python.build-config', python_build_config_file.name],
+                    ['--cross-file', cross_file.name],
+                ):
+                    with self.subTest(extra_args=extra_args):
+                        self.init(testdir, extra_args=extra_args)
+                        with open(intro_installed_file) as f:
+                            intro_installed = json.load(f)
+                        self.assertEqual(expected_files, list(intro_installed))
+                        self.wipe()
 
     def __reconfigure(self):
         # Set an older version to force a reconfigure from scratch
