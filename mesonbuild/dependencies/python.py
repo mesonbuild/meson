@@ -295,23 +295,26 @@ class _PythonDependencyBase(_Base):
             path = self.build_config['libpython'].get('dynamic')
             if not path:
                 raise DependencyException('Python does not provide a dynamic libpython library')
-            libdirs = [os.path.dirname(path)]
-            libname = os.path.basename(path)
-        else:
-            if self.is_pypy:
-                if self.major_version == 3:
-                    libname = 'pypy3-c'
-                else:
-                    libname = 'pypy-c'
-                libdir = os.path.join(self.variables.get('base'), 'bin')
-                libdirs = [libdir]
+            if not os.path.isfile(path):
+                raise DependencyException('Python dynamic library does not exist or is not a file')
+            self.link_args = [path]
+            self.is_found = True
+            return
+
+        if self.is_pypy:
+            if self.major_version == 3:
+                libname = 'pypy3-c'
             else:
-                libname = f'python{self.version}'
-                if 'DEBUG_EXT' in self.variables:
-                    libname += self.variables['DEBUG_EXT']
-                if 'ABIFLAGS' in self.variables:
-                    libname += self.variables['ABIFLAGS']
-                libdirs = []
+                libname = 'pypy-c'
+            libdir = os.path.join(self.variables.get('base'), 'bin')
+            libdirs = [libdir]
+        else:
+            libname = f'python{self.version}'
+            if 'DEBUG_EXT' in self.variables:
+                libname += self.variables['DEBUG_EXT']
+            if 'ABIFLAGS' in self.variables:
+                libname += self.variables['ABIFLAGS']
+            libdirs = []
 
         largs = self.clib_compiler.find_library(libname, environment, libdirs)
         if largs is not None:
