@@ -3098,7 +3098,10 @@ class AllPlatformTests(BasePlatformTests):
             'libpython': {
                 'dynamic': sysconfig.get_config_var('LDLIBRARY'),
                 'static': sysconfig.get_config_var('LIBRARY'),
-                'link_extensions': True,
+                # set it to False on PyPy, since dylib is optional, but also
+                # the value is currently wrong:
+                # https://github.com/pypy/pypy/issues/5249
+                'link_extensions': '__pypy__' not in sys.builtin_module_names,
             },
             'c_api': {
                 'headers': sysconfig.get_path('include'),
