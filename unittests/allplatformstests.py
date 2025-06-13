@@ -3064,6 +3064,9 @@ class AllPlatformTests(BasePlatformTests):
         VERSION_INFO_KEYS = ('major', 'minor', 'micro', 'releaselevel', 'serial')
         EXTENSION_SUFFIX = '.extension-suffix.so'
         STABLE_ABI_SUFFIX = '.stable-abi-suffix.so'
+        # macOS framework builds put libpython in PYTHONFRAMEWORKPREFIX.
+        LIBDIR = (sysconfig.get_config_var('PYTHONFRAMEWORKPREFIX') or
+                  sysconfig.get_config_var('LIBDIR'))
 
         python_build_config = {
             'schema_version': '1.0',
@@ -3096,8 +3099,8 @@ class AllPlatformTests(BasePlatformTests):
                 'extensions': [EXTENSION_SUFFIX, STABLE_ABI_SUFFIX, '.so'],
             },
             'libpython': {
-                'dynamic': sysconfig.get_config_var('LDLIBRARY'),
-                'static': sysconfig.get_config_var('LIBRARY'),
+                'dynamic': os.path.join(LIBDIR, sysconfig.get_config_var('LDLIBRARY')),
+                'static': os.path.join(LIBDIR, sysconfig.get_config_var('LIBRARY')),
                 # set it to False on PyPy, since dylib is optional, but also
                 # the value is currently wrong:
                 # https://github.com/pypy/pypy/issues/5249
@@ -3110,7 +3113,7 @@ class AllPlatformTests(BasePlatformTests):
 
         py3library = sysconfig.get_config_var('PY3LIBRARY')
         if py3library is not None:
-            python_build_config['libpython']['dynamic_stableabi'] = py3library
+            python_build_config['libpython']['dynamic_stableabi'] = os.path.join(LIBDIR, py3library)
 
         intro_installed_file = os.path.join(self.builddir, 'meson-info', 'intro-installed.json')
         expected_files = [
