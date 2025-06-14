@@ -1,11 +1,13 @@
 from pathlib import Path
 from json import loads
+import os
 import re
 
 from hotdoc.core.exceptions import HotdocSourceException
 from hotdoc.core.extension import Extension
 from hotdoc.core.tree import Page
 from hotdoc.core.project import Project
+from hotdoc.core.symbols import *
 from hotdoc.run_hotdoc import Application
 from hotdoc.core.formatter import Formatter
 from hotdoc.utils.loggable import Logger, warn, info
@@ -52,6 +54,35 @@ class RefmanLinksExtension(Extension):
         with valid links to the correct URL. To reference objects / types use the
         [[@object]] syntax.
         '''
+        for key, value in self._data.items():
+            path = os.path.relpath(value, self.app.config.get_invoke_dir()).split('#')[0]
+            if path == page.link.ref:
+                if key.startswith('@'):
+                    res = self.create_symbol(
+                        ClassSymbol,
+                        display_name=key[1:],
+                        filename=path,
+                        unique_name=key)
+                    res.link = Link(value, res.display_name, res.unique_name)
+                elif '.' in key:
+                    res = self.create_symbol(
+                        MethodSymbol,
+                        parameters=[],
+                        display_name=key.split('.')[-1],
+                        parent_name=f'@{key.split(".")[-2]}',
+                        filename=path,
+                        unique_name=key)
+                    res.link = Link(value, key, res.unique_name)
+                else:
+                    res = self.create_symbol(
+                        FunctionSymbol,
+                        parameters=[],
+                        display_name=key,
+                        filename=path,
+                        unique_name=key)
+                    res.link = Link(value, res.display_name, res.unique_name)
+                page.symbols.append(res)
+
         link_regex = re.compile(r'(\[\[#?@?([ \n\t]*[a-zA-Z0-9_]+[ \n\t]*\.)*[ \n\t]*[a-zA-Z0-9_]+[ \n\t]*\]\])(.)?', re.MULTILINE)
         for m in link_regex.finditer(page.formatted_contents):
             i = m.group(1)
@@ -102,6 +133,10 @@ class RefmanLinksExtension(Extension):
             ext = T.cast(Extension, ext)
             ext.formatter.formatting_page_signal.connect(self._formatting_page_cb)
         info('Meson refman extension LOADED')
+
+    def create_symbol(self, *args, **kwargs):
+        kwargs['language'] = 'meson'
+        return super(RefmanLinksExtension, self).create_symbol(*args, **kwargs)
 
     @staticmethod
     def get_dependencies() -> T.List[T.Type[Extension]]:
