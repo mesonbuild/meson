@@ -193,7 +193,7 @@ This is used internally by Meson to set the PKG_CONFIG_SYSROOT_DIR
 environment variable for pkg-config. If this is unset the host system
 is assumed to share a root with the build system.
 
-*Since 0.54.0* The pkg_config_libdir property may point to a list of
+*Since 0.54.0* The `pkg_config_libdir` property may point to a list of
 path used internally by Meson to set the PKG_CONFIG_LIBDIR environment
 variable for pkg-config. This prevents pkg-config from searching cross
 dependencies in system directories.
