@@ -205,6 +205,11 @@ has native support for these with the `b_sanitize` option.
 $ meson setup <other options> -Db_sanitize=address
 ```
 
+Clang users might also need to set `-Db_lundef=false`, since otherwise meson will pass
+`-Wl,--no-undefined`, which is an alias for `-Wl,-z,defs`, which is incompatible
+with the address sanitizer when building shared libraries with clang as
+documented [by clang](https://clang.llvm.org/docs/AddressSanitizer.html#usage).
+
 After this you just compile your code and run the test suite. Address
 sanitizer will abort executables which have bugs so they show up as
 test failures.
