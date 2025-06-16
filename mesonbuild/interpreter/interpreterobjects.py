@@ -988,6 +988,19 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     def name_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> str:
         return self._target_object.name
 
+    @FeatureNew('vala_header', '1.10.0')
+    @noPosargs
+    @noKwargs
+    @InterpreterObject.method('vala_header')
+    def vala_header_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
+        if not hasattr(self._target_object, 'vala_header'):
+            raise mesonlib.MesonException("Attempted to get a Vala header from a target that doesn't generate one")
+
+        assert self.interpreter.backend is not None, 'for mypy'
+        return mesonlib.File.from_built_file(
+            self.interpreter.backend.get_target_dir(self._target_object), self._target_object.vala_header)
+
+
 class ExecutableHolder(BuildTargetHolder[build.Executable]):
     pass
 
