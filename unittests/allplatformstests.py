@@ -3087,7 +3087,7 @@ class AllPlatformTests(BasePlatformTests):
                 if not attr.startswith('__')
             },
             'abi': {
-                'flags': [],
+                'flags': list(sys.abiflags),
                 'extension_suffix': EXTENSION_SUFFIX,
                 'stable_abi_suffix': STABLE_ABI_SUFFIX,
             },
@@ -3115,16 +3115,23 @@ class AllPlatformTests(BasePlatformTests):
         if py3library is not None:
             python_build_config['libpython']['dynamic_stableabi'] = os.path.join(LIBDIR, py3library)
 
+        build_stable_abi = sysconfig.get_config_var('Py_GIL_DISABLED') != 1 or sys.version_info >= (3, 15)
         intro_installed_file = os.path.join(self.builddir, 'meson-info', 'intro-installed.json')
         expected_files = [
             os.path.join(self.builddir, 'foo' + EXTENSION_SUFFIX),
-            os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX),
         ]
+        if build_stable_abi:
+            expected_files += [
+                os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX),
+            ]
         if is_cygwin():
             expected_files += [
                 os.path.join(self.builddir, 'foo' + EXTENSION_SUFFIX.replace('.so', '.dll.a')),
-                os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX.replace('.so', '.dll.a')),
             ]
+            if build_stable_abi:
+                expected_files += [
+                    os.path.join(self.builddir, 'foo_stable' + STABLE_ABI_SUFFIX.replace('.so', '.dll.a')),
+                ]
 
         for with_pkgconfig in (False, True):
             with self.subTest(with_pkgconfig=with_pkgconfig):
@@ -3154,6 +3161,7 @@ class AllPlatformTests(BasePlatformTests):
                 ):
                     with self.subTest(extra_args=extra_args):
                         self.init(testdir, extra_args=extra_args)
+                        self.build()
                         with open(intro_installed_file) as f:
                             intro_installed = json.load(f)
                         self.assertEqual(expected_files, list(intro_installed))
