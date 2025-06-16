@@ -1320,7 +1320,7 @@ class Backend:
                 ld_lib_path: T.Set[str] = set(os.path.join(env_build_dir, l.get_subdir()) for l in ld_lib_path_libs)
 
                 if ld_lib_path:
-                    t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
+                    t_env.prepend('LIBPATH' if machine.is_zos() else 'LD_LIBRARY_PATH', list(ld_lib_path), ':')
 
             ts = TestSerialisation(t.get_name(), t.project_name, t.suite, cmd, is_cross,
                                    exe_wrapper, self.environment.need_exe_wrapper(),
