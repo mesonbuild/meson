@@ -26,7 +26,7 @@ from ... import arglist
 from ... import mesonlib
 from ... import mlog
 from ...linkers.linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
-from ...mesonlib import LibType
+from ...mesonlib import EnvironmentException, LibType
 from .. import compilers
 from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
@@ -364,7 +364,7 @@ class CLikeCompiler(Compiler):
                 crt_val = env.coredata.optstore.get_value('b_vscrt')
                 buildtype = env.coredata.optstore.get_value('buildtype')
                 cargs += self.get_crt_compile_args(crt_val, buildtype) # type: ignore[arg-type]
-            except (KeyError, AttributeError):
+            except (EnvironmentException, KeyError):
                 pass
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
@@ -1241,14 +1241,6 @@ class CLikeCompiler(Compiler):
         '''
         # TODO: should probably check for macOS?
         return self._find_framework_impl(name, env, extra_dirs, allow_system)
-
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        # TODO: does this belong here or in GnuLike or maybe PosixLike?
-        return []
-
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        # TODO: does this belong here or in GnuLike or maybe PosixLike?
-        return []
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?

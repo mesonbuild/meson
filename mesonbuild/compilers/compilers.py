@@ -321,11 +321,8 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
         assert isinstance(crt_val, str)
         buildtype = env.coredata.get_option_for_target(target, 'buildtype')
         assert isinstance(buildtype, str)
-        try:
-            args += compiler.get_crt_compile_args(crt_val, buildtype)
-        except AttributeError:
-            pass
-    except KeyError:
+        args += compiler.get_crt_compile_args(crt_val, buildtype)
+    except (EnvironmentException, KeyError):
         pass
     return args
 
@@ -407,13 +404,10 @@ def get_base_link_args(target: 'BuildTarget',
         assert isinstance(crt_val, str)
         buildtype = env.coredata.get_option_for_target(target, 'buildtype')
         assert isinstance(buildtype, str)
-        try:
-            crtargs = linker.get_crt_link_args(crt_val, buildtype)
-            assert isinstance(crtargs, list)
-            args += crtargs
-        except AttributeError:
-            pass
-    except KeyError:
+        crtargs = linker.get_crt_link_args(crt_val, buildtype)
+        assert isinstance(crtargs, list)
+        args += crtargs
+    except (EnvironmentException, KeyError):
         pass
     return args
 
