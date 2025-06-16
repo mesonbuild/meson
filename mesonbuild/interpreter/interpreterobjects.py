@@ -1000,6 +1000,18 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
         return mesonlib.File.from_built_file(
             self.interpreter.backend.get_target_dir(self._target_object), self._target_object.vala_header)
 
+    @FeatureNew('vala_vapi', '1.10.0')
+    @noPosargs
+    @noKwargs
+    @InterpreterObject.method('vala_vapi')
+    def vala_vapi_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> mesonlib.File:
+        if not hasattr(self._target_object, 'vala_vapi'):
+            raise mesonlib.MesonException("Attempted to get a Vala VAPI from a target that doesn't generate one")
+
+        assert self.interpreter.backend is not None, 'for mypy'
+        return mesonlib.File.from_built_file(
+            self.interpreter.backend.get_target_dir(self._target_object), self._target_object.vala_vapi)
+
 
 class ExecutableHolder(BuildTargetHolder[build.Executable]):
     pass
