@@ -767,7 +767,7 @@ class Resolver:
                 resp = urllib.request.urlopen(req, timeout=REQ_TIMEOUT)
             except OSError as e:
                 mlog.log(str(e))
-                raise WrapException(f'could not get {urlstring} is the internet available?')
+                raise WrapException(f'could not get {urlstring}; is the internet available?')
         with contextlib.closing(resp) as resp, tmpfile as tmpfile:
             try:
                 dlsize = int(resp.info()['Content-Length'])
