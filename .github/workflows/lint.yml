@@ -53,7 +53,7 @@ jobs:
       with:
         python-version: '3.x'
     # Pin mypy to version 1.8, so we retain the ability to lint for Python 3.7
-    - run: python -m pip install "mypy==1.8" coverage strictyaml types-PyYAML types-tqdm types-chevron
+    - run: python -m pip install "mypy==1.8" strictyaml types-PyYAML types-tqdm types-chevron
     - run: python run_mypy.py --allver
       env:
         PYTHONUNBUFFERED: 1

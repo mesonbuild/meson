@@ -114,8 +114,3 @@ jobs:
       filePath: .\ci\run.ps1
     env:
       MESON_CI_JOBNAME: azure-$(System.JobName)
-  - task: PowerShell@2
-    displayName: Gathering coverage report
-    inputs:
-      targetType: 'filePath'
-      filePath: .\ci\coverage.ps1
