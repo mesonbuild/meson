@@ -92,7 +92,7 @@ python --version
 
 # Needed for running unit tests in parallel.
 echo ""
-python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist pytest-subtests fastjsonschema coverage
+python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist pytest-subtests fastjsonschema 
 
 # Needed for running the Cython tests
 python -m pip --disable-pip-version-check install cython
@@ -102,6 +102,6 @@ echo "=== Start running tests ==="
 # Starting from VS2019 Powershell(?) will fail the test run
 # if it prints anything to stderr. Python's test runner
 # does that by default so we need to forward it.
-cmd /c "python 2>&1 ./tools/run_with_cov.py  run_tests.py --backend $env:backend $env:extraargs"
+cmd /c "python 2>&1 run_tests.py --backend $env:backend $env:extraargs"
 
 exit $LastExitCode

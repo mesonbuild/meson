@@ -35,7 +35,7 @@ jobs:
     - run: |
         export PATH="$HOME/Library/Python/3.9/bin:$PATH"
         /usr/bin/python3 -m pip install --upgrade pip
-        /usr/bin/python3 -m pip install pytest pytest-xdist pytest-subtests fastjsonschema coverage
+        /usr/bin/python3 -m pip install pytest pytest-xdist pytest-subtests fastjsonschema
     - run: brew install pkg-config ninja llvm qt@5
     - env:
         CPPFLAGS: "-I/opt/homebrew/include"
@@ -48,20 +48,7 @@ jobs:
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
         export PATH="$HOME/Library/Python/3.9/bin:$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/llvm/bin:$PATH"
         export PKG_CONFIG_PATH="/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/Current/lib/pkgconfig:/opt/homebrew/opt/qt@5/lib/pkgconfig:$PKG_CONFIG_PATH"
-        /usr/bin/python3 ./tools/run_with_cov.py ./run_unittests.py
-
-    - name: Aggregate coverage reports
-      run: |
-        export PATH="$HOME/Library/Python/3.9/bin:$PATH"
-        ./ci/combine_cov.sh
-
-    - name: Upload coverage report
-      uses: codecov/codecov-action@v3
-      with:
-        files: .coverage/coverage.xml
-        name: "appleclang [unit tests]"
-        fail_ci_if_error: false
-        verbose: true
+        /usr/bin/python3 ./run_unittests.py
 
 
   project-tests-appleclang:
@@ -98,7 +85,7 @@ jobs:
     # https://github.com/actions/setup-python/issues/58
     - run: brew install pkg-config ninja llvm qt@5 boost ldc hdf5 openmpi lapack scalapack sdl2 boost-python3 gtk-doc zstd ncurses objfw libomp
     - run: |
-        python3 -m pip install cython coverage
+        python3 -m pip install cython
     - env:
         CPPFLAGS: "-I/opt/homebrew/include"
         LDFLAGS: "-L/opt/homebrew/lib"
@@ -112,18 +99,7 @@ jobs:
         # We need this to avoid objfw test failures.
         export PATH="$HOME/tools:/opt/homebrew/opt/qt@5/bin:/opt/homebrew/opt/ncurses/bin:$PATH:/opt/homebrew/opt/llvm/bin"
         export PKG_CONFIG_PATH="/opt/homebrew/opt/qt@5/lib/pkgconfig:/opt/homebrew/opt/lapack/lib/pkgconfig:/opt/homebrew/opt/ncurses/lib/pkgconfig:$PKG_CONFIG_PATH"
-        ./tools/run_with_cov.py ./run_project_tests.py --backend=ninja
-
-    - name: Aggregate coverage reports
-      run: ./ci/combine_cov.sh
-
-    - name: Upload coverage report
-      uses: codecov/codecov-action@v3
-      with:
-        files: .coverage/coverage.xml
-        name: "appleclang [project tests; unity=${{ matrix.unity }}]"
-        fail_ci_if_error: false
-        verbose: true
+        ./run_project_tests.py --backend=ninja
 
   Qt4macos:
     # This job only works on Intel Macs, because OpenSSL 1.0 doesn't build on
