@@ -36,21 +36,9 @@ jobs:
     - run: |
         apt-get -y purge clang gcc gdc
         apt-get -y autoremove
-        python3 -m pip install coverage
     - uses: actions/checkout@v4
     - name: Run tests
-      run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./tools/run_with_cov.py ./run_tests.py $CI_ARGS --cross ubuntu-armhf.json --cross-only'
-
-    - name: Aggregate coverage reports
-      run: ./ci/combine_cov.sh
-
-    - name: Upload coverage report
-      uses: codecov/codecov-action@v3
-      with:
-        files: .coverage/coverage.xml
-        name: "Ubuntu nonnative"
-        fail_ci_if_error: false
-        verbose: true
+      run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py $CI_ARGS --cross ubuntu-armhf.json --cross-only'
 
   cross-cuda:
     runs-on: ubuntu-latest

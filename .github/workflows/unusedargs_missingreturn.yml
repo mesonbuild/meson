@@ -52,21 +52,9 @@ jobs:
       run: |
         sudo apt update -yq
         sudo apt install -yq --no-install-recommends g++ gfortran ninja-build gobjc gobjc++
-        python -m pip install coverage
-    - run: ./tools/run_with_cov.py run_project_tests.py --only cmake common fortran platform-linux "objective c" "objective c++"
+    - run: ./run_project_tests.py --only cmake common fortran platform-linux "objective c" "objective c++"
       env:
         MESON_CI_JOBNAME: linux-ubuntu-gcc-werror
-
-    - name: Aggregate coverage reports
-      run: ./ci/combine_cov.sh
-
-    - name: Upload coverage report
-      uses: codecov/codecov-action@v3
-      with:
-        files: .coverage/coverage.xml
-        name: "UnusedMissingReturn"
-        fail_ci_if_error: false
-        verbose: true
 
   windows:
     runs-on: windows-latest
@@ -76,23 +64,11 @@ jobs:
       with:
         python-version: '3.x'
 
-    - run: pip install ninja pefile coverage
+    - run: pip install ninja pefile
 
-    - run: python ./tools/run_with_cov.py run_project_tests.py --only platform-windows
+    - run: python ./run_project_tests.py --only platform-windows
       env:
         CC: gcc
         CXX: g++
         FC: gfortran
         MESON_CI_JOBNAME: msys2-gcc-werror
-
-    - name: Aggregate coverage reports
-      run: ./ci/combine_cov.sh
-      shell: C:\msys64\usr\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
-
-    - name: Upload coverage report
-      uses: codecov/codecov-action@v3
-      with:
-        files: .coverage/coverage.xml
-        name: "UnusedMissingReturn Windows"
-        fail_ci_if_error: false
-        verbose: true

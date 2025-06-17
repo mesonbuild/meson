@@ -87,7 +87,7 @@ jobs:
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          python3 -m pip --disable-pip-version-check install gcovr fastjsonschema pefile pytest pytest-subtests pytest-xdist coverage
+          python3 -m pip --disable-pip-version-check install gcovr fastjsonschema pefile pytest pytest-subtests pytest-xdist
         shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - uses: actions/cache/save@v4
@@ -99,7 +99,7 @@ jobs:
       - name: Run tests
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          python3 ./tools/run_with_cov.py run_tests.py --backend=ninja
+          python3 ./run_tests.py --backend=ninja
         env:
           # Cygwin's static boost installation is broken (some static library
           # variants such as boost_thread are not present)
@@ -112,17 +112,3 @@ jobs:
           path: meson-test-run.*
         # test log should be saved on failure
         if: ${{ !cancelled() }}
-
-      - name: Aggregate coverage reports
-        run: |
-          export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          ./ci/combine_cov.sh
-        shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
-
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v3
-        with:
-          files: .coverage/coverage.xml
-          name: "${{ matrix.NAME }}"
-          fail_ci_if_error: false
-          verbose: true
