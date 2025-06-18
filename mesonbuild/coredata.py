@@ -412,16 +412,6 @@ class CoreData:
     def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
         return self.optstore.set_from_configure_command(options.cmd_line_options)
 
-    def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
-        dirty = False
-        try:
-            changed = self.optstore.set_option(key, value, first_invocation)
-        except KeyError:
-            raise MesonException(f'Tried to set unknown builtin option {str(key)}')
-        dirty |= changed
-
-        return dirty
-
     def clear_cache(self) -> None:
         self.deps.host.clear()
         self.deps.build.clear()
