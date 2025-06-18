@@ -73,6 +73,7 @@ class Conf:
             self.build_dir = os.path.dirname(self.build_dir)
         self.build = None
         self.max_choices_line_length = 60
+        self.pending_section: T.Optional[str] = None
         self.name_col: T.List[LOGLINE] = []
         self.value_col: T.List[LOGLINE] = []
         self.choices_col: T.List[LOGLINE] = []
@@ -207,11 +208,13 @@ class Conf:
         self.descr_col.append(descr)
 
     def add_option(self, name: str, descr: str, value: T.Any, choices: T.Any) -> None:
+        self._add_section()
         value = stringify(value)
         choices = stringify(choices)
         self._add_line(mlog.green(name), mlog.yellow(value), mlog.blue(choices), descr)
 
     def add_title(self, title: str) -> None:
+        self._add_section()
         newtitle = mlog.cyan(title)
         descr = mlog.cyan('Description')
         value = mlog.cyan('Default Value' if self.default_values_only else 'Current Value')
@@ -220,11 +223,17 @@ class Conf:
         self._add_line(newtitle, value, choices, descr)
         self._add_line('-' * len(newtitle), '-' * len(value), '-' * len(choices), '-' * len(descr))
 
-    def add_section(self, section: str) -> None:
+    def _add_section(self) -> None:
+        if not self.pending_section:
+            return
         self.print_margin = 0
         self._add_line('', '', '', '')
-        self._add_line(mlog.normal_yellow(section + ':'), '', '', '')
+        self._add_line(mlog.normal_yellow(self.pending_section + ':'), '', '', '')
         self.print_margin = 2
+        self.pending_section = None
+
+    def add_section(self, section: str) -> None:
+        self.pending_section = section
 
     def print_options(self, title: str, opts: T.Union[options.MutableKeyedOptionDictType, options.OptionStore]) -> None:
         if not opts:
