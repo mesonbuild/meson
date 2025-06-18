@@ -1155,13 +1155,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise MesonBugException(f'Backend changed from {backend_name} to {self.backend.name}')
             self.coredata.optstore.set_option(OptionKey('backend'), self.backend.name, first_invocation=True)
 
-        # Only init backend options on first invocation otherwise it would
-        # override values previously set from command line.
-        if self.environment.first_invocation:
-            self.coredata.init_backend_options(backend_name)
-
-        options = {k: v for k, v in self.environment.options.items() if self.environment.coredata.optstore.is_backend_option(k)}
-        self.coredata.set_options(options)
+        self.environment.init_backend_options(backend_name)
 
     @typed_pos_args('project', str, varargs=str)
     @typed_kwargs(

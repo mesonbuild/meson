@@ -906,6 +906,17 @@ class Environment:
         self.coredata = coredata.CoreData(options, self.scratch_dir, meson_command)
         self.first_invocation = True
 
+    def init_backend_options(self, backend_name: str) -> None:
+        # Only init backend options on first invocation otherwise it would
+        # override values previously set from command line.
+        if not self.first_invocation:
+            return
+
+        self.coredata.init_backend_options(backend_name)
+        for k, v in self.options.items():
+            if self.coredata.optstore.is_backend_option(k):
+                self.coredata.optstore.set_option(k, v)
+
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         return self.coredata.is_cross_build(when_building_for)
 
