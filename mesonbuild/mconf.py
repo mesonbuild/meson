@@ -294,9 +294,9 @@ class Conf:
             self.print_options('', build_core_options[None])
         self.print_options('Backend options', {k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_backend_option(k)})
         self.print_options('Base options', {k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_base_option(k)})
-        self.print_options('Compiler options', host_compiler_options.get('', {}))
+        self.print_options('Compiler options', host_compiler_options.get(None, {}))
         if show_build_options:
-            self.print_options('', build_compiler_options.get('', {}))
+            self.print_options('', build_compiler_options.get(None, {}))
         for mod, mod_options in module_options.items():
             self.print_options(f'{mod} module options', mod_options)
         self.print_options('Directories', dir_options)
