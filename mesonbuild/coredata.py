@@ -463,45 +463,6 @@ class CoreData:
             return False
         return len(self.cross_files) > 0
 
-    def set_options(self, opts_to_set: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
-        dirty = False
-        if not self.is_cross_build():
-            opts_to_set = {k: v for k, v in opts_to_set.items() if k.machine is not MachineChoice.BUILD}
-        # Set prefix first because it's needed to sanitize other options
-        pfk = OptionKey('prefix')
-        if pfk in opts_to_set:
-            prefix = self.optstore.sanitize_prefix(opts_to_set[pfk])
-            for key in options.BUILTIN_DIR_NOPREFIX_OPTIONS:
-                if key not in opts_to_set:
-                    val = options.BUILTIN_OPTIONS[key].prefixed_default(key, prefix)
-                    dirty |= self.optstore.set_option(key, val)
-
-        unknown_options: T.List[OptionKey] = []
-        for k, v in opts_to_set.items():
-            if k == pfk:
-                continue
-            elif k.evolve(subproject=None) in self.optstore:
-                dirty |= self.set_option(k, v, first_invocation)
-            elif k.machine != MachineChoice.BUILD and not self.optstore.is_compiler_option(k):
-                unknown_options.append(k)
-        if unknown_options:
-            if subproject:
-                # The subproject may have top-level options that should be used
-                # when it is not a subproject. Ignore those for now. With option
-                # refactor they will get per-subproject values.
-                really_unknown = []
-                for uo in unknown_options:
-                    topkey = uo.as_root()
-                    if topkey not in self.optstore:
-                        really_unknown.append(uo)
-                unknown_options = really_unknown
-            if unknown_options:
-                unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
-                sub = f'In subproject {subproject}: ' if subproject else ''
-                raise MesonException(f'{sub}Unknown options: "{unknown_options_str}"')
-
-        return dirty
-
     def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
                              subproject: str) -> None:
         for k, o in c_options.items():
