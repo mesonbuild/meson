@@ -167,7 +167,7 @@ class DataTests(unittest.TestCase):
                 debug = False
             else:
                 raise RuntimeError(f'Invalid debug value {debug!r} in row:\n{m.group()}')
-            env.coredata.set_option(OptionKey('buildtype'), buildtype)
+            env.coredata.optstore.set_option(OptionKey('buildtype'), buildtype)
             self.assertEqual(env.coredata.optstore.get_value_for('buildtype'), buildtype)
             self.assertEqual(env.coredata.optstore.get_value_for('optimization'), opt)
             self.assertEqual(env.coredata.optstore.get_value_for('debug'), debug)
