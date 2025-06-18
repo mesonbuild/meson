@@ -9,8 +9,12 @@ from __future__ import annotations
 import copy
 import itertools
 import functools
+import hashlib
+import locale
 import os
+import shlex
 import subprocess
+import sys
 import textwrap
 import typing as T
 
@@ -22,7 +26,7 @@ from .. import build
 from .. import interpreter
 from .. import mesonlib
 from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
+from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, OverrideExecutable
 from ..dependencies import Dependency, InternalDependency
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, DEPENDENCY_SOURCES_KW, in_set_validator
@@ -33,7 +37,7 @@ from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
 from ..options import OptionKey
-from ..programs import OverrideProgram
+from ..programs import ExternalProgram, OverrideProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -45,7 +49,6 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import FileOrString
-    from ..programs import ExternalProgram
 
     class PostInstall(TypedDict):
         glib_compile_schemas: bool
@@ -198,7 +201,7 @@ if T.TYPE_CHECKING:
         vtail: T.Optional[str]
         depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]
 
-    ToolType = T.Union[Executable, ExternalProgram, OverrideProgram]
+    ToolType = T.Union[OverrideExecutable, ExternalProgram, OverrideProgram]
 
 
 # Differs from the CustomTarget version in that it straight defaults to True
@@ -256,8 +259,8 @@ class GnomeModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.gir_dep: T.Optional[Dependency] = None
-        self.giscanner: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
-        self.gicompiler: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
+        self.giscanner: T.Optional[T.Union[ExternalProgram, OverrideExecutable, OverrideProgram]] = None
+        self.gicompiler: T.Optional[T.Union[ExternalProgram, OverrideExecutable, OverrideProgram]] = None
         self.install_glib_compile_schemas = False
         self.install_gio_querymodules: T.List[str] = []
         self.install_gtk_update_icon_cache = False
@@ -309,7 +312,7 @@ class GnomeModule(ExtensionModule):
                      once=True, fatal=False)
 
     @staticmethod
-    def _find_tool(state: 'ModuleState', tool: str) -> 'ToolType':
+    def _find_tool(state: 'ModuleState', tool: str, for_machine: MachineChoice = MachineChoice.HOST) -> 'ToolType':
         tool_map = {
             'gio-querymodules': 'gio-2.0',
             'glib-compile-schemas': 'gio-2.0',
@@ -322,7 +325,7 @@ class GnomeModule(ExtensionModule):
         }
         depname = tool_map[tool]
         varname = tool.replace('-', '_')
-        return state.find_tool(tool, depname, varname)
+        return state.find_tool(tool, depname, varname, for_machine=for_machine)
 
     @typed_kwargs(
         'gnome.post_install',
@@ -776,7 +779,7 @@ class GnomeModule(ExtensionModule):
         STATIC_BUILD_REQUIRED_VERSION = ">=1.58.1"
         if isinstance(girtarget, (build.StaticLibrary)) and \
            not mesonlib.version_compare(
-               self._get_gir_dep(state)[0].get_version(),
+               self._get_gir_dep(state)[1].get_version(),
                STATIC_BUILD_REQUIRED_VERSION):
             raise MesonException('Static libraries can only be introspected with GObject-Introspection ' + STATIC_BUILD_REQUIRED_VERSION)
 
@@ -791,12 +794,17 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[Executable, 'ExternalProgram', 'OverrideProgram'],
-                                                            T.Union[Executable, 'ExternalProgram', 'OverrideProgram']]:
+    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[OverrideExecutable, 'ExternalProgram', 'OverrideProgram'],
+                                                            T.Union[OverrideExecutable, 'ExternalProgram', 'OverrideProgram']]:
         if not self.gir_dep:
-            self.gir_dep = state.dependency('gobject-introspection-1.0')
-            self.giscanner = self._find_tool(state, 'g-ir-scanner')
-            self.gicompiler = self._find_tool(state, 'g-ir-compiler')
+            self.giscanner = self._find_tool(state, 'g-ir-scanner', for_machine=MachineChoice.BUILD)
+            self.gicompiler = self._find_tool(state, 'g-ir-compiler', for_machine=MachineChoice.HOST)
+            if state.environment.is_cross_build():
+                self.gir_dep = InternalDependency(self.giscanner.get_version(), [], [], [], [], [], [], [],
+                                                  [state.dependency('glib-2.0'), state.dependency('gobject-2.0'), state.dependency('gmodule-2.0'), state.dependency('gio-2.0')], {},
+                                                  [], [], [])
+            else:
+                self.gir_dep = state.dependency('gobject-introspection-1.0')
         return self.gir_dep, self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
@@ -1184,6 +1192,52 @@ class GnomeModule(ExtensionModule):
 
         scan_command: T.List[T.Union[str, Executable, 'ExternalProgram', 'OverrideProgram']] = [giscanner]
         scan_command += ['--quiet']
+
+        if state.environment.is_cross_build() and state.environment.need_exe_wrapper():
+            if not state.environment.has_exe_wrapper():
+                mlog.error('generate_gir requires exe_wrapper')
+
+            binary_wrapper = state.environment.get_exe_wrapper().get_command()
+            ldd = state.environment.lookup_binary_entry(MachineChoice.HOST, 'ldd')
+            if ldd is None:
+                ldd_wrapper = ['ldd']
+            else:
+                ldd_wrapper = ExternalProgram.from_bin_list(state.environment, MachineChoice.HOST, 'ldd').get_command()
+
+            WRAPPER_ARGS_REQUIRED_VERSION = ">=1.85.0"
+            if not mesonlib.version_compare(giscanner.get_version(), WRAPPER_ARGS_REQUIRED_VERSION):
+                def write_cmd_shell(cmdline: T.List[str]) -> str:
+                    if len(cmdline) > 1:
+                        if sys.version_info >= (3, 8):
+                            cmd = shlex.join(cmdline)
+                        else:
+                            cmd = ' '.join(shlex.quote(arg) for arg in cmdline)
+                        script = f'#!/bin/sh\n{cmd} $@'
+                        hasher = hashlib.sha1()
+                        hasher.update(bytes(str(cmd), encoding='utf-8'))
+                        digest = hasher.hexdigest()
+                        scratch_file = f'meson_cmd_wrapper_{digest}.sh'
+                        wrapper_script = os.path.join(state.environment.get_scratch_dir(), scratch_file)
+                        fd = os.open(path=wrapper_script, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o755)
+                        if sys.version_info >= (3, 11):
+                            system_encoding = locale.getencoding()
+                        else:
+                            system_encoding = locale.getpreferredencoding(False)
+                        with open(fd, 'w', encoding=system_encoding) as f:
+                            f.write(script)
+                        cmdline = [wrapper_script]
+                    return cmdline[0]
+                scan_command += ['--use-binary-wrapper', write_cmd_shell(binary_wrapper)]
+                scan_command += ['--use-ldd-wrapper', write_cmd_shell(ldd_wrapper)]
+            else:
+                scan_command += ['--use-binary-wrapper', binary_wrapper[0]]
+                if len(binary_wrapper) > 1:
+                    scan_command += ['--binary-wrapper-args-begin', *binary_wrapper[1:], '--binary-wrapper-args-end']
+
+                scan_command += ['--use-ldd-wrapper', ldd_wrapper[0]]
+                if len(ldd_wrapper) > 1:
+                    scan_command += ['--ldd-wrapper-args-begin', *ldd_wrapper[1:], '--ldd-wrapper-args-end']
+
         scan_command += ['--no-libtool']
         scan_command += ['--namespace=' + ns, '--nsversion=' + nsversion]
         scan_command += ['--warn-all']
