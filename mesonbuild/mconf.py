@@ -192,7 +192,7 @@ class Conf:
                                      ) -> T.Dict[str, options.MutableKeyedOptionDictType]:
         result: T.Dict[str, options.MutableKeyedOptionDictType] = {}
         for k, o in opts.items():
-            if k.subproject:
+            if k.subproject is not None:
                 self.all_subprojects.add(k.subproject)
             result.setdefault(k.subproject, {})[k] = o
         return result
@@ -297,7 +297,7 @@ class Conf:
         project_options = self.split_options_per_subproject({k: v for k, v in self.coredata.optstore.items() if self.coredata.optstore.is_project_option(k)})
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
-        self.add_section('Main project options')
+        self.add_section('Global build options')
         self.print_options('Core options', host_core_options[None])
         if show_build_options and build_core_options:
             self.print_options('', build_core_options[None])
@@ -313,8 +313,9 @@ class Conf:
         self.print_options('Project options', project_options.get('', {}))
         for subproject in sorted(self.all_subprojects):
             if subproject == '':
-                continue
-            self.add_section('Subproject ' + subproject)
+                self.add_section('Main project')
+            else:
+                self.add_section('Subproject ' + subproject)
             if subproject in host_core_options:
                 self.print_options('Core options', host_core_options[subproject])
             if subproject in build_core_options and show_build_options:
@@ -323,7 +324,7 @@ class Conf:
                 self.print_options('Compiler options', host_compiler_options[subproject])
             if subproject in build_compiler_options and show_build_options:
                 self.print_options('', build_compiler_options[subproject])
-            if subproject in project_options:
+            if subproject != '' and subproject in project_options:
                 self.print_options('Project options', project_options[subproject])
         self.print_aligned()
 
