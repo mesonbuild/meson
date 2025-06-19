@@ -1150,13 +1150,6 @@ class OptionStore:
         key = self.ensure_and_validate_key(key)
         return self.options[key]
 
-    def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
-        assert self.is_base_option(key)
-        try:
-            return COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default
-        except KeyError:
-            raise MesonBugException(f'Requested base option {key} which does not exist.')
-
     def remove(self, key: OptionKey) -> None:
         del self.options[key]
         try:
