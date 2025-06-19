@@ -87,6 +87,7 @@ def resolve_cmake_trace_targets(target_name: str,
                     curr_path = Path(*path_to_framework)
                     framework_path = curr_path.parent
                     framework_name = curr_path.stem
+                    res.public_compile_opts += [f"-F{framework_path}"]
                     res.libraries += [f'-F{framework_path}', '-framework', framework_name]
                 else:
                     res.libraries += [curr]
