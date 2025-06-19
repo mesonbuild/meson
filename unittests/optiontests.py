@@ -314,7 +314,33 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_top_level_project_call(toplevel_proj_default, cmd_line, {})
         optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
         self.assertEqual(optstore.get_value_for(name, subp), subp_value)
-        self.assertEqual(optstore.get_value_for(name), toplevel_value)
+        self.assertEqual(optstore.get_value_for(name, ''), toplevel_value)
+
+    def test_subproject_buildtype(self):
+        subp = 'subp'
+        main1 = {OptionKey('buildtype'): 'release'}
+        main2 = {OptionKey('optimization'): '3', OptionKey('debug'): 'false'}
+        sub1 = {OptionKey('buildtype'): 'debug'}
+        sub2 = {OptionKey('optimization'): '0', OptionKey('debug'): 'true'}
+
+        for mainopt, subopt in ((main1, sub1),
+                          (main2, sub2),
+                          ({**main1, **main2}, {**sub1, **sub2})):
+            optstore = OptionStore(False)
+            prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+            optstore.add_system_option('prefix', prefix)
+            o = UserComboOption('buildtype', 'Build type to use', 'debug', choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])
+            optstore.add_system_option(o.name, o)
+            o = UserComboOption('optimization', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])
+            optstore.add_system_option(o.name, o)
+            o = UserBooleanOption('debug', 'Enable debug symbols and other information', True)
+            optstore.add_system_option(o.name, o)
+
+            optstore.initialize_from_top_level_project_call(mainopt, {}, {})
+            optstore.initialize_from_subproject_call(subp, {}, subopt, {}, {})
+            self.assertEqual(optstore.get_value_for('buildtype', subp), 'debug')
+            self.assertEqual(optstore.get_value_for('optimization', subp), '0')
+            self.assertEqual(optstore.get_value_for('debug', subp), True)
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests

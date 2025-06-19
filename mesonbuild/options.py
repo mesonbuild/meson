@@ -885,9 +885,9 @@ class OptionStore:
         assert isinstance(key, OptionKey)
         vobject = self.get_value_object_for(key)
         computed_value = vobject.value
-        if key.subproject is not None:
-            if key in self.augments:
-                computed_value = vobject.validate_value(self.augments[key])
+        if key in self.augments:
+            assert key.subproject is not None
+            computed_value = self.augments[key]
         return (vobject, computed_value)
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
@@ -1004,6 +1004,7 @@ class OptionStore:
         return value.as_posix()
 
     def set_option(self, key: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
+        changed = False
         error_key = key
         if error_key.subproject == '':
             error_key = error_key.evolve(subproject=None)
@@ -1040,13 +1041,18 @@ class OptionStore:
         elif isinstance(opt.deprecated, str):
             mlog.deprecation(f'Option "{error_key}" is replaced by {opt.deprecated!r}')
             # Change both this aption and the new one pointed to.
-            dirty = self.set_option(key.evolve(name=opt.deprecated), new_value)
-            dirty |= opt.set_value(new_value)
-            return dirty
+            changed |= self.set_option(key.evolve(name=opt.deprecated), new_value, first_invocation)
 
-        old_value = opt.value
-        changed = opt.set_value(new_value)
+        new_value = opt.validate_value(new_value)
+        if key in self.options:
+            old_value = opt.value
+            opt.set_value(new_value)
+        else:
+            assert key.subproject is not None
+            old_value = self.augments.get(key, opt.value)
+            self.augments[key] = new_value
 
+        changed |= old_value != new_value
         if opt.readonly and changed and not first_invocation:
             raise MesonException(f'Tried to modify read only option "{error_key}"')
 
@@ -1060,12 +1066,12 @@ class OptionStore:
             optimization, debug = self.DEFAULT_DEPENDENTS[new_value]
             dkey = key.evolve(name='debug')
             optkey = key.evolve(name='optimization')
-            self.options[dkey].set_value(debug)
-            self.options[optkey].set_value(optimization)
+            self.set_option(dkey, debug, first_invocation)
+            self.set_option(optkey, optimization, first_invocation)
 
         return changed
 
-    def set_option_maybe_root(self, o: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
+    def set_user_option(self, o: OptionKey, new_value: ElementaryOptionValues, first_invocation: bool = False) -> bool:
         if not self.is_cross and o.is_for_build():
             return False
 
@@ -1076,37 +1082,34 @@ class OptionStore:
         # can be either
         #
         # A) a system option in which case the subproject is None
-        # B) a project option, in which case the subproject is '' (this method is only called from top level)
+        # B) a project option, in which case the subproject is ''
         #
         # The key parsing function can not handle the difference between the two
         # and defaults to A.
         if o in self.options:
             return self.set_option(o, new_value, first_invocation)
+
+        # could also be an augment...
+        global_option = o.evolve(subproject=None)
+        if o.subproject is not None and global_option in self.options:
+            return self.set_option(o, new_value, first_invocation)
+
         if self.accept_as_pending_option(o, first_invocation=first_invocation):
             old_value = self.pending_options.get(o, None)
             self.pending_options[o] = new_value
             return old_value is None or str(old_value) != new_value
-        else:
+        elif o.subproject is None:
             o = o.as_root()
             return self.set_option(o, new_value, first_invocation)
+        else:
+            raise MesonException(f'Unknown option: "{o}".')
 
     def set_from_configure_command(self, D_args: T.List[str], U_args: T.List[str]) -> bool:
         dirty = False
         D_args = [] if D_args is None else D_args
-        (global_options, perproject_global_options, project_options) = self.classify_D_arguments(D_args)
         U_args = [] if U_args is None else U_args
-        for key, valstr in global_options:
-            dirty |= self.set_option_maybe_root(key, valstr)
-        for key, valstr in project_options:
-            dirty |= self.set_option_maybe_root(key, valstr)
-        for key, valstr in perproject_global_options:
-            if key in self.augments:
-                if self.augments[key] != valstr:
-                    self.augments[key] = valstr
-                    dirty = True
-            else:
-                self.augments[key] = valstr
-                dirty = True
+        for key, valstr in self.parse_D_arguments(D_args):
+            dirty |= self.set_user_option(key, valstr)
         for keystr in U_args:
             key = OptionKey.from_string(keystr)
             if key in self.augments:
@@ -1232,23 +1235,13 @@ class OptionStore:
     def is_module_option(self, key: OptionKey) -> bool:
         return key in self.module_options
 
-    def classify_D_arguments(self, D: T.List[str]) -> T.Tuple[T.List[T.Tuple[OptionKey, str]],
-                                                              T.List[T.Tuple[OptionKey, str]],
-                                                              T.List[T.Tuple[OptionKey, str]]]:
-        global_options = []
-        project_options = []
-        perproject_global_options = []
+    def parse_D_arguments(self, D: T.List[str]) -> T.List[T.Tuple[OptionKey, str]]:
+        options = []
         for setval in D:
             keystr, valstr = setval.split('=', 1)
             key = OptionKey.from_string(keystr)
-            valuetuple = (key, valstr)
-            if self.is_project_option(key):
-                project_options.append(valuetuple)
-            elif key.subproject is None:
-                global_options.append(valuetuple)
-            else:
-                perproject_global_options.append(valuetuple)
-        return (global_options, perproject_global_options, project_options)
+            options.append((key, valstr))
+        return options
 
     def prefix_split_options(self, coll: OptionDict) -> T.Tuple[T.Optional[str], OptionDict]:
         prefix = None
@@ -1319,7 +1312,7 @@ class OptionStore:
                 # should arguably be a hard error; the default
                 # value of project option should be set in the option
                 # file, not in the project call.
-                self.set_option_maybe_root(key, valstr, True)
+                self.set_user_option(key, valstr, True)
 
         # ignore subprojects for now for machine file and command line
         # options; they are applied later
@@ -1329,14 +1322,14 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if not key.subproject:
-                self.set_option_maybe_root(key, valstr, True)
+                self.set_user_option(key, valstr, True)
         for key, valstr in cmd_line_options.items():
             # Due to backwards compatibility we ignore all build-machine options
             # when building natively.
             if not self.is_cross and key.is_for_build():
                 continue
             if not key.subproject:
-                self.set_option_maybe_root(key, valstr, True)
+                self.set_user_option(key, valstr, True)
 
     def accept_as_pending_option(self, key: OptionKey, first_invocation: bool = False) -> bool:
         # Some base options (sanitizers etc) might get added later.
@@ -1401,11 +1394,9 @@ class OptionStore:
                 continue
 
             self.pending_subproject_options.pop(key, None)
-            valstr = self.augments.pop(key, valstr)
-            if key in self.project_options:
-                self.set_option(key, valstr, True)
-            else:
-                self.augments[key] = valstr
+            self.pending_options.pop(key, None)
+            if key not in self.augments:
+                self.set_user_option(key, valstr, True)
 
         self.subprojects.add(subproject)
 
