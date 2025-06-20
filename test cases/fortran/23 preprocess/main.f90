@@ -1,4 +1,8 @@
 #define MYDEF program
 MYDEF foo
-    write (*,*) 'Hello, world!'
+#ifdef CORRECT
+        write (*,*) 'Hello, ' // 'world!'
+#else
+        write (*,*) 'Preprocessing failed!'
+#endif
 end MYDEF foo
