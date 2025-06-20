@@ -143,6 +143,11 @@ class Dependency(HoldableObject):
     def is_built(self) -> bool:
         return False
 
+    def is_named(self) -> bool:
+        if self.name is None:
+            return False
+        return self.name != f'dep{self._id}'
+
     def summary_value(self) -> T.Union[str, mlog.AnsiDecorator, mlog.AnsiText]:
         if not self.found():
             return mlog.red('NO')
