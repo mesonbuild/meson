@@ -20,7 +20,12 @@ description: |
 
   *(since 0.47.0)* When the `copy:` keyword argument is set to `true`,
   this function will copy the file provided in `input:` to a file in the
-  build directory with the name `output:` in the current directory.
+  current build directory with the name provided in `output:`.
+  The copy happens at configuration.  If the input file is subsequently
+  modified, Meson will regenerate the build files.
+  To perform the copy at build time (with the usual dependency on the source
+  file) use `copyfile()` from the FS (filesystem) module.
+
 
 warnings:
   - the `install_mode` kwarg ignored integer values between 0.62 -- 1.1.0.
