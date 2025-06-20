@@ -1085,7 +1085,7 @@ class OptionStore:
         if self.accept_as_pending_option(o, first_invocation=first_invocation):
             old_value = self.pending_options.get(o, None)
             self.pending_options[o] = new_value
-            return old_value is None or str(old_value) == new_value
+            return old_value is None or str(old_value) != new_value
         else:
             o = o.as_root()
             return self.set_option(o, new_value, first_invocation)
