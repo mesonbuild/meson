@@ -812,10 +812,11 @@ class OptionStore:
         self.augments: OptionDict = {}
         self.is_cross = is_cross
 
-        # Pending options are options that need to be initialized later, either
-        # configuration dependent options like compiler options, or options for
-        # a different subproject
+        # Pending options are configuration dependent options that could be
+        # initialized later, such as compiler options
         self.pending_options: OptionDict = {}
+        # Subproject options from toplevel project()
+        self.pending_subproject_options: OptionDict = {}
 
     def clear_pending(self) -> None:
         self.pending_options = {}
@@ -1305,9 +1306,9 @@ class OptionStore:
             if not self.is_cross and key.is_for_build():
                 continue
             if key.subproject:
-                # do apply project() default_options for subprojects here, because
-                # they have low priority
-                self.pending_options[key] = valstr
+                # Subproject options from toplevel project() have low priority
+                # and will be processed when the subproject is found
+                self.pending_subproject_options[key] = valstr
             else:
                 # Setting a project option with default_options
                 # should arguably be a hard error; the default
@@ -1359,7 +1360,7 @@ class OptionStore:
                                         cmd_line_options: OptionDict,
                                         machine_file_options: OptionDict) -> None:
         # pick up pending per-project settings from the toplevel project() invocation
-        options = {k: v for k, v in self.pending_options.items() if k.subproject == subproject}
+        options = {k: v for k, v in self.pending_subproject_options.items() if k.subproject == subproject}
 
         # apply project() and subproject() default_options
         for key, valstr in itertools.chain(project_default_options.items(), spcall_default_options.items()):
@@ -1375,7 +1376,7 @@ class OptionStore:
         for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
             if key.subproject is None and not self.is_project_option(key.as_root()):
                 subp_key = key.evolve(subproject=subproject)
-                self.pending_options.pop(subp_key, None)
+                self.pending_subproject_options.pop(subp_key, None)
                 options.pop(subp_key, None)
 
         # then finally per project augments from machine file and command line
@@ -1385,7 +1386,12 @@ class OptionStore:
 
         # merge everything that has been computed above, while giving self.augments priority
         for key, valstr in options.items():
-            self.pending_options.pop(key, None)
+            if key.subproject != subproject:
+                # Subproject options from project() will be processed when the subproject is found
+                self.pending_subproject_options[key] = valstr
+                continue
+
+            self.pending_subproject_options.pop(key, None)
             valstr = self.augments.pop(key, valstr)
             if key in self.project_options:
                 self.set_option(key, valstr, True)
