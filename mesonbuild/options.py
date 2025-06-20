@@ -1357,16 +1357,32 @@ class OptionStore:
                                         project_default_options: OptionDict,
                                         cmd_line_options: OptionDict,
                                         machine_file_options: OptionDict) -> None:
-        # pick up pending per-project settings from the toplevel project() invocation
-        options = {k: v for k, v in self.pending_subproject_options.items() if k.subproject == subproject}
 
-        # apply project() and subproject() default_options
-        for key, valstr in itertools.chain(project_default_options.items(), spcall_default_options.items()):
-            if key.subproject is None:
-                key = key.evolve(subproject=subproject)
-            elif key.subproject == subproject:
+        options: OptionDict = {}
+
+        # project() default_options
+        for key, valstr in project_default_options.items():
+            if key.subproject == subproject:
                 without_subp = key.evolve(subproject=None)
                 raise MesonException(f'subproject name not needed in default_options; use "{without_subp}" instead of "{key}"')
+
+            if key.subproject is None:
+                key = key.evolve(subproject=subproject)
+            options[key] = valstr
+
+        # augments from the toplevel project() default_options
+        for key, valstr in self.pending_subproject_options.items():
+            if key.subproject == subproject:
+                options[key] = valstr
+
+        # subproject() default_options
+        for key, valstr in spcall_default_options.items():
+            if key.subproject == subproject:
+                without_subp = key.evolve(subproject=None)
+                raise MesonException(f'subproject name not needed in default_options; use "{without_subp}" instead of "{key}"')
+
+            if key.subproject is None:
+                key = key.evolve(subproject=subproject)
             options[key] = valstr
 
         # then global settings from machine file and command line
