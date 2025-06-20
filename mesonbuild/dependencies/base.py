@@ -478,6 +478,8 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                         raise DependencyException(m.format(self.name, not_found, self.version))
                     return
 
+    def get_runtime_paths(self) -> T.Optional[T.List[str]]:
+        return None
 
 class NotFoundDependency(Dependency):
     def __init__(self, name: str, environment: 'Environment') -> None:

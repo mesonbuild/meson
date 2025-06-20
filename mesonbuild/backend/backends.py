@@ -1189,6 +1189,11 @@ class Backend:
         """
         results = set()
         for dep in target.external_deps:
+            if callable(getattr(dep, 'get_runtime_paths', None)):
+                bindirs = dep.get_runtime_paths()
+                if bindirs:
+                    results.update(bindirs)
+                    continue
 
             if dep.type_name == 'pkgconfig':
                 # If by chance pkg-config knows the bin dir...
