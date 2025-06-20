@@ -2412,10 +2412,7 @@ class StaticLibrary(BuildTarget):
                 suffix = 'a'
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
                     key = OptionKey('b_lto', self.subproject, self.for_machine)
-                    try:
-                        v = self.environment.coredata.get_option_for_target(self, key)
-                    except KeyError:
-                        v = self.environment.coredata.optstore.get_value_for(key)
+                    v = self.environment.coredata.get_option_for_target(self, key)
                     assert isinstance(v, bool), 'for mypy'
                     if v:
                         suffix = 'ma'
