@@ -186,7 +186,7 @@ new = fs.replace_suffix(original, '')  # /opt/foo.dll
 
 ### parent
 
-Returns the parent directory (i.e. dirname).
+Returns the parent directory (i.e., dirname).
 
 ```meson
 new = fs.parent('foo/bar')  # foo
@@ -195,7 +195,7 @@ new = fs.parent('foo/bar/baz.dll')  # foo/bar
 
 ### name
 
-Returns the last component of the path (i.e. basename).
+Returns the last component of the path (i.e., basename).
 
 ```meson
 fs.name('foo/bar/baz.dll.a')  # baz.dll.a
@@ -256,20 +256,23 @@ returns:
 
 *Since 0.64.0*
 
-Copy a file from the source directory to the build directory at build time
+Copy a file from the source directory to the build directory at build time.
 
 Has the following positional arguments:
    - src `File | str`: the file to copy
 
 Has the following optional arguments:
    - dest `str`: the name of the output file. If unset will be the basename of
-     the src argument
+     the src argument (i.e., the last component of its path).
 
 Has the following keyword arguments:
    - install `bool`: Whether to install the copied file, defaults to false
    - install_dir `str`: Where to install the file to
    - install_tag: `str`: the install tag to assign to this target
    - install_mode `array[str | int]`: the mode to install the file with
+   - build_subdir `str`: *since 1.12.0*.  Places the build results in a subdirectory
+     of the given name rather than directly into the build directory.
+     For more information, see [[custom_target]].
 
 returns:
    - a [[custom_target]] object

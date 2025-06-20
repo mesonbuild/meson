@@ -580,6 +580,13 @@ _JAVA_LANG_KW: KwargInfo[T.List[str]] = _BASE_LANG_KW.evolve(
     deprecated_message='This does not, and never has, done anything. It should be removed'
 )
 
+BUILD_SUBDIR_KW: KwargInfo[str] = KwargInfo(
+    'build_subdir',
+    str,
+    default='',
+    since='1.10.0'
+)
+
 def _objects_validator(vals: T.List[ObjectTypes]) -> T.Optional[str]:
     non_objects: T.List[str] = []
 
@@ -665,7 +672,7 @@ _ALL_TARGET_KWS: T.List[KwargInfo] = [
                 ('1.1.0', 'generated sources as positional "objects" arguments')
         },
     ),
-    KwargInfo('build_subdir', str, default='', since='1.10.0')
+    BUILD_SUBDIR_KW,
 ]
 
 

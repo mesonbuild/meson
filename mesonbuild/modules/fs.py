@@ -12,7 +12,8 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue, ModuleInfo
 from .. import mlog
 from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
-from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
+from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, \
+    BUILD_SUBDIR_KW, NoneType
 from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
 from ..mesonlib import File, MesonException, has_path_sep, is_windows, path_is_in_root, relpath
 
@@ -34,6 +35,7 @@ if T.TYPE_CHECKING:
 
         """Kwargs for fs.copy"""
 
+        build_subdir: str
         install: bool
         install_dir: T.Optional[str]
         install_mode: FileMode
@@ -285,6 +287,7 @@ class FSModule(ExtensionModule):
         INSTALL_MODE_KW,
         INSTALL_TAG_KW,
         KwargInfo('install_dir', (str, NoneType)),
+        BUILD_SUBDIR_KW.evolve(since='1.12.0'),
     )
     def copyfile(self, state: ModuleState, args: T.Tuple[FileOrString, T.Optional[str]],
                  kwargs: CopyKw) -> ModuleReturnValue:
@@ -315,6 +318,7 @@ class FSModule(ExtensionModule):
             install_tag=[kwargs['install_tag']],
             backend=state.backend,
             description='Copying file {}',
+            build_subdir=kwargs['build_subdir'],
         )
 
         return ModuleReturnValue(ct, [ct])
