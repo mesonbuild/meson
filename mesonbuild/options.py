@@ -937,9 +937,7 @@ class OptionStore:
 
         self.options[key] = valobj
         self.project_options.add(key)
-        pval = self.pending_options.pop(key, None)
-        if pval is not None:
-            self.set_option(key, pval)
+        assert key not in self.pending_options
 
     def add_module_option(self, modulename: str, key: T.Union[OptionKey, str], valobj: AnyOptionType) -> None:
         key = self.ensure_and_validate_key(key)
@@ -1336,16 +1334,6 @@ class OptionStore:
         if first_invocation and self.is_backend_option(key):
             return True
         return self.is_base_option(key)
-
-    def validate_cmd_line_options(self, cmd_line_options: OptionDict) -> None:
-        unknown_options = []
-        for key, valstr in cmd_line_options.items():
-            if key in self.pending_options and not self.accept_as_pending_option(key):
-                unknown_options.append(f'"{key}"')
-
-        if unknown_options:
-            keys = ', '.join(unknown_options)
-            raise MesonException(f'Unknown options: {keys}')
 
     def initialize_from_subproject_call(self,
                                         subproject: str,

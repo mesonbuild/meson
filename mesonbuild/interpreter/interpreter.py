@@ -1211,7 +1211,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.set_backend()
 
         if not self.is_subproject():
-            self.coredata.optstore.validate_cmd_line_options(self.user_defined_options.cmd_line_options)
             self.build.project_name = proj_name
         self.active_projectname = proj_name
 
