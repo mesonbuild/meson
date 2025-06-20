@@ -1378,8 +1378,9 @@ class OptionStore:
             options[key] = valstr
 
         # then global settings from machine file and command line
+        # **but not if they are toplevel project options**
         for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
-            if key.subproject is None:
+            if key.subproject is None and not self.is_project_option(key.as_root()):
                 subp_key = key.evolve(subproject=subproject)
                 self.pending_options.pop(subp_key, None)
                 options.pop(subp_key, None)
