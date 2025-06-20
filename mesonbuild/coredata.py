@@ -415,8 +415,8 @@ class CoreData:
     def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
         unset_opts = getattr(options, 'unset_opts', [])
         all_D = options.projectoptions[:]
-        for keystr, valstr in options.cmd_line_options.items():
-            all_D.append(f'{keystr}={valstr}')
+        for key, valstr in options.cmd_line_options.items():
+            all_D.append(f'{key!s}={valstr}')
         return self.optstore.set_from_configure_command(all_D, unset_opts)
 
     def set_option(self, key: OptionKey, value, first_invocation: bool = False) -> bool:
@@ -708,18 +708,15 @@ def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
-def create_options_dict(options: T.List[str], subproject: str = '') -> T.Dict[str, str]:
-    result: T.OrderedDict[OptionKey, str] = OrderedDict()
-    for o in options:
+def parse_cmd_line_options(args: SharedCMDOptions) -> None:
+    args.cmd_line_options = {}
+    for o in args.projectoptions:
         try:
-            (key, value) = o.split('=', 1)
+            keystr, value = o.split('=', 1)
         except ValueError:
             raise MesonException(f'Option {o!r} must have a value separated by equals sign.')
-        result[key] = value
-    return result
-
-def parse_cmd_line_options(args: SharedCMDOptions) -> None:
-    args.cmd_line_options = create_options_dict(args.projectoptions)
+        key = OptionKey.from_string(keystr)
+        args.cmd_line_options[key] = value
 
     # Merge builtin options set with --option into the dict.
     for key in chain(
@@ -734,7 +731,7 @@ def parse_cmd_line_options(args: SharedCMDOptions) -> None:
                 cmdline_name = options.argparse_name_to_arg(name)
                 raise MesonException(
                     f'Got argument {name} as both -D{name} and {cmdline_name}. Pick one.')
-            args.cmd_line_options[key.name] = value
+            args.cmd_line_options[key] = value
             delattr(args, name)
 
 

@@ -175,7 +175,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         with self.subTest('Changing the backend'):
             with self.assertRaises(subprocess.CalledProcessError) as cm:
                 self.setconf('-Dbackend=none')
-            self.assertIn("ERROR: Tried to modify read only option 'backend'", cm.exception.stdout)
+            self.assertIn('ERROR: Tried to modify read only option "backend"', cm.exception.stdout)
 
         # Check that the new value was not written in the store.
         with self.subTest('option is stored correctly'):
@@ -421,12 +421,12 @@ class PlatformAgnosticTests(BasePlatformTests):
 
         with self.subTest('unknown user option'):
             out = self.init(testdir, extra_args=['-Dnot_an_option=1'], allow_fail=True)
-            self.assertIn('ERROR: Unknown options: "not_an_option"', out)
+            self.assertIn('ERROR: Unknown option: "not_an_option"', out)
 
         with self.subTest('unknown builtin option'):
             self.new_builddir()
             out = self.init(testdir, extra_args=['-Db_not_an_option=1'], allow_fail=True)
-            self.assertIn('ERROR: Unknown options: "b_not_an_option"', out)
+            self.assertIn('ERROR: Unknown option: "b_not_an_option"', out)
 
 
     def test_configure_new_option(self) -> None:
@@ -451,7 +451,7 @@ class PlatformAgnosticTests(BasePlatformTests):
                 f.write(line)
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.setconf('-Dneg_int_opt=0')
-        self.assertIn('Unknown options: ":neg_int_opt"', e.exception.stdout)
+        self.assertIn('Unknown option: "neg_int_opt"', e.exception.stdout)
 
     def test_reconfigure_option(self) -> None:
         testdir = self.copy_srcdir(os.path.join(self.common_test_dir, '40 options'))
@@ -501,7 +501,7 @@ class PlatformAgnosticTests(BasePlatformTests):
         os.unlink(os.path.join(testdir, 'meson_options.txt'))
         with self.assertRaises(subprocess.CalledProcessError) as e:
             self.setconf('-Dneg_int_opt=0')
-        self.assertIn('Unknown options: ":neg_int_opt"', e.exception.stdout)
+        self.assertIn('Unknown option: "neg_int_opt"', e.exception.stdout)
 
     def test_configure_options_file_added(self) -> None:
         """A new project option file should be detected."""

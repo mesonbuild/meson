@@ -43,7 +43,7 @@ from mesonbuild import envconfig
 if T.TYPE_CHECKING:
     from .compilers import Compiler
     from .compilers.mixins.visualstudio import VisualStudioLikeCompiler
-    from .options import ElementaryOptionValues
+    from .options import OptionDict, ElementaryOptionValues
     from .wrap.wrap import Resolver
     from . import cargo
 
@@ -646,12 +646,12 @@ class Environment:
         #
         # Note that order matters because of 'buildtype', if it is after
         # 'optimization' and 'debug' keys, it override them.
-        self.options: T.MutableMapping[OptionKey, ElementaryOptionValues] = collections.OrderedDict()
+        self.options: OptionDict = collections.OrderedDict()
 
         # Environment variables with the name converted into an OptionKey type.
         # These have subtly different behavior compared to machine files, so do
         # not store them in self.options.  See _set_default_options_from_env.
-        self.env_opts: T.MutableMapping[OptionKey, ElementaryOptionValues] = {}
+        self.env_opts: OptionDict = {}
 
         self.machinestore = machinefile.MachineFileStore(self.coredata.config_files, self.coredata.cross_files, self.source_dir)
 

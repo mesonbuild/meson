@@ -72,18 +72,7 @@ jobs:
 
         source /ci/env_vars.sh
         cd $GITHUB_WORKSPACE
-        ./tools/run_with_cov.py ./run_tests.py $CI_ARGS
-
-    - name: Aggregate coverage reports
-      run: ./ci/combine_cov.sh
-
-    - name: Upload coverage report
-      uses: codecov/codecov-action@v3
-      with:
-        files: .coverage/coverage.xml
-        name: "OS Comp [${{ matrix.cfg.name }}]"
-        fail_ci_if_error: false
-        verbose: true
+        ./run_tests.py $CI_ARGS
 
   pypy:
     name: 'Arch / PyPy'
@@ -111,10 +100,12 @@ jobs:
           - CC: 'gcc'
             CXX: 'g++'
           - MESON_ARGS: '--unity=on -Ddefault_library=static'
+            MESON_TEST_DDEFAULT_LIBRARY: yes
             RUN_TESTS_ARGS: '--no-unittests'
             CC: 'gcc'
             CXX: 'g++'
           - MESON_ARGS: '-Ddefault_library=both'
+            MESON_TEST_DDEFAULT_LIBRARY: yes
             RUN_TESTS_ARGS: '--no-unittests'
             CC: 'gcc'
             CXX: 'g++'
@@ -141,6 +132,7 @@ jobs:
       env:
         MESON_RSP_THRESHOLD: ${{ matrix.cfg.MESON_RSP_THRESHOLD }}
         MESON_ARGS: ${{ matrix.cfg.MESON_ARGS }}
+        MESON_TEST_DDEFAULT_LIBRARY: ${{ matrix.cfg.MESON_TEST_DDEFAULT_LIBRARY }}
         RUN_TESTS_ARGS: ${{ matrix.cfg.RUN_TESTS_ARGS }}
         CC: ${{ matrix.cfg.CC }}
         CXX: ${{ matrix.cfg.CXX }}
@@ -172,15 +164,4 @@ jobs:
           update-alternatives --set i686-w64-mingw32-gcc   /usr/bin/i686-w64-mingw32-gcc-posix
           update-alternatives --set i686-w64-mingw32-g++   /usr/bin/i686-w64-mingw32-g++-posix
 
-          ./tools/run_with_cov.py ./run_tests.py $RUN_TESTS_ARGS -- $MESON_ARGS
-
-      - name: Aggregate coverage reports
-        run: ./ci/combine_cov.sh
-
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v3
-        with:
-          files: .coverage/coverage.xml
-          name: "Ubuntu [${{ matrix.cfg.CC }} ${{ matrix.cfg.RUN_TESTS_ARGS }} ${{ matrix.cfg.MESON_ARGS }}]"
-          fail_ci_if_error: false
-          verbose: true
+          ./run_tests.py $RUN_TESTS_ARGS -- $MESON_ARGS

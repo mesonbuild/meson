@@ -115,6 +115,7 @@ if T.TYPE_CHECKING:
     from . import kwargs as kwtypes
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
+    from ..options import OptionDict
     from ..programs import OverrideProgram
     from .type_checking import SourcesVarargsType
 
@@ -270,7 +271,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                default_project_options: T.Optional[T.Dict[OptionKey, str]] = None,
+                invoker_method_default_options: T.Optional[OptionDict] = None,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
                 relaxations: T.Optional[T.Set[InterpreterRuleRelaxation]] = None,
                 user_defined_options: T.Optional[coredata.SharedCMDOptions] = None,
@@ -295,12 +296,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         self.subproject_stack: T.List[str] = []
         self.configure_file_outputs: T.Dict[str, int] = {}
         # Passed from the outside, only used in subprojects.
-        if default_project_options:
-            assert isinstance(default_project_options, dict)
-            self.default_project_options = default_project_options
+        if invoker_method_default_options:
+            assert isinstance(invoker_method_default_options, dict)
+            self.invoker_method_default_options = invoker_method_default_options
         else:
-            self.default_project_options = {}
-        self.project_default_options: T.List[str] = []
+            self.invoker_method_default_options = {}
+        self.project_default_options: OptionDict = {}
         self.build_func_dict()
         self.build_holder_map()
         self.user_defined_options = user_defined_options
@@ -868,7 +869,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return sub
 
     def do_subproject(self, subp_name: str, kwargs: kwtypes.DoSubproject, force_method: T.Optional[wrap.Method] = None,
-                      extra_default_options: T.Optional[T.Dict[str, options.ElementaryOptionValues]] = None) -> SubprojectHolder:
+                      forced_options: T.Optional[OptionDict] = None) -> SubprojectHolder:
         if subp_name == 'sub_static':
             pass
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
@@ -878,12 +879,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
         default_options = kwargs['default_options']
-        if isinstance(default_options, str):
-            default_options = [default_options]
-        if isinstance(default_options, list):
-            default_options = dict((x.split('=', 1) for x in default_options))
-        if extra_default_options:
-            default_options = {**extra_default_options, **default_options}
+
+        # This in practice is only used for default_library.  forced_options is the
+        # only case in which a meson.build file overrides the machine file or the
+        # command line.
+        if forced_options:
+            for k, v in forced_options.items():
+                # FIXME: this should have no business poking at augments[],
+                # but set_option() does not do what we want
+                self.coredata.optstore.augments[k.evolve(subproject=subp_name)] = v
+            default_options = {**forced_options, **default_options}
 
         if subp_name == '':
             raise InterpreterException('Subproject name must not be empty.')
@@ -936,7 +941,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             m += ['method', mlog.bold(method)]
         mlog.log(*m, '\n', nested=False)
 
-        methods_map: T.Dict[wrap.Method, T.Callable[[str, str, T.Dict[OptionKey, str, kwtypes.DoSubproject]], SubprojectHolder]] = {
+        methods_map: T.Dict[wrap.Method, T.Callable[[str, str, OptionDict, kwtypes.DoSubproject],
+                                                    SubprojectHolder]] = {
             'meson': self._do_subproject_meson,
             'cmake': self._do_subproject_cmake,
             'cargo': self._do_subproject_cargo,
@@ -958,7 +964,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             raise e
 
     def _do_subproject_meson(self, subp_name: str, subdir: str,
-                             default_options: T.Dict[str, options.ElementaryOptionValues],
+                             default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject,
                              ast: T.Optional[mparser.CodeBlockNode] = None,
                              build_def_files: T.Optional[T.List[str]] = None,
@@ -1018,7 +1024,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return self.subprojects[subp_name]
 
     def _do_subproject_cmake(self, subp_name: str, subdir: str,
-                             default_options: T.Dict[str, options.ElementaryOptionValues],
+                             default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
@@ -1045,7 +1051,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return result
 
     def _do_subproject_cargo(self, subp_name: str, subdir: str,
-                             default_options: T.Dict[str, options.ElementaryOptionValues],
+                             default_options: OptionDict,
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from .. import cargo
         FeatureNew.single_use('Cargo subproject', '1.3.0', self.subproject, location=self.current_node)
@@ -1190,20 +1196,17 @@ class Interpreter(InterpreterBase, HoldableObject):
         self._load_option_file()
 
         self.project_default_options = kwargs['default_options']
-        if isinstance(self.project_default_options, str):
-            self.project_default_options = [self.project_default_options]
-        assert isinstance(self.project_default_options, (list, dict))
         if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
             if self.subproject == '':
                 self.coredata.optstore.initialize_from_top_level_project_call(self.project_default_options,
                                                                               self.user_defined_options.cmd_line_options,
                                                                               self.environment.options)
             else:
-                invoker_method_default_options = self.default_project_options
                 self.coredata.optstore.initialize_from_subproject_call(self.subproject,
-                                                                       invoker_method_default_options,
+                                                                       self.invoker_method_default_options,
                                                                        self.project_default_options,
-                                                                       self.user_defined_options.cmd_line_options)
+                                                                       self.user_defined_options.cmd_line_options,
+                                                                       self.environment.options)
                 self.coredata.initialized_subprojects.add(self.subproject)
 
         if not self.is_subproject():
@@ -1630,7 +1633,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     # the host machine.
     def find_program_impl(self, args: T.List[mesonlib.FileOrString],
                           for_machine: MachineChoice = MachineChoice.HOST,
-                          default_options: T.Optional[T.Dict[OptionKey, options.ElementaryOptionValues]] = None,
+                          default_options: T.Optional[OptionDict] = None,
                           required: bool = True, silent: bool = True,
                           wanted: T.Union[str, T.List[str]] = '',
                           search_dirs: T.Optional[T.List[str]] = None,
@@ -1661,7 +1664,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return progobj
 
     def program_lookup(self, args: T.List[mesonlib.FileOrString], for_machine: MachineChoice,
-                       default_options: T.Optional[T.Dict[OptionKey, options.ElementaryOptionValues]],
+                       default_options: T.Optional[OptionDict],
                        required: bool,
                        search_dirs: T.Optional[T.List[str]],
                        wanted: T.Union[str, T.List[str]],
@@ -1729,7 +1732,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return True
 
     def find_program_fallback(self, fallback: str, args: T.List[mesonlib.FileOrString],
-                              default_options: T.Dict[OptionKey, options.ElementaryOptionValues],
+                              default_options: OptionDict,
                               required: bool, extra_info: T.List[mlog.TV_Loggable]
                               ) -> T.Optional[T.Union[ExternalProgram, build.Executable, OverrideProgram]]:
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',

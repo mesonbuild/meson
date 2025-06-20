@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: windows-2019
+    runs-on: windows-2022
     name: ${{ matrix.NAME }}
     strategy:
       fail-fast: false
@@ -90,7 +90,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip --disable-pip-version-check install gcovr pefile pytest pytest-subtests pytest-xdist coverage
+          python3 -m pip --disable-pip-version-check install gcovr pefile pytest pytest-subtests pytest-xdist
 
       - name: Install pypy3 on x86_64
         run: |
@@ -125,20 +125,9 @@ jobs:
             pacman --noconfirm --needed -S mingw-w64-${{ matrix.MSYS2_ARCH }}-${{ matrix.MSYS2_CURSES }}
           fi
 
-          MSYSTEM= python3 ./tools/run_with_cov.py run_tests.py --backend=ninja
+          MSYSTEM= python3 ./run_tests.py --backend=ninja
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.NAME }}
           path: meson-test-run.*
-
-      - name: Aggregate coverage reports
-        run: ./ci/combine_cov.sh
-
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v3
-        with:
-          files: .coverage/coverage.xml
-          name: "${{ matrix.NAME }}"
-          fail_ci_if_error: false
-          verbose: true
