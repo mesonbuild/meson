@@ -240,6 +240,26 @@ class OptionTests(unittest.TestCase):
         self.assertFalse(optstore.accept_as_pending_option(OptionKey('foo', subproject='found'), subprojects))
         self.assertTrue(optstore.accept_as_pending_option(OptionKey('foo', subproject='whatisthis'), subprojects))
 
+    def test_subproject_proj_opt_with_same_name(self):
+        name = 'tests'
+        subp = 'subp'
+
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        o = UserBooleanOption(name, 'Tests', False)
+        optstore.add_project_option(OptionKey(name, subproject=''), o)
+        o = UserBooleanOption(name, 'Tests', True)
+        optstore.add_project_option(OptionKey(name, subproject=subp), o)
+
+        cmd_line = {OptionKey(name): True}
+        spcall = {OptionKey(name): False}
+
+        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
+        optstore.initialize_from_subproject_call(subp, spcall, {}, cmd_line, {})
+        self.assertEqual(optstore.get_value_for(name, ''), True)
+        self.assertEqual(optstore.get_value_for(name, subp), False)
+
     def test_subproject_cmdline_override_global(self):
         name = 'optimization'
         subp = 'subp'
