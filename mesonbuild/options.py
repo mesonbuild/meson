@@ -805,6 +805,7 @@ class OptionStore:
 
     def __init__(self, is_cross: bool) -> None:
         self.options: T.Dict['OptionKey', 'AnyOptionType'] = {}
+        self.subprojects: T.Set[str] = set()
         self.project_options: T.Set[OptionKey] = set()
         self.module_options: T.Set[OptionKey] = set()
         from .compilers import all_languages
@@ -888,6 +889,10 @@ class OptionStore:
             if key in self.augments:
                 computed_value = vobject.validate_value(self.augments[key])
         return (vobject, computed_value)
+
+    def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
+        vobject, current_value = self.get_value_object_and_value_for(key)
+        return vobject.validate_value(value) == current_value
 
     def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
@@ -1387,6 +1392,10 @@ class OptionStore:
         # merge everything that has been computed above, while giving self.augments priority
         for key, valstr in options.items():
             if key.subproject != subproject:
+                if key.subproject in self.subprojects and not self.option_has_value(key, valstr):
+                    mlog.warning('option {key} is set in subproject {subproject} but has already been processed')
+                    continue
+
                 # Subproject options from project() will be processed when the subproject is found
                 self.pending_subproject_options[key] = valstr
                 continue
@@ -1397,6 +1406,8 @@ class OptionStore:
                 self.set_option(key, valstr, True)
             else:
                 self.augments[key] = valstr
+
+        self.subprojects.add(subproject)
 
     def update_project_options(self, project_options: MutableKeyedOptionDictType, subproject: SubProject) -> None:
         for key, value in project_options.items():
