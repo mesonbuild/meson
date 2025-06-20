@@ -7,6 +7,18 @@ from __future__ import annotations
 import typing as T
 
 
+def api(version: str) -> str:
+    # x.y.z -> x
+    # 0.x.y -> 0.x
+    # 0.0.x -> 0
+    vers = version.split('.')
+    if int(vers[0]) != 0:
+        return vers[0]
+    elif len(vers) >= 2 and int(vers[1]) != 0:
+        return f'0.{vers[1]}'
+    return '0'
+
+
 def convert(cargo_ver: str) -> T.List[str]:
     """Convert a Cargo compatible version into a Meson compatible one.
 
@@ -15,6 +27,8 @@ def convert(cargo_ver: str) -> T.List[str]:
     """
     # Cleanup, just for safety
     cargo_ver = cargo_ver.strip()
+    if not cargo_ver:
+        return []
     cargo_vers = [c.strip() for c in cargo_ver.split(',')]
 
     out: T.List[str] = []
