@@ -227,18 +227,12 @@ class OptionTests(unittest.TestCase):
     def test_backend_option_pending(self):
         optstore = OptionStore(False)
         # backend options are known after the first invocation
-        self.assertTrue(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), True))
-        self.assertFalse(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), False))
+        self.assertTrue(optstore.accept_as_pending_option(OptionKey('backend_whatever'), True))
+        self.assertFalse(optstore.accept_as_pending_option(OptionKey('backend_whatever'), False))
 
     def test_reconfigure_b_nonexistent(self):
         optstore = OptionStore(False)
         optstore.set_from_configure_command(['b_ndebug=true'], [])
-
-    def test_subproject_nonexistent(self):
-        optstore = OptionStore(False)
-        subprojects = {'found'}
-        self.assertFalse(optstore.accept_as_pending_option(OptionKey('foo', subproject='found'), subprojects))
-        self.assertTrue(optstore.accept_as_pending_option(OptionKey('foo', subproject='whatisthis'), subprojects))
 
     def test_subproject_proj_opt_with_same_name(self):
         name = 'tests'
