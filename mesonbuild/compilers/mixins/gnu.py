@@ -534,6 +534,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         # We want to allow preprocessing files with any extension, such as
         # foo.c.in. In that case we need to tell GCC/CLANG to treat them as
         # assembly file.
+        if self.language == 'fortran':
+            return self.get_preprocess_only_args()
         lang = gnu_lang_map.get(self.language, 'assembler-with-cpp')
         return self.get_preprocess_only_args() + [f'-x{lang}']
 
