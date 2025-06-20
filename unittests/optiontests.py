@@ -274,6 +274,26 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name, subp), new_value)
         self.assertEqual(optstore.get_value_for(name), new_value)
 
+    def test_subproject_parent_override_subp(self):
+        name = 'optimization'
+        subp = 'subp'
+        default_value = 's'
+        subp_value = '0'
+
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        o = UserComboOption(name, 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])
+        optstore.add_system_option(name, o)
+
+        toplevel_proj_default = {OptionKey(name, subproject=subp): subp_value, OptionKey(name): default_value}
+        subp_proj_default = {OptionKey(name): '3'}
+
+        optstore.initialize_from_top_level_project_call(toplevel_proj_default, {}, {})
+        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, {}, {})
+        self.assertEqual(optstore.get_value_for(name, subp), subp_value)
+        self.assertEqual(optstore.get_value_for(name), default_value)
+
     def test_subproject_cmdline_override_global_and_augment(self):
         name = 'optimization'
         subp = 'subp'
