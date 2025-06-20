@@ -72,28 +72,28 @@ Options that are labeled "per machine" in the table are set per
 machine. See the [specifying options per
 machine](#specifying-options-per-machine) section for details.
 
-| Option                                 | Default value | Description                                                    | Is per machine | Is per subproject |
-| -------------------------------------- | ------------- | -----------                                                    | -------------- | ----------------- |
+| Option                                 | Default value | Description                                                    | Is per machine | Per subproject (since) |
+| -------------------------------------- | ------------- | -----------                                                    | -------------- | ---------------------- |
 | auto_features {enabled, disabled, auto} | auto         | Override value of all 'auto' features                          | no             | no                |
 | backend {ninja, vs,<br>vs2010, vs2012, vs2013, vs2015, vs2017, vs2019, vs2022, xcode, none} | ninja | Backend to use    | no             | no                |
 | genvslite {vs2022}                     | vs2022        | Setup multi-buildtype ninja build directories and Visual Studio solution | no | no |
-| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | no                |
-| debug                                  | true          | Enable debug symbols and other information                     | no             | no                |
-| default_both_libraries {shared, static, auto} | shared | Default library type for both_libraries                        | no             | no                |
-| default_library {shared, static, both} | shared        | Default library type                                           | no             | yes               |
+| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug | Build type to use                       | no             | 1.8.0             |
+| debug                                  | true          | Enable debug symbols and other information                     | no             | 1.8.0             |
+| default_both_libraries {shared, static, auto} | shared | Default library type for both_libraries                        | no             | 1.8.0             |
+| default_library {shared, static, both} | shared        | Default library type                                           | no             | 0.54.0            |
 | errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
 | layout {mirror,flat}                   | mirror        | Build directory layout                                         | no             | no                |
-| optimization {plain, 0, g, 1, 2, 3, s} | 0             | Optimization level                                             | no             | no                |
+| optimization {plain, 0, g, 1, 2, 3, s} | 0             | Optimization level                                             | no             | 1.8.0             |
 | pkg_config_path {OS separated path}    | ''            | Additional paths for pkg-config to search before builtin paths | yes            | no                |
 | prefer_static                          | false         | Whether to try static linking before shared linking            | no             | no                |
 | cmake_prefix_path                      | []            | Additional prefixes for cmake to search before builtin paths   | yes            | no                |
 | stdsplit                               | true          | Split stdout and stderr in test logs                           | no             | no                |
-| strip                                  | false         | Strip targets on install                                       | no             | no                |
-| unity {on, off, subprojects}           | off           | Unity build                                                    | no             | no                |
-| unity_size {>=2}                       | 4             | Unity file block size                                          | no             | no                |
-| warning_level {0, 1, 2, 3, everything} | 1             | Set the warning level. From 0 = compiler default to everything = highest | no   | yes               |
-| werror                                 | false         | Treat warnings as errors                                       | no             | yes               |
+| strip                                  | false         | Strip targets on install                                       | no             | 1.8.0             |
+| unity {on, off, subprojects}           | off           | Unity build                                                    | no             | 1.8.0             |
+| unity_size {>=2}                       | 4             | Unity file block size                                          | no             | 1.8.0             |
+| warning_level {0, 1, 2, 3, everything} | 1             | Set the warning level. From 0 = compiler default to everything = highest | no   | 0.56.0            |
+| werror                                 | false         | Treat warnings as errors                                       | no             | 0.54.0            |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                   | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
 | vsenv                                  | false         | Activate Visual Studio environment                             | no             | no                |
@@ -370,11 +370,10 @@ allowing differences in behavior to crop out.
 
 ## Specifying options per subproject
 
-Since *0.54.0* `default_library` and `werror` built-in options can be
-defined per subproject. This is useful, for example, when building
-shared libraries in the main project and statically linking a subproject,
-or when the main project must build with no warnings but some subprojects
-cannot.
+Several built-in options and all compiler options can be defined per subproject.
+This is useful, for example, when building shared libraries in the main project
+and statically linking a subproject, or when the main project must build
+with no warnings but some subprojects cannot.
 
 Most of the time, this would be used either in the parent project by
 setting subproject's default_options (e.g. `subproject('foo',
@@ -382,12 +381,30 @@ default_options: 'default_library=static')`), or by the user through the
 command line: `-Dfoo:default_library=static`.
 
 The value is overridden in this order:
-- Value from parent project
-- Value from subproject's default_options if set
-- Value from subproject() default_options if set
-- Value from command line if set
+- `opt=value` from parent project's `default_options`
+- `opt=value` from subproject's `default_options`
+- `subp:opt=value` from parent project's default options
+- `opt=value` from `subproject()` `default_options`
+- `opt=value` from machine file
+- `opt=value` from command line
+- `subp:opt=value` from machine file
+- `subp:opt=value` from command line
 
-Since *0.56.0* `warning_level` can also be defined per subproject.
+### Old behavior
+
+Between *0.54.0* and *1.7.x* only a few options could be defined per subproject:
+* `default_library` and `werror` since *0.54.0*;
+* `warning_level` since *0.56.0*;
+* compiler options since *0.63.0*
+
+The value was overridden in this order:
+
+- Value from parent project
+- Value from subproject's `default_options`
+- Value from `subproject()` `default_options`
+- Value from machine file
+- Value from command line
+
 
 ## Module options
 
