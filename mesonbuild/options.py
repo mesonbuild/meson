@@ -1332,16 +1332,9 @@ class OptionStore:
             if not key.subproject:
                 self.set_option_maybe_root(key, valstr, True)
 
-    def accept_as_pending_option(self, key: OptionKey, known_subprojects: T.Optional[T.Container[str]] = None,
-                                 first_invocation: bool = False) -> bool:
-        # Fail on unknown options that we can know must exist at this point in time.
-        # Subproject and compiler options are resolved later.
-        #
+    def accept_as_pending_option(self, key: OptionKey, first_invocation: bool = False) -> bool:
         # Some base options (sanitizers etc) might get added later.
         # Permitting them all is not strictly correct.
-        if key.subproject:
-            if known_subprojects is None or key.subproject not in known_subprojects:
-                return True
         if self.is_compiler_option(key):
             return True
         if first_invocation and self.is_backend_option(key):
