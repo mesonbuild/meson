@@ -30,17 +30,18 @@ test('test4', exe4)
 
 # Test if libraries are named correctly
 assert(sub_pro.target_type('cmModLib') == 'shared_library', 'Type should be shared_library')
+expected_soversion_str = '1'
 expected_version_str = '1.0.1'
 lib_file_name = import('fs').name(sub_pro.target('cmModLib').full_path())
 if host_machine.system() == 'linux'
   # Linux shared libraries end with their version: libcmModLib.so.1.0.1
   lib_version_ok = lib_file_name.endswith(expected_version_str)
 elif host_machine.system() == 'darwin'
-  # MacOS shared libraries are suffixed with their version: libcmModLib.1.0.1.dylib
-  lib_version_ok = lib_file_name.split('.')[1] == expected_version_str
+  # MacOS shared libraries are suffixed with their soversion: libcmModLib.1.dylib
+  lib_version_ok = lib_file_name.split('.')[1] == expected_soversion_str
 else
   # Don't try to assert anything about the library version, either unknown host
   # system or host system doesn't support versioning of shared libraries
-  lib_version_ok = True
+  lib_version_ok = true
 endif
 assert(lib_version_ok, f'Shared library version @lib_file_name@ not picked up correctly')
