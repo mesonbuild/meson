@@ -446,6 +446,11 @@ class IntelLLVMFortranCompiler(IntelFortranCompiler):
 
     id = 'intel-llvm'
 
+    def get_preprocess_only_args(self) -> T.List[str]:
+        return ['-preprocess-only']
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return []
 
 class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
