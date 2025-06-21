@@ -370,11 +370,10 @@ allowing differences in behavior to crop out.
 
 ## Specifying options per subproject
 
-Since *0.54.0* `default_library` and `werror` built-in options can be
-defined per subproject. This is useful, for example, when building
-shared libraries in the main project and statically linking a subproject,
-or when the main project must build with no warnings but some subprojects
-cannot.
+Since *1.8.0* all built-in options can be defined per subproject.  This is
+useful, for example, when building shared libraries in the main project and
+statically linking a subproject, or when the main project must build
+with no warnings but some subprojects cannot.
 
 Most of the time, this would be used either in the parent project by
 setting subproject's default_options (e.g. `subproject('foo',
@@ -382,12 +381,27 @@ default_options: 'default_library=static')`), or by the user through the
 command line: `-Dfoo:default_library=static`.
 
 The value is overridden in this order:
-- Value from parent project
-- Value from subproject's default_options if set
-- Value from subproject() default_options if set
-- Value from command line if set
+- `opt=value` from parent project's `default_options`
+- `opt=value` from subproject's `default_options`
+- `subp:opt=value` from parent project's default options
+- `opt=value` from `subproject()` `default_options`
+- `opt=value` from machine file
+- `opt=value` from command line
+- `subp:opt=value` from machine file
+- `subp:opt=value` from command line
 
-Since *0.56.0* `warning_level` can also be defined per subproject.
+### Old behavior
+
+Between *0.54.0* and *1.7.x* `default_library` and `werror` built-in options
+could be defined per subproject.  The value was overridden in this order:
+
+- Value from parent project
+- Value from subproject's `default_options`
+- Value from `subproject()` `default_options`
+- Value from machine file
+- Value from command line
+
+Since *0.56.0* `warning_level` could also be defined per subproject.
 
 ## Module options
 
