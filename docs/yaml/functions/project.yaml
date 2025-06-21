@@ -45,14 +45,18 @@ kwargs:
       For example to set the default project type you would
       set this: `default_options : ['buildtype=debugoptimized']`. Note
       that these settings are only used when running Meson for the first
-      time. Global options such as `buildtype` can only be specified in
-      the master project, settings in subprojects are ignored. Project
-      specific options are used normally even in subprojects.
+      time.
 
       Note that some options can override the default behavior;
       for example, using `c_args` here means that the `CFLAGS`
       environment variable is not used. Consider using
       [[add_project_arguments()]] instead.
+
+      Also note that not all options are taken into account when
+      building as a subproject, and the exact set of options
+      that are per-subproject has increased over time; for more
+      information, see [core options](Builtin-options.md#core-options)
+      and [compiler options](Builtin-options.md#compiler-options).
 
       *(since 1.2.0)*: A dictionary may now be passed.
 
