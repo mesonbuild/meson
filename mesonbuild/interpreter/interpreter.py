@@ -3255,9 +3255,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
-        preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
+        preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries', subproject=self.subproject))
         if preferred_library == 'auto':
-            preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_library'))
+            preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
             if preferred_library == 'both':
                 preferred_library = 'shared'
 
