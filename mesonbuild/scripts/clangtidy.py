@@ -11,7 +11,7 @@ import os
 import shutil
 import sys
 
-from .run_tool import run_clang_tool, run_with_buffered_output
+from .run_tool import run_with_buffered_output, run_clang_tool_on_sources
 from ..environment import detect_clangtidy, detect_clangapply
 import typing as T
 
@@ -56,7 +56,7 @@ def run(args: T.List[str]) -> int:
             fixesdir.unlink()
         fixesdir.mkdir(parents=True)
 
-    tidyret = run_clang_tool('clang-tidy', srcdir, builddir, run_clang_tidy, tidyexe, builddir, fixesdir)
+    tidyret = run_clang_tool_on_sources('clang-tidy', srcdir, builddir, run_clang_tidy, tidyexe, builddir, fixesdir)
     if fixesdir is not None:
         print('Applying fix-its...')
         applyret = subprocess.run(applyexe + ['-format', '-style=file', '-ignore-insert-conflict', fixesdir]).returncode
