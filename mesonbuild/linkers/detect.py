@@ -10,8 +10,10 @@ from ..mesonlib import (
     Popen_safe, Popen_safe_logged, join_args, search_version
 )
 
+import os.path
 import re
 import shlex
+import tempfile
 import typing as T
 
 if T.TYPE_CHECKING:
@@ -84,7 +86,12 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
         compiler = value
         # We've already handled the non-direct case above
 
-    p, o, e = Popen_safe(compiler + check_args)
+    if 'bcc64' in [os.path.basename(comp).lower().rsplit('.', 1)[0] for comp in compiler]:
+        # bcc64 is weird: if no source files are provided, it will call MSVC link instead of ilink64
+        with tempfile.NamedTemporaryFile() as f:
+            p, o, e = Popen_safe(compiler + [f.name] + check_args)
+    else:
+        p, o, e = Popen_safe(compiler + check_args)
     if 'LLD' in o.split('\n', maxsplit=1)[0]:
         return linkers.ClangClDynamicLinker(
             for_machine, [],
@@ -94,6 +101,12 @@ def guess_win_linker(env: 'Environment', compiler: T.List[str], comp_class: T.Ty
     elif 'OPTLINK' in o:
         # Optlink's stdout *may* begin with a \r character.
         return linkers.OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
+    elif 'Turbo Incremental Link' in o:
+        match = re.search('^Turbo Incremental Link(?:64)? (.*?) Copyright', o, re.MULTILINE)
+        if match:
+            return linkers.TurboDynamicLinker(compiler, for_machine, version=match.group(1))
+        else:
+            return linkers.TurboDynamicLinker(compiler, for_machine)
     elif o.startswith('Microsoft') or e.startswith('Microsoft'):
         out = o or e
         match = re.search(r'.*(X86|X64|ARM|ARM64).*', out)
