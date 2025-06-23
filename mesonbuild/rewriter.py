@@ -54,7 +54,7 @@ def add_arguments(parser: ArgumentParser, formatter: _FormatterClass) -> None:
                            help='Action to execute')
     kw_parser.add_argument('function', choices=list(rewriter_func_kwargs.keys()),
                            help='Function type to modify')
-    kw_parser.add_argument('id', help='ID of the function to modify (can be anything for "project")')
+    kw_parser.add_argument('id', help='ID of the function to modify (must be "/" for "project")')
     kw_parser.add_argument('kwargs', nargs='*', help='Pairs of keyword and value')
 
     # Default options
