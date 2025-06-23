@@ -1089,7 +1089,7 @@ def list_to_dict(in_list: T.List[str]) -> T.Dict[str, str]:
             # key value pairs.
             result[i] = next(it)
     except StopIteration:
-        raise TypeError('in_list parameter of list_to_dict must have an even length.')
+        raise RewriterException('List of key/value pairs must have an even length.')
     return result
 
 def generate_target(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
