@@ -362,6 +362,7 @@ rewriter_func_kwargs = {
         'default_options': MTypeStrList,
         'meson_version': MTypeStr,
         'license': MTypeStrList,
+        'license_files': MTypeStrList,
         'subproject_dir': MTypeStr,
         'version': MTypeStr
     }
