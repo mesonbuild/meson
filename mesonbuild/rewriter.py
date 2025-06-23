@@ -16,7 +16,7 @@ from .interpreterbase.helpers import flatten
 from mesonbuild.mesonlib import MesonException, setup_vsenv, relpath
 from . import mlog, environment
 from functools import wraps
-from .mparser import Token, ArrayNode, ArgumentNode, ArithmeticNode, AssignmentNode, BaseNode, StringNode, BooleanNode, ElementaryNode, IdNode, FunctionNode, PlusAssignmentNode
+from .mparser import Token, ArrayNode, ArgumentNode, ArithmeticNode, AssignmentNode, BaseNode, StringNode, BooleanNode, DictNode, ElementaryNode, IdNode, FunctionNode, PlusAssignmentNode
 from .mintro import IntrospectionEncoder
 import json, os, re, sys, codecs
 import typing as T
@@ -569,6 +569,16 @@ class Rewriter:
                             element = i.value
                         data_list += [element]
                     info_data[key] = data_list
+                elif isinstance(val, DictNode):
+                    data_dict = {}
+                    for k, v in val.args.kwargs.items():
+                        if not isinstance(k, StringNode):
+                            continue
+                        value = None
+                        if isinstance(v, ElementaryNode):
+                            value = v.value
+                        data_dict[k.value] = value
+                    info_data[key] = data_dict
 
             self.add_info('kwargs', '{}#{}'.format(cmd['function'], cmd['id']), info_data)
             return # Nothing else to do
