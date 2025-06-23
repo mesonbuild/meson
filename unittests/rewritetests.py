@@ -289,6 +289,23 @@ class RewriterTests(BasePlatformTests):
         }
         self.assertDictEqual(out, expected)
 
+    def test_kwargs_info_dict(self):
+        self.prime('8 kwargs dict')
+        out = self.rewrite(self.builddir, os.path.join(self.builddir, 'info.json'))
+        expected = {
+            'kwargs': {
+                'project#/': {
+                    'default_options': {'c_std': 'c11', 'cpp_std': 'c++17'},
+                    'version': '0.0.1'
+                },
+                'dependency#dep1': {
+                    'default_options': {'foo': 'bar'},
+                    'required': False
+                }
+            }
+        }
+        self.assertDictEqual(out, expected)
+
     def test_kwargs_set(self):
         self.prime('3 kwargs')
         self.rewrite(self.builddir, os.path.join(self.builddir, 'set.json'))
