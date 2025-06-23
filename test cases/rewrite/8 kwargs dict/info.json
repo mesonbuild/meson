@@ -1,0 +1,14 @@
+[
+  {
+    "type": "kwargs",
+    "function": "project",
+    "id": "/",
+    "operation": "info"
+  },
+  {
+    "type": "kwargs",
+    "function": "dependency",
+    "id": "dep1",
+    "operation": "info"
+  }
+]
