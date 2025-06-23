@@ -55,13 +55,13 @@ def add_arguments(parser: ArgumentParser, formatter: _FormatterClass) -> None:
     kw_parser.add_argument('function', choices=list(rewriter_func_kwargs.keys()),
                            help='Function type to modify')
     kw_parser.add_argument('id', help='ID of the function to modify (must be "/" for "project")')
-    kw_parser.add_argument('kwargs', nargs='*', help='Pairs of keyword and value')
+    kw_parser.add_argument('kwargs', nargs='*', help='<keyword> <value> pairs, or list of <keyword> for "delete"')
 
     # Default options
     def_parser = subparsers.add_parser('default-options', aliases=['def'], help='Modify the project default options', formatter_class=formatter)
     def_parser.add_argument('operation', choices=rewriter_keys['default_options']['operation'][2],
                             help='Action to execute')
-    def_parser.add_argument('options', nargs='*', help='Key, value pairs of configuration option')
+    def_parser.add_argument('options', nargs='*', help='<key> <value> pairs for "set"; list of <key> for "delete"')
 
     # JSON file/command
     cmd_parser = subparsers.add_parser('command', aliases=['cmd'], help='Execute a JSON array of commands', formatter_class=formatter)
@@ -1103,19 +1103,27 @@ def generate_target(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
     }]
 
 def generate_kwargs(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
+    if options.operation == 'delete':
+        kwargs: T.Dict[str, T.Optional[str]] = {k: None for k in options.kwargs}
+    else:
+        kwargs = list_to_dict(options.kwargs)
     return [{
         'type': 'kwargs',
         'function': options.function,
         'id': options.id,
         'operation': options.operation,
-        'kwargs': list_to_dict(options.kwargs),
+        'kwargs': kwargs,
     }]
 
 def generate_def_opts(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
+    if options.operation == 'delete':
+        kwargs: T.Dict[str, T.Optional[str]] = {k: None for k in options.options}
+    else:
+        kwargs = list_to_dict(options.options)
     return [{
         'type': 'default_options',
         'operation': options.operation,
-        'options': list_to_dict(options.options),
+        'options': kwargs,
     }]
 
 def generate_cmd(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
