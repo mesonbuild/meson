@@ -55,13 +55,13 @@ def add_arguments(parser: ArgumentParser, formatter: _FormatterClass) -> None:
     kw_parser.add_argument('function', choices=list(rewriter_func_kwargs.keys()),
                            help='Function type to modify')
     kw_parser.add_argument('id', help='ID of the function to modify (must be "/" for "project")')
-    kw_parser.add_argument('kwargs', nargs='*', help='Pairs of keyword and value')
+    kw_parser.add_argument('kwargs', nargs='*', help='<keyword> <value> pairs, or list of <keyword> for "delete"')
 
     # Default options
     def_parser = subparsers.add_parser('default-options', aliases=['def'], help='Modify the project default options', formatter_class=formatter)
     def_parser.add_argument('operation', choices=rewriter_keys['default_options']['operation'][2],
                             help='Action to execute')
-    def_parser.add_argument('options', nargs='*', help='Key, value pairs of configuration option')
+    def_parser.add_argument('options', nargs='*', help='<key> <value> pairs for "set"; list of <key> for "delete"')
 
     # JSON file/command
     cmd_parser = subparsers.add_parser('command', aliases=['cmd'], help='Execute a JSON array of commands', formatter_class=formatter)
@@ -1092,6 +1092,13 @@ def list_to_dict(in_list: T.List[str]) -> T.Dict[str, str]:
         raise RewriterException('List of key/value pairs must have an even length.')
     return result
 
+def list_to_dict_for_delete(args: T.List[str]) -> T.Dict[str, T.Optional[str]]:
+    if len(args) % 2 == 0 and all(a == '' for a in args[1::2]):
+        mlog.deprecation('Even-numbered arguments are all blank; '
+                         'ignoring these for compatibility with Meson < 1.10')
+        args = args[::2]
+    return {a: None for a in args}
+
 def generate_target(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
     return [{
         'type': 'target',
@@ -1103,19 +1110,27 @@ def generate_target(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
     }]
 
 def generate_kwargs(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
+    if options.operation == 'delete':
+        kwargs = list_to_dict_for_delete(options.kwargs)
+    else:
+        kwargs = list_to_dict(options.kwargs)
     return [{
         'type': 'kwargs',
         'function': options.function,
         'id': options.id,
         'operation': options.operation,
-        'kwargs': list_to_dict(options.kwargs),
+        'kwargs': kwargs,
     }]
 
 def generate_def_opts(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
+    if options.operation == 'delete':
+        kwargs = list_to_dict_for_delete(options.options)
+    else:
+        kwargs = list_to_dict(options.options)
     return [{
         'type': 'default_options',
         'operation': options.operation,
-        'options': list_to_dict(options.options),
+        'options': kwargs,
     }]
 
 def generate_cmd(options: argparse.Namespace) -> T.List[T.Dict[str, T.Any]]:
