@@ -3140,6 +3140,9 @@ class AllPlatformTests(BasePlatformTests):
                     if libpc is None:
                         continue
                     python_build_config['c_api']['pkgconfig_path'] = libpc
+                # Old Ubuntu versions have incorrect LIBDIR, skip testing non-pkgconfig variant there.
+                elif not os.path.exists(python_build_config['libpython']['dynamic']):
+                    continue
 
                 with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as python_build_config_file:
                     json.dump(python_build_config, fp=python_build_config_file)
