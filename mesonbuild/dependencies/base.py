@@ -21,6 +21,7 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
+    from ..arguments import Argument
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
@@ -65,6 +66,12 @@ class MissingCompiler(_MissingCompilerBase):
 
     def __bool__(self) -> bool:
         return False
+
+    def make_arguments_abstract(self, args: T.List[str]) -> T.List[Argument]:
+        return []
+
+    def make_arguments_concrete(self, args: T.List[Argument]) -> T.List[str]:
+        return []
 
 
 class DependencyMethods(Enum):

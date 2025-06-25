@@ -25,6 +25,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from .. import coredata
+    from ..arguments import Argument
     from ..build import BuildTarget, DFeatures
     from ..options import MutableKeyedOptionDictType
     from ..envconfig import MachineInfo
@@ -1417,6 +1418,22 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if 'none' not in value:
             value = ['none'] + value
         std.choices = value
+
+    @abc.abstractmethod
+    def make_arguments_abstract(self, args: T.List[str]) -> T.List[Argument]:
+        """Convert concrete (string) arguments into abstract ones.
+
+        :param args: The list of string arguments to convert
+        :return: A list of Arguments.
+        """
+
+    @abc.abstractmethod
+    def make_arguments_concrete(self, args: T.List[Argument]) -> T.List[str]:
+        """Convert abstract Arguments into a list of strings for this compiler.
+
+        :param args: The Arguments to convert.
+        :return: A string list of arguments.
+        """
 
 
 def get_global_options(lang: str,
