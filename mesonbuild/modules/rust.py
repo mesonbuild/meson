@@ -191,7 +191,8 @@ class RustModule(ExtensionModule):
                 del new_target_kwargs[kw]
 
         lang_args = base_target.extra_args.copy()
-        lang_args['rust'] = base_target.extra_args['rust'] + kwargs['rust_args'] + ['--test']
+        lang_args['rust'] = \
+            base_target.extra_args['rust'] + base_target.compilers['rust'].make_arguments_abstract(kwargs['rust_args'] + ['--test'])
         new_target_kwargs['language_args'] = lang_args
 
         sources = T.cast('T.List[SourceOutputs]', base_target.sources.copy())

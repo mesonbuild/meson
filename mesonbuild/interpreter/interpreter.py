@@ -113,6 +113,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from . import kwargs as kwtypes
+    from ..arguments import Argument
     from ..backend.backends import Backend
     from ..interpreterbase.baseobjects import InterpreterObject, TYPE_var, TYPE_kwargs
     from ..options import OptionDict
@@ -3341,11 +3342,13 @@ class Interpreter(InterpreterBase, HoldableObject):
         them for the IR.
         """
         d = kwargs.setdefault('depend_files', [])
-        new_args: T.DefaultDict[str, T.List[str]] = collections.defaultdict(list)
+        new_args: T.DefaultDict[str, T.List[Argument]] = collections.defaultdict(list)
 
         for l in compilers.all_languages:
             deps, args = self.__convert_file_args(kwargs[f'{l}_args'])
-            new_args[l] = args
+            # TODO: use correct machine
+            if args:
+                new_args[l] = self.compilers.host[l].make_arguments_abstract(args)
             d.extend(deps)
         kwargs['language_args'] = new_args
 
@@ -3412,12 +3415,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         if targetclass is build.StaticLibrary:
             for lang in compilers.all_languages - {'java'}:
                 deps, args = self.__convert_file_args(kwargs.get(f'{lang}_static_args', []))
-                kwargs['language_args'][lang].extend(args)
+                kwargs['language_args'][lang].extend(self.compilers[for_machine][lang].make_arguments_abstract(args))
                 kwargs['depend_files'].extend(deps)
         elif targetclass is build.SharedLibrary:
             for lang in compilers.all_languages - {'java'}:
                 deps, args = self.__convert_file_args(kwargs.get(f'{lang}_shared_args', []))
-                kwargs['language_args'][lang].extend(args)
+                kwargs['language_args'][lang].extend(self.compilers[for_machine][lang].make_arguments_abstract(args))
                 kwargs['depend_files'].extend(deps)
         if targetclass is not build.Jar:
             self.check_for_jar_sources(sources, targetclass)

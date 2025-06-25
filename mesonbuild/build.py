@@ -39,6 +39,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from . import environment
+    from .arguments import Argument
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
     from .compilers import Compiler
@@ -719,7 +720,7 @@ class BuildTarget(Target):
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
         self.pch: T.Dict[str, T.List[str]] = {}
-        self.extra_args: T.DefaultDict[str, T.List[str]] = kwargs.get('language_args', defaultdict(list))
+        self.extra_args: T.DefaultDict[str, T.List[Argument]] = kwargs.get('language_args', defaultdict(list))
         self.sources: T.List[File] = []
         # If the same source is defined multiple times, use it only once.
         self.seen_sources: T.Set[File] = set()
