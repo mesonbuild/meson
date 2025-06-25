@@ -2108,7 +2108,7 @@ class Backend:
         commands += compiler.get_compile_only_args()
         # Add per-target compile args, f.ex, `c_args : ['-DFOO']`. We set these
         # near the end since these are supposed to override everything else.
-        commands += self.escape_extra_args(target.get_extra_args(compiler.get_language()))
+        commands += self.escape_extra_args(compiler.make_arguments_concrete(target.get_extra_args(compiler.get_language())))
         # Do not escape this one, it is interpreted by the build system
         # (Xcode considers these as variables to expand at build time)
         if extras is not None:
