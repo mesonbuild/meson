@@ -629,6 +629,37 @@ class PosixDynamicLinkerMixin(DynamicLinkerBase):
     def sanitizer_args(self, value: T.List[str]) -> T.List[str]:
         return []
 
+    def make_arguments_abstract(self, args: T.List[str]) -> T.List[Argument]:
+        ret: T.List[Argument] = []
+
+        for arg in args:
+            if arg.startswith('-L'):
+                ret.append(arguments.LinkerSearch(arg.removeprefix('-L')))
+            elif arg.startswith('-l'):
+                ret.append(arguments.LinkLibrary(arg.removeprefix('-l')))
+            elif arg.startswith('-Wl,rpath'):
+                ret.append(arguments.Rpath(arg.removeprefix('-Wl,rpath=')))
+            elif os.path.exists(arg):
+                ret.append(arguments.LinkLibrary(arg, True))
+            else:
+                ret.append(arguments.Opaque(arg))
+
+        return ret
+
+    def make_arguments_concrete(self, args: T.List[Argument]) -> T.List[str]:
+        ret: T.List[str] = []
+
+        for arg in args:
+            match arg:
+                case arguments.LinkerSearch(path):
+                    ret.append(f'-L{path}')
+                case arguments.LinkLibrary(path):
+                    ret.append(f'-l{path}')
+                case arguments.Opaque(value):
+                    ret.append(value)
+
+        return ret
+
 
 class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
 
