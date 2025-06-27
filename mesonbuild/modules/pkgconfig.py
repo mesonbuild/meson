@@ -156,6 +156,14 @@ class DependenciesHelper:
                 pass
             elif isinstance(obj, dependencies.ExternalDependency) and obj.name == 'threads':
                 pass
+            elif isinstance(obj, dependencies.InternalDependency) and all(lib.get_id() in self.metadata for lib in obj.libraries):
+                # Ensure BothLibraries are resolved:
+                if self.pub_libs and isinstance(self.pub_libs[0], build.StaticLibrary):
+                    obj = obj.get_as_static(recursive=True)
+                else:
+                    obj = obj.get_as_shared(recursive=True)
+                for lib in obj.libraries:
+                    processed_reqs.append(self.metadata[lib.get_id()].filebase)
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
                                               'library with pkgconfig-generated file '
