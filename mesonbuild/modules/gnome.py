@@ -636,7 +636,7 @@ class GnomeModule(ExtensionModule):
             # https://github.com/mesonbuild/meson/issues/1911
             # However, g-ir-scanner does not understand -Wl,-rpath
             # so we need to use -L instead
-            for d in state.backend.determine_rpath_dirs(lib):
+            for d in lib.determine_rpath_dirs():
                 d = os.path.join(state.environment.get_build_dir(), d)
                 link_command.append('-L' + d)
                 if include_rpath:
@@ -867,7 +867,7 @@ class GnomeModule(ExtensionModule):
                 # https://github.com/mesonbuild/meson/issues/1911
                 # However, g-ir-scanner does not understand -Wl,-rpath
                 # so we need to use -L instead
-                for d in state.backend.determine_rpath_dirs(girtarget):
+                for d in girtarget.determine_rpath_dirs():
                     d = os.path.join(state.environment.get_build_dir(), d)
                     ret.append('-L' + d)
 
