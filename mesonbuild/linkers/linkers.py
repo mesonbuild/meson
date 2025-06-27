@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -10,11 +10,13 @@ import typing as T
 import re
 
 from .base import ArLikeLinker, RSPFileSyntax
+from .. import arguments
 from .. import mesonlib
 from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
+    from ..arguments import Argument
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..build import BuildTarget
@@ -313,6 +315,22 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_command_to_archive_shlib(self) -> T.List[str]:
         #Only used by AIX.
         return []
+
+    @abc.abstractmethod
+    def make_arguments_abstract(self, args: T.List[str]) -> T.List[Argument]:
+        """Convert concrete (string) arguments into abstract ones.
+
+        :param args: The list of string arguments to convert
+        :return: A list of Arguments.
+        """
+
+    @abc.abstractmethod
+    def make_arguments_concrete(self, args: T.List[Argument]) -> T.List[str]:
+        """Convert abstract Arguments into a list of strings for this compiler.
+
+        :param args: The Arguments to convert.
+        :return: A string list of arguments.
+        """
 
 
 if T.TYPE_CHECKING:
