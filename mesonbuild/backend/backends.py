@@ -744,12 +744,8 @@ class Backend:
         args: T.List[str] = []
         for lang in LANGUAGES_USING_LDFLAGS:
             try:
-                e = self.environment.coredata.get_external_link_args(target.for_machine, lang)
-                if isinstance(e, str):
-                    args.append(e)
-                else:
-                    args.extend(e)
-            except Exception:
+                args += self.environment.coredata.get_external_link_args(target.for_machine, lang)
+            except KeyError:
                 pass
         return self.get_rpath_dirs_from_link_args(args)
 
