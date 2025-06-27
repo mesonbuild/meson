@@ -493,6 +493,9 @@ or `--check-only` option).
 input instead of reading it from a file. This cannot be used with `--recursive`
 or `--inline` arguments.
 
+*Since 1.9.0* Using `-` as source file with `--editor-config` now requires
+`--source-file-path` argument to ensure consistent results.
+
 
 #### Differences with `muon fmt`
 
