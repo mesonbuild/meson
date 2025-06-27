@@ -1,0 +1,15 @@
+{
+    "installed": [
+        { "type": "file", "file": "usr/lib/pkgconfig/simple.pc"},
+        { "type": "file", "file": "usr/lib/pkgconfig/simple2.pc"}
+    ],
+    "matrix": {
+        "options": {
+            "default_library": [
+                { "val": "shared" },
+                { "val": "static" },
+                { "val": "both" }
+            ]
+        }
+    }
+}
