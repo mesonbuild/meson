@@ -1084,7 +1084,49 @@ class NinjaBackend(backends.Backend):
             final_obj_list = self.generate_prelink(target, obj_list)
         else:
             final_obj_list = obj_list
-        elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
+
+        # In AIX, projects like postgres where the shared modules/plugins require symbols from the main binary.
+        # The postgres binary in case of postgressql needs to have every shared library that it links to export
+        # all symbols except those undefined, in its symbol table thereby telling the linker
+        # the symbols it exports via the -Wl,-bE:<path_to_export_file> option, where export file is a file having
+        # all the symbols the shared library will export. For example, the initdb binary of postgres in AIX. If we
+        # check the dependency of the same, ldd initdb, we get /lib/libc.a(shr_64.o),
+        # /lib/libpthreads.a(shr_xpg5_64.o), /libpq/libpq.a(libpq.so.5.18) and so on. We need to tell the linker
+        # via the export file to add the symbols exported by libpq.a to libpq.a's symbol table, so at runtime linking
+        # the linker knows where these symbols came from and can resolve the same. The below code does two things.
+        # One with ld -r -o <name>_SUBSYS.o <object files> we create a single object file that will have all the
+        # objects needed to create a target shared library.
+        # Two: Using this object file and nm command extract all the symbols using 'nm' command and create the
+        # export list. Then use this export list in the shared library command via -Wl,-bE:<path_to_export_file>
+        # option which tells the linker that this shared library exports these symbols in export file.
+        # Example:
+        # build /getpwuid-preload.so_SUBSYS.o: Export_List_AIX_Object /getpwuid-preload.so.p/getpwuid-preload.c.o
+        # IMPLIB = /getpwuid-preload.a
+        # build /getpwuid-preload.so.exp: AIX_SHSYM /getpwuid-preload.so_SUBSYS.o
+        # IMPLIB = /getpwuid-preload.a
+        # build /getpwuid-preload.so: c_LINKER /getpwuid-preload.so.p/getpwuid-preload.c.o /getpwuid-preload.so.exp
+        # LINK_ARGS = -Wl,-bE:/getpwuid-preload.so.exp
+
+        symname = ""
+        if (isinstance(target, build.SharedLibrary) and not isinstance(target, build.SharedModule)
+                and self.environment.machines[target.for_machine].is_aix()):
+            target_file = os.path.join(self.get_target_dir(target), target.get_filename() + '_SUBSYS.o')
+            symname = os.path.join(self.get_target_dir(target), target.get_filename() + '_SUBSYS.o')
+            Export_List_AIX_Object_elem = NinjaBuildElement(self.all_outputs, symname, 'Export_List_AIX_Object', final_obj_list)
+            Export_List_AIX_Object_elem.add_item('IMPLIB', self.get_target_filename_for_linking(target))
+            self.add_build(Export_List_AIX_Object_elem)
+
+            symname = target.get_filename() + '.exp'
+            AIX_SHSYM_elem = NinjaBuildElement(self.all_outputs, os.path.join(self.get_target_dir(target), symname), 'AIX_SHSYM', target_file)
+            AIX_SHSYM_elem.add_item('IMPLIB', self.get_target_filename_for_linking(target))
+            self.add_build(AIX_SHSYM_elem)
+
+            elem = self.generate_link(target, outname, final_obj_list + [os.path.join(self.get_target_dir(target), symname)], linker, pch_objects, stdlib_args=stdlib_args)
+
+        # All other targets follow the normal method.
+        else:
+            elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
+
         self.generate_dependency_scan_target(target, compiled_sources, source2object, fortran_order_deps)
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
@@ -2429,6 +2471,22 @@ class NinjaBackend(backends.Backend):
                 options = {}
                 self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None))
 
+                rule = 'Export_List_AIX_Object{}'.format(self.get_rule_suffix(for_machine))
+                description = 'Export file object creation for AIX'
+                cmdlist = ['/usr/bin/ld', '-r', '-o', '$out', '$in']
+                args = []
+                options = {}
+                self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=None))
+
+        args = self.environment.get_build_command() + \
+            ['--internal', 'symbolextractor', self.environment.get_build_dir(), '$in', '$IMPLIB', '$out']
+        if self.environment.machines[for_machine].is_aix():
+            symrule = 'AIX_SHSYM'
+            symcmd = args + ['$CROSS']
+            syndesc = 'Generating AIX symbol file $out'
+            synstat = 'restat = 1'
+            self.add_rule(NinjaRule(symrule, symcmd, [], syndesc, extra=synstat))
+
         args = self.environment.get_build_command() + \
             ['--internal',
              'symbolextractor',
@@ -3407,6 +3465,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
+            # Add export file option in command for AIX.
+            if self.environment.machines[target.for_machine].is_aix():
+                if not isinstance(target, build.SharedModule):
+                    commands += ['-Wl,-bE:' + self.get_target_filename(target) + '.exp']
         elif isinstance(target, build.StaticLibrary):
             produce_thin_archive = self.allow_thin_archives[target.for_machine] and not target.should_install()
             commands += linker.get_std_link_args(self.environment, produce_thin_archive)
