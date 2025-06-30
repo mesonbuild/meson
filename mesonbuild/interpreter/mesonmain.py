@@ -16,7 +16,7 @@ from ..mesonlib import MachineChoice
 from ..options import OptionKey
 from ..programs import OverrideProgram, ExternalProgram
 from ..interpreter.type_checking import ENV_KW, ENV_METHOD_KW, ENV_SEPARATOR_KW, env_convertor_with_method
-from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated,
+from ..interpreterbase import (MesonInterpreterObject, FeatureNew, FeatureDeprecated, FeatureBroken,
                                typed_pos_args,  noArgsFlattening, noPosargs, noKwargs,
                                typed_kwargs, KwargInfo, InterpreterException, InterpreterObject)
 from .primitives import MesonVersionString
@@ -285,13 +285,19 @@ class MesonMain(MesonInterpreterObject):
     @typed_kwargs('meson.get_compiler', NATIVE_KW)
     @InterpreterObject.method('get_compiler')
     def get_compiler_method(self, args: T.Tuple[str], kwargs: 'NativeKW') -> 'Compiler':
-        cname = args[0]
+        lang = args[0]
         for_machine = kwargs['native']
-        clist = self.interpreter.coredata.compilers[for_machine]
         try:
-            return clist[cname]
+            return self.interpreter.compilers[for_machine][lang]
         except KeyError:
-            raise InterpreterException(f'Tried to access compiler for language "{cname}", not specified for {for_machine.get_lower_case_name()} machine.')
+            try:
+                comp = self.interpreter.coredata.compilers[for_machine][lang]
+            except KeyError:
+                raise InterpreterException(f'Tried to access compiler for language "{lang}", not specified for {for_machine.get_lower_case_name()} machine.')
+
+            FeatureBroken.single_use('Using `meson.get_compiler()` for languages only initialized in another subproject', '1.11.0', self.subproject,
+                                     'This is extremely fragile, as your project likely cannot be used outside of your environment.')
+            return comp
 
     @noPosargs
     @noKwargs
