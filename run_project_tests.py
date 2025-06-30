@@ -37,7 +37,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
-from mesonbuild.compilers import compiler_from_language
+from mesonbuild.compilers import detect_compiler_for
 from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof, setup_vsenv
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
@@ -313,6 +313,7 @@ no_meson_log_msg = 'No meson-log.txt found.'
 
 host_c_compiler: T.Optional[str]   = None
 compiler_id_map: T.Dict[str, str]  = {}
+all_compilers: mesonlib.PerMachine[T.Dict[str, T.Optional[compilers.Compiler]]] = mesonlib.PerMachine({}, {})
 tool_vers_map:   T.Dict[str, str]  = {}
 
 compile_commands:   T.List[str]
@@ -979,30 +980,17 @@ def have_d_compiler() -> bool:
         return True
     return False
 
-def have_objc_compiler(use_tmp: bool) -> bool:
+def have_objc_compiler() -> bool:
     return have_working_compiler('objc', use_tmp)
 
-def have_objcpp_compiler(use_tmp: bool) -> bool:
+def have_objcpp_compiler() -> bool:
     return have_working_compiler('objcpp', use_tmp)
 
-def have_cython_compiler(use_tmp: bool) -> bool:
+def have_cython_compiler() -> bool:
     return have_working_compiler('cython', use_tmp)
 
-def have_working_compiler(lang: str, use_tmp: bool) -> bool:
-    with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
-        env = environment.Environment('', build_dir, get_fake_options('/'))
-        try:
-            compiler = compiler_from_language(env, lang, MachineChoice.HOST)
-        except mesonlib.MesonException:
-            return False
-        if not compiler:
-            return False
-        env.coredata.process_compiler_options(lang, compiler, '')
-        try:
-            compiler.sanity_check(env.get_scratch_dir())
-        except mesonlib.MesonException:
-            return False
-    return True
+def have_working_compiler(lang: str) -> bool:
+    return all_compilers.host[lang] is not None
 
 def have_java() -> bool:
     if shutil.which('javac') and shutil.which('java'):
@@ -1128,11 +1116,11 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
         TestCategory('java', 'java', backend is not Backend.ninja or not have_java()),
         TestCategory('C#', 'csharp', skip_csharp(backend)),
         TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
-        TestCategory('cython', 'cython', backend is not Backend.ninja or not have_cython_compiler(options.use_tmpdir)),
+        TestCategory('cython', 'cython', backend is not Backend.ninja or not have_cython_compiler(),
         TestCategory('rust', 'rust', should_skip_rust(backend)),
         TestCategory('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
-        TestCategory('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler(options.use_tmpdir)),
-        TestCategory('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler(options.use_tmpdir)),
+        TestCategory('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler(),
+        TestCategory('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler(),
         TestCategory('fortran', 'fortran', skip_fortran or backend != Backend.ninja),
         TestCategory('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
@@ -1482,37 +1470,40 @@ def detect_system_compiler(options: 'CompilerArgumentType') -> None:
     if options.native_file:
         fake_opts.native_file = [options.native_file]
 
-    env = environment.Environment('', '', fake_opts)
+
+    machines = [MachineChoice.HOST]
+    if options.cross_file:
+        machines.append(MachineChoice.BUILD)
+
+    with tempfile.TemporaryDirectory(prefix='b_', dir=None if options.use_tmpdir else '.') as d:
+        env = environment.Environment('', d, fake_opts)
+        for machine in machines:
+            for lang in sorted(compilers.all_languages, key=compilers.sort_clink):
+                try:
+                    comp = detect_compiler_for(env, lang, machine, False, '')
+                except mesonlib.MesonException:
+                    comp = None
+                all_compilers[machine][lang] = comp
 
     print_compilers(env, MachineChoice.HOST)
-    if options.cross_file:
+    if all_compilers.build:
         print_compilers(env, MachineChoice.BUILD)
 
-    for lang in sorted(compilers.all_languages):
-        try:
-            comp = compiler_from_language(env, lang, MachineChoice.HOST)
-            # note compiler id for later use with test.json matrix
-            compiler_id_map[lang] = comp.get_id()
-        except mesonlib.MesonException:
-            comp = None
-
-        # note C compiler for later use by platform_fix_name()
-        if lang == 'c':
-            if comp:
-                host_c_compiler = comp.get_id()
-            else:
-                raise RuntimeError("Could not find C compiler.")
+    # note C compiler for later use by platform_fix_name()
+    try:
+        host_c_compiler = all_compilers.host['c'].get_id()
+    except AttributeError:
+        host_c_compiler = None
 
 
 def print_compilers(env: 'Environment', machine: MachineChoice) -> None:
     print()
     print(f'{machine.get_lower_case_name()} machine compilers')
     print()
-    for lang in sorted(compilers.all_languages):
-        try:
-            comp = compiler_from_language(env, lang, machine)
+    for lang, comp in all_compilers[machine].items():
+        if comp is not None:
             details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
-        except mesonlib.MesonException:
+        else:
             details = '[not found]'
         print(f'{lang:<7}: {details}')
 
