@@ -347,7 +347,7 @@ signal.signal(signal.SIGINT, stop_handler)
 signal.signal(signal.SIGTERM, stop_handler)
 
 def setup_commands(optbackend: str) -> None:
-    global do_debug, backend, backend_flags
+    global backend, backend_flags
     global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
     backend, backend_flags = guess_backend(optbackend, shutil.which('msbuild'))
     compile_commands, clean_commands, test_commands, install_commands, \
@@ -1231,7 +1231,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                use_tmp: bool,
                num_workers: int,
                logfile: T.TextIO) -> T.Tuple[int, int, int]:
-    global stop, host_c_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
     conf_time:  float = 0
@@ -1447,7 +1446,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     return passing_tests, failing_tests, skipped_tests
 
 def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
-    global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmpdir else '.') as build_dir:
@@ -1478,7 +1476,7 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
 
 
 def detect_system_compiler(options: 'CompilerArgumentType') -> None:
-    global host_c_compiler, compiler_id_map
+    global host_c_compiler
 
     fake_opts = get_fake_options('/')
     if options.cross_file:
