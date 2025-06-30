@@ -56,22 +56,24 @@ packages['netcdf'] = netcdf_factory
 class AtomicBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
-        self.feature_since = ('1.7.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
+        self.feature_since = ('1.7.0', "consider checking for `atomic_fetch_add` of a 64-bit type with and without `find_library('atomic')`")
 
-        if self.clib_compiler.has_function('atomic_flag_clear', '#include <stdatomic.h>', env)[0]:
-            self.is_found = True
+        code = '''#include <stdatomic.h>\n\nint main() {\n    atomic_int_least64_t a;\n    return atomic_fetch_add(&b, 1);\n}''' # [ignore encoding] this is C, not python, Mr. Lint
+
+        self.is_found = bool(self.clib_compiler.links(code, env)[0])
 
 
 class AtomicSystemDependency(SystemDependency):
     def __init__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
-        self.feature_since = ('1.7.0', "consider checking for `atomic_flag_clear` with and without `find_library('atomic')`")
+        self.feature_since = ('1.7.0', "consider checking for `atomic_fetch_add` of a 64-bit type with and without `find_library('atomic')`")
 
         h = self.clib_compiler.has_header('stdatomic.h', '', env)
-        self.link_args = self.clib_compiler.find_library('atomic', env, [], self.libtype)
+        if not h[0]:
+            return
 
-        if h[0] and self.link_args:
-            self.is_found = True
+        self.link_args = self.clib_compiler.find_library('atomic', env, [], self.libtype)
+        self.is_found = bool(self.link_args)
 
 
 class DlBuiltinDependency(BuiltinDependency):
