@@ -1537,6 +1537,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                 args.append(cython_lang)
                 internal.add(cython_lang)
 
+        if 'cuda' in args and 'cpp' not in langs:
+            # Cuda requires C++, ensure we initialize that compiler, but don't
+            # add that to the project compiler list
+            # No FeatureNew is required here because we always did this, we just
+            # did it wrong.
+            args.append('cpp')
+            internal.add('cpp')
+
         if 'nasm' in langs:
             FeatureNew.single_use('Adding NASM language', '0.64.0', self.subproject, location=self.current_node)
 
