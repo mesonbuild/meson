@@ -1043,15 +1043,25 @@ class BuildTarget(Target):
             try:
                 self.compilers[lang] = self.all_compilers[lang]
             except KeyError:
-                # In the case of cython it's possible that we have an
-                # implementation detail language
-                #
                 # It is intentional not to update self.all_compilers here, since
                 # that is a reference to Interpreter.compilers, which should
                 # only contain the compilers enabled explicilty by the project
+
+                is_error: bool = True
+
+                # In the case of cython it's possible that we have an
+                # implementation detail language
                 if self.uses_cython() and lang == self.environment.coredata.get_option_for_target(self, 'cython_language'):
                     self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
-                else:
+                    is_error = False
+
+                # C++ is an implementation detail of Cuda, and may not be
+                # explicitly enabled.
+                if self.uses_cuda() and lang == 'cpp':
+                    self.compilers[lang] = self.environment.coredata.compilers[self.for_machine][lang]
+                    is_error = False
+
+                if is_error:
                     raise
 
         # did user override clink_langs for this target?
@@ -1758,6 +1768,9 @@ class BuildTarget(Target):
 
     def uses_cython(self) -> bool:
         return 'cython' in self.compilers
+
+    def uses_cuda(self) -> bool:
+        return 'cuda' in self.compilers
 
     def uses_vala(self) -> bool:
         return 'vala' in self.compilers
