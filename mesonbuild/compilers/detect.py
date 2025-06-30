@@ -643,6 +643,12 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     is_cross = env.is_cross_build(for_machine)
     compilers, ccache = _get_compilers(env, 'cuda', for_machine)
     info = env.machines[for_machine]
+
+    try:
+        cpp_compiler = env.coredata.compilers[for_machine]['cpp']
+    except KeyError:
+        raise MesonException('Cuda requires a working C++ compiler for the same machine, but one could not be found')
+
     for compiler in compilers:
         arg = '--version'
         try:
@@ -666,7 +672,6 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         # Luckily, the "V" also makes it very simple to extract
         # the full version:
         version = out.strip().rsplit('V', maxsplit=1)[-1]
-        cpp_compiler = detect_cpp_compiler(env, for_machine)
         cls = CudaCompiler
         env.coredata.add_lang_args(cls.language, cls, for_machine, env)
         key = OptionKey('cuda_link_args', machine=for_machine)

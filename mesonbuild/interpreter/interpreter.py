@@ -1499,6 +1499,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         args = [a.lower() for a in args]
         langs = set(self.compilers[for_machine].keys())
         langs.update(args)
+        internal_only: T.Set[str] = set()
         # We'd really like to add cython's default language here, but it can't
         # actually be done because the cython compiler hasn't been initialized,
         # so we can't actually get the option yet. Because we can't know what
@@ -1508,6 +1509,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         if 'vala' in langs and 'c' not in langs:
             FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject, location=self.current_node)
             args.append('c')
+        if 'cuda' in langs and 'cpp' not in langs:
+            # This was previously handled inside the `detect_cuda_compiler`
+            # logic, but that doesn't fully initialize the C++ compiler, so no
+            # FeatureNew is needed
+            args.append('cpp')
+            internal_only.add('cpp')
         if 'nasm' in langs:
             FeatureNew.single_use('Adding NASM language', '0.64.0', self.subproject, location=self.current_node)
 
@@ -1552,7 +1559,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                 logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
-            self.compilers[for_machine][lang] = comp
+
+            # If the language is an implementation detail, don't add it to the
+            # Interpreter compiler set. This prevents it from being available
+            # via `meson.get_compiler()`
+            if lang not in internal_only:
+                self.compilers[for_machine][lang] = comp
 
         return success
 
