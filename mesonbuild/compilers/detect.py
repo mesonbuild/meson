@@ -648,6 +648,12 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     compilers, ccache_exe = _get_compilers(env, 'cuda', for_machine)
     ccache = ccache_exe.get_command() if (ccache_exe and ccache_exe.found()) else []
     info = env.machines[for_machine]
+
+    try:
+        cpp_compiler = env.coredata.compilers[for_machine]['cpp']
+    except KeyError:
+        raise MesonException('Cuda requires a working C++ compiler for the same machine, but one could not be found')
+
     for compiler in compilers:
         arg = '--version'
         try:
@@ -671,7 +677,6 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         # Split on the `V` to get the version, then strip additional lines after
         # that.
         version = out.strip().rsplit('V', maxsplit=1)[-1].split(maxsplit=1)[0]
-        cpp_compiler = detect_cpp_compiler(env, for_machine)
         cls = CudaCompiler
         env.add_lang_args(cls.language, cls, for_machine)
         key = OptionKey('cuda_link_args', machine=for_machine)
