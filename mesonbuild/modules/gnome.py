@@ -279,6 +279,7 @@ class GnomeModule(ExtensionModule):
             'genmarshal': self.genmarshal,
             'generate_vapi': self.generate_vapi,
         })
+        self.tool_cache: dict[str, T.Union[ExternalProgram, Executable, OverrideProgram]] = {}
 
     def _get_native_glib_version(self, state: 'ModuleState') -> str:
         if self.native_glib_version is None:
@@ -308,8 +309,9 @@ class GnomeModule(ExtensionModule):
                      mlog.bold('https://github.com/mesonbuild/meson/issues/1387'),
                      once=True, fatal=False)
 
-    @staticmethod
-    def _find_tool(state: 'ModuleState', tool: str) -> 'ToolType':
+    def _find_tool(self, state: 'ModuleState', tool: str) -> 'ToolType':
+        if tool in self.tool_cache:
+            return self.tool_cache[tool]
         tool_map = {
             'gio-querymodules': 'gio-2.0',
             'glib-compile-schemas': 'gio-2.0',
@@ -322,7 +324,8 @@ class GnomeModule(ExtensionModule):
         }
         depname = tool_map[tool]
         varname = tool.replace('-', '_')
-        return state.find_tool(tool, depname, varname)
+        self.tool_cache[tool] = state.find_tool(tool, depname, varname)
+        return self.tool_cache[tool]
 
     @typed_kwargs(
         'gnome.post_install',
