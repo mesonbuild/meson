@@ -774,9 +774,7 @@ class GnomeModule(ExtensionModule):
 
         STATIC_BUILD_REQUIRED_VERSION = ">=1.58.1"
         if isinstance(girtarget, (build.StaticLibrary)) and \
-           not mesonlib.version_compare(
-               self._get_gi(state)[0].get_version(),
-               STATIC_BUILD_REQUIRED_VERSION):
+           not self._giscanner_version_compare(state, STATIC_BUILD_REQUIRED_VERSION):
             raise MesonException('Static libraries can only be introspected with GObject-Introspection ' + STATIC_BUILD_REQUIRED_VERSION)
 
         return girtarget
@@ -796,6 +794,16 @@ class GnomeModule(ExtensionModule):
             self.giscanner = self._find_tool(state, 'g-ir-scanner')
             self.gicompiler = self._find_tool(state, 'g-ir-compiler')
         return self.giscanner, self.gicompiler
+
+    def _giscanner_version_compare(self, state: 'ModuleState', cmp: str) -> bool:
+        # Support for --version was introduced in g-i 1.58, but Ubuntu
+        # Bionic shipped 1.56.1. As all our version checks are greater
+        # than 1.58, we can just return False if get_version fails.
+        try:
+            giscanner, _ = self._get_gi(state)
+            return mesonlib.version_compare(giscanner.get_version(), cmp)
+        except MesonException:
+            return False
 
     @functools.lru_cache(maxsize=None)
     def _gir_has_option(self, option: str) -> bool:
@@ -991,7 +999,7 @@ class GnomeModule(ExtensionModule):
         giscanner, _ = self._get_gi(state)
 
         # response file supported?
-        rspable = mesonlib.version_compare(giscanner.get_version(), '>= 1.85.0')
+        rspable = self._giscanner_version_compare(state, '>= 1.85.0')
 
         return GirTarget(
             girfile,
