@@ -38,7 +38,7 @@ pkgs_stable=(
   dev-cpp/gtest
   sci-libs/hdf5
   dev-qt/linguist-tools
-  sys-devel/llvm
+  llvm-core/llvm
   dev-qt/qttools
 
   # misc
@@ -65,7 +65,7 @@ pkgs_stable=(
   #gnustep-base/gnustep-base
   #media-gfx/graphviz
   #sci-libs/netcdf-fortran
-  #sys-devel/clang
+  #llvm-core/clang
   #x11-libs/gtk+:3
 )
 pkgs_latest=(
