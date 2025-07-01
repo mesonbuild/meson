@@ -108,7 +108,7 @@ cat <<-EOF > /etc/portage/package.use/ci
 
 	# Some of these settings are needed just to get the binpkg but
 	# aren't negative to have anyway
-	sys-devel/gcc ada d
+	sys-devel/gcc ada d jit
 	>=sys-devel/gcc-13 ada objc objc++
 	sys-devel/gcc pgo lto
 
