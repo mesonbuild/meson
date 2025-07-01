@@ -807,7 +807,7 @@ class GnomeModule(ExtensionModule):
     @functools.lru_cache(maxsize=None)
     def _gir_has_option(self, option: str) -> bool:
         exe = self.giscanner
-        if isinstance(exe, OverrideProgram):
+        if isinstance(exe, (Executable, OverrideProgram)):
             # Handle overridden g-ir-scanner
             assert option in {'--extra-library', '--sources-top-dirs'}
             return True
