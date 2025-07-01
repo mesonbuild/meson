@@ -70,7 +70,6 @@ pkgs_stable=(
   #x11-libs/gtk+:3
 )
 pkgs_latest=(
-  # ~arch boost needed for py3.12 for now (needs 1.84)
   dev-build/b2
   dev-libs/boost
 
@@ -134,17 +133,20 @@ cat <<-EOF >> /etc/portage/make.conf
 	FEATURES="\${FEATURES} -ipc-sandbox -network-sandbox -pid-sandbox"
 EOF
 
-# TODO: Enable all Pythons / add multiple jobs with diff. Python impls?
+# Maybe we could enable all Pythons / add multiple jobs with diff. Python impls?
 #echo '*/* PYTHON_TARGETS: python3_10 python3_11 python3_12' >> /etc/portage/package.use/python
-echo '*/* PYTHON_TARGETS: python3_12' >> /etc/portage/package.use/python
-cat <<-EOF >> /etc/portage/profile/use.mask
--python_targets_python3_12
--python_single_target_python3_12
-EOF
-cat <<-EOF >> /etc/portage/profile/use.stable.mask
--python_targets_python3_12
--python_single_target_python3_12
-EOF
+
+# The below is for cases where we want non-default Python (either to get
+# better coverage from something older, or something newer)
+#echo '*/* PYTHON_TARGETS: python3_12' >> /etc/portage/package.use/python
+#cat <<-EOF >> /etc/portage/profile/use.mask
+#-python_targets_python3_12
+#-python_single_target_python3_12
+#EOF
+#cat <<-EOF >> /etc/portage/profile/use.stable.mask
+#-python_targets_python3_12
+#-python_single_target_python3_12
+#EOF
 
 echo 'dev-lang/python ensurepip' >> /etc/portage/package.use/python
 
