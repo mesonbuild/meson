@@ -29,6 +29,7 @@ pkgs_stable=(
   dev-libs/protobuf
 
   # custom deps
+  dev-libs/boost
   net-libs/libpcap
   dev-util/gtk-doc
   media-libs/libwmf
@@ -69,9 +70,6 @@ pkgs_stable=(
   #x11-libs/gtk+:3
 )
 pkgs_latest=(
-  dev-build/b2
-  dev-libs/boost
-
   dev-build/autoconf
   dev-build/automake
 
