@@ -255,7 +255,6 @@ class GnomeModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
-        self.gir_dep: T.Optional[Dependency] = None
         self.giscanner: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
         self.gicompiler: T.Optional[T.Union[ExternalProgram, Executable, OverrideProgram]] = None
         self.install_glib_compile_schemas = False
@@ -776,7 +775,7 @@ class GnomeModule(ExtensionModule):
         STATIC_BUILD_REQUIRED_VERSION = ">=1.58.1"
         if isinstance(girtarget, (build.StaticLibrary)) and \
            not mesonlib.version_compare(
-               self._get_gir_dep(state)[0].get_version(),
+               self._get_gi(state)[0].get_version(),
                STATIC_BUILD_REQUIRED_VERSION):
             raise MesonException('Static libraries can only be introspected with GObject-Introspection ' + STATIC_BUILD_REQUIRED_VERSION)
 
@@ -791,13 +790,12 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[Executable, 'ExternalProgram', 'OverrideProgram'],
-                                                            T.Union[Executable, 'ExternalProgram', 'OverrideProgram']]:
-        if not self.gir_dep:
-            self.gir_dep = state.dependency('gobject-introspection-1.0')
+    def _get_gi(self, state: 'ModuleState') -> T.Tuple[T.Union[Executable, 'ExternalProgram', 'OverrideProgram'],
+                                                       T.Union[Executable, 'ExternalProgram', 'OverrideProgram']]:
+        if not self.giscanner:
             self.giscanner = self._find_tool(state, 'g-ir-scanner')
             self.gicompiler = self._find_tool(state, 'g-ir-compiler')
-        return self.gir_dep, self.giscanner, self.gicompiler
+        return self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
     def _gir_has_option(self, option: str) -> bool:
@@ -990,10 +988,10 @@ class GnomeModule(ExtensionModule):
         run_env.set('CFLAGS', [quote_arg(x) for x in env_flags], ' ')
         run_env.merge(kwargs['env'])
 
-        gir_dep, _, _ = self._get_gir_dep(state)
+        giscanner, _ = self._get_gi(state)
 
         # response file supported?
-        rspable = mesonlib.version_compare(gir_dep.get_version(), '>= 1.85.0')
+        rspable = mesonlib.version_compare(giscanner.get_version(), '>= 1.85.0')
 
         return GirTarget(
             girfile,
@@ -1145,7 +1143,7 @@ class GnomeModule(ExtensionModule):
         if len(girtargets) > 1 and any(isinstance(el, Executable) for el in girtargets):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
 
-        gir_dep, giscanner, gicompiler = self._get_gir_dep(state)
+        giscanner, gicompiler = self._get_gi(state)
 
         ns = kwargs['namespace']
         nsversion = kwargs['nsversion']
@@ -1156,14 +1154,13 @@ class GnomeModule(ExtensionModule):
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
 
         depends: T.List[T.Union['FileOrString', 'build.GeneratedTypes', build.BuildTarget, build.StructuredSources]] = []
-        depends.extend(gir_dep.sources)
         depends.extend(girtargets)
 
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
         cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
         deps = self._get_gir_targets_deps(girtargets)
         deps += kwargs['dependencies']
-        deps += [gir_dep]
+        deps += [state.dependency('glib-2.0'), state.dependency('gobject-2.0'), state.dependency('gmodule-2.0'), state.dependency('gio-2.0')]
         typelib_includes, depends = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
