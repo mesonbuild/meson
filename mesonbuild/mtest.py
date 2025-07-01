@@ -1090,17 +1090,16 @@ class TestRunExitCode(TestRun):
     def complete(self) -> None:
         if self.res != TestResult.RUNNING:
             pass
-        elif self.expected_exitcode is not None:
-            if self.returncode == self.expected_exitcode:
-                self.res = TestResult.OK
-            else:
-                self.res = TestResult.FAIL
-        elif self.returncode == GNU_SKIP_RETURNCODE:
-            self.res = TestResult.SKIP
-        elif self.returncode == GNU_ERROR_RETURNCODE:
-            self.res = TestResult.ERROR
-        else:
-            self.res = TestResult.FAIL if bool(self.returncode) else TestResult.OK
+        exitcode_map = {
+            (0, None): TestResult.OK,
+            (self.expected_exitcode, self.expected_exitcode): TestResult.OK,
+            (GNU_SKIP_RETURNCODE, self.expected_exitcode): TestResult.SKIP,
+            (GNU_ERROR_RETURNCODE, self.expected_exitcode): TestResult.ERROR,
+            (GNU_SKIP_RETURNCODE, None): TestResult.SKIP,
+            (GNU_ERROR_RETURNCODE, None): TestResult.ERROR
+        }
+        key = (self.returncode, self.expected_exitcode)
+        self.res = TestResult.FAIL if key not in exitcode_map else exitcode_map[key]
         super().complete()
 
 TestRun.PROTOCOL_TO_CLASS[TestProtocol.EXITCODE] = TestRunExitCode
