@@ -343,7 +343,7 @@ class _PythonDependencyBase(_Base):
             return 'aarch64'
         raise DependencyException('Unknown Windows Python platform {self.platform!r}')
 
-    def get_windows_link_args(self, limited_api: bool) -> T.Optional[T.List[str]]:
+    def get_windows_link_args(self, limited_api: bool, environment: 'Environment') -> T.Optional[T.List[str]]:
         if self.build_config:
             if self.static:
                 key = 'static'
@@ -351,7 +351,7 @@ class _PythonDependencyBase(_Base):
                 key = 'dynamic-stableabi'
             else:
                 key = 'dynamic'
-            sysroot = environment.properties[for_machine].get_sys_root() or ''
+            sysroot = environment.properties[self.for_machine].get_sys_root() or ''
             return [sysroot + self.build_config['libpython'][key]]
 
         if self.platform.startswith('win'):
@@ -442,7 +442,7 @@ class _PythonDependencyBase(_Base):
             self.is_found = False
             return
         # This can fail if the library is not found
-        largs = self.get_windows_link_args(limited_api)
+        largs = self.get_windows_link_args(limited_api, env)
         if largs is None:
             self.is_found = False
             return
