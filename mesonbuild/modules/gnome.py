@@ -37,7 +37,7 @@ from ..programs import ExternalProgram, OverrideProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import Literal, TypeAlias, TypedDict
 
     from . import ModuleState
     from ..build import BuildTarget
@@ -197,7 +197,7 @@ if T.TYPE_CHECKING:
         vtail: T.Optional[str]
         depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]
 
-    ToolType = T.Union[OverrideExecutable, ExternalProgram, OverrideProgram]
+    ToolType: TypeAlias = T.Union[OverrideExecutable, ExternalProgram, OverrideProgram]
 
 
 # Differs from the CustomTarget version in that it straight defaults to True
@@ -254,8 +254,8 @@ class GnomeModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
-        self.giscanner: T.Optional[T.Union[ExternalProgram, OverrideExecutable, OverrideProgram]] = None
-        self.gicompiler: T.Optional[T.Union[ExternalProgram, OverrideExecutable, OverrideProgram]] = None
+        self.giscanner: T.Optional[ToolType] = None
+        self.gicompiler: T.Optional[ToolType] = None
         self.install_glib_compile_schemas = False
         self.install_gio_querymodules: T.List[str] = []
         self.install_gtk_update_icon_cache = False
@@ -787,8 +787,7 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gi(self, state: 'ModuleState') -> T.Tuple[T.Union[OverrideExecutable, 'ExternalProgram', 'OverrideProgram'],
-                                                       T.Union[OverrideExecutable, 'ExternalProgram', 'OverrideProgram']]:
+    def _get_gi(self, state: 'ModuleState') -> T.Tuple[ToolType, ToolType]:
         if not self.giscanner:
             self.giscanner = self._find_tool(state, 'g-ir-scanner', for_machine=MachineChoice.BUILD)
             self.gicompiler = self._find_tool(state, 'g-ir-compiler', for_machine=MachineChoice.HOST)
