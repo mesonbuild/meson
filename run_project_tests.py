@@ -137,11 +137,11 @@ class InstalledFile:
             # split on '' will return [''], we want an empty list though
             self.version = []
 
-    def get_path(self, compiler: str, env: environment.Environment) -> T.Optional[Path]:
+    def get_path(self, compiler: compilers.Compiler, env: environment.Environment) -> T.Optional[Path]:
         p = Path(self.path)
-        canonical_compiler = compiler
-        if ((compiler in ['clang-cl', 'intel-cl']) or
-                (env.machines.host.is_windows() and compiler in {'pgi', 'dmd', 'ldc'})):
+        canonical_compiler = compiler.get_id()
+        if ((canonical_compiler in ['clang-cl', 'intel-cl']) or
+                (env.machines.host.is_windows() and canonical_compiler in {'pgi', 'dmd', 'ldc'})):
             canonical_compiler = 'msvc'
 
         python_suffix = python.info['suffix']
@@ -232,7 +232,7 @@ class InstalledFile:
         elif self.typ in {'implib', 'implibempty'}:
             if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                 # only MSVC doesn't generate empty implibs
-                if self.typ == 'implibempty' and compiler == 'msvc':
+                if self.typ == 'implibempty' and compiler.get_id() == 'msvc':
                     return None
                 return p.parent / (re.sub(r'^lib', '', p.name) + '.lib')
             elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
@@ -246,7 +246,7 @@ class InstalledFile:
 
         return p
 
-    def get_paths(self, compiler: str, env: environment.Environment, installdir: Path) -> T.List[Path]:
+    def get_paths(self, compiler: compilers.Compiler, env: environment.Environment, installdir: Path) -> T.List[Path]:
         p = self.get_path(compiler, env)
         if not p:
             return []
@@ -312,7 +312,6 @@ ci_jobname = raw_ci_jobname if raw_ci_jobname != 'thirdparty' else None
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
-host_c_compiler: T.Optional[str]   = None
 compiler_id_map: T.Dict[str, str]  = {}
 all_compilers: mesonlib.PerMachine[T.Dict[Language, T.Optional[compilers.Compiler]]] = mesonlib.PerMachine({}, {})
 tool_vers_map:   T.Dict[str, str]  = {}
@@ -395,9 +394,15 @@ def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Envi
 def validate_install(test: TestDef, installdir: Path, env: environment.Environment) -> str:
     ret_msg = ''
     expected_raw: T.List[Path] = []
+    c_compiler = all_compilers.host.get('c')
+
+    # We cannot do validation without a C compiler for the host
+    if c_compiler is None:
+        return None
+
     for i in test.installed_files:
         try:
-            expected_raw += i.get_paths(host_c_compiler, env, installdir)
+            expected_raw += i.get_paths(c_compiler, env, installdir)
         except RuntimeError as err:
             ret_msg += f'Expected path error: {err}\n'
     expected = {x: False for x in expected_raw}
@@ -631,7 +636,7 @@ class GlobalState(T.NamedTuple):
     backend:      'Backend'
     backend_flags: T.List[str]
 
-    host_c_compiler: T.Optional[str]
+    all_compilers: mesonlib.PerMachine[T.Dict[Language, T.Optional[compilers.Compiler]]] = mesonlib.PerMachine({}, {})
 
 def run_test(test: TestDef,
              extra_args: T.List[str],
@@ -639,9 +644,9 @@ def run_test(test: TestDef,
              use_tmp: bool,
              state: T.Optional[GlobalState] = None) -> T.Optional[TestResult]:
     # Unpack the global state
-    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler
+    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, all_compilers
     if state is not None:
-        compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler = state
+        compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, all_compilers = state
     # Store that this is a worker process
     global is_worker_process
     is_worker_process = True
@@ -1166,7 +1171,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     print(f'\nRunning tests with {num_workers} workers')
 
     # Pack the global state
-    state = GlobalState(compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, host_c_compiler)
+    state = GlobalState(compile_commands, clean_commands, test_commands, install_commands, uninstall_commands, backend, backend_flags, all_compilers)
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
     futures: T.List[RunFutureUnion] = []
@@ -1399,8 +1404,6 @@ def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None
 
 
 def detect_system_compiler(options: 'CompilerArgumentType') -> None:
-    global host_c_compiler
-
     fake_opts = get_fake_options('/')
     if options.cross_file:
         fake_opts.cross_file = [options.cross_file]
@@ -1425,12 +1428,6 @@ def detect_system_compiler(options: 'CompilerArgumentType') -> None:
     print_compilers(MachineChoice.HOST)
     if all_compilers.build:
         print_compilers(MachineChoice.BUILD)
-
-    # note C compiler for later use by platform_fix_name()
-    try:
-        host_c_compiler = all_compilers.host['c'].get_id()
-    except AttributeError:
-        host_c_compiler = None
 
 
 def print_compilers(machine: MachineChoice) -> None:
