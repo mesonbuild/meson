@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 import os.path
 import shutil
-import subprocess
 import textwrap
 import typing as T
 
@@ -72,33 +71,32 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
-        src = 'SanityCheck.java'
-        obj = 'SanityCheck'
-        source_name = os.path.join(work_dir, src)
-        with open(source_name, 'w', encoding='utf-8') as ofile:
-            ofile.write(textwrap.dedent(
-                '''class SanityCheck {
-                  public static void main(String[] args) {
-                    int i;
-                  }
-                }
-                '''))
-        pc = subprocess.Popen(self.exelist + [src], cwd=work_dir)
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException(f'Java compiler {self.name_string()} cannot compile programs.')
+    def _sanity_check_filenames(self) -> T.Tuple[str, str]:
+        sup = super()._sanity_check_filenames()
+        return sup[0], 'SanityCheck'
+
+    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+        return self.exelist + self.get_always_args() + [sourcename]
+
+    def _sanity_check_run_with_exe_wrapper(self, env: Environment, command: T.List[str]) -> T.List[str]:
         runner = shutil.which(self.javarunner)
-        if runner:
-            cmdlist = [runner, '-cp', '.', obj]
-            self.run_sanity_check(environment, cmdlist, work_dir, use_exe_wrapper_for_cross=False)
-        else:
+        if runner is None:
             m = "Java Virtual Machine wasn't found, but it's needed by Meson. " \
                 "Please install a JRE.\nIf you have specific needs where this " \
                 "requirement doesn't make sense, please open a bug at " \
                 "https://github.com/mesonbuild/meson/issues/new and tell us " \
                 "all about it."
             raise EnvironmentException(m)
+        return [runner, '-cp', '.', os.path.basename(command[0])]
+
+    def _sanity_check_source_code(self) -> str:
+        return textwrap.dedent(
+            '''class SanityCheck {
+                public static void main(String[] args) {
+                int i;
+                }
+            }
+            ''')
 
     def needs_static_linker(self) -> bool:
         return False
