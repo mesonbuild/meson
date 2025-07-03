@@ -41,6 +41,7 @@ __all__ = [
     'detect_rust_compiler',
     'detect_d_compiler',
     'detect_swift_compiler',
+    'detect_zig_compiler',
 ]
 
 # Bring symbols from each module into compilers sub-package namespace
@@ -83,4 +84,5 @@ from .detect import (
     detect_rust_compiler,
     detect_d_compiler,
     detect_swift_compiler,
+    detect_zig_compiler,
 )

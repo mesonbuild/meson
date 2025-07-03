@@ -1777,3 +1777,25 @@ class TaskingLinker(DynamicLinker):
         for a in args:
             l.extend(self._apply_prefix('-Wl--whole-archive=' + a))
         return l
+
+class ZigDynamicLinker(DynamicLinker):
+
+    id = 'zig'
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return [f'-femit-bin={outputname}']
+
+    def import_library_args(self, implibname: str) -> T.List[str]:
+        return [f'-emit-implib={implibname}']
+
+    def get_search_args(self, dirname: str) -> T.List[str]:
+        return [f'-L{dirname}']
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return ['-fallow-shlib-undefined']
+
+    def no_undefined_args(self) -> T.List[str]:
+        return ['f-no-allow-shlib-undefined']
+
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        return ['-dynamic']

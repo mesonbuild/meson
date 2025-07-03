@@ -14,7 +14,8 @@ pkgs=(
   itstool glib2-devel gtk3 java-environment=8 gtk-doc llvm clang sdl2 graphviz
   doxygen vulkan-headers vulkan-icd-loader vulkan-validation-layers openssh mercurial gtk-sharp-2 qt5-tools
   libwmf cmake netcdf-fortran openmpi nasm gnustep-base gettext
-  python-lxml hotdoc rust-bindgen qt6-base qt6-tools qt6-declarative wayland wayland-protocols
+  python-lxml hotdoc rust-bindgen qt6-base qt6-tools qt6-declarative wayland
+  wayland-protocols zig
   # cuda
 )
 

@@ -79,6 +79,7 @@ defaults['cuda_static_linker'] = ['nvlink']
 defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 defaults['nasm'] = ['nasm', 'yasm']
+defaults['zig'] = ['zig']
 
 
 def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
@@ -99,6 +100,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
         'nasm': detect_nasm_compiler,
         'masm': detect_masm_compiler,
         'linearasm': detect_linearasm_compiler,
+        'zig': detect_zig_compiler,
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
@@ -1409,6 +1411,28 @@ def detect_linearasm_compiler(env: Environment, for_machine: MachineChoice) -> C
         popen_exceptions[' '.join(comp + [arg])] = e
     _handle_exceptions(popen_exceptions, [comp])
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
+
+def detect_zig_compiler(env: Environment, for_machine: MachineChoice) -> Compiler:
+    from .zig import ZigCompiler
+    from ..linkers.linkers import ZigDynamicLinker
+    exelist = env.lookup_binary_entry(for_machine, 'zig')
+    is_cross = env.is_cross_build(for_machine)
+    info = env.machines[for_machine]
+    if exelist is None:
+        exelist = defaults['zig']
+
+    try:
+        _, ver, _ = Popen_safe([exelist[0], 'version'])
+    except OSError:
+        raise EnvironmentException('Could not execute Zig compiler "{}"'.format(' '.join(exelist)))
+
+    version = search_version(ver)
+    linker = ZigDynamicLinker(exelist, for_machine, '', [], version=version)
+    comp = ZigCompiler(exelist, version, for_machine, info, linker, env.exe_wrapper, is_cross)
+    env.coredata.add_lang_args(comp.language, ZigCompiler, for_machine, env)
+
+    return comp
+
 
 # GNU/Clang defines and version
 # =============================
