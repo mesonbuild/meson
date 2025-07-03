@@ -58,6 +58,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | Value      | Linker family                               |
 | -----      | ---------------                             |
 | ld.bfd     | The GNU linker                              |
+| ld.binder  | z/OS program management binder ld interface |
 | ld.eld     | Qualcomm's embedded linker                  |
 | ld.gold    | The GNU gold linker                         |
 | ld.lld     | The LLVM linker, with the GNU interface     |
@@ -172,6 +173,7 @@ These are provided by the `.system()` method call.
 | openbsd             | |
 | windows             | Native Windows (not Cygwin or MSYS2) |
 | sunos               | illumos and Solaris |
+| zos                 | z/OS |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
@@ -193,6 +195,7 @@ Native names as returned by the `.kernel()` method.
 | solaris             | Kernel derived from OpenSolaris by Oracle |
 | dragonfly | |
 | haiku| |
+| zos | |
 | none                 | For e.g. bare metal embedded    |
 
 
