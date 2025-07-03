@@ -546,7 +546,7 @@ class CudaCompiler(Compiler):
 
         # Disable warnings, compile with statically-linked runtime for minimum
         # reliance on the system.
-        flags += ['-w', '-cudart', 'static', source_name]
+        flags += ['-w', '-cudart', 'static', sname]
 
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
@@ -561,7 +561,7 @@ class CudaCompiler(Compiler):
             # a ton of compiler flags to differentiate between
             # arm and x86_64. So just compile.
             flags += self.get_compile_only_args()
-        flags += self.get_output_args(binary_name)
+        flags += self.get_output_args(binname)
 
         # Compile sanity check
         cmdlist = self.exelist + flags
@@ -652,11 +652,7 @@ class CudaCompiler(Compiler):
 
     def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
-
-        try:
-            host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)
-        except KeyError:
-            host_compiler_args = []
+        host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)
         return args + self._to_host_flags(host_compiler_args)
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
@@ -669,10 +665,7 @@ class CudaCompiler(Compiler):
             if std != 'none':
                 return ['--std=' + std]
 
-        try:
-            host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)
-        except KeyError:
-            host_compiler_args = []
+        host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)
         return self._to_host_flags(host_compiler_args)
 
     def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
