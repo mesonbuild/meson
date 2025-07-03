@@ -699,9 +699,9 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         # instance, on Linux,
         #    - CUDA Toolkit 8.0.44 requires NVIDIA Driver 367.48
         #    - CUDA Toolkit 8.0.61 requires NVIDIA Driver 375.26
-        # Luckily, the "V" also makes it very simple to extract
-        # the full version:
-        version = out.strip().rsplit('V', maxsplit=1)[-1]
+        # Split on the `V` to get the version, then strip additional lines after
+        # that.
+        version = out.strip().rsplit('V', maxsplit=1)[-1].split(maxsplit=1)[0]
         cpp_compiler = detect_cpp_compiler(env, for_machine)
         cls = CudaCompiler
         env.add_lang_args(cls.language, cls, for_machine)
