@@ -230,7 +230,7 @@ class XCodeBackend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
-        self.buildtype = T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype')))
+        self.buildtype = self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'), str)
         self.project_conflist = self.gen_id()
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
@@ -272,7 +272,7 @@ class XCodeBackend(backends.Backend):
 
     @functools.lru_cache(maxsize=None)
     def get_target_dir(self, target: T.Union[build.Target, build.CustomTargetIndex]) -> str:
-        dirname = os.path.join(target.get_subdir(), T.cast('str', self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'))))
+        dirname = os.path.join(target.get_subdir(), self.environment.coredata.optstore.get_value_for(OptionKey('buildtype'), str))
         #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -1687,7 +1687,7 @@ class XCodeBackend(backends.Backend):
                 if compiler is None:
                     continue
                 # Start with warning args
-                warn_args = compiler.get_warn_args(self.get_target_option(target, 'warning_level'))
+                warn_args = compiler.get_warn_args(self.environment.coredata.optstore.get_option_for_target(target, OptionKey('warning_level'), str))
                 std_args = compiler.get_option_compile_args(target, self.environment, target.subproject)
                 std_args += compiler.get_option_std_args(target, self.environment, target.subproject)
                 # Add compile args added using add_project_arguments()
@@ -1738,9 +1738,9 @@ class XCodeBackend(backends.Backend):
             if target.suffix:
                 suffix = '.' + target.suffix
                 settings_dict.add_item('EXECUTABLE_SUFFIX', suffix)
-            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[self.get_target_option(target, 'debug')])
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[self.environment.coredata.optstore.get_option_for_target(target, OptionKey('debug'), bool)])
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            opt_flag = OPT2XCODEOPT[self.get_target_option(target, 'optimization')]
+            opt_flag = OPT2XCODEOPT[self.environment.coredata.optstore.get_option_for_target(target, OptionKey('optimization'), str)]
             if opt_flag is not None:
                 settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', opt_flag)
             if target.has_pch:

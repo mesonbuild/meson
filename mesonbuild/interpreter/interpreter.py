@@ -1029,7 +1029,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                              kwargs: kwtypes.DoSubproject) -> SubprojectHolder:
         from ..cmake import CMakeInterpreter
         with mlog.nested(subp_name):
-            prefix = self.coredata.optstore.get_value_for('prefix')
+            prefix = self.coredata.optstore.get_value_for(OptionKey('prefix'), str)
 
             from ..modules.cmake import CMakeSubprojectOptions
             kw_opts = kwargs.get('options') or CMakeSubprojectOptions()
@@ -1144,10 +1144,10 @@ class Interpreter(InterpreterBase, HoldableObject):
         if OptionKey('genvslite') in self.user_defined_options.cmd_line_options:
             # Use of the '--genvslite vsxxxx' option ultimately overrides any '--backend xxx'
             # option the user may specify.
-            backend_name = self.coredata.optstore.get_value_for(OptionKey('genvslite'))
+            backend_name = self.coredata.optstore.get_value_for(OptionKey('genvslite'), str)
             self.backend = backends.get_genvslite_backend(backend_name, self.build, self)
         else:
-            backend_name = self.coredata.optstore.get_value_for(OptionKey('backend'))
+            backend_name = self.coredata.optstore.get_value_for(OptionKey('backend'), str)
             self.backend = backends.get_backend_from_name(backend_name, self.build, self)
 
         if self.backend is None:
@@ -1216,10 +1216,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             # self.set_backend() otherwise it wouldn't be able to detect which
             # vs backend version we need. But after setting default_options in case
             # the project sets vs backend by default.
-            backend = self.coredata.optstore.get_value_for(OptionKey('backend'))
-            assert backend is None or isinstance(backend, str), 'for mypy'
-            vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'))
-            assert isinstance(vsenv, bool), 'for mypy'
+            backend = self.coredata.optstore.get_value_for(OptionKey('backend'), str)
+            vsenv = self.coredata.optstore.get_value_for(OptionKey('vsenv'), bool)
             force_vsenv = vsenv or backend.startswith('vs')
             mesonlib.setup_vsenv(force_vsenv)
         self.set_backend()
@@ -1285,7 +1283,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Load wrap files from this (sub)project.
         subprojects_dir = os.path.join(self.subdir, spdirname)
         if not self.is_subproject():
-            wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
+            wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode'), str))
             self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
         else:
             assert self.environment.wrap_resolver is not None, 'for mypy'
@@ -1499,6 +1497,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         args = [a.lower() for a in args]
         langs = set(self.compilers[for_machine].keys())
         langs.update(args)
+        internal_only: T.Set[str] = set()
         # We'd really like to add cython's default language here, but it can't
         # actually be done because the cython compiler hasn't been initialized,
         # so we can't actually get the option yet. Because we can't know what
@@ -1508,6 +1507,12 @@ class Interpreter(InterpreterBase, HoldableObject):
         if 'vala' in langs and 'c' not in langs:
             FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject, location=self.current_node)
             args.append('c')
+        if 'cuda' in langs and 'cpp' not in langs:
+            # This was previously handled inside the `detect_cuda_compiler`
+            # logic, but that doesn't fully initialize the C++ compiler, so no
+            # FeatureNew is needed
+            args.append('cpp')
+            internal_only.add('cpp')
         if 'nasm' in langs:
             FeatureNew.single_use('Adding NASM language', '0.64.0', self.subproject, location=self.current_node)
 
@@ -1552,7 +1557,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                 logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
-            self.compilers[for_machine][lang] = comp
+
+            # If the language is an implementation detail, don't add it to the
+            # Interpreter compiler set. This prevents it from being available
+            # via `meson.get_compiler()`
+            if lang not in internal_only:
+                self.compilers[for_machine][lang] = comp
 
         return success
 
@@ -1683,7 +1693,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             return ExternalProgram('meson', self.environment.get_build_command(), silent=True)
 
         fallback = None
-        wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
+        wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode'), str))
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:
@@ -3070,18 +3080,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                 break
 
     def check_clang_asan_lundef(self) -> None:
-        if OptionKey('b_lundef') not in self.coredata.optstore:
-            return
-        if OptionKey('b_sanitize') not in self.coredata.optstore:
-            return
-        if (self.coredata.optstore.get_value('b_lundef') and
-                self.coredata.optstore.get_value('b_sanitize')):
-            value = self.coredata.optstore.get_value('b_sanitize')
-            mlog.warning(textwrap.dedent(f'''\
-                    Trying to use {value} sanitizer on Clang with b_lundef.
-                    This will probably not work.
-                    Try setting b_lundef to false instead.'''),
-                location=self.current_node)  # noqa: E128
+        if self.coredata.optstore.get_value_for(OptionKey('b_lundef'), bool, fallback=False):
+            value = self.coredata.optstore.get_value_for(OptionKey('b_sanitize'), list, fallback=[])
+            if value:
+                mlog.warning(textwrap.dedent(f'''\
+                        Trying to use {value} sanitizer on Clang with b_lundef.
+                        This will probably not work.
+                        Try setting b_lundef to false instead.'''),
+                    location=self.current_node)  # noqa: E128
 
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing
@@ -3255,9 +3261,9 @@ class Interpreter(InterpreterBase, HoldableObject):
     def build_both_libraries(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library) -> build.BothLibraries:
         shared_lib = self.build_target(node, args, kwargs, build.SharedLibrary)
         static_lib = self.build_target(node, args, kwargs, build.StaticLibrary)
-        preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
+        preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_both_libraries'), str)
         if preferred_library == 'auto':
-            preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_library'))
+            preferred_library = self.coredata.optstore.get_value_for(OptionKey('default_library'), str)
             if preferred_library == 'both':
                 preferred_library = 'shared'
 
@@ -3298,8 +3304,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         return build.BothLibraries(shared_lib, static_lib, preferred_library)
 
     def build_library(self, node: mparser.BaseNode, args: T.Tuple[str, SourcesVarargsType], kwargs: kwtypes.Library):
-        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject))
-        assert isinstance(default_library, str), 'for mypy'
+        default_library = self.coredata.optstore.get_value_for(OptionKey('default_library', subproject=self.subproject), str)
         if default_library == 'shared':
             return self.build_target(node, args, T.cast('kwtypes.SharedLibrary', kwargs), build.SharedLibrary)
         elif default_library == 'static':

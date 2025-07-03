@@ -19,7 +19,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, SubProject
 
 swift_optimization_args: T.Dict[str, T.List[str]] = {
     'plain': [],
@@ -130,20 +130,21 @@ class SwiftCompiler(Compiler):
 
         return opts
 
-    def get_option_std_args(self, target: build.BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[build.BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args: T.List[str] = []
 
-        std = self.get_compileropt_value('std', env, target, subproject)
-        assert isinstance(std, str)
+        key = self.form_compileropt_key('std', subproject)
+        std = env.coredata.optstore.get_target_or_global_option(target, key, str)
 
         if std != 'none':
             args += ['-swift-version', std]
 
-        # Pass C compiler -std=... arg to swiftc
-        c_lang = first(['objc', 'c'], lambda x: x in target.compilers)
-        if c_lang is not None:
-            cc = target.compilers[c_lang]
-            args.extend(arg for c_arg in cc.get_option_std_args(target, env, subproject) for arg in ['-Xcc', c_arg])
+        if target:
+            # Pass C compiler -std=... arg to swiftc
+            c_lang = first(['objc', 'c'], lambda x: x in target.compilers)
+            if c_lang is not None:
+                cc = target.compilers[c_lang]
+                args.extend(arg for c_arg in cc.get_option_std_args(target, env) for arg in ['-Xcc', c_arg])
 
         return args
 

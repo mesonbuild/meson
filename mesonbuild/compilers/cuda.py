@@ -12,7 +12,7 @@ import typing as T
 from .. import options
 from .. import mlog
 from ..mesonlib import (
-    EnvironmentException, Popen_safe,
+    EnvironmentException, Popen_safe, SubProject,
     is_windows, LibType, version_compare
 )
 from .compilers import Compiler, CompileCheckMode
@@ -551,7 +551,7 @@ class CudaCompiler(Compiler):
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
         # NVCC becomes unusable.
-        flags += self.get_ccbin_args(None, env, '')
+        flags += self.get_ccbin_args(None, env, T.cast('SubProject', ''))
 
         # If cross-compiling, we can't run the sanity check, only compile it.
         if self.is_cross and not env.has_exe_wrapper():
@@ -650,34 +650,27 @@ class CudaCompiler(Compiler):
 
         return opts
 
-    def get_option_compile_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_compile_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
-
-        try:
-            host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)
-        except KeyError:
-            host_compiler_args = []
+        host_compiler_args = self.host_compiler.get_option_compile_args(target, env, subproject)  # type: ignore[call-overload]
         return args + self._to_host_flags(host_compiler_args)
 
-    def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_std_args(self, target: T.Optional[BuildTarget], env: Environment, subproject: T.Optional[SubProject] = None) -> T.List[str]:
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
-            std = self.get_compileropt_value('std', env, target, subproject)
-            assert isinstance(std, str)
+            key = self.form_compileropt_key('std', subproject)
+            std = env.coredata.optstore.get_target_or_global_option(target, key, str)
             if std != 'none':
                 return ['--std=' + std]
 
-        try:
-            host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)
-        except KeyError:
-            host_compiler_args = []
+        host_compiler_args = self.host_compiler.get_option_std_args(target, env, subproject)  # type: ignore[call-overload]
         return self._to_host_flags(host_compiler_args)
 
-    def get_option_link_args(self, target: 'BuildTarget', env: 'Environment', subproject: T.Optional[str] = None) -> T.List[str]:
+    def get_option_link_args(self, target: T.Optional[BuildTarget], env: 'Environment', subproject: T.Optional[SubProject] = None) -> T.List[str]:
         args = self.get_ccbin_args(target, env, subproject)
-        return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)
+        return args + self._to_host_flags(self.host_compiler.get_option_link_args(target, env, subproject), Phase.LINKER)  # type: ignore[call-overload]
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
@@ -790,12 +783,9 @@ class CudaCompiler(Compiler):
     def get_ccbin_args(self,
                        target: 'T.Optional[BuildTarget]',
                        env: 'Environment',
-                       subproject: T.Optional[str] = None) -> T.List[str]:
-        key = self.form_compileropt_key('ccbindir').evolve(subproject=subproject)
-        if target:
-            ccbindir = env.coredata.get_option_for_target(target, key)
-        else:
-            ccbindir = env.coredata.optstore.get_value_for(key)
+                       subproject: T.Optional[SubProject] = None) -> T.List[str]:
+        key = self.form_compileropt_key('ccbindir', subproject)
+        ccbindir = env.coredata.optstore.get_target_or_global_option(target, key, str)
         if isinstance(ccbindir, str) and ccbindir != '':
             return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
         else:

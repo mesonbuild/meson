@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
 
     # Object holders need the actual interpreter
     from ..interpreter import Interpreter
+    from ..mesonlib import SubProject
 
 
 TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
@@ -33,8 +34,6 @@ TYPE_op_arg = T.TypeVar('TYPE_op_arg', bound='TYPE_var', contravariant=True)
 TYPE_op_func = T.Callable[[TYPE_op_arg, TYPE_op_arg], TYPE_var]
 TYPE_method_func = T.Callable[['InterpreterObject', T.List[TYPE_var], TYPE_kwargs], TYPE_var]
 
-
-SubProject = T.NewType('SubProject', str)
 
 class InterpreterObject:
     TRIVIAL_OPERATORS: T.Dict[
@@ -106,7 +105,7 @@ class InterpreterObject:
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node:  mparser.BaseNode = None
-        self.subproject = subproject or SubProject('')
+        self.subproject = subproject or T.cast('SubProject', '')
 
     # The type of the object that can be printed to the user
     def display_name(self) -> str:

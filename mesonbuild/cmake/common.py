@@ -54,15 +54,11 @@ blacklist_cmake_defs = [
 
 def cmake_is_debug(env: 'Environment') -> bool:
     if 'b_vscrt' in env.coredata.optstore:
-        is_debug = env.coredata.optstore.get_value_for('buildtype') == 'debug'
-        if env.coredata.optstore.get_value_for('b_vscrt') in {'mdd', 'mtd'}:
+        is_debug = env.coredata.optstore.get_value_for(OptionKey('buildtype'), str) == 'debug'
+        if env.coredata.optstore.get_value_for(OptionKey('b_vscrt'), str) in {'mdd', 'mtd'}:
             is_debug = True
         return is_debug
-    else:
-        # Don't directly assign to is_debug to make mypy happy
-        debug_opt = env.coredata.optstore.get_value_for('debug')
-        assert isinstance(debug_opt, bool)
-        return debug_opt
+    return env.coredata.optstore.get_value_for(OptionKey('debug'), bool)
 
 class CMakeException(MesonException):
     pass
@@ -106,8 +102,7 @@ def _flags_to_list(raw: str) -> T.List[str]:
     return res
 
 def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
-    backend_name = env.coredata.optstore.get_value_for(OptionKey('backend'))
-    assert isinstance(backend_name, str)
+    backend_name = env.coredata.optstore.get_value_for(OptionKey('backend'), str)
     assert backend_name in backend_generator_map
     return ['-G', backend_generator_map[backend_name]]
 

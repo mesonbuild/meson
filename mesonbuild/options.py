@@ -36,7 +36,8 @@ from . import mlog
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, Final, TypeAlias, TypedDict
 
-    from .interpreterbase import SubProject
+    from .build import BuildTarget
+    from .mesonlib import SubProject
 
     DeprecatedType: TypeAlias = T.Union[bool, str, T.Dict[str, str], T.List[str]]
     AnyOptionType: TypeAlias = T.Union[
@@ -44,6 +45,7 @@ if T.TYPE_CHECKING:
         'UserIntegerOption', 'UserStdOption', 'UserStringArrayOption',
         'UserStringOption', 'UserUmaskOption']
     ElementaryOptionValues: TypeAlias = T.Union[str, int, bool, T.List[str]]
+    ElementaryOptionTypes = T.TypeVar('ElementaryOptionTypes', str, int, bool, T.List[str])
     MutableKeyedOptionDictType: TypeAlias = T.Dict['OptionKey', AnyOptionType]
 
     _OptionKeyTuple: TypeAlias = T.Tuple[T.Optional[str], MachineChoice, str]
@@ -843,9 +845,6 @@ class OptionStore:
             return self.options[key].value
         return self.pending_options.get(key, default)
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
-        return self.get_value_object(key).value
-
     def __len__(self) -> int:
         return len(self.options)
 
@@ -888,7 +887,49 @@ class OptionStore:
                 computed_value = vobject.validate_value(self.augments[key])
         return (vobject, computed_value)
 
-    def get_value_for(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
+    def get_value_for(self, key: OptionKey, type_: T.Type[ElementaryOptionTypes],
+                      *, fallback: T.Optional[ElementaryOptionTypes] = None) -> ElementaryOptionTypes:
+        try:
+            v = self.get_value_object_and_value_for(key)[1]
+        except KeyError:
+            if fallback is not None:
+                return fallback
+            raise MesonBugException(f'Tried to get option value for "{key}", but there is not such option')
+        if isinstance(v, type_):
+            return v
+        raise MesonBugException(f'Expected "{key}" to be of type "{type_}", but was of type "{type(v)}"')
+
+    def get_option_for_target_unsafe(self, target: BuildTarget, key: OptionKey) -> ElementaryOptionValues:
+        if key.subproject != target.subproject:
+            # FIXME: this should be an error. The caller needs to ensure that
+            # key and target have the same subproject for consistency.
+            # Now just do this to get things going.
+            key = key.evolve(subproject=target.subproject)
+        option_object, value = self.get_value_object_and_value_for(key)
+        override = target.get_override(key.name)
+        if override is not None:
+            return option_object.validate_value(override)
+        return value
+
+    def get_option_for_target(self, target: BuildTarget, key: OptionKey, type_: T.Type[ElementaryOptionTypes],
+                              *, fallback: T.Optional[ElementaryOptionTypes] = None) -> ElementaryOptionTypes:
+        try:
+            v = self.get_option_for_target_unsafe(target, key)
+        except KeyError:
+            if fallback is not None:
+                return fallback
+            raise MesonBugException(f'Tried to get option value for "{key}", but there is not such option')
+        if isinstance(v, type_):
+            return v
+        raise MesonBugException(f'Expected "{key}" to be of type "{type_}", but was of type "{type(v)}"')
+
+    def get_target_or_global_option(self, target: T.Optional[BuildTarget], key: OptionKey, type_: T.Type[ElementaryOptionTypes],
+                                    *, fallback: T.Optional[ElementaryOptionTypes] = None) -> ElementaryOptionTypes:
+        if target:
+            return self.get_option_for_target(target, key, type_, fallback=fallback)
+        return self.get_value_for(key, type_, fallback=fallback)
+
+    def get_value_for_unsafe(self, name: 'T.Union[OptionKey, str]', subproject: T.Optional[str] = None) -> ElementaryOptionValues:
         if isinstance(name, str):
             key = OptionKey(name, subproject)
         else:
@@ -1006,8 +1047,7 @@ class OptionStore:
             assert isinstance(new_value, str), 'for mypy'
             new_value = self.sanitize_prefix(new_value)
         elif self.is_builtin_option(key):
-            prefix = self.get_value_for('prefix')
-            assert isinstance(prefix, str), 'for mypy'
+            prefix = self.get_value_for(OptionKey('prefix'), str)
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 
         try:

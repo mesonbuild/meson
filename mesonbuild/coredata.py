@@ -18,7 +18,6 @@ from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
     default_prefix,
-    stringlistify,
     pickle_load
 )
 
@@ -39,11 +38,9 @@ if T.TYPE_CHECKING:
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
     from .environment import Environment
-    from .mesonlib import FileOrString
+    from .mesonlib import FileOrString, SubProject
     from .cmake.traceparser import CMakeCacheEntry
-    from .interpreterbase import SubProject
-    from .options import ElementaryOptionValues, MutableKeyedOptionDictType
-    from .build import BuildTarget
+    from .options import MutableKeyedOptionDictType
 
     class SharedCMDOptions(Protocol):
 
@@ -152,8 +149,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins.get_value_for(self.__pkg_conf_key)),
-            DependencyCacheType.CMAKE: stringlistify(self.__builtins.get_value_for(self.__cmake_key)),
+            DependencyCacheType.PKG_CONFIG: self.__builtins.get_value_for(self.__pkg_conf_key, list),
+            DependencyCacheType.CMAKE: self.__builtins.get_value_for(self.__cmake_key, list),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
@@ -396,23 +393,6 @@ class CoreData:
                 'Default project to execute in Visual Studio',
                 ''))
 
-    def get_option_for_target(self, target: 'BuildTarget', key: T.Union[str, OptionKey]) -> ElementaryOptionValues:
-        if isinstance(key, str):
-            assert ':' not in key
-            newkey = OptionKey(key, target.subproject)
-        else:
-            newkey = key
-        if newkey.subproject != target.subproject:
-            # FIXME: this should be an error. The caller needs to ensure that
-            # key and target have the same subproject for consistency.
-            # Now just do this to get things going.
-            newkey = newkey.evolve(subproject=target.subproject)
-        (option_object, value) = self.optstore.get_value_object_and_value_for(newkey)
-        override = target.get_override(newkey.name)
-        if override is not None:
-            return option_object.validate_value(override)
-        return value
-
     def set_from_configure_command(self, options: SharedCMDOptions) -> bool:
         unset_opts = getattr(options, 'unset_opts', [])
         all_D = options.projectoptions[:]
@@ -441,7 +421,7 @@ class CoreData:
 
     def get_nondefault_buildtype_args(self) -> T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]]:
         result: T.List[T.Union[T.Tuple[str, str, str], T.Tuple[str, bool, bool]]] = []
-        value = self.optstore.get_value_for('buildtype')
+        value = self.optstore.get_value_for(OptionKey('buildtype'), str)
         if value == 'plain':
             opt = 'plain'
             debug = False
@@ -460,8 +440,8 @@ class CoreData:
         else:
             assert value == 'custom'
             return []
-        actual_opt = self.optstore.get_value_for('optimization')
-        actual_debug = self.optstore.get_value_for('debug')
+        actual_opt = self.optstore.get_value_for(OptionKey('optimization'), str)
+        actual_debug = self.optstore.get_value_for(OptionKey('debug'), bool)
         if actual_opt != opt:
             result.append(('optimization', actual_opt, opt))
         if actual_debug != debug:
@@ -498,13 +478,13 @@ class CoreData:
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value(key))
+        return self.optstore.get_value_for(key, list)
 
     @lru_cache(maxsize=None)
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         linkkey = OptionKey(f'{lang}_link_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value_for(linkkey))
+        return self.optstore.get_value_for(linkkey, list)
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:
@@ -609,7 +589,7 @@ class CoreData:
 
     def emit_base_options_warnings(self) -> None:
         bcodekey = OptionKey('b_bitcode')
-        if bcodekey in self.optstore and self.optstore.get_value(bcodekey):
+        if bcodekey in self.optstore and self.optstore.get_value_for(bcodekey, bool):
             msg = textwrap.dedent('''Base option 'b_bitcode' is enabled, which is incompatible with many linker options.
                                      Incompatible options such as \'b_asneeded\' have been disabled.'
                                      Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.''')

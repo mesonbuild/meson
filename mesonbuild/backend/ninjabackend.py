@@ -597,7 +597,7 @@ class NinjaBackend(backends.Backend):
                     self.allow_thin_archives[for_machine] = False
 
         ninja = environment.detect_ninja_command_and_version(log=True)
-        if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv')):
+        if self.environment.coredata.optstore.get_value_for(OptionKey('vsenv'), bool):
             builddir = Path(self.environment.get_build_dir())
             try:
                 # For prettier printing, reduce to a relative path. If
@@ -622,7 +622,7 @@ class NinjaBackend(backends.Backend):
             outfile.write('# Do not edit by hand.\n\n')
             outfile.write('ninja_required_version = 1.8.2\n\n')
 
-            num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+            num_pools = self.environment.coredata.optstore.get_value_for(OptionKey('backend_max_links'), int)
             if num_pools > 0:
                 outfile.write(f'''pool link_pool
   depth = {num_pools}
@@ -654,9 +654,7 @@ class NinjaBackend(backends.Backend):
             mlog.log_timestamp("Install generated")
             self.generate_dist()
             mlog.log_timestamp("Dist generated")
-            key = OptionKey('b_coverage')
-            if key in self.environment.coredata.optstore and\
-                    self.environment.coredata.optstore.get_value_for('b_coverage'):
+            if self.environment.coredata.optstore.get_value_for(OptionKey('b_coverage'), bool, fallback=False):
                 gcovr_exe, gcovr_version, lcov_exe, lcov_version, genhtml_exe, llvm_cov_exe = environment.find_coverage_tools(self.environment.coredata)
                 mlog.debug(f'Using {gcovr_exe} ({gcovr_version}), {lcov_exe} and {llvm_cov_exe} for code coverage')
                 if gcovr_exe or (lcov_exe and genhtml_exe):
@@ -1107,9 +1105,10 @@ class NinjaBackend(backends.Backend):
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        cppversion = self.get_target_option(target, OptionKey('cpp_std',
-                                                              machine=target.for_machine,
-                                                              subproject=target.subproject))
+        cppversion = self.environment.coredata.optstore.get_option_for_target(
+            target,
+            OptionKey('cpp_std', machine=target.for_machine, subproject=target.subproject),
+            str)
         if cppversion not in ('latest', 'c++latest', 'vc++latest'):
             return False
         if not mesonlib.current_vs_supports_modules():
@@ -1344,9 +1343,9 @@ class NinjaBackend(backends.Backend):
     def generate_tests(self) -> None:
         self.serialize_tests()
         cmd = self.environment.get_build_command(True) + ['test', '--no-rebuild']
-        if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit')):
+        if not self.environment.coredata.optstore.get_value_for(OptionKey('stdsplit'), bool):
             cmd += ['--no-stdsplit']
-        if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs')):
+        if self.environment.coredata.optstore.get_value_for(OptionKey('errorlogs'), bool):
             cmd += ['--print-errorlogs']
         elem = self.create_phony_target('test', 'CUSTOM_COMMAND', ['all', 'meson-test-prereq', 'PHONY'])
         elem.add_item('COMMAND', cmd)
@@ -1732,7 +1731,7 @@ class NinjaBackend(backends.Backend):
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
-        args += valac.get_colorout_args(self.get_target_option(target, 'b_colorout'))
+        args += valac.get_colorout_args(self.environment.coredata.optstore.get_option_for_target(target, OptionKey('b_colorout'), str))
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
@@ -1813,15 +1812,18 @@ class NinjaBackend(backends.Backend):
 
         args: T.List[str] = []
         args += cython.get_always_args()
-        args += cython.get_debug_args(self.get_target_option(target, 'debug'))
-        args += cython.get_optimization_args(self.get_target_option(target, 'optimization'))
+        args += cython.get_debug_args(
+            self.environment.coredata.optstore.get_option_for_target(target, OptionKey('debug'), bool))
+        args += cython.get_optimization_args(
+            self.environment.coredata.optstore.get_option_for_target(target, OptionKey('optimization'), str))
         args += cython.get_option_compile_args(target, self.environment, target.subproject)
         args += cython.get_option_std_args(target, self.environment, target.subproject)
         args += self.build.get_global_args(cython, target.for_machine)
         args += self.build.get_project_args(cython, target.subproject, target.for_machine)
         args += target.get_extra_args('cython')
 
-        ext = self.get_target_option(target, OptionKey('cython_language', machine=target.for_machine))
+        ext = self.environment.coredata.optstore.get_option_for_target(
+            target, OptionKey('cython_language', machine=target.for_machine), str)
 
         pyx_sources = []  # Keep track of sources we're adding to build
 
@@ -2019,12 +2021,12 @@ class NinjaBackend(backends.Backend):
         # by Meson options instead.
         # https://github.com/rust-lang/rust/issues/39016
         if not isinstance(target, build.StaticLibrary):
-            try:
-                buildtype = self.get_target_option(target, 'buildtype')
-                crt = self.get_target_option(target, 'b_vscrt')
+            crt = self.environment.coredata.optstore.get_option_for_target(
+                target, OptionKey('b_vscrt'), str, fallback='sentinel')
+            if crt != 'sentinel':
+                buildtype = self.environment.coredata.optstore.get_option_for_target(
+                    target, OptionKey('buildtype'), str)
                 args += rustc.get_crt_link_args(crt, buildtype)
-            except (KeyError, AttributeError):
-                pass
 
         if mesonlib.version_compare(rustc.version, '>= 1.67.0'):
             verbatim = '+verbatim'
@@ -2356,7 +2358,7 @@ class NinjaBackend(backends.Backend):
         return options
 
     def generate_static_link_rules(self) -> None:
-        num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+        num_pools = self.environment.coredata.optstore.get_value_for(OptionKey('backend_max_links'), int)
         if 'java' in self.environment.coredata.compilers.host:
             self.generate_java_link()
         for for_machine in MachineChoice:
@@ -2404,7 +2406,7 @@ class NinjaBackend(backends.Backend):
             self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=pool))
 
     def generate_dynamic_link_rules(self) -> None:
-        num_pools = self.environment.coredata.optstore.get_value_for('backend_max_links')
+        num_pools = self.environment.coredata.optstore.get_value_for(OptionKey('backend_max_links'), int)
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
             for langname, compiler in complist.items():
@@ -3600,9 +3602,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        commands += linker.get_optimization_link_args(self.get_target_option(target, 'optimization'))
+        commands += linker.get_optimization_link_args(
+             self.environment.coredata.optstore.get_option_for_target(target, OptionKey('optimization'), str))
         # Add /DEBUG and the pdb filename when using MSVC
-        if self.get_target_option(target, 'debug'):
+        if self.environment.coredata.optstore.get_option_for_target(target, OptionKey('debug'), bool):
             commands += self.get_link_debugfile_args(linker, target)
             debugfile = self.get_link_debugfile_name(linker, target)
             if debugfile is not None:
@@ -3833,8 +3836,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if extra_arg:
             target_name += f'-{extra_arg}'
             extra_args.append(f'--{extra_arg}')
-        colorout = self.environment.coredata.optstore.get_value('b_colorout') \
-            if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
+        colorout = self.environment.coredata.optstore.get_value_for(OptionKey('b_colorout'), str, fallback='always')
         extra_args.extend(['--color', colorout])
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
@@ -3935,8 +3937,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if ctlist:
             elem.add_dep(self.generate_custom_target_clean(ctlist))
 
-        if OptionKey('b_coverage') in self.environment.coredata.optstore and \
-           self.environment.coredata.optstore.get_value_for('b_coverage'):
+        if self.environment.coredata.optstore.get_value_for(OptionKey('b_coverage'), bool, fallback=False):
             self.generate_gcov_clean()
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')

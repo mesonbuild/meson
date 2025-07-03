@@ -113,8 +113,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     def __init__(self, python: 'PythonExternalProgram', interpreter: 'Interpreter'):
         _ExternalProgramHolder.__init__(self, python, interpreter)
         info = python.info
-        prefix = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('prefix'))
-        assert isinstance(prefix, str), 'for mypy'
+        prefix = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('prefix'), str)
         self.variables = info['variables']
         self.suffix = info['suffix']
         self.limited_api_suffix = info['limited_api_suffix']
@@ -157,7 +156,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
                                   self.current_node)
 
         limited_api_version = kwargs.pop('limited_api')
-        allow_limited_api = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api'))
+        allow_limited_api = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.allow_limited_api'), bool)
         if limited_api_version != '' and allow_limited_api:
 
             target_suffix = self.limited_api_suffix
@@ -196,7 +195,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
                 new_link_args = mesonlib.extract_as_list(kwargs, 'link_args')
 
-                is_debug = self.interpreter.environment.coredata.optstore.get_value('debug')
+                is_debug = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('debug'), bool)
                 if is_debug:
                     new_link_args.append(python_windows_debug_link_exception)
                 else:
@@ -371,7 +370,7 @@ class PythonModule(ExtensionModule):
     def _get_install_scripts(self) -> T.List[mesonlib.ExecutableSerialisation]:
         backend = self.interpreter.backend
         ret = []
-        optlevel = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.bytecompile'))
+        optlevel = self.interpreter.environment.coredata.optstore.get_value_for(OptionKey('python.bytecompile'), int)
         if optlevel == -1:
             return ret
         if not any(PythonExternalProgram.run_bytecompile.values()):

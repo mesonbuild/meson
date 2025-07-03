@@ -37,7 +37,6 @@ if T.TYPE_CHECKING:
     from ..coredata import StrOrBytesPath
     from ..environment import Environment
     from ..compilers.compilers import Compiler
-    from ..interpreterbase.baseobjects import SubProject
     from .. import programs
 
     class _EnvPickleLoadable(Protocol):
@@ -51,6 +50,8 @@ if T.TYPE_CHECKING:
     # A generic type for pickle_load. This allows any type that has either a
     # .version or a .environment to be passed.
     _PL = T.TypeVar('_PL', bound=T.Union[_EnvPickleLoadable, _VerPickleLoadable])
+
+SubProject = T.NewType('SubProject', str)
 
 FileOrString = T.Union['File', str]
 
@@ -79,6 +80,7 @@ __all__ = [
     'PerThreeMachineDefaultable',
     'ProgressBar',
     'RealPathAction',
+    'SubProject',
     'TemporaryDirectoryWinProof',
     'Version',
     'check_direntry_issues',

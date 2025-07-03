@@ -21,6 +21,7 @@ from ..interpreter.type_checking import (
 from ..interpreterbase import ContainerTypeInfo, InterpreterException, KwargInfo, typed_kwargs, typed_pos_args, noPosargs, permittedKwargs
 from ..interpreter.interpreterobjects import Doctest
 from ..mesonlib import File, MesonException, PerMachine
+from ..options import OptionKey
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
@@ -439,8 +440,7 @@ class RustModule(ExtensionModule):
         if self._bindgen_rust_target and '--rust-target' not in cmd:
             cmd.extend(['--rust-target', self._bindgen_rust_target])
         if self._bindgen_set_std and '--rust-edition' not in cmd:
-            rust_std = state.environment.coredata.optstore.get_value('rust_std')
-            assert isinstance(rust_std, str), 'for mypy'
+            rust_std = state.environment.coredata.optstore.get_value_for(OptionKey('rust_std'), str)
             if rust_std != 'none':
                 cmd.extend(['--rust-edition', rust_std])
         cmd.append('--')

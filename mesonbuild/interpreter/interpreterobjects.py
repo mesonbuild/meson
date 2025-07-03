@@ -23,6 +23,7 @@ from ..interpreterbase import (
                                flatten, resolve_second_level_holders, InterpreterException, InvalidArguments, InvalidCode)
 from ..interpreter.type_checking import NoneType, ENV_KW, ENV_SEPARATOR_KW, PKGCONFIG_DEFINE_KW
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
+from ..options import OptionKey
 from ..programs import ExternalProgram
 from ..mesonlib import HoldableObject, listify, Popen_safe
 
@@ -32,7 +33,8 @@ if T.TYPE_CHECKING:
     from . import kwargs
     from ..cmake.interpreter import CMakeInterpreter
     from ..envconfig import MachineInfo
-    from ..interpreterbase import FeatureCheckBase, SubProject, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs
+    from ..interpreterbase import FeatureCheckBase, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs
+    from ..mesonlib import SubProject
     from .interpreter import Interpreter
 
     from typing_extensions import TypedDict
@@ -951,7 +953,7 @@ class BuildTargetHolder(ObjectHolder[_BuildTarget]):
     @InterpreterObject.method('extract_objects')
     def extract_objects_method(self, args: T.Tuple[T.List[T.Union[mesonlib.FileOrString, 'build.GeneratedTypes']]], kwargs: TYPE_nkwargs) -> build.ExtractedObjects:
         tobj = self._target_object
-        unity_value = self.interpreter.coredata.get_option_for_target(tobj, "unity")
+        unity_value = self.interpreter.coredata.optstore.get_option_for_target(tobj, OptionKey("unity"), str)
         is_unity = (unity_value == 'on' or (unity_value == 'subprojects' and tobj.subproject != ''))
         return tobj.extract_objects(args[0], is_unity)
 

@@ -12,7 +12,8 @@ import collections.abc
 import typing as T
 
 if T.TYPE_CHECKING:
-    from .baseobjects import TYPE_var, TYPE_kwargs, SubProject
+    from .baseobjects import TYPE_var, TYPE_kwargs
+    from ..mesonlib import SubProject
 
 def flatten(args: T.Union['TYPE_var', T.List['TYPE_var']]) -> T.List['TYPE_var']:
     if isinstance(args, mparser.StringNode):
