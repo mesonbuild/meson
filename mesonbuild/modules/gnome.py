@@ -444,7 +444,7 @@ class GnomeModule(ExtensionModule):
                 ifile = os.path.join(state.subdir, input_file)
 
             depend_files, depends, subdirs = self._get_gresource_dependencies(
-                state, ifile, source_dirs, dependencies)
+                state, glib_compile_resources, ifile, source_dirs, dependencies)
         else:
             depend_files = []
 
@@ -545,11 +545,11 @@ class GnomeModule(ExtensionModule):
 
     @staticmethod
     def _get_gresource_dependencies(
-            state: 'ModuleState', input_file: str, source_dirs: T.List[str],
-            dependencies: T.Sequence[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex]]
+            state: 'ModuleState', glib_compile_resources: T.Union[ExternalProgram, OverrideProgram, Executable],
+            input_file: str, source_dirs: T.List[str], dependencies: T.Sequence[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex]]
             ) -> T.Tuple[T.List[mesonlib.FileOrString], T.List[T.Union[CustomTarget, CustomTargetIndex]], T.List[str]]:
 
-        cmd = ['glib-compile-resources',
+        cmd = glib_compile_resources.get_command() + [
                input_file,
                '--generate-dependencies']
 
