@@ -504,7 +504,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     def get_option_std_args(self, target: BuildTarget, env: Environment, subproject: T.Optional[str] = None) -> T.List[str]:
         args: T.List[str] = []
-        std = self.get_compileropt_value('winlibs', env, target, subproject)
+        std = self.get_compileropt_value('std', env, target, subproject)
         assert isinstance(std, str)
         if std == 'c89':
             mlog.log("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.", once=True)
