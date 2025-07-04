@@ -1427,6 +1427,7 @@ def get_global_options(lang: str,
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey(f'{lang}_args', machine=for_machine)
     largkey = OptionKey(f'{lang}_link_args', machine=for_machine)
+    eargkey = OptionKey(f'{lang}_executable_link_args', machine=for_machine)
 
     comp_args_from_envvar = False
     comp_options = env.coredata.optstore.get_pending_value(argkey)
@@ -1440,8 +1441,15 @@ def get_global_options(lang: str,
         link_args_from_envvar = True
         link_options = env.env_opts.get(largkey, [])
 
+    exe_link_args_from_envvar = False
+    exe_link_options = env.coredata.optstore.get_pending_value(eargkey)
+    if exe_link_options is None:
+        exe_link_args_from_envvar = True
+        exe_link_options = env.env_opts.get(eargkey, [])
+
     assert isinstance(comp_options, (str, list)), 'for mypy'
     assert isinstance(link_options, (str, list)), 'for mypy'
+    assert isinstance(exe_link_options, (str, list)), 'for mypy'
 
     cargs = options.UserStringArrayOption(
         argkey.name,
@@ -1453,6 +1461,11 @@ def get_global_options(lang: str,
         description + ' linker',
         link_options, split_args=True, allow_dups=True)
 
+    eargs = options.UserStringArrayOption(
+        eargkey.name,
+        description + ' linker that apply to executable targets',
+        exe_link_options, split_args=True, allow_dups=True)
+
     if comp.INVOKES_LINKER and comp_args_from_envvar and link_args_from_envvar:
         # If the compiler acts as a linker driver, and we're using the
         # environment variable flags for both the compiler and linker
@@ -1461,6 +1474,5 @@ def get_global_options(lang: str,
         # autotools compatibility.
         largs.extend_value(comp_options)
 
-    opts: dict[OptionKey, options.AnyOptionType] = {argkey: cargs, largkey: largs}
-
+    opts: dict[OptionKey, options.AnyOptionType] = {argkey: cargs, largkey: largs, eargkey: eargs}
     return opts
