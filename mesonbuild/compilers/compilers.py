@@ -84,7 +84,7 @@ clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'nasm', 'fortran')
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
 # This must be sorted, see sort_clink().
-clink_langs = ('d', 'cuda') + clib_langs
+clink_langs = ('d', 'cuda', 'swift') + clib_langs
 
 SUFFIX_TO_LANG = dict(itertools.chain(*(
     [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items())))
@@ -1118,9 +1118,6 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
 
     def get_compile_only_args(self) -> T.List[str]:
         return []
-
-    def get_cxx_interoperability_args(self, lang: T.Dict[str, Compiler]) -> T.List[str]:
-        raise EnvironmentException('This compiler does not support CXX interoperability')
 
     def get_preprocess_only_args(self) -> T.List[str]:
         raise EnvironmentException('This compiler does not have a preprocessor')
