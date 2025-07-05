@@ -194,21 +194,24 @@ class MesonApp:
             return self._generate(env, capture, vslite_ctx)
 
     def check_unused_options(self, coredata: 'coredata.CoreData', cmd_line_options: T.Dict[OptionKey, str], all_subprojects: T.Mapping[str, object]) -> None:
-        pending = coredata.optstore.pending_options
         errlist: T.List[str] = []
         known_subprojects = all_subprojects.keys()
-        for opt in pending:
-            # It is not an error to set wrong option for unknown subprojects
-            # because they might be used in future reconfigurations
-            if coredata.optstore.accept_as_pending_option(opt, known_subprojects):
+        for opt in cmd_line_options:
+            # Accept options that exist or could appear in subsequent reconfigurations,
+            # including options for subprojects that were not used
+            if opt in coredata.optstore or \
+                    opt.evolve(subproject=None) in coredata.optstore or \
+                    coredata.optstore.accept_as_pending_option(opt):
                 continue
-            if opt in cmd_line_options:
-                errlist.append(f'"{opt}"')
+            if opt.subproject and opt.subproject not in known_subprojects:
+                continue
+            # "foo=true" may also refer to toplevel project option ":foo"
+            if opt.subproject is None and coredata.optstore.is_project_option(opt.as_root()):
+                continue
+            errlist.append(f'"{opt}"')
         if errlist:
             errstr = ', '.join(errlist)
             raise MesonException(f'Unknown options: {errstr}')
-
-        coredata.optstore.clear_pending()
 
     def _generate(self, env: environment.Environment, capture: bool, vslite_ctx: T.Optional[dict]) -> T.Optional[dict]:
         # Get all user defined options, including options that have been defined

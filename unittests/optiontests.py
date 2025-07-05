@@ -227,18 +227,32 @@ class OptionTests(unittest.TestCase):
     def test_backend_option_pending(self):
         optstore = OptionStore(False)
         # backend options are known after the first invocation
-        self.assertTrue(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), True))
-        self.assertFalse(optstore.accept_as_pending_option(OptionKey('backend_whatever'), set(), False))
+        self.assertTrue(optstore.accept_as_pending_option(OptionKey('backend_whatever'), True))
+        self.assertFalse(optstore.accept_as_pending_option(OptionKey('backend_whatever'), False))
 
     def test_reconfigure_b_nonexistent(self):
         optstore = OptionStore(False)
         optstore.set_from_configure_command(['b_ndebug=true'], [])
 
-    def test_subproject_nonexistent(self):
+    def test_subproject_proj_opt_with_same_name(self):
+        name = 'tests'
+        subp = 'subp'
+
         optstore = OptionStore(False)
-        subprojects = {'found'}
-        self.assertFalse(optstore.accept_as_pending_option(OptionKey('foo', subproject='found'), subprojects))
-        self.assertTrue(optstore.accept_as_pending_option(OptionKey('foo', subproject='whatisthis'), subprojects))
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        o = UserBooleanOption(name, 'Tests', False)
+        optstore.add_project_option(OptionKey(name, subproject=''), o)
+        o = UserBooleanOption(name, 'Tests', True)
+        optstore.add_project_option(OptionKey(name, subproject=subp), o)
+
+        cmd_line = {OptionKey(name): True}
+        spcall = {OptionKey(name): False}
+
+        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
+        optstore.initialize_from_subproject_call(subp, spcall, {}, cmd_line, {})
+        self.assertEqual(optstore.get_value_for(name, ''), True)
+        self.assertEqual(optstore.get_value_for(name, subp), False)
 
     def test_subproject_cmdline_override_global(self):
         name = 'optimization'
@@ -259,6 +273,26 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
         self.assertEqual(optstore.get_value_for(name, subp), new_value)
         self.assertEqual(optstore.get_value_for(name), new_value)
+
+    def test_subproject_parent_override_subp(self):
+        name = 'optimization'
+        subp = 'subp'
+        default_value = 's'
+        subp_value = '0'
+
+        optstore = OptionStore(False)
+        prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+        optstore.add_system_option('prefix', prefix)
+        o = UserComboOption(name, 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])
+        optstore.add_system_option(name, o)
+
+        toplevel_proj_default = {OptionKey(name, subproject=subp): subp_value, OptionKey(name): default_value}
+        subp_proj_default = {OptionKey(name): '3'}
+
+        optstore.initialize_from_top_level_project_call(toplevel_proj_default, {}, {})
+        optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, {}, {})
+        self.assertEqual(optstore.get_value_for(name, subp), subp_value)
+        self.assertEqual(optstore.get_value_for(name), default_value)
 
     def test_subproject_cmdline_override_global_and_augment(self):
         name = 'optimization'
@@ -300,7 +334,33 @@ class OptionTests(unittest.TestCase):
         optstore.initialize_from_top_level_project_call(toplevel_proj_default, cmd_line, {})
         optstore.initialize_from_subproject_call(subp, {}, subp_proj_default, cmd_line, {})
         self.assertEqual(optstore.get_value_for(name, subp), subp_value)
-        self.assertEqual(optstore.get_value_for(name), toplevel_value)
+        self.assertEqual(optstore.get_value_for(name, ''), toplevel_value)
+
+    def test_subproject_buildtype(self):
+        subp = 'subp'
+        main1 = {OptionKey('buildtype'): 'release'}
+        main2 = {OptionKey('optimization'): '3', OptionKey('debug'): 'false'}
+        sub1 = {OptionKey('buildtype'): 'debug'}
+        sub2 = {OptionKey('optimization'): '0', OptionKey('debug'): 'true'}
+
+        for mainopt, subopt in ((main1, sub1),
+                          (main2, sub2),
+                          ({**main1, **main2}, {**sub1, **sub2})):
+            optstore = OptionStore(False)
+            prefix = UserStringOption('prefix', 'This is needed by OptionStore', '/usr')
+            optstore.add_system_option('prefix', prefix)
+            o = UserComboOption('buildtype', 'Build type to use', 'debug', choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])
+            optstore.add_system_option(o.name, o)
+            o = UserComboOption('optimization', 'Optimization level', '0', choices=['plain', '0', 'g', '1', '2', '3', 's'])
+            optstore.add_system_option(o.name, o)
+            o = UserBooleanOption('debug', 'Enable debug symbols and other information', True)
+            optstore.add_system_option(o.name, o)
+
+            optstore.initialize_from_top_level_project_call(mainopt, {}, {})
+            optstore.initialize_from_subproject_call(subp, {}, subopt, {}, {})
+            self.assertEqual(optstore.get_value_for('buildtype', subp), 'debug')
+            self.assertEqual(optstore.get_value_for('optimization', subp), '0')
+            self.assertEqual(optstore.get_value_for('debug', subp), True)
 
     def test_deprecated_nonstring_value(self):
         # TODO: add a lot more deprecated option tests
