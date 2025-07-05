@@ -819,9 +819,6 @@ class OptionStore:
         # Subproject options from toplevel project()
         self.pending_subproject_options: OptionDict = {}
 
-    def clear_pending(self) -> None:
-        self.pending_options = {}
-
     def ensure_and_validate_key(self, key: T.Union[OptionKey, str]) -> OptionKey:
         if isinstance(key, str):
             return OptionKey(key)
