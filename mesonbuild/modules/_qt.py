@@ -270,6 +270,9 @@ class QtBaseModule(ExtensionModule):
         self._tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
         kwargs = {'required': required, 'modules': 'Core', 'method': method}
+        # Tools are for compile-time steps, so force native check for
+        # compatibility with cross-compile scenarios
+        kwargs["native"] = True
         # Just pick one to make mypy happy
         qt = T.cast('QtPkgConfigDependency', find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs))
         if qt.found():
