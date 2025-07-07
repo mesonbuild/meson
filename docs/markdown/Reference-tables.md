@@ -5,51 +5,52 @@
 These are return values of the `get_id` (Compiler family) and
 `get_argument_syntax` (Argument syntax) method in a compiler object.
 
-| Value     | Compiler family                  | Argument syntax |
-| -----     | ---------------                  | --------------- |
-| arm       | ARM compiler                     |                 |
-| armclang  | ARMCLANG compiler                |                 |
-| ccomp     | The CompCert formally-verified C compiler |        |
-| ccrx      | Renesas RX Family C/C++ compiler |                 |
-| clang     | The Clang compiler               | gcc             |
-| clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
-| dmd       | D lang reference compiler        |                 |
-| emscripten| Emscripten WASM compiler         |                 |
-| flang     | Classic Flang Fortran compiler   |                 |
-| g95       | The G95 Fortran compiler         |                 |
-| gcc       | The GNU Compiler Collection      | gcc             |
-| intel     | Intel compiler (Linux and Mac)   | gcc             |
-| intel-cl  | Intel compiler (Windows)         | msvc            |
-| intel-llvm    | Intel oneAPI LLVM-based compiler            |                 |
-| intel-llvm-cl | Intel oneAPI LLVM-based compiler (Windows)  | msvc            |
-| lcc       | Elbrus C/C++/Fortran Compiler    |                 |
-| llvm      | LLVM-based compiler (Swift, D)   |                 |
-| llvm-flang| Flang Fortran compiler (LLVM-based) |              |
-| mono      | Xamarin C# compiler              |                 |
-| mwccarm   | Metrowerks C/C++ compiler for Embedded ARM         |                 |
-| mwcceppc  | Metrowerks C/C++ compiler for Embedded PowerPC     |                 |
-| msvc      | Microsoft Visual Studio          | msvc            |
-| nagfor    | The NAG Fortran compiler         |                 |
-| nvidia_hpc| NVidia HPC SDK compilers         |                 |
-| nvcc      | NVidia CUDA compiler             |                 |
-| open64    | The Open64 Fortran Compiler      |                 |
-| pathscale | The Pathscale Fortran compiler   |                 |
-| pgi       | Portland PGI C/C++/Fortran compilers |             |
-| rustc     | Rust compiler                    |                 |
-| sun       | Sun Fortran compiler             |                 |
-| c2000     | Texas Instruments C/C++ Compiler (C2000) |                 |
-| c6000     | Texas Instruments C/C++ Compiler (C6000) |                 |
-| ti        | Texas Instruments C/C++ Compiler |                 |
-| valac     | Vala compiler                    |                 |
-| xc16      | Microchip XC16 C compiler        |                 |
-| cython    | The Cython compiler              |                 |
-| nasm      | The NASM compiler (Since 0.64.0) |                 |
-| yasm      | The YASM compiler (Since 0.64.0) |                 |
-| ml        | Microsoft Macro Assembler for x86 and x86_64 (Since 0.64.0) | msvc |
-| armasm    | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) | |
-| mwasmarm        | Metrowerks Assembler for Embedded ARM | |
-| mwasmeppc       | Metrowerks Assembler for Embedded PowerPC | |
-| tasking         | TASKING VX-toolset     | |
+| Value         | Compiler family                                              | Argument syntax |
+| ------------- | ------------------------------------------------------------ | --------------- |
+| arm           | ARM compiler                                                 |                 |
+| armclang      | ARMCLANG compiler                                            |                 |
+| ccomp         | The CompCert formally-verified C compiler                    |                 |
+| ccrx          | Renesas RX Family C/C++ compiler                             |                 |
+| clang         | The Clang compiler                                           | gcc             |
+| clang-cl      | The Clang compiler (MSVC compatible driver)                  | msvc            |
+| dmd           | D lang reference compiler                                    |                 |
+| emscripten    | Emscripten WASM compiler                                     |                 |
+| flang         | Classic Flang Fortran compiler                               |                 |
+| g95           | The G95 Fortran compiler                                     |                 |
+| gcc           | The GNU Compiler Collection                                  | gcc             |
+| intel         | Intel compiler (Linux and Mac)                               | gcc             |
+| intel-cl      | Intel compiler (Windows)                                     | msvc            |
+| intel-llvm    | Intel oneAPI LLVM-based compiler                             |                 |
+| intel-llvm-cl | Intel oneAPI LLVM-based compiler (Windows)                   | msvc            |
+| lcc           | Elbrus C/C++/Fortran Compiler                                |                 |
+| llvm          | LLVM-based compiler (Swift, D)                               |                 |
+| llvm-flang    | Flang Fortran compiler (LLVM-based)                          |                 |
+| mono          | Xamarin C# compiler                                          |                 |
+| mwccarm       | Metrowerks C/C++ compiler for Embedded ARM                   |                 |
+| mwcceppc      | Metrowerks C/C++ compiler for Embedded PowerPC               |                 |
+| msvc          | Microsoft Visual Studio                                      | msvc            |
+| nagfor        | The NAG Fortran compiler                                     |                 |
+| nvidia_hpc    | NVidia HPC SDK compilers                                     |                 |
+| nvcc          | NVidia CUDA compiler                                         |                 |
+| open64        | The Open64 Fortran Compiler                                  |                 |
+| pathscale     | The Pathscale Fortran compiler                               |                 |
+| pgi           | Portland PGI C/C++/Fortran compilers                         |                 |
+| rustc         | Rust compiler                                                |                 |
+| sun           | Sun Fortran compiler                                         |                 |
+| c2000         | Texas Instruments C/C++ Compiler (C2000)                     |                 |
+| c6000         | Texas Instruments C/C++ Compiler (C6000)                     |                 |
+| ti            | Texas Instruments C/C++ Compiler                             |                 |
+| valac         | Vala compiler                                                |                 |
+| xc16          | Microchip XC16 C compiler                                    |                 |
+| cython        | The Cython compiler                                          |                 |
+| nasm          | The NASM compiler (Since 0.64.0)                             |                 |
+| yasm          | The YASM compiler (Since 0.64.0)                             |                 |
+| ml            | Microsoft Macro Assembler for x86 and x86_64 (Since 0.64.0)  | msvc            |
+| armasm        | Microsoft Macro Assembler for ARM and AARCH64 (Since 0.64.0) |                 |
+| mwasmarm      | Metrowerks Assembler for Embedded ARM                        |                 |
+| mwasmeppc     | Metrowerks Assembler for Embedded PowerPC                    |                 |
+| tasking       | TASKING VX-toolset                                           |                 |
+| zig           | Zig compiler                                                 |                 |
 
 ## Linker ids
 
@@ -82,21 +83,21 @@ These are return values of the `get_linker_id` method in a compiler object.
 | ccomp      | CompCert used as the linker driver          |
 | mwldarm    | The Metrowerks Linker with the ARM interface, used with mwccarm only |
 | mwldeppc   | The Metrowerks Linker with the PowerPC interface, used with mwcceppc only |
-| tasking    | TASKING VX-toolset                          |
+| tasking    | TASKING VX-toolset                                                        |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
 
 ## Script environment variables
 
-| Value               | Comment                         |
-| -----               | -------                         |
-| MESONINTROSPECT     | Command to run to run the introspection command, may be of the form `python /path/to/meson introspect`, user is responsible for splitting the path if necessary. |
-| MESONREWRITE        | Command to run to run the rewriting command, only set when running `dist` scripts |
-| MESON_BUILD_ROOT    | Absolute path to the build dir  |
-| MESON_DIST_ROOT     | Points to the root of the staging directory, only set when running `dist` scripts |
-| MESON_SOURCE_ROOT   | Absolute path to the source dir |
-| MESON_SUBDIR        | Current subdirectory, only set for `run_command` |
+| Value             | Comment                                                                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MESONINTROSPECT   | Command to run to run the introspection command, may be of the form `python /path/to/meson introspect`, user is responsible for splitting the path if necessary. |
+| MESONREWRITE      | Command to run to run the rewriting command, only set when running `dist` scripts                                                                                |
+| MESON_BUILD_ROOT  | Absolute path to the build dir                                                                                                                                   |
+| MESON_DIST_ROOT   | Points to the root of the staging directory, only set when running `dist` scripts                                                                                |
+| MESON_SOURCE_ROOT | Absolute path to the source dir                                                                                                                                  |
+| MESON_SUBDIR      | Current subdirectory, only set for `run_command`                                                                                                                 |
 
 ## CPU families
 
@@ -104,45 +105,45 @@ These are returned by the `cpu_family` method of `build_machine`,
 `host_machine` and `target_machine`. For cross compilation they are
 set in the cross file.
 
-| Value               | Comment                  |
-| -----               | -------                  |
-| aarch64             | 64 bit ARM processor     |
-| alpha               | DEC Alpha processor      |
-| arc                 | 32 bit ARC processor     |
-| arm                 | 32 bit ARM processor     |
-| avr                 | Atmel AVR processor      |
-| c2000               | 32 bit C2000 processor   |
-| c6000               | 32 bit C6000 processor   |
-| csky                | 32 bit CSky processor    |
-| dspic               | 16 bit Microchip dsPIC   |
-| e2k                 | MCST Elbrus processor    |
-| ft32                | 32 bit Bridgetek MCU     |
-| ia64                | Itanium processor        |
-| loongarch64         | 64 bit Loongson processor|
-| m68k                | Motorola 68000 processor |
-| microblaze          | MicroBlaze processor     |
-| mips                | 32 bit MIPS processor    |
-| mips64              | 64 bit MIPS processor    |
-| msp430              | 16 bit MSP430 processor  |
-| parisc              | HP PA-RISC processor     |
-| pic24               | 16 bit Microchip PIC24   |
-| ppc                 | 32 bit PPC processors    |
-| ppc64               | 64 bit PPC processors    |
-| riscv32             | 32 bit RISC-V Open ISA   |
-| riscv64             | 64 bit RISC-V Open ISA   |
-| rl78                | Renesas RL78             |
-| rx                  | Renesas RX 32 bit MCU    |
-| s390                | IBM zSystem s390         |
-| s390x               | IBM zSystem s390x        |
-| sh4                 | SuperH SH-4              |
-| sparc               | 32 bit SPARC             |
-| sparc64             | SPARC v9 processor       |
-| sw_64               | 64 bit sunway processor  |
-| wasm32              | 32 bit Webassembly       |
-| wasm64              | 64 bit Webassembly       |
-| x86                 | 32 bit x86 processor     |
-| x86_64              | 64 bit x86 processor     |
-| tricore             | Tricore 32 bit processor |
+| Value       | Comment                   |
+| ----------- | ------------------------- |
+| aarch64     | 64 bit ARM processor      |
+| alpha       | DEC Alpha processor       |
+| arc         | 32 bit ARC processor      |
+| arm         | 32 bit ARM processor      |
+| avr         | Atmel AVR processor       |
+| c2000       | 32 bit C2000 processor    |
+| c6000       | 32 bit C6000 processor    |
+| csky        | 32 bit CSky processor     |
+| dspic       | 16 bit Microchip dsPIC    |
+| e2k         | MCST Elbrus processor     |
+| ft32        | 32 bit Bridgetek MCU      |
+| ia64        | Itanium processor         |
+| loongarch64 | 64 bit Loongson processor |
+| m68k        | Motorola 68000 processor  |
+| microblaze  | MicroBlaze processor      |
+| mips        | 32 bit MIPS processor     |
+| mips64      | 64 bit MIPS processor     |
+| msp430      | 16 bit MSP430 processor   |
+| parisc      | HP PA-RISC processor      |
+| pic24       | 16 bit Microchip PIC24    |
+| ppc         | 32 bit PPC processors     |
+| ppc64       | 64 bit PPC processors     |
+| riscv32     | 32 bit RISC-V Open ISA    |
+| riscv64     | 64 bit RISC-V Open ISA    |
+| rl78        | Renesas RL78              |
+| rx          | Renesas RX 32 bit MCU     |
+| s390        | IBM zSystem s390          |
+| s390x       | IBM zSystem s390x         |
+| sh4         | SuperH SH-4               |
+| sparc       | 32 bit SPARC              |
+| sparc64     | SPARC v9 processor        |
+| sw_64       | 64 bit sunway processor   |
+| wasm32      | 32 bit Webassembly        |
+| wasm64      | 64 bit Webassembly        |
+| x86         | 32 bit x86 processor      |
+| x86_64      | 64 bit x86 processor      |
+| tricore     | Tricore 32 bit processor  |
 
 
 Any cpu family not listed in the above list is not guaranteed to
@@ -157,21 +158,21 @@ also check the `.endian()` value of the machine for this information.
 
 These are provided by the `.system()` method call.
 
-| Value               | Comment                         |
-| -----               | -------                         |
-| android             | By convention only, subject to change |
-| cygwin              | Cygwin or MSYS2 environment on Windows |
-| darwin              | Either OSX or iOS |
-| dragonfly           | DragonFly BSD |
-| emscripten          | Emscripten's JavaScript environment |
-| freebsd             | FreeBSD and its derivatives |
-| gnu                 | GNU Hurd |
-| haiku               | |
-| linux               | |
-| netbsd              | |
-| openbsd             | |
-| windows             | Native Windows (not Cygwin or MSYS2) |
-| sunos               | illumos and Solaris |
+| Value      | Comment                                |
+| ---------- | -------------------------------------- |
+| android    | By convention only, subject to change  |
+| cygwin     | Cygwin or MSYS2 environment on Windows |
+| darwin     | Either OSX or iOS                      |
+| dragonfly  | DragonFly BSD                          |
+| emscripten | Emscripten's JavaScript environment    |
+| freebsd    | FreeBSD and its derivatives            |
+| gnu        | GNU Hurd                               |
+| haiku      |                                        |
+| linux      |                                        |
+| netbsd     |                                        |
+| openbsd    |                                        |
+| windows    | Native Windows (not Cygwin or MSYS2)   |
+| sunos      | illumos and Solaris                    |
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
@@ -180,20 +181,20 @@ future releases.
 
 Native names as returned by the `.kernel()` method.
 
-| Value               | Comment                         |
-| -----               | -------                         |
-| linux   | |
-| freebsd | |
-| openbsd | |
-| netbsd  | |
-| gnu     | GNU Hurd |
-| nt      | |
-| xnu                 | Kernel of various Apple OSes    |
-| illumos             | Kernel derived from OpenSolaris by community efforts |
-| solaris             | Kernel derived from OpenSolaris by Oracle |
-| dragonfly | |
-| haiku| |
-| none                 | For e.g. bare metal embedded    |
+| Value     | Comment                                              |
+| --------- | ---------------------------------------------------- |
+| linux     |                                                      |
+| freebsd   |                                                      |
+| openbsd   |                                                      |
+| netbsd    |                                                      |
+| gnu       | GNU Hurd                                             |
+| nt        |                                                      |
+| xnu       | Kernel of various Apple OSes                         |
+| illumos   | Kernel derived from OpenSolaris by community efforts |
+| solaris   | Kernel derived from OpenSolaris by Oracle            |
+| dragonfly |                                                      |
+| haiku     |                                                      |
+| none      | For e.g. bare metal embedded                         |
 
 
 ## Subsystem names (since 1.2.0)
@@ -236,6 +237,7 @@ to your build target.
 | NASM          | nasm_args      | N/A               |
 | MASM          | masm_args      | N/A               |
 | Linear ASM    | linearasm_args | N/A               |
+| Zig           | zig_args       | zig_link_args     |
 
 All these `<lang>_*` options are specified per machine. See in
 [specifying options per
@@ -254,7 +256,7 @@ It is **highly** recommended that you use [the command line
 arguments](#language-arguments-parameter-names) instead.
 
 | Name        | Comment                                  |
-| -----       | -------                                  |
+| ----------- | ---------------------------------------- |
 | CFLAGS      | Flags for the C compiler                 |
 | CXXFLAGS    | Flags for the C++ compiler               |
 | CUFLAGS     | Flags for the CUDA compiler              |
@@ -283,7 +285,7 @@ which are supported by GCC, Clang, and other compilers.
 
 
 | Name                        |
-|-----------------------------|
+| --------------------------- |
 | alias                       |
 | aligned                     |
 | alloc_size                  |
@@ -353,10 +355,10 @@ which are supported by GCC, Clang, and other compilers.
 These values are supported using the MSVC style `__declspec` annotation,
 which are supported by MSVC, GCC, Clang, and other compilers.
 
-| Name                 |
-|----------------------|
-| dllexport            |
-| dllimport            |
+| Name      |
+| --------- |
+| dllexport |
+| dllimport |
 
 
 ## Dependency lookup methods
@@ -364,14 +366,14 @@ which are supported by MSVC, GCC, Clang, and other compilers.
 These are the values that can be passed to `dependency` function's
 `method` keyword argument.
 
-| Name              | Comment                                      |
-| -----             | -------                                      |
-| auto              | Automatic method selection                   |
-| pkg-config        | Use Pkg-Config                               |
-| cmake             | Look up as a CMake module                    |
-| config-tool       | Use a custom dep tool such as `cups-config`  |
-| system            | System provided (e.g. OpenGL)                |
-| extraframework    | A macOS/iOS framework                        |
+| Name           | Comment                                     |
+| -------------- | ------------------------------------------- |
+| auto           | Automatic method selection                  |
+| pkg-config     | Use Pkg-Config                              |
+| cmake          | Look up as a CMake module                   |
+| config-tool    | Use a custom dep tool such as `cups-config` |
+| system         | System provided (e.g. OpenGL)               |
+| extraframework | A macOS/iOS framework                       |
 
 
 ## Compiler and Linker selection variables
@@ -380,20 +382,20 @@ N.B. these settings are specified per machine, and so the environment
 variables actually come in pairs. See the [environment variables per
 machine](#Environment-variables-per-machine) section for details.
 
-| Language      | Compiler | Linker    | Note                                        |
-|---------------|----------|-----------|---------------------------------------------|
-| C             | CC       | CC_LD     |                                             |
-| C++           | CXX      | CXX_LD    |                                             |
-| D             | DC       | DC_LD     | Before 0.54 D_LD*                           |
-| Fortran       | FC       | FC_LD     | Before 0.54 F_LD*                           |
-| Objective-C   | OBJC     | OBJC_LD   |                                             |
-| Objective-C++ | OBJCXX   | OBJCXX_LD | Before 0.54 OBJCPP_LD*                      |
-| Rust          | RUSTC    | RUSTC_LD  | Before 0.54 RUST_LD*                        |
-| Vala          | VALAC    |           | Use CC_LD. Vala transpiles to C             |
-| C#            | CSC      | CSC       | The linker is the compiler                  |
-| Cython        | CYTHON   |           |                                             |
-| nasm          | NASM     |           | Uses the C linker                           |
-| archiver      |          | AR        |                                             |
+| Language      | Compiler | Linker    | Note                            |
+| ------------- | -------- | --------- | ------------------------------- |
+| C             | CC       | CC_LD     |                                 |
+| C++           | CXX      | CXX_LD    |                                 |
+| D             | DC       | DC_LD     | Before 0.54 D_LD*               |
+| Fortran       | FC       | FC_LD     | Before 0.54 F_LD*               |
+| Objective-C   | OBJC     | OBJC_LD   |                                 |
+| Objective-C++ | OBJCXX   | OBJCXX_LD | Before 0.54 OBJCPP_LD*          |
+| Rust          | RUSTC    | RUSTC_LD  | Before 0.54 RUST_LD*            |
+| Vala          | VALAC    |           | Use CC_LD. Vala transpiles to C |
+| C#            | CSC      | CSC       | The linker is the compiler      |
+| Cython        | CYTHON   |           |                                 |
+| nasm          | NASM     |           | Uses the C linker               |
+| archiver      |          | AR        |                                 |
 
 *The old environment variables are still supported, but are deprecated
 and will be removed in a future version of Meson.
