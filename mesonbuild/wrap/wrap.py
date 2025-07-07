@@ -798,14 +798,17 @@ class Resolver:
             hashvalue = h.hexdigest()
         return hashvalue, tmpfile.name
 
+    def hash_file(self, path: str) -> str:
+        h = hashlib.sha256()
+        with open(path, 'rb') as f:
+            h.update(f.read())
+        return h.hexdigest()
+
     def check_hash(self, what: str, path: str, hash_required: bool = True) -> None:
         if what + '_hash' not in self.wrap.values and not hash_required:
             return
         expected = self.wrap.get(what + '_hash').lower()
-        h = hashlib.sha256()
-        with open(path, 'rb') as f:
-            h.update(f.read())
-        dhash = h.hexdigest()
+        dhash = self.hash_file(path)
         if dhash != expected:
             raise WrapException(f'Incorrect hash for {what}:\n {expected} expected\n {dhash} actual.')
 
