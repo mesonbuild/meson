@@ -715,7 +715,9 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
             env.coredata.optstore.set_option(key, cls.to_host_flags_base(val, Phase.LINKER))
         linker = CudaLinker(compiler, env, for_machine, CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
         return cls(ccache, compiler, version, for_machine, cpp_compiler, env, linker=linker)
-    raise EnvironmentException(f'Could not find suitable CUDA compiler: "{"; ".join([" ".join(c) for c in compilers])}"')
+
+    _handle_exceptions(popen_exceptions, compilers)
+    raise EnvironmentException(f'Unknown compiler {compilers}')
 
 def detect_fortran_compiler(env: 'Environment', for_machine: MachineChoice) -> Compiler:
     from . import fortran
