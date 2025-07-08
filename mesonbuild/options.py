@@ -848,7 +848,7 @@ class OptionStore:
     def __len__(self) -> int:
         return len(self.options)
 
-    def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
+    def get_key_and_value_object_for(self, key: 'T.Union[OptionKey, str]') -> T.Tuple[OptionKey, AnyOptionType]:
         key = self.ensure_and_validate_key(key)
         potential = self.options.get(key, None)
         if self.is_project_option(key):
@@ -861,26 +861,31 @@ class OptionStore:
                     # Subproject is set to yield, but top level
                     # project does not have an option of the same
                     # name. Return the subproject option.
-                    return potential
+                    return key, potential
                 # If parent object has different type, do not yield.
                 # This should probably be an error.
                 if type(parent_option) is type(potential):
-                    return parent_option
-                return potential
+                    return parent_key, parent_option
+                return key, potential
             if potential is None:
                 raise KeyError(f'Tried to access nonexistant project option {key}.')
-            return potential
+            return key, potential
         else:
             if potential is None:
                 parent_key = OptionKey(key.name, subproject=None, machine=key.machine)
                 if parent_key not in self.options:
                     raise KeyError(f'Tried to access nonexistant project parent option {parent_key}.')
-                return self.options[parent_key]
-            return potential
+                # This is a global option but it can still have per-project
+                # augment, so return the subproject key.
+                return key, self.options[parent_key]
+            return key, potential
+
+    def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
+        return self.get_key_and_value_object_for(key)[1]
 
     def get_value_object_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert isinstance(key, OptionKey)
-        vobject = self.get_value_object_for(key)
+        _, vobject = self.get_key_and_value_object_for(key)
         computed_value = vobject.value
         if key in self.augments:
             assert key.subproject is not None
@@ -1015,7 +1020,7 @@ class OptionStore:
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 
         try:
-            opt = self.get_value_object_for(key)
+            actual_key, opt = self.get_key_and_value_object_for(key)
         except KeyError:
             raise MesonException(f'Unknown option: "{error_key}".')
 
@@ -1042,8 +1047,13 @@ class OptionStore:
 
         new_value = opt.validate_value(new_value)
         if key in self.options:
-            old_value = opt.value
-            opt.set_value(new_value)
+            if actual_key.subproject == key.subproject:
+                old_value = opt.value
+                opt.set_value(new_value)
+            else:
+                # the key must have pointed to a yielding option;
+                # do not overwrite the global value in that case
+                return changed
         else:
             assert key.subproject is not None
             old_value = self.augments.get(key, opt.value)
