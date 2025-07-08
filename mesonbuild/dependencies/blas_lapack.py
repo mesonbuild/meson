@@ -1,4 +1,4 @@
-# Copyright 2013-2020 The Meson development team
+# Copyright 2013-2025 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,13 +26,14 @@ from .. import mesonlib
 from ..mesonlib import MachineChoice
 from ..options import OptionKey
 
-from .base import DependencyMethods, SystemDependency
+from .base import DependencyException, DependencyMethods, SystemDependency
 from .cmake import CMakeDependency
 from .detect import packages
 from .factory import DependencyFactory, factory_methods
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
+    from ._factory import DependencyGenerator
     from ..environment import Environment
 
 
@@ -41,7 +42,7 @@ if T.TYPE_CHECKING:
 # detection implementations and distro recipes, etc.
 
 
-def check_blas_machine_file(self, name: str, props: dict) -> T.Tuple[bool, T.List[str]]:
+def check_blas_machine_file(name: str, props: dict) -> T.Tuple[bool, T.List[str]]:
     # TBD: do we need to support multiple extra dirs?
     incdir = props.get(f'{name}_includedir')
     assert incdir is None or isinstance(incdir, str)
@@ -102,11 +103,11 @@ class BLASLAPACKMixin():
         prototypes = "".join(f"void {symbol}{suffix}();\n" for symbol in symbols)
         calls = "  ".join(f"{symbol}{suffix}();\n" for symbol in symbols)
         code = (f"{prototypes}"
-                 "int main(int argc, const char *argv[])\n"
-                 "{\n"
+                "int main(int argc, const char *argv[])\n"
+                "{\n"
                 f"  {calls}"
-                 "  return 0;\n"
-                 "}"
+                "  return 0;\n"
+                "}"
                 )
         code = '''#ifdef __cplusplus
                extern "C" {
@@ -458,7 +459,6 @@ class NetlibLAPACKSystemDependency(BLASLAPACKMixin, NetlibMixin, SystemDependenc
             self.detect([libdir], [incdir])
 
 
-
 class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
     """
     Accelerate is always installed on macOS, and not available on other OSes.
@@ -504,7 +504,6 @@ class AccelerateSystemDependency(BLASLAPACKMixin, SystemDependency):
 
         # We won't check symbols here, because Accelerate is built in a consistent fashion
         # with known symbol mangling, unlike OpenBLAS or Netlib BLAS/LAPACK.
-        return None
 
     def get_symbol_suffix(self) -> str:
         return '$NEWLAPACK' if self.interface == 'lp64' else '$NEWLAPACK$ILP64'
@@ -521,16 +520,16 @@ class MKLMixin():
         don't get to the generic parse_modules() method for all BLAS/LAPACK dependencies.
         """
         modules: T.List[str] = mesonlib.extract_as_list(kwargs, 'modules')
-        threading_module = [s for s in modules if s.startswith('threading')]
+        threading_modules = [s for s in modules if s.startswith('threading')]
         sdl_module = [s for s in modules if s.startswith('sdl')]
 
-        if not threading_module:
+        if not threading_modules:
             self.threading = 'iomp'
-        elif len(threading_module) > 1:
+        elif len(threading_modules) > 1:
             raise mesonlib.MesonException(f'Multiple threading arguments: {threading_modules}')
         else:
             # We have a single threading option specified - validate and process it
-            opt = threading_module[0]
+            opt = threading_modules[0]
             if opt not in ['threading: ' + s for s in ('seq', 'iomp', 'gomp', 'tbb')]:
                 raise mesonlib.MesonException(f'Invalid threading argument: {opt}')
 
@@ -567,8 +566,6 @@ class MKLMixin():
             # If we're here, we got an explicit `sdl: 'true'`
             raise mesonlib.MesonException(f'Linking SDL implies using LP64 and Intel OpenMP, found '
                                           f'conflicting options: {self.interface}, {self.threading}')
-
-        return None
 
 
 class MKLPkgConfigDependency(BLASLAPACKMixin, MKLMixin, PkgConfigDependency):
@@ -619,7 +616,6 @@ class MKLSystemDependency(BLASLAPACKMixin, MKLMixin, SystemDependency):
 
         if self.use_sdl:
             self.detect_sdl()
-        return None
 
     def detect_sdl(self) -> None:
         # Use MKLROOT in addition to standard libdir(s)
@@ -649,7 +645,7 @@ class MKLSystemDependency(BLASLAPACKMixin, MKLMixin, SystemDependency):
             self.is_found = True
             self.compile_args += incdir_args
             self.link_args += link_arg
-            if not sys.platform == 'win32':
+            if sys.platform != 'win32':
                 self.link_args += ['-lpthread', '-lm', '-ldl']
 
             # Determine MKL version
