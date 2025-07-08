@@ -23,7 +23,8 @@ import typing as T
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import MachineChoice, OptionKey
+from ..mesonlib import MachineChoice
+from ..options import OptionKey
 
 from .base import DependencyMethods, SystemDependency
 from .cmake import CMakeDependency
@@ -596,7 +597,7 @@ class MKLPkgConfigDependency(BLASLAPACKMixin, MKLMixin, PkgConfigDependency):
             # available before the .pc file for SDL
             self.use_sdl = False
 
-        static_opt = kwargs.get('static', env.coredata.get_option(OptionKey('prefer_static')))
+        static_opt = kwargs.get('static', env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
         libtype = 'static' if static_opt else 'dynamic'
 
         if self.use_sdl:
