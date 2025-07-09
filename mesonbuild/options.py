@@ -1111,14 +1111,13 @@ class OptionStore:
         else:
             raise MesonException(f'Unknown option: "{o}".')
 
-    def set_from_configure_command(self, D_args: T.List[str], U_args: T.List[str]) -> bool:
+    def set_from_configure_command(self, D_args: T.Dict[OptionKey, T.Optional[str]]) -> bool:
         dirty = False
-        D_args = [] if D_args is None else D_args
-        U_args = [] if U_args is None else U_args
-        for key, valstr in self.parse_D_arguments(D_args):
-            dirty |= self.set_user_option(key, valstr)
-        for keystr in U_args:
-            key = OptionKey.from_string(keystr)
+        for key, valstr in D_args.items():
+            if valstr is not None:
+                dirty |= self.set_user_option(key, valstr)
+                continue
+
             if key in self.augments:
                 del self.augments[key]
                 dirty = True
@@ -1241,14 +1240,6 @@ class OptionStore:
 
     def is_module_option(self, key: OptionKey) -> bool:
         return key in self.module_options
-
-    def parse_D_arguments(self, D: T.List[str]) -> T.List[T.Tuple[OptionKey, str]]:
-        options = []
-        for setval in D:
-            keystr, valstr = setval.split('=', 1)
-            key = OptionKey.from_string(keystr)
-            options.append((key, valstr))
-        return options
 
     def prefix_split_options(self, coll: OptionDict) -> T.Tuple[T.Optional[str], OptionDict]:
         prefix = None
