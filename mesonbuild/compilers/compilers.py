@@ -1414,10 +1414,8 @@ def get_global_options(lang: str,
         comp_args_from_envvar = True
         comp_options = env.env_opts.get(argkey, [])
 
-    link_args_from_envvar = False
     link_options = env.coredata.optstore.get_pending_value(largkey)
     if link_options is None:
-        link_args_from_envvar = True
         link_options = env.env_opts.get(largkey, [])
 
     assert isinstance(comp_options, (str, list)), 'for mypy'
@@ -1433,7 +1431,7 @@ def get_global_options(lang: str,
         description + ' linker',
         link_options, split_args=True, allow_dups=True)
 
-    if comp.INVOKES_LINKER and comp_args_from_envvar and link_args_from_envvar:
+    if comp.INVOKES_LINKER and comp_args_from_envvar:
         # If the compiler acts as a linker driver, and we're using the
         # environment variable flags for both the compiler and linker
         # arguments, then put the compiler flags in the linker flags as well.
