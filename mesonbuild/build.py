@@ -1773,6 +1773,10 @@ class BuildTarget(Target):
     def get(self, lib_type: T.Literal['static', 'shared']) -> LibTypes:
         """Base case used by BothLibraries"""
         return self
+    
+    def get_target_group(self) -> str:
+        return self.__class__.__name__.lower()
+
 
 class FileInTargetPrivateDir:
     """Represents a file with the path '/path/to/build/target_private_dir/fname'.
