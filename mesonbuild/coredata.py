@@ -37,7 +37,6 @@ if T.TYPE_CHECKING:
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
-    from .environment import Environment
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
@@ -581,12 +580,6 @@ class CoreData:
                 self.optstore.add_compiler_option('cpp', comp_key, o)
             else:
                 self.optstore.add_compiler_option(lang, comp_key, o)
-
-    def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
-                      for_machine: MachineChoice, env: 'Environment') -> None:
-        """Add global language arguments that are needed before compiler/linker detection."""
-        from .compilers import compilers
-        compilers.add_global_options(lang, comp, for_machine, env)
 
     def process_compiler_options(self, lang: str, comp: Compiler, subproject: str) -> None:
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine)
