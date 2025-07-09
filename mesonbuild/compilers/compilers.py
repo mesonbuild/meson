@@ -1419,10 +1419,10 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         std.choices = value
 
 
-def get_global_options(lang: str,
+def add_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       env: 'Environment') -> dict[OptionKey, options.AnyOptionType]:
+                       env: 'Environment'):
     """Retrieve options that apply to all compilers for a given language."""
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey(f'{lang}_args', machine=for_machine)
@@ -1451,6 +1451,9 @@ def get_global_options(lang: str,
         description + ' linker',
         link_options, split_args=True, allow_dups=True)
 
+    env.coredata.optstore.add_compiler_option(lang, argkey, cargs)
+    env.coredata.optstore.add_compiler_option(lang, largkey, largs)
+
     if comp.INVOKES_LINKER and comp_args_from_envvar:
         # If the compiler acts as a linker driver, and we're using the
         # environment variable flags for both the compiler and linker
@@ -1458,7 +1461,3 @@ def get_global_options(lang: str,
         # This is how autotools works, and the env vars feature is for
         # autotools compatibility.
         largs.extend_value(comp_options)
-
-    opts: dict[OptionKey, options.AnyOptionType] = {argkey: cargs, largkey: largs}
-
-    return opts
