@@ -33,7 +33,6 @@ if T.TYPE_CHECKING:
         builddir: str
         clearcache: bool
         pager: bool
-        unset_opts: T.List[str]
 
     # cannot be TV_Loggable, because non-ansidecorators do direct string concat
     LOGLINE = T.Union[str, mlog.AnsiDecorator]
@@ -47,7 +46,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
                         help='Clear cached state (e.g. found dependencies)')
     parser.add_argument('--no-pager', action='store_false', dest='pager',
                         help='Do not redirect output to a pager')
-    parser.add_argument('-U', action='append', dest='unset_opts', default=[],
+    parser.add_argument('-U', action=coredata.KeyNoneAction, dest='cmd_line_options', default={},
                         help='Remove a subproject option.')
 
 def stringify(val: T.Any) -> str:
@@ -355,11 +354,7 @@ class Conf:
             mlog.log('\nThere are no option augments.')
 
 def has_option_flags(options: CMDOptions) -> bool:
-    if options.cmd_line_options:
-        return True
-    if options.unset_opts:
-        return True
-    return False
+    return bool(options.cmd_line_options)
 
 def is_print_only(options: CMDOptions) -> bool:
     if has_option_flags(options):
