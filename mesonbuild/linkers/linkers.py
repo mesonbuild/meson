@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-# Copyright © 2023 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -10,11 +10,13 @@ import typing as T
 import re
 
 from .base import ArLikeLinker, RSPFileSyntax
+from .. import arguments
 from .. import mesonlib
 from ..mesonlib import EnvironmentException, MesonException
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
+    from ..arguments import Argument
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from ..build import BuildTarget
@@ -314,6 +316,22 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         #Only used by AIX.
         return []
 
+    @abc.abstractmethod
+    def make_arguments_abstract(self, args: T.List[str]) -> T.List[Argument]:
+        """Convert concrete (string) arguments into abstract ones.
+
+        :param args: The list of string arguments to convert
+        :return: A list of Arguments.
+        """
+
+    @abc.abstractmethod
+    def make_arguments_concrete(self, args: T.List[Argument]) -> T.List[str]:
+        """Convert abstract Arguments into a list of strings for this compiler.
+
+        :param args: The Arguments to convert.
+        :return: A string list of arguments.
+        """
+
 
 if T.TYPE_CHECKING:
     StaticLinkerBase = StaticLinker
@@ -610,6 +628,37 @@ class PosixDynamicLinkerMixin(DynamicLinkerBase):
 
     def sanitizer_args(self, value: T.List[str]) -> T.List[str]:
         return []
+
+    def make_arguments_abstract(self, args: T.List[str]) -> T.List[Argument]:
+        ret: T.List[Argument] = []
+
+        for arg in args:
+            if arg.startswith('-L'):
+                ret.append(arguments.LinkerSearch(arg.removeprefix('-L')))
+            elif arg.startswith('-l'):
+                ret.append(arguments.LinkLibrary(arg.removeprefix('-l')))
+            elif arg.startswith('-Wl,rpath'):
+                ret.append(arguments.Rpath(arg.removeprefix('-Wl,rpath=')))
+            elif os.path.exists(arg):
+                ret.append(arguments.LinkLibrary(arg, True))
+            else:
+                ret.append(arguments.Opaque(arg))
+
+        return ret
+
+    def make_arguments_concrete(self, args: T.List[Argument]) -> T.List[str]:
+        ret: T.List[str] = []
+
+        for arg in args:
+            match arg:
+                case arguments.LinkerSearch(path):
+                    ret.append(f'-L{path}')
+                case arguments.LinkLibrary(path):
+                    ret.append(f'-l{path}')
+                case arguments.Opaque(value):
+                    ret.append(value)
+
+        return ret
 
 
 class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):

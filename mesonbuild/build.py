@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2017 The Meson development team
+# Copyright © 2017-2025 Intel Corporation
 
 from __future__ import annotations
 from collections import defaultdict, deque, OrderedDict
@@ -15,6 +16,7 @@ import re
 import textwrap
 import typing as T
 
+from . import arguments
 from . import coredata
 from . import dependencies
 from . import mlog
@@ -40,6 +42,7 @@ if T.TYPE_CHECKING:
 
     from . import environment
     from ._typing import ImmutableListProtocol
+    from .arguments import Argument
     from .backend.backends import Backend
     from .compilers import Compiler
     from .interpreter.interpreter import SourceOutputs, Interpreter
@@ -719,7 +722,11 @@ class BuildTarget(Target):
         # as Vala which generates .vapi and .h besides the compiled output.
         self.outputs = [self.filename]
         self.pch: T.Dict[str, T.List[str]] = {}
-        self.extra_args: T.DefaultDict[str, T.List[str]] = kwargs.get('language_args', defaultdict(list))
+        self.extra_args: T.DefaultDict[str, T.List[Argument]] = defaultdict(list)
+        if (lang_args := kwargs.get('language_args')) is not None:
+            for lang, args in lang_args.items():
+                if args:
+                    self.extra_args[lang].extend(self.compilers[lang].make_arguments_abstract(args))
         self.sources: T.List[File] = []
         # If the same source is defined multiple times, use it only once.
         self.seen_sources: T.Set[File] = set()
@@ -741,6 +748,7 @@ class BuildTarget(Target):
         # 1. Preexisting objects provided by the user with the `objects:` kwarg
         # 2. Compiled objects created by and extracted from another target
         self.process_objectlist(objects)
+        self.link_args: T.List[Argument] = []
         self.process_kwargs(kwargs)
         self.missing_languages = self.process_compilers()
 
@@ -1149,17 +1157,19 @@ class BuildTarget(Target):
             self.vala_vapi = kwargs.get('vala_vapi', self.name + '.vapi')
             self.vala_gir = kwargs.get('vala_gir', None)
 
-        self.link_args = extract_as_list(kwargs, 'link_args')
-        for i in self.link_args:
-            if not isinstance(i, str):
-                raise InvalidArguments('Link_args arguments must be strings.')
-        for l in self.link_args:
-            if '-Wl,-rpath' in l or l.startswith('-rpath'):
-                mlog.warning(textwrap.dedent('''\
-                    Please do not define rpath with a linker argument, use install_rpath
-                    or build_rpath properties instead.
-                    This will become a hard error in a future Meson release.
-                '''))
+        if (largs := kwargs.get('link_args')) is not None:
+            for larg in largs:
+                if not isinstance(larg, str):
+                    raise InvalidArguments('link_args arguments must be strings.')
+            linker = self.get_clink_dynamic_linker_and_stdlibs()[0]
+            # XXX: need a method because of compiler-is-linker
+            self.link_args.extend(linker.linker.make_arguments_abstract(largs))
+        if any(isinstance(arg, arguments.Rpath) for arg in self.link_args):
+            mlog.warning(textwrap.dedent('''\
+                Please do not define rpath with a linker argument, use install_rpath
+                or build_rpath properties instead.
+                This will become a hard error in a future Meson release.
+            '''))
         self.process_link_depends(kwargs.get('link_depends', []))
         # Target-specific include dirs must be added BEFORE include dirs from
         # internal deps (added inside self.add_deps()) to override them.
@@ -1293,7 +1303,7 @@ class BuildTarget(Target):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_extra_args(self, language: str) -> T.List[str]:
+    def get_extra_args(self, language: str) -> T.List[Argument]:
         return self.extra_args[language]
 
     @lru_cache(maxsize=None)

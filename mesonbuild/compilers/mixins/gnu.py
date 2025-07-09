@@ -14,6 +14,7 @@ import re
 import subprocess
 import typing as T
 
+from ... import arguments
 from ... import mesonlib
 from ... import mlog
 from ...options import OptionKey, UserStdOption
@@ -538,6 +539,59 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return self.get_preprocess_only_args()
         lang = gnu_lang_map.get(self.language, 'assembler-with-cpp')
         return self.get_preprocess_only_args() + [f'-x{lang}']
+
+    def make_arguments_abstract(self, args: T.List[str]) -> T.List[arguments.Argument]:
+        ret: T.List[arguments.Argument] = []
+
+        for arg in args:
+            if arg.startswith('-D'):
+                v: T.Optional[str]
+                arg = arg.removeprefix('-D')
+                if '=' in arg:
+                    k, v = arg.split('=')
+                else:
+                    k, v = arg, None
+                ret.append(arguments.Define(k, v))
+            elif arg.startswith('-U'):
+                ret.append(arguments.Undefine(arg.removeprefix('-U')))
+            elif arg.startswith('-l'):
+                ret.append(arguments.LinkerSearch(arg.removeprefix('-l')))
+            elif arg.startswith('-Werror='):
+                ret.append(arguments.Error(arg.removeprefix('-Werror=')))
+            elif arg.startswith('-Wno-'):
+                ret.append(arguments.Warning(arg.removeprefix('-Wno-'), False))
+            elif arg.startswith('-W'):
+                ret.append(arguments.Warning(arg.removeprefix('-W'), True))
+            else:
+                ret.append(arguments.Opaque(arg))
+
+        return ret
+
+    def make_arguments_concrete(self, args: T.List[arguments.Argument]) -> T.List[str]:
+        ret: T.List[str] = []
+
+        for arg in args:
+            match arg:
+                case arguments.Define(name, None):
+                    ret.append(f'-D{name}')
+                case arguments.Define(name, value):
+                    ret.append(f'-D{name}={value}')
+                case arguments.Undefine(name):
+                    ret.append(f'-U{name}')
+                case arguments.Error(name):
+                    ret.append(f'-Werror={name}')
+                case arguments.Warning(name, True):
+                    ret.append(f'-W{name}')
+                case arguments.Warning(name, False):
+                    ret.append(f'-Wno-{name}')
+                case arguments.LinkerSearch(name):
+                    ret.append(f'-L{name}')
+                case arguments.LinkLibrary(name):
+                    ret.append(f'-l{name}')
+                case arguments.Opaque(value):
+                    ret.append(value)
+
+        return ret
 
 
 class GnuCompiler(GnuLikeCompiler):
