@@ -2093,7 +2093,9 @@ class NinjaBackend(backends.Backend):
                 args.append(f'-Clink-arg={lib}')
 
         for e in external_deps:
-            for a in e.get_link_args():
+            # Use raw linker args to prevent issues if/when rustc does its own
+            # dependency resolution
+            for a in e.get_link_args(raw = True):
                 if a in rustc.native_static_libs:
                     # Exclude link args that rustc already add by default
                     pass
