@@ -9,7 +9,7 @@ import os
 import typing as T
 
 from ..options import OptionKey
-from .base import DependencyMethods
+from .base import DependencyException, DependencyMethods
 from .cmake import CMakeDependency
 from .detect import packages
 from .pkgconfig import PkgConfigDependency
@@ -65,8 +65,7 @@ class MKLPkgConfigDependency(PkgConfigDependency):
         super().__init__(name, env, kwargs, language=language)
 
         # Doesn't work with gcc on windows, but does on Linux
-        if (not self.__mklroot or (env.machines[self.for_machine].is_windows()
-                                   and self.clib_compiler.id == 'gcc')):
+        if env.machines[self.for_machine].is_windows() and self.clib_compiler.id == 'gcc':
             self.is_found = False
 
         # This can happen either because we're using GCC, we couldn't find the
@@ -96,6 +95,9 @@ class MKLPkgConfigDependency(PkgConfigDependency):
                 self.version = v
 
     def _set_libs(self) -> None:
+        if self.__mklroot is None:
+            raise DependencyException('MKLROOT not set')
+
         super()._set_libs()
 
         if self.env.machines[self.for_machine].is_windows():
@@ -133,6 +135,9 @@ class MKLPkgConfigDependency(PkgConfigDependency):
             self.link_args.insert(i + 1, '-lmkl_blacs_intelmpi_lp64')
 
     def _set_cargs(self) -> None:
+        if self.__mklroot is None:
+            raise DependencyException('MKLROOT not set')
+
         allow_system = False
         if self.language == 'fortran':
             # gfortran doesn't appear to look in system paths for INCLUDE files,
