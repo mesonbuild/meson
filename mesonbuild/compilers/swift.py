@@ -31,6 +31,12 @@ swift_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['-O'],
 }
 
+swiftc_color_args: T.Dict[str, T.List[str]] = {
+    'auto': [],
+    'always': ['-color-diagnostics'],
+    'never': ['-no-color-diagnostics'],
+}
+
 class SwiftCompiler(Compiler):
 
     LINKER_PREFIX = ['-Xlinker']
@@ -99,17 +105,38 @@ class SwiftCompiler(Compiler):
     def get_header_import_args(self, headername: str) -> T.List[str]:
         return ['-import-objc-header', headername]
 
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
+        return swiftc_color_args[colortype][:]
+
     def get_warn_args(self, level: str) -> T.List[str]:
         return []
 
     def get_std_exe_link_args(self) -> T.List[str]:
         return ['-emit-executable']
 
+    def get_std_shared_lib_link_args(self) -> T.List[str]:
+        return ['-emit-library']
+
+    def get_dependency_link_args(self, dep: Dependency) -> T.List[str]:
+        args = list(dep.get_link_args(self.get_language()))
+
+        for i, n in enumerate(args):
+            if n == '-pthread':
+                # swiftc does not have the -pthread flag
+                args[i] = '-lpthread'
+
+        return args
+
     def get_module_args(self, modname: str) -> T.List[str]:
         return ['-module-name', modname]
 
     def get_mod_gen_args(self) -> T.List[str]:
         return ['-emit-module']
+
+    def get_header_gen_args(self, header_name: str) -> T.List[str]:
+        # Despite these options being named after Objective-C, they also work for the C++ interop that does not rely on
+        # Objective-C.
+        return ['-parse', '-emit-objc-header', '-emit-objc-header-path', header_name]
 
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         return ['-I' + path]
@@ -140,7 +167,11 @@ class SwiftCompiler(Compiler):
             args += ['-swift-version', std]
 
         # Pass C compiler -std=... arg to swiftc
-        c_lang = first(['objc', 'c'], lambda x: x in target.compilers)
+        c_langs = ['objc', 'c']
+        if target.uses_swift_cpp_interop():
+            c_langs = ['objcpp', 'cpp', *c_langs]
+
+        c_lang = first(c_langs, lambda x: x in target.compilers)
         if c_lang is not None:
             cc = target.compilers[c_lang]
             args.extend(arg for c_arg in cc.get_option_std_args(target, env, subproject) for arg in ['-Xcc', c_arg])
@@ -153,11 +184,20 @@ class SwiftCompiler(Compiler):
 
         return ['-working-directory', path]
 
-    def get_cxx_interoperability_args(self, lang: T.Dict[str, Compiler]) -> T.List[str]:
-        if 'cpp' in lang or 'objcpp' in lang:
-            return ['-cxx-interoperability-mode=default']
-        else:
-            return ['-cxx-interoperability-mode=off']
+    def get_library_args(self) -> T.List[str]:
+        return ['-parse-as-library']
+
+    def get_cxx_interoperability_args(self, target: T.Optional[build.BuildTarget] = None) -> T.List[str]:
+        if target is not None and not target.uses_swift_cpp_interop():
+            return []
+
+        if not self.supports_cxx_interoperability():
+            raise MesonException(f'Compiler {self} does not support C++ interoperability')
+
+        return ['-cxx-interoperability-mode=default']
+
+    def supports_cxx_interoperability(self) -> bool:
+        return version_compare(self.version, '>=5.9')
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
