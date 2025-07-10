@@ -13,6 +13,7 @@ import typing as T
 from mesonbuild import mesonlib
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from ..environment import Environment
     from ..interpreter.type_checking import PkgConfigDefineType
 
@@ -37,7 +38,9 @@ class ConfigToolDependency(ExternalDependency):
     allow_default_for_cross = False
     __strip_version = re.compile(r'^[0-9][0-9.]+')
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, exclude_paths: T.Optional[T.List[str]] = None):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[AllLanguages] = None,
+                 exclude_paths: T.Optional[T.List[str]] = None):
         super().__init__(DependencyTypeName('config-tool'), environment, kwargs, language=language)
         self.name = name
         # You may want to overwrite the class version in some cases

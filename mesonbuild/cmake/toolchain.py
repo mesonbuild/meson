@@ -175,7 +175,7 @@ class CMakeToolchain:
 
         # Set the compiler variables
         for lang, comp_obj in self.compilers.items():
-            language = language_map.get(lang, None)
+            language = language_map.get(lang)
 
             if not language:
                 continue # unsupported language

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2013-2017 The Meson development team
-# Copyright © 2021-2023 Intel Corporation
+# Copyright © 2021-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from .. import mlog
 from .. import mesonlib
 
 if T.TYPE_CHECKING:
-    from ..compilers import Compiler
+    from ..compilers.compilers import AllLanguages, Compiler
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..dependencies import MissingCompiler
@@ -95,7 +95,10 @@ def _get_modules_lib_suffix(version: str, info: 'MachineInfo', is_debug: bool) -
 
 
 class QtExtraFrameworkDependency(ExtraFrameworkDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], qvars: T.Dict[str, str], language: T.Optional[str] = None):
+    def __init__(self, name: str, env: 'Environment',
+                 kwargs: T.Dict[str, T.Any],
+                 qvars: T.Dict[str, str],
+                 language: T.Optional[AllLanguages] = None):
         super().__init__(name, env, kwargs, language=language)
         self.mod_name = name[2:]
         self.qt_extra_include_directory = qvars['QT_INSTALL_HEADERS']

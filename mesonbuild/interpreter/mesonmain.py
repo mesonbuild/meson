@@ -26,6 +26,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
     from ..compilers import Compiler
+    from ..compilers.compilers import AllLanguages
     from ..interpreterbase import TYPE_kwargs, TYPE_var
     from ..mesonlib import ExecutableSerialisation
     from .interpreter import Interpreter
@@ -288,7 +289,10 @@ class MesonMain(MesonInterpreterObject):
         for_machine = kwargs['native']
         clist = self.interpreter.coredata.compilers[for_machine]
         try:
-            return clist[cname]
+            # The cast is dont inside the try explicitly, since we really
+            # haven't validated that cname is a valid language, we're relying on
+            # the except for that
+            return clist[T.cast('AllLanguages', cname)]
         except KeyError:
             raise InterpreterException(f'Tried to access compiler for language "{cname}", not specified for {for_machine.get_lower_case_name()} machine.')
 

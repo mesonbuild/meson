@@ -21,7 +21,7 @@ from ..options import OptionKey
 #from ..interpreterbase import FeatureDeprecated, FeatureNew
 
 if T.TYPE_CHECKING:
-    from ..compilers.compilers import Compiler
+    from ..compilers.compilers import AllLanguages, Compiler
     from ..environment import Environment
     from ..interpreterbase import FeatureCheckBase
     from ..build import (
@@ -113,7 +113,7 @@ class Dependency(HoldableObject):
         self._id = uuid.uuid4().int
         self.name = f'dep{self._id}'
         self.version:  T.Optional[str] = None
-        self.language: T.Optional[str] = None # None means C-like
+        self.language: T.Optional[AllLanguages] = None # None means C-like
         self.is_found = False
         self.type_name = type_name
         self.compile_args: T.List[str] = []
@@ -396,7 +396,10 @@ class HasNativeKwarg:
         return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
 
 class ExternalDependency(Dependency, HasNativeKwarg):
-    def __init__(self, type_name: DependencyTypeName, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
+    def __init__(self, type_name: DependencyTypeName,
+                 environment: 'Environment',
+                 kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[AllLanguages] = None):
         Dependency.__init__(self, type_name, kwargs)
         self.env = environment
         self.name = type_name # default
@@ -501,7 +504,7 @@ class NotFoundDependency(Dependency):
 
 class ExternalLibrary(ExternalDependency):
     def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
-                 language: str, silent: bool = False) -> None:
+                 language: AllLanguages, silent: bool = False) -> None:
         super().__init__(DependencyTypeName('library'), environment, {}, language=language)
         self.name = name
         self.language = language
@@ -643,7 +646,7 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[st
     return methods
 
 def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
-                    language: T.Optional[str]) -> T.Union['MissingCompiler', 'Compiler']:
+                    language: T.Optional[AllLanguages]) -> T.Union['MissingCompiler', 'Compiler']:
     """Given a language and environment find the compiler used."""
     compilers = env.coredata.compilers[for_machine]
 
@@ -656,7 +659,8 @@ def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
             raise DependencyException(m.format(language.capitalize()))
         return compilers[language]
     else:
-        for lang in clib_langs:
+        # Should not need the cast here, but we do
+        for lang in T.cast('T.Iterable[AllLanguages]', clib_langs):
             try:
                 return compilers[lang]
             except KeyError:
@@ -669,7 +673,7 @@ class SystemDependency(ExternalDependency):
     """Dependency base for System type dependencies."""
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None) -> None:
+                 language: T.Optional[AllLanguages] = None) -> None:
         super().__init__(DependencyTypeName('system'), env, kwargs, language=language)
         self.name = name
 
@@ -683,7 +687,7 @@ class BuiltinDependency(ExternalDependency):
     """Dependency base for Builtin type dependencies."""
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None) -> None:
+                 language: T.Optional[AllLanguages] = None) -> None:
         super().__init__(DependencyTypeName('builtin'), env, kwargs, language=language)
         self.name = name
 

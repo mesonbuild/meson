@@ -20,6 +20,7 @@ from .pkgconfig import PkgConfigDependency
 from ..options import OptionKey
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from ..environment import Environment
     from .factory import DependencyGenerator
 
@@ -334,7 +335,8 @@ class CursesConfigToolDependency(ConfigToolDependency):
     # ncurses5.4-config is for macOS Catalina
     tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[AllLanguages] = None):
         exclude_paths = None
         # macOS mistakenly ships /usr/bin/ncurses5.4-config and a man page for
         # it, but none of the headers or libraries. Ignore /usr/bin because it

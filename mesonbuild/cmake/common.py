@@ -10,10 +10,11 @@ from pathlib import Path
 import typing as T
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from ..environment import Environment
     from ..interpreterbase import TYPE_var
 
-language_map = {
+language_map: T.Mapping[AllLanguages, str] = {
     'c': 'C',
     'cpp': 'CXX',
     'cuda': 'CUDA',

@@ -22,6 +22,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Literal
     from .._typing import ImmutableListProtocol
 
+    from ..compilers.compilers import AllLanguages
     from ..environment import Environment
     from ..utils.core import EnvironOrDict
     from ..interpreter.type_checking import PkgConfigDefineType
@@ -297,7 +298,7 @@ class PkgConfigCLI(PkgConfigInterface):
 class PkgConfigDependency(ExternalDependency):
 
     def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None) -> None:
+                 language: T.Optional[AllLanguages] = None) -> None:
         super().__init__(DependencyTypeName('pkgconfig'), environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False

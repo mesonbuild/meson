@@ -23,6 +23,7 @@ from .detect import packages
 from .factory import DependencyFactory
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from ..environment import Environment
 
 
@@ -184,7 +185,7 @@ packages['wxwidgets'] = WxDependency
 
 class VulkanDependencySystem(SystemDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[AllLanguages] = None) -> None:
         super().__init__(name, environment, kwargs, language=language)
 
         self.vulkan_sdk = os.environ.get('VULKAN_SDK', os.environ.get('VK_SDK_PATH'))

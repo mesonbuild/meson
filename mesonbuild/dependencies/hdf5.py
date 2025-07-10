@@ -18,6 +18,7 @@ from .factory import factory_methods
 import typing as T
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
@@ -27,7 +28,8 @@ class HDF5PkgConfigDependency(PkgConfigDependency):
 
     """Handle brokenness in the HDF5 pkg-config files."""
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[AllLanguages] = None) -> None:
         language = language or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
@@ -78,7 +80,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
     version_arg = '-showconfig'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[AllLanguages] = None) -> None:
         language = language or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')

@@ -17,6 +17,7 @@ from .factory import factory_methods
 from .pkgconfig import PkgConfigDependency
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
@@ -105,7 +106,7 @@ class MPIConfigToolDependency(ConfigToolDependency):
     """Wrapper around mpicc, Intel's mpiicc and friends."""
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None):
+                 language: T.Optional[AllLanguages] = None):
         super().__init__(name, env, kwargs, language=language)
         if not self.is_found:
             return
@@ -215,7 +216,7 @@ class MSMPIDependency(SystemDependency):
     """The Microsoft MPI."""
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None):
+                 language: T.Optional[AllLanguages] = None):
         super().__init__(name, env, kwargs, language=language)
         # MSMPI only supports the C API
         if language not in {'c', 'fortran', None}:

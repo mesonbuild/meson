@@ -16,6 +16,7 @@ from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from ..environment import Environment
     from ..mesonlib import MachineChoice
     from .factory import DependencyGenerator
@@ -55,7 +56,7 @@ class MKLPkgConfigDependency(PkgConfigDependency):
     """
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
-                 language: T.Optional[str] = None):
+                 language: T.Optional[AllLanguages] = None):
         _m = os.environ.get('MKLROOT')
         self.__mklroot = Path(_m).resolve() if _m else None
 

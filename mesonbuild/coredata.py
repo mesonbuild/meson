@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol
 
     from . import dependencies
-    from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
+    from .compilers.compilers import Compiler, CompilerDict, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
@@ -258,7 +258,7 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.cross_files = self.__load_config_files(cmd_options, scratch_dir, 'cross')
-        self.compilers: PerMachine[T.Dict[str, Compiler]] = PerMachine(OrderedDict(), OrderedDict())
+        self.compilers: PerMachine[CompilerDict] = PerMachine(OrderedDict(), OrderedDict())
         self.optstore = options.OptionStore(self.is_cross_build())
 
         # Stores the (name, hash) of the options file, The name will be either

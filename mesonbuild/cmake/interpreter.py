@@ -45,6 +45,7 @@ from ..mparser import (
 
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from .common import CMakeConfiguration, TargetOptions
     from .traceparser import CMakeGeneratorTarget
     from .._typing import ImmutableListProtocol
@@ -232,7 +233,7 @@ class ConverterTarget:
         if target.install_paths:
             self.install_dir = target.install_paths[0]
 
-        self.languages: T.Set[str] = set()
+        self.languages: T.Set[AllLanguages] = set()
         self.sources: T.List[Path] = []
         self.generated: T.List[Path] = []
         self.generated_ctgt: T.List[CustomTargetReference] = []
@@ -240,7 +241,7 @@ class ConverterTarget:
         self.sys_includes: T.List[Path] = []
         self.link_with: T.List[T.Union[ConverterTarget, ConverterCustomTarget]] = []
         self.object_libs: T.List[ConverterTarget] = []
-        self.compile_opts: T.Dict[str, T.List[str]] = {}
+        self.compile_opts: T.Dict[AllLanguages, T.List[str]] = {}
         self.public_compile_opts: T.List[str] = []
         self.pie = False
 
@@ -253,7 +254,7 @@ class ConverterTarget:
         self.generated_raw: T.List[Path] = []
 
         for i in target.files:
-            languages: T.Set[str] = set()
+            languages: T.Set[AllLanguages] = set()
             src_suffixes: T.Set[str] = set()
 
             # Insert suffixes
@@ -264,7 +265,7 @@ class ConverterTarget:
 
             # Determine the meson language(s)
             # Extract the default language from the explicit CMake field
-            lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
+            lang_cmake_to_meson: T.Mapping[str, AllLanguages] = {val.lower(): key for key, val in language_map.items()}
             languages.add(lang_cmake_to_meson.get(i.language.lower(), 'c'))
 
             # Determine missing languages from the source suffixes
@@ -299,7 +300,9 @@ class ConverterTarget:
         self.clib_compiler = None
         compilers = self.env.coredata.compilers[self.for_machine]
 
-        for lang in ['objcpp', 'cpp', 'objc', 'fortran', 'c']:
+        # It really should be enough to do `lang: AllLanguages`, but neither
+        # mypy nor pyright seem to be able to understand the list here matches that
+        for lang in T.cast('T.List[AllLanguages]', ['objcpp', 'cpp', 'objc', 'fortran', 'c']):
             if lang in self.languages:
                 try:
                     self.clib_compiler = compilers[lang]
@@ -314,7 +317,7 @@ class ConverterTarget:
 
     def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: Path, subdir: Path, install_prefix: Path, trace: CMakeTraceParser) -> None:
         # Detect setting the C and C++ standard and do additional compiler args manipulation
-        for i in ['c', 'cpp']:
+        for i in T.cast('T.List[AllLanguages]', ['c', 'cpp']):
             if i not in self.compile_opts:
                 continue
 
@@ -371,17 +374,17 @@ class ConverterTarget:
             mlog.warning('CMake: Target', mlog.bold(self.cmake_name), 'not found in CMake trace. This can lead to build errors')
 
         temp = []
-        for i in self.link_libraries:
+        for cmd in self.link_libraries:
             # Let meson handle this arcane magic
-            if ',-rpath,' in i:
+            if ',-rpath,' in cmd:
                 continue
-            if not Path(i).is_absolute():
-                link_with = output_target_map.artifact(i)
+            if not Path(cmd).is_absolute():
+                link_with = output_target_map.artifact(cmd)
                 if link_with:
                     self.link_with += [link_with]
                     continue
 
-            temp += [i]
+            temp += [cmd]
         self.link_libraries = temp
 
         # Filter out files that are not supported by the language
@@ -486,8 +489,8 @@ class ConverterTarget:
         self.link_flags = handle_frameworks(self.link_flags)
 
         # Handle explicit CMake add_dependency() calls
-        for i in self.depends_raw:
-            dep_tgt = output_target_map.target(i)
+        for arg in self.depends_raw:
+            dep_tgt = output_target_map.target(arg)
             if dep_tgt:
                 self.depends.append(dep_tgt)
 

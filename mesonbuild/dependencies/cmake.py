@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from .base import ExternalDependency, DependencyException, DependencyTypeName
-from ..mesonlib import is_windows, MesonException, PerMachine, stringlistify, extract_as_list
+from ..mesonlib import is_windows, MesonException, PerMachine, stringlistify, extract_as_list, MachineChoice
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args, resolve_cmake_trace_targets, cmake_is_debug
 from .. import mlog
 import importlib.resources
@@ -17,6 +17,7 @@ import textwrap
 import typing as T
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import AllLanguages
     from ..cmake import CMakeTarget
     from ..environment import Environment
     from ..envconfig import MachineInfo
@@ -69,17 +70,16 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[AllLanguages] = None,
+                 force_use_global_compilers: bool = False) -> None:
         # Gather a list of all languages to support
-        self.language_list: T.List[str] = []
+        self.language_list: T.List[AllLanguages] = []
         if language is None or force_use_global_compilers:
-            compilers = None
-            if kwargs.get('native', False):
-                compilers = environment.coredata.compilers.build
-            else:
-                compilers = environment.coredata.compilers.host
+            compilers = environment.coredata.compilers[
+                MachineChoice.HOST if kwargs.get('native', False) else MachineChoice.BUILD]
 
-            candidates = ['c', 'cpp', 'fortran', 'objc', 'objcxx']
+            candidates: T.List[AllLanguages] = ['c', 'cpp', 'fortran', 'objc', 'objcpp']
             self.language_list += [x for x in candidates if x in compilers]
         else:
             self.language_list += [language]
@@ -655,7 +655,9 @@ class CMakeDependencyFactory:
         self.name = name
         self.modules = modules
 
-    def __call__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> CMakeDependency:
+    def __call__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[AllLanguages] = None,
+                 force_use_global_compilers: bool = False) -> CMakeDependency:
         if self.modules:
             kwargs['modules'] = self.modules
         return CMakeDependency(self.name or name, env, kwargs, language, force_use_global_compilers)

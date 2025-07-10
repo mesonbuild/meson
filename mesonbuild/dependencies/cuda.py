@@ -17,14 +17,15 @@ from ..mesonlib import LibType
 
 
 if T.TYPE_CHECKING:
+    from .._typing import ImmutableListProtocol
     from ..environment import Environment
-    from ..compilers import Compiler
+    from ..compilers.compilers import AllLanguages, CompilerDict
 
     TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
 
 class CudaDependency(SystemDependency):
 
-    supported_languages = ['cpp', 'c', 'cuda'] # see also _default_language
+    supported_languages: ImmutableListProtocol[AllLanguages] = ['cpp', 'c', 'cuda']
 
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         for_machine = self.get_for_machine_from_kwargs(kwargs)
@@ -76,7 +77,7 @@ class CudaDependency(SystemDependency):
         self.is_found = self._find_requested_libraries()
 
     @classmethod
-    def _detect_language(cls, compilers: T.Dict[str, 'Compiler']) -> str:
+    def _detect_language(cls, compilers: CompilerDict) -> AllLanguages:
         for lang in cls.supported_languages:
             if lang in compilers:
                 return lang
