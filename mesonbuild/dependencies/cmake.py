@@ -79,7 +79,7 @@ class CMakeDependency(ExternalDependency):
             else:
                 compilers = environment.coredata.compilers.host
 
-            candidates = ['c', 'cpp', 'fortran', 'objc', 'objcxx']
+            candidates = ['c', 'cpp', 'fortran', 'objc', 'objcpp']
             self.language_list += [x for x in candidates if x in compilers]
         else:
             self.language_list += [language]
