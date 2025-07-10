@@ -55,10 +55,6 @@ mkl64_dep = dependency('mkl',
 )
 
 
-if not openblas_dep.found() and not openblas64_dep.found() and not accelerate_dep.found() and not mkl_dep.found()
-  error('MESON_SKIP_TEST: no BLAS/LAPACK libraries available')
-endif
-
 deps = {
   'openblas': openblas_dep,
   'openblas64': openblas64_dep,
@@ -68,8 +64,10 @@ deps = {
   'mkl64': mkl64_dep,
 }
 
+found_any = false
 foreach name, dep : deps
   if dep.found()
+    found_any = true
     blas_interface = dep.get_variable('interface')
     symbol_suffix = dep.get_variable('symbol_suffix')
     blas_c_args = ['-DBLAS_SYMBOL_SUFFIX=' + symbol_suffix]
@@ -82,19 +80,23 @@ foreach name, dep : deps
       error(f'no interface var for %name% dependency!')
     endif
 
-    c_exe = executable('cblas_lapack_c_' + blas_interface,
+    c_exe = executable('cblas_lapack_c_' + name,
       'cblas_lapack.c',
       c_args: blas_c_args,
       dependencies: [dep]
     )
-    test('cblas_lapack_dep_c', c_exe, timeout: 30)
+    test('cblas_lapack_dep_c_' + name, c_exe, timeout: 30)
 
     if add_languages('fortran', required: false)
-      f_exe = executable('cblas_lapack_fortran_' + blas_interface,
+      f_exe = executable('cblas_lapack_fortran_' + name,
         'main.f90',
         dependencies: [dep]
       )
-      test('cblas_lapack_dep_fortran', f_exe, timeout: 30)
+      test('cblas_lapack_dep_fortran_' + name, f_exe, timeout: 30)
     endif
   endif
 endforeach
+
+if not found_any
+  error('MESON_SKIP_TEST: no BLAS/LAPACK libraries available')
+endif
