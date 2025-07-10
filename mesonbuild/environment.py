@@ -43,12 +43,11 @@ from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
     from .compilers import Compiler
+    from .compilers.compilers import CompilerDict
     from .compilers.mixins.visualstudio import VisualStudioLikeCompiler
     from .options import OptionDict, ElementaryOptionValues
     from .wrap.wrap import Resolver
     from . import cargo
-
-    CompilersDict = T.Dict[str, Compiler]
 
 
 NON_LANG_ENV_OPTIONS = [
@@ -321,7 +320,7 @@ def detect_clangapply() -> T.List[str]:
             return [path]
     return []
 
-def detect_windows_arch(compilers: CompilersDict) -> str:
+def detect_windows_arch(compilers: CompilerDict) -> str:
     """
     Detecting the 'native' architecture of Windows is not a trivial task. We
     cannot trust that the architecture that Python is built for is the 'native'
@@ -362,7 +361,7 @@ def detect_windows_arch(compilers: CompilersDict) -> str:
             return 'x86'
     return os_arch
 
-def any_compiler_has_define(compilers: CompilersDict, define: str) -> bool:
+def any_compiler_has_define(compilers: CompilerDict, define: str) -> bool:
     for c in compilers.values():
         try:
             if c.has_builtin_define(define):
@@ -372,7 +371,7 @@ def any_compiler_has_define(compilers: CompilersDict, define: str) -> bool:
             pass
     return False
 
-def detect_cpu_family(compilers: CompilersDict) -> str:
+def detect_cpu_family(compilers: CompilerDict) -> str:
     """
     Python is inconsistent in its platform module.
     It returns different values for the same cpu.
@@ -444,7 +443,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
 
     return trial
 
-def detect_cpu(compilers: CompilersDict) -> str:
+def detect_cpu(compilers: CompilerDict) -> str:
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
     elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_aix():
@@ -537,7 +536,7 @@ def detect_system() -> str:
 def detect_msys2_arch() -> T.Optional[str]:
     return os.environ.get('MSYSTEM_CARCH', None)
 
-def detect_machine_info(compilers: T.Optional[CompilersDict] = None) -> MachineInfo:
+def detect_machine_info(compilers: T.Optional[CompilerDict] = None) -> MachineInfo:
     """Detect the machine we're running on
 
     If compilers are not provided, we cannot know as much. None out those
