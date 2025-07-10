@@ -10,6 +10,7 @@ import copy
 import itertools
 import functools
 import os
+import re
 import subprocess
 import textwrap
 import typing as T
@@ -198,6 +199,11 @@ if T.TYPE_CHECKING:
         vtail: T.Optional[str]
         depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]
 
+    class InstallGApplication(TypedDict):
+
+        application_id: str
+        systemd_service: T.Optional[str]
+
     ToolType = T.Union[Executable, ExternalProgram, OverrideProgram]
 
 
@@ -242,6 +248,13 @@ def annotations_validator(annotations: T.List[T.Union[str, T.List[str]]]) -> T.O
                 return f'element {c+1} {badlist}'
     return None
 
+def application_id_validator(app_id:str)->T.Optional[str]:
+    if len(app_id) > 256:
+        return f'‘{app_id}’ is too long'
+    elif re.match(r"^[A-Za-z][A-Za-z0-9_\-]*(\.[A-Za-z][A-Za-z0-9_\-]*)+$", app_id) is None:
+        return f'‘{app_id}’ is not a valid ID'
+    return None
+
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
 #
@@ -265,6 +278,7 @@ class GnomeModule(ExtensionModule):
         self.install_update_mime_database = False
         self.devenv: T.Optional[mesonlib.EnvironmentVariables] = None
         self.native_glib_version: T.Optional[str] = None
+        self.dbus_dep: T.Optional[Dependency] = None
         self.methods.update({
             'post_install': self.post_install,
             'compile_resources': self.compile_resources,
@@ -278,6 +292,7 @@ class GnomeModule(ExtensionModule):
             'mkenums_simple': self.mkenums_simple,
             'genmarshal': self.genmarshal,
             'generate_vapi': self.generate_vapi,
+            'install_gapplication': self.install_gapplication,
         })
 
     def _get_native_glib_version(self, state: 'ModuleState') -> str:
@@ -444,7 +459,7 @@ class GnomeModule(ExtensionModule):
                 ifile = os.path.join(state.subdir, input_file)
 
             depend_files, depends, subdirs = self._get_gresource_dependencies(
-                state, ifile, source_dirs, dependencies)
+                state, glib_compile_resources, ifile, source_dirs, dependencies)
         else:
             depend_files = []
 
@@ -545,11 +560,11 @@ class GnomeModule(ExtensionModule):
 
     @staticmethod
     def _get_gresource_dependencies(
-            state: 'ModuleState', input_file: str, source_dirs: T.List[str],
-            dependencies: T.Sequence[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex]]
+            state: 'ModuleState', glib_compile_resources: T.Union[ExternalProgram, OverrideProgram, Executable],
+            input_file: str, source_dirs: T.List[str], dependencies: T.Sequence[T.Union[mesonlib.File, CustomTarget, CustomTargetIndex]]
             ) -> T.Tuple[T.List[mesonlib.FileOrString], T.List[T.Union[CustomTarget, CustomTargetIndex]], T.List[str]]:
 
-        cmd = ['glib-compile-resources',
+        cmd = glib_compile_resources.get_command() + [
                input_file,
                '--generate-dependencies']
 
@@ -2289,6 +2304,41 @@ class GnomeModule(ExtensionModule):
         rv = InternalDependency(None, incs, [], [], link_with, [], sources, [], [], {}, [], [], [])
         created_values.append(rv)
         return ModuleReturnValue(rv, created_values)
+
+    def _write_dbus_service(self, state: 'ModuleState', app_id: str, bin_path: str, systemd_service: T.Optional[str] = None) -> mesonlib.File:
+        scratch_dir = state.environment.get_scratch_dir()
+        service_name = f"{app_id}.service"
+        with open(os.path.join(scratch_dir, service_name), 'w', encoding='utf-8') as ofile:
+            ofile.write("[D-BUS Service]\n")
+            ofile.write(f"Name={app_id}\n")
+            ofile.write(f"Exec={bin_path} --gapplication-service\n")
+            if systemd_service:
+                ofile.write(f"SystemdService={systemd_service}\n")
+        return mesonlib.File(True, scratch_dir, service_name)
+
+    def _get_dbus_service_dir(self, state: 'ModuleState') -> str:
+        if not self.dbus_dep:
+            self.dbus_dep = state.dependency('dbus-1')
+        prefix = state.environment.get_prefix()
+        datadir = state.environment.get_datadir()
+        dbus_datadir = self.dbus_dep.get_variable(pkgconfig="datadir", default_value=os.path.join(prefix, datadir, "dbus-1"))
+        return self.dbus_dep.get_variable(pkgconfig="session_bus_services_dir", default_value=os.path.join(dbus_datadir, "services"))
+
+    @typed_pos_args('gnome.install_gapplication', Executable)
+    @typed_kwargs(
+        'gnome.install_gapplication',
+        KwargInfo('application_id', str, validator=application_id_validator, required=True),
+        KwargInfo('systemd_service', (str, NoneType)),
+    )
+    def install_gapplication(self, state: 'ModuleState', args: T.Tuple[Executable], kwargs: 'InstallGApplication') -> ModuleReturnValue:
+        executable,  = args
+        app_id = kwargs['application_id']
+        prefix = state.environment.get_prefix()
+        bin_dir, _, _ = executable.get_install_dir()
+        service_mfile = self._write_dbus_service(state, app_id, os.path.join(prefix, bin_dir[0], executable.name), kwargs.get('systemd_service'))
+        service_dir = self._get_dbus_service_dir(state)
+        res = build.Data([service_mfile], service_dir, service_dir, None, state.subproject,install_tag=executable.install_tag)
+        return ModuleReturnValue(res, [res])
 
 def initialize(interp: 'Interpreter') -> GnomeModule:
     mod = GnomeModule(interp)
