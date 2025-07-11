@@ -152,6 +152,30 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(sub_name, 'sub'), sub_value)
         self.assertEqual(num_options(optstore), 2)
 
+    def test_project_yielding_initialize(self):
+        optstore = OptionStore(False)
+        name = 'someoption'
+        top_value = 'top'
+        sub_value = 'sub'
+        subp = 'subp'
+        cmd_line = { OptionKey(name): top_value, OptionKey(name, subp): sub_value }
+
+        vo = UserStringOption(name, 'A top level option', 'default1')
+        optstore.add_project_option(OptionKey(name, ''), vo)
+        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
+        self.assertEqual(optstore.get_value_for(name, ''), top_value)
+        self.assertEqual(num_options(optstore), 1)
+
+        vo2 = UserStringOption(name, 'A subproject option', 'default2', True)
+        optstore.add_project_option(OptionKey(name, 'subp'), vo2)
+        self.assertEqual(optstore.get_value_for(name, ''), top_value)
+        self.assertEqual(optstore.get_value_for(name, subp), top_value)
+        self.assertEqual(num_options(optstore), 2)
+
+        optstore.initialize_from_subproject_call(subp, {}, {}, cmd_line, {})
+        self.assertEqual(optstore.get_value_for(name, ''), top_value)
+        self.assertEqual(optstore.get_value_for(name, subp), top_value)
+
     def test_augments(self):
         optstore = OptionStore(False)
         name = 'cpp_std'

@@ -38,7 +38,6 @@ if T.TYPE_CHECKING:
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult, RunResult, CompileCheckMode
     from .dependencies.detect import TV_DepID
-    from .environment import Environment
     from .mesonlib import FileOrString
     from .cmake.traceparser import CMakeCacheEntry
     from .interpreterbase import SubProject
@@ -583,16 +582,6 @@ class CoreData:
                 self.optstore.add_compiler_option('cpp', k, o)
             else:
                 self.optstore.add_compiler_option(lang, k, o)
-
-    def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
-                      for_machine: MachineChoice, env: 'Environment') -> None:
-        """Add global language arguments that are needed before compiler/linker detection."""
-        from .compilers import compilers
-        # These options are all new at this point, because the compiler is
-        # responsible for adding its own options, thus calling
-        # `self.optstore.update()`` is perfectly safe.
-        for gopt_key, gopt_valobj in compilers.get_global_options(lang, comp, for_machine, env).items():
-            self.optstore.add_compiler_option(lang, gopt_key, gopt_valobj)
 
     def process_compiler_options(self, lang: str, comp: Compiler, subproject: str) -> None:
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine)

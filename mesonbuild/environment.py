@@ -12,6 +12,7 @@ import collections
 from . import coredata
 from . import mesonlib
 from . import machinefile
+from . import options
 
 CmdLineFileParser = machinefile.CmdLineFileParser
 
@@ -1071,3 +1072,44 @@ class Environment:
         if extra_paths:
             env.prepend('PATH', list(extra_paths))
         return env
+
+    def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
+                      for_machine: MachineChoice) -> None:
+        """Add global language arguments that are needed before compiler/linker detection."""
+        description = f'Extra arguments passed to the {lang}'
+        argkey = OptionKey(f'{lang}_args', machine=for_machine)
+        largkey = OptionKey(f'{lang}_link_args', machine=for_machine)
+
+        comp_args_from_envvar = False
+        comp_options = self.coredata.optstore.get_pending_value(argkey)
+        if comp_options is None:
+            comp_args_from_envvar = True
+            comp_options = self.env_opts.get(argkey, [])
+
+        link_options = self.coredata.optstore.get_pending_value(largkey)
+        if link_options is None:
+            link_options = self.env_opts.get(largkey, [])
+
+        assert isinstance(comp_options, (str, list)), 'for mypy'
+        assert isinstance(link_options, (str, list)), 'for mypy'
+
+        cargs = options.UserStringArrayOption(
+            argkey.name,
+            description + ' compiler',
+            comp_options, split_args=True, allow_dups=True)
+
+        largs = options.UserStringArrayOption(
+            largkey.name,
+            description + ' linker',
+            link_options, split_args=True, allow_dups=True)
+
+        self.coredata.optstore.add_compiler_option(lang, argkey, cargs)
+        self.coredata.optstore.add_compiler_option(lang, largkey, largs)
+
+        if comp.INVOKES_LINKER and comp_args_from_envvar:
+            # If the compiler acts as a linker driver, and we're using the
+            # environment variable flags for both the compiler and linker
+            # arguments, then put the compiler flags in the linker flags as well.
+            # This is how autotools works, and the env vars feature is for
+            # autotools compatibility.
+            largs.extend_value(comp_options)
