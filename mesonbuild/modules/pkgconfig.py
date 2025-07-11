@@ -537,14 +537,15 @@ class PkgConfigModule(NewExtensionModule):
             if conflicts:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
-            def generate_libs_flags(libs: T.List[LIBS]) -> T.Iterable[str]:
+            def generate_libs_flags(libs: T.List[LIBS]) -> T.List[str]:
+                result = []
                 msg = 'Library target {0!r} has {1!r} set. Compilers ' \
                       'may not find it from its \'-l{2}\' linker flag in the ' \
                       '{3!r} pkg-config file.'
                 Lflags = []
                 for l in libs:
                     if isinstance(l, str):
-                        yield l
+                        result.append(l)
                     else:
                         install_dir: T.Union[str, bool]
                         if uninstalled:
@@ -566,14 +567,16 @@ class PkgConfigModule(NewExtensionModule):
                                 Lflag = '-L${libdir}'
                         if Lflag not in Lflags:
                             Lflags.append(Lflag)
-                            yield Lflag
+                            result.append(Lflag)
                         lname = self._get_lname(l, msg, pcfile)
                         # If using a custom suffix, the compiler may not be able to
                         # find the library
                         if isinstance(l, build.BuildTarget) and l.name_suffix_set:
                             mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
                         if isinstance(l, (build.CustomTarget, build.CustomTargetIndex)) or 'cs' not in l.compilers:
-                            yield f'-l{lname}'
+                            result.append(f'-l{lname}')
+                result.sort()
+                return result
 
             if deps.pub_libs:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))
