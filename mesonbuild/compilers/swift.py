@@ -159,6 +159,9 @@ class SwiftCompiler(Compiler):
         else:
             return ['-cxx-interoperability-mode=off']
 
+    def get_library_args(self) -> T.List[str]:
+        return ['-parse-as-library']
+
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
