@@ -28,12 +28,17 @@ test_fortran = add_languages('fortran', required: false)
 if test_fortran
   cpp = meson.get_compiler('cpp')
   fc = meson.get_compiler('fortran')
+  fs = import('fs')
 
   if host_machine.system() == 'darwin' and cpp.get_id() == 'clang' and fc.get_id() == 'gcc'
     # Search paths don't work correctly here and -lgfortran doesn't work
     test_fortran = false
   elif host_machine.system() == 'windows' and cpp.get_id() != 'gcc' and fc.get_id() == 'gcc'
     # mixing gfortran with non-gcc doesn't work on windows
+    test_fortran = false
+  elif fs.is_dir('/ci') and '-I' not in run_command('h5fc', '-show').stdout()
+    # h5fc does not include needed -I flags when HDF5 is built using CMake
+    # https://github.com/HDFGroup/hdf5/issues/5660
     test_fortran = false
   endif
 
