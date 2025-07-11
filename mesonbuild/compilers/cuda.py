@@ -529,8 +529,9 @@ class CudaCompiler(Compiler):
         '''
         binname = sname.rsplit('.', 1)[0]
         binname += '_cross' if self.is_cross else ''
+        binname += '.exe'
         source_name = os.path.join(work_dir, sname)
-        binary_name = os.path.join(work_dir, binname + '.exe')
+        binary_name = os.path.join(work_dir, binname)
         with open(source_name, 'w', encoding='utf-8') as ofile:
             ofile.write(code)
 
@@ -546,7 +547,7 @@ class CudaCompiler(Compiler):
 
         # Disable warnings, compile with statically-linked runtime for minimum
         # reliance on the system.
-        flags += ['-w', '-cudart', 'static', source_name]
+        flags += ['-w', '-cudart', 'static', sname]
 
         # Use the -ccbin option, if available, even during sanity checking.
         # Otherwise, on systems where CUDA does not support the default compiler,
@@ -561,7 +562,7 @@ class CudaCompiler(Compiler):
             # a ton of compiler flags to differentiate between
             # arm and x86_64. So just compile.
             flags += self.get_compile_only_args()
-        flags += self.get_output_args(binary_name)
+        flags += self.get_output_args(binname)
 
         # Compile sanity check
         cmdlist = self.exelist + flags
