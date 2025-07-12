@@ -79,9 +79,13 @@ class CommandTests(unittest.TestCase):
         # If this call hangs CI will just abort. It is very hard to distinguish
         # between CI issue and test bug in that case. Set timeout and fail loud
         # instead.
-        p = subprocess.run(command, stdout=subprocess.PIPE,
-                           env=env, text=True,
-                           cwd=workdir, timeout=60 * 5)
+        p = subprocess.run(command,
+                           stdout=subprocess.PIPE,
+                           env=env,
+                           encoding='utf-8',
+                           text=True,
+                           cwd=workdir,
+                           timeout=60 * 5)
         print(p.stdout)
         if p.returncode != 0:
             raise subprocess.CalledProcessError(p.returncode, command)
