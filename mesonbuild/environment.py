@@ -736,6 +736,8 @@ class Environment:
         if section_subproject:
             key = key.evolve(subproject=section_subproject)
         if machine == MachineChoice.BUILD:
+            if key.machine == MachineChoice.BUILD:
+                mlog.deprecation('Setting build machine options in the native file does not need the "build." prefix', once=True)
             return key.evolve(machine=machine)
         return key
 
