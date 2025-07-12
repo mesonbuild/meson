@@ -1,0 +1,2 @@
+[built-in options]
+c_args = ['@c_args@']
