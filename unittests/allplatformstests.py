@@ -13,10 +13,13 @@ import platform
 import pickle
 import zipfile, tarfile
 import sys
+import socket
+import stat
+import hashlib
 from unittest import mock, SkipTest, skipIf, skipUnless, expectedFailure
 from contextlib import contextmanager
 from glob import glob
-from pathlib import (PurePath, Path)
+from pathlib import (PurePath, Path, PureWindowsPath)
 import typing as T
 
 import mesonbuild.mlog
@@ -5373,3 +5376,128 @@ class AllPlatformTests(BasePlatformTests):
         output = entry['output']
 
         self.build(output, extra_args=['-j1'])
+
+    @skipIfNoExecutable('sshd')
+    @skipIfNoExecutable('sftp')
+    # Not tested on Windows, since there is not yet an OpenSSH server available
+    def test_wrap_file_sftp(self) -> None:
+        testdir = Path(self.unit_test_dir) / '130 wrap file sftp'
+
+        def write_file(path, contents):
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(contents)
+
+        def read_file(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read()
+
+        def generate_key(path):
+            subprocess.run(['ssh-keygen', '-f', path, '-N', ''], check=True)
+            os.chmod(path, stat.S_IREAD | stat.S_IWRITE)
+            with open(path.with_suffix('.pub'), 'r', encoding='utf-8') as f:
+                return f.read()
+
+        def find_free_port():
+            with socket.socket() as sock:
+                sock.bind(('', 0))
+                return sock.getsockname()[1]
+
+        def generate_wrap_file(tmpdir, ssh_server_port, user_key_path, host_public_key, source_hash):
+            if mesonbuild.environment.detect_msys2_arch():
+                user_key_path = to_msys_path(user_key_path)
+            (tmpdir / 'subprojects').mkdir()
+            write_file(tmpdir / 'subprojects' / 'foo.wrap',
+                textwrap.dedent(f'''\
+                    [wrap-file]
+                    directory = foo
+
+                    source_url = sftp://localhost:{ssh_server_port}/foo.tar.gz
+                    source_filename = foo.tar.gz
+                    source_hash = {source_hash}
+                    source_hostkey = {host_public_key}
+                    source_identityfile = {user_key_path}
+                '''))
+
+        def generate_sshd_config(sshdir, user_public_key, ssh_server_port, sftpdir):
+            authorized_keys_path = sshdir / 'authorized_keys'
+            write_file(authorized_keys_path, user_public_key)
+            if mesonbuild.environment.detect_msys2_arch():
+                authorized_keys_path = to_msys_path(authorized_keys_path)
+                sftpdir = to_msys_path(sftpdir)
+            sshd_config_path = sshdir / 'sshd_config'
+            write_file(sshd_config_path,
+                textwrap.dedent(f'''\
+                    ListenAddress localhost:{ssh_server_port}
+                    PidFile "{sshdir / 'sshd_pid'}"
+                    AuthorizedKeysFile "{authorized_keys_path}"
+                    Subsystem sftp internal-sftp -d {sftpdir}
+                    PasswordAuthentication no
+                    StrictModes no
+                '''))
+            return sshd_config_path
+
+        def to_msys_path(path):
+            # Convert A:\b\c to /a/b/c
+            path = PureWindowsPath(str(path))
+            return f'/{path.drive[:1].lower()}/{path.relative_to(path.drive + "/").as_posix()}'
+
+        def start_sshd(config_path, host_key_path):
+            if mesonbuild.environment.detect_msys2_arch():
+                config_path = to_msys_path(config_path)
+                host_key_path = to_msys_path(host_key_path)
+            sshd_path = shutil.which('sshd')
+            sshd = subprocess.Popen([sshd_path, '-f', config_path, '-h', host_key_path, '-D'])
+            try:
+                sshd.wait(1)
+                return None
+            except subprocess.TimeoutExpired:
+                # It seems sshd started successfully
+                return sshd
+
+        def hash_file(path):
+            h = hashlib.sha256()
+            with open(path, 'rb') as f:
+                h.update(f.read())
+            return h.hexdigest()
+
+        # In Ubuntu Bionic, the privilege separation directory /run/sshd is
+        # created when the service is started. Since this has never happened in
+        # the docker images in the CI environment, create it manually.
+        if is_linux() and 'CI' in os.environ:
+            os.makedirs('/run/sshd', mode=0o755, exist_ok=True)
+        builddir = Path(self.builddir)
+        workdir = builddir / 'work'
+        sftpdir = builddir / 'sftp'
+        sshdir = builddir / 'ssh'
+        sftpdir.mkdir()
+        sshdir.mkdir()
+        shutil.copytree(testdir / 'top', workdir)
+        shutil.copy(testdir / 'foo.tar.gz', sftpdir)
+        source_hash = hash_file(testdir / 'foo.tar.gz')
+        host_key_path = sshdir / 'host_key'
+        user_key_path = sshdir / 'user_key'
+        host_public_key = generate_key(host_key_path)
+        user_public_key = generate_key(user_key_path)
+
+        # As there is no reliable way to avoid the port being taken between
+        # us finding a free port and starting the server, support a number
+        # of retries.
+        attempts = 0
+        while attempts < 3:
+            port = find_free_port()
+            sshd_config_path = generate_sshd_config(sshdir, user_public_key, port, sftpdir)
+            sshd = start_sshd(sshd_config_path, host_key_path)
+            if sshd is None:
+                print(f'Failed to start sshd, probably due to port being taken. Trying again.')
+                attempts += 1
+                continue
+            generate_wrap_file(workdir, port, user_key_path, host_public_key, source_hash)
+            try:
+                self.new_builddir()  # Ensure builddir is not parent or workdir
+                self.init(str(workdir))
+                self.build()
+                return
+            finally:
+                sshd.terminate()
+                sshd.wait()
+        raise self.fail(f'Failed to start sshd after {attempts} attempts.')
