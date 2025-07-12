@@ -1115,7 +1115,7 @@ class OptionStore:
         dirty = False
         D_args = [] if D_args is None else D_args
         U_args = [] if U_args is None else U_args
-        for key, valstr in self.parse_D_arguments(D_args):
+        for key, valstr in self.parse_D_arguments(D_args).items():
             dirty |= self.set_user_option(key, valstr)
         for keystr in U_args:
             key = OptionKey.from_string(keystr)
@@ -1242,12 +1242,12 @@ class OptionStore:
     def is_module_option(self, key: OptionKey) -> bool:
         return key in self.module_options
 
-    def parse_D_arguments(self, D: T.List[str]) -> T.List[T.Tuple[OptionKey, str]]:
-        options = []
+    def parse_D_arguments(self, D: T.List[str]) -> T.Dict[OptionKey, str]:
+        options = {}
         for setval in D:
             keystr, valstr = setval.split('=', 1)
             key = OptionKey.from_string(keystr)
-            options.append((key, valstr))
+            options[key] = valstr
         return options
 
     def prefix_split_options(self, coll: OptionDict) -> T.Tuple[T.Optional[str], OptionDict]:
