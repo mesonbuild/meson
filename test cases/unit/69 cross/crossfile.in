@@ -3,3 +3,6 @@ system = '@system@'
 cpu_family = '@cpu_family@'
 cpu = '@cpu@'
 endian = '@endian@'
+
+[built-in options]
+c_args = ['-funroll-loops']
