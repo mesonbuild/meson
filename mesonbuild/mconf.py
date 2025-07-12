@@ -147,7 +147,7 @@ class Conf:
         Each column will have a specific width, and will be line wrapped.
         """
         total_width = shutil.get_terminal_size(fallback=(160, 0))[0]
-        _col = max(total_width // 5, 20)
+        _col = max(total_width // 5, 24)
         last_column = total_width - (3 * _col) - 3
         four_column = (_col, _col, _col, last_column if last_column > 1 else _col)
 
@@ -207,11 +207,12 @@ class Conf:
         self.choices_col.append(choices)
         self.descr_col.append(descr)
 
-    def add_option(self, name: str, descr: str, value: T.Any, choices: T.Any) -> None:
+    def add_option(self, key: OptionKey, descr: str, value: T.Any, choices: T.Any) -> None:
         self._add_section()
         value = stringify(value)
         choices = stringify(choices)
-        self._add_line(mlog.green(name), mlog.yellow(value), mlog.blue(choices), descr)
+        self._add_line(mlog.green(str(key.evolve(subproject=None))), mlog.yellow(value),
+                       mlog.blue(choices), descr)
 
     def add_title(self, title: str) -> None:
         self._add_section()
@@ -248,7 +249,7 @@ class Conf:
             #    printable_value = '<inherited from main project>'
             #if isinstance(o, options.UserFeatureOption) and o.is_auto():
             #    printable_value = auto.printable_value()
-            self.add_option(k.name, o.description, printable_value, o.printable_choices())
+            self.add_option(k, o.description, printable_value, o.printable_choices())
 
     def print_conf(self, pager: bool) -> None:
         if pager:
