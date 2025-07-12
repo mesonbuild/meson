@@ -388,6 +388,12 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
     def log_tried() -> str:
         return 'sysconfig'
 
+    def get_runtime_paths(self) -> T.Optional[T.List[str]]:
+        bindir = self.variables.get('BINDIR')
+        if bindir:
+            return [bindir]
+        return None
+
 def python_factory(env: 'Environment', for_machine: 'MachineChoice',
                    kwargs: T.Dict[str, T.Any],
                    installation: T.Optional['BasicPythonExternalProgram'] = None) -> T.List['DependencyGenerator']:
