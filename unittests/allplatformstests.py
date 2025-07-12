@@ -3316,10 +3316,15 @@ class AllPlatformTests(BasePlatformTests):
     def test_identity_cross(self):
         testdir = os.path.join(self.unit_test_dir, '69 cross')
         # Do a build to generate a cross file where the host is this target
-        self.init(testdir, extra_args=['-Dgenerate=true'])
+        # build.c_args is ignored here.
+        self.init(testdir, extra_args=['-Dgenerate=true', '-Dc_args=-funroll-loops',
+                                       '-Dbuild.c_args=-pedantic'])
+        self.meson_native_files = [os.path.join(self.builddir, "nativefile")]
+        self.assertTrue(os.path.exists(self.meson_native_files[0]))
         self.meson_cross_files = [os.path.join(self.builddir, "crossfile")]
         self.assertTrue(os.path.exists(self.meson_cross_files[0]))
-        # Now verify that this is detected as cross
+        # Now verify that this is detected as cross and build options are
+        # processed correctly
         self.new_builddir()
         self.init(testdir)
 

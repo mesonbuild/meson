@@ -1085,7 +1085,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         value_object: T.Optional[options.AnyOptionType]
 
         try:
-            optkey = options.OptionKey(optname, self.subproject)
+            optkey = options.OptionKey.from_string(optname).evolve(subproject=self.subproject)
             value_object, value = self.coredata.optstore.get_value_object_and_value_for(optkey)
         except KeyError:
             if self.coredata.optstore.is_base_option(optkey):
