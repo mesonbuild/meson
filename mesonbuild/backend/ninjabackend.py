@@ -2096,20 +2096,24 @@ class NinjaBackend(backends.Backend):
             for a in e.get_link_args():
                 if a in rustc.native_static_libs:
                     # Exclude link args that rustc already add by default
-                    pass
+                    continue
                 elif a.startswith('-L'):
                     args.append(a)
-                elif a.endswith(('.dll', '.so', '.dylib', '.a', '.lib')) and isinstance(target, build.StaticLibrary):
+                    continue
+                elif a.endswith(('.dll', '.so', '.dylib', '.a', '.lib')):
                     dir_, lib = os.path.split(a)
                     linkdirs.add(dir_)
-                    if not verbatim:
-                        lib, ext = os.path.splitext(lib)
-                        if lib.startswith('lib'):
-                            lib = lib[3:]
-                    static = a.endswith(('.a', '.lib'))
-                    _link_library(lib, static)
-                else:
-                    args.append(f'-Clink-arg={a}')
+
+                    if isinstance(target, build.StaticLibrary):
+                        if not verbatim:
+                            lib, ext = os.path.splitext(lib)
+                            if lib.startswith('lib'):
+                                lib = lib[3:]
+                        static = a.endswith(('.a', '.lib'))
+                        _link_library(lib, static)
+                        continue
+
+                args.append(f'-Clink-arg={a}')
 
         for d in linkdirs:
             d = d or '.'
