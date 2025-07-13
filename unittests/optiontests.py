@@ -174,7 +174,7 @@ class OptionTests(unittest.TestCase):
 
         optstore.initialize_from_subproject_call(subp, {}, {}, cmd_line, {})
         self.assertEqual(optstore.get_value_for(name, ''), top_value)
-        self.assertEqual(optstore.get_value_for(name, subp), top_value)
+        self.assertEqual(optstore.get_value_for(name, subp), sub_value)
 
     def test_augments(self):
         optstore = OptionStore(False)
