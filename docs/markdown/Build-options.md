@@ -244,6 +244,10 @@ project which also has an option called `some_option`, then calling
 `yield` is `false`, `get_option` returns the value of the subproject's
 option.
 
+*Since 1.8.0* `-Dsub:some_option=anothervalue`, when used with a
+yielding option, sets the value separately from the option
+it yields to.
+
 
 ## Built-in build options
 
