@@ -849,7 +849,7 @@ class OptionStore:
     def __len__(self) -> int:
         return len(self.options)
 
-    def get_key_and_value_object_for(self, key: 'T.Union[OptionKey, str]') -> T.Tuple[OptionKey, AnyOptionType]:
+    def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
         key = self.ensure_and_validate_key(key)
         potential = self.options.get(key, None)
         if self.is_project_option(key):
@@ -863,15 +863,12 @@ class OptionStore:
                     raise KeyError(f'Tried to access nonexistant project parent option {parent_key}.')
                 # This is a global option but it can still have per-project
                 # augment, so return the subproject key.
-                return key, self.options[parent_key]
-        return key, potential
-
-    def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
-        return self.get_key_and_value_object_for(key)[1]
+                return self.options[parent_key]
+        return potential
 
     def get_value_object_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert isinstance(key, OptionKey)
-        _, vobject = self.get_key_and_value_object_for(key)
+        vobject = self.get_value_object_for(key)
         computed_value = vobject.value
         if key in self.augments:
             assert key.subproject is not None
@@ -1021,7 +1018,7 @@ class OptionStore:
             new_value = self.sanitize_dir_option_value(prefix, key, new_value)
 
         try:
-            actual_key, opt = self.get_key_and_value_object_for(key)
+            opt = self.get_value_object_for(key)
         except KeyError:
             raise MesonException(f'Unknown option: "{error_key}".')
 
