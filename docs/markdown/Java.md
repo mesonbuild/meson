@@ -9,7 +9,7 @@ Meson has experimental support for compiling Java programs. The basic
 syntax consists of only one function and would be used like this:
 
 ```meson
-project('javaprog', 'java')
+project('javaprog', host_machine_languages : 'java')
 
 myjar = jar('mything', 'com/example/Prog.java',
             main_class : 'com.example.Prog')
