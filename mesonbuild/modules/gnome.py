@@ -2197,13 +2197,14 @@ class GnomeModule(ExtensionModule):
         # TODO: this is supposed to take IncludeDirs, but it never worked
         return vapi_args, vapi_depends, vapi_packages, vapi_includes, remaining_args
 
-    def _generate_deps(self, state: 'ModuleState', library: str, packages: T.List[str], install_dir: str) -> build.Data:
+    def _generate_deps(self, state: 'ModuleState', library: str, packages: T.List[str], install_dir: str, install_tag: str) -> build.Data:
         outdir = state.environment.scratch_dir
         fname = os.path.join(outdir, library + '.deps')
         with open(fname, 'w', encoding='utf-8') as ofile:
             for package in packages:
                 ofile.write(package + '\n')
-        return build.Data([mesonlib.File(True, outdir, fname)], install_dir, install_dir, mesonlib.FileMode(), state.subproject)
+        return build.Data([mesonlib.File(True, outdir, fname)], install_dir, install_dir, mesonlib.FileMode(),
+                          state.subproject, install_tag=install_tag)
 
     def _get_vapi_link_with(self, target: CustomTarget) -> T.List[build.LibTypes]:
         link_with: T.List[build.LibTypes] = []
@@ -2264,7 +2265,7 @@ class GnomeModule(ExtensionModule):
 
         if kwargs['install']:
             # We shouldn't need this locally but we install it
-            deps_target = self._generate_deps(state, library, vapi_packages, install_dir)
+            deps_target = self._generate_deps(state, library, vapi_packages, install_dir, install_tag='devel')
             created_values.append(deps_target)
         vapi_target = VapiTarget(
             vapi_output,
