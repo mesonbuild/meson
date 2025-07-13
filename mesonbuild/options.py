@@ -321,6 +321,7 @@ class UserOption(T.Generic[_T], HoldableObject):
     yielding: bool = DEFAULT_YIELDING
     deprecated: DeprecatedType = False
     readonly: bool = dataclasses.field(default=False)
+    parent: T.Optional[UserOption] = None
 
     def __post_init__(self, value_: _T) -> None:
         self.value = self.validate_value(value_)
@@ -853,23 +854,8 @@ class OptionStore:
         potential = self.options.get(key, None)
         if self.is_project_option(key):
             assert key.subproject is not None
-            if potential is not None and potential.yielding:
-                parent_key = key.as_root()
-                try:
-                    parent_option = self.options[parent_key]
-                except KeyError:
-                    # Subproject is set to yield, but top level
-                    # project does not have an option of the same
-                    # name. Return the subproject option.
-                    return key, potential
-                # If parent object has different type, do not yield.
-                # This should probably be an error.
-                if type(parent_option) is type(potential):
-                    return parent_key, parent_option
-                return key, potential
             if potential is None:
                 raise KeyError(f'Tried to access nonexistant project option {key}.')
-            return key, potential
         else:
             if potential is None:
                 parent_key = OptionKey(key.name, subproject=None, machine=key.machine)
@@ -878,7 +864,7 @@ class OptionStore:
                 # This is a global option but it can still have per-project
                 # augment, so return the subproject key.
                 return key, self.options[parent_key]
-            return key, potential
+        return key, potential
 
     def get_value_object_for(self, key: 'T.Union[OptionKey, str]') -> AnyOptionType:
         return self.get_key_and_value_object_for(key)[1]
@@ -890,6 +876,8 @@ class OptionStore:
         if key in self.augments:
             assert key.subproject is not None
             computed_value = self.augments[key]
+        elif vobject.yielding:
+            computed_value = vobject.parent.value
         return (vobject, computed_value)
 
     def option_has_value(self, key: OptionKey, value: ElementaryOptionValues) -> bool:
@@ -940,6 +928,19 @@ class OptionStore:
         assert key.subproject is not None
         if key in self.options:
             raise MesonException(f'Internal error: tried to add a project option {key} that already exists.')
+        if valobj.yielding and key.subproject:
+            parent_key = key.as_root()
+            try:
+                parent_option = self.options[parent_key]
+                # If parent object has different type, do not yield.
+                # This should probably be an error.
+                if type(parent_option) is type(valobj):
+                    valobj.parent = parent_option
+            except KeyError:
+                # Subproject is set to yield, but top level
+                # project does not have an option of the same
+                pass
+            valobj.yielding = bool(valobj.parent)
 
         self.options[key] = valobj
         self.project_options.add(key)
@@ -1047,13 +1048,9 @@ class OptionStore:
 
         new_value = opt.validate_value(new_value)
         if key in self.options:
-            if actual_key.subproject == key.subproject:
-                old_value = opt.value
-                opt.set_value(new_value)
-            else:
-                # the key must have pointed to a yielding option;
-                # do not overwrite the global value in that case
-                return changed
+            old_value = opt.value
+            opt.set_value(new_value)
+            opt.yielding = False
         else:
             assert key.subproject is not None
             old_value = self.augments.get(key, opt.value)
@@ -1122,6 +1119,19 @@ class OptionStore:
             if key in self.augments:
                 del self.augments[key]
                 dirty = True
+            else:
+                # TODO: For project options, "dropping an augment" means going
+                # back to the superproject's value.  However, it's confusing
+                # that -U does not simply remove the option from the stored
+                # cmd_line_options.  This may cause "meson setup --wipe" to
+                # have surprising behavior.  For this to work, UserOption
+                # should only store the default value and the option values
+                # should be stored with their source (project(), subproject(),
+                # machine file, command line).  This way the effective value
+                # can be easily recomputed.
+                opt = self.get_value_object(key)
+                dirty |= not opt.yielding and bool(opt.parent)
+                opt.yielding = bool(opt.parent)
         return dirty
 
     def reset_prefixed_options(self, old_prefix: str, new_prefix: str) -> None:
