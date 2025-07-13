@@ -24,7 +24,7 @@ description: |
 
   Supported values for languages are `c`, `cpp` (for `C++`), `cuda`,
   `cython`, `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`),
-  `vala` and `rust`.
+  `swift`, `nasm`, `masm`, `linearasm`, `vala` and `rust`.
 
 posargs:
   project_name:
