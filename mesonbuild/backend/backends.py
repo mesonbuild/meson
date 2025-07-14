@@ -24,12 +24,12 @@ from .. import dependencies
 from .. import programs
 from .. import mesonlib
 from .. import mlog
-from ..compilers import LANGUAGES_USING_LDFLAGS, detect, lang_suffixes
+from ..compilers import detect, lang_suffixes
 from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
     ExecutableSerialisation, EnvironmentException,
     classify_unity_sources, get_compiler_for_source,
-    is_parent_path, get_rsp_threshold,
+    get_rsp_threshold,
 )
 from ..options import OptionKey
 
@@ -731,118 +731,6 @@ class Backend:
             return self.build.static_linker[target.for_machine], []
         l, stdlib_args = target.get_clink_dynamic_linker_and_stdlibs()
         return l, stdlib_args
-
-    @staticmethod
-    def _libdir_is_system(libdir: str, compilers: T.Mapping[str, 'Compiler'], env: 'Environment') -> bool:
-        libdir = os.path.normpath(libdir)
-        for cc in compilers.values():
-            if libdir in cc.get_library_dirs(env):
-                return True
-        return False
-
-    def get_external_rpath_dirs(self, target: build.BuildTarget) -> T.Set[str]:
-        args: T.List[str] = []
-        for lang in LANGUAGES_USING_LDFLAGS:
-            try:
-                e = self.environment.coredata.get_external_link_args(target.for_machine, lang)
-                if isinstance(e, str):
-                    args.append(e)
-                else:
-                    args.extend(e)
-            except Exception:
-                pass
-        return self.get_rpath_dirs_from_link_args(args)
-
-    @staticmethod
-    def get_rpath_dirs_from_link_args(args: T.List[str]) -> T.Set[str]:
-        dirs: T.Set[str] = set()
-        # Match rpath formats:
-        # -Wl,-rpath=
-        # -Wl,-rpath,
-        rpath_regex = re.compile(r'-Wl,-rpath[=,]([^,]+)')
-        # Match solaris style compat runpath formats:
-        # -Wl,-R
-        # -Wl,-R,
-        runpath_regex = re.compile(r'-Wl,-R[,]?([^,]+)')
-        # Match symbols formats:
-        # -Wl,--just-symbols=
-        # -Wl,--just-symbols,
-        symbols_regex = re.compile(r'-Wl,--just-symbols[=,]([^,]+)')
-        for arg in args:
-            rpath_match = rpath_regex.match(arg)
-            if rpath_match:
-                for dir in rpath_match.group(1).split(':'):
-                    dirs.add(dir)
-            runpath_match = runpath_regex.match(arg)
-            if runpath_match:
-                for dir in runpath_match.group(1).split(':'):
-                    # The symbols arg is an rpath if the path is a directory
-                    if Path(dir).is_dir():
-                        dirs.add(dir)
-            symbols_match = symbols_regex.match(arg)
-            if symbols_match:
-                for dir in symbols_match.group(1).split(':'):
-                    # Prevent usage of --just-symbols to specify rpath
-                    if Path(dir).is_dir():
-                        raise MesonException(f'Invalid arg for --just-symbols, {dir} is a directory.')
-        return dirs
-
-    @lru_cache(maxsize=None)
-    def rpaths_for_non_system_absolute_shared_libraries(self, target: build.BuildTarget, exclude_system: bool = True) -> 'ImmutableListProtocol[str]':
-        paths: OrderedSet[str] = OrderedSet()
-        srcdir = self.environment.get_source_dir()
-
-        for dep in target.external_deps:
-            if dep.type_name not in {'library', 'pkgconfig', 'cmake'}:
-                continue
-            for libpath in dep.link_args:
-                # For all link args that are absolute paths to a library file, add RPATH args
-                if not os.path.isabs(libpath):
-                    continue
-                libdir = os.path.dirname(libpath)
-                if exclude_system and self._libdir_is_system(libdir, target.compilers, self.environment):
-                    # No point in adding system paths.
-                    continue
-                # Don't remove rpaths specified in LDFLAGS.
-                if libdir in self.get_external_rpath_dirs(target):
-                    continue
-                # Windows doesn't support rpaths, but we use this function to
-                # emulate rpaths by setting PATH
-                # .dll is there for mingw gcc
-                # .so's may be extended with version information, e.g. libxyz.so.1.2.3
-                if not (
-                    os.path.splitext(libpath)[1] in {'.dll', '.lib', '.so', '.dylib'}
-                    or re.match(r'.+\.so(\.|$)', os.path.basename(libpath))
-                ):
-                    continue
-
-                if is_parent_path(srcdir, libdir):
-                    rel_to_src = libdir[len(srcdir) + 1:]
-                    assert not os.path.isabs(rel_to_src), f'rel_to_src: {rel_to_src} is absolute'
-                    paths.add(os.path.join(self.build_to_src, rel_to_src))
-                else:
-                    paths.add(libdir)
-            # Don't remove rpaths specified by the dependency
-            paths.difference_update(self.get_rpath_dirs_from_link_args(dep.link_args))
-        for i in chain(target.link_targets, target.link_whole_targets):
-            if isinstance(i, build.BuildTarget):
-                paths.update(self.rpaths_for_non_system_absolute_shared_libraries(i, exclude_system))
-        return list(paths)
-
-    # This may take other types
-    def determine_rpath_dirs(self, target: T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]
-                             ) -> T.Tuple[str, ...]:
-        result: OrderedSet[str]
-        if self.environment.coredata.optstore.get_value_for(OptionKey('layout')) == 'mirror':
-            # Need a copy here
-            result = OrderedSet(target.get_link_dep_subdirs())
-        else:
-            result = OrderedSet()
-            result.add('meson-out')
-        if isinstance(target, build.BuildTarget):
-            result.update(self.rpaths_for_non_system_absolute_shared_libraries(target))
-            target.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
-        return tuple(result)
 
     @staticmethod
     @lru_cache(maxsize=None)
