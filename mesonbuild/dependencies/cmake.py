@@ -73,12 +73,14 @@ class CMakeDependency(ExternalDependency):
         return module
 
     def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, force_use_global_compilers: bool = False) -> None:
+        super().__init__(name, environment, kwargs)
+        self.is_libtool = False
+
         # Gather a list of all languages to support
         self.language_list: T.List[str] = []
         language = kwargs.get('language')
         if language is None or force_use_global_compilers:
-            for_machine = kwargs['native']
-            compilers = environment.coredata.compilers[for_machine]
+            compilers = environment.coredata.compilers[self.for_machine]
             candidates = ['c', 'cpp', 'fortran', 'objc', 'objcpp']
             self.language_list += [x for x in candidates if x in compilers]
         else:
@@ -90,9 +92,6 @@ class CMakeDependency(ExternalDependency):
 
         # Ensure that the list is unique
         self.language_list = list(set(self.language_list))
-
-        super().__init__(name, environment, kwargs)
-        self.is_libtool = False
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
