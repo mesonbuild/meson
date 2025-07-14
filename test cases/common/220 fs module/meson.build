@@ -150,8 +150,10 @@ assert(fs.name(f[1]) == 'meson.build', 'failed to get basename')
 assert(fs.name('foo/bar/baz.dll.a') == 'baz.dll.a', 'failed to get basename with compound suffix')
 if host_machine.system() in ['cygwin', 'windows']
   assert(fs.name(btgt) == 'btgt.exe', 'failed to get basename of build target')
+  assert(fs.suffix(btgt) == '.exe', 'failed to get build target suffix')
 else
   assert(fs.name(btgt) == 'btgt', 'failed to get basename of build target')
+  assert(fs.suffix(btgt) == '', 'failed to get build target suffix')
 endif
 assert(fs.name(ctgt) == 'ctgt.txt', 'failed to get basename of custom target')
 assert(fs.name(ctgt[0]) == 'ctgt.txt', 'failed to get basename of custom target index')
@@ -160,6 +162,12 @@ assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compo
 assert(fs.stem(btgt) == 'btgt', 'failed to get stem of build target')
 assert(fs.stem(ctgt) == 'ctgt', 'failed to get stem of custom target')
 assert(fs.stem(ctgt[0]) == 'ctgt', 'failed to get stem of custom target index')
+assert(fs.suffix('foo/bar/baz') == '', 'failed to get missing suffix')
+assert(fs.suffix('foo/bar/baz.') == '.', 'failed to get empty suffix')
+assert(fs.suffix('foo/bar/baz.dll') == '.dll', 'failed to get plain suffix')
+assert(fs.suffix('foo/bar/baz.dll.a') == '.a', 'failed to get final suffix')
+assert(fs.suffix(ctgt) == '.txt', 'failed to get suffix of custom target')
+assert(fs.suffix(ctgt[0]) == '.txt', 'failed to get suffix of custom target index')
 
 # relative_to
 if build_machine.system() == 'windows'

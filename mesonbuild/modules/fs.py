@@ -44,7 +44,7 @@ class FSModule(ExtensionModule):
 
     INFO = ModuleInfo('fs', '0.53.0')
 
-    def __init__(self, interpreter: 'Interpreter') -> None:
+    def __init__(self, interpreter: Interpreter) -> None:
         super().__init__(interpreter)
         self.methods.update({
             'as_posix': self.as_posix,
@@ -64,6 +64,7 @@ class FSModule(ExtensionModule):
             'replace_suffix': self.replace_suffix,
             'size': self.size,
             'stem': self.stem,
+            'suffix': self.suffix,
         })
 
     def _absolute_dir(self, state: ModuleState, arg: FileOrString) -> str:
@@ -224,6 +225,13 @@ class FSModule(ExtensionModule):
     def stem(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
         path = self._obj_to_pathstr('fs.name', args[0], state)
         return os.path.splitext(os.path.basename(path))[0]
+
+    @noKwargs
+    @typed_pos_args('fs.suffix', (str, File, CustomTarget, CustomTargetIndex, BuildTarget))
+    @FeatureNew('fs.suffix', '1.9.0')
+    def suffix(self, state: ModuleState, args: T.Tuple[T.Union[FileOrString, BuildTargetTypes]], kwargs: T.Dict[str, T.Any]) -> str:
+        path = self._obj_to_pathstr('fs.suffix', args[0], state)
+        return os.path.splitext(path)[1]
 
     @FeatureNew('fs.read', '0.57.0')
     @typed_pos_args('fs.read', (str, File))
