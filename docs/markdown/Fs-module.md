@@ -206,11 +206,24 @@ fs.name('foo/bar/baz.dll.a')  # baz.dll.a
 *since 0.54.0*
 
 Returns the last component of the path, dropping the last part of the
-suffix
+suffix.
 
 ```meson
 fs.stem('foo/bar/baz.dll')  # baz
 fs.stem('foo/bar/baz.dll.a')  # baz.dll
+```
+
+### suffix
+
+*since 1.9.0*
+
+Returns the last dot-separated portion of the final component of the path
+including the dot, if any.
+
+```meson
+fs.suffix('foo/bar/baz.dll')  # .dll
+fs.suffix('foo/bar/baz.dll.a')  # .a
+fs.suffix('foo/bar')  # (empty)
 ```
 
 ### read
