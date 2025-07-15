@@ -75,6 +75,7 @@ lang_arg_kwargs |= {
 vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
 rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
 cs_kwargs = {'resources', 'cs_args'}
+swift_kwargs = {'swift_module_name'}
 
 buildtarget_kwargs = {
     'build_by_default',
@@ -110,7 +111,8 @@ known_build_target_kwargs = (
     pch_kwargs |
     vala_kwargs |
     rust_kwargs |
-    cs_kwargs)
+    cs_kwargs |
+    swift_kwargs)
 
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie', 'vs_module_defs', 'android_exe_type'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions', 'rust_abi'}
@@ -1259,6 +1261,10 @@ class BuildTarget(Target):
         if any(not isinstance(v, str) for v in rust_dependency_map.values()):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
+
+        self.swift_module_name = kwargs.get('swift_module_name')
+        if self.swift_module_name == '':
+            self.swift_module_name = self.name
 
     def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags

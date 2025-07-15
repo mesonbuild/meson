@@ -2232,10 +2232,7 @@ class NinjaBackend(backends.Backend):
 
     def swift_module_file_name(self, target):
         return os.path.join(self.get_target_private_dir(target),
-                            self.target_swift_modulename(target) + '.swiftmodule')
-
-    def target_swift_modulename(self, target):
-        return target.name
+                            target.swift_module_name + '.swiftmodule')
 
     def determine_swift_dep_modules(self, target):
         result = []
@@ -2262,7 +2259,7 @@ class NinjaBackend(backends.Backend):
         return srcs, others
 
     def generate_swift_target(self, target) -> None:
-        module_name = self.target_swift_modulename(target)
+        module_name = target.swift_module_name
         swiftc = target.compilers['swift']
         abssrc = []
         relsrc = []
