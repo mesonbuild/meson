@@ -633,6 +633,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         default={},
         since='1.2.0',
     ),
+    KwargInfo('swift_module_name', str, default='', since='1.9.0'),
     KwargInfo('build_rpath', str, default='', since='0.42.0'),
     KwargInfo(
         'gnu_symbol_visibility',
