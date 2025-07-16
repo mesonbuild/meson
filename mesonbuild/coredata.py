@@ -18,7 +18,6 @@ from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
     PerMachineDefaultable,
     default_prefix,
-    stringlistify,
     pickle_load
 )
 
@@ -152,8 +151,8 @@ class DependencyCache:
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
-            DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins.get_value_for(self.__pkg_conf_key)),
-            DependencyCacheType.CMAKE: stringlistify(self.__builtins.get_value_for(self.__cmake_key)),
+            DependencyCacheType.PKG_CONFIG: T.cast('T.List[str]', self.__builtins.get_value_for(self.__pkg_conf_key)),
+            DependencyCacheType.CMAKE: T.cast('T.List[str]', self.__builtins.get_value_for(self.__cmake_key)),
             DependencyCacheType.OTHER: [],
         }
         assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
