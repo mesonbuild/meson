@@ -147,8 +147,8 @@ class DependencyCache:
     def __init__(self, builtins: options.OptionStore, for_machine: MachineChoice):
         self.__cache: T.MutableMapping[TV_DepID, DependencySubCache] = OrderedDict()
         self.__builtins = builtins
-        self.__pkg_conf_key = options.OptionKey('pkg_config_path')
-        self.__cmake_key = options.OptionKey('cmake_prefix_path')
+        self.__pkg_conf_key = options.OptionKey('pkg_config_path', machine=for_machine)
+        self.__cmake_key = options.OptionKey('cmake_prefix_path', machine=for_machine)
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
         data: T.Dict[DependencyCacheType, T.List[str]] = {
