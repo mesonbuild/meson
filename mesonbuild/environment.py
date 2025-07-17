@@ -383,6 +383,8 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = detect_windows_arch(compilers)
     elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx() or mesonlib.is_aix():
         trial = platform.processor().lower()
+    elif mesonlib.is_zos():
+        trial = 's390'
     else:
         trial = platform.machine().lower()
     if trial.startswith('i') and trial.endswith('86'):
@@ -431,6 +433,9 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         # AIX always returns powerpc, check here for 64-bit
         if any_compiler_has_define(compilers, '__64BIT__'):
             trial = 'ppc64'
+    elif trial == 's390':
+        if any_compiler_has_define(compilers, '__64BIT__'):
+            trial = 's390x'
     # MIPS64 is able to run MIPS32 code natively, so there is a chance that
     # such mixture mentioned above exists.
     elif trial == 'mips64':
@@ -449,6 +454,8 @@ def detect_cpu(compilers: CompilersDict) -> str:
         trial = detect_windows_arch(compilers)
     elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_aix():
         trial = platform.processor().lower()
+    elif mesonlib.is_zos():
+        trial = 's390'
     else:
         trial = platform.machine().lower()
 
@@ -482,6 +489,9 @@ def detect_cpu(compilers: CompilersDict) -> str:
         # AIX always returns powerpc, check here for 64-bit
         if any_compiler_has_define(compilers, '__64BIT__'):
             trial = 'ppc64'
+    elif trial == 's390':
+        if any_compiler_has_define(compilers, '__64BIT__'):
+            trial = 's390x'
 
     # Add more quirks here as bugs are reported. Keep in sync with
     # detect_cpu_family() above.
@@ -502,6 +512,7 @@ KERNEL_MAPPINGS: T.Mapping[str, str] = {'freebsd': 'freebsd',
                                         'dragonfly': 'dragonfly',
                                         'haiku': 'haiku',
                                         'gnu': 'gnu',
+                                        'zos': 'zos',
                                         }
 
 def detect_kernel(system: str) -> T.Optional[str]:
@@ -532,6 +543,8 @@ def detect_subsystem(system: str) -> T.Optional[str]:
 def detect_system() -> str:
     if sys.platform == 'cygwin':
         return 'cygwin'
+    if sys.platform == 'zos':
+        return 'zos'
     return platform.system().lower()
 
 def detect_msys2_arch() -> T.Optional[str]:
@@ -571,7 +584,8 @@ def machine_info_can_run(machine_info: MachineInfo) -> bool:
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
         ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
-        ((true_build_cpu_family == 'mips64') and (machine_info.cpu_family == 'mips'))
+        ((true_build_cpu_family == 'mips64') and (machine_info.cpu_family == 'mips')) or \
+        ((true_build_cpu_family == 's390x') and (machine_info.cpu_family == 's390'))
 
 class Environment:
     private_dir = 'meson-private'
@@ -1068,6 +1082,8 @@ class Environment:
                 extra_paths.update(library_paths)
             elif self.machines.host.is_darwin():
                 env.prepend('DYLD_LIBRARY_PATH', list(library_paths))
+            elif self.machines.host.is_zos():
+                env.prepend('LIBPATH', list(library_paths))
             else:
                 env.prepend('LD_LIBRARY_PATH', list(library_paths))
         if extra_paths:
