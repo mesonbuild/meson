@@ -363,6 +363,7 @@ class _BuildTarget(_BaseBuildTarget):
     d_module_versions: T.List[T.Union[str, int]]
     d_unittest: bool
     rust_dependency_map: T.Dict[str, str]
+    swift_module_name: str
     sources: SourcesVarargsType
     c_args: T.List[str]
     cpp_args: T.List[str]
