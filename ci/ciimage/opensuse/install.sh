@@ -19,6 +19,8 @@ pkgs=(
   boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel libboost_system-devel
   libboost_test-devel libboost_log-devel libboost_regex-devel
   libboost_python3-devel libboost_regex-devel
+  # HACK: remove npm once we switch back to hotdoc sdist
+  npm
 )
 
 # Sys update
@@ -27,7 +29,12 @@ zypper --non-interactive update
 
 # Install deps
 zypper install -y "${pkgs[@]}"
-install_python_packages hotdoc
+# HACK: build hotdoc from git repo since current sdist is broken on modern compilers
+# change back to 'hotdoc' once it's fixed
+install_python_packages git+https://github.com/hotdoc/hotdoc
+
+# HACK: uninstall npm after building hotdoc, remove when we remove npm
+zypper remove -y -u npm
 
 echo 'export PKG_CONFIG_PATH="/usr/lib64/mpi/gcc/openmpi3/lib64/pkgconfig:$PKG_CONFIG_PATH"' >> /ci/env_vars.sh
 
