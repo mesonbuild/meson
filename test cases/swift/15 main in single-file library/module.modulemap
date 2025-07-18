@@ -1,0 +1,3 @@
+module CProgram [extern_c] {
+  header "program.h"
+}
