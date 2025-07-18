@@ -12,7 +12,7 @@ from .. import mlog
 from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
 from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
 from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
-from ..mesonlib import File, MesonException, has_path_sep, path_is_in_root, relpath
+from ..mesonlib import File, MesonException, has_path_sep, path_is_in_root, relpath, destdir_join
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -62,6 +62,7 @@ class FSModule(ExtensionModule):
             'replace_suffix': self.replace_suffix,
             'size': self.size,
             'stem': self.stem,
+            'join_absolute': self.join_absolute,
         })
 
     def _absolute_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
@@ -317,6 +318,14 @@ class FSModule(ExtensionModule):
 
         return relpath(t, f)
 
+    @noKwargs
+    @FeatureNew('fs.join_absolute', '1.9.0')
+    @typed_pos_args('fs.join_absolute', (str, File), (str, File))
+    def join_absolute(self, state: 'ModuleState', args: T.Tuple['FileOrString', 'FileOrString'], kwargs: T.Dict[str, T.Any]) -> str:
+        d1, d2 = str(args[0]), str(args[1])
+        if not os.path.isabs(d2):
+            raise InvalidArguments('Second argument must be an absolute path')
+        return destdir_join(d1, d2)
 
 def initialize(*args: T.Any, **kwargs: T.Any) -> FSModule:
     return FSModule(*args, **kwargs)
