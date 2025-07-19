@@ -937,7 +937,7 @@ class OptionStore:
                 # Subproject is set to yield, but top level
                 # project does not have an option of the same
                 pass
-            valobj.yielding = bool(valobj.parent)
+        valobj.yielding = bool(valobj.parent)
 
         self.options[key] = valobj
         self.project_options.add(key)
