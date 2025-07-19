@@ -121,6 +121,14 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name, 'sub'), sub_value)
         self.assertEqual(num_options(optstore), 2)
 
+    def test_toplevel_project_yielding(self):
+        optstore = OptionStore(False)
+        name = 'someoption'
+        top_value = 'top'
+        vo = UserStringOption(name, 'A top level option', top_value, True)
+        optstore.add_project_option(OptionKey(name, ''), vo)
+        self.assertEqual(optstore.get_value_for(name, ''), top_value)
+
     def test_project_yielding(self):
         optstore = OptionStore(False)
         name = 'someoption'
