@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
     from . import environment
     from ._typing import ImmutableListProtocol
     from .backend.backends import Backend
-    from .compilers import Compiler
+    from .compilers.compilers import Compiler, CompilerDict
     from .interpreter.interpreter import SourceOutputs, Interpreter
     from .interpreter.interpreterobjects import Test, Doctest
     from .interpreterbase import SubProject
@@ -694,7 +694,7 @@ class BuildTarget(Target):
             structured_sources: T.Optional[StructuredSources],
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
-            compilers: T.Dict[str, 'Compiler'],
+            compilers: CompilerDict,
             kwargs: T.Dict[str, T.Any]):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
         self.all_compilers = compilers
