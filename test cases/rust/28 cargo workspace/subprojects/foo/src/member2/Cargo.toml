@@ -1,0 +1,3 @@
+[package]
+name = "member2"
+version.workspace = true
