@@ -242,6 +242,10 @@ class RustModule(ExtensionModule):
     def doctest(self, state: ModuleState, args: T.Tuple[str, T.Union[SharedLibrary, StaticLibrary]], kwargs: FuncDoctest) -> ModuleReturnValue:
         name, base_target = args
 
+        if not base_target.uses_rust():
+            raise MesonException('doc tests are only supported for Rust targets')
+        if not base_target.uses_rust_abi():
+            raise MesonException("doc tests are not supported for rust_abi: 'c'")
         if state.environment.is_cross_build() and state.environment.need_exe_wrapper(base_target.for_machine):
             mlog.notice('skipping Rust doctests due to cross compilation', once=True)
             return ModuleReturnValue(None, [])
