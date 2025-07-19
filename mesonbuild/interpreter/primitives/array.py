@@ -97,3 +97,17 @@ class ArrayHolder(ObjectHolder[T.List[TYPE_var]], IterableObject):
             return self.held_object[other]
         except IndexError:
             raise InvalidArguments(f'Index {other} out of bounds of array of size {len(self.held_object)}.')
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('array.flatten', '1.9.0')
+    @InterpreterObject.method('flatten')
+    def flatten_method(self, args: T.List[TYPE_var], kwargs: TYPE_kwargs) -> TYPE_var:
+        def flatten(obj: TYPE_var) -> T.Iterable[TYPE_var]:
+            if isinstance(obj, list):
+                for o in obj:
+                    yield from flatten(o)
+            else:
+                yield obj
+
+        return list(flatten(self.held_object))
