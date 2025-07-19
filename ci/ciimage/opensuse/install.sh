@@ -19,6 +19,7 @@ pkgs=(
   boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel libboost_system-devel
   libboost_test-devel libboost_log-devel libboost_regex-devel
   libboost_python3-devel libboost_regex-devel
+  blas-devel cblas-devel lapack-devel lapacke-devel openblas-devel intel-oneapi-mkl-devel
   # HACK: remove npm once we switch back to hotdoc sdist
   npm
 )
@@ -27,7 +28,19 @@ pkgs=(
 zypper --non-interactive patch --with-update --with-optional
 zypper --non-interactive update
 
+# Add Intel oneAPI repository for mkl
+cat > /etc/zypp/repos.d/oneAPI.repo <<-EOF
+[oneAPI]
+name=Intel® oneAPI repository
+baseurl=https://yum.repos.intel.com/oneapi
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+EOF
+
 # Install deps
+<<<<<<< HEAD
 zypper install -y "${pkgs[@]}"
 # HACK: build hotdoc from git repo since current sdist is broken on modern compilers
 # change back to 'hotdoc' once it's fixed
@@ -35,6 +48,10 @@ install_python_packages git+https://github.com/hotdoc/hotdoc
 
 # HACK: uninstall npm after building hotdoc, remove when we remove npm
 zypper remove -y -u npm
+=======
+zypper --gpg-auto-import-keys install -y "${pkgs[@]}"
+install_python_packages hotdoc
+>>>>>>> 3d18c9dcb (Implement BLAS/LAPACK API and dependencies: OpenBLAS, MKL, Accelerate)
 
 echo 'export PKG_CONFIG_PATH="/usr/lib64/mpi/gcc/openmpi3/lib64/pkgconfig:$PKG_CONFIG_PATH"' >> /ci/env_vars.sh
 

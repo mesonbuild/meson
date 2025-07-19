@@ -17,12 +17,24 @@ pkgs=(
   qt6-qtdeclarative-devel qt6-qtbase-devel qt6-qttools-devel qt6-linguist qt6-qtbase-private-devel
   libwmf-devel valgrind cmake openmpi-devel nasm gnustep-base-devel gettext-devel ncurses-devel
   libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel libgcrypt-devel wayland-devel wayland-protocols-devel
+  openblas-devel blas-devel lapack-devel intel-oneapi-mkl-devel
   # HACK: remove npm once we switch back to hotdoc sdist
   nodejs-npm
 )
 
 # Sys update
 dnf -y upgrade
+
+# Add Intel oneAPI repository for mkl
+cat > /etc/yum.repos.d/oneAPI.repo <<EOF
+[oneAPI]
+name=Intel® oneAPI repository
+baseurl=https://yum.repos.intel.com/oneapi
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+EOF
 
 # Install deps
 dnf -y install "${pkgs[@]}"
