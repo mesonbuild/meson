@@ -8,7 +8,7 @@ import re
 import aiohttp
 import asyncio
 
-LINK = re.compile(r'\[(?P<name>[A-Za-z0-9 ]+)\]\((?P<url>.*?)\)')
+LINK = re.compile(r'\[(?P<name>[^\]]+)\]\((?P<url>.*?)\)')
 
 
 async def fetch(session, name, url, timeout):
