@@ -22,7 +22,7 @@ description: |
 
 kwargs:
   command:
-    type: list[exe | external_program | custom_tgt | file | str]
+    type: array[exe | external_program | custom_tgt | file | str]
     description: |
       The command to execute, see [[custom_target]] for details
       on how this command must be specified.
@@ -71,7 +71,7 @@ kwargs:
       The subdirectory to install the generated file to (e.g. `share/myproject`).
 
   install_mode:
-    type: list[str | int]
+    type: array[str | int]
     since: 1.7.0
     description: |
       Specify the file mode in symbolic format

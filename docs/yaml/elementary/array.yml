@@ -1,5 +1,5 @@
-name: list
-long_name: List
+name: array
+long_name: Array
 description: An array of elements. See [arrays](Syntax.md#arrays).
 is_container: true
 
@@ -30,7 +30,7 @@ methods:
   posargs:
     index:
       type: int
-      description: Index of the list position to query. Negative values start at the end of the list
+      description: Index of the array position to query. Negative values start at the end of the array
 
   optargs:
     fallback:
@@ -39,9 +39,9 @@ methods:
 
 - name: length
   returns: int
-  description: Returns the current size of the array / list.
+  description: Returns the current size of the array.
 
 - name: flatten
-  returns: list[any]
+  returns: array[any]
   since: 1.9.0
   description: Returns a flattened copy of the array, with all nested arrays removed.

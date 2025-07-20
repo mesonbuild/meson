@@ -1,5 +1,5 @@
 name: get_option
-returns: str | int | bool | feature | list[str | int | bool]
+returns: str | int | bool | feature | array[str | int | bool]
 description: |
   Obtains the value of the [project build option](Build-options.md)
   specified in the positional argument.

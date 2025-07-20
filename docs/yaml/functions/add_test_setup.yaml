@@ -18,7 +18,7 @@ posargs:
 
 kwargs:
   env:
-    type: env | list[str] | dict[str]
+    type: env | array[str] | dict[str]
     description: |
       environment variables to set
       , such as `['NAME1=value1', 'NAME2=value2']`,
@@ -26,7 +26,7 @@ kwargs:
       environment juggling. *(Since 0.52.0)* A dictionary is also accepted.
 
   exe_wrapper:
-    type: list[str | external_program]
+    type: array[str | external_program]
     description: The command or script followed by the arguments to it
 
   gdb:
@@ -52,9 +52,9 @@ kwargs:
       without the `--setup` option.
 
   exclude_suites:
-    type: list[str]
+    type: array[str]
     since: 0.57.0
     description:
-      A list of test suites that should be excluded when using this setup.
+      An array of test suites that should be excluded when using this setup.
       Suites specified in the `--suite` option
       to `meson test` will always run, overriding `add_test_setup` if necessary.

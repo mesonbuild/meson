@@ -45,9 +45,9 @@ methods:
   description: You have found a bug if you can see this!
   kwargs:
     args:
-      type: list[str]
+      type: array[str]
       description: |
-        Used to pass a list of compiler arguments.
+        Used to pass an array of compiler arguments.
         Defining include paths for headers not in the default include path
         via `-Isome/path/to/header` is generally supported, however, usually not
         recommended.
@@ -61,7 +61,7 @@ methods:
   description: You have found a bug if you can see this!
   kwargs:
     include_directories:
-      type: inc | list[inc]
+      type: inc | array[inc]
       since: 0.38.0
       description: Extra directories for header searches.
 
@@ -70,7 +70,7 @@ methods:
   description: You have found a bug if you can see this!
   kwargs:
     dependencies:
-      type: dep | list[dep]
+      type: dep | array[dep]
       description: Additionally dependencies required for compiling and / or linking.
 
 - name: _prefix
@@ -78,7 +78,7 @@ methods:
   description: You have found a bug if you can see this!
   kwargs:
     prefix:
-      type: str | list[str]
+      type: str | array[str]
       description: |
         Used to add `#include`s and other things that are required
         for the symbol to be declared. Since 1.0.0 an array is accepted
@@ -184,7 +184,7 @@ methods:
   description: Returns the compiler's version number as a string.
 
 - name: cmd_array
-  returns: list[str]
+  returns: array[str]
   description: Returns an array containing the command(s) for the compiler.
 
 
@@ -441,10 +441,10 @@ methods:
         *(since 0.47.0)* The value of a `feature` option can also be passed here.
 
     has_headers:
-      type: list[str]
+      type: array[str]
       since: 0.50.0
       description: |
-        List of headers that must be found as well.
+        An array of headers that must be found as well.
         This check is equivalent to checking each header with a
         [[compiler.has_header]] call.
 
@@ -468,7 +468,7 @@ methods:
       description: If `true`, this method will return a [[@disabler]] on a failed check.
 
     dirs:
-      type: list[str]
+      type: array[str]
       description: |
         Additional directories to search in.
 
@@ -478,19 +478,19 @@ methods:
 # does not work, since all _common kwargs need to be prefixed `header_` here
 # kwargs_inherit: compiler._common
     header_args:
-      type: list[str]
+      type: array[str]
       since: 0.51.0
       description: |
         When the `has_headers` kwarg is also used, this argument is passed to
         [[compiler.has_header]] as `args`.
     header_include_directories:
-      type: inc | list[inc]
+      type: inc | array[inc]
       since: 0.51.0
       description: |
         When the `has_headers` kwarg is also used, this argument is passed to
         [[compiler.has_header]] as `include_directories`.
     header_dependencies:
-      type: dep | list[dep]
+      type: dep | array[dep]
       since: 0.51.0
       description: |
         When the `has_headers` kwarg is also used, this argument is passed to
@@ -539,7 +539,7 @@ methods:
     - compiler._required
 
 - name: get_supported_arguments
-  returns: list[str]
+  returns: array[str]
   since: 0.43.0
   varargs_inherit: compiler.has_multi_arguments
   description: |
@@ -558,11 +558,11 @@ methods:
           - `'require'`: Abort if at least one argument is not supported
 
 - name: first_supported_argument
-  returns: list[str]
+  returns: array[str]
   since: 0.43.0
   varargs_inherit: compiler.has_multi_arguments
   description: |
-    Given a list of strings, returns a single-element list containing the first
+    Given an array of strings, returns a single-element array containing the first
     argument that passes the [[compiler.has_argument]] test or an empty array if
     none pass.
 
@@ -601,7 +601,7 @@ methods:
     - compiler._required
 
 - name: get_supported_link_arguments
-  returns: list[str]
+  returns: array[str]
   since: 0.46.0
   varargs_inherit: compiler.has_multi_link_arguments
   description: |
@@ -621,11 +621,11 @@ methods:
   #         - `'require'`: Abort if at least one argument is not supported
 
 - name: first_supported_link_argument
-  returns: list[str]
+  returns: array[str]
   since: 0.46.0
   varargs_inherit: compiler.has_multi_link_arguments
   description: |
-    Given a list of strings, returns the first argument that passes the
+    Given an array of strings, returns the first argument that passes the
     [[compiler.has_link_argument]] test or an empty array if none pass.
 
 - name: has_function_attribute
@@ -645,7 +645,7 @@ methods:
     - compiler._required
 
 - name: get_supported_function_attributes
-  returns: list[str]
+  returns: array[str]
   since: 0.48.0
   description: |
     Returns an array containing any names that are supported GCC style attributes.
@@ -666,10 +666,10 @@ methods:
     operating systems.
 
 - name: preprocess
-  returns: list[custom_idx]
+  returns: array[custom_idx]
   since: 0.64.0
   description: |
-    Preprocess a list of source files but do not compile them. The preprocessor
+    Preprocess an array of source files but do not compile them. The preprocessor
     will receive the same arguments (include directories, defines, etc) as with
     normal compilation. That includes for example args added with
     `add_project_arguments()`, or on the command line with `-Dc_args=-DFOO`.
@@ -694,15 +694,15 @@ methods:
         the source filename and `@BASENAME@` is replaced by the source filename
         without its extension.
     compile_args:
-      type: list[str]
+      type: array[str]
       description: |
         Extra flags to pass to the preprocessor
     dependencies:
-      type: dep | list[dep]
+      type: dep | array[dep]
       description: Additionally dependencies required.
       since: 1.1.0
     depends:
-      type: list[build_tgt | custom_tgt]
+      type: array[build_tgt | custom_tgt]
       description: |
         Specifies that this target depends on the specified
         target(s). These targets should be built before starting

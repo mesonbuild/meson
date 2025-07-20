@@ -26,9 +26,9 @@ description: |
   build_target(<arguments and keyword arguments>, target_type : 'executable')
   ```
 
-  The lists for the kwargs (such as `sources`, `objects`, and `dependencies`) are
-  always flattened, which means you can freely nest and add lists while
-  creating the final list.
+  The arrays for the kwargs (such as `sources`, `objects`, and `dependencies`) are
+  always flattened, which means you can freely nest and add arrays while
+  creating the final array.
 
   The returned object also has methods that are documented in [[@build_tgt]].
 

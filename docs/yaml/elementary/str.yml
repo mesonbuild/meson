@@ -203,7 +203,7 @@ methods:
 
 # str.split
 - name: split
-  returns: list[str]
+  returns: array[str]
   description: |
     Splits the string at the specified character
     (or whitespace if not set) and returns the parts in an
@@ -224,7 +224,7 @@ methods:
       description: Specifies the character / substring where to split the string.
 
 - name: splitlines
-  returns: list[str]
+  returns: array[str]
   since: 1.2.0
   description: |
     Splits the string into an array of lines.
@@ -270,7 +270,7 @@ methods:
         The strings to join with the current string.
 
         Before Meson *0.60.0* this function only accepts a single positional
-        argument of the type [[list[str]]].
+        argument of the type [[array[str]]].
 
 # str.underscorify
 - name: underscorify

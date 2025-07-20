@@ -25,7 +25,7 @@ kwargs:
       If omitted, the directory defaults to `{datadir}/{projectname}` *(since 0.45.0)*.
 
   install_mode:
-    type: list[str | int]
+    type: array[str | int]
     since: 0.38.0
     description: |
       specify the file mode in symbolic format and
@@ -58,16 +58,16 @@ kwargs:
       This is equivalent to GNU Automake's `nobase` option.
 
   rename:
-    type: list[str]
+    type: array[str]
     since: 0.46.0
     description: |
-      If specified renames each source file into corresponding file from `rename` list.
+      If specified renames each source file into corresponding file from `rename` array.
       Nested paths are allowed and they are
-      joined with `install_dir`. Length of `rename` list must be equal to
+      joined with `install_dir`. Length of `rename` array must be equal to
       the number of sources.
 
   sources:
-    type: list[file | str]
+    type: array[file | str]
     description: Additional files to install.
 
   follow_symlinks:

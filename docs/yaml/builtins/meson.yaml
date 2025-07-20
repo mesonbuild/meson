@@ -139,7 +139,7 @@ methods:
           to install only a subset of the files.
           By default the script has no install tag which means it is not being run when
           `meson install --tags` argument is specified.
-      
+
       dry_run:
         type: bool
         since: 1.1.0
@@ -447,12 +447,12 @@ methods:
     description: Returns the version string specified in [[project]] function call.
 
   - name: project_license
-    returns: list[str]
+    returns: array[str]
     since: 0.45.0
     description: Returns the array of licenses specified in [[project]] function call.
 
   - name: project_license_files
-    returns: list[file]
+    returns: array[file]
     since: 1.1.0
     description: Returns the array of license files specified in the [[project]] function call.
 
@@ -498,10 +498,10 @@ methods:
 
     posargs:
       env:
-        type: env | str | list[str] | dict[str] | dict[list[str]]
+        type: env | str | array[str] | dict[str] | dict[array[str]]
         description: |
           The [[@env]] object to add.
-          Since *0.62.0* list of strings is allowed in dictionary values. In that
+          Since *0.62.0* array of strings is allowed in dictionary values. In that
           case values are joined using the separator.
     kwargs:
       separator:

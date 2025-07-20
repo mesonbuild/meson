@@ -66,7 +66,7 @@ posargs:
 
 kwargs:
   install_mode:
-    type: list[str | int]
+    type: array[str | int]
     since: 0.47.0
     description: |
       Specify the file mode in symbolic format
@@ -83,16 +83,16 @@ kwargs:
       tag which means they are not being installed when `--tags` argument is specified.
 
   exclude_files:
-    type: list[str]
+    type: array[str]
     description: |
-      A list of file names that should not be installed.
+      An array of file names that should not be installed.
       Names are interpreted as paths relative to the `subdir_name` location.
 
   exclude_directories:
-    type: list[str]
+    type: array[str]
     since: 0.47.0
     description: |
-      A list of directory names that should not be installed.
+      An array of directory names that should not be installed.
       Names are interpreted as paths relative to the `subdir_name` location.
 
   install_dir:

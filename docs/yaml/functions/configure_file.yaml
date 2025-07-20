@@ -12,7 +12,7 @@ description: |
   A dictionary can be passed instead of a
   [[@cfg_data]] object.
 
-  When a list of strings is passed to the `command:` keyword argument,
+  When an array of strings is passed to the `command:` keyword argument,
   it takes any source or configured file as the `input:` and assumes
   that the `output:` is produced when the specified command is run.
 
@@ -34,7 +34,7 @@ kwargs:
       file specified as `output`.
 
   command:
-    type: list[str | file]
+    type: array[str | file]
     description: |
       As explained above, if specified, Meson does not create
       the file itself but rather runs the specified command, which allows
@@ -103,7 +103,7 @@ kwargs:
       string, the file is not installed.
 
   install_mode:
-    type: list[str | int]
+    type: array[str | int]
     since: 0.47.0
     description: |
       Specify the file mode in symbolic format

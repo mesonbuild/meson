@@ -90,7 +90,7 @@ for each executable.
 Positional arguments are the following:
 
 * name `str`: the name of the resulting pot file.
-* sources `list[str|File|build_tgt|custom_tgt]`:
+* sources `array[str|File|build_tgt|custom_tgt]`:
           source files or targets. May be a list of `string`, `File`, [[@build_tgt]],
           or [[@custom_tgt]] returned from other calls to this function.
 

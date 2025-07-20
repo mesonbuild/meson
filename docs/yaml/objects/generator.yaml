@@ -9,20 +9,20 @@ methods:
   - name: process
     returns: generated_list
     description: |
-      Takes a list of files, causes them to be processed and returns an object containing the result
+      Takes an array of files, causes them to be processed and returns an object containing the result
       which can then, for example, be passed into a build target definition.
 
     varargs:
       name: source
       min_varargs: 1
       type: str | file | custom_tgt | custom_idx | generated_list
-      description: List of sources to process.
+      description: sources to process.
 
     kwargs:
       extra_args:
-        type: list[str]
+        type: array[str]
         description: |
-          If present, will be used to replace an entry `@EXTRA_ARGS@` in the argument list.
+          If present, will be used to replace an entry `@EXTRA_ARGS@` in the argument array.
 
       preserve_path_from:
         type: str
@@ -36,7 +36,7 @@ methods:
           directory}/one.out`.
 
       env:
-        type: env | list[str] | dict[str]
+        type: env | array[str] | dict[str]
         since: 1.3.0
         description: |
           environment variables to set, such as

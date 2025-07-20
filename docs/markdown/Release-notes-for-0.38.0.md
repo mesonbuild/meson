@@ -106,7 +106,7 @@ the check is now ~40% faster.
 ## Array indexing now supports fallback values
 
 The second argument to the array
-[[list.get]] function is now returned
+[[array.get]] function is now returned
 if the specified index could not be found
 
 ```meson

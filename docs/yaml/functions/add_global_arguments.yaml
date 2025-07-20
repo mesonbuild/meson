@@ -15,11 +15,11 @@ varargs:
 
 kwargs:
   language:
-    type: list[str]
+    type: array[str]
     required: true
     description: |
       Specifies the language(s) that the arguments should be
-      applied to. If a list of languages is given, the arguments are added
+      applied to. If an array of languages is given, the arguments are added
       to each of the corresponding compiler command lines. Note that there
       is no way to remove an argument set in this way. If you have an
       argument that is only used in a subset of targets, you have to specify

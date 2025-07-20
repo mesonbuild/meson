@@ -114,7 +114,7 @@ methods:
       description: The name of the variable to query
 
 - name: keys
-  returns: list[str]
+  returns: array[str]
   since: 0.57.0
   description: |
     Returns an array of keys of
