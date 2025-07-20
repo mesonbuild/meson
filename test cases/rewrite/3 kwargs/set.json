@@ -7,7 +7,8 @@
     "kwargs": {
       "version": "0.0.2",
       "meson_version": "0.50.0",
-      "license": ["GPL", "MIT"]
+      "license": ["GPL", "MIT"],
+      "license_files": ["GPL.txt", "MIT.txt"]
     }
   },
   {
