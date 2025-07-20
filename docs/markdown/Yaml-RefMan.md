@@ -150,9 +150,9 @@ optargs:
     ...
 
 varargs:
-  name: Some name                # [required]
-  type: str | list[str | int]    # [required]
-  description: Some helpful text # [required]
+  name: Some name                 # [required]
+  type: str | array[str | int]    # [required]
+  description: Some helpful text  # [required]
   since: 0.42.0
   deprecated: 100.99.0
   min_varargs: 1

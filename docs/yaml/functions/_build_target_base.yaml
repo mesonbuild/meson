@@ -43,13 +43,13 @@ kwargs:
     description: precompiled header file to use for the given language
 
   <lang>_args:
-    type: list[str]
+    type: array[str]
     description: |
       compiler flags to use for the given language;
       eg: `cpp_args` for C++
 
   vala_args:
-    type: list[str | file]
+    type: array[str | file]
     description: |
       Compiler flags for Vala. Unlike other languages this may contain Files
 
@@ -74,7 +74,7 @@ kwargs:
       but which will be removed on install
 
   dependencies:
-    type: list[dep]
+    type: array[dep]
     description: |
       one or more dependency objects
       created with
@@ -98,7 +98,7 @@ kwargs:
       0.56.0, use `win_subsystem` instead.
 
   link_args:
-    type: list[str]
+    type: array[str]
     description: |
       Flags to use during linking. You can use UNIX-style
       flags here for all platforms.
@@ -125,7 +125,7 @@ kwargs:
       *(broken until 0.55.0)*
 
   link_whole:
-    type: list[lib | custom_tgt | custom_idx]
+    type: array[lib | custom_tgt | custom_idx]
     since: 0.40.0
     description: |
       Links all contents of the given static libraries whether they are used or
@@ -133,18 +133,18 @@ kwargs:
       '/WHOLEARCHIVE' MSVC linker option. This allows the linked target to
       re-export symbols from all objects in the static libraries.
 
-      *(since 0.41.0)* If passed a list that list will be flattened.
+      *(since 0.41.0)* If passed an array that array will be flattened.
 
       *(since 0.51.0)* This argument also accepts outputs produced by
       custom targets. The user must ensure that the output is a library in
       the correct format.
 
   link_with:
-    type: list[lib | custom_tgt | custom_idx]
+    type: array[lib | custom_tgt | custom_idx]
     description: |
       One or more shared or static libraries
-      (built by this project) that this target should be linked with. *(since 0.41.0)* If passed a
-      list this list will be flattened. *(since 0.51.0)* The arguments can also be custom targets.
+      (built by this project) that this target should be linked with. *(since 0.41.0)* If passed an
+      array that array will be flattened. *(since 0.51.0)* The arguments can also be custom targets.
       In this case Meson will assume that merely adding the output file in the linker command
       line is sufficient to make linking work. If this is not sufficient,
       then the build system writer must write all other steps manually.
@@ -156,7 +156,7 @@ kwargs:
     description: Controls whether Meson adds the current source and build directories to the include path
 
   include_directories:
-    type: list[inc | str]
+    type: array[inc | str]
     description: |
       one or more objects created with the [[include_directories]] function,
       or *(since 0.50.0)* strings, which will be transparently expanded to include directory objects
@@ -175,7 +175,7 @@ kwargs:
       something like this: `install_dir : get_option('libdir') / 'projectname-1.0'`.
 
   install_mode:
-    type: list[str | int]
+    type: array[str | int]
     since: 0.47.0
     description: |
       Specify the file mode in symbolic format
@@ -198,7 +198,7 @@ kwargs:
       (but *not* before that). On Windows, this argument has no effect.
 
   objects:
-    type: list[extracted_obj | file | str]
+    type: array[extracted_obj | file | str]
     description: |
       List of object files that should be linked in this target.
 
@@ -208,7 +208,7 @@ kwargs:
       object files had to be placed in `sources`.
 
   name_prefix:
-    type: str | list[void]
+    type: str | array[void]
     description: |
       The string that will be used as the prefix for the
       target output filename by overriding the default (only used for
@@ -219,7 +219,7 @@ kwargs:
       Set this to `[]`, or omit the keyword argument for the default behaviour.
 
   name_suffix:
-    type: str | list[void]
+    type: str | array[void]
     description: |
       The string that will be used as the extension for the
       target by overriding the default. By default on Windows this is
@@ -235,7 +235,7 @@ kwargs:
       Set this to `[]`, or omit the keyword argument for the default behaviour.
 
   override_options:
-    type: list[str] | dict[str | bool | int | list[str]]
+    type: array[str] | dict[str | bool | int | array[str]]
     since: 0.40.0
     description: |
       takes an array of strings in the same format as `project`'s `default_options`
@@ -256,7 +256,7 @@ kwargs:
       do not support GNU visibility arguments.
 
   d_import_dirs:
-    type: list[inc | str]
+    type: array[inc | str]
     since: 0.62.0
     description: |
       the directories to add to the string search path (i.e. `-J` switch for DMD).
@@ -268,11 +268,11 @@ kwargs:
     description: When set to true, the D modules are compiled in debug mode.
 
   d_module_versions:
-    type: list[str | int]
+    type: array[str | int]
     description: List of module version identifiers set when compiling D sources.
 
   d_debug:
-    type: list[str]
+    type: array[str]
     description: |
       The [D version identifiers](https://dlang.org/spec/version.html#version) to add
       during the compilation of D source files.

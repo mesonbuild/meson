@@ -45,12 +45,12 @@ posargs:
 
 kwargs:
   arguments:
-    type: list[str]
-    description: A list of template strings that will be the command line arguments passed to the executable.
+    type: array[str]
+    description: An array of template strings that will be the command line arguments passed to the executable.
 
   depends:
     # Not sure why this is not just `target`
-    type: list[build_tgt | custom_tgt | custom_idx]
+    type: array[build_tgt | custom_tgt | custom_idx]
     since: 0.51.0
     description: |
       An array of build targets that must be built before
@@ -68,9 +68,9 @@ kwargs:
       recompilation,
 
   output:
-    type: list[str]
+    type: array[str]
     description: |
-      Template string (or list of template strings) defining
+      Template string (or array of template strings) defining
       how an output file name is (or multiple output names are) generated
       from a single source file name.
 

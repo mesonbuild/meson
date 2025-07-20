@@ -34,11 +34,11 @@ methods:
 
     kwargs:
       define_variable:
-        type: list[str]
+        type: array[str]
         since: 0.44.0
         description: |
           You can also redefine a
-          variable by passing a list to this kwarg
+          variable by passing an array to this kwarg
           that can affect the retrieved variable: `['prefix', '/'])`.
 
           *(Since 1.3.0)* Multiple variables can be specified in pairs.
@@ -224,7 +224,7 @@ methods:
         description: The default value to return when the variable does not exist
 
       pkgconfig_define:
-        type: list[str]
+        type: array[str]
         description: See [[dep.get_pkgconfig_variable]]
 
   - name: as_static
@@ -250,4 +250,3 @@ methods:
       recursive:
         type: bool
         description: If true, this is recursively applied to dependencies
-  

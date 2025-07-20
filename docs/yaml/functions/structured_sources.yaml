@@ -10,7 +10,7 @@ description: |
 
 posargs:
   root:
-    type: list[str | file | custom_tgt | custom_idx | generated_list]
+    type: array[str | file | custom_tgt | custom_idx | generated_list]
     description: Sources to put at the root of the generated structure
 
 optargs:

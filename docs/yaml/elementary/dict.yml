@@ -44,5 +44,5 @@ methods:
       description: Fallback value that is returned if the key is not in the [[@dict]].
 
 - name: keys
-  returns: list[str]
+  returns: array[str]
   description: Returns an array of keys in the dictionary.

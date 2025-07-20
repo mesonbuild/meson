@@ -1,5 +1,5 @@
 name: files
-returns: list[file]
+returns: array[file]
 description: |
   This command takes the strings given to it in arguments and returns
   corresponding File objects that you can use as sources for build

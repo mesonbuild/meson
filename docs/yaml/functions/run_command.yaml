@@ -40,7 +40,7 @@ kwargs:
       empty string.
 
   env:
-    type: env | list[str] | dict[str]
+    type: env | array[str] | dict[str]
     since: 0.50.0
     description: |
       environment variables to set,

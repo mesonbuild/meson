@@ -24,7 +24,7 @@ description: |
   (because the command invocator will reject the command otherwise) and
   Unixes (if the script file does not have the executable bit set).
   Hence, you *must not* manually add the interpreter while using this
-  script as part of a list of commands. Since *0.50.0* if the "python3"
+  script as part of an array of commands. Since *0.50.0* if the "python3"
   program is requested and it is not found in the system, Meson will return
   its current interpreter.
 
@@ -98,7 +98,7 @@ kwargs:
       instead of a not-found object.
 
   version:
-    type: str | list[str]
+    type: str | array[str]
     since: 0.52.0
     description: |
       Specifies the required version, see
@@ -117,12 +117,12 @@ kwargs:
       If this is unspecified, `program_name --version` will be used.
 
   dirs:
-    type: list[str]
+    type: array[str]
     since: 0.53.0
-    description: extra list of absolute paths where to look for program names.
+    description: extra array of absolute paths where to look for program names.
 
   default_options:
-    type: list[str] | dict[str | bool | int | list[str]]
+    type: array[str] | dict[str | bool | int | array[str]]
     since: 1.3.0
     description: |
       An array of default option values

@@ -78,7 +78,7 @@ varargs:
 
 kwargs:
   default_options:
-    type: list[str] | dict[str | bool | int | list[str]]
+    type: array[str] | dict[str | bool | int | array[str]]
     since: 0.38.0
     description: |
       An array of default option values
@@ -103,7 +103,7 @@ kwargs:
       for more details.
 
   fallback:
-    type: list[str] | str
+    type: array[str] | str
     description: |
       Manually specifies a subproject fallback
       to use in case the dependency is not found in the system.
@@ -120,7 +120,7 @@ kwargs:
       in this case the subproject must use
       `meson.override_dependency('dependency_name', subproj_dep)`
       to specify the dependency object used in the superproject.
-      If the value is an empty list, it has the same effect as
+      If the value is an empty array it has the same effect as
       `allow_fallback: false`.
 
   language:
@@ -181,14 +181,14 @@ kwargs:
       value is `true` otherwise the default value is `false`.
 
   version:
-    type: list[str] | str
+    type: array[str] | str
     since: 0.37.0
     description: |
       Specifies the required version,
       a string containing a
       comparison operator followed by the version string, examples include
       `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching.
-      You can also specify multiple restrictions by passing a list to this
+      You can also specify multiple restrictions by passing an array to this
       keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
       These requirements are never met if the version is unknown.
 

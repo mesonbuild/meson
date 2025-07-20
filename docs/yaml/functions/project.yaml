@@ -13,9 +13,9 @@ description: |
   would probably want to use the name _libfoobar_ instead of _The Foobar
   Library_.
 
-  It may be followed by the list of programming languages that the project uses.
+  It may be followed by the array of programming languages that the project uses.
 
-  *(since 0.40.0)* The list of languages is optional.
+  *(since 0.40.0)* The array of languages is optional.
 
   These languages may be used both for `native: false` (the default)
   (host machine) targets and for `native: true` (build machine) targets.
@@ -38,7 +38,7 @@ varargs:
 
 kwargs:
   default_options:
-    type: list[str] | dict[str | bool | int | list[str]]
+    type: array[str] | dict[str | bool | int | array[str]]
     description: |
       Accepts strings in the form `key=value`
       which have the same format as options to `meson configure`.
@@ -76,7 +76,7 @@ kwargs:
       Usually something like `>=0.28.0`.
 
   license:
-    type: str | list[str]
+    type: str | array[str]
     description: |
       Takes a string or array of strings describing the license(s) the code is under.
 
@@ -98,7 +98,7 @@ kwargs:
       value in your Meson build files with `meson.project_license()`.
 
   license_files:
-    type: str | list[str]
+    type: str | array[str]
     since: 1.1.0
     description: |
       Takes a string or array of strings with the paths to the license file(s)

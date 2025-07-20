@@ -20,7 +20,7 @@ warnings:
 
 kwargs:
   install_mode:
-    type: list[str | int]
+    type: array[str | int]
     since: 0.47.0
     description: |
       Specify the file mode in symbolic format

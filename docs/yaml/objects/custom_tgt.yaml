@@ -25,9 +25,9 @@ methods:
       custom target's output argument.
 
   - name: to_list
-    returns: list[custom_idx]
+    returns: array[custom_idx]
     since: 0.54.0
     description: |
-        Returns a list of opaque objects that references this target,
+        Returns an array of opaque objects that references this target,
         and can be used as a source in other targets. This can be used to
         iterate outputs with `foreach` loop.

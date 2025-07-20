@@ -28,11 +28,11 @@ posargs:
 
 kwargs:
   args:
-    type: list[str | file | tgt | external_program]
+    type: array[str | file | tgt | external_program]
     description: Arguments to pass to the executable
 
   env:
-    type: env | list[str] | dict[str]
+    type: env | array[str] | dict[str]
     description: |
       environment variables to set, such as `['NAME1=value1',
       'NAME2=value2']`, or an [[@env]] object which allows more sophisticated
@@ -46,11 +46,11 @@ kwargs:
       executable returns a non-zero return value (i.e. reports an error)
 
   suite:
-    type: str | list[str]
+    type: str | array[str]
     description: |
-      `'label'` (or list of labels `['label1', 'label2']`)
+      `'label'` (or array of labels `['label1', 'label2']`)
       attached to this test. The suite name is qualified by a (sub)project
-      name resulting in `(sub)project_name:label`. In the case of a list
+      name resulting in `(sub)project_name:label`. In the case of an array
       of strings, the suite names will be `(sub)project_name:label1`,
       `(sub)project_name:label2`, etc.
 
@@ -70,7 +70,7 @@ kwargs:
       for the test
 
   depends:
-    type: list[build_tgt | custom_tgt]
+    type: array[build_tgt | custom_tgt]
     since: 0.46.0
     description: |
       specifies that this test depends on the specified

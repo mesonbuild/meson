@@ -5,10 +5,10 @@ description: Write the argument string to the meson build log.
 
 posargs:
   message:
-    type: str | int | bool | list[str | int | bool] | dict[str | int | bool]
+    type: str | int | bool | array[str | int | bool] | dict[str | int | bool]
     description: The message to print
 
 varargs:
   name: msg
-  type: str | int | bool | list[str | int | bool] | dict[str | int | bool]
+  type: str | int | bool | array[str | int | bool] | dict[str | int | bool]
   description: Additional parameters will be separated by spaces

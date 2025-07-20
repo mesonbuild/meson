@@ -566,7 +566,7 @@ executable('exe1', 'foo.c', 'bar.c', 'foobar.c')
 
 Because of an internal implementation detail, the following syntax
 is currently also supported, even though the first argument of
-[[executable]] is a single [[@str]] and not a [[@list]]:
+[[executable]] is a single [[@str]] and not a [[@array]]:
 
 ```meson
 # WARNING: This example is only valid because of an internal

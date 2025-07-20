@@ -31,25 +31,25 @@ posargs:
 
 kwargs:
   command:
-    type: list[exe| external_program | custom_tgt | file | str]
+    type: array[exe| external_program | custom_tgt | file | str]
     description: |
-      A list containing the command to run and the arguments
-      to pass to it. Each list item may be a string or a target. For
+      An array containing the command to run and the arguments
+      to pass to it. Each array element may be a string or a target. For
       instance, passing the return value of [[executable]]
       as the first item will run that executable, or passing a string as
       the first item will find that command in `PATH` and run it.
 
   depends:
-    type: list[build_tgt | custom_tgt | custom_idx]
+    type: array[build_tgt | custom_tgt | custom_idx]
     description: |
-      A list of targets that this target depends on but which
+      An array of targets that this target depends on but which
       are not listed in the command array (because, for example, the
       script does file globbing internally, custom_idx was not possible
       as a type between 0.60 and 1.4.0).
 
   env:
     since: 0.57.0
-    type: env | list[str] | dict[str]
+    type: env | array[str] | dict[str]
     description: |
       environment variables to set, such as
       `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
