@@ -891,6 +891,9 @@ class NinjaBackend(backends.Backend):
 
         self.generate_shlib_aliases(target, self.get_target_dir(target))
 
+        # Generate rules for GeneratedLists
+        self.generate_generator_list_rules(target)
+
         # If target uses a language that cannot link to C objects,
         # just generate for that language and return.
         if isinstance(target, build.Jar):
@@ -935,8 +938,6 @@ class NinjaBackend(backends.Backend):
             generated_sources = self.get_target_generated_sources(target)
             transpiled_sources = []
         self.scan_fortran_module_outputs(target)
-        # Generate rules for GeneratedLists
-        self.generate_generator_list_rules(target)
 
         # Generate rules for building the remaining source files in this target
         outname = self.get_target_filename(target)
@@ -1556,7 +1557,6 @@ class NinjaBackend(backends.Backend):
         elem.add_item('ARGS', commands)
         self.add_build(elem)
 
-        self.generate_generator_list_rules(target)
         self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
 
     def determine_java_compile_args(self, target, compiler) -> T.List[str]:
@@ -2155,7 +2155,6 @@ class NinjaBackend(backends.Backend):
 
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = T.cast('RustCompiler', target.compilers['rust'])
-        self.generate_generator_list_rules(target)
 
         for i in target.get_sources():
             if not rustc.can_compile(i):
