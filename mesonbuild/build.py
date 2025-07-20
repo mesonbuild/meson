@@ -774,6 +774,9 @@ class BuildTarget(Target):
         if self.structured_sources and 'rust' not in self.compilers:
             raise MesonException('structured sources are only supported in Rust targets')
         if self.uses_rust():
+            if self.link_language and self.link_language != 'rust':
+                raise MesonException('cannot build Rust sources with a different link_language')
+
             # relocation-model=pic is rustc's default and Meson does not
             # currently have a way to disable PIC.
             self.pic = True
