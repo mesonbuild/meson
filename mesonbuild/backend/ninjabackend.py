@@ -899,9 +899,6 @@ class NinjaBackend(backends.Backend):
         if isinstance(target, build.Jar):
             self.generate_jar_target(target)
             return
-        if target.uses_rust():
-            self.generate_rust_target(target)
-            return
         if 'cs' in target.compilers:
             self.generate_cs_target(target)
             return
@@ -1090,8 +1087,14 @@ class NinjaBackend(backends.Backend):
             final_obj_list = self.generate_prelink(target, obj_list)
         else:
             final_obj_list = obj_list
-        elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
+
         self.generate_dependency_scan_target(target, compiled_sources, source2object, fortran_order_deps)
+
+        if target.uses_rust():
+            self.generate_rust_target(target, outname, final_obj_list, fortran_order_deps)
+            return
+
+        elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
@@ -2015,7 +2018,8 @@ class NinjaBackend(backends.Backend):
         args += target.get_extra_args('rust')
         return args
 
-    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: Compiler) -> T.Tuple[T.List[str], T.List[str], T.List[RustDep], T.List[str]]:
+    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: Compiler,
+                                        obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[RustDep], T.List[str]]:
         deps: T.List[str] = []
         project_deps: T.List[RustDep] = []
         args: T.List[str] = []
@@ -2047,11 +2051,9 @@ class NinjaBackend(backends.Backend):
                 type_ += ':' + ','.join(modifiers)
             args.append(f'-l{type_}={libname}')
 
-        objs, od = self.flatten_object_list(target)
-        for o in objs:
+        for o in obj_list:
             args.append(f'-Clink-arg={o}')
             deps.append(o)
-        fortran_order_deps = self.get_fortran_order_deps(od)
 
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
@@ -2156,30 +2158,21 @@ class NinjaBackend(backends.Backend):
         if has_shared_deps or has_rust_shared_deps:
             args += self.get_build_rpath_args(target, rustc)
 
-        return deps, fortran_order_deps, project_deps, args
+        return deps, project_deps, args
 
-    def generate_rust_target(self, target: build.BuildTarget) -> None:
-        rustc = T.cast('RustCompiler', target.compilers['rust'])
-
-        for i in target.get_sources():
-            if not rustc.can_compile(i):
-                raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
-        for g in target.get_generated_sources():
-            for i in g.get_outputs():
-                if not rustc.can_compile(i):
-                    raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
-
+    def generate_rust_target(self, target: build.BuildTarget, target_name: str, obj_list: T.List[str],
+                             fortran_order_deps: T.List[str]) -> None:
         orderdeps, main_rust_file = self.generate_rust_sources(target)
-        target_name = self.get_target_filename(target)
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
 
+        rustc = T.cast('RustCompiler', target.compilers['rust'])
         args = rustc.compiler_args()
 
         depfile = os.path.join(self.get_target_private_dir(target), target.name + '.d')
         args += self.get_rust_compiler_args(target, rustc, target.rust_crate_type, depfile)
 
-        deps, fortran_order_deps, project_deps, deps_args = self.get_rust_compiler_deps_and_args(target, rustc)
+        deps, project_deps, deps_args = self.get_rust_compiler_deps_and_args(target, rustc, obj_list)
         args += deps_args
 
         proc_macro_dylib_path = None
@@ -2214,7 +2207,10 @@ class NinjaBackend(backends.Backend):
             rustdoc = rustc.get_rustdoc(self.environment)
             args = rustdoc.get_exe_args()
             args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
-            _, _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc)
+            # There can be no non-Rust objects: the doctests are gathered from Rust
+            # sources and the tests are linked with the target (which is where the
+            # obj_list was linked into)
+            _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc, [])
             args += deps_args
             target.doctests.cmd_args = args.to_native() + [main_rust_file] + target.doctests.cmd_args
 
