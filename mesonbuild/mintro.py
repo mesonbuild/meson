@@ -125,14 +125,15 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
             res[basename] = os.path.join(installdata.prefix, s.install_path, basename)
     return res
 
-def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[str, T.Dict[str, T.Optional[str]]]]:
-    plan: T.Dict[str, T.Dict[str, T.Dict[str, T.Optional[str]]]] = {
+def list_install_plan(installdata: backends.InstallData) -> T.Dict[str, T.Dict[str, T.Dict[str, T.Union[str, T.List[str], None]]]]:
+    plan: T.Dict[str, T.Dict[str, T.Dict[str, T.Union[str, T.List[str], None]]]] = {
         'targets': {
             Path(installdata.build_dir, target.fname).as_posix(): {
                 'destination': target.out_name,
                 'tag': target.tag or None,
                 'subproject': target.subproject or None,
-                'install_rpath': target.install_rpath or None
+                'install_rpath': target.install_rpath or None,
+                'build_rpaths': sorted(x.decode('utf8') for x in target.rpath_dirs_to_remove),
             }
             for target in installdata.targets
         },
