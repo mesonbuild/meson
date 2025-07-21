@@ -1980,6 +1980,7 @@ class NinjaBackend(backends.Backend):
                                      for s in f.get_outputs()])
             self.all_structured_sources.update(_ods)
             orderdeps.extend(_ods)
+            return orderdeps, main_rust_file
 
         for i in target.get_sources():
             if main_rust_file is None:
