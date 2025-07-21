@@ -86,7 +86,7 @@ class Rustdoc:
 
 def get_nonwrap_subprojects(build_data: build.Build) -> T.Set[str]:
     wrap_resolver = wrap.Resolver(
-        build_data.environment.get_source_dir(),
+        build_data.environment,
         build_data.subproject_dir,
         wrap_mode=WrapMode.nodownload)
     return set(sp

@@ -30,6 +30,7 @@ from functools import lru_cache
 
 from . import WrapMode
 from .. import coredata
+from ..environment import Environment
 from ..mesonlib import (
     DirectoryLock, DirectoryLockAction, quiet_git, GIT, ProgressBar, MesonException,
     windows_proof_rmtree, Popen_safe
@@ -338,7 +339,7 @@ def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
 
 @dataclass(eq=False)
 class Resolver:
-    source_dir: str
+    environment: Environment
     subdir: str
     subproject: SubProject = SubProject('')
     wrap_mode: WrapMode = WrapMode.default
@@ -359,6 +360,10 @@ class Resolver:
         self.load_wraps()
         self.load_netrc()
         self.load_wrapdb()
+
+    @property
+    def source_dir(self) -> str:
+        return self.environment.get_source_dir()
 
     def load_netrc(self) -> None:
         try:
@@ -449,7 +454,7 @@ class Resolver:
 
     def load_and_merge(self, subdir: str, subproject: SubProject) -> None:
         if self.wrap_mode != WrapMode.nopromote:
-            other_resolver = Resolver(self.source_dir, subdir, subproject, self.wrap_mode, self.wrap_frontend, self.allow_insecure, self.silent)
+            other_resolver = Resolver(self.environment, subdir, subproject, self.wrap_mode, self.wrap_frontend, self.allow_insecure, self.silent)
             self._merge_wraps(other_resolver)
 
     def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:

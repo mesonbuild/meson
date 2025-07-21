@@ -1286,7 +1286,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         subprojects_dir = os.path.join(self.subdir, spdirname)
         if not self.is_subproject():
             wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
-            self.environment.wrap_resolver = wrap.Resolver(self.environment.get_source_dir(), subprojects_dir, self.subproject, wrap_mode)
+            self.environment.wrap_resolver = wrap.Resolver(self.environment, subprojects_dir, self.subproject, wrap_mode)
         else:
             assert self.environment.wrap_resolver is not None, 'for mypy'
             self.environment.wrap_resolver.load_and_merge(subprojects_dir, self.subproject)
