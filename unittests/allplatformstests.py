@@ -5034,6 +5034,19 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertEqual(res[data_type][file], details)
 
     @skip_if_not_language('rust')
+    def test_cargo_registry(self) -> None:
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Rust is only supported with ninja currently')
+        testdir = os.path.join(self.rust_test_dir, '28 crates.io')
+        crates_io_dir = os.path.join(testdir, 'registry')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmptestdir = os.path.join(tmpdir, 'a')
+            shutil.copytree(testdir, tmptestdir)
+            self.init(tmptestdir, extra_args=[f'-Drust.crates_io_dir={crates_io_dir}', '--wrap-mode=nodownload'])
+            self.build()
+            self.run_tests()
+
+    @skip_if_not_language('rust')
     @unittest.skipIf(not shutil.which('rustdoc'), 'Test requires rustdoc')
     def test_rustdoc(self) -> None:
         if self.backend is not Backend.ninja:
