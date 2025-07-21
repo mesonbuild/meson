@@ -883,6 +883,10 @@ class BuildTarget(Target):
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     continue # We can't know anything about these.
                 for name, compiler in t.compilers.items():
+                    if name == 'rust':
+                        # Rust is always linked through a C-ABI target, so do not add
+                        # the compiler here
+                        continue
                     if name in link_langs and name not in self.compilers:
                         self.compilers[name] = compiler
 
@@ -1594,6 +1598,9 @@ class BuildTarget(Target):
             if isinstance(link_target, (CustomTarget, CustomTargetIndex)):
                 continue
             for language in link_target.compilers:
+                if language == 'rust' and not link_target.uses_rust_abi():
+                    # All Rust dependencies must go through a C-ABI dependency, so ignore it
+                    continue
                 if language not in langs:
                     langs.append(language)
 
