@@ -378,7 +378,7 @@ class Resolver:
         source_dir = os.path.dirname(self.subdir_root)
         if os.path.exists(os.path.join(source_dir, 'Cargo.lock')):
             from .. import cargo
-            for wrap in cargo.load_wraps(source_dir, self.subdir_root):
+            for wrap in cargo.load_wraps(self.environment.coredata.optstore, source_dir, self.subdir_root):
                 self.wraps[wrap.name] = wrap
         # Load subprojects/*.wrap
         if os.path.isdir(self.subdir_root):

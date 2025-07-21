@@ -366,6 +366,20 @@ Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the roo
 of (sub)project source tree. Meson will automatically load that file and convert
 it into a series of wraps definitions.
 
+Since *1.10.0* Meson supports a `rust.crates_io_dir` option and will look for
+Cargo crates in that directory instead of `https://crates.io`.
+For example, `-Drust.crates_io_dir=/usr/share/cargo/registry` is
+equivalent to the following Cargo configuration:
+
+```
+[source.local-registry]
+directory = "/usr/share/cargo/registry"
+
+[source.crates-io]
+registry = "https://crates.io"
+replace-with = "local-registry"
+```
+
 ## Using wrapped projects
 
 Wraps provide a convenient way of obtaining a project into your

@@ -23,6 +23,7 @@ import typing as T
 from . import builder, version, cfg
 from ..mesonlib import MesonException, Popen_safe, MachineChoice
 from .. import coredata, mlog
+from ..options import OptionStore
 from ..wrap.wrap import PackageDefinition
 
 if T.TYPE_CHECKING:
@@ -853,9 +854,10 @@ class Interpreter:
         ]
 
 
-def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition]:
+def load_wraps(optstore: OptionStore, source_dir: str, subproject_dir: str) -> T.List[PackageDefinition]:
     """ Convert Cargo.lock into a list of wraps """
 
+    crates_io_dir: T.Optional[str] = optstore.get_value_for('rust.crates_io_dir')
     wraps: T.List[PackageDefinition] = []
     filename = os.path.join(source_dir, 'Cargo.lock')
     if os.path.exists(filename):
@@ -873,18 +875,26 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
                 # This is project's package, or one of its workspace members.
                 pass
             elif source == 'registry+https://github.com/rust-lang/crates.io-index':
-                checksum = package.get('checksum')
-                if checksum is None:
-                    checksum = cargolock['metadata'][f'checksum {name} {version} ({source})']
-                url = f'https://crates.io/api/v1/crates/{name}/{version}/download'
-                directory = f'{name}-{version}'
-                wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'file', {
-                    'directory': directory,
-                    'source_url': url,
-                    'source_filename': f'{directory}.tar.gz',
-                    'source_hash': checksum,
-                    'method': 'cargo',
-                }))
+                if crates_io_dir:
+                    directory = f'{name}-{version}'
+                    wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'dir', {
+                        'directory': directory,
+                        'source_path': os.path.join(crates_io_dir, directory),
+                        'method': 'cargo',
+                    }))
+                else:
+                    checksum = package.get('checksum')
+                    if checksum is None:
+                        checksum = cargolock['metadata'][f'checksum {name} {version} ({source})']
+                    url = f'https://crates.io/api/v1/crates/{name}/{version}/download'
+                    directory = f'{name}-{version}'
+                    wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'file', {
+                        'directory': directory,
+                        'source_url': url,
+                        'source_filename': f'{directory}.tar.gz',
+                        'source_hash': checksum,
+                        'method': 'cargo',
+                    }))
             elif source.startswith('git+'):
                 parts = urllib.parse.urlparse(source[4:])
                 query = urllib.parse.parse_qs(parts.query)
