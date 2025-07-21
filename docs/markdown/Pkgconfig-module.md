@@ -46,6 +46,9 @@ keyword arguments.
 - `requires` list of strings, pkgconfig-dependencies or libraries that
    `pkgconfig.generate()` was used on to put in the `Requires` field
 - `requires_private` the same as `requires` but for the `Requires.private` field
+- `cflags_private` (*Since 1.9.0*) compiler flags added when linking with a static
+  library. Note: currently, the FreeDesktop.org pkg-config implementation does
+  [not support Cflags.private](https://gitlab.freedesktop.org/pkg-config/pkg-config/-/issues/38)
 - `url` a string with a url for the library
 - `license` (*Since 1.9.0*) a string with a SPDX license to add to the generated file.
 - `variables` a list of strings with custom variables to add to the
