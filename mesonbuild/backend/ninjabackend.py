@@ -2020,9 +2020,8 @@ class NinjaBackend(backends.Backend):
         # https://github.com/rust-lang/rust/issues/39016
         if not isinstance(target, build.StaticLibrary):
             try:
-                buildtype = self.get_target_option(target, 'buildtype')
                 crt = self.get_target_option(target, 'b_vscrt')
-                args += rustc.get_crt_link_args(crt, buildtype)
+                args += rustc.get_crt_link_args(crt, self.environment)
             except (KeyError, AttributeError):
                 pass
 
