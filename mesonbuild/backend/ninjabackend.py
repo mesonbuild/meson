@@ -1051,21 +1051,22 @@ class NinjaBackend(backends.Backend):
 
         # Generate compile targets for all the preexisting sources for this target
         for src in target_sources.values():
-            if not self.environment.is_header(src) or is_compile_target:
-                if self.environment.is_llvm_ir(src):
-                    o, s = self.generate_llvm_ir_compile(target, src)
-                    obj_list.append(o)
-                elif is_unity and self.get_target_source_can_unity(target, src):
-                    abs_src = os.path.join(self.environment.get_build_dir(),
-                                           src.rel_to_builddir(self.build_to_src))
-                    unity_src.append(abs_src)
-                else:
-                    o, s = self.generate_single_compile(target, src, False, [],
-                                                        header_deps + d_generated_deps + fortran_order_deps,
-                                                        fortran_inc_args)
-                    obj_list.append(o)
-                    compiled_sources.append(s)
-                    source2object[s] = o
+            if self.environment.is_header(src) and not is_compile_target:
+                continue
+            if self.environment.is_llvm_ir(src):
+                o, s = self.generate_llvm_ir_compile(target, src)
+                obj_list.append(o)
+            elif is_unity and self.get_target_source_can_unity(target, src):
+                abs_src = os.path.join(self.environment.get_build_dir(),
+                                       src.rel_to_builddir(self.build_to_src))
+                unity_src.append(abs_src)
+            else:
+                o, s = self.generate_single_compile(target, src, False, [],
+                                                    header_deps + d_generated_deps + fortran_order_deps,
+                                                    fortran_inc_args)
+                obj_list.append(o)
+                compiled_sources.append(s)
+                source2object[s] = o
 
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
