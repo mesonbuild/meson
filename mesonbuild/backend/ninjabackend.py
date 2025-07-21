@@ -993,6 +993,8 @@ class NinjaBackend(backends.Backend):
         # this target. We create the Ninja build file elements for this here
         # because we need `header_deps` to be fully generated in the above loop.
         for src in generated_source_files:
+            if not self.environment.is_separate_compile(src):
+                continue
             if self.environment.is_llvm_ir(src):
                 o, s = self.generate_llvm_ir_compile(target, src)
             else:
@@ -1051,6 +1053,8 @@ class NinjaBackend(backends.Backend):
 
         # Generate compile targets for all the preexisting sources for this target
         for src in target_sources.values():
+            if not self.environment.is_separate_compile(src):
+                continue
             if self.environment.is_header(src) and not is_compile_target:
                 continue
             if self.environment.is_llvm_ir(src):
