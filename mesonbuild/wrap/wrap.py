@@ -55,7 +55,8 @@ except ImportError:
 REQ_TIMEOUT = 30.0
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
-ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
+PUBLIC_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
+ALL_TYPES = PUBLIC_TYPES + ['dir']
 
 if mesonlib.is_windows():
     from ..programs import ExternalProgram
@@ -172,6 +173,7 @@ class WrapNotFoundException(WrapException):
 
 class PackageDefinition:
     def __init__(self, name: str, subprojects_dir: str, type_: T.Optional[str] = None, values: T.Optional[T.Dict[str, str]] = None):
+        assert type_ is None or type_ in ALL_TYPES
         self.name = name
         self.subprojects_dir = subprojects_dir
         self.type = type_
@@ -274,7 +276,7 @@ class PackageDefinition:
         if not wrap_section.startswith('wrap-'):
             raise WrapException(f'{wrap_section!r} is not a valid first section in {filename}')
         type_ = wrap_section[5:]
-        if type_ not in ALL_TYPES:
+        if type_ not in PUBLIC_TYPES:
             raise WrapException(f'Unknown wrap type {type_!r}')
         values = dict(config[wrap_section])
         return config, type_, values
@@ -545,6 +547,8 @@ class Resolver:
             cached_directory = os.path.join(self.cachedir, self.directory)
             if os.path.isdir(cached_directory):
                 self.copy_tree(cached_directory, self.dirname)
+            elif self.wrap.type == 'dir':
+                self._get_dir(packagename)
             elif self.wrap.type == 'file':
                 self._get_file(packagename)
             else:
@@ -628,6 +632,17 @@ class Resolver:
             # It is not a submodule, just a folder that exists in the main repository.
             return False
         raise WrapException(f'Unknown git submodule output: {out!r}')
+
+    def _get_dir(self, packagename: str) -> None:
+        path = self.wrap.get('source_path')
+        if not os.path.exists(path):
+            raise WrapException(f"source directory {path} not found for '{packagename}'")
+        if not os.path.isdir(path):
+            raise WrapException(f"{path} exists but is not a directory")
+
+        mlog.log('Using', mlog.bold(packagename), 'from {path}.')
+        extract_dir = self.subdir_root
+        self.copy_tree(path, self.dirname)
 
     def _get_file(self, packagename: str) -> None:
         path = self._get_file_internal('source', packagename)
