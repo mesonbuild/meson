@@ -201,10 +201,10 @@ class ExternalProject(NewExtensionModule):
     def _run(self, step: str, command: T.List[str], workdir: Path) -> None:
         mlog.log(f'External project {self.name}:', mlog.bold(step))
         m = 'Running command ' + str(command) + ' in directory ' + str(workdir) + '\n'
-        log_filename = Path(mlog.get_log_dir(), f'{self.name}-{step}.log')
+        logfile = Path(mlog.get_log_dir(), f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
-            output = open(log_filename, 'w', encoding='utf-8')
+            output = open(logfile, 'w', encoding='utf-8')
             output.write(m + '\n')
             output.flush()
         else:
@@ -215,7 +215,10 @@ class ExternalProject(NewExtensionModule):
         if p.returncode != 0:
             m = f'{step} step returned error code {p.returncode}.'
             if not self.verbose:
-                m += '\nSee logs: ' + str(log_filename)
+                m += '\nSee logs: ' + str(logfile)
+            contents = mlog.ci_fold_file(logfile, f'CI platform detected, click here for {os.path.basename(logfile)} contents.')
+            if contents:
+                print(contents)
             raise MesonException(m)
 
     def _create_targets(self, extra_depends: T.List[T.Union['BuildTarget', 'CustomTarget']]) -> T.List['TYPE_var']:
