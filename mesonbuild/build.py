@@ -780,6 +780,8 @@ class BuildTarget(Target):
             # relocation-model=pic is rustc's default and Meson does not
             # currently have a way to disable PIC.
             self.pic = True
+            self.pie = True
+
         if 'vala' in self.compilers and self.is_linkable_target():
             self.outputs += [self.vala_header, self.vala_vapi]
             self.install_tag += ['devel', 'devel']
