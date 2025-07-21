@@ -40,6 +40,12 @@ if rustdoc.found()
     protocol : 'rust',
     suite : ['doctests'],
   )
+
+  doclib = shared_library('rust_doc_lib', ['doctest1.rs'], build_by_default : false)
+  rust.doctest('rust shared doctests', doclib,
+    protocol : 'rust',
+    suite : ['doctests'],
+  )
 endif
 
 exe = executable('rust_exe', ['test2.rs', 'test.rs'], build_by_default : false)

@@ -341,7 +341,7 @@ class RustCompiler(Compiler):
 
         return RustdocTestCompiler(exelist, self.version, self.for_machine,
                                    self.is_cross, self.info, full_version=self.full_version,
-                                   linker=self.linker)
+                                   linker=self.linker, rustc=self)
 
 class ClippyRustCompiler(RustCompiler):
 
@@ -360,6 +360,26 @@ class RustdocTestCompiler(RustCompiler):
        ignored."""
 
     id = 'rustdoc --test'
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 full_version: T.Optional[str],
+                 linker: T.Optional['DynamicLinker'], rustc: RustCompiler):
+        super().__init__(exelist, version, for_machine,
+                         is_cross, info, full_version, linker)
+        self.rustc = rustc
+
+    @functools.lru_cache(maxsize=None)
+    def get_sysroot(self) -> str:
+        return self.rustc.get_sysroot()
+
+    @functools.lru_cache(maxsize=None)
+    def get_target_libdir(self) -> str:
+        return self.rustc.get_target_libdir()
+
+    @functools.lru_cache(maxsize=None)
+    def get_cfgs(self) -> T.List[str]:
+        return self.rustc.get_cfgs()
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return []
