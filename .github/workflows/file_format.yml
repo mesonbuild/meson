@@ -18,3 +18,4 @@ jobs:
       with:
         python-version: '3.x'
     - run: python3 ./run_format_tests.py
+    - run: python3 ./run_shell_checks.py
