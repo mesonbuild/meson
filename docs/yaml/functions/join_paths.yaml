@@ -6,6 +6,7 @@ description: |
   `join_paths('foo', 'bar')` results in `foo/bar`. If any one of the
   individual segments is an absolute path, all segments before it are
   dropped. That means that `join_paths('foo', '/bar')` returns `/bar`.
+  See also [[fs.join_absolute]].
 
   *(since 0.49.0)* Using the `/` operator on strings is equivalent to calling
   [[join_paths]].
