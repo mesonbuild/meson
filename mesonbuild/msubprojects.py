@@ -4,6 +4,7 @@ from dataclasses import dataclass, InitVar
 import os, subprocess
 import argparse
 import asyncio
+import fnmatch
 import threading
 import copy
 import shutil
@@ -641,8 +642,8 @@ def add_common_arguments(p: argparse.ArgumentParser) -> None:
                    help='Allow insecure server connections.')
 
 def add_subprojects_argument(p: argparse.ArgumentParser) -> None:
-    p.add_argument('subprojects', nargs='*',
-                   help='List of subprojects (default: all)')
+    p.add_argument('pattern', dest='subprojects', nargs='*',
+                   help='Patterns of subprojects to operate on (default: all)')
 
 def add_wrap_update_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
     p = subparsers.add_parser('update', help='Update wrap files from WrapDB (Since 0.63.0)')
@@ -724,7 +725,8 @@ def run(options: 'Arguments') -> int:
         return 0
     r = Resolver(source_dir, subproject_dir, wrap_frontend=True, allow_insecure=options.allow_insecure, silent=True)
     if options.subprojects:
-        wraps = [wrap for name, wrap in r.wraps.items() if name in options.subprojects]
+        wraps = [wrap for name, wrap in r.wraps.items()
+                 if any(fnmatch.fnmatch(name, pat) for pat in options.subprojects)]
     else:
         wraps = list(r.wraps.values())
     types = [t.strip() for t in options.types.split(',')] if options.types else []
