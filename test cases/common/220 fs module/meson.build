@@ -84,7 +84,7 @@ assert(new == 'foo',  'replace_suffix did not only delete last suffix')
 
 # `/` on windows is interpreted like `.drive` which in general may not be `c:/`
 # the files need not exist for fs.replace_suffix()
-original = is_windows ? 'j:/foo/bar.txt' : '/foo/bar.txt'
+original = is_windows ? 'j:\\foo\\bar.txt' : '/foo/bar.txt'
 new_check = is_windows ? 'j:\\foo\\bar.ini' : '/foo/bar.ini'
 
 new = fs.replace_suffix(original, '.ini')
@@ -139,11 +139,7 @@ endif
 
 # parts of path
 assert(fs.parent('foo/bar') == 'foo', 'failed to get dirname')
-if not is_windows
-assert(fs.parent(f[1]) == 'subdir/..', 'failed to get dirname')
-else
-assert(fs.parent(f[1]) == 'subdir\..', 'failed to get dirname')
-endif
+assert(fs.parent(f[1]) == 'subdir/..', 'failed to get dirname for file')
 assert(fs.parent(btgt) == '.', 'failed to get dirname for build target')
 assert(fs.parent(ctgt) == '.', 'failed to get dirname for custom target')
 assert(fs.parent(ctgt[0]) == '.', 'failed to get dirname for custom target index')
