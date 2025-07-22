@@ -641,9 +641,14 @@ def add_common_arguments(p: argparse.ArgumentParser) -> None:
     p.add_argument('--allow-insecure', default=False, action='store_true',
                    help='Allow insecure server connections.')
 
-def add_subprojects_argument(p: argparse.ArgumentParser) -> None:
-    p.add_argument('pattern', dest='subprojects', nargs='*',
-                   help='Patterns of subprojects to operate on (default: all)')
+def add_subprojects_argument(p: argparse.ArgumentParser, name: str = None) -> None:
+    helpstr = 'Patterns of subprojects to operate on (default: all)'
+    if name:
+        p.add_argument(name, dest='subprojects', metavar='pattern', nargs=1, action='append',
+                       default=[], help=helpstr)
+    else:
+        p.add_argument('subprojects', metavar='pattern', nargs='*', default=[],
+                       help=helpstr)
 
 def add_wrap_update_parser(subparsers: 'SubParsers') -> argparse.ArgumentParser:
     p = subparsers.add_parser('update', help='Update wrap files from WrapDB (Since 0.63.0)')
@@ -693,7 +698,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     p.add_argument('args', nargs=argparse.REMAINDER,
                    help=argparse.SUPPRESS)
     add_common_arguments(p)
-    p.set_defaults(subprojects=[])
+    add_subprojects_argument(p, '--filter')
     p.set_defaults(subprojects_func=Runner.foreach)
 
     p = subparsers.add_parser('purge', help='Remove all wrap-based subproject artifacts')
