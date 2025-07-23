@@ -32,9 +32,14 @@ class _CheckUnimplementedException(Exception):
 
 class AsmCompiler(Compiler):
 
+    _SUPPORTED_ARCHES: T.Set[str] = set()
+
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: 'MachineChoice', info: 'MachineInfo', compiler: Compiler,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
+        if self._SUPPORTED_ARCHES and info.cpu_family not in self._SUPPORTED_ARCHES:
+            raise EnvironmentException(f'ASM compiler {self.id!r} does not support {info.cpu_family} CPU family')
+
         assert compiler.linker is not None, 'for mypy'
         super().__init__(ccache, exelist, version, for_machine, info, compiler.linker, full_version, is_cross)
         # A compiler driver that can be used for internal checks
@@ -97,6 +102,8 @@ class NasmCompiler(AsmCompiler):
         'mtd': ['/DEFAULTLIB:libucrtd.lib', '/DEFAULTLIB:libvcruntimed.lib', '/DEFAULTLIB:libcmtd.lib'],
     }
 
+    _SUPPORTED_ARCHES = {'x86', 'x86_64'}
+
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: 'MachineChoice', info: 'MachineInfo', compiler: Compiler,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
@@ -153,10 +160,6 @@ class NasmCompiler(AsmCompiler):
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-MD', outfile, '-MQ', outtarget]
 
-    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
-        if self.info.cpu_family not in {'x86', 'x86_64'}:
-            raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
-
     def get_pic_args(self) -> T.List[str]:
         return []
 
@@ -212,6 +215,7 @@ class YasmCompiler(NasmCompiler):
 class MasmCompiler(AsmCompiler):
     language = 'masm'
     id = 'ml'
+    _SUPPORTED_ARCHES = {'x86', 'x86_64'}
 
     def get_compile_only_args(self) -> T.List[str]:
         return ['/c']
@@ -240,10 +244,6 @@ class MasmCompiler(AsmCompiler):
             return ['/Zi']
         return []
 
-    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
-        if self.info.cpu_family not in {'x86', 'x86_64'}:
-            raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
-
     def get_pic_args(self) -> T.List[str]:
         return []
 
@@ -270,6 +270,7 @@ class MasmCompiler(AsmCompiler):
 class MasmARMCompiler(AsmCompiler):
     language = 'masm'
     id = 'armasm'
+    _SUPPORTED_ARCHES = {'arm', 'aarch64'}
 
     def needs_static_linker(self) -> bool:
         return True
@@ -290,10 +291,6 @@ class MasmARMCompiler(AsmCompiler):
         if is_debug:
             return ['-g']
         return []
-
-    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
-        if self.info.cpu_family not in {'arm', 'aarch64'}:
-            raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
     def get_pic_args(self) -> T.List[str]:
         return []
@@ -321,6 +318,8 @@ class MasmARMCompiler(AsmCompiler):
 class TILinearAsmCompiler(TICompiler, AsmCompiler):
     language = 'linearasm'
 
+    _SUPPORTED_ARCHES = {'c6000'}
+
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: MachineInfo, compiler: Compiler,
                  full_version: T.Optional[str] = None, is_cross: bool = False):
@@ -335,10 +334,6 @@ class TILinearAsmCompiler(TICompiler, AsmCompiler):
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
-
-    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
-        if self.info.cpu_family not in {'c6000'}:
-            raise EnvironmentException(f'TI Linear ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
     def get_depfile_suffix(self) -> str:
         return 'd'
@@ -377,20 +372,16 @@ class MetrowerksAsmCompiler(MetrowerksCompiler, AsmCompiler):
 class MetrowerksAsmCompilerARM(MetrowerksAsmCompiler):
     id = 'mwasmarm'
 
+    _SUPPORTED_ARCHES = {'arm'}
+
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return mwasmarm_instruction_set_args.get(instruction_set, None)
-
-    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
-        if self.info.cpu_family not in {'arm'}:
-            raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
 
 class MetrowerksAsmCompilerEmbeddedPowerPC(MetrowerksAsmCompiler):
     id = 'mwasmeppc'
 
+    _SUPPORTED_ARCHES = {'ppc'}
+
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return mwasmeppc_instruction_set_args.get(instruction_set, None)
-
-    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
-        if self.info.cpu_family not in {'ppc'}:
-            raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
