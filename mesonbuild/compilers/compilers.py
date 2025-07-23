@@ -1192,7 +1192,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def name_string(self) -> str:
         return ' '.join(self.exelist)
 
-    def sanity_check(self, work_dir: str, env: Environment) -> None:
+    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
         """Check that this compiler actually works.
 
         This should provide a simple compile/link test. Something as simple as:
@@ -1223,7 +1223,8 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         if pc.returncode != 0:
             raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} cannot compile programs.')
 
-        self._run_sanity_check(env, [os.path.join(work_dir, binname)], work_dir)
+        if _run_check:
+            self._run_sanity_check(env, [os.path.join(work_dir, binname)], work_dir)
 
     def _sanity_check_filenames(self) -> T.Tuple[str, str]:
         """Generate the name of the source and binary file for the sanity check.

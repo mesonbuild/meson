@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 import typing as T
 
-from ..mesonlib import EnvironmentException, get_meson_command
+from .. import mlog
+from ..mesonlib import EnvironmentException, Popen_safe, get_meson_command, join_args
 from ..options import OptionKey
 from .compilers import Compiler
 from .mixins.metrowerks import MetrowerksCompiler, mwasmarm_instruction_set_args, mwasmeppc_instruction_set_args
@@ -25,6 +26,10 @@ nasm_optimization_args: T.Dict[str, T.List[str]] = {
 }
 
 
+class _CheckUnimplementedException(Exception):
+    pass
+
+
 class AsmCompiler(Compiler):
 
     def __init__(self, ccache: T.List[str], exelist: T.List[str], version: str,
@@ -34,6 +39,49 @@ class AsmCompiler(Compiler):
         super().__init__(ccache, exelist, version, for_machine, info, compiler.linker, full_version, is_cross)
         # A compiler driver that can be used for internal checks
         self._compiler = compiler
+
+    def _sanity_check_filenames(self) -> T.Tuple[str, str]:
+        src, bin = super()._sanity_check_filenames()
+        bin = os.path.splitext(bin)[0]
+        bin = f'{bin}.obj'  # .obj works fine everywhere
+        return src, bin
+
+    def _sanity_check_source_code(self) -> str:
+        raise _CheckUnimplementedException()
+
+    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+        # TODO: Falling back to this is always wrong, it means that the
+        # concrete implementation is missing a sanity check implementation
+        return []
+
+    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = False) -> None:
+        try:
+            super().sanity_check(work_dir, env, _run_check=_run_check)
+        except _CheckUnimplementedException:
+            mlog.warning(
+                f'Missing {self.id} sanity check code for {self.info.kernel} {self.info.subsystem}.',
+                'You can help by providing such an implementation',
+                fatal=False, once=True)
+            return
+
+        # this is the object from the compilation
+        src = self._sanity_check_filenames()[1]
+        bin = self._compiler._sanity_check_filenames()[1]
+
+        cmdlist = self._compiler.exelist_no_ccache + self._compiler.get_always_args() + self._compiler.get_output_args(bin) + [src]
+
+        pc, stdo, stde = Popen_safe(cmdlist, cwd=work_dir)
+        mlog.debug('Sanity check linker command line:', join_args(cmdlist))
+        mlog.debug('Sanity check linker stdout:')
+        mlog.debug(stdo)
+        mlog.debug('-----\nSanity check linker stderr:')
+        mlog.debug(stde)
+        mlog.debug('-----')
+        if pc.returncode != 0:
+            raise EnvironmentException(
+                f'Compiler {self._compiler.name_string()} could not link an object from the {self.name_string()} compiler')
+
+        return self._run_sanity_check(env, [os.path.join(work_dir, bin)], work_dir)
 
 
 class NasmCompiler(AsmCompiler):
@@ -105,15 +153,7 @@ class NasmCompiler(AsmCompiler):
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-MD', outfile, '-MQ', outtarget]
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        return []
-
-    def _sanity_check_source_code(self) -> str:
-        # TODO: Instead of checking the cpu family in sanity_check, it should be
-        # checked here and raise an exception if the target platform is invalid
-        return ''
-
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
         if self.info.cpu_family not in {'x86', 'x86_64'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
@@ -200,15 +240,7 @@ class MasmCompiler(AsmCompiler):
             return ['/Zi']
         return []
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        return []
-
-    def _sanity_check_source_code(self) -> str:
-        # TODO: Instead of checking the cpu family in sanity_check, it should be
-        # checked here and raise an exception if the target platform is invalid
-        return ''
-
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
         if self.info.cpu_family not in {'x86', 'x86_64'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
@@ -259,15 +291,7 @@ class MasmARMCompiler(AsmCompiler):
             return ['-g']
         return []
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        return []
-
-    def _sanity_check_source_code(self) -> str:
-        # TODO: Instead of checking the cpu family in sanity_check, it should be
-        # checked here and raise an exception if the target platform is invalid
-        return ''
-
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
         if self.info.cpu_family not in {'arm', 'aarch64'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
@@ -312,15 +336,7 @@ class TILinearAsmCompiler(TICompiler, AsmCompiler):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        return []
-
-    def _sanity_check_source_code(self) -> str:
-        # TODO: Instead of checking the cpu family in sanity_check, it should be
-        # checked here and raise an exception if the target platform is invalid
-        return ''
-
-    def sanity_check(self, work_dir: str, environment: Environment) -> None:
+    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
         if self.info.cpu_family not in {'c6000'}:
             raise EnvironmentException(f'TI Linear ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
@@ -364,15 +380,7 @@ class MetrowerksAsmCompilerARM(MetrowerksAsmCompiler):
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return mwasmarm_instruction_set_args.get(instruction_set, None)
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        return []
-
-    def _sanity_check_source_code(self) -> str:
-        # TODO: Instead of checking the cpu family in sanity_check, it should be
-        # checked here and raise an exception if the target platform is invalid
-        return ''
-
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
         if self.info.cpu_family not in {'arm'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')
 
@@ -383,14 +391,6 @@ class MetrowerksAsmCompilerEmbeddedPowerPC(MetrowerksAsmCompiler):
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         return mwasmeppc_instruction_set_args.get(instruction_set, None)
 
-    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
-        return []
-
-    def _sanity_check_source_code(self) -> str:
-        # TODO: Instead of checking the cpu family in sanity_check, it should be
-        # checked here and raise an exception if the target platform is invalid
-        return ''
-
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, env: Environment, *, _run_check: bool = True) -> None:
         if self.info.cpu_family not in {'ppc'}:
             raise EnvironmentException(f'ASM compiler {self.id!r} does not support {self.info.cpu_family} CPU family')

@@ -134,8 +134,8 @@ class RustCompiler(Compiler):
             }
             ''')
 
-    def sanity_check(self, work_dir: str, environment: Environment) -> None:
-        super().sanity_check(work_dir, environment)
+    def sanity_check(self, work_dir: str, environment: Environment, *, _run_check: bool = True) -> None:
+        super().sanity_check(work_dir, environment, _run_check=_run_check)
         source_name = self._sanity_check_filenames()[0]
         self._native_static_libs(work_dir, source_name)
 
