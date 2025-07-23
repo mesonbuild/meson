@@ -378,6 +378,7 @@ class _BuildTarget(_BaseBuildTarget):
     cython_args: T.List[str]
     nasm_args: T.List[str]
     masm_args: T.List[str]
+    darwin_dylib_path_policy: str
 
 
 class _LibraryMixin(TypedDict):

@@ -654,6 +654,13 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         validator=in_set_validator(set(compilers.all_languages)),
         since='0.51.0',
     ),
+    KwargInfo(
+        'darwin_dylib_path_policy',
+        str,
+        default='',
+        validator=in_set_validator({'', 'absolute', 'rpath-relative'}),
+        since='1.8.99', # TODO
+    ),
 ]
 
 def _validate_win_subsystem(value: T.Optional[str]) -> T.Optional[str]:
