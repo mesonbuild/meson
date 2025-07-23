@@ -52,6 +52,7 @@ unixabs = '/foo'
 if is_windows
   assert(fs.is_absolute(winabs), 'is_absolute windows not detected')
   assert(not fs.is_absolute(unixabs), 'is_absolute unix false positive')
+  assert(fs.is_absolute('//foo'), 'is_absolute failed on incomplete UNC path')
 else
   assert(fs.is_absolute(unixabs), 'is_absolute unix not detected')
   assert(not fs.is_absolute(winabs), 'is_absolute windows false positive')

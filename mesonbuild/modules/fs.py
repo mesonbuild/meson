@@ -14,7 +14,7 @@ from .. import mlog
 from ..build import BuildTarget, CustomTarget, CustomTargetIndex, InvalidArguments
 from ..interpreter.type_checking import INSTALL_KW, INSTALL_MODE_KW, INSTALL_TAG_KW, NoneType
 from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
-from ..mesonlib import File, MesonException, has_path_sep, path_is_in_root, relpath
+from ..mesonlib import File, MesonException, has_path_sep, is_windows, path_is_in_root, relpath
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -110,9 +110,15 @@ class FSModule(ExtensionModule):
     @FeatureNew('fs.is_absolute', '0.54.0')
     @typed_pos_args('fs.is_absolute', (str, File))
     def is_absolute(self, state: ModuleState, args: T.Tuple[FileOrString], kwargs: T.Dict[str, T.Any]) -> bool:
-        if isinstance(args[0], File):
+        path = args[0]
+        if isinstance(path, File):
             FeatureNew('fs.is_absolute with file', '0.59.0').use(state.subproject, location=state.current_node)
-        return os.path.isabs(str(args[0]))
+            path = str(path)
+        if is_windows():
+            # os.path.isabs was broken for Windows before Python 3.13, so we implement it ourselves
+            path = path[:3].replace(posixsep, ntsep)
+            return path.startswith(ntsep * 2) or path.startswith(':' + ntsep, 1)
+        return path.startswith(posixsep)
 
     @noKwargs
     @FeatureNew('fs.as_posix', '0.54.0')
