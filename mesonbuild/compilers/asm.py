@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import textwrap
 import typing as T
 
 from .. import mlog
@@ -159,6 +160,53 @@ class NasmCompiler(AsmCompiler):
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-MD', outfile, '-MQ', outtarget]
+
+    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+        return self.exelist_no_ccache + [sourcename] + self.get_output_args(binname) + self.get_always_args()
+
+    def _sanity_check_source_code(self) -> str:
+        if self.info.is_linux():
+            return textwrap.dedent('''
+                section .text
+                    global main
+
+                main:
+                    mov eax, 1
+                    mov ebx, 0
+                    int 0x80
+                ''')
+        if self.info.is_freebsd():
+            return textwrap.dedent('''
+                section .text
+                    global main
+
+                main:
+                    mov rax, 1
+                    mov rdi, 0
+                    int 0x80
+                ''')
+        elif self.info.is_darwin():
+            return textwrap.dedent('''
+                section .text
+                    global main
+
+                main:
+                    mov rax, 0x2000001
+                    mov rdi, 0
+                    syscall
+                ''')
+        elif self.info.is_windows() or self.info.is_cygwin():
+            return textwrap.dedent('''
+                extern _ExitProcess@4
+
+                section .text
+                global main
+
+                main:
+                    push    0
+                    call    _ExitProcess@4
+                ''')
+        raise _CheckUnimplementedException()
 
     def get_pic_args(self) -> T.List[str]:
         return []
