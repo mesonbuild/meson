@@ -963,7 +963,7 @@ class BuildTarget(Target):
                             self.compilers[lang] = compiler
                         break
                 else:
-                    if is_known_suffix(s):
+                    if is_known_suffix(s) and not is_header(s):
                         path = pathlib.Path(str(s)).as_posix()
                         m = f'No {self.for_machine.get_lower_case_name()} machine compiler for {path!r}'
                         raise MesonException(m)
