@@ -568,11 +568,15 @@ class QtBaseModule(ExtensionModule):
 
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
+        sources: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]] = []
         for dep in kwargs['dependencies']:
             compile_args.extend(a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D')))
             if isinstance(dep, InternalDependency):
                 for incl in dep.include_directories:
                     compile_args.extend(f'-I{i}' for i in incl.to_string_list(self.interpreter.source_root, self.interpreter.environment.build_dir))
+                for src in dep.sources:
+                    if isinstance(src, (build.CustomTarget, build.BuildTarget, build.CustomTargetIndex)):
+                        sources.append(src)
 
         output: T.List[build.GeneratedList] = []
 
@@ -593,6 +597,7 @@ class QtBaseModule(ExtensionModule):
             moc_gen = build.Generator(
                 state.environment,
                 self.tools['moc'], arguments, header_gen_output,
+                depends=sources,
                 depfile='moc_@BASENAME@.cpp.d',
                 name=f'Qt{self.qt_version} moc header')
             output.append(moc_gen.process_files(kwargs['headers'], state.subdir, preserve_path_from))
