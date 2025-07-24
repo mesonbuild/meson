@@ -1820,7 +1820,6 @@ class Backend:
                                           t.install_rpath, install_mode, t.subproject,
                                           darwin_dylib_path_policy=t.darwin_dylib_path_policy,
                                           tag=tag, can_strip=can_strip)
-
                     d.targets.append(i)
 
                     for alias, to, tag in t.get_aliases():
