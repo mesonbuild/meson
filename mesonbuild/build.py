@@ -1261,13 +1261,7 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
-        self.darwin_dylib_path_policy = kwargs.get('darwin_dylib_path_policy', '')
-        if not isinstance(self.darwin_dylib_path_policy, str):
-            raise InvalidArguments('Darwin dylib path policy must be a string.')
-        if self.darwin_dylib_path_policy != '':
-            permitted = ['absolute', 'rpath-relative']
-            if self.darwin_dylib_path_policy not in permitted:
-                raise InvalidArguments('Darwin dylib path policy arg {} not one of: {}'.format(self.darwin_dylib_path_policy, ', '.join(permitted)))
+        self.darwin_dylib_path_policy = kwargs.get('darwin_dylib_path_policy')
 
     def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
