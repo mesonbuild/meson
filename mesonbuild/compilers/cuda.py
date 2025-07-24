@@ -731,11 +731,10 @@ class CudaCompiler(Compiler):
     def get_optimization_link_args(self, optimization_level: str) -> T.List[str]:
         return self._to_host_flags(self.host_compiler.get_optimization_link_args(optimization_level), Phase.LINKER)
 
-    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
-                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
-                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
+                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
         (rpath_args, rpath_dirs_to_remove) = self.host_compiler.build_rpath_args(
-            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+            env, build_dir, from_dir, target, extra_paths)
         return (self._to_host_flags(rpath_args, Phase.LINKER), rpath_dirs_to_remove)
 
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:

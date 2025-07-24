@@ -101,9 +101,8 @@ class BasicLinkerIsCompilerMixin(Compiler):
                         darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         raise MesonException("This linker doesn't support soname args")
 
-    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
-                         rpath_paths: T.Tuple[str, ...], build_rpath: str,
-                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+    def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
+                         target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
     def get_asneeded_args(self) -> T.List[str]:
