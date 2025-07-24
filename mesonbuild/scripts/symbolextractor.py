@@ -231,7 +231,11 @@ def _get_implib_exports(impfilename: str) -> T.Tuple[T.List[str], str]:
     if output:
         lines = output.split('\n')
         start = lines.index('File Type: LIBRARY')
-        end = lines.index('  Summary')
+        end = len(lines)
+        try:
+            end = lines.index('  Summary')
+        except ValueError:
+            pass
         return lines[start:end], None
     all_stderr += e
     # Next, try llvm-nm.exe provided by LLVM, then nm.exe provided by MinGW
