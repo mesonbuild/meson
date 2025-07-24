@@ -745,6 +745,7 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserStringOption('python.platlibdir', 'Directory for site-specific, platform-specific files.', ''),
         UserStringOption('python.purelibdir', 'Directory for site-specific, non-platform-specific files.', ''),
         UserBooleanOption('python.allow_limited_api', 'Whether to allow use of the Python Limited API', True),
+        UserStringOption('python.build_config', 'Config file containing the build details for the target Python installation.', ''),
     ])
 }
 
