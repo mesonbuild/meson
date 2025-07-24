@@ -400,7 +400,7 @@ def get_darwin_rpaths(fname: str) -> OrderedSet[str]:
             result.add(rp)
     return result
 
-def fix_darwin(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: str, final_path: str, install_name_mappings: T.Dict[str, str]) -> None:
+def fix_darwin(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: str, final_path: str, install_name_mappings: T.Dict[str, str], dylib_path_policy: str) -> None:
     try:
         old_rpaths = get_darwin_rpaths(fname)
     except subprocess.CalledProcessError:
@@ -426,12 +426,13 @@ def fix_darwin(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: str, f
         for path in old_rpaths:
             if path not in new_rpaths:
                 args += ['-delete_rpath', path]
-        # Rewrite -install_name @rpath/libfoo.dylib to /path/to/libfoo.dylib
-        if fname.endswith('dylib'):
-            args += ['-id', final_path]
-        if install_name_mappings:
-            for old, new in install_name_mappings.items():
-                args += ['-change', old, new]
+        if dylib_path_policy == 'absolute':
+            # Rewrite -install_name @rpath/libfoo.dylib to /path/to/libfoo.dylib
+            if fname.endswith('dylib'):
+                args += ['-id', final_path]
+            if install_name_mappings:
+                for old, new in install_name_mappings.items():
+                    args += ['-change', old, new]
         if args:
             subprocess.check_call(['install_name_tool', fname] + args,
                                   stdout=subprocess.DEVNULL,
@@ -455,7 +456,7 @@ def fix_jar(fname: str) -> None:
     # than the beginning, but the spec doesn't forbid that.
     subprocess.check_call(['jar', 'ufM', fname, 'META-INF/MANIFEST.MF'])
 
-def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union[str, bytes], final_path: str, install_name_mappings: T.Dict[str, str], verbose: bool = True) -> None:
+def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union[str, bytes], final_path: str, install_name_mappings: T.Dict[str, str], darwin_dylib_path_policy: str, verbose: bool = True) -> None:
     global INSTALL_NAME_TOOL  # pylint: disable=global-statement
     # Static libraries, import libraries, debug information, headers, etc
     # never have rpaths
@@ -484,4 +485,4 @@ def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union
     if INSTALL_NAME_TOOL:
         if isinstance(new_rpath, bytes):
             new_rpath = new_rpath.decode('utf8')
-        fix_darwin(fname, rpath_dirs_to_remove, new_rpath, final_path, install_name_mappings)
+        fix_darwin(fname, rpath_dirs_to_remove, new_rpath, final_path, install_name_mappings, darwin_dylib_path_policy)

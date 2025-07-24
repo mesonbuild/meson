@@ -143,6 +143,7 @@ class TargetInstallData:
     # TODO: install_mode should just always be a FileMode object
     install_mode: T.Optional['FileMode']
     subproject: str
+    darwin_dylib_path_policy: str = ''
     optional: bool = False
     tag: T.Optional[str] = None
     can_strip: bool = False
@@ -1817,6 +1818,7 @@ class Backend:
                                           first_outdir_name,
                                           should_strip, mappings, t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode, t.subproject,
+                                          darwin_dylib_path_policy=t.darwin_dylib_path_policy,
                                           tag=tag, can_strip=can_strip)
                     d.targets.append(i)
 
@@ -1841,7 +1843,9 @@ class Backend:
                             i = TargetInstallData(self.get_target_filename_for_linking(t),
                                                   implib_install_dir, first_outdir_name,
                                                   False, {}, set(), '', install_mode,
-                                                  t.subproject, optional=isinstance(t, build.SharedModule),
+                                                  t.subproject,
+                                                  darwin_dylib_path_policy=t.darwin_dylib_path_policy,
+                                                  optional=isinstance(t, build.SharedModule),
                                                   tag='devel')
                             d.targets.append(i)
 
@@ -1851,6 +1855,7 @@ class Backend:
                                                   first_outdir_name,
                                                   False, {}, set(), '',
                                                   install_mode, t.subproject,
+                                                  darwin_dylib_path_policy=t.darwin_dylib_path_policy,
                                                   optional=True, tag='devel')
                             d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
@@ -1862,6 +1867,7 @@ class Backend:
                         f = os.path.join(self.get_target_dir(t), output)
                         i = TargetInstallData(f, outdir, outdir_name, False, {}, set(), None,
                                               install_mode, t.subproject,
+                                              darwin_dylib_path_policy=t.darwin_dylib_path_policy,
                                               tag=tag)
                         d.targets.append(i)
             elif isinstance(t, build.CustomTarget):

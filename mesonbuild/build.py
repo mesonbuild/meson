@@ -102,6 +102,7 @@ buildtarget_kwargs = {
     'gnu_symbol_visibility',
     'link_language',
     'win_subsystem',
+    'darwin_dylib_path_policy',
 }
 
 known_build_target_kwargs = (
@@ -1259,6 +1260,8 @@ class BuildTarget(Target):
         if any(not isinstance(v, str) for v in rust_dependency_map.values()):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
+
+        self.darwin_dylib_path_policy = kwargs.get('darwin_dylib_path_policy', '')
 
     def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags

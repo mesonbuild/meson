@@ -788,7 +788,8 @@ class Installer:
                 self.did_install_something = True
                 try:
                     self.fix_rpath(outname, t.rpath_dirs_to_remove, install_rpath, final_path,
-                                   install_name_mappings, verbose=False)
+                                   install_name_mappings, verbose=False,
+                                   darwin_dylib_path_policy=t.darwin_dylib_path_policy)
                 except SystemExit as e:
                     if isinstance(e.code, int) and e.code == 0:
                         pass

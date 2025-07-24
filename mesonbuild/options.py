@@ -105,6 +105,7 @@ _BUILTIN_NAMES = {
     'pkg_config_path',
     'cmake_prefix_path',
     'vsenv',
+    'darwin_dylib_path_policy',
 }
 
 _BAD_VALUE = 'Qwert Zuiopü'
@@ -745,6 +746,9 @@ BUILTIN_CORE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserStringOption('python.platlibdir', 'Directory for site-specific, platform-specific files.', ''),
         UserStringOption('python.purelibdir', 'Directory for site-specific, non-platform-specific files.', ''),
         UserBooleanOption('python.allow_limited_api', 'Whether to allow use of the Python Limited API', True),
+
+        UserComboOption('darwin_dylib_path_policy', 'How to refer to project dylibs during install', 'absolute',
+                        choices=['absolute', 'rpath-relative']),
     ])
 }
 

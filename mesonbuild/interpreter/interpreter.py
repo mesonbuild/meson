@@ -3460,6 +3460,10 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
 
+        if targetclass is not build.Jar and kwargs['darwin_dylib_path_policy'] == '':
+            darwin_dylib_path_policy = self.coredata.optstore.get_value_for(OptionKey('darwin_dylib_path_policy', subproject=self.subproject))
+            kwargs['darwin_dylib_path_policy'] = darwin_dylib_path_policy
+
         if targetclass is build.Executable:
             kwargs = T.cast('kwtypes.Executable', kwargs)
             if kwargs['gui_app'] is not None:
