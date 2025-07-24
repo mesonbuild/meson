@@ -659,7 +659,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
         str,
         default='',
         validator=in_set_validator({'', 'absolute', 'rpath-relative'}),
-        since='1.8.99', # TODO
+        since='1.9.0',
     ),
 ]
 
