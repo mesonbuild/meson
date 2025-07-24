@@ -1261,7 +1261,7 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
-        self.darwin_dylib_path_policy = kwargs['darwin_dylib_path_policy']
+        self.darwin_dylib_path_policy = kwargs.get('darwin_dylib_path_policy', '')
 
     def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
