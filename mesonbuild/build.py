@@ -75,7 +75,7 @@ lang_arg_kwargs |= {
 vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
 rust_kwargs = {'rust_crate_type', 'rust_dependency_map'}
 cs_kwargs = {'resources', 'cs_args'}
-swift_kwargs = {'swift_module_name'}
+swift_kwargs = {'swift_interoperability_mode', 'swift_module_name'}
 
 buildtarget_kwargs = {
     'build_by_default',
@@ -785,6 +785,19 @@ class BuildTarget(Target):
             if self.vala_gir:
                 self.outputs.append(self.vala_gir)
                 self.install_tag.append('devel')
+        # TODO: this is for purposes of calling Swift from C++. This check should probably be in the location where the
+        # header export target is generated instead of here, because obviously there is no issue with linking Swift code
+        # with C++ code in and of itself
+        if 'cpp' in self.compilers and \
+                any(t.uses_swift_cpp_interop()
+                    for t in itertools.chain([self], self.link_targets, self.link_whole_targets)):
+            from .compilers.cpp import CPPCompiler
+
+            cpp = self.compilers['cpp']
+            assert isinstance(cpp, CPPCompiler)
+            if not cpp.works_with_swift():
+                raise MesonException(f'target "{self.name}" tries to link Swift objects with C++ objects, '
+                                     'but the C++ and Swift compilers are incompatible')
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -1262,6 +1275,8 @@ class BuildTarget(Target):
             raise InvalidArguments(f'Invalid rust_dependency_map "{rust_dependency_map}": must be a dictionary with string values.')
         self.rust_dependency_map = rust_dependency_map
 
+        self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode')
+
         self.swift_module_name = kwargs.get('swift_module_name')
         if self.swift_module_name == '':
             self.swift_module_name = self.name
@@ -1685,6 +1700,9 @@ class BuildTarget(Target):
 
     def uses_fortran(self) -> bool:
         return 'fortran' in self.compilers
+
+    def uses_swift_cpp_interop(self) -> bool:
+        return self.swift_interoperability_mode == 'cpp' and 'swift' in self.compilers
 
     def get_using_msvc(self) -> bool:
         '''
