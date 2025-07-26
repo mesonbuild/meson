@@ -8,7 +8,7 @@ import typing as T
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import EnvironmentException, version_compare, LibType
+from ..mesonlib import version_compare, LibType
 from ..options import OptionKey
 from .compilers import CompileCheckMode, Compiler
 
@@ -99,18 +99,25 @@ class ValaCompiler(Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
-        code = 'class MesonSanityCheck : Object { }'
-        extra_flags: T.List[str] = []
-        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
+    def _sanity_check_source_code(self) -> str:
+        return 'public static int main() { return 0; }'
+
+    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+        cmdlist = self.exelist.copy()
+        cmdlist.extend(env.coredata.get_external_args(self.for_machine, self.language))
         if self.is_cross:
-            extra_flags += self.get_compile_only_args()
+            cmdlist.extend(self.get_compile_only_args())
         else:
-            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode=CompileCheckMode.COMPILE) as p:
-            if p.returncode != 0:
-                msg = f'Vala compiler {self.name_string()!r} cannot compile programs'
-                raise EnvironmentException(msg)
+            cmdlist.extend(env.coredata.get_external_link_args(self.for_machine, self.language))
+        cmdlist.extend(self.get_output_args(binname))
+        cmdlist.append(sourcename)
+        return cmdlist
+
+    def _run_sanity_check(self, env: Environment, cmdlist: T.List[str], work_dir: str) -> None:
+        # Vala will do a Vala -> C -> Exe, so the output file will actually have
+        # the name of the C compiler.
+        # TODO: find a way to not make this so hacky
+        return super()._run_sanity_check(env, [os.path.join(work_dir, 'sanity_check_for_c.exe')], work_dir)
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
                      libtype: LibType = LibType.PREFER_SHARED, lib_prefix_warning: bool = True, ignore_system_dirs: bool = False) -> T.Optional[T.List[str]]:

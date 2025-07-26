@@ -55,8 +55,11 @@ class MissingCompiler(_MissingCompilerBase):
         def get_output_args(self, outputname: str) -> T.List[str]:
             return []
 
-        def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
-            return None
+        def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+            return []
+
+        def _sanity_check_source_code(self) -> str:
+            return ''
 
     def __getattr__(self, item: str) -> T.Any:
         if item.startswith('__'):
