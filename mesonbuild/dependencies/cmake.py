@@ -17,6 +17,7 @@ import textwrap
 import typing as T
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import Language
     from ..cmake import CMakeTarget
     from ..environment import Environment
     from ..envconfig import MachineInfo
@@ -69,31 +70,28 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
-        # Gather a list of all languages to support
-        self.language_list: T.List[str] = []
-        if language is None or force_use_global_compilers:
-            compilers = None
-            if kwargs.get('native', False):
-                compilers = environment.coredata.compilers.build
-            else:
-                compilers = environment.coredata.compilers.host
-
-            candidates = ['c', 'cpp', 'fortran', 'objc', 'objcxx']
-            self.language_list += [x for x in candidates if x in compilers]
-        else:
-            self.language_list += [language]
-
-        # Add additional languages if required
-        if 'fortran' in self.language_list:
-            self.language_list += ['c']
-
-        # Ensure that the list is unique
-        self.language_list = list(set(self.language_list))
-
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[Language] = None,
+                 force_use_global_compilers: bool = False) -> None:
         super().__init__(DependencyTypeName('cmake'), environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
+
+        # Gather a list of all languages to support
+        self.language_list: T.List[Language]
+        if language is None or force_use_global_compilers:
+            compilers = environment.coredata.compilers[self.for_machine]
+            candidates: T.List[Language] = ['c', 'cpp', 'fortran', 'objc', 'objcpp']
+            self.language_list = [x for x in candidates if x in compilers]
+        else:
+            self.language_list = [language]
+
+        # Add additional languages if required
+        if 'fortran' in self.language_list:
+            self.language_list.append('c')
+
+        # Ensure that the list is unique
+        self.language_list = list(set(self.language_list))
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
@@ -655,7 +653,9 @@ class CMakeDependencyFactory:
         self.name = name
         self.modules = modules
 
-    def __call__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> CMakeDependency:
+    def __call__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[Language] = None,
+                 force_use_global_compilers: bool = False) -> CMakeDependency:
         if self.modules:
             kwargs['modules'] = self.modules
         return CMakeDependency(self.name or name, env, kwargs, language, force_use_global_compilers)
