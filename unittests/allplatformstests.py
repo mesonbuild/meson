@@ -3995,6 +3995,20 @@ class AllPlatformTests(BasePlatformTests):
         out = self._run([*self.meson_command, 'compile', '-C', self.builddir, 'py3hi'])
         self.assertIn('I am Python3.', out)
 
+        # run_target in subproject
+
+        testdir = os.path.join(self.common_test_dir, '83 identical target name in subproject')
+        self.init(testdir, extra_args=['--wipe'])
+        out = self._run([*self.meson_command, 'compile', '-C', self.builddir, './nop'])
+        self.assertIn('Ran top level true.py', out)
+        out = self._run([*self.meson_command, 'compile', '-C', self.builddir, './subprojects/foo/nop'])
+        self.assertIn('Ran subproject true.py', out)
+        # alias in subproject
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, './bar_alias'])
+        self.assertPathExists(os.path.join(self.builddir, get_exe_name('bar')))
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, './subprojects/foo/bar_alias'])
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects', 'foo', get_exe_name('bar')))
+
         # `--$BACKEND-args`
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
