@@ -84,7 +84,7 @@ clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'nasm', 'fortran')
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
 # This must be sorted, see sort_clink().
-clink_langs = ('d', 'cuda') + clib_langs
+clink_langs = ('rust', 'd', 'cuda') + clib_langs
 
 SUFFIX_TO_LANG = dict(itertools.chain(*(
     [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items())))
@@ -153,6 +153,9 @@ def is_java(fname: mesonlib.FileOrString) -> bool:
         fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in lang_suffixes['java']
+
+def is_separate_compile(fname: mesonlib.FileOrString) -> bool:
+    return not fname.endswith('.rs')
 
 def is_llvm_ir(fname: 'mesonlib.FileOrString') -> bool:
     if isinstance(fname, mesonlib.File):

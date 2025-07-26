@@ -35,6 +35,7 @@ from .compilers import (
     is_library,
     is_llvm_ir,
     is_object,
+    is_separate_compile,
     is_source,
 )
 
@@ -936,6 +937,9 @@ class Environment:
 
     def is_assembly(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_assembly(fname)
+
+    def is_separate_compile(self, fname: 'mesonlib.FileOrString') -> bool:
+        return is_separate_compile(fname)
 
     def is_llvm_ir(self, fname: 'mesonlib.FileOrString') -> bool:
         return is_llvm_ir(fname)

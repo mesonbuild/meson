@@ -771,14 +771,23 @@ class BuildTarget(Target):
         ''' Initialisations and checks requiring the final list of compilers to be known
         '''
         self.validate_sources()
-        if self.structured_sources and any([self.sources, self.generated]):
-            raise MesonException('cannot mix structured sources and unstructured sources')
-        if self.structured_sources and 'rust' not in self.compilers:
-            raise MesonException('structured sources are only supported in Rust targets')
         if self.uses_rust():
+            if self.link_language and self.link_language != 'rust':
+                raise MesonException('cannot build Rust sources with a different link_language')
+            if self.structured_sources:
+                # TODO: the interpreter should be able to generate a better error message?
+                if any((s.endswith('.rs') for s in self.sources)) or \
+                       any(any((s.endswith('.rs') for s in g.get_outputs())) for g in self.generated):
+                    raise MesonException('cannot mix Rust structured sources and unstructured sources')
+
             # relocation-model=pic is rustc's default and Meson does not
             # currently have a way to disable PIC.
             self.pic = True
+            self.pie = True
+        else:
+            if self.structured_sources:
+                raise MesonException('structured sources are only supported in Rust targets')
+
         if 'vala' in self.compilers and self.is_linkable_target():
             self.outputs += [self.vala_header, self.vala_vapi]
             self.install_tag += ['devel', 'devel']
@@ -880,6 +889,10 @@ class BuildTarget(Target):
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     continue # We can't know anything about these.
                 for name, compiler in t.compilers.items():
+                    if name == 'rust':
+                        # Rust is always linked through a C-ABI target, so do not add
+                        # the compiler here
+                        continue
                     if name in link_langs and name not in self.compilers:
                         self.compilers[name] = compiler
 
@@ -1595,6 +1608,9 @@ class BuildTarget(Target):
             if isinstance(link_target, (CustomTarget, CustomTargetIndex)):
                 continue
             for language in link_target.compilers:
+                if language == 'rust' and not link_target.uses_rust_abi():
+                    # All Rust dependencies must go through a C-ABI dependency, so ignore it
+                    continue
                 if language not in langs:
                     langs.append(language)
 

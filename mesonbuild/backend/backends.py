@@ -61,7 +61,7 @@ if T.TYPE_CHECKING:
 # Languages that can mix with C or C++ but don't support unity builds yet
 # because the syntax we use for unity builds is specific to C/++/ObjC/++.
 # Assembly files cannot be unitified and neither can LLVM IR files
-LANGS_CANT_UNITY = ('d', 'fortran', 'vala')
+LANGS_CANT_UNITY = ('d', 'fortran', 'vala', 'rust')
 
 @dataclass(eq=False)
 class RegenInfo:

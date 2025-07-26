@@ -1,4 +1,4 @@
 #[no_mangle]
-pub extern fn f() {
+pub extern "C" fn f() {
     println!("Hello from Rust!");
 }

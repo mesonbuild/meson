@@ -891,13 +891,13 @@ class NinjaBackend(backends.Backend):
 
         self.generate_shlib_aliases(target, self.get_target_dir(target))
 
+        # Generate rules for GeneratedLists
+        self.generate_generator_list_rules(target)
+
         # If target uses a language that cannot link to C objects,
         # just generate for that language and return.
         if isinstance(target, build.Jar):
             self.generate_jar_target(target)
-            return
-        if target.uses_rust():
-            self.generate_rust_target(target)
             return
         if 'cs' in target.compilers:
             self.generate_cs_target(target)
@@ -935,8 +935,6 @@ class NinjaBackend(backends.Backend):
             generated_sources = self.get_target_generated_sources(target)
             transpiled_sources = []
         self.scan_fortran_module_outputs(target)
-        # Generate rules for GeneratedLists
-        self.generate_generator_list_rules(target)
 
         # Generate rules for building the remaining source files in this target
         outname = self.get_target_filename(target)
@@ -992,6 +990,8 @@ class NinjaBackend(backends.Backend):
         # this target. We create the Ninja build file elements for this here
         # because we need `header_deps` to be fully generated in the above loop.
         for src in generated_source_files:
+            if not self.environment.is_separate_compile(src):
+                continue
             if self.environment.is_llvm_ir(src):
                 o, s = self.generate_llvm_ir_compile(target, src)
             else:
@@ -1050,21 +1050,24 @@ class NinjaBackend(backends.Backend):
 
         # Generate compile targets for all the preexisting sources for this target
         for src in target_sources.values():
-            if not self.environment.is_header(src) or is_compile_target:
-                if self.environment.is_llvm_ir(src):
-                    o, s = self.generate_llvm_ir_compile(target, src)
-                    obj_list.append(o)
-                elif is_unity and self.get_target_source_can_unity(target, src):
-                    abs_src = os.path.join(self.environment.get_build_dir(),
-                                           src.rel_to_builddir(self.build_to_src))
-                    unity_src.append(abs_src)
-                else:
-                    o, s = self.generate_single_compile(target, src, False, [],
-                                                        header_deps + d_generated_deps + fortran_order_deps,
-                                                        fortran_inc_args)
-                    obj_list.append(o)
-                    compiled_sources.append(s)
-                    source2object[s] = o
+            if not self.environment.is_separate_compile(src):
+                continue
+            if self.environment.is_header(src) and not is_compile_target:
+                continue
+            if self.environment.is_llvm_ir(src):
+                o, s = self.generate_llvm_ir_compile(target, src)
+                obj_list.append(o)
+            elif is_unity and self.get_target_source_can_unity(target, src):
+                abs_src = os.path.join(self.environment.get_build_dir(),
+                                       src.rel_to_builddir(self.build_to_src))
+                unity_src.append(abs_src)
+            else:
+                o, s = self.generate_single_compile(target, src, False, [],
+                                                    header_deps + d_generated_deps + fortran_order_deps,
+                                                    fortran_inc_args)
+                obj_list.append(o)
+                compiled_sources.append(s)
+                source2object[s] = o
 
         if is_unity:
             for src in self.generate_unity_files(target, unity_src):
@@ -1084,8 +1087,14 @@ class NinjaBackend(backends.Backend):
             final_obj_list = self.generate_prelink(target, obj_list)
         else:
             final_obj_list = obj_list
-        elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
+
         self.generate_dependency_scan_target(target, compiled_sources, source2object, fortran_order_deps)
+
+        if target.uses_rust():
+            self.generate_rust_target(target, outname, final_obj_list, fortran_order_deps)
+            return
+
+        elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.add_build(elem)
         #In AIX, we archive shared libraries. If the instance is a shared library, we add a command to archive the shared library
         #object and create the build element.
@@ -1556,7 +1565,6 @@ class NinjaBackend(backends.Backend):
         elem.add_item('ARGS', commands)
         self.add_build(elem)
 
-        self.generate_generator_list_rules(target)
         self.create_target_source_introspection(target, compiler, commands, rel_srcs, generated_rel_srcs)
 
     def determine_java_compile_args(self, target, compiler) -> T.List[str]:
@@ -1972,6 +1980,7 @@ class NinjaBackend(backends.Backend):
                                      for s in f.get_outputs()])
             self.all_structured_sources.update(_ods)
             orderdeps.extend(_ods)
+            return orderdeps, main_rust_file
 
         for i in target.get_sources():
             if main_rust_file is None:
@@ -2010,7 +2019,8 @@ class NinjaBackend(backends.Backend):
         args += target.get_extra_args('rust')
         return args
 
-    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: Compiler) -> T.Tuple[T.List[str], T.List[str], T.List[RustDep], T.List[str]]:
+    def get_rust_compiler_deps_and_args(self, target: build.BuildTarget, rustc: Compiler,
+                                        obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[RustDep], T.List[str]]:
         deps: T.List[str] = []
         project_deps: T.List[RustDep] = []
         args: T.List[str] = []
@@ -2042,11 +2052,9 @@ class NinjaBackend(backends.Backend):
                 type_ += ':' + ','.join(modifiers)
             args.append(f'-l{type_}={libname}')
 
-        objs, od = self.flatten_object_list(target)
-        for o in objs:
+        for o in obj_list:
             args.append(f'-Clink-arg={o}')
             deps.append(o)
-        fortran_order_deps = self.get_fortran_order_deps(od)
 
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
@@ -2151,31 +2159,21 @@ class NinjaBackend(backends.Backend):
         if has_shared_deps or has_rust_shared_deps:
             args += self.get_build_rpath_args(target, rustc)
 
-        return deps, fortran_order_deps, project_deps, args
+        return deps, project_deps, args
 
-    def generate_rust_target(self, target: build.BuildTarget) -> None:
-        rustc = T.cast('RustCompiler', target.compilers['rust'])
-        self.generate_generator_list_rules(target)
-
-        for i in target.get_sources():
-            if not rustc.can_compile(i):
-                raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
-        for g in target.get_generated_sources():
-            for i in g.get_outputs():
-                if not rustc.can_compile(i):
-                    raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
-
+    def generate_rust_target(self, target: build.BuildTarget, target_name: str, obj_list: T.List[str],
+                             fortran_order_deps: T.List[str]) -> None:
         orderdeps, main_rust_file = self.generate_rust_sources(target)
-        target_name = self.get_target_filename(target)
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
 
+        rustc = T.cast('RustCompiler', target.compilers['rust'])
         args = rustc.compiler_args()
 
         depfile = os.path.join(self.get_target_private_dir(target), target.name + '.d')
         args += self.get_rust_compiler_args(target, rustc, target.rust_crate_type, depfile)
 
-        deps, fortran_order_deps, project_deps, deps_args = self.get_rust_compiler_deps_and_args(target, rustc)
+        deps, project_deps, deps_args = self.get_rust_compiler_deps_and_args(target, rustc, obj_list)
         args += deps_args
 
         proc_macro_dylib_path = None
@@ -2210,7 +2208,10 @@ class NinjaBackend(backends.Backend):
             rustdoc = rustc.get_rustdoc(self.environment)
             args = rustdoc.get_exe_args()
             args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
-            _, _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc)
+            # There can be no non-Rust objects: the doctests are gathered from Rust
+            # sources and the tests are linked with the target (which is where the
+            # obj_list was linked into)
+            _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc, [])
             args += deps_args
             target.doctests.cmd_args = args.to_native() + [main_rust_file] + target.doctests.cmd_args
 
