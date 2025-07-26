@@ -446,6 +446,24 @@ class LinuxlikeTests(BasePlatformTests):
         libdir = self.installdir + os.path.join(self.prefix, self.libdir)
         self._test_soname_impl(libdir, True)
 
+    @skip_if_not_base_option('b_sanitize')
+    def test_c_link_args_and_env(self):
+        '''
+        Test that the CFLAGS / CXXFLAGS environment variables are
+        included on the linker command line when c_link_args is
+        set but c_args is not.
+        '''
+        if is_cygwin():
+            raise SkipTest('asan not available on Cygwin')
+        if is_openbsd():
+            raise SkipTest('-fsanitize=address is not supported on OpenBSD')
+
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        env = {'CFLAGS': '-fsanitize=address'}
+        self.init(testdir, extra_args=['-Dc_link_args="-L/usr/lib"'],
+                  override_envvars=env)
+        self.build()
+
     def test_compiler_check_flags_order(self):
         '''
         Test that compiler check flags override all other flags. This can't be
