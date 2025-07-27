@@ -1287,12 +1287,21 @@ class CLikeCompiler(Compiler):
             # check the equivalent enable flag too "-Wforgotten-towel".
             if arg.startswith('-Wno-'):
                 # Make an exception for -Wno-attributes=x as -Wattributes=x is invalid
-                # for GCC at least.  Also, the opposite of -Wno-vla-larger-than is
-                # -Wvla-larger-than=N
+                # for GCC at least.  Also, the positive form of some flags require a
+                # value to be specified, i.e. we need to pass -Wfoo=N rather than just
+                # -Wfoo.
                 if arg.startswith('-Wno-attributes='):
                     pass
-                elif arg == '-Wno-vla-larger-than':
-                    new_args.append('-Wvla-larger-than=1000')
+                elif arg in {
+                    '-Wno-alloc-size-larger-than',
+                    '-Wno-alloca-larger-than',
+                    '-Wno-frame-larger-than',
+                    '-Wno-stack-usage',
+                    '-Wno-vla-larger-than',
+                }:
+                    # Pass an arbitrary value to the enabling flag; since the test program
+                    # is trivial, it is unlikely to provoke any of these warnings.
+                    new_args.append('-W' + arg[5:] + '=1000')
                 else:
                     new_args.append('-W' + arg[5:])
             if arg.startswith('-Wl,'):
