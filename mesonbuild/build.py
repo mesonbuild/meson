@@ -882,6 +882,11 @@ class BuildTarget(Target):
         # did user override clink_langs for this target?
         link_langs = [self.link_language] if self.link_language else clink_langs
 
+        if self.link_language:
+            if self.link_language not in self.all_compilers:
+                m = f'Target {self.name} requires {self.link_language} compiler not part of the project'
+                raise MesonException(m)
+
         # If this library is linked against another library we need to consider
         # the languages of those libraries as well.
         if self.link_targets or self.link_whole_targets:
