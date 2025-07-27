@@ -56,9 +56,22 @@ if cpp.get_id() == 'gcc' and cpp.version().version_compare('>=12.1.0')
   # Handle special -Wno-attributes=foo where -Wattributes=foo is invalid
   # i.e. our usual -Wno-foo -Wfoo hack doesn't work for -Wattributes=foo.
   assert(cpp.has_argument('-Wno-attributes=meson::i_do_not_exist'))
-  # Likewise, the positive counterpart to -Wno-vla-larger-than is
-  # -Wvla-larger-than=N
-  assert(cpp.has_argument('-Wno-vla-larger-than'))
+endif
+
+if cpp.get_id() == 'gcc'
+  # Handle negative flags whose positive counterparts require a value to be
+  # specified.
+  if cpp.version().version_compare('>=4.4.0')
+    assert(cpp.has_argument('-Wno-frame-larger-than'))
+  endif
+  if cpp.version().version_compare('>=4.7.0')
+    assert(cpp.has_argument('-Wno-stack-usage'))
+  endif
+  if cpp.version().version_compare('>=7.1.0')
+    assert(cpp.has_argument('-Wno-alloc-size-larger-than'))
+    assert(cpp.has_argument('-Wno-alloca-larger-than'))
+    assert(cpp.has_argument('-Wno-vla-larger-than'))
+  endif
 endif
 
 if cc.get_id() == 'clang' and cc.version().version_compare('<=4.0.0')
