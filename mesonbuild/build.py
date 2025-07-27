@@ -758,8 +758,8 @@ class BuildTarget(Target):
         self.link(link_targets)
         self.link_whole(link_whole_targets)
 
-        if not any([self.sources, self.generated, self.objects, self.link_whole_targets, self.structured_sources,
-                    kwargs.pop('_allow_no_sources', False)]):
+        if not any([[src for src in self.sources if not is_header(src)], self.generated, self.objects,
+                    self.link_whole_targets, self.structured_sources, kwargs.pop('_allow_no_sources', False)]):
             mlog.warning(f'Build target {name} has no sources. '
                          'This was never supposed to be allowed but did because of a bug, '
                          'support will be removed in a future release of Meson')
