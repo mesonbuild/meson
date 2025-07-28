@@ -1759,16 +1759,13 @@ class LinuxlikeTests(BasePlatformTests):
             self.assertNotIn('-lfoo', content)
 
     def test_prelinking(self):
-        # Prelinking currently only works on recently new GNU toolchains.
-        # Skip everything else. When support for other toolchains is added,
-        # remove limitations as necessary.
-        if 'clang' in os.environ.get('CC', 'dummy') and not is_osx():
-            raise SkipTest('Prelinking not supported with Clang.')
         testdir = os.path.join(self.unit_test_dir, '86 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.id == "gcc" and not version_compare(cc.version, '>=9'):
             raise SkipTest('Prelinking not supported with gcc 8 or older.')
+        if cc.id == 'clang' and not version_compare(cc.version, '>=14'):
+            raise SkipTest('Prelinking not supported with Clang 13 or older.')
         self.init(testdir)
         self.build()
         outlib = os.path.join(self.builddir, 'libprelinked.a')

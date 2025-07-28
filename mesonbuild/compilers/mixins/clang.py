@@ -208,6 +208,11 @@ class ClangCompiler(GnuLikeCompiler):
         # error.
         return ['-Werror=attributes']
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.Tuple[T.List[str], T.List[str]]:
+        if not mesonlib.version_compare(self.version, '>=14'):
+            raise mesonlib.MesonException('prelinking requires clang >=14')
+        return [prelink_name], ['-r', '-o', prelink_name] + obj_list
+
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
 
