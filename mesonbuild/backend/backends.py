@@ -1083,9 +1083,20 @@ class Backend:
                 continue
 
             if compiler.language == 'vala':
+                def has_vala_package(compiler : 'Compiler', package_name: str, env: 'Environment') -> bool:
+                    code = 'int main (string[] args) {{ return 0; }}'
+                    compiles, cached = compiler.compiles(code, env, extra_args=[f'--pkg={package_name}'])
+                    return compiles
+
                 if dep.type_name == 'pkgconfig':
                     assert isinstance(dep, dependencies.ExternalDependency)
-                    commands += ['--pkg', dep.name]
+
+                    if has_vala_package(compiler, dep.name, self.environment):
+                        commands += ['--pkg', dep.name]
+                    else:
+                        # This is not an actual error because pkg-config dependency could be used from, for example, C code
+                        mlog.warning(f'Vala package for dependency {dep.name} not found. '
+                                     'Error will occur if Vala code depends on it')
                 elif isinstance(dep, dependencies.ExternalLibrary):
                     commands += dep.get_link_args('vala')
             else:
