@@ -1083,7 +1083,7 @@ class Backend:
                 continue
 
             if compiler.language == 'vala':
-                def has_vala_package(compiler : 'Compiler', package_name: str, env: 'Environment') -> bool:
+                def has_vala_package(compiler: 'Compiler', package_name: str, env: 'Environment') -> bool:
                     code = 'int main (string[] args) {{ return 0; }}'
                     compiles, cached = compiler.compiles(code, env, extra_args=[f'--pkg={package_name}'])
                     return compiles
