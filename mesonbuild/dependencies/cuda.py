@@ -24,6 +24,21 @@ if T.TYPE_CHECKING:
 
     TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
 
+# Subdirectories to search for specific modules
+EXTRA_SEARCH_PATHS: T.Dict[str, T.Dict[str, T.List[str]]] = {
+    'cupti': {
+        'incdir': [os.path.join('extras', 'CUPTI', 'include')],
+        'libdir': [os.path.join('extras', 'CUPTI', lib) for lib in ('lib64', 'lib')],
+    },
+    'nvvm': {
+        'incdir': [os.path.join('nvvm', 'include')],
+        'libdir': [os.path.join('nvvm', lib) for lib in ('lib64', 'lib')],
+    },
+}
+for cupti_module in ('nvperf_host', 'nvperf_target', 'pcsamplingutil', 'checkpoint'):
+    EXTRA_SEARCH_PATHS[cupti_module] = EXTRA_SEARCH_PATHS['cupti']
+
+
 class CudaDependency(SystemDependency):
 
     supported_languages: ImmutableListProtocol[Language] = ['cpp', 'c', 'cuda']
@@ -65,6 +80,13 @@ class CudaDependency(SystemDependency):
         if self.language != 'cuda' or len(compilers) > 1:
             self.incdir = os.path.join(self.cuda_path, self.target_path, 'include')
             self.compile_args += [f'-I{self.incdir}']
+
+        # Some modules also introduce extra include paths that are required
+        for module in self.requested_modules:
+            for extra_incdir in EXTRA_SEARCH_PATHS.get(module, {}).get('incdir', []):
+                extra_incdir = os.path.join(self.cuda_path, extra_incdir)
+                if os.path.exists(extra_incdir):
+                    self.compile_args += [f'-I{extra_incdir}']
 
         arch_libdir = self._detect_arch_libdir()
         self.libdir = os.path.join(self.cuda_path, self.target_path, arch_libdir)
@@ -281,7 +303,12 @@ class CudaDependency(SystemDependency):
             # - libnvidia-ml.so in /usr/lib/ that is provided by the nvidia drivers
             #
             # Users should never link to the latter, since its ABI may change.
-            args = self.clib_compiler.find_library(module, [self.libdir, os.path.join(self.libdir, 'stubs')], self.libtype, ignore_system_dirs=True)
+            search_dirs = [self.libdir, os.path.join(self.libdir, 'stubs')]
+            for extra_libdir in EXTRA_SEARCH_PATHS.get(module, {}).get('libdir', []):
+                extra_libdir = os.path.join(self.cuda_path, extra_libdir)
+                if os.path.exists(extra_libdir):
+                    search_dirs.append(extra_libdir)
+            args = self.clib_compiler.find_library(module, search_dirs, self.libtype, ignore_system_dirs=True)
 
             if args is None:
                 self._report_dependency_error(f'Couldn\'t find requested CUDA module \'{module}\'')
