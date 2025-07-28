@@ -16,6 +16,8 @@ description: |
   it takes any source or configured file as the `input:` and assumes
   that the `output:` is produced when the specified command is run.
 
+  You can install the outputted file with the `install_dir:` kwarg, see below.
+
   *(since 0.47.0)* When the `copy:` keyword argument is set to `true`,
   this function will copy the file provided in `input:` to a file in the
   build directory with the name `output:` in the current directory.

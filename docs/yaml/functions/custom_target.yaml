@@ -12,6 +12,8 @@ description: |
   custom_target('foo', output: 'file.txt', ...)
   ```
 
+  You can install the outputted files with the `install_dir:` kwarg, see below.
+
   *Since 0.60.0* the name argument is optional and defaults to the basename of the first
   output (`file.txt` in the example above).
 
