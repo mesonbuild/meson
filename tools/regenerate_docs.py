@@ -92,7 +92,8 @@ def get_commands_data(root_dir: Path) -> T.Dict[str, T.Any]:
             'mandir',
             'sbindir',
             'sharedstatedir',
-            'sysconfdir'
+            'sysconfdir',
+            'distconfdir'
         ]
         out = text
         for a in args:

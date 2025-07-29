@@ -38,6 +38,7 @@ not be relied on, since they can be absolute paths in the following cases:
 | prefix                               | see below     | Installation prefix |
 | bindir                               | bin           | Executable directory |
 | datadir                              | share         | Data file directory |
+| distconfdir                          | config        | Distconf data directory |
 | includedir                           | include       | Header file directory |
 | infodir                              | share/info    | Info page directory |
 | libdir                               | see below     | Library directory |
