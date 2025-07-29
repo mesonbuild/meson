@@ -38,6 +38,7 @@ local -a __meson_common=(
   '--prefix=[installation prefix]: :_directories'
   '--bindir=[executable directory]: :_directories'
   '--datadir=[data file directory]: :_directories'
+  '--distconfdir==[distributor configuration directory]: :_directories'
   '--includedir=[header file directory]: :_directories'
   '--infodir=[info page directory]: :_directories'
   '--libdir=[library directory]: :_directories'
