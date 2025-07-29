@@ -1277,13 +1277,11 @@ class CLikeCompiler(Compiler):
                 # -Wfoo.
                 if arg.startswith('-Wno-attributes='):
                     pass
-                elif arg in {
-                    '-Wno-alloc-size-larger-than',
-                    '-Wno-alloca-larger-than',
-                    '-Wno-frame-larger-than',
-                    '-Wno-stack-usage',
-                    '-Wno-vla-larger-than',
-                }:
+                elif arg in {'-Wno-alloc-size-larger-than',
+                             '-Wno-alloca-larger-than',
+                             '-Wno-frame-larger-than',
+                             '-Wno-stack-usage',
+                             '-Wno-vla-larger-than'}:
                     # Pass an arbitrary value to the enabling flag; since the test program
                     # is trivial, it is unlikely to provoke any of these warnings.
                     new_args.append('-W' + arg[5:] + '=1000')
