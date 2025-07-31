@@ -349,9 +349,10 @@ class AppleClangCPPCompiler(AppleCompilerMixin, AppleCPPStdsMixin, ClangCPPCompi
     def is_libcpp_enable_assertions_deprecated(self) -> bool:
         # Upstream libc++ deprecated _LIBCPP_ENABLE_ASSERTIONS
         # in favor of _LIBCPP_HARDENING_MODE from version 18 onwards,
-        # but Apple Clang 17's libc++ has back-ported that change.
-        # See: https://github.com/mesonbuild/meson/issues/14440
-        return version_compare(self.version, ">=17")
+        # but Apple Clang 16's libc++ has back-ported that change.
+        # See: https://github.com/mesonbuild/meson/issues/14440 and
+        # https://github.com/mesonbuild/meson/issues/14856
+        return version_compare(self.version, ">=16")
 
 
 class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
