@@ -58,6 +58,21 @@ test('test case 1', t1)
 test('test case 2', t2, depends: t3)
 benchmark('benchmark 1', t3, args: [cus1, cus2, cus3])
 
+### BEGIN: Stuff to test the handling of `UnknownValue`
+var_1 = 1
+var_2 = 2
+unknown_var = 'var_1'
+if host_machine.system() == 'windows'
+    unknown_var = 'var_2'
+endif
+# The IntrospectionInterpreter can't know the value of unknown_var and use the `UnknownValue` class.
+
+message(get_variable(unknown_var))
+
+dependency(unknown_var, version: [unknown_var], required: false)
+dependency(unknown_var, version: unknown_var, required: false)
+### END: Stuff to test the handling of `UnknownValue`
+
 ### Stuff to test the AST JSON printer
 foreach x : ['a', 'b', 'c']
   if x == 'a'

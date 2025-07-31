@@ -203,9 +203,11 @@ class IntrospectionInterpreter(AstInterpreter):
         has_fallback = 'fallback' in kwargs
         required = kwargs.get('required', True)
         version = kwargs.get('version', [])
-        if not isinstance(version, UnknownValue):
-            if not isinstance(version, list):
-                version = [version]
+        if not isinstance(version, list):
+            version = [version]
+        if any(isinstance(el, UnknownValue) for el in version):
+            version = UnknownValue()
+        else:
             assert all(isinstance(el, str) for el in version)
             version = T.cast(T.List[str], version)
         assert isinstance(required, (bool, UnknownValue))
