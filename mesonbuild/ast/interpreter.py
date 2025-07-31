@@ -692,8 +692,11 @@ class AstInterpreter(InterpreterBase):
     def func_get_variable(self, node: BaseNode, args: T.List[TYPE_var], kwargs: T.Dict[str, TYPE_var]) -> T.Any:
         assert isinstance(node, FunctionNode)
         var_name = args[0]
-        assert isinstance(var_name, str)
-        val = self.get_cur_value(var_name)
+        if isinstance(var_name, UnknownValue):
+            val: T.Union[UnknownValue, BaseNode] = UnknownValue()
+        else:
+            assert isinstance(var_name, str)
+            val = self.get_cur_value(var_name)
         self.dataflow_dag.add_edge(val, node)
         return val
 
