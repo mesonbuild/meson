@@ -20,14 +20,15 @@ if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .base import DependencyObjectKWs
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def mpi_factory(env: 'Environment',
                 for_machine: 'MachineChoice',
-                kwargs: T.Dict[str, T.Any],
+                kwargs: DependencyObjectKWs,
                 methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = kwargs.get('language')
+    language = T.cast('T.Optional[str]', kwargs.get('language'))
     if language is None:
         language = 'c'
     if language not in {'c', 'cpp', 'fortran'}:
@@ -58,7 +59,7 @@ def mpi_factory(env: 'Environment',
 
         if compiler_is_intel:
             if env.machines[for_machine].is_windows():
-                nwargs['returncode_value'] = 3
+                nwargs['returncode_value'] = 3  # type: ignore[typeddict-unknown-key]
 
             if language == 'c':
                 tool_names.append('mpiicc')
@@ -75,7 +76,7 @@ def mpi_factory(env: 'Environment',
         elif language == 'fortran':
             tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
-        nwargs['tools'] = tool_names
+        nwargs['tools'] = tool_names  # type: ignore[typeddict-unknown-key]
         candidates.append(functools.partial(
             MPIConfigToolDependency, tool_names[0], env, nwargs, language=language))
 
@@ -104,7 +105,7 @@ packages['mpi'] = mpi_factory
 class MPIConfigToolDependency(ConfigToolDependency):
     """Wrapper around mpicc, Intel's mpiicc and friends."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None):
         super().__init__(name, env, kwargs, language=language)
         if not self.is_found:
@@ -214,7 +215,7 @@ class MSMPIDependency(SystemDependency):
 
     """The Microsoft MPI."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs,
                  language: T.Optional[str] = None):
         super().__init__(name, env, kwargs, language=language)
         # MSMPI only supports the C API

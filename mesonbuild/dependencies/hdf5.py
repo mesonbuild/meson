@@ -21,13 +21,14 @@ if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .base import DependencyObjectKWs
 
 
 class HDF5PkgConfigDependency(PkgConfigDependency):
 
     """Handle brokenness in the HDF5 pkg-config files."""
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
         language = language or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
@@ -78,7 +79,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
     version_arg = '-showconfig'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
         language = language or 'c'
         if language not in {'c', 'cpp', 'fortran'}:
             raise DependencyException(f'Language {language} is not supported with HDF5.')
@@ -102,7 +103,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         for_machine = self.get_for_machine_from_kwargs(kwargs)
 
         nkwargs = kwargs.copy()
-        nkwargs['tools'] = tools
+        nkwargs['tools'] = tools  # type: ignore[typeddict-unknown-key]
 
         # Override the compiler that the config tools are going to use by
         # setting the environment variables that they use for the compiler and
@@ -144,8 +145,8 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
 def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
-                 kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
-    language = kwargs.get('language')
+                 kwargs: DependencyObjectKWs, methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+    language = T.cast('T.Optional[str]', kwargs.get('language'))
     candidates: T.List['DependencyGenerator'] = []
 
     if DependencyMethods.PKGCONFIG in methods:

@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import TypedDict
 
     from ..environment import Environment
+    from .base import DependencyObjectKWs
 
     # Definition of what `dub describe` returns (only the fields used by Meson)
     class DubDescription(TypedDict):
@@ -74,7 +75,7 @@ class DubDependency(ExternalDependency):
         'llvm': 'ldc',
     }
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__(DependencyTypeName('dub'), environment, kwargs, language='d')
         self.name = name
         from ..compilers.d import DCompiler, d_feature_args
@@ -84,7 +85,7 @@ class DubDependency(ExternalDependency):
         self.compiler = _temp_comp
 
         if 'required' in kwargs:
-            self.required = kwargs.get('required')
+            self.required = T.cast('bool', kwargs.get('required'))
 
         if DubDependency.class_dubbin is None and not DubDependency.class_dubbin_searched:
             DubDependency.class_dubbin = self._check_dub()
@@ -303,7 +304,7 @@ class DubDependency(ExternalDependency):
         for lib in bs['libs']:
             if os.name != 'nt':
                 # trying to add system libraries by pkg-config
-                pkgdep = PkgConfigDependency(lib, environment, {'required': True, 'silent': True})
+                pkgdep = PkgConfigDependency(lib, environment, {'required': True, 'silent': True})  # type: ignore[typeddict-unknown-key]
                 if pkgdep.is_found:
                     for arg in pkgdep.get_compile_args():
                         self.compile_args.append(arg)

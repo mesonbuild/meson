@@ -21,6 +21,7 @@ from .misc import threads_factory
 if T.TYPE_CHECKING:
     from ..envconfig import Properties
     from ..environment import Environment
+    from .base import DependencyObjectKWs
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:
@@ -339,7 +340,7 @@ class BoostLibraryFile():
         return [self.path.as_posix()]
 
 class BoostDependency(SystemDependency):
-    def __init__(self, environment: Environment, kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, environment: Environment, kwargs: DependencyObjectKWs) -> None:
         super().__init__('boost', environment, kwargs, language='cpp')
         buildtype = environment.coredata.optstore.get_value_for(OptionKey('buildtype'))
         assert isinstance(buildtype, str)
@@ -350,7 +351,7 @@ class BoostDependency(SystemDependency):
         self.explicit_static = 'static' in kwargs
 
         # Extract and validate modules
-        self.modules: T.List[str] = mesonlib.extract_as_list(kwargs, 'modules')
+        self.modules: T.List[str] = mesonlib.extract_as_list(kwargs, 'modules')  # type: ignore[arg-type]
         for i in self.modules:
             if not isinstance(i, str):
                 raise DependencyException('Boost module argument is not a string.')
@@ -677,7 +678,7 @@ class BoostDependency(SystemDependency):
         # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
         # allows BoostDependency to find boost from Conan. See #5438
         try:
-            boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
+            boost_pc = PkgConfigDependency('boost', self.env, {'required': False})  # type: ignore[typeddict-unknown-key]
             if boost_pc.found():
                 boost_lib_dir = boost_pc.get_variable(pkgconfig='libdir')
                 boost_inc_dir = boost_pc.get_variable(pkgconfig='includedir')

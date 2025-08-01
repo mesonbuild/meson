@@ -16,12 +16,13 @@ if T.TYPE_CHECKING:
     from . factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
+    from .base import DependencyObjectKWs
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM})
 def coarray_factory(env: 'Environment',
                     for_machine: 'MachineChoice',
-                    kwargs: T.Dict[str, T.Any],
+                    kwargs: DependencyObjectKWs,
                     methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     fcid = detect_compiler('coarray', env, for_machine, 'fortran').get_id()
     candidates: T.List['DependencyGenerator'] = []
@@ -35,7 +36,7 @@ def coarray_factory(env: 'Environment',
 
         if DependencyMethods.CMAKE in methods:
             if 'modules' not in kwargs:
-                kwargs['modules'] = 'OpenCoarrays::caf_mpi'
+                kwargs['modules'] = 'OpenCoarrays::caf_mpi'  # type: ignore[typeddict-unknown-key]
             candidates.append(functools.partial(
                 CMakeDependency, 'OpenCoarrays', env, kwargs, language='fortran'))
 
@@ -55,10 +56,10 @@ class CoarrayDependency(SystemDependency):
     Coarrays may be thought of as a high-level language abstraction of
     low-level MPI calls.
     """
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__('coarray', environment, kwargs, language='fortran')
-        kwargs['required'] = False
-        kwargs['silent'] = True
+        kwargs['required'] = False  # type: ignore[typeddict-unknown-key]
+        kwargs['silent'] = True  # type: ignore[typeddict-unknown-key]
 
         cid = self.get_compiler().get_id()
         if cid == 'gcc':

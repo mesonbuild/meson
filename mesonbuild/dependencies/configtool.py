@@ -15,6 +15,8 @@ from mesonbuild import mesonlib
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..interpreter.type_checking import PkgConfigDefineType
+    from .base import DependencyObjectKWs
+
 
 class ConfigToolDependency(ExternalDependency):
 
@@ -37,7 +39,7 @@ class ConfigToolDependency(ExternalDependency):
     allow_default_for_cross = False
     __strip_version = re.compile(r'^[0-9][0-9.]+')
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, exclude_paths: T.Optional[T.List[str]] = None):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None, exclude_paths: T.Optional[T.List[str]] = None):
         super().__init__(DependencyTypeName('config-tool'), environment, kwargs, language=language)
         self.name = name
         # You may want to overwrite the class version in some cases
@@ -45,14 +47,14 @@ class ConfigToolDependency(ExternalDependency):
         if not self.tool_name:
             self.tool_name = self.tools[0]
         if 'version_arg' in kwargs:
-            self.version_arg = kwargs['version_arg']
+            self.version_arg = kwargs['version_arg']  # type: ignore[typeddict-item]
 
         req_version_raw = kwargs.get('version', None)
         if req_version_raw is not None:
             req_version = mesonlib.stringlistify(req_version_raw)
         else:
             req_version = []
-        tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0), exclude_paths=exclude_paths)
+        tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0), exclude_paths=exclude_paths)  # type: ignore[arg-type]
         self.config = tool
         self.is_found = self.report_config(version, req_version)
         if not self.is_found:

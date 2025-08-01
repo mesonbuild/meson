@@ -21,6 +21,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..envconfig import MachineInfo
     from ..interpreter.type_checking import PkgConfigDefineType
+    from .base import DependencyObjectKWs
 
 class CMakeInfo(T.NamedTuple):
     module_paths: T.List[str]
@@ -69,7 +70,7 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> None:
         # Gather a list of all languages to support
         self.language_list: T.List[str] = []
         if language is None or force_use_global_compilers:
@@ -116,7 +117,7 @@ class CMakeDependency(ExternalDependency):
         # Setup the trace parser
         self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir(), self.env)
 
-        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
+        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))  # type: ignore[arg-type]
         cm_args = check_cmake_args(cm_args)
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
             CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info(cm_args)
@@ -128,10 +129,10 @@ class CMakeDependency(ExternalDependency):
         package_version = kwargs.get('cmake_package_version', '')
         if not isinstance(package_version, str):
             raise DependencyException('Keyword "cmake_package_version" must be a string.')
-        components = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'components'))]
-        modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
-        modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
-        cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
+        components = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'components'))]  # type: ignore[arg-type]
+        modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]  # type: ignore[arg-type]
+        modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]  # type: ignore[arg-type]
+        cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))  # type: ignore[arg-type]
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
         if cm_path:
             cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
@@ -655,9 +656,9 @@ class CMakeDependencyFactory:
         self.name = name
         self.modules = modules
 
-    def __call__(self, name: str, env: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> CMakeDependency:
+    def __call__(self, name: str, env: Environment, kwargs: DependencyObjectKWs, language: T.Optional[str] = None, force_use_global_compilers: bool = False) -> CMakeDependency:
         if self.modules:
-            kwargs['modules'] = self.modules
+            kwargs['modules'] = self.modules  # type: ignore[typeddict-unknown-key]
         return CMakeDependency(self.name or name, env, kwargs, language, force_use_global_compilers)
 
     @staticmethod

@@ -14,6 +14,7 @@ from .. import mlog
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
+    from .base import DependencyObjectKWs
 
     TV_DepIDEntry = T.Union[str, bool, int, None, T.Tuple[str, ...]]
     TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
@@ -38,10 +39,10 @@ class DependencyPackages(collections.UserDict):
 packages = DependencyPackages()
 _packages_accept_language: T.Set[str] = set()
 
-def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
+def get_dep_identifier(name: str, kwargs: DependencyObjectKWs) -> 'TV_DepID':
     identifier: 'TV_DepID' = (('name', name), )
     from ..interpreter.type_checking import DEPENDENCY_KWS
-    nkwargs = {k.name: k.default for k in DEPENDENCY_KWS}
+    nkwargs = T.cast('DependencyObjectKWs', {k.name: k.default for k in DEPENDENCY_KWS})
     nkwargs.update(kwargs)
 
     from ..interpreter import permitted_dependency_kwargs
@@ -84,7 +85,7 @@ display_name_map = {
     'wxwidgets': 'WxWidgets',
 }
 
-def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object], candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
+def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyObjectKWs, candidates: T.Optional[T.List['DependencyGenerator']] = None) -> T.Union['ExternalDependency', NotFoundDependency]:
     assert name
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
@@ -173,10 +174,10 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
-                                    kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:
+                                    kwargs: DependencyObjectKWs) -> T.List['DependencyGenerator']:
     # First check if the method is valid
-    if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
-        raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
+    if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:  # type: ignore[typeddict-item]
+        raise DependencyException('method {!r} is invalid'.format(kwargs['method']))  # type: ignore[typeddict-item]
 
     # Is there a specific dependency detector for this dependency?
     lname = name.lower()
@@ -201,7 +202,7 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
         methods = ['pkg-config', 'extraframework', 'cmake']
     else:
         # If it's explicitly requested, use that detection method (only).
-        methods = [kwargs['method']]
+        methods = [kwargs['method']]  # type: ignore[typeddict-item]
 
     # Exclusive to when it is explicitly requested
     if 'dub' in methods:

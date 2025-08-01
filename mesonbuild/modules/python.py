@@ -31,10 +31,10 @@ if T.TYPE_CHECKING:
 
     from . import ModuleState
     from ..build import Build, Data
-    from ..dependencies import Dependency
+    from ..dependencies.base import Dependency, DependencyObjectKWs
     from ..interpreter import Interpreter
     from ..interpreter.interpreter import BuildTargetSource
-    from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw
+    from ..interpreter.kwargs import ExtractRequired, SharedModule as SharedModuleKw, FuncDependency
     from ..interpreterbase.baseobjects import TYPE_var, TYPE_kwargs
 
     class PyInstallKw(TypedDict):
@@ -246,7 +246,7 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
 
         return '0x{:02x}{:02x}0000'.format(major, minor)
 
-    def _dependency_method_impl(self, kwargs: TYPE_kwargs) -> Dependency:
+    def _dependency_method_impl(self, kwargs: DependencyObjectKWs) -> Dependency:
         for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
         identifier = get_dep_identifier(self._full_path(), kwargs)
 
@@ -272,13 +272,15 @@ class PythonInstallation(_ExternalProgramHolder['PythonExternalProgram']):
     @noPosargs
     @typed_kwargs('python_installation.dependency', *DEPENDENCY_KWS, allow_unknown=True)
     @InterpreterObject.method('dependency')
-    def dependency_method(self, args: T.List['TYPE_var'], kwargs: 'TYPE_kwargs') -> 'Dependency':
+    def dependency_method(self, args: T.List['TYPE_var'], kwargs: FuncDependency) -> 'Dependency':
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        nkwargs = T.cast('DependencyObjectKWs', kwargs.copy())
+        nkwargs['required'] = required
         if disabled:
             mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
             return NotFoundDependency('python', self.interpreter.environment)
         else:
-            dep = self._dependency_method_impl(kwargs)
+            dep = self._dependency_method_impl(nkwargs)
             if required and not dep.found():
                 raise mesonlib.MesonException('Python dependency not found')
             return dep
