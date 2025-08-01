@@ -30,10 +30,10 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..compilers import Compiler
     from ..mesonlib import MachineChoice
-    from typing_extensions import TypedDict
     from ..interpreter.type_checking import PkgConfigDefineType
+    from .base import DependencyObjectKWs
 
-    class JNISystemDependencyKW(TypedDict):
+    class JNISystemDependencyKW(DependencyObjectKWs):
         modules: T.List[str]
         # FIXME: When dependency() moves to typed Kwargs, this should inherit
         # from its TypedDict type.
@@ -53,7 +53,7 @@ def get_shared_library_suffix(environment: 'Environment', for_machine: MachineCh
 
 
 class GTestDependencySystem(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
 
@@ -110,7 +110,7 @@ class GTestDependencySystem(SystemDependency):
 
 class GTestDependencyPC(PkgConfigDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         assert name == 'gtest'
         if kwargs.get('main'):
             name = 'gtest_main'
@@ -118,7 +118,7 @@ class GTestDependencyPC(PkgConfigDependency):
 
 
 class GMockDependencySystem(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
         if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
@@ -129,7 +129,7 @@ class GMockDependencySystem(SystemDependency):
         # want to avoid linking in main() from GTest
         gtest_kwargs = kwargs.copy()
         if self.main:
-            gtest_kwargs['main'] = False
+            gtest_kwargs['main'] = False  # type: ignore[typeddict-unknown-key]
 
         # GMock without GTest is pretty much useless
         # this also mimics the structure given in WrapDB,
@@ -178,7 +178,7 @@ class GMockDependencySystem(SystemDependency):
 
 class GMockDependencyPC(PkgConfigDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         assert name == 'gmock'
         if kwargs.get('main'):
             name = 'gmock_main'
@@ -193,7 +193,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
     tool_name = 'llvm-config'
     __cpp_blacklist = {'-DNDEBUG'}
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         self.tools = get_llvm_tool_names('llvm-config')
 
         # Fedora starting with Fedora 30 adds a suffix of the number
@@ -215,9 +215,9 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             return
 
         self.provided_modules = self.get_config_value(['--components'], 'modules')
-        modules = stringlistify(extract_as_list(kwargs, 'modules'))
+        modules = stringlistify(extract_as_list(kwargs, 'modules'))  # type: ignore[arg-type]
         self.check_components(modules)
-        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+        opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))  # type: ignore[arg-type]
         self.check_components(opt_modules, required=False)
 
         cargs = mesonlib.OrderedSet(self.get_config_value(['--cppflags'], 'compile_args'))
@@ -388,9 +388,9 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         return ''
 
 class LLVMDependencyCMake(CMakeDependency):
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
-        self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
-        self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
+    def __init__(self, name: str, env: 'Environment', kwargs: DependencyObjectKWs) -> None:
+        self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))  # type: ignore[arg-type]
+        self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))  # type: ignore[arg-type]
 
         compilers = None
         if kwargs.get('native', False):
@@ -515,7 +515,7 @@ class ValgrindDependency(PkgConfigDependency):
     Consumers of Valgrind usually only need the compile args and do not want to
     link to its (static) libraries.
     '''
-    def __init__(self, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, env: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__('valgrind', env, kwargs)
 
     def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
@@ -526,7 +526,7 @@ packages['valgrind'] = ValgrindDependency
 
 class ZlibSystemDependency(SystemDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         from ..compilers.c import AppleClangCCompiler
         from ..compilers.cpp import AppleClangCPPCompiler
@@ -564,7 +564,7 @@ class ZlibSystemDependency(SystemDependency):
 
 class JNISystemDependency(SystemDependency):
     def __init__(self, environment: 'Environment', kwargs: JNISystemDependencyKW):
-        super().__init__('jni', environment, T.cast('T.Dict[str, T.Any]', kwargs))
+        super().__init__('jni', environment, kwargs)
 
         self.feature_since = ('0.62.0', '')
 
@@ -757,7 +757,7 @@ class DiaSDKSystemDependency(SystemDependency):
         defval, _ = compiler.get_define(dname, '', env, [], [])
         return defval is not None
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__('diasdk', environment, kwargs)
         self.is_found = False
 

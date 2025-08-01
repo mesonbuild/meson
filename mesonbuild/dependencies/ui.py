@@ -24,10 +24,11 @@ from .factory import DependencyFactory
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .base import DependencyObjectKWs
 
 
 class GLDependencySystem(SystemDependency):
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__(name, environment, kwargs)
 
         if self.env.machines[self.for_machine].is_darwin():
@@ -56,11 +57,11 @@ class GnuStepDependency(ConfigToolDependency):
     tools = ['gnustep-config']
     tool_name = 'gnustep-config'
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs) -> None:
         super().__init__('gnustep', environment, kwargs, language='objc')
         if not self.is_found:
             return
-        self.modules = kwargs.get('modules', [])
+        self.modules = T.cast('T.List[str]', kwargs.get('modules', []))
         self.compile_args = self.filter_args(
             self.get_config_value(['--objc-flags'], 'compile_args'))
         self.link_args = self.weird_filter(self.get_config_value(
@@ -135,7 +136,7 @@ class SDL2DependencyConfigTool(ConfigToolDependency):
     tools = ['sdl2-config']
     tool_name = 'sdl2-config'
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__(name, environment, kwargs)
         if not self.is_found:
             return
@@ -148,7 +149,7 @@ class WxDependency(ConfigToolDependency):
     tools = ['wx-config-3.0', 'wx-config-3.1', 'wx-config', 'wx-config-gtk3']
     tool_name = 'wx-config'
 
-    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+    def __init__(self, environment: 'Environment', kwargs: DependencyObjectKWs):
         super().__init__('WxWidgets', environment, kwargs, language='cpp')
         if not self.is_found:
             return
@@ -171,10 +172,10 @@ class WxDependency(ConfigToolDependency):
         self.link_args = self.get_config_value(['--libs'] + extra_args + self.requested_modules, 'link_args')
 
     @staticmethod
-    def get_requested(kwargs: T.Dict[str, T.Any]) -> T.List[str]:
+    def get_requested(kwargs: DependencyObjectKWs) -> T.List[str]:
         if 'modules' not in kwargs:
             return []
-        candidates = extract_as_list(kwargs, 'modules')
+        candidates = T.cast('T.List[str]', extract_as_list(kwargs, 'modules'))  # type: ignore[arg-type]
         for c in candidates:
             if not isinstance(c, str):
                 raise DependencyException('wxwidgets module argument is not a string')
@@ -184,7 +185,7 @@ packages['wxwidgets'] = WxDependency
 
 class VulkanDependencySystem(SystemDependency):
 
-    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: DependencyObjectKWs, language: T.Optional[str] = None) -> None:
         super().__init__(name, environment, kwargs, language=language)
 
         self.vulkan_sdk = os.environ.get('VULKAN_SDK', os.environ.get('VK_SDK_PATH'))
