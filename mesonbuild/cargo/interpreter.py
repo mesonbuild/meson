@@ -88,6 +88,11 @@ class Interpreter:
 
     def interpret(self, subdir: str) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
+        filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
+        build = builder.Builder(filename)
+        return self.interpret_package(manifest, build, subdir)
+
+    def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str) -> mparser.CodeBlockNode:
         pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
         if not cached:
             # This is an entry point, always enable the 'default' feature.
@@ -95,11 +100,14 @@ class Interpreter:
             self._enable_feature(pkg, 'default')
 
         # Build an AST for this package
-        filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
-        build = builder.Builder(filename)
-        ast = self._create_project(pkg, build)
-        ast += [
-            build.assign(build.function('import', [build.string('rust')]), 'rust'),
+        ast: T.List[mparser.BaseNode] = []
+        ast += self._create_project(pkg, build)
+        ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
+        ast += self._create_package(pkg, build, subdir)
+        return build.block(ast)
+
+    def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
+        ast: T.List[mparser.BaseNode] = [
             build.function('message', [
                 build.string('Enabled features:'),
                 build.array([build.string(f) for f in pkg.features]),
@@ -112,7 +120,7 @@ class Interpreter:
             for crate_type in pkg.manifest.lib.crate_type:
                 ast.extend(self._create_lib(pkg, build, crate_type))
 
-        return build.block(ast)
+        return ast
 
     def _fetch_package(self, package_name: str, api: str) -> T.Tuple[PackageState, bool]:
         key = PackageKey(package_name, api)
