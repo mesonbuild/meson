@@ -169,14 +169,17 @@ class Interpreter:
                 if dep.path:
                     dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
                     _process_member(dep_member)
-            ast.append(build.function('subdir', [build.string(member)]))
+            if member == '.':
+                ast.extend(self._create_package(pkg, build, subdir))
+            else:
+                ast.append(build.function('subdir', [build.string(member)]))
             processed_members[member] = pkg
 
         ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
         for member in ws.required_members:
             _process_member(member)
         if not project_root:
-            ast = self._create_project(name, None, build) + ast
+            ast = self._create_project(name, processed_members.get('.'), build) + ast
 
         return build.block(ast)
 
@@ -202,6 +205,8 @@ class Interpreter:
         ws = WorkspaceState(workspace, subdir)
         for m in workspace.members:
             self._load_workspace_member(ws, m)
+        if workspace.root_package:
+            self._add_workspace_member(workspace.root_package, ws, '.')
         self.workspaces[subdir] = ws
         return ws
 
@@ -313,8 +318,7 @@ class Interpreter:
                 raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
 
             if workspace_:
-                if manifest_:
-                    raise NotImplementedError
+                workspace_.root_package = manifest_
                 self.manifests[subdir] = workspace_
                 return workspace_
 
