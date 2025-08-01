@@ -101,7 +101,7 @@ class Interpreter:
 
         # Build an AST for this package
         ast: T.List[mparser.BaseNode] = []
-        ast += self._create_project(pkg, build)
+        ast += self._create_project(pkg.manifest.package.name, pkg, build)
         ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
         ast += self._create_package(pkg, build, subdir)
         return build.block(ast)
@@ -276,32 +276,38 @@ class Interpreter:
             value = value[1:-1]
         return pair[0], value
 
-    def _create_project(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_project(self, name: str, pkg: T.Optional[PackageState], build: builder.Builder) -> T.List[mparser.BaseNode]:
         """Create the project() function call
 
         :param pkg: The package to generate from
         :param build: The AST builder
         :return: a list nodes
         """
+        args: T.List[mparser.BaseNode] = [
+            build.string(name),
+            build.string('rust'),
+        ]
+        kwargs: T.Dict[str, mparser.BaseNode] = {
+            # Always assume that the generated meson is using the latest features
+            # This will warn when when we generate deprecated code, which is helpful
+            # for the upkeep of the module
+            'meson_version': build.string(f'>= {coredata.stable_version}'),
+        }
+        if not pkg:
+            return [
+                build.function('project', args, kwargs),
+            ]
+
         default_options: T.List[mparser.BaseNode] = []
         default_options.append(build.string(f'rust_std={pkg.manifest.package.edition}'))
         default_options.append(build.string(f'build.rust_std={pkg.manifest.package.edition}'))
         if pkg.downloaded:
             default_options.append(build.string('warning_level=0'))
 
-        args: T.List[mparser.BaseNode] = []
-        args.extend([
-            build.string(pkg.manifest.package.name),
-            build.string('rust'),
-        ])
-        kwargs: T.Dict[str, mparser.BaseNode] = {
+        kwargs.update({
             'version': build.string(pkg.manifest.package.version),
-            # Always assume that the generated meson is using the latest features
-            # This will warn when when we generate deprecated code, which is helpful
-            # for the upkeep of the module
-            'meson_version': build.string(f'>= {coredata.stable_version}'),
             'default_options': build.array(default_options),
-        }
+        })
         if pkg.manifest.package.license:
             kwargs['license'] = build.string(pkg.manifest.package.license)
         elif pkg.manifest.package.license_file:
