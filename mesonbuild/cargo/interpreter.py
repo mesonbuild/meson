@@ -14,7 +14,6 @@ import dataclasses
 import os
 import collections
 import urllib.parse
-import itertools
 import typing as T
 
 from . import builder, version, cfg
@@ -153,10 +152,8 @@ class Interpreter:
             return
         dep = pkg.manifest.dependencies.get(depname)
         if not dep:
-            if depname in itertools.chain(pkg.manifest.dev_dependencies, pkg.manifest.build_dependencies):
-                # FIXME: Not supported yet
-                return
-            raise MesonException(f'Dependency {depname} not defined in {pkg.manifest.package.name} manifest')
+            # It could be build/dev/target dependency. Just ignore it.
+            return
         pkg.required_deps.add(depname)
         dep_pkg, _ = self._fetch_package(dep.package, dep.api)
         if dep.default_features:
