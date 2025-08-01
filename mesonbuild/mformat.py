@@ -242,6 +242,10 @@ class MultilineArgumentDetector(FullAstVisitor):
         if node.is_multiline:
             self.is_multiline = True
 
+        nargs = len(node)
+        if nargs and nargs == len(node.commas):
+            self.is_multiline = True
+
         if self.is_multiline:
             return
 
