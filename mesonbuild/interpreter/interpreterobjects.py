@@ -31,6 +31,7 @@ import typing as T
 if T.TYPE_CHECKING:
     from . import kwargs
     from ..cmake.interpreter import CMakeInterpreter
+    from ..dependencies.base import IncludeType
     from ..envconfig import MachineInfo
     from ..interpreterbase import FeatureCheckBase, SubProject, TYPE_var, TYPE_kwargs, TYPE_nvar, TYPE_nkwargs
     from .interpreter import Interpreter
@@ -569,7 +570,16 @@ class DependencyHolder(ObjectHolder[Dependency]):
     @typed_pos_args('dependency.as_system', optargs=[str])
     @InterpreterObject.method('as_system')
     def as_system_method(self, args: T.Tuple[T.Optional[str]], kwargs: TYPE_kwargs) -> Dependency:
-        return self.held_object.generate_system_dependency(args[0] or 'system')
+        include_type: IncludeType
+        if args[0] is None:
+            include_type = 'system'
+        elif args[0] not in {'preserve', 'system', 'non-system'}:
+            raise InvalidArguments(
+                'Dependency.as_system: if an argument is given it must be one '
+                f'of: "preserve", "system", "non-system", not: "{args[0]}"')
+        else:
+            include_type = T.cast('IncludeType', args[0])
+        return self.held_object.generate_system_dependency(include_type)
 
     @FeatureNew('dependency.as_link_whole', '0.56.0')
     @noKwargs
