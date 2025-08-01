@@ -71,6 +71,7 @@ def condense(dirname: str) -> None:
     replace_source('run_unittests.py', replacements)
     replace_source('run_project_tests.py', replacements)
     replace_source('run_format_tests.py', replacements)
+    replace_source('run_shell_checks.py', replacements)
     for f in glob('unittests/*.py'):
         replace_source(f, replacements)
 

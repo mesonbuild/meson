@@ -429,7 +429,7 @@ class RewriterTests(BasePlatformTests):
         self.assertEqualIgnoreOrder(out, expected)
 
     def test_tricky_dataflow(self):
-        self.prime('7 tricky dataflow')
+        self.prime('8 tricky dataflow')
         out = self.rewrite(self.builddir, os.path.join(self.builddir, 'addSrc.json'))
         expected = {
             'target': {
@@ -449,7 +449,7 @@ class RewriterTests(BasePlatformTests):
         self.assertEqualIgnoreOrder(out, expected)
 
     def test_raw_printer_is_idempotent(self):
-        test_path = Path(self.unit_test_dir, '120 rewrite')
+        test_path = Path(self.unit_test_dir, '121 rewrite')
         meson_build_file = test_path / 'meson.build'
         # original_contents = meson_build_file.read_bytes()
         original_contents = meson_build_file.read_text(encoding='utf-8')
