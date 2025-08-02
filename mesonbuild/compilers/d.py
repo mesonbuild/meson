@@ -12,7 +12,7 @@ from .. import mesonlib
 from ..arglist import CompilerArgs
 from ..linkers import RSPFileSyntax
 from ..mesonlib import (
-    EnvironmentException, version_compare, is_windows
+    EnvironmentException, MesonBugException, version_compare, is_windows
 )
 from ..options import OptionKey
 
@@ -382,24 +382,10 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         sargs = super().get_soname_args(env, prefix, shlib_name, suffix,
                                         soversion, darwin_versions)
 
-        # LDC and DMD actually do use a linker, but they proxy all of that with
-        # their own arguments
-        soargs: T.List[str] = []
-        if self.linker.id.startswith('ld.'):
-            for arg in sargs:
-                a, b = arg.split(',', maxsplit=1)
-                soargs.append(a)
-                soargs.append(self.LINKER_PREFIX + b)
-            return soargs
-        elif self.linker.id.startswith('ld64'):
-            for arg in sargs:
-                if not arg.startswith(self.LINKER_PREFIX):
-                    soargs.append(self.LINKER_PREFIX + arg)
-                else:
-                    soargs.append(arg)
-            return soargs
-        else:
-            return sargs
+        if not all(arg.startswith(self.LINKER_PREFIX) for arg in sargs):
+            raise MesonBugException(f'Not all soname arguments for the D compiler start with {repr(self.LINKER_PREFIX)}: {sargs}')
+
+        return sargs
 
     def get_allow_undefined_link_args(self) -> T.List[str]:
         args = self.linker.get_allow_undefined_args()
