@@ -324,6 +324,12 @@ class MachineInfo(HoldableObject):
         """
         return self.system in {'darwin', 'ios', 'tvos', 'visionos', 'watchos'}
 
+    def is_macos(self) -> bool:
+        """
+        Machine is macOS?
+        """
+        return self.system == 'darwin' and self.subsystem == 'macos'
+
     def is_android(self) -> bool:
         """
         Machine is Android?
@@ -375,6 +381,12 @@ class MachineInfo(HoldableObject):
     def is_irix(self) -> bool:
         """Machine is IRIX?"""
         return self.system.startswith('irix')
+
+    def is_wasm(self) -> bool:
+        """
+        Machine is WASM?
+        """
+        return self.system.startswith('wasm') or self.system == 'emscripten'
 
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
