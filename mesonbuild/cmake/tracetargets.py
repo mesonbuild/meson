@@ -72,7 +72,7 @@ def resolve_cmake_trace_targets(target_name: str,
 
         if curr not in trace.targets:
             curr_path = Path(curr)
-            if reg_is_lib.match(curr):
+            if reg_is_lib.match(curr) or curr.startswith('-framework'):
                 res.libraries += [curr]
             elif curr_path.is_absolute() and curr_path.exists():
                 if any(x.endswith('.framework') for x in curr_path.parts):
