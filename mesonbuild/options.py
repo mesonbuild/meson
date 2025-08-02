@@ -778,6 +778,7 @@ COMPILER_BASE_OPTIONS: T.Mapping[OptionKey, AnyOptionType] = {
         UserBooleanOption('b_thinlto_cache', 'Use LLVM ThinLTO caching for faster incremental builds', False),
         UserStringOption('b_thinlto_cache_dir', 'Directory to store ThinLTO cache objects', ''),
         UserStringArrayOption('b_sanitize', 'Code sanitizer to use', []),
+        UserBooleanOption('b_legal_code', 'Whether to ban dangerous constructs in a language', True),
         UserBooleanOption('b_lundef', 'Use -Wl,--no-undefined when linking', True),
         UserBooleanOption('b_asneeded', 'Use -Wl,--as-needed when linking', True),
         UserComboOption(
