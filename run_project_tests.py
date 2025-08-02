@@ -1489,7 +1489,7 @@ def detect_system_compiler(options: 'CompilerArgumentType') -> None:
     if options.cross_file:
         print_compilers(env, MachineChoice.BUILD)
 
-    for lang in sorted(compilers.all_languages):
+    for lang in compilers.all_languages:
         try:
             comp = compiler_from_language(env, lang, MachineChoice.HOST)
             # note compiler id for later use with test.json matrix
@@ -1509,7 +1509,7 @@ def print_compilers(env: 'Environment', machine: MachineChoice) -> None:
     print()
     print(f'{machine.get_lower_case_name()} machine compilers')
     print()
-    for lang in sorted(compilers.all_languages):
+    for lang in compilers.all_languages:
         try:
             comp = compiler_from_language(env, lang, machine)
             details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
