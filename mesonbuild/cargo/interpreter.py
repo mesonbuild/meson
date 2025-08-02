@@ -21,7 +21,7 @@ from .toml import load_toml, TomlImplementationMissing
 from .manifest import Manifest, CargoLock, fixup_meson_varname
 from ..mesonlib import MesonException, MachineChoice
 from .. import coredata, mlog
-from ..wrap.wrap import PackageDefinition
+from ..wrap.wrap import PackageDefinition, CargoState
 
 if T.TYPE_CHECKING:
     from . import raw
@@ -465,22 +465,22 @@ def _parse_git_url(url: str, branch: T.Optional[str] = None) -> T.Tuple[str, str
     return url, revision, directory
 
 
-def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition]:
+def load_wraps(source_dir: str, subproject_dir: str) -> CargoState:
     """ Convert Cargo.lock into a list of wraps """
 
     # Map directory -> PackageDefinition, to avoid duplicates. Multiple packages
     # can have the same source URL, in that case we have a single wrap that
     # provides multiple dependency names.
-    wraps: T.Dict[str, PackageDefinition] = {}
     filename = os.path.join(source_dir, 'Cargo.lock')
     if os.path.exists(filename):
         try:
             toml = load_toml(filename)
         except TomlImplementationMissing as e:
             mlog.warning('Failed to load Cargo.lock:', str(e), fatal=False)
-            return []
+            return CargoState()
         raw_cargolock = T.cast('raw.CargoLock', toml)
         cargolock = CargoLock.from_raw(raw_cargolock)
+        wraps: T.Dict[str, PackageDefinition] = {}
         for package in cargolock.package:
             meson_depname = _dependency_name(package.name, version.api(package.version))
             if package.source is None:
@@ -512,4 +512,5 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
                 wraps[directory].add_provided_dep(meson_depname)
             else:
                 mlog.warning(f'Unsupported source URL in {filename}: {package.source}')
-    return list(wraps.values())
+        return CargoState(cargolock.package, wraps.values())
+    return CargoState()
