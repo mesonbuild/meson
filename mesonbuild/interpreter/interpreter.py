@@ -316,6 +316,18 @@ class Interpreter(InterpreterBase, HoldableObject):
     def __getnewargs_ex__(self) -> T.Tuple[T.Tuple[object], T.Dict[str, object]]:
         raise MesonBugException('This class is unpicklable')
 
+    def load_root_cargo_lock_file(self) -> None:
+        cargo_lock_filename = os.path.join(self.subdir, 'Cargo.lock')
+        cargo_lock = os.path.join(self.source_root, cargo_lock_filename)
+        if not os.path.isfile(cargo_lock):
+            return
+        from .. import cargo
+        try:
+            self.cargo = cargo.Interpreter(self.environment, self.subdir, self.subproject_dir)
+        except cargo.TomlImplementationMissing as e:
+            # error delayed to actual usage of a Cargo subproject
+            mlog.warning(f'cannot load Cargo.lock: {e}', fatal=False)
+
     def _redetect_machines(self) -> None:
         # Re-initialize machine descriptions. We can do a better job now because we
         # have the compilers needed to gain more knowledge, so wipe out old
@@ -1300,6 +1312,9 @@ class Interpreter(InterpreterBase, HoldableObject):
         else:
             assert self.environment.wrap_resolver is not None, 'for mypy'
             self.environment.wrap_resolver.load_and_merge(subprojects_dir, self.subproject)
+
+        if self.cargo is None:
+            self.load_root_cargo_lock_file()
 
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
