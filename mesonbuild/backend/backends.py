@@ -1570,6 +1570,15 @@ class Backend:
         cmd = [i.replace('\\', '/') if isinstance(i, str) else i for i in cmd]
         return inputs, outputs, cmd
 
+    def transform_link_args(self, target: build.BuildTarget, args: list[str]) -> list[str]:
+        resolved_args = []
+        for i in args:
+            if '@PRIVATE_DIR@' in i:
+                pdir = self.get_target_private_dir(target)
+                i = i.replace('@PRIVATE_DIR@', pdir)
+            resolved_args.append(i)
+        return resolved_args
+
     def get_introspect_command(self) -> str:
         return ' '.join(shlex.quote(x) for x in self.environment.get_build_command() + ['introspect'])
 
