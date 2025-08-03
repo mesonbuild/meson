@@ -59,7 +59,7 @@ def mpi_factory(env: 'Environment',
 
         if compiler_is_intel:
             if env.machines[for_machine].is_windows():
-                nwargs['returncode_value'] = 3  # type: ignore[typeddict-unknown-key]
+                nwargs['returncode_value'] = 3
 
             if language == 'c':
                 tool_names.append('mpiicc')
@@ -76,7 +76,7 @@ def mpi_factory(env: 'Environment',
         elif language == 'fortran':
             tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
-        nwargs['tools'] = tool_names  # type: ignore[typeddict-unknown-key]
+        nwargs['tools'] = tool_names
         candidates.append(functools.partial(
             MPIConfigToolDependency, tool_names[0], env, nwargs, language=language))
 
