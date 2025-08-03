@@ -304,7 +304,7 @@ class DubDependency(ExternalDependency):
         for lib in bs['libs']:
             if os.name != 'nt':
                 # trying to add system libraries by pkg-config
-                pkgdep = PkgConfigDependency(lib, environment, {'required': True, 'silent': True})  # type: ignore[typeddict-unknown-key]
+                pkgdep = PkgConfigDependency(lib, environment, {'required': True, 'silent': True})
                 if pkgdep.is_found:
                     for arg in pkgdep.get_compile_args():
                         self.compile_args.append(arg)
