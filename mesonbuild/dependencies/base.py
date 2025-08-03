@@ -61,6 +61,9 @@ if T.TYPE_CHECKING:
         # Only in the python dependency
         embed: bool
 
+        # Only passed internally, not part of the DSL API
+        silent: bool
+
     _MissingCompilerBase = Compiler
 else:
     _MissingCompilerBase = object
@@ -413,7 +416,7 @@ class ExternalDependency(Dependency):
         self.language = language
         self.version_reqs = kwargs.get('version', [])
         self.required = kwargs.get('required', True)
-        self.silent = T.cast('bool', kwargs.get('silent', False))
+        self.silent = kwargs.get('silent', False)
         static = kwargs.get('static')
         if static is None:
             static = T.cast('bool', self.env.coredata.optstore.get_value_for(OptionKey('prefer_static')))
