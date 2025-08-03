@@ -19,7 +19,7 @@ import typing as T
 from . import builder, version, cfg
 from .toml import load_toml, TomlImplementationMissing
 from .manifest import Manifest, CargoLock, fixup_meson_varname
-from ..mesonlib import MesonException, MachineChoice
+from ..mesonlib import MesonException, MachineChoice, version_compare_many
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition, CargoState
 
@@ -144,6 +144,16 @@ class Interpreter:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg, _ = self._fetch_package_from_subproject(dep.package, directory)
         else:
+            # From all available versions from Cargo.lock, pick the most recent
+            # satisfying the constraints
+            cargo_lock_pkgs = self.environment.wrap_resolver.cargo_state.named(dep.package)
+            for cargo_pkg in cargo_lock_pkgs:
+                if version_compare_many(cargo_pkg.version, dep.meson_version):
+                    dep.update_version(f'={cargo_pkg.version}')
+                    break
+            else:
+                if not dep.meson_version:
+                    raise MesonException(f'Cannot determine version of cargo package {dep.package}')
             dep_pkg, _ = self._fetch_package(dep.package, dep.api)
         return dep_pkg
 

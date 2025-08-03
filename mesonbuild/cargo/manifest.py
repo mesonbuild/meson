@@ -253,7 +253,7 @@ class Dependency:
             elif v.startswith('='):
                 api.add(version.api(v[1:].strip()))
         if not api:
-            return '0'
+            return ''
         elif len(api) == 1:
             return api.pop()
         else:
@@ -278,6 +278,17 @@ class Dependency:
 
         raw_dep = _depv_to_dep(raw_depv)
         return cls.from_raw_dict(name, raw_dep, member_path, raw_ws_dep)
+
+    def update_version(self, v: str) -> None:
+        self.version = v
+        try:
+            delattr(self, 'api')
+        except AttributeError:
+            pass
+        try:
+            delattr(self, 'meson_version')
+        except AttributeError:
+            pass
 
 
 @dataclasses.dataclass
@@ -487,6 +498,14 @@ class CargoLockPackage:
     source: T.Optional[str] = None
     checksum: T.Optional[str] = None
     dependencies: T.List[str] = dataclasses.field(default_factory=list)
+
+    @lazy_property
+    def api(self) -> str:
+        return version.api(self.version)
+
+    @lazy_property
+    def subproject(self) -> str:
+        return f'{self.name}-{self.api}-rs'
 
     @classmethod
     def from_raw(cls, raw: raw.CargoLockPackage) -> CargoLockPackage:

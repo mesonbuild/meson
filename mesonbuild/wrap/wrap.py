@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from .. import mlog
+from collections import defaultdict
 import contextlib
 from dataclasses import dataclass
 import urllib.request
@@ -32,7 +33,7 @@ from . import WrapMode
 from .. import coredata
 from ..mesonlib import (
     DirectoryLock, DirectoryLockAction, quiet_git, GIT, ProgressBar, MesonException,
-    windows_proof_rmtree, Popen_safe
+    Version, version_compare, windows_proof_rmtree, Popen_safe
 )
 from ..interpreterbase import FeatureNew
 from ..interpreterbase import SubProject
@@ -42,7 +43,7 @@ if T.TYPE_CHECKING:
     import http.client
     from typing_extensions import Literal
 
-    from ..cargo.manifest import CargoLock
+    from ..cargo.manifest import CargoLock, CargoLockPackage
 
     Method = Literal['meson', 'cmake', 'cargo']
 
@@ -61,7 +62,6 @@ ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
 
 if mesonlib.is_windows():
     from ..programs import ExternalProgram
-    from ..mesonlib import version_compare
     _exclude_paths: T.List[str] = []
     while True:
         _patch = ExternalProgram('patch', silent=True, exclude_paths=_exclude_paths)
@@ -344,10 +344,21 @@ class CargoState:
     """State for cargo package definitions to avoid recomputing cargo wraps."""
 
     wraps: T.Dict[str, PackageDefinition]
+    versions: T.Dict[str, T.List[CargoLockPackage]]
 
-    def __init__(self, wraps: T.Iterable[PackageDefinition] = None):
+    def __init__(self, packages: T.Iterable[CargoLockPackage] = None, wraps: T.Iterable[PackageDefinition] = None):
         wraps = wraps or []
         self.wraps = {wrap.name: wrap for wrap in wraps}
+
+        packages = packages or []
+        self.versions = defaultdict(list)
+        for pkg in packages:
+            self.versions[pkg.name].append(pkg)
+        for version_set in self.versions.values():
+            version_set.sort(reverse=True, key=lambda pkg: Version(pkg.version))
+
+    def named(self, name: str) -> T.Sequence[CargoLockPackage]:
+        return self.versions[name]
 
 
 @dataclass(eq=False)
