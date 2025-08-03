@@ -231,6 +231,9 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return []
 
+    def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
+        return []
+
     def sanitizer_args(self, value: T.List[str]) -> T.List[str]:
         return []
 
@@ -897,6 +900,10 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
         return ["-Wl,-cache_path_lto," + path]
+
+    def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
+        # https://clang.llvm.org/docs/CommandGuide/clang.html#cmdoption-flto
+        return ["-Wl,-object_path_lto," + path]
 
     def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=224.1'):

@@ -354,6 +354,8 @@ def get_base_link_args(target: 'BuildTarget',
                 threads=num_threads,
                 mode=lto_mode,
                 thinlto_cache_dir=thinlto_cache_dir))
+            obj_cache_path = os.path.join('@PRIVATE_DIR@', "lto.o")
+            args.extend(linker.get_lto_obj_cache_path(obj_cache_path))
     except (KeyError, AttributeError):
         pass
     try:
@@ -1035,6 +1037,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_lto_args()
+
+    def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
+        return self.linker.get_lto_obj_cache_path(path)
 
     def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return []
