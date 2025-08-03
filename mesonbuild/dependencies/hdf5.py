@@ -102,7 +102,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         for_machine = kwargs.get('native', MachineChoice.HOST)
 
         nkwargs = kwargs.copy()
-        nkwargs['tools'] = tools  # type: ignore[typeddict-unknown-key]
+        nkwargs['tools'] = tools
 
         # Override the compiler that the config tools are going to use by
         # setting the environment variables that they use for the compiler and

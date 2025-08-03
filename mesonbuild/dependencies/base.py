@@ -62,7 +62,11 @@ if T.TYPE_CHECKING:
         embed: bool
 
         # Only passed internally, not part of the DSL API
+        paths: T.List[str]
+        returncode_value: int
         silent: bool
+        tools: T.List[str]
+        version_arg: str
 
     _MissingCompilerBase = Compiler
 else:
