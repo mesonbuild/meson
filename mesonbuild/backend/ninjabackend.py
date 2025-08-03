@@ -3623,11 +3623,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # options passed on the command-line, in default_options, etc.
         # These have the lowest priority.
         if isinstance(target, build.StaticLibrary):
-            commands += linker.get_base_link_args(target, linker, self.environment)
+            base_link_args = linker.get_base_link_args(target, linker, self.environment)
         else:
-            commands += compilers.get_base_link_args(target,
-                                                     linker,
-                                                     self.environment)
+            base_link_args = compilers.get_base_link_args(target,
+                                                          linker,
+                                                          self.environment)
+        commands += self.transform_link_args(target, base_link_args)
         # Add -nostdlib if needed; can't be overridden
         commands += self.get_no_stdlib_link_args(target, linker)
         # Add things like /NOLOGO; usually can't be overridden
