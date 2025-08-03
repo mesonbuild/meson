@@ -504,3 +504,4 @@ class FuncDependency(TypedDict):
     main: bool
     method: DependencyMethods
     modules: T.List[str]
+    native: MachineChoice

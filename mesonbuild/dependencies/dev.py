@@ -197,7 +197,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         # of bits in the isa that llvm targets, for example, on x86_64
         # and aarch64 the name will be llvm-config-64, on x86 and arm
         # it will be llvm-config-32.
-        if environment.machines[self.get_for_machine_from_kwargs(kwargs)].is_64_bit:
+        if environment.machines[kwargs.get('native', mesonlib.MachineChoice.HOST)].is_64_bit:
             self.tools.append('llvm-config-64')
         else:
             self.tools.append('llvm-config-32')
@@ -389,11 +389,8 @@ class LLVMDependencyCMake(CMakeDependency):
         self.llvm_modules = kwargs.get('modules', [])
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))  # type: ignore[arg-type]
 
-        compilers = None
-        if kwargs.get('native', False):
-            compilers = env.coredata.compilers.build
-        else:
-            compilers = env.coredata.compilers.host
+        for_machine = kwargs.get('native', mesonlib.MachineChoice.HOST)
+        compilers = env.coredata.compilers[for_machine]
         if not compilers or not {'c', 'cpp'}.issubset(compilers):
             # Initialize basic variables
             ExternalDependency.__init__(self, DependencyTypeName('cmake'), env, kwargs)

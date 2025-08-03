@@ -9,7 +9,7 @@ import os
 import re
 from pathlib import Path
 
-from ..mesonlib import OrderedSet, join_args
+from ..mesonlib import OrderedSet, join_args, MachineChoice
 from .base import DependencyException, DependencyMethods
 from .configtool import ConfigToolDependency
 from .detect import packages
@@ -20,7 +20,6 @@ import typing as T
 if T.TYPE_CHECKING:
     from .factory import DependencyGenerator
     from ..environment import Environment
-    from ..mesonlib import MachineChoice
     from .base import DependencyObjectKWs
 
 
@@ -100,7 +99,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
             raise DependencyException('How did you get here?')
 
         # We need this before we call super()
-        for_machine = self.get_for_machine_from_kwargs(kwargs)
+        for_machine = kwargs.get('native', MachineChoice.HOST)
 
         nkwargs = kwargs.copy()
         nkwargs['tools'] = tools  # type: ignore[typeddict-unknown-key]

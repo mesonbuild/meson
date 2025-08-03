@@ -919,4 +919,5 @@ DEPENDENCY_KWS: T.List[KwargInfo] = [
               validator=lambda x: 'Must be a valid language if set' if (x is not None and x not in compilers.all_languages) else None),
     KwargInfo('main', bool, default=False),
     KwargInfo('modules', ContainerTypeInfo(list, str), listify=True, default=[]),
+    NATIVE_KW,
 ]
