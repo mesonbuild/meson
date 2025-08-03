@@ -591,7 +591,7 @@ def python_factory(env: 'Environment', for_machine: 'MachineChoice',
         if mesonlib.version_compare(installation.version, '>= 3'):
             # There is a python in /System/Library/Frameworks, but that's python 2.x,
             # Python 3 will always be in /Library
-            nkwargs['paths'] = ['/Library/Frameworks']  # type: ignore[typeddict-unknown-key]
+            nkwargs['paths'] = ['/Library/Frameworks']
         candidates.append(functools.partial(PythonFrameworkDependency, 'Python', env, nkwargs, installation, for_machine))
 
     return candidates

@@ -59,6 +59,10 @@ if T.TYPE_CHECKING:
         version: T.List[str]
         embed: bool
         silent: bool
+        version_arg: str
+        returncode_value: int
+        tools: T.List[str]
+        paths: T.List[str]
 
     _MissingCompilerBase = Compiler
 else:

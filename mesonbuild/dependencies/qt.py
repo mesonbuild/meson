@@ -356,7 +356,7 @@ class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
         # ExtraFrameworkDependency doesn't support any methods
         fw_kwargs = kwargs.copy()
         fw_kwargs.pop('method')
-        fw_kwargs['paths'] = [libdir]  # type: ignore[typeddict-unknown-key]
+        fw_kwargs['paths'] = [libdir]
 
         for m in modules:
             fname = 'Qt' + m
