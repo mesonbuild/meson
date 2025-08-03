@@ -103,8 +103,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: DependencyOb
     # display the dependency name with correct casing
     display_name = display_name_map.get(lname, lname)
 
-    for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
-
+    for_machine = kwargs.get('native', MachineChoice.HOST)
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
     # build a list of dependency methods to try
