@@ -6,6 +6,7 @@ from __future__ import annotations
 from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
     search_version, is_windows, Popen_safe, Popen_safe_logged, windows_proof_rm,
+    is_zos,
 )
 from ..envconfig import BinaryTable
 from .. import mlog
@@ -56,6 +57,11 @@ else:
         defaults['cpp'] = ['c++', 'g++', 'l++', 'clang++']
         defaults['objc'] = ['clang']
         defaults['objcpp'] = ['clang++']
+    elif is_zos():
+        defaults['c'] = ['ibm-clang64', 'ibm-clang', 'clang64', 'clang']
+        defaults['cpp'] = ['ibm-clang++64', 'ibm-clang++', 'clang++64', 'clang++']
+        defaults['objc'] = []
+        defaults['objcpp'] = []
     else:
         defaults['c'] = ['cc', 'gcc', 'clang', 'nvc', 'pgcc', 'icc', 'icx']
         defaults['cpp'] = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc', 'icpx']
@@ -249,6 +255,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return linkers.AppleArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('Usage'): # AIX
             return linkers.AIXArLinker(linker)
+        if p.returncode != 0 and 'FSUMA930' in err: # z/OS
+            return linkers.ArLinker(compiler.for_machine, linker)
         if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
             return linkers.ArLinker(compiler.for_machine, linker)
     _handle_exceptions(popen_exceptions, trials, 'linker')
@@ -455,6 +463,12 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             linker = None
 
             defines = _get_clang_compiler_defines(compiler, lang)
+
+            if 'IBM Open XL C/C++' in out:
+                # The first version may not be the clang version
+                clang_out = out.split('clang version')
+                if len(clang_out) > 1:
+                    version = search_version(str(clang_out[1]))
 
             # Even if the for_machine is darwin, we could be using vanilla
             # clang.
