@@ -420,9 +420,6 @@ class CoreData:
             raise MesonException(f'Tried to set unknown builtin option {str(key)}')
         dirty |= changed
 
-        if key.name == 'buildtype':
-            dirty |= self._set_others_from_buildtype(value)
-
         return dirty
 
     def clear_cache(self) -> None:
@@ -459,33 +456,6 @@ class CoreData:
         if actual_debug != debug:
             result.append(('debug', actual_debug, debug))
         return result
-
-    def _set_others_from_buildtype(self, value: str) -> bool:
-        dirty = False
-
-        if value == 'plain':
-            opt = 'plain'
-            debug = False
-        elif value == 'debug':
-            opt = '0'
-            debug = True
-        elif value == 'debugoptimized':
-            opt = '2'
-            debug = True
-        elif value == 'release':
-            opt = '3'
-            debug = False
-        elif value == 'minsize':
-            opt = 's'
-            debug = True
-        else:
-            assert value == 'custom'
-            return False
-
-        dirty |= self.optstore.set_option(OptionKey('optimization'), opt)
-        dirty |= self.optstore.set_option(OptionKey('debug'), debug)
-
-        return dirty
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
