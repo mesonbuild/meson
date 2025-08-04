@@ -351,7 +351,7 @@ class CoreData:
             # key and target have the same subproject for consistency.
             # Now just do this to get things going.
             newkey = newkey.evolve(subproject=target.subproject)
-        (option_object, value) = self.optstore.get_value_object_and_value_for(newkey)
+        option_object, value = self.optstore.get_option_and_value_for(newkey)
         override = target.get_override(newkey.name)
         if override is not None:
             return option_object.validate_value(override)
