@@ -1185,12 +1185,6 @@ class OptionStore:
     def items(self) -> T.ItemsView['OptionKey', 'AnyOptionType']:
         return self.options.items()
 
-    def setdefault(self, k: OptionKey, o: AnyOptionType) -> AnyOptionType:
-        return self.options.setdefault(k, o)
-
-    def get(self, o: OptionKey, default: T.Optional[AnyOptionType] = None, **kwargs: T.Any) -> T.Optional[AnyOptionType]:
-        return self.options.get(o, default, **kwargs)
-
     def is_project_option(self, key: OptionKey) -> bool:
         """Convenience method to check if this is a project option."""
         return key in self.project_options
