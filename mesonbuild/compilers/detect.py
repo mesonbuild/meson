@@ -516,9 +516,6 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 raise EnvironmentException(m)
             cls = c.VisualStudioCCompiler if lang == 'c' else cpp.VisualStudioCPPCompiler
             linker = guess_win_linker(env, ['link'], cls, version, for_machine)
-            # As of this writing, CCache does not support MSVC but sccache does.
-            if 'sccache' not in ccache:
-                ccache = []
             return cls(
                 ccache, compiler, version, for_machine, is_cross, info, target,
                 full_version=cl_signature, linker=linker)
