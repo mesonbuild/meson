@@ -900,7 +900,7 @@ class BuildTarget(Target):
             # No source files or parent targets, target consists of only object
             # files of unknown origin. Just add the first clink compiler
             # that we have and hope that it can link these objects
-            for lang in link_langs:
+            for lang in reversed(link_langs):
                 if lang in self.all_compilers:
                     self.compilers[lang] = self.all_compilers[lang]
                     break

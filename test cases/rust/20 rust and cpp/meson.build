@@ -8,7 +8,7 @@ project(
   meson_version : '>= 1.2.0',
 )
 
-cpplib = static_library('cpp', 'lib.cpp')
+cpplib = static_library('cpp-lib', 'lib.cpp')
 exe = executable('main', 'main.rs', link_with : cpplib)
 
 test('main', exe)
