@@ -3081,9 +3081,9 @@ class Interpreter(InterpreterBase, HoldableObject):
             return
         if OptionKey('b_sanitize') not in self.coredata.optstore:
             return
-        if (self.coredata.optstore.get_value('b_lundef') and
-                self.coredata.optstore.get_value('b_sanitize')):
-            value = self.coredata.optstore.get_value('b_sanitize')
+        if (self.coredata.optstore.get_value_for('b_lundef') and
+                self.coredata.optstore.get_value_for('b_sanitize')):
+            value = self.coredata.optstore.get_value_for('b_sanitize')
             mlog.warning(textwrap.dedent(f'''\
                     Trying to use {value} sanitizer on Clang with b_lundef.
                     This will probably not work.

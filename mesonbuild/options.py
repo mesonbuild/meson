@@ -845,9 +845,6 @@ class OptionStore:
             return self.options[key].value
         return self.pending_options.get(key, default)
 
-    def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
-        return self.get_value_for(key)
-
     def __len__(self) -> int:
         return len(self.options)
 

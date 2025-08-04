@@ -3872,7 +3872,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if extra_arg:
             target_name += f'-{extra_arg}'
             extra_args.append(f'--{extra_arg}')
-        colorout = self.environment.coredata.optstore.get_value('b_colorout') \
+        colorout = self.environment.coredata.optstore.get_value_for('b_colorout') \
             if OptionKey('b_colorout') in self.environment.coredata.optstore else 'always'
         assert isinstance(colorout, str), 'for mypy'
         extra_args.extend(['--color', colorout])
