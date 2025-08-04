@@ -865,6 +865,8 @@ class Vs2010Backend(backends.Backend):
         # FIXME add args as needed.
         if entry[1:].startswith('fsanitize'):
             return True
+        if entry[1:] in frozenset(['Zi', 'Z7', 'ZI']):
+            return True
         return entry[1:].startswith('M')
 
     def add_additional_options(self, lang, parent_node, file_args):
@@ -1348,11 +1350,11 @@ class Vs2010Backend(backends.Backend):
         if '/fsanitize=address' in build_args:
             ET.SubElement(type_config, 'EnableASAN').text = 'true'
         # Debug format
-        if '/ZI' in build_args:
+        if '/ZI' in build_args or '-ZI' in build_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
-        elif '/Zi' in build_args:
+        elif '/Zi' in build_args or '-Zi' in build_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
-        elif '/Z7' in build_args:
+        elif '/Z7' in build_args or '-Z7' in build_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'OldStyle'
         else:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'None'
