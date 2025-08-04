@@ -922,7 +922,7 @@ class GnomeModule(ExtensionModule):
             if state.project_args.get(lang):
                 cflags += state.project_args[lang]
             if OptionKey('b_sanitize') in compiler.base_options:
-                sanitize = state.environment.coredata.optstore.get_value('b_sanitize')
+                sanitize = state.environment.coredata.optstore.get_value_for('b_sanitize')
                 assert isinstance(sanitize, list)
                 cflags += compiler.sanitizer_compile_args(sanitize)
                 # These must be first in ldflags

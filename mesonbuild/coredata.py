@@ -490,7 +490,7 @@ class CoreData:
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
         # mypy cannot analyze type of OptionKey
         key = OptionKey(f'{lang}_args', machine=for_machine)
-        return T.cast('T.List[str]', self.optstore.get_value(key))
+        return T.cast('T.List[str]', self.optstore.get_value_for(key))
 
     @lru_cache(maxsize=None)
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.List[str]:
@@ -604,7 +604,7 @@ class CoreData:
 
     def emit_base_options_warnings(self) -> None:
         bcodekey = OptionKey('b_bitcode')
-        if bcodekey in self.optstore and self.optstore.get_value(bcodekey):
+        if bcodekey in self.optstore and self.optstore.get_value_for(bcodekey):
             msg = textwrap.dedent('''Base option 'b_bitcode' is enabled, which is incompatible with many linker options.
                                      Incompatible options such as \'b_asneeded\' have been disabled.'
                                      Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.''')
