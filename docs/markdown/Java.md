@@ -1,6 +1,6 @@
 ---
-title: Java  
-short-description: Compiling Java programs  
+title: Java
+short-description: Compiling Java programs
 ---
 
 # Compiling Java applications
