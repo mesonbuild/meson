@@ -3343,6 +3343,11 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '58 introspect buildoptions')
         self._run(self.mconf_command + [testdir])
 
+    @skip_if_not_language('rust')
+    def test_meson_configure_srcdir(self):
+        testdir = os.path.join(self.rust_test_dir, '20 rust and cpp')
+        self._run(self.mconf_command + [testdir])
+
     def test_introspect_buildoptions_cross_only(self):
         testdir = os.path.join(self.unit_test_dir, '82 cross only introspect')
         testfile = os.path.join(testdir, 'meson.build')
