@@ -66,11 +66,6 @@ msvc_optimization_args: T.Dict[str, T.List[str]] = {
     's': ['/O1', '/Gw'],
 }
 
-msvc_debug_args: T.Dict[bool, T.List[str]] = {
-    False: [],
-    True: ['/Zi']
-}
-
 
 class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
@@ -180,7 +175,10 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['/Fo' + outputname]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
-        return msvc_debug_args[is_debug]
+        if is_debug:
+            return ['/Z7']
+        else:
+            return []
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         args = msvc_optimization_args[optimization_level]
