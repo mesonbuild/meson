@@ -1483,8 +1483,6 @@ class Interpreter(InterpreterBase, HoldableObject):
 
     def add_languages(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> bool:
         success = self.add_languages_for(args, required, for_machine)
-        if not self.coredata.is_cross_build():
-            self.coredata.copy_build_options_from_regular_ones()
         self._redetect_machines()
         return success
 
