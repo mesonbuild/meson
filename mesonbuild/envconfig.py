@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import subprocess
 import typing as T
 from enum import Enum
 
 from . import mesonlib
 from .mesonlib import EnvironmentException, HoldableObject
+from .programs import ExternalProgram
 from . import mlog
 from pathlib import Path
 
@@ -423,31 +423,23 @@ class BinaryTable:
                 del self.binaries['pkgconfig']
 
     @staticmethod
-    def detect_ccache() -> T.List[str]:
-        try:
-            subprocess.check_call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except (OSError, subprocess.CalledProcessError):
-            return []
-        return ['ccache']
+    def detect_ccache() -> ExternalProgram:
+        return ExternalProgram('ccache')
 
     @staticmethod
-    def detect_sccache() -> T.List[str]:
-        try:
-            subprocess.check_call(['sccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except (OSError, subprocess.CalledProcessError):
-            return []
-        return ['sccache']
+    def detect_sccache() -> ExternalProgram:
+        return ExternalProgram('sccache')
 
     @staticmethod
-    def detect_compiler_cache() -> T.List[str]:
+    def detect_compiler_cache() -> ExternalProgram:
         # Sccache is "newer" so it is assumed that people would prefer it by default.
         cache = BinaryTable.detect_sccache()
-        if cache:
+        if cache.found():
             return cache
         return BinaryTable.detect_ccache()
 
     @classmethod
-    def parse_entry(cls, entry: T.Union[str, T.List[str]]) -> T.Tuple[T.List[str], T.List[str]]:
+    def parse_entry(cls, entry: T.Union[str, T.List[str]]) -> T.Tuple[T.List[str], T.Union[None, ExternalProgram]]:
         parts = mesonlib.stringlistify(entry)
         # Ensure ccache exists and remove it if it doesn't
         if parts[0] == 'ccache':
@@ -458,7 +450,7 @@ class BinaryTable:
             ccache = cls.detect_sccache()
         else:
             compiler = parts
-            ccache = []
+            ccache = None
         if not compiler:
             raise EnvironmentException(f'Compiler cache specified without compiler: {parts[0]}')
         # Return value has to be a list of compiler 'choices'
