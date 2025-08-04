@@ -844,7 +844,7 @@ class OptionStore:
         return self.pending_options.get(key, default)
 
     def get_value(self, key: T.Union[OptionKey, str]) -> ElementaryOptionValues:
-        return self.get_value_object(key).value
+        return self.get_value_for(key)
 
     def __len__(self) -> int:
         return len(self.options)
@@ -868,6 +868,7 @@ class OptionStore:
 
     def get_value_object_and_value_for(self, key: OptionKey) -> T.Tuple[AnyOptionType, ElementaryOptionValues]:
         assert isinstance(key, OptionKey)
+        key = self.ensure_and_validate_key(key)
         vobject = self.get_value_object_for(key)
         computed_value = vobject.value
         if key in self.augments:
