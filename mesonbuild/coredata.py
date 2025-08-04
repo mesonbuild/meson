@@ -503,26 +503,6 @@ class CoreData:
             return False
         return len(self.cross_files) > 0
 
-    def copy_build_options_from_regular_ones(self, shut_up_pylint: bool = True) -> bool:
-        # FIXME, needs cross compilation support.
-        if shut_up_pylint:
-            return False
-        dirty = False
-        assert not self.is_cross_build()
-        for k in options.BUILTIN_OPTIONS_PER_MACHINE:
-            o = self.optstore.get_value_object_for(k.name)
-            dirty |= self.optstore.set_option(k, o.value, True)
-        for bk, bv in self.optstore.items():
-            if bk.machine is MachineChoice.BUILD:
-                hk = bk.as_host()
-                try:
-                    hv = self.optstore.get_value_object(hk)
-                    dirty |= bv.set_value(hv.value)
-                except KeyError:
-                    continue
-
-        return dirty
-
     def set_options(self, opts_to_set: T.Dict[OptionKey, T.Any], subproject: str = '', first_invocation: bool = False) -> bool:
         dirty = False
         if not self.is_cross_build():
@@ -559,9 +539,6 @@ class CoreData:
                 unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
                 sub = f'In subproject {subproject}: ' if subproject else ''
                 raise MesonException(f'{sub}Unknown options: "{unknown_options_str}"')
-
-        if not self.is_cross_build():
-            dirty |= self.copy_build_options_from_regular_ones()
 
         return dirty
 
