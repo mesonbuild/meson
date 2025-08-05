@@ -149,16 +149,19 @@ class Interpreter:
             return pkg, True
         pkg = PackageState(manifest, downloaded)
         self.packages[key] = pkg
+        self._prepare_package(pkg)
+        return pkg, False
+
+    def _prepare_package(self, pkg: PackageState) -> None:
         # Merge target specific dependencies that are enabled
         cfgs = self._get_cfgs(MachineChoice.HOST)
-        for condition, dependencies in manifest.target.items():
+        for condition, dependencies in pkg.manifest.target.items():
             if cfg.eval_cfg(condition, cfgs):
-                manifest.dependencies.update(dependencies)
+                pkg.manifest.dependencies.update(dependencies)
         # Fetch required dependencies recursively.
-        for depname, dep in manifest.dependencies.items():
+        for depname, dep in pkg.manifest.dependencies.items():
             if not dep.optional:
                 self._add_dependency(pkg, depname)
-        return pkg, False
 
     def _dep_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
         if dep.git:
