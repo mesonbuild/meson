@@ -701,7 +701,7 @@ class ArgumentFormatter(FullAstVisitor):
             if self.config.group_arg_value:
                 for arg in node.arguments[:-1]:
                     group_args = False
-                    if isinstance(arg, mparser.StringNode) and arg.value.startswith('--'):
+                    if isinstance(arg, mparser.StringNode) and arg.value.startswith('--') and arg.value != '--':
                         next_arg = node.arguments[arg_index + 1]
                         if isinstance(next_arg, mparser.StringNode) and not next_arg.value.startswith('--'):
                             group_args = True
