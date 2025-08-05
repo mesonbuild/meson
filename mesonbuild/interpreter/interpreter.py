@@ -1774,8 +1774,20 @@ class Interpreter(InterpreterBase, HoldableObject):
         df = DependencyFallbacksHolder(self, names, kwargs['allow_fallback'], default_options)
         df.set_fallback(kwargs['fallback'])
         not_found_message = kwargs['not_found_message']
+
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled:
+            name = names[0]
+            if kwargs['modules']:
+                name = name + '(modules: {})'.format(', '.join(kwargs['modules']))
+            mlog.log('Dependency', mlog.bold(name), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return dependencies.NotFoundDependency(names[0], self.environment)
+
+        nkwargs = T.cast('dependencies.base.DependencyObjectKWs', kwargs.copy())
+        nkwargs['required'] = required  # to replace a possible UserFeatureOption with a bool
+
         try:
-            d = df.lookup(kwargs)
+            d = df.lookup(nkwargs)
         except Exception:
             if not_found_message:
                 self.message_impl([not_found_message])

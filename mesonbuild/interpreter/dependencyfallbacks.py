@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-from .interpreterobjects import extract_required_kwarg
 from .. import mlog
 from .. import dependencies
 from .. import build
@@ -311,14 +310,11 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         return candidates
 
     def lookup(self, kwargs: TYPE_nkwargs, force_fallback: bool = False) -> Dependency:
-        mods = T.cast('T.List[str]', kwargs.get('modules', []))
+        mods = kwargs.get('modules', [])
         if mods:
             self._display_name += ' (modules: {})'.format(', '.join(str(i) for i in mods))
 
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
-        if disabled:
-            mlog.log('Dependency', mlog.bold(self._display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self._notfound_dependency()
+        required = kwargs.get('required', True)
 
         # Check if usage of the subproject fallback is forced
         wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
