@@ -319,7 +319,7 @@ class Subproject(ExtractRequired):
 
 class DoSubproject(ExtractRequired):
 
-    default_options: T.Union[T.List[str], T.Dict[str, options.ElementaryOptionValues], str]
+    default_options: T.Dict[OptionKey, options.ElementaryOptionValues]
     version: T.List[str]
     cmake_options: T.List[str]
     options: T.Optional[CMakeSubprojectOptions]
