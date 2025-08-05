@@ -150,7 +150,7 @@ class Interpreter:
             if not dep.optional:
                 self._add_dependency(pkg, depname)
 
-    def _dep_package(self, dep: Dependency) -> PackageState:
+    def _dep_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
         if dep.git:
             _, _, directory = _parse_git_url(dep.git, dep.branch)
             dep_pkg, _ = self._fetch_package_from_subproject(dep.package, directory)
@@ -189,7 +189,7 @@ class Interpreter:
         if not dep:
             # It could be build/dev/target dependency. Just ignore it.
             return
-        dep_pkg = self._dep_package(dep)
+        dep_pkg = self._dep_package(pkg, dep)
         pkg.required_deps.add(depname)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
@@ -214,7 +214,7 @@ class Interpreter:
                     depname = depname[:-1]
                     if depname in pkg.required_deps:
                         dep = pkg.manifest.dependencies[depname]
-                        dep_pkg = self._dep_package(dep)
+                        dep_pkg = self._dep_package(pkg, dep)
                         self._enable_feature(dep_pkg, dep_f)
                     else:
                         # This feature will be enabled only if that dependency
@@ -224,7 +224,7 @@ class Interpreter:
                     self._add_dependency(pkg, depname)
                     dep = pkg.manifest.dependencies.get(depname)
                     if dep:
-                        dep_pkg = self._dep_package(dep)
+                        dep_pkg = self._dep_package(pkg, dep)
                         self._enable_feature(dep_pkg, dep_f)
             elif f.startswith('dep:'):
                 self._add_dependency(pkg, f[4:])
@@ -291,7 +291,7 @@ class Interpreter:
         ast: T.List[mparser.BaseNode] = []
         for depname in pkg.required_deps:
             dep = pkg.manifest.dependencies[depname]
-            dep_pkg = self._dep_package(dep)
+            dep_pkg = self._dep_package(pkg, dep)
             ast += self._create_dependency(dep_pkg, dep, build)
         ast.append(build.assign(build.array([]), 'system_deps_args'))
         for name, sys_dep in pkg.manifest.system_dependencies.items():
@@ -413,7 +413,7 @@ class Interpreter:
             dep = pkg.manifest.dependencies[name]
             dependencies.append(build.identifier(_dependency_varname(dep.package)))
             if name != dep.package:
-                dep_pkg = self._dep_package(dep)
+                dep_pkg = self._dep_package(pkg, dep)
                 dep_lib_name = dep_pkg.manifest.lib.name
                 dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(name)
         for name, sys_dep in pkg.manifest.system_dependencies.items():
