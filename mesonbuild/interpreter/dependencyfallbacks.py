@@ -16,11 +16,15 @@ from ..interpreterbase import (MesonInterpreterObject, FeatureNew,
 
 import typing as T
 if T.TYPE_CHECKING:
+    from typing_extensions import TypeAlias
     from .interpreter import Interpreter
+    from .kwargs import DoSubproject
     from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
     from ..mesonlib import MachineChoice
     from ..options import ElementaryOptionValues
     from .interpreterobjects import SubprojectHolder
+
+    CandidateType: TypeAlias = T.Tuple[T.Callable[[TYPE_nkwargs, TYPE_nvar, DoSubproject], T.Optional[Dependency]], TYPE_nvar]
 
 
 class DependencyFallbacksHolder(MesonInterpreterObject):
@@ -39,7 +43,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.allow_fallback = allow_fallback
         self.subproject_name: T.Optional[str] = None
         self.subproject_varname: T.Optional[str] = None
-        self.subproject_kwargs = {'default_options': default_options or {}}
+        self.default_options = default_options or {}
         self.names: T.List[str] = []
         self.forcefallback: bool = False
         self.nofallback: bool = False
@@ -79,14 +83,14 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         self.subproject_name = subp_name
         self.subproject_varname = varname
 
-    def _do_dependency_cache(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
+    def _do_dependency_cache(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: DoSubproject) -> T.Optional[Dependency]:
         name = func_args[0]
         cached_dep = self._get_cached_dep(name, kwargs)
         if cached_dep:
             self._verify_fallback_consistency(cached_dep)
         return cached_dep
 
-    def _do_dependency(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
+    def _do_dependency(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: DoSubproject) -> T.Optional[Dependency]:
         # Note that there is no df.dependency() method, this is called for names
         # given as positional arguments to dependency_fallbacks(name1, ...).
         # We use kwargs from the dependency() function, for things like version,
@@ -101,14 +105,14 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             return dep
         return None
 
-    def _do_existing_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
+    def _do_existing_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: DoSubproject) -> T.Optional[Dependency]:
         subp_name = func_args[0]
         varname = self.subproject_varname
         if subp_name and self._get_subproject(subp_name):
             return self._get_subproject_dep(subp_name, varname, kwargs)
         return None
 
-    def _do_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: TYPE_nkwargs) -> T.Optional[Dependency]:
+    def _do_subproject(self, kwargs: TYPE_nkwargs, func_args: TYPE_nvar, func_kwargs: DoSubproject) -> T.Optional[Dependency]:
         if self.forcefallback:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(self._display_name), 'because:\nUse of fallback dependencies is forced.')
@@ -132,7 +136,6 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # Configure the subproject
         subp_name = self.subproject_name
         varname = self.subproject_varname
-        func_kwargs.setdefault('version', [])
         self.interpreter.do_subproject(subp_name, func_kwargs, forced_options=forced_options)
         return self._get_subproject_dep(subp_name, varname, kwargs)
 
@@ -293,21 +296,21 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
             return True
         return not (found == 'undefined' or not version_compare_many(found, wanted)[0])
 
-    def _get_candidates(self) -> T.List[T.Tuple[T.Callable[[TYPE_nkwargs, TYPE_nvar, TYPE_nkwargs], T.Optional[Dependency]], TYPE_nvar, TYPE_nkwargs]]:
-        candidates = []
+    def _get_candidates(self) -> T.List[CandidateType]:
+        candidates: T.List[CandidateType] = []
         # 1. check if any of the names is cached already.
         for name in self.names:
-            candidates.append((self._do_dependency_cache, [name], {}))
+            candidates.append((self._do_dependency_cache, [name]))
         # 2. check if the subproject fallback has already been configured.
         if self.subproject_name:
-            candidates.append((self._do_existing_subproject, [self.subproject_name], self.subproject_kwargs))
+            candidates.append((self._do_existing_subproject, [self.subproject_name]))
         # 3. check external dependency if we are not forced to use subproject
         if not self.forcefallback or not self.subproject_name:
             for name in self.names:
-                candidates.append((self._do_dependency, [name], {}))
+                candidates.append((self._do_dependency, [name]))
         # 4. configure the subproject
         if self.subproject_name:
-            candidates.append((self._do_subproject, [self.subproject_name], self.subproject_kwargs))
+            candidates.append((self._do_subproject, [self.subproject_name]))
         return candidates
 
     def lookup(self, kwargs: TYPE_nkwargs, force_fallback: bool = False) -> Dependency:
@@ -315,7 +318,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         if mods:
             self._display_name += ' (modules: {})'.format(', '.join(str(i) for i in mods))
 
-        required = kwargs.get('required', True)
+        required = T.cast('bool', kwargs.get('required', True))
 
         # Check if usage of the subproject fallback is forced
         wrap_mode = WrapMode.from_string(self.coredata.optstore.get_value_for(OptionKey('wrap_mode')))
@@ -351,8 +354,14 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
         # Try all candidates, only the last one is really required.
         last = len(candidates) - 1
         for i, item in enumerate(candidates):
-            func, func_args, func_kwargs = item
-            func_kwargs['required'] = required and (i == last)
+            func, func_args = item
+            func_kwargs: DoSubproject = {
+                'required': required and (i == last),
+                'cmake_options': [],
+                'default_options': self.default_options,
+                'options': None,
+                'version': [],
+            }
             kwargs['required'] = required and (i == last)
             dep = func(kwargs, func_args, func_kwargs)
             if dep and dep.found():
