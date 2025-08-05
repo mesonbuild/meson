@@ -435,7 +435,7 @@ class CmakeModule(ExtensionModule):
             'required': kwargs_['required'],
             'options': kwargs_['options'],
             'cmake_options': kwargs_['cmake_options'],
-            'default_options': [],
+            'default_options': {},
             'version': [],
         }
         subp = self.interpreter.do_subproject(dirname, kw, force_method='cmake')

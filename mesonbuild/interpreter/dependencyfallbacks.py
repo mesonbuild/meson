@@ -19,6 +19,7 @@ if T.TYPE_CHECKING:
     from .interpreter import Interpreter
     from ..interpreterbase import TYPE_nkwargs, TYPE_nvar
     from ..mesonlib import MachineChoice
+    from ..options import ElementaryOptionValues
     from .interpreterobjects import SubprojectHolder
 
 
@@ -27,7 +28,7 @@ class DependencyFallbacksHolder(MesonInterpreterObject):
                  interpreter: 'Interpreter',
                  names: T.List[str],
                  allow_fallback: T.Optional[bool] = None,
-                 default_options: T.Optional[T.Dict[str, str]] = None) -> None:
+                 default_options: T.Optional[T.Dict[OptionKey, ElementaryOptionValues]] = None) -> None:
         super().__init__(subproject=interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = interpreter.subproject
