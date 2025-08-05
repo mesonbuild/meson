@@ -522,9 +522,9 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     @classmethod
     def use_linker_args(cls, linker: str, version: str) -> T.List[str]:
-        if linker not in {'gold', 'bfd', 'lld'}:
+        if linker not in {'bfd', 'eld', 'gold', 'lld'}:
             raise mesonlib.MesonException(
-                f'Unsupported linker, only bfd, gold, and lld are supported, not {linker}.')
+                f'Unsupported linker, only bfd, eld, gold, and lld are supported, not {linker}.')
         return [f'-fuse-ld={linker}']
 
     def get_coverage_args(self) -> T.List[str]:
