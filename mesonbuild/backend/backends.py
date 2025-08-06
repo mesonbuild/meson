@@ -1914,7 +1914,7 @@ class Backend:
                 if isinstance(j, mesonlib.File):
                     source_list += [j.absolute_path(self.source_dir, self.build_dir)]
                 elif isinstance(j, str):
-                    source_list += [os.path.join(self.source_dir, j)]
+                    source_list += [os.path.join(self.source_dir, target.subdir, j)]
                 elif isinstance(j, (build.CustomTarget, build.BuildTarget)):
                     source_list += [os.path.join(self.build_dir, j.get_subdir(), o) for o in j.get_outputs()]
             source_list = [os.path.normpath(s) for s in source_list]
