@@ -246,6 +246,71 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(optstore.get_value_for(name), top_value)
         self.assertEqual(optstore.get_value_for(name, sub_name), set_value)
 
+    def test_build_to_host(self):
+        key = OptionKey('cpp_std')
+        def_value = 'c++98'
+        opt_value = 'c++17'
+        optstore = OptionStore(False)
+        co = UserComboOption(key.name,
+                             'C++ language standard to use',
+                             def_value,
+                             choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
+                             )
+        optstore.add_compiler_option('cpp', key, co)
+
+        cmd_line = {key: opt_value}
+        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
+        self.assertEqual(optstore.get_value_object_and_value_for(key.as_build())[1], opt_value)
+        self.assertEqual(optstore.get_value(key.as_build()), opt_value)
+        self.assertEqual(optstore.get_value_for(key.as_build()), opt_value)
+
+    def test_build_to_host_subproject(self):
+        key = OptionKey('cpp_std')
+        def_value = 'c++98'
+        opt_value = 'c++17'
+        subp = 'subp'
+        optstore = OptionStore(False)
+        co = UserComboOption(key.name,
+                             'C++ language standard to use',
+                             def_value,
+                             choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
+                             )
+        optstore.add_compiler_option('cpp', key, co)
+
+        spcall = {key: opt_value}
+        optstore.initialize_from_top_level_project_call({}, {}, {})
+        optstore.initialize_from_subproject_call(subp, spcall, {}, {}, {})
+        self.assertEqual(optstore.get_value_object_and_value_for(key.evolve(subproject=subp,
+                                                                            machine=MachineChoice.BUILD))[1], opt_value)
+        self.assertEqual(optstore.get_value(key.evolve(subproject=subp,
+                                                       machine=MachineChoice.BUILD)), opt_value)
+        self.assertEqual(optstore.get_value_for(key.evolve(subproject=subp,
+                                                           machine=MachineChoice.BUILD)), opt_value)
+
+    def test_build_to_host_cross(self):
+        key = OptionKey('cpp_std')
+        def_value = 'c++98'
+        opt_value = 'c++17'
+        optstore = OptionStore(True)
+        for k in [key, key.as_build()]:
+            co = UserComboOption(key.name,
+                                 'C++ language standard to use',
+                                 def_value,
+                                 choices=['c++98', 'c++11', 'c++14', 'c++17', 'c++20', 'c++23'],
+                                 )
+            optstore.add_compiler_option('cpp', k, co)
+
+        cmd_line = {key: opt_value}
+        optstore.initialize_from_top_level_project_call({}, cmd_line, {})
+        print(optstore.options)
+
+        self.assertEqual(optstore.get_value_object_and_value_for(key)[1], opt_value)
+        self.assertEqual(optstore.get_value_object_and_value_for(key.as_build())[1], def_value)
+        self.assertEqual(optstore.get_value(key), opt_value)
+        self.assertEqual(optstore.get_value(key.as_build()), def_value)
+        self.assertEqual(optstore.get_value_for(key), opt_value)
+        self.assertEqual(optstore.get_value_for(key.as_build()), def_value)
+
     def test_b_default(self):
         optstore = OptionStore(False)
         value = optstore.get_default_for_b_option(OptionKey('b_vscrt'))
