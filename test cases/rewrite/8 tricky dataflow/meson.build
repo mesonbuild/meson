@@ -10,7 +10,7 @@ distraction = executable('distraction', link_with: tgt1)
 
 
 tgt2_srcs = ['foo.c']
-if meson.host_machine().system() == 'windows' # Some condition that cannot be known statically
+if host_machine.system() == 'windows' # Some condition that cannot be known statically
     tgt2_srcs += ['bar.c']
 endif
 executable('tgt2', tgt2_srcs)
@@ -18,7 +18,7 @@ executable('tgt2', tgt2_srcs)
 
 tgt34_srcs = ['foo.c']
 executable('tgt3', tgt34_srcs)
-if meson.host_machine().system() == 'windows'
+if host_machine.system() == 'windows'
     tgt34_srcs += ['bar.c']
 endif
 executable('tgt4', tgt34_srcs)
