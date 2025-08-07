@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from .. import mlog
+from collections import defaultdict
 import contextlib
 from dataclasses import dataclass
 import urllib.request
@@ -32,7 +33,7 @@ from . import WrapMode
 from .. import coredata
 from ..mesonlib import (
     DirectoryLock, DirectoryLockAction, quiet_git, GIT, ProgressBar, MesonException,
-    windows_proof_rmtree, Popen_safe
+    Version, version_compare, windows_proof_rmtree, Popen_safe
 )
 from ..interpreterbase import FeatureNew
 from ..interpreterbase import SubProject
@@ -41,6 +42,8 @@ from .. import mesonlib
 if T.TYPE_CHECKING:
     import http.client
     from typing_extensions import Literal
+
+    from ..cargo.manifest import CargoLock, CargoLockPackage
 
     Method = Literal['meson', 'cmake', 'cargo']
 
@@ -59,7 +62,6 @@ ALL_TYPES = ['file', 'git', 'hg', 'svn', 'redirect']
 
 if mesonlib.is_windows():
     from ..programs import ExternalProgram
-    from ..mesonlib import version_compare
     _exclude_paths: T.List[str] = []
     while True:
         _patch = ExternalProgram('patch', silent=True, exclude_paths=_exclude_paths)
@@ -318,6 +320,9 @@ class PackageDefinition:
             with open(self.get_hashfile(subproject_directory), 'w', encoding='utf-8') as file:
                 file.write(self.wrapfile_hash + '\n')
 
+    def add_provided_dep(self, name: str) -> None:
+        self.provided_deps[name] = None
+
 def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
     if os.path.isfile(fname):
@@ -334,6 +339,28 @@ def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
     except mesonlib.GitException as e:
         raise WrapException(str(e))
 
+
+class CargoState:
+    """State for cargo package definitions to avoid recomputing cargo wraps."""
+
+    wraps: T.Dict[str, PackageDefinition]
+    versions: T.Dict[str, T.List[CargoLockPackage]]
+
+    def __init__(self, packages: T.Iterable[CargoLockPackage] = None, wraps: T.Iterable[PackageDefinition] = None):
+        wraps = wraps or []
+        self.wraps = {wrap.name: wrap for wrap in wraps}
+
+        packages = packages or []
+        self.versions = defaultdict(list)
+        for pkg in packages:
+            self.versions[pkg.name].append(pkg)
+        for version_set in self.versions.values():
+            version_set.sort(reverse=True, key=lambda pkg: Version(pkg.version))
+
+    def named(self, name: str) -> T.Sequence[CargoLockPackage]:
+        return self.versions[name]
+
+
 @dataclass(eq=False)
 class Resolver:
     source_dir: str
@@ -343,6 +370,7 @@ class Resolver:
     wrap_frontend: bool = False
     allow_insecure: bool = False
     silent: bool = False
+    cargo_state: T.Optional[CargoState] = None
 
     def __post_init__(self) -> None:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
@@ -368,12 +396,18 @@ class Resolver:
             mlog.warning(f'failed to process netrc file: {e}.', fatal=False)
 
     def load_wraps(self) -> None:
-        # Load Cargo.lock at the root of source tree
-        source_dir = os.path.dirname(self.subdir_root)
-        if os.path.exists(os.path.join(source_dir, 'Cargo.lock')):
+        # 1) If there's cargo state from parent resolver, use it
+        # 2) If there is a root Cargo.lock file, use it
+        # 3) Otherwise load Cargo.lock at the root of source tree
+        if self.cargo_state is None:
             from .. import cargo
-            for wrap in cargo.load_wraps(source_dir, self.subdir_root):
-                self.wraps[wrap.name] = wrap
+            if os.path.exists(os.path.join(self.source_dir, 'Cargo.lock')):
+                self.cargo_state = cargo.load_wraps(self.source_dir, '')
+            elif os.path.exists(os.path.join(self.subdir_root, 'Cargo.lock')):
+                self.cargo_state = cargo.load_wraps(self.subdir_root, self.subproject)
+            else:
+                self.cargo_state = CargoState()
+        self.wraps.update(self.cargo_state.wraps)
         # Load subprojects/*.wrap
         if os.path.isdir(self.subdir_root):
             root, dirs, files = next(os.walk(self.subdir_root))
@@ -457,7 +491,9 @@ class Resolver:
 
     def load_and_merge(self, subdir: str, subproject: SubProject) -> None:
         if self.wrap_mode != WrapMode.nopromote and subdir not in self.loaded_dirs:
-            other_resolver = Resolver(self.source_dir, subdir, subproject, self.wrap_mode, self.wrap_frontend, self.allow_insecure, self.silent)
+            other_resolver = Resolver(self.source_dir, subdir, subproject, self.wrap_mode,
+                                      self.wrap_frontend, self.allow_insecure, self.silent,
+                                      self.cargo_state)
             self._merge_wraps(other_resolver)
             self.loaded_dirs.add(subdir)
 

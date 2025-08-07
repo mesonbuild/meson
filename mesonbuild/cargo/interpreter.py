@@ -14,15 +14,14 @@ import dataclasses
 import os
 import collections
 import urllib.parse
-import itertools
 import typing as T
 
 from . import builder, version, cfg
 from .toml import load_toml, TomlImplementationMissing
-from .manifest import Manifest, CargoLock, fixup_meson_varname
-from ..mesonlib import MesonException, MachineChoice
+from .manifest import Manifest, CargoLock, Workspace, fixup_meson_varname
+from ..mesonlib import MesonException, MachineChoice, version_compare_many
 from .. import coredata, mlog
-from ..wrap.wrap import PackageDefinition
+from ..wrap.wrap import PackageDefinition, CargoState
 
 if T.TYPE_CHECKING:
     from . import raw
@@ -56,6 +55,9 @@ class PackageState:
     features: T.Set[str] = dataclasses.field(default_factory=set)
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
+    # If this package is member of a workspace.
+    ws_subdir: T.Optional[str] = None
+    ws_member: T.Optional[str] = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -64,34 +66,62 @@ class PackageKey:
     api: str
 
 
+@dataclasses.dataclass
+class WorkspaceState:
+    workspace: Workspace
+    subdir: str
+    # member path -> PackageState, for all members of this workspace
+    packages: T.Dict[str, PackageState] = dataclasses.field(default_factory=dict)
+    # package name to member path, for all members of this workspace
+    packages_to_member: T.Dict[str, str] = dataclasses.field(default_factory=dict)
+    # member paths that are required to be built
+    required_members: T.List[str] = dataclasses.field(default_factory=list)
+
+
 class Interpreter:
     def __init__(self, env: Environment) -> None:
         self.environment = env
         self.host_rustc = T.cast('RustCompiler', self.environment.coredata.compilers[MachineChoice.HOST]['rust'])
         # Map Cargo.toml's subdir to loaded manifest.
-        self.manifests: T.Dict[str, Manifest] = {}
+        self.manifests: T.Dict[str, T.Union[Manifest, Workspace]] = {}
         # Map of cargo package (name + api) to its state
         self.packages: T.Dict[PackageKey, PackageState] = {}
         # Rustc's config
         self.cfgs = self._get_cfgs()
+        # Map subdir to workspace
+        self.workspaces: T.Dict[str, WorkspaceState] = {}
 
     def get_build_def_files(self) -> T.List[str]:
         return [os.path.join(subdir, 'Cargo.toml') for subdir in self.manifests]
 
-    def interpret(self, subdir: str) -> mparser.CodeBlockNode:
+    def interpret(self, subdir: str, project_root: T.Optional[str] = None) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
-        pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
-        if not cached:
-            # This is an entry point, always enable the 'default' feature.
-            # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
-            self._enable_feature(pkg, 'default')
-
-        # Build an AST for this package
         filename = os.path.join(self.environment.source_dir, subdir, 'Cargo.toml')
         build = builder.Builder(filename)
-        ast = self._create_project(pkg, build)
-        ast += [
-            build.assign(build.function('import', [build.string('rust')]), 'rust'),
+        if isinstance(manifest, Workspace):
+            return self.interpret_workspace(manifest, build, subdir, project_root)
+        return self.interpret_package(manifest, build, subdir, project_root)
+
+    def interpret_package(self, manifest: Manifest, build: builder.Builder, subdir: str, project_root: T.Optional[str]) -> mparser.CodeBlockNode:
+        # Build an AST for this package
+        ast: T.List[mparser.BaseNode] = []
+        if project_root:
+            ws = self.workspaces[project_root]
+            member = ws.packages_to_member[manifest.package.name]
+            pkg = ws.packages[member]
+        else:
+            pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
+            if not cached:
+                # This is an entry point, always enable the 'default' feature.
+                # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
+                self._enable_feature(pkg, 'default')
+            ast += self._create_project(pkg.manifest.package.name, pkg, build)
+            ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
+        ast += self._create_package(pkg, build, subdir)
+        return build.block(ast)
+
+    def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
+        ast: T.List[mparser.BaseNode] = [
             build.function('message', [
                 build.string('Enabled features:'),
                 build.array([build.string(f) for f in pkg.features]),
@@ -104,7 +134,77 @@ class Interpreter:
             for crate_type in pkg.manifest.lib.crate_type:
                 ast.extend(self._create_lib(pkg, build, crate_type))
 
+        return ast
+
+    def interpret_workspace(self, workspace: Workspace, build: builder.Builder, subdir: str, project_root: T.Optional[str]) -> mparser.CodeBlockNode:
+        ws = self._get_workspace(workspace, subdir)
+        name = os.path.dirname(subdir)
+        subprojects_dir = os.path.join(subdir, 'subprojects')
+        self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', name))
+        ast: T.List[mparser.BaseNode] = []
+        if not ws.required_members:
+            for member in ws.workspace.default_members:
+                self._require_workspace_member(ws, member)
+
+        # Call subdir() for each required member of the workspace. The order is
+        # important, if a member depends on another member, that member must be
+        # processed first.
+        processed_members: T.Dict[str, PackageState] = {}
+
+        def _process_member(member: str) -> None:
+            if member in processed_members:
+                return
+            pkg = ws.packages[member]
+            for depname in pkg.required_deps:
+                dep = pkg.manifest.dependencies[depname]
+                if dep.path:
+                    dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
+                    _process_member(dep_member)
+            if member == '.':
+                ast.extend(self._create_package(pkg, build, subdir))
+            else:
+                ast.append(build.function('subdir', [build.string(member)]))
+            processed_members[member] = pkg
+
+        ast.append(build.assign(build.function('import', [build.string('rust')]), 'rust'))
+        for member in ws.required_members:
+            _process_member(member)
+        if not project_root:
+            ast = self._create_project(name, processed_members.get('.'), build) + ast
+
         return build.block(ast)
+
+    def _load_workspace_member(self, ws: WorkspaceState, m: str) -> None:
+        m = os.path.normpath(m)
+        # Load member's manifest
+        m_subdir = os.path.join(ws.subdir, m)
+        manifest_ = self._load_manifest(m_subdir, ws.workspace, m)
+        assert isinstance(manifest_, Manifest)
+        self._add_workspace_member(manifest_, ws, m)
+
+    def _add_workspace_member(self, manifest_: Manifest, ws: WorkspaceState, m: str) -> None:
+        pkg = PackageState(manifest_, ws_subdir=ws.subdir, ws_member=m)
+        ws.packages[m] = pkg
+        ws.packages_to_member[manifest_.package.name] = m
+
+    def _get_workspace(self, workspace: Workspace, subdir: str) -> WorkspaceState:
+        ws = self.workspaces.get(subdir)
+        if ws:
+            return ws
+        ws = WorkspaceState(workspace, subdir)
+        for m in workspace.members:
+            self._load_workspace_member(ws, m)
+        if workspace.root_package:
+            self._add_workspace_member(workspace.root_package, ws, '.')
+        self.workspaces[subdir] = ws
+        return ws
+
+    def _require_workspace_member(self, ws: WorkspaceState, member: str) -> PackageState:
+        pkg = ws.packages[member]
+        if member not in ws.required_members:
+            self._prepare_package(pkg)
+            ws.required_members.append(member)
+        return pkg
 
     def _fetch_package(self, package_name: str, api: str) -> T.Tuple[PackageState, bool]:
         key = PackageKey(package_name, api)
@@ -112,40 +212,90 @@ class Interpreter:
         if pkg:
             return pkg, True
         meson_depname = _dependency_name(package_name, api)
-        subdir, _ = self.environment.wrap_resolver.resolve(meson_depname)
+        return self._fetch_package_from_subproject(package_name, meson_depname)
+
+    def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> T.Tuple[PackageState, bool]:
+        subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
+        subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
-        self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', meson_depname))
+        self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', subp_name))
         manifest = self._load_manifest(subdir)
         downloaded = \
-            meson_depname in self.environment.wrap_resolver.wraps and \
-            self.environment.wrap_resolver.wraps[meson_depname].type is not None
+            subp_name in self.environment.wrap_resolver.wraps and \
+            self.environment.wrap_resolver.wraps[subp_name].type is not None
+        if isinstance(manifest, Workspace):
+            ws = self._get_workspace(manifest, subdir)
+            member = ws.packages_to_member[package_name]
+            pkg = self._require_workspace_member(ws, member)
+            return pkg, False
+        key = PackageKey(package_name, version.api(manifest.package.version))
+
+        pkg = self.packages.get(key)
+        if pkg:
+            return pkg, True
         pkg = PackageState(manifest, downloaded)
         self.packages[key] = pkg
-        # Merge target specific dependencies that are enabled
-        for condition, dependencies in manifest.target.items():
-            if cfg.eval_cfg(condition, self.cfgs):
-                manifest.dependencies.update(dependencies)
-        # Fetch required dependencies recursively.
-        for depname, dep in manifest.dependencies.items():
-            if not dep.optional:
-                self._add_dependency(pkg, depname)
+        self._prepare_package(pkg)
         return pkg, False
 
-    def _dep_package(self, dep: Dependency) -> PackageState:
-        return self.packages[PackageKey(dep.package, dep.api)]
+    def _prepare_package(self, pkg: PackageState) -> None:
+        # Merge target specific dependencies that are enabled
+        for condition, dependencies in pkg.manifest.target.items():
+            if cfg.eval_cfg(condition, self.cfgs):
+                pkg.manifest.dependencies.update(dependencies)
+        # Fetch required dependencies recursively.
+        for depname, dep in pkg.manifest.dependencies.items():
+            if not dep.optional:
+                self._add_dependency(pkg, depname)
 
-    def _load_manifest(self, subdir: str) -> Manifest:
+    def _dep_package(self, pkg: PackageState, dep: Dependency) -> PackageState:
+        if dep.path:
+            if not pkg.ws_subdir:
+                raise MesonException("path dependencies only supported inside workspaces")
+            ws = self.workspaces[pkg.ws_subdir]
+            dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
+            self._load_workspace_member(ws, dep_member)
+            dep_pkg = self._require_workspace_member(ws, dep_member)
+        elif dep.git:
+            _, _, directory = _parse_git_url(dep.git, dep.branch)
+            dep_pkg, _ = self._fetch_package_from_subproject(dep.package, directory)
+        else:
+            # From all available versions from Cargo.lock, pick the most recent
+            # satisfying the constraints
+            cargo_lock_pkgs = self.environment.wrap_resolver.cargo_state.named(dep.package)
+            for cargo_pkg in cargo_lock_pkgs:
+                if version_compare_many(cargo_pkg.version, dep.meson_version):
+                    dep.update_version(f'={cargo_pkg.version}')
+                    break
+            else:
+                if not dep.meson_version:
+                    raise MesonException(f'Cannot determine version of cargo package {dep.package}')
+            dep_pkg, _ = self._fetch_package(dep.package, dep.api)
+        return dep_pkg
+
+    def _load_manifest(self, subdir: str, workspace: T.Optional[Workspace] = None, member_path: str = '') -> T.Union[Manifest, Workspace]:
         manifest_ = self.manifests.get(subdir)
         if not manifest_:
             path = os.path.join(self.environment.source_dir, subdir)
             filename = os.path.join(path, 'Cargo.toml')
             toml = load_toml(filename)
+            workspace_ = None
+            if 'workspace' in toml:
+                raw_workspace = T.cast('raw.VirtualManifest', toml)
+                workspace_ = Workspace.from_raw(raw_workspace)
+            manifest_ = None
             if 'package' in toml:
                 raw_manifest = T.cast('raw.Manifest', toml)
-                manifest_ = Manifest.from_raw(raw_manifest, path)
-                self.manifests[subdir] = manifest_
-            else:
-                raise MesonException(f'{subdir}/Cargo.toml does not have [package] section')
+                manifest_ = Manifest.from_raw(raw_manifest, path, workspace, member_path)
+            if not manifest_ and not workspace_:
+                raise MesonException(f'{subdir}/Cargo.toml does not have [package] or [workspace] section')
+
+            if workspace_:
+                workspace_.root_package = manifest_
+                self.manifests[subdir] = workspace_
+                return workspace_
+
+            self.manifests[subdir] = manifest_
         return manifest_
 
     def _add_dependency(self, pkg: PackageState, depname: str) -> None:
@@ -153,12 +303,10 @@ class Interpreter:
             return
         dep = pkg.manifest.dependencies.get(depname)
         if not dep:
-            if depname in itertools.chain(pkg.manifest.dev_dependencies, pkg.manifest.build_dependencies):
-                # FIXME: Not supported yet
-                return
-            raise MesonException(f'Dependency {depname} not defined in {pkg.manifest.package.name} manifest')
+            # It could be build/dev/target dependency. Just ignore it.
+            return
+        dep_pkg = self._dep_package(pkg, dep)
         pkg.required_deps.add(depname)
-        dep_pkg, _ = self._fetch_package(dep.package, dep.api)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
         for f in dep.features:
@@ -182,7 +330,7 @@ class Interpreter:
                     depname = depname[:-1]
                     if depname in pkg.required_deps:
                         dep = pkg.manifest.dependencies[depname]
-                        dep_pkg = self._dep_package(dep)
+                        dep_pkg = self._dep_package(pkg, dep)
                         self._enable_feature(dep_pkg, dep_f)
                     else:
                         # This feature will be enabled only if that dependency
@@ -192,7 +340,7 @@ class Interpreter:
                     self._add_dependency(pkg, depname)
                     dep = pkg.manifest.dependencies.get(depname)
                     if dep:
-                        dep_pkg = self._dep_package(dep)
+                        dep_pkg = self._dep_package(pkg, dep)
                         self._enable_feature(dep_pkg, dep_f)
             elif f.startswith('dep:'):
                 self._add_dependency(pkg, f[4:])
@@ -216,32 +364,38 @@ class Interpreter:
             value = value[1:-1]
         return pair[0], value
 
-    def _create_project(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_project(self, name: str, pkg: T.Optional[PackageState], build: builder.Builder) -> T.List[mparser.BaseNode]:
         """Create the project() function call
 
         :param pkg: The package to generate from
         :param build: The AST builder
         :return: a list nodes
         """
+        args: T.List[mparser.BaseNode] = [
+            build.string(name),
+            build.string('rust'),
+        ]
+        kwargs: T.Dict[str, mparser.BaseNode] = {
+            # Always assume that the generated meson is using the latest features
+            # This will warn when when we generate deprecated code, which is helpful
+            # for the upkeep of the module
+            'meson_version': build.string(f'>= {coredata.stable_version}'),
+        }
+        if not pkg:
+            return [
+                build.function('project', args, kwargs),
+            ]
+
         default_options: T.List[mparser.BaseNode] = []
         default_options.append(build.string(f'rust_std={pkg.manifest.package.edition}'))
         default_options.append(build.string(f'build.rust_std={pkg.manifest.package.edition}'))
         if pkg.downloaded:
             default_options.append(build.string('warning_level=0'))
 
-        args: T.List[mparser.BaseNode] = []
-        args.extend([
-            build.string(pkg.manifest.package.name),
-            build.string('rust'),
-        ])
-        kwargs: T.Dict[str, mparser.BaseNode] = {
+        kwargs.update({
             'version': build.string(pkg.manifest.package.version),
-            # Always assume that the generated meson is using the latest features
-            # This will warn when when we generate deprecated code, which is helpful
-            # for the upkeep of the module
-            'meson_version': build.string(f'>= {coredata.stable_version}'),
             'default_options': build.array(default_options),
-        }
+        })
         if pkg.manifest.package.license:
             kwargs['license'] = build.string(pkg.manifest.package.license)
         elif pkg.manifest.package.license_file:
@@ -253,7 +407,8 @@ class Interpreter:
         ast: T.List[mparser.BaseNode] = []
         for depname in pkg.required_deps:
             dep = pkg.manifest.dependencies[depname]
-            ast += self._create_dependency(dep, build)
+            dep_pkg = self._dep_package(pkg, dep)
+            ast += self._create_dependency(dep_pkg, dep, build)
         ast.append(build.assign(build.array([]), 'system_deps_args'))
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(pkg.features):
@@ -287,10 +442,11 @@ class Interpreter:
             ),
         ]
 
-    def _create_dependency(self, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        pkg = self._dep_package(dep)
+    def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        version_ = dep.meson_version or [pkg.manifest.package.version]
+        api = dep.api or pkg.manifest.package.api
         kw = {
-            'version': build.array([build.string(s) for s in dep.meson_version]),
+            'version': build.array([build.string(s) for s in version_]),
         }
         # Lookup for this dependency with the features we want in default_options kwarg.
         #
@@ -308,7 +464,7 @@ class Interpreter:
             build.assign(
                 build.function(
                     'dependency',
-                    [build.string(_dependency_name(dep.package, dep.api))],
+                    [build.string(_dependency_name(dep.package, api))],
                     kw,
                 ),
                 _dependency_varname(dep.package),
@@ -338,7 +494,7 @@ class Interpreter:
                 build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
                     build.function('error', [
                         build.string('Dependency'),
-                        build.string(_dependency_name(dep.package, dep.api)),
+                        build.string(_dependency_name(dep.package, api)),
                         build.string('previously configured with features'),
                         build.identifier('actual_features'),
                         build.string('but need'),
@@ -373,7 +529,7 @@ class Interpreter:
             dep = pkg.manifest.dependencies[name]
             dependencies.append(build.identifier(_dependency_varname(dep.package)))
             if name != dep.package:
-                dep_pkg = self._dep_package(dep)
+                dep_pkg = self._dep_package(pkg, dep)
                 dep_lib_name = dep_pkg.manifest.lib.name
                 dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(name)
         for name, sys_dep in pkg.manifest.system_dependencies.items():
@@ -451,21 +607,41 @@ class Interpreter:
         ]
 
 
-def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition]:
+def _parse_git_url(url: str, branch: T.Optional[str] = None) -> T.Tuple[str, str, str]:
+    if url.startswith('git+'):
+        url = url[4:]
+    parts = urllib.parse.urlparse(url)
+    query = urllib.parse.parse_qs(parts.query)
+    query_branch = query['branch'][0] if 'branch' in query else ''
+    branch = branch or query_branch
+    revision = parts.fragment or branch
+    directory = os.path.basename(parts.path)
+    if directory.endswith('.git'):
+        directory = directory[:-4]
+    if branch:
+        directory += f'-{branch}'
+    url = urllib.parse.urlunparse(parts._replace(params='', query='', fragment=''))
+    return url, revision, directory
+
+
+def load_wraps(source_dir: str, subproject_dir: str) -> CargoState:
     """ Convert Cargo.lock into a list of wraps """
 
-    wraps: T.List[PackageDefinition] = []
+    # Map directory -> PackageDefinition, to avoid duplicates. Multiple packages
+    # can have the same source URL, in that case we have a single wrap that
+    # provides multiple dependency names.
     filename = os.path.join(source_dir, 'Cargo.lock')
     if os.path.exists(filename):
         try:
             toml = load_toml(filename)
         except TomlImplementationMissing as e:
             mlog.warning('Failed to load Cargo.lock:', str(e), fatal=False)
-            return wraps
+            return CargoState()
         raw_cargolock = T.cast('raw.CargoLock', toml)
         cargolock = CargoLock.from_raw(raw_cargolock)
+        wraps: T.Dict[str, PackageDefinition] = {}
         for package in cargolock.package:
-            subp_name = _dependency_name(package.name, version.api(package.version))
+            meson_depname = _dependency_name(package.name, version.api(package.version))
             if package.source is None:
                 # This is project's package, or one of its workspace members.
                 pass
@@ -475,25 +651,25 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
                     checksum = cargolock.metadata[f'checksum {package.name} {package.version} ({package.source})']
                 url = f'https://crates.io/api/v1/crates/{package.name}/{package.version}/download'
                 directory = f'{package.name}-{package.version}'
-                wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'file', {
-                    'directory': directory,
-                    'source_url': url,
-                    'source_filename': f'{directory}.tar.gz',
-                    'source_hash': checksum,
-                    'method': 'cargo',
-                }))
+                if directory not in wraps:
+                    wraps[directory] = PackageDefinition.from_values(meson_depname, subproject_dir, 'file', {
+                        'directory': directory,
+                        'source_url': url,
+                        'source_filename': f'{directory}.tar.gz',
+                        'source_hash': checksum,
+                        'method': 'cargo',
+                    })
+                wraps[directory].add_provided_dep(meson_depname)
             elif package.source.startswith('git+'):
-                parts = urllib.parse.urlparse(package.source[4:])
-                query = urllib.parse.parse_qs(parts.query)
-                branch = query['branch'][0] if 'branch' in query else ''
-                revision = parts.fragment or branch
-                url = urllib.parse.urlunparse(parts._replace(params='', query='', fragment=''))
-                wraps.append(PackageDefinition.from_values(subp_name, subproject_dir, 'git', {
-                    'directory': package.name,
-                    'url': url,
-                    'revision': revision,
-                    'method': 'cargo',
-                }))
+                url, revision, directory = _parse_git_url(package.source)
+                if directory not in wraps:
+                    wraps[directory] = PackageDefinition.from_values(directory, subproject_dir, 'git', {
+                        'url': url,
+                        'revision': revision,
+                        'method': 'cargo',
+                    })
+                wraps[directory].add_provided_dep(meson_depname)
             else:
                 mlog.warning(f'Unsupported source URL in {filename}: {package.source}')
-    return wraps
+        return CargoState(cargolock.package, wraps.values())
+    return CargoState()
