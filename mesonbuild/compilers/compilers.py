@@ -11,6 +11,7 @@ import itertools
 import typing as T
 from dataclasses import dataclass, field
 from functools import lru_cache
+from random import randbytes
 
 from .. import mlog
 from .. import mesonlib
@@ -354,6 +355,12 @@ def get_base_link_args(target: 'BuildTarget',
                 threads=num_threads,
                 mode=lto_mode,
                 thinlto_cache_dir=thinlto_cache_dir))
+            lto_obj_cache_dir = os.path.join(build_dir, 'meson-private', 'lto-obj-cache')
+            # FIXME: if we can get access to the private scratch directory,
+            # this can be made reproducible
+            cachekey = randbytes(8).hex()
+            obj_cache_path = os.path.join(lto_obj_cache_dir, cachekey + "-" + target.name + ".lto.o")
+            args.extend(linker.get_lto_obj_cache_path(obj_cache_path))
     except (KeyError, AttributeError):
         pass
     try:
@@ -1035,6 +1042,9 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
     def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default',
                           thinlto_cache_dir: T.Optional[str] = None) -> T.List[str]:
         return self.linker.get_lto_args()
+
+    def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
+        return self.linker.get_lto_obj_cache_path(path)
 
     def sanitizer_compile_args(self, value: T.List[str]) -> T.List[str]:
         return []
