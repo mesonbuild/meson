@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/136 target with no sources/meson.build:3:0: ERROR: Build target no sources has no sources."
+    }
+  ]
+}

@@ -758,11 +758,9 @@ class BuildTarget(Target):
         self.link(link_targets)
         self.link_whole(link_whole_targets)
 
-        if not any([self.sources, self.generated, self.objects, self.link_whole_targets, self.structured_sources,
-                    kwargs.pop('_allow_no_sources', False)]):
-            mlog.warning(f'Build target {name} has no sources. '
-                         'This was never supposed to be allowed but did because of a bug, '
-                         'support will be removed in a future release of Meson')
+        if not any([[src for src in self.sources if not is_header(src)], self.generated, self.objects,
+                    self.link_whole_targets, self.structured_sources, kwargs.pop('_allow_no_sources', False)]):
+            raise MesonException(f'Build target {name} has no sources.')
         self.check_unknown_kwargs(kwargs)
         self.validate_install()
         self.check_module_linking()
@@ -881,6 +879,11 @@ class BuildTarget(Target):
 
         # did user override clink_langs for this target?
         link_langs = [self.link_language] if self.link_language else clink_langs
+
+        if self.link_language:
+            if self.link_language not in self.all_compilers:
+                m = f'Target {self.name} requires {self.link_language} compiler not part of the project'
+                raise MesonException(m)
 
         # If this library is linked against another library we need to consider
         # the languages of those libraries as well.
