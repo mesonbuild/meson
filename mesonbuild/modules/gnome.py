@@ -1194,7 +1194,7 @@ class GnomeModule(ExtensionModule):
         scan_command: T.List[T.Union[str, Executable, 'ExternalProgram', 'OverrideProgram']] = [giscanner]
         scan_command += ['--quiet']
 
-        if state.environment.is_cross_build() and state.environment.need_exe_wrapper():
+        if state.environment.is_cross_build() and state.environment.need_exe_wrapper() and giscanner.for_machine is MachineChoice.BUILD:
             if not state.environment.has_exe_wrapper():
                 mlog.error('generate_gir requires exe_wrapper')
 
@@ -1268,6 +1268,18 @@ class GnomeModule(ExtensionModule):
             state, girfile, scan_command, generated_files, depends, scan_env_ldflags,
             # We have to cast here because mypy can't figure this out
             T.cast('T.Dict[str, T.Any]', kwargs))
+
+        # The g-ir-compiler must match the host architecture. If we have
+        # found a g-ir-compiler for the build machine (due to it being
+        # specified in the cross file or meson just falling back to the
+        # system g-ir-compiler), check if its command begins with
+        # the command for exe_wrapper, in which case assume that it is
+        # actually compiled for the host architecture.
+        if state.environment.is_cross_build() and state.environment.need_exe_wrapper() and gicompiler.for_machine is MachineChoice.BUILD:
+            binary_wrapper = state.environment.get_exe_wrapper().get_command()
+            if gicompiler.get_command()[:len(binary_wrapper)] != binary_wrapper:
+                msg = 'Architecture of g-ir-compiler must match the one of the host machine'
+                raise MesonException(msg)
 
         typelib_output = f'{ns}-{nsversion}.typelib'
         typelib_cmd = [gicompiler, scan_target, '--output', '@OUTPUT@']
