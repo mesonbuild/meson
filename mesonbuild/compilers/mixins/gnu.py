@@ -373,8 +373,8 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         self.can_compile_suffixes.add('sx')
 
     def get_pic_args(self) -> T.List[str]:
-        if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin():
-            return [] # On Window and OS X, pic is always on.
+        if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin() or self.info.is_os2():
+            return [] # On Window, OS X and OS/2, pic is always on.
         return ['-fPIC']
 
     def get_pie_args(self) -> T.List[str]:
@@ -633,6 +633,12 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_profile_use_args(self) -> T.List[str]:
         return super().get_profile_use_args() + ['-fprofile-correction']
+
+    def get_always_args(self) -> T.List[str]:
+        args: T.List[str] = []
+        if self.info.is_os2() and self.get_linker_id() == 'emxomfld':
+            args += ['-Zomf']
+        return super().get_always_args() + args
 
 
 class GnuCStds(Compiler):
