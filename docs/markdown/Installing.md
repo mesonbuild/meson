@@ -170,6 +170,7 @@ time, please help extending the list of well known categories.
   * `pkgconfig.generate()`,
   * `gnome.generate_gir()` - `.gir` file,
   * `gnome.generate_vapi()` - `.vapi` file (*Since 0.64.0*),
+  * `gnome.generate_vapi()` - `.deps` file (*Since 1.9.1*),
   * Files installed into `libdir` and with `.a` or `.pc` extension,
   * File installed into `includedir`,
   * Generated header files installed with `gnome.compile_resources()`,

@@ -2209,7 +2209,7 @@ class GnomeModule(ExtensionModule):
         with open(fname, 'w', encoding='utf-8') as ofile:
             for package in packages:
                 ofile.write(package + '\n')
-        return build.Data([mesonlib.File(True, outdir, fname)], install_dir, install_dir, mesonlib.FileMode(), state.subproject)
+        return build.Data([mesonlib.File(True, outdir, fname)], install_dir, install_dir, mesonlib.FileMode(), state.subproject, install_tag='devel')
 
     def _get_vapi_link_with(self, target: CustomTarget) -> T.List[build.LibTypes]:
         link_with: T.List[build.LibTypes] = []
