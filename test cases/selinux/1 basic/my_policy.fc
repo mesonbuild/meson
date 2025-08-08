@@ -1,0 +1,1 @@
+/bin/my_policy_script    --    gen_context(system_u:object_r:my_policy_exec_t,s0)

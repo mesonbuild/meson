@@ -1,0 +1,7 @@
+## <summary>My policy interface</summary>
+interface(`my_policy_domtrans',`
+    gen_require(`
+        type my_policy_t;
+    ')
+    domtrans_pattern($1, my_policy_exec_t, my_policy_t)
+')
