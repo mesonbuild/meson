@@ -164,6 +164,7 @@ def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
     else:
         raise WrapException(f'Invalid wrapdb URL {patch_url}')
 
+
 class WrapException(MesonException):
     pass
 
