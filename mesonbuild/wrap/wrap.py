@@ -30,6 +30,7 @@ from functools import lru_cache
 
 from . import WrapMode
 from .. import coredata
+from  ..interpreterbase.exceptions import InvalidArguments
 from ..mesonlib import (
     DirectoryLock, DirectoryLockAction, quiet_git, GIT, ProgressBar, MesonException,
     windows_proof_rmtree, Popen_safe
@@ -163,6 +164,20 @@ def parse_patch_url(patch_url: str) -> T.Tuple[str, str]:
         return version, revision
     else:
         raise WrapException(f'Invalid wrapdb URL {patch_url}')
+
+def get_subproject_dir():
+    """
+    Gets the value set for subprojects_dir in meson.build.
+    Returns none if not called from project root
+    """
+    from ..ast import IntrospectionInterpreter
+    intr = IntrospectionInterpreter('.', '', 'none')
+    try:
+        intr.load_root_meson_file()
+    except InvalidArguments: # Root meson file cannot be found
+        return None
+
+    return intr.extract_subproject_dir() or 'subprojects'
 
 class WrapException(MesonException):
     pass
