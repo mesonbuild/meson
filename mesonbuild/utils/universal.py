@@ -108,6 +108,7 @@ __all__ = [
     'get_compiler_for_source',
     'get_filenames_templates_dict',
     'get_rsp_threshold',
+    'get_subproject_dir',
     'get_variable_regex',
     'get_wine_shortpath',
     'git',
@@ -2065,6 +2066,8 @@ def detect_subprojects(spdir_name: str, current_dir: str = '',
             continue
         append_this = True
         if os.path.isdir(trial):
+            spdir_name = get_subproject_dir(trial) or 'subprojects'
+
             detect_subprojects(spdir_name, trial, result)
         elif trial.endswith('.wrap') and os.path.isfile(trial):
             basename = os.path.splitext(basename)[0]
@@ -2502,3 +2505,23 @@ class lazy_property(T.Generic[_T]):
         value = self.__func(instance)
         setattr(instance, self.__name, value)
         return value
+
+
+def get_subproject_dir(directory: str = '.') -> T.Optional[str]:
+    """Get the name of the subproject directory for a specific project.
+
+    If the subproject does not have a meson.build file, it is called in an
+    invalid directory, it returns None
+
+    :param directory: Where to search, defaults to current working directory
+    :return: the name of the subproject directory or None.
+    """
+    from ..ast import IntrospectionInterpreter
+    from ..interpreterbase.exceptions import InvalidArguments
+    intr = IntrospectionInterpreter(directory, '', 'none')
+    try:
+        intr.load_root_meson_file()
+    except InvalidArguments: # Root meson file cannot be found
+        return None
+
+    return intr.extract_subproject_dir() or 'subprojects'
