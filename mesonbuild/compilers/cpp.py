@@ -86,9 +86,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def get_no_stdlib_link_args(self) -> T.List[str]:
         return ['-nostdlib++']
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
-        code = 'class breakCCompiler;int main(void) { return 0; }\n'
-        return self._sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
+    def _sanity_check_source_code(self) -> str:
+        return 'class breakCCompiler;int main(void) { return 0; }\n'
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # -fpermissive allows non-conforming code to compile which is necessary
