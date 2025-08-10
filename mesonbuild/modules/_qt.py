@@ -84,7 +84,7 @@ if T.TYPE_CHECKING:
     class HasToolKwArgs(kwargs.ExtractRequired):
 
         method: str
-        tools: T.List[Literal['moc', 'uic', 'rcc', 'lrelease', 'qmlcachegen', 'qmltyperegistrar']]
+        tools: T.List[Literal['moc', 'uic', 'rcc', 'lrelease', 'lupdate', 'qmlcachegen', 'qmltyperegistrar']]
 
     class CompileTranslationsKwArgs(TypedDict):
 
@@ -199,7 +199,7 @@ class QtBaseModule(ExtensionModule):
     _tools_detected = False
     _rcc_supports_depfiles = False
     _moc_supports_depfiles = False
-    _set_of_qt_tools = {'moc', 'uic', 'rcc', 'lrelease', 'qmlcachegen', 'qmltyperegistrar'}
+    _set_of_qt_tools = {'moc', 'uic', 'rcc', 'lrelease', 'lupdate', 'qmlcachegen', 'qmltyperegistrar'}
     _moc_supports_json = False
     _support_qml_module = False
 
@@ -242,7 +242,7 @@ class QtBaseModule(ExtensionModule):
             if self.tools[name].found():
                 continue
 
-            if name == 'lrelease':
+            if name in ('lrelease', 'lupdate'):
                 arg = ['-version']
             elif version_compare(qt_dep.version, '>= 5'):
                 arg = ['--version']
@@ -294,6 +294,7 @@ class QtBaseModule(ExtensionModule):
             self.tools['uic'] = NonExistingExternalProgram(name='uic' + suffix)
             self.tools['rcc'] = NonExistingExternalProgram(name='rcc' + suffix)
             self.tools['lrelease'] = NonExistingExternalProgram(name='lrelease' + suffix)
+            self.tools['lupdate'] = NonExistingExternalProgram(name='lupdate' + suffix)
 
     @staticmethod
     def _qrc_nodes(state: ModuleState, rcc_file: FileOrString) -> T.Tuple[str, T.List[str]]:
