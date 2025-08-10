@@ -674,6 +674,8 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
 
     def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
         m = env.machines[self.for_machine]
+        if m.is_haiku():
+            return self._apply_prefix('-soname=_APP_')
         if m.is_windows() or m.is_cygwin():
             return self._apply_prefix('--export-all-symbols')
         return self._apply_prefix('-export-dynamic')
