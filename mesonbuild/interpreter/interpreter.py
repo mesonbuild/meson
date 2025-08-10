@@ -2103,8 +2103,20 @@ class Interpreter(InterpreterBase, HoldableObject):
             name = ''
         inputs = self.source_strings_to_files(kwargs['input'], strict=False)
         command = kwargs['command']
-        if command and isinstance(command[0], str):
-            command[0] = self.find_program_impl([command[0]])
+        if command and command[0] is not None:
+            if isinstance(command[0], str):
+                command[0] = self.find_program_impl([command[0]])
+            elif isinstance(command[0], mesonlib.File):
+                file_path = command[0].absolute_path(self.environment.source_dir, self.environment.build_dir)
+                prog = self.find_program_impl([file_path], silent=True, required=False)
+                if prog.found():
+                    command[0] = prog
+            elif isinstance(command[0], build.CustomTargetIndex):
+                file_obj = mesonlib.File.from_built_file(command[0].get_subdir(), command[0].get_filename())
+                file_path = file_obj.absolute_path(self.environment.source_dir, self.environment.build_dir)
+                prog = self.find_program_impl([file_path], silent=True, required=False)
+                if prog.found():
+                    command[0] = prog
 
         if len(inputs) > 1 and kwargs['feed']:
             raise InvalidArguments('custom_target: "feed" keyword argument can only be used with a single input')
@@ -2170,8 +2182,20 @@ class Interpreter(InterpreterBase, HoldableObject):
         for i in listify(all_args):
             if isinstance(i, ExternalProgram) and not i.found():
                 raise InterpreterException(f'Tried to use non-existing executable {i.name!r}')
-        if isinstance(all_args[0], str):
-            all_args[0] = self.find_program_impl([all_args[0]])
+        if all_args and all_args[0] is not None:
+            if isinstance(all_args[0], str):
+                all_args[0] = self.find_program_impl([all_args[0]])
+            elif isinstance(all_args[0], mesonlib.File):
+                file_path = all_args[0].absolute_path(self.environment.source_dir, self.environment.build_dir)
+                prog = self.find_program_impl([file_path], silent=True, required=False)
+                if prog.found():
+                    all_args[0] = prog
+            elif isinstance(all_args[0], build.CustomTargetIndex):
+                file_obj = mesonlib.File.from_built_file(all_args[0].get_subdir(), all_args[0].get_filename())
+                file_path = file_obj.absolute_path(self.environment.source_dir, self.environment.build_dir)
+                prog = self.find_program_impl([file_path], silent=True, required=False)
+                if prog.found():
+                    all_args[0] = prog
         name = args[0]
         tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, self.environment,
                              kwargs['env'])

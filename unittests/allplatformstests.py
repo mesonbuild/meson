@@ -1423,6 +1423,27 @@ class AllPlatformTests(BasePlatformTests):
             self.utime(os.path.join(testdir, f))
             self.assertBuildRelinkedOnlyTarget('prog')
 
+    def test_file_objects_as_commands(self):
+        '''
+        Test File objects can be used directly as commands with shebang detection.
+        Fixes GitHub issue #11255.
+        '''
+        testdir = os.path.join(self.common_test_dir, '285 file objects in commands')
+        self.init(testdir, default_args=False)
+        self.build()
+        
+        generated_header = os.path.join(self.builddir, 'generated.h')
+        processed_data = os.path.join(self.builddir, 'processed.txt')
+        
+        self.assertPathExists(generated_header)
+        self.assertPathExists(processed_data)
+        
+        with open(generated_header, 'r') as f:
+            self.assertIn('Generated header file', f.read())
+        
+        with open(processed_data, 'r') as f:
+            self.assertIn('Processing data', f.read())
+
     def test_source_generator_program_cause_rebuild(self):
         '''
         Test that changes to generator programs in the source tree cause
