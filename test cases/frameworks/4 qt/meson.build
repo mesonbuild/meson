@@ -2,6 +2,9 @@ project('qt4, qt5, and qt6 build test', 'cpp',
   # Qt6 requires C++ 17 support
   default_options : ['cpp_std=c++17'])
 
+fs = import('fs')
+stuff2_copy = fs.copyfile('stuff2.qrc')
+
 # Visit the subdir before entering the loop
 subdir('mocdep')
 
@@ -89,7 +92,7 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     # Test that setting a unique name with a positional argument works
     qtmodule.compile_resources(
       name : qt + 'teststuff',
-      sources : files(['stuff.qrc', 'stuff2.qrc']),
+      sources : [files('stuff.qrc'), stuff2_copy],
       method : get_option('method')
     )
 
