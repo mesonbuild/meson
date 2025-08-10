@@ -135,10 +135,6 @@ class FakeBuild:
     def __init__(self, env):
         self.environment = env
 
-class FakeCompilerOptions:
-    def __init__(self):
-        self.value = []
-
 def get_fake_options(prefix: str = '') -> SharedCMDOptions:
     opts = T.cast('SharedCMDOptions', argparse.Namespace())
     opts.native_file = []
@@ -153,7 +149,6 @@ def get_fake_env(sdir: str = '', bdir: T.Optional[str] = None, prefix: str = '',
     if opts is None:
         opts = get_fake_options(prefix)
     env = Environment(sdir, bdir, opts)
-    env.coredata.optstore.set_value_object(OptionKey('c_args'),  FakeCompilerOptions())
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
     # Invalidate cache when using a different Environment object.
     clear_meson_configure_class_caches()

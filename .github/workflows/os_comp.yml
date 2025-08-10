@@ -100,10 +100,12 @@ jobs:
           - CC: 'gcc'
             CXX: 'g++'
           - MESON_ARGS: '--unity=on -Ddefault_library=static'
+            MESON_TEST_DDEFAULT_LIBRARY: yes
             RUN_TESTS_ARGS: '--no-unittests'
             CC: 'gcc'
             CXX: 'g++'
           - MESON_ARGS: '-Ddefault_library=both'
+            MESON_TEST_DDEFAULT_LIBRARY: yes
             RUN_TESTS_ARGS: '--no-unittests'
             CC: 'gcc'
             CXX: 'g++'
@@ -130,6 +132,7 @@ jobs:
       env:
         MESON_RSP_THRESHOLD: ${{ matrix.cfg.MESON_RSP_THRESHOLD }}
         MESON_ARGS: ${{ matrix.cfg.MESON_ARGS }}
+        MESON_TEST_DDEFAULT_LIBRARY: ${{ matrix.cfg.MESON_TEST_DDEFAULT_LIBRARY }}
         RUN_TESTS_ARGS: ${{ matrix.cfg.RUN_TESTS_ARGS }}
         CC: ${{ matrix.cfg.CC }}
         CXX: ${{ matrix.cfg.CXX }}
