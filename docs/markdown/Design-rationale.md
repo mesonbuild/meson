@@ -180,7 +180,7 @@ Let's start simple. Here is the code to compile a single executable
 binary.
 
 ```meson
-project('compile one', 'c')
+project('compile one', host_machine_languages : 'c')
 executable('program', 'prog.c')
 ```
 
@@ -195,7 +195,7 @@ the function call can become unwieldy. That is why the system supports
 keyword arguments. They look like this.
 
 ```meson
-project('compile several', 'c')
+project('compile several', host_machine_languages : 'c')
 sourcelist = ['main.c', 'file1.c', 'file2.c', 'file3.c']
 executable('program', sources : sourcelist)
 ```
@@ -203,7 +203,7 @@ executable('program', sources : sourcelist)
 External dependencies are simple to use.
 
 ```meson
-project('external lib', 'c')
+project('external lib', host_machine_languages : 'c')
 libdep = find_dep('extlibrary', required : true)
 sourcelist = ['main.c', 'file1.c', 'file2.c', 'file3.c']
 executable('program', sources : sourcelist, dep : libdep)
@@ -218,7 +218,7 @@ Here's a slightly more complicated definition. It should still be
 understandable.
 
 ```meson
-project('build library', 'c')
+project('build library', host_machine_languages : 'c')
 foolib = shared_library('foobar', sources : 'foobar.c',\
 install : true)
 exe = executable('testfoobar', 'tester.c', link : foolib)
@@ -236,7 +236,7 @@ Above we mentioned precompiled headers as a feature not supported by
 other build systems. Here's how you would use them.
 
 ```meson
-project('pch demo', 'cpp')
+project('pch demo', host_machine_languages : 'cpp')
 executable('myapp', 'myapp.cpp', pch : 'pch/myapp.hh')
 ```
 
