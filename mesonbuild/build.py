@@ -1223,7 +1223,9 @@ class BuildTarget(Target):
         self.resources = resources
         if kwargs.get('name_prefix') is not None:
             name_prefix = kwargs['name_prefix']
-            if isinstance(name_prefix, list):
+            if isinstance(name_prefix, UnknownValue):
+                pass
+            elif isinstance(name_prefix, list):
                 if name_prefix:
                     raise InvalidArguments('name_prefix array must be empty to signify default.')
             else:
@@ -1233,7 +1235,9 @@ class BuildTarget(Target):
                 self.name_prefix_set = True
         if kwargs.get('name_suffix') is not None:
             name_suffix = kwargs['name_suffix']
-            if isinstance(name_suffix, list):
+            if isinstance(name_suffix, UnknownValue):
+                pass
+            elif isinstance(name_suffix, list):
                 if name_suffix:
                     raise InvalidArguments('name_suffix array must be empty to signify default.')
             else:
