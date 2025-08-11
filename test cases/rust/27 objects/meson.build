@@ -1,4 +1,5 @@
-project('staticlib group', 'c', 'rust', meson_version: '>=1.8.0')
+project('staticlib group', 'c', 'rust', meson_version: '>=1.8.0',
+        default_options: ['rust_std=2021'])
 
 lib1 = static_library('lib1', 'lib1.c')
 dep1 = declare_dependency(objects: lib1.extract_all_objects(recursive: false))
@@ -26,3 +27,9 @@ lib12 = shared_library('dylib2objs_as_dep', 'lib1-dylib.rs',
   dependencies: dep2,
   rust_abi: 'c')
 executable('dylib_as_dep', 'main.rs', link_with: lib12)
+
+lib12_rlib = static_library('lib12', 'lib1-dylib.rs',
+  dependencies: dep2)
+
+rust = import('rust')
+rust.doctest('rlib with dep', lib12_rlib)
