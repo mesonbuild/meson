@@ -1634,6 +1634,16 @@ class Interpreter(InterpreterBase, HoldableObject):
             [a if isinstance(a, str) else a.absolute_path(self.environment.source_dir, self.environment.build_dir)
              for a in args]))
 
+    def _try_file_as_command(self, file_arg: T.Union[mesonlib.File, build.CustomTargetIndex]) -> T.Union[ExternalProgram, mesonlib.File, build.CustomTargetIndex]:
+        if isinstance(file_arg, mesonlib.File):
+            file_path = file_arg.absolute_path(self.environment.source_dir, self.environment.build_dir)
+        else:  # isinstance(file_arg, build.CustomTargetIndex)
+            file_obj = mesonlib.File.from_built_file(file_arg.get_subdir(), file_arg.get_filename())
+            file_path = file_obj.absolute_path(self.environment.source_dir, self.environment.build_dir)
+        
+        prog = self.find_program_impl([file_path], silent=True, required=False)
+        return prog if prog.found() else file_arg
+
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
     def find_program_impl(self, args: T.List[mesonlib.FileOrString],
@@ -2106,17 +2116,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if command and command[0] is not None:
             if isinstance(command[0], str):
                 command[0] = self.find_program_impl([command[0]])
-            elif isinstance(command[0], mesonlib.File):
-                file_path = command[0].absolute_path(self.environment.source_dir, self.environment.build_dir)
-                prog = self.find_program_impl([file_path], silent=True, required=False)
-                if prog.found():
-                    command[0] = prog
-            elif isinstance(command[0], build.CustomTargetIndex):
-                file_obj = mesonlib.File.from_built_file(command[0].get_subdir(), command[0].get_filename())
-                file_path = file_obj.absolute_path(self.environment.source_dir, self.environment.build_dir)
-                prog = self.find_program_impl([file_path], silent=True, required=False)
-                if prog.found():
-                    command[0] = prog
+            elif isinstance(command[0], (mesonlib.File, build.CustomTargetIndex)):
+                command[0] = self._try_file_as_command(command[0])
 
         if len(inputs) > 1 and kwargs['feed']:
             raise InvalidArguments('custom_target: "feed" keyword argument can only be used with a single input')
@@ -2185,17 +2186,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         if all_args and all_args[0] is not None:
             if isinstance(all_args[0], str):
                 all_args[0] = self.find_program_impl([all_args[0]])
-            elif isinstance(all_args[0], mesonlib.File):
-                file_path = all_args[0].absolute_path(self.environment.source_dir, self.environment.build_dir)
-                prog = self.find_program_impl([file_path], silent=True, required=False)
-                if prog.found():
-                    all_args[0] = prog
-            elif isinstance(all_args[0], build.CustomTargetIndex):
-                file_obj = mesonlib.File.from_built_file(all_args[0].get_subdir(), all_args[0].get_filename())
-                file_path = file_obj.absolute_path(self.environment.source_dir, self.environment.build_dir)
-                prog = self.find_program_impl([file_path], silent=True, required=False)
-                if prog.found():
-                    all_args[0] = prog
+            elif isinstance(all_args[0], (mesonlib.File, build.CustomTargetIndex)):
+                all_args[0] = self._try_file_as_command(all_args[0])
         name = args[0]
         tg = build.RunTarget(name, all_args, kwargs['depends'], self.subdir, self.subproject, self.environment,
                              kwargs['env'])
