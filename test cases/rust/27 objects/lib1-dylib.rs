@@ -13,3 +13,12 @@ pub extern "C" fn c_func()
 {
     unsafe { from_lib1(); }
 }
+
+/// ```
+/// use lib12::rust_func;
+/// rust_func();
+/// ```
+pub fn rust_func()
+{
+    unsafe { from_lib1(); }
+}
