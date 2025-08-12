@@ -192,11 +192,16 @@ class ExternalProgram(mesonlib.HoldableObject):
             with open(script, encoding='utf-8') as f:
                 first_line = f.readline().strip()
             if first_line.startswith('#!'):
+                command = first_line[2:].split('#')[0].strip()
+                # If someone used ExternalProgram.full_path, this path
+                # may contain spaces. Convert and use as is.
+                if os.path.exists(command):
+                    return [command, script]
                 # In a shebang, everything before the first space is assumed to
                 # be the command to run and everything after the first space is
                 # the single argument to pass to that command. So we must split
                 # exactly once.
-                commands = first_line[2:].split('#')[0].strip().split(maxsplit=1)
+                commands = command.split(maxsplit=1)
                 if mesonlib.is_windows():
                     # Windows does not have UNIX paths so remove them,
                     # but don't remove Windows paths
