@@ -120,13 +120,22 @@ class Interpreter:
         if pkg:
             return pkg, True
         meson_depname = _dependency_name(package_name, api)
-        subdir, _ = self.environment.wrap_resolver.resolve(meson_depname)
+        return self._fetch_package_from_subproject(package_name, meson_depname)
+
+    def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> T.Tuple[PackageState, bool]:
+        subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
+        subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', meson_depname))
         manifest = self._load_manifest(subdir)
         downloaded = \
-            meson_depname in self.environment.wrap_resolver.wraps and \
-            self.environment.wrap_resolver.wraps[meson_depname].type is not None
+            subp_name in self.environment.wrap_resolver.wraps and \
+            self.environment.wrap_resolver.wraps[subp_name].type is not None
+        key = PackageKey(package_name, version.api(manifest.package.version))
+
+        pkg = self.packages.get(key)
+        if pkg:
+            return pkg, True
         pkg = PackageState(manifest, downloaded)
         self.packages[key] = pkg
         # Merge target specific dependencies that are enabled
@@ -141,7 +150,12 @@ class Interpreter:
         return pkg, False
 
     def _dep_package(self, dep: Dependency) -> PackageState:
-        return self.packages[PackageKey(dep.package, dep.api)]
+        if dep.git:
+            _, _, directory = _parse_git_url(dep.git, dep.branch)
+            dep_pkg, _ = self._fetch_package_from_subproject(dep.package, directory)
+        else:
+            dep_pkg, _ = self._fetch_package(dep.package, dep.api)
+        return dep_pkg
 
     def _load_manifest(self, subdir: str) -> Manifest:
         manifest_ = self.manifests.get(subdir)
@@ -165,7 +179,7 @@ class Interpreter:
             # It could be build/dev/target dependency. Just ignore it.
             return
         pkg.required_deps.add(depname)
-        dep_pkg, _ = self._fetch_package(dep.package, dep.api)
+        dep_pkg = self._dep_package(dep)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
         for f in dep.features:
