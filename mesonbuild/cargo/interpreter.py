@@ -18,7 +18,7 @@ import urllib.parse
 import typing as T
 
 from . import builder, version, cfg
-from .toml import load_toml, TomlImplementationMissing
+from .toml import load_toml
 from .manifest import Manifest, CargoLock, fixup_meson_varname
 from ..mesonlib import MesonException, MachineChoice
 from .. import coredata, mlog
@@ -65,15 +65,26 @@ class PackageKey:
 
 
 class Interpreter:
-    def __init__(self, env: Environment) -> None:
+    def __init__(self, env: Environment, subdir: str, subprojects_dir: str) -> None:
         self.environment = env
         # Map Cargo.toml's subdir to loaded manifest.
         self.manifests: T.Dict[str, Manifest] = {}
         # Map of cargo package (name + api) to its state
         self.packages: T.Dict[PackageKey, PackageState] = {}
+        # Cargo packages
+        filename = os.path.join(self.environment.get_source_dir(), subdir, 'Cargo.lock')
+        subprojects_dir = os.path.join(self.environment.get_source_dir(), subprojects_dir)
+        self.subdir: T.Optional[str] = None
+        self.cargolock = load_cargo_lock(filename, subprojects_dir)
+        if self.cargolock:
+            self.subdir = subdir
+            self.environment.wrap_resolver.merge_wraps(self.cargolock.wraps)
 
     def get_build_def_files(self) -> T.List[str]:
-        return [os.path.join(subdir, 'Cargo.toml') for subdir in self.manifests]
+        build_def_files = [os.path.join(subdir, 'Cargo.toml') for subdir in self.manifests]
+        if self.cargolock:
+            build_def_files.append(os.path.join(self.subdir, 'Cargo.lock'))
+        return build_def_files
 
     def interpret(self, subdir: str) -> mparser.CodeBlockNode:
         manifest = self._load_manifest(subdir)
@@ -468,22 +479,17 @@ def _parse_git_url(url: str, branch: T.Optional[str] = None) -> T.Tuple[str, str
     return url, revision, directory
 
 
-def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition]:
+def load_cargo_lock(filename: str, subproject_dir: str) -> T.Optional[CargoLock]:
     """ Convert Cargo.lock into a list of wraps """
 
     # Map directory -> PackageDefinition, to avoid duplicates. Multiple packages
     # can have the same source URL, in that case we have a single wrap that
     # provides multiple dependency names.
-    wraps: T.Dict[str, PackageDefinition] = {}
-    filename = os.path.join(source_dir, 'Cargo.lock')
     if os.path.exists(filename):
-        try:
-            toml = load_toml(filename)
-        except TomlImplementationMissing as e:
-            mlog.warning('Failed to load Cargo.lock:', str(e), fatal=False)
-            return []
+        toml = load_toml(filename)
         raw_cargolock = T.cast('raw.CargoLock', toml)
         cargolock = CargoLock.from_raw(raw_cargolock)
+        wraps: T.Dict[str, PackageDefinition] = {}
         for package in cargolock.package:
             meson_depname = _dependency_name(package.name, version.api(package.version))
             if package.source is None:
@@ -515,4 +521,6 @@ def load_wraps(source_dir: str, subproject_dir: str) -> T.List[PackageDefinition
                 wraps[directory].add_provided_dep(meson_depname)
             else:
                 mlog.warning(f'Unsupported source URL in {filename}: {package.source}')
-    return list(wraps.values())
+        cargolock.wraps = {w.name: w for w in wraps.values()}
+        return cargolock
+    return None
