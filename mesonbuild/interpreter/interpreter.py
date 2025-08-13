@@ -1068,7 +1068,11 @@ class Interpreter(InterpreterBase, HoldableObject):
                      once=True, location=self.current_node)
         self.add_languages(['rust'], True, MachineChoice.HOST)
         with mlog.nested(subp_name):
-            cargo_int = self.cargo or cargo.Interpreter(self.environment)
+            try:
+                cargo_int = self.cargo or cargo.Interpreter(self.environment, subdir, self.subproject_dir)
+            except cargo.TomlImplementationMissing as e:
+                raise MesonException(f'Failed to load Cargo.lock: {e!s}')
+
             ast = cargo_int.interpret(subdir)
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
