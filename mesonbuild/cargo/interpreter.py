@@ -11,6 +11,7 @@ port will be required.
 
 from __future__ import annotations
 import dataclasses
+import functools
 import os
 import collections
 import urllib.parse
@@ -66,13 +67,10 @@ class PackageKey:
 class Interpreter:
     def __init__(self, env: Environment) -> None:
         self.environment = env
-        self.host_rustc = T.cast('RustCompiler', self.environment.coredata.compilers[MachineChoice.HOST]['rust'])
         # Map Cargo.toml's subdir to loaded manifest.
         self.manifests: T.Dict[str, Manifest] = {}
         # Map of cargo package (name + api) to its state
         self.packages: T.Dict[PackageKey, PackageState] = {}
-        # Rustc's config
-        self.cfgs = self._get_cfgs()
 
     def get_build_def_files(self) -> T.List[str]:
         return [os.path.join(subdir, 'Cargo.toml') for subdir in self.manifests]
@@ -121,8 +119,9 @@ class Interpreter:
         pkg = PackageState(manifest, downloaded)
         self.packages[key] = pkg
         # Merge target specific dependencies that are enabled
+        cfgs = self._get_cfgs(MachineChoice.HOST)
         for condition, dependencies in manifest.target.items():
-            if cfg.eval_cfg(condition, self.cfgs):
+            if cfg.eval_cfg(condition, cfgs):
                 manifest.dependencies.update(dependencies)
         # Fetch required dependencies recursively.
         for depname, dep in manifest.dependencies.items():
@@ -196,9 +195,13 @@ class Interpreter:
             else:
                 self._enable_feature(pkg, f)
 
-    def _get_cfgs(self) -> T.Dict[str, str]:
-        cfgs = self.host_rustc.get_cfgs().copy()
-        rustflags = self.environment.coredata.get_external_args(MachineChoice.HOST, 'rust')
+    @functools.lru_cache(maxsize=None)
+    def _get_cfgs(self, machine: MachineChoice) -> T.Dict[str, str]:
+        if not self.environment.is_cross_build():
+            machine = MachineChoice.HOST
+        rustc = T.cast('RustCompiler', self.environment.coredata.compilers[machine]['rust'])
+        cfgs = rustc.get_cfgs().copy()
+        rustflags = self.environment.coredata.get_external_args(machine, 'rust')
         rustflags_i = iter(rustflags)
         for i in rustflags_i:
             if i == '--cfg':
