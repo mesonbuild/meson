@@ -18,6 +18,7 @@ if T.TYPE_CHECKING:
 
     from . import raw
     from .raw import EDITION, CRATE_TYPE
+    from ..wrap.wrap import PackageDefinition
 
     # Copied from typeshed. Blarg that they don't expose this
     class DataclassInstance(Protocol):
@@ -501,6 +502,7 @@ class CargoLock:
     version: int = 1
     package: T.List[CargoLockPackage] = dataclasses.field(default_factory=list)
     metadata: T.Dict[str, str] = dataclasses.field(default_factory=dict)
+    wraps: T.Dict[str, PackageDefinition] = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_raw(cls, raw: raw.CargoLock) -> CargoLock:
