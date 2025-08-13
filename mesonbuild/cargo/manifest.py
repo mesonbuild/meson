@@ -5,12 +5,13 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 import dataclasses
 import os
 import typing as T
 
 from . import version
-from ..mesonlib import MesonException, lazy_property
+from ..mesonlib import MesonException, lazy_property, Version
 from .. import mlog
 
 if T.TYPE_CHECKING:
@@ -254,7 +255,7 @@ class Dependency:
             elif v.startswith('='):
                 api.add(version.api(v[1:].strip()))
         if not api:
-            return '0'
+            return ''
         elif len(api) == 1:
             return api.pop()
         else:
@@ -279,6 +280,17 @@ class Dependency:
 
         raw_dep = _depv_to_dep(raw_depv)
         return cls.from_raw_dict(name, raw_dep, member_path, raw_ws_dep)
+
+    def update_version(self, v: str) -> None:
+        self.version = v
+        try:
+            delattr(self, 'api')
+        except AttributeError:
+            pass
+        try:
+            delattr(self, 'meson_version')
+        except AttributeError:
+            pass
 
 
 @dataclasses.dataclass
@@ -489,6 +501,14 @@ class CargoLockPackage:
     checksum: T.Optional[str] = None
     dependencies: T.List[str] = dataclasses.field(default_factory=list)
 
+    @lazy_property
+    def api(self) -> str:
+        return version.api(self.version)
+
+    @lazy_property
+    def subproject(self) -> str:
+        return f'{self.name}-{self.api}-rs'
+
     @classmethod
     def from_raw(cls, raw: raw.CargoLockPackage) -> CargoLockPackage:
         return _raw_to_dataclass(raw, cls, 'Cargo.lock package')
@@ -508,3 +528,15 @@ class CargoLock:
     def from_raw(cls, raw: raw.CargoLock) -> CargoLock:
         return _raw_to_dataclass(raw, cls, 'Cargo.lock',
                                  package=lambda x: [CargoLockPackage.from_raw(p) for p in x])
+
+    def named(self, name: str) -> T.Sequence[CargoLockPackage]:
+        return self._versions[name]
+
+    @lazy_property
+    def _versions(self) -> T.Dict[str, T.List[CargoLockPackage]]:
+        versions = defaultdict(list)
+        for pkg in self.package:
+            versions[pkg.name].append(pkg)
+        for pkg_versions in versions.values():
+            pkg_versions.sort(reverse=True, key=lambda pkg: Version(pkg.version))
+        return versions
