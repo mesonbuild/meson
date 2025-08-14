@@ -51,9 +51,7 @@ a web chat. The channel to use is `#mesonbuild` either via Matrix ([web
 interface](https://app.element.io/#/room/#mesonbuild:matrix.org)) or
 [OFTC IRC](https://www.oftc.net/).
 
-Other methods of communication include the [mailing
-list](https://groups.google.com/forum/#!forum/mesonbuild) (hosted by
-Google Groups) and the
+For general discussion, please use the
 [Discussions](https://github.com/mesonbuild/meson/discussions) section
 of the Meson GitHub repository.
 
