@@ -2208,10 +2208,9 @@ class NinjaBackend(backends.Backend):
             rustdoc = rustc.get_rustdoc(self.environment)
             args = rustdoc.get_exe_args()
             args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
-            # There can be no non-Rust objects: the doctests are gathered from Rust
-            # sources and the tests are linked with the target (which is where the
-            # obj_list was linked into)
-            _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc, [])
+            # Rustc does not add files in the obj_list to Rust rlibs,
+            # and is added by Meson to all of the dependencies, including here.
+            _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc, obj_list)
             args += deps_args
             target.doctests.cmd_args = args.to_native() + [main_rust_file] + target.doctests.cmd_args
 
