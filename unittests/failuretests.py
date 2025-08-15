@@ -41,10 +41,10 @@ def no_pkgconfig():
             return [None]
         return old_search(self, name, search_dirs, exclude_paths)
 
-    def new_which(cmd, *kwargs):
+    def new_which(cmd, **kwargs):
         if cmd == 'pkg-config':
             return None
-        return old_which(cmd, *kwargs)
+        return old_which(cmd, **kwargs)
 
     shutil.which = new_which
     ExternalProgram._search = new_search
