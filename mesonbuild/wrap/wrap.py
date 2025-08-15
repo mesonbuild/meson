@@ -318,6 +318,9 @@ class PackageDefinition:
             with open(self.get_hashfile(subproject_directory), 'w', encoding='utf-8') as file:
                 file.write(self.wrapfile_hash + '\n')
 
+    def add_provided_dep(self, name: str) -> None:
+        self.provided_deps[name] = None
+
 def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
     if os.path.isfile(fname):
@@ -368,12 +371,6 @@ class Resolver:
             mlog.warning(f'failed to process netrc file: {e}.', fatal=False)
 
     def load_wraps(self) -> None:
-        # Load Cargo.lock at the root of source tree
-        source_dir = os.path.dirname(self.subdir_root)
-        if os.path.exists(os.path.join(source_dir, 'Cargo.lock')):
-            from .. import cargo
-            for wrap in cargo.load_wraps(source_dir, self.subdir_root):
-                self.wraps[wrap.name] = wrap
         # Load subprojects/*.wrap
         if os.path.isdir(self.subdir_root):
             root, dirs, files = next(os.walk(self.subdir_root))
@@ -439,8 +436,8 @@ class Resolver:
         self.add_wrap(wrap)
         return wrap
 
-    def _merge_wraps(self, other_resolver: 'Resolver') -> None:
-        for k, v in other_resolver.wraps.items():
+    def merge_wraps(self, wraps: T.Dict[str, PackageDefinition]) -> None:
+        for k, v in wraps.items():
             prev_wrap = self.wraps.get(v.directory)
             if prev_wrap and prev_wrap.type is None and v.type is not None:
                 # This happens when a subproject has been previously downloaded
@@ -458,7 +455,7 @@ class Resolver:
     def load_and_merge(self, subdir: str, subproject: SubProject) -> None:
         if self.wrap_mode != WrapMode.nopromote and subdir not in self.loaded_dirs:
             other_resolver = Resolver(self.source_dir, subdir, subproject, self.wrap_mode, self.wrap_frontend, self.allow_insecure, self.silent)
-            self._merge_wraps(other_resolver)
+            self.merge_wraps(other_resolver.wraps)
             self.loaded_dirs.add(subdir)
 
     def find_dep_provider(self, packagename: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:

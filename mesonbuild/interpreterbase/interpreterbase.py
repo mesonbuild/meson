@@ -733,6 +733,11 @@ class InterpreterBase:
         except mesonlib.MesonException as me:
             me.file = absname
             raise me
+        self._evaluate_codeblock(codeblock, subdir, visitors)
+        return True
+
+    def _evaluate_codeblock(self, codeblock: mparser.CodeBlockNode, subdir: str,
+                            visitors: T.Optional[T.Iterable[AstVisitor]] = None) -> None:
         try:
             prev_subdir = self.subdir
             self.subdir = subdir
@@ -744,4 +749,3 @@ class InterpreterBase:
             pass
         finally:
             self.subdir = prev_subdir
-        return True
