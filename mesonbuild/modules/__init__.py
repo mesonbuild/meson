@@ -95,8 +95,7 @@ class ModuleState:
             return ExternalProgram.from_entry(name, prog_list)
 
         # Check if pkgconfig has a variable
-        dep = self.dependency(depname, native=for_machine is MachineChoice.BUILD,
-                              required=False, wanted=wanted)
+        dep = self.dependency(depname, native=True, required=False, wanted=wanted)
         if dep.found() and dep.type_name == 'pkgconfig':
             value = dep.get_variable(pkgconfig=varname)
             if value:
