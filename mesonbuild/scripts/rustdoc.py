@@ -65,7 +65,7 @@ class Rustdoc:
                     if arg == '--test':
                         is_test = True
                         break
-                    elif arg in {'--crate-name', '--emit', '--out-dir', '-l'}:
+                    elif arg in {'--crate-name', '--emit', '--out-dir', '-l', '--crate-type'}:
                         prev = arg
                     elif arg != '-g' and not arg.startswith('-l'):
                         cmdlist.append(arg)
