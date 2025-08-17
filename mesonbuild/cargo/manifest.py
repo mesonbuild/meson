@@ -18,7 +18,7 @@ if T.TYPE_CHECKING:
     from typing_extensions import Protocol, Self
 
     from . import raw
-    from .raw import EDITION, CRATE_TYPE
+    from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
     from ..wrap.wrap import PackageDefinition
 
     # Copied from typeshed. Blarg that they don't expose this
@@ -412,6 +412,45 @@ class Example(BuildTarget['raw.BuildTarget']):
 
 
 @dataclasses.dataclass
+class Lint:
+
+    """Cargo Lint definition.
+    """
+
+    name: str
+    level: LINT_LEVEL
+    priority: int
+    check_cfg: T.Optional[T.List[str]]
+
+    @classmethod
+    def from_raw(cls, r: T.Union[raw.FromWorkspace, T.Dict[str, T.Dict[str, raw.LintV]]],
+                 workspace: T.Optional[Workspace] = None) -> T.List[Lint]:
+        if _check_from_workspace(r, workspace.lints if workspace else None, 'Lints'):
+            return cls.from_raw(workspace.lints)
+
+        r = T.cast('T.Dict[str, T.Dict[str, raw.LintV]]', r)
+        lints: T.Dict[str, Lint] = {}
+        for tool, raw_lints in r.items():
+            prefix = '' if tool == 'rust' else f'{tool}::'
+            for name, settings in raw_lints.items():
+                name = prefix + name
+                if isinstance(settings, str):
+                    settings = T.cast('raw.Lint', {'level': settings})
+                check_cfg = None
+                if name == 'unexpected_cfgs':
+                    # 'cfg(test)' is added automatically by cargo
+                    check_cfg = ['cfg(test)'] + settings.get('check-cfg', [])
+                lints[name] = Lint(name=name,
+                                   level=settings['level'],
+                                   priority=settings.get('priority', 0),
+                                   check_cfg=check_cfg)
+
+        lints_final = list(lints.values())
+        lints_final.sort(key=lambda x: x.priority)
+        return lints_final
+
+
+@dataclasses.dataclass
 class Manifest:
 
     """Cargo Manifest definition.
@@ -436,6 +475,7 @@ class Manifest:
     example: T.List[Example] = dataclasses.field(default_factory=list)
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
+    lints: T.List[Lint] = dataclasses.field(default_factory=list)
 
     path: str = ''
 
@@ -459,6 +499,7 @@ class Manifest:
                                   dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
                                   dev_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
                                   build_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
+                                  lints=lambda x: Lint.from_raw(x, workspace),
                                   lib=lambda x: Library.from_raw(x, raw['package']['name']),
                                   bin=lambda x: [Binary.from_raw(b) for b in x],
                                   test=lambda x: [Test.from_raw(b) for b in x],
@@ -484,7 +525,7 @@ class Workspace:
     # inheritable settings are kept in raw format, for use with _inherit_from_workspace
     package: T.Optional[raw.Package] = None
     dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
-    lints: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    lints: T.Dict[str, T.Dict[str, raw.LintV]] = dataclasses.field(default_factory=dict)
     metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
 
     # A workspace can also have a root package.
