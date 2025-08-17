@@ -437,15 +437,16 @@ class Interpreter:
                 build.function('project', args, kwargs),
             ]
 
-        default_options: T.List[mparser.BaseNode] = []
-        default_options.append(build.string(f'rust_std={pkg.manifest.package.edition}'))
-        default_options.append(build.string(f'build.rust_std={pkg.manifest.package.edition}'))
+        default_options: T.Dict[str, mparser.BaseNode] = {
+            'rust_std': build.string(pkg.manifest.package.edition),
+            'build.rust_std': build.string(pkg.manifest.package.edition),
+        }
         if pkg.downloaded:
-            default_options.append(build.string('warning_level=0'))
+            default_options['warning_level'] = build.string('0')
 
         kwargs.update({
             'version': build.string(pkg.manifest.package.version),
-            'default_options': build.array(default_options),
+            'default_options': build.dict({build.string(k): v for k, v in default_options.items()}),
         })
         if pkg.manifest.package.license:
             kwargs['license'] = build.string(pkg.manifest.package.license)
