@@ -93,6 +93,18 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI],
     return cls(**new_dict)
 
 
+def _check_from_workspace(raw: T.Union[raw.FromWorkspace, T.Mapping[str, object]],
+                          from_workspace: T.Optional[object],
+                          msg: str) -> bool:
+    if not from_workspace:
+        if raw.get('workspace', False) or \
+                any(isinstance(v, dict) and v.get('workspace', False) for v in raw):
+            raise MesonException(f'Cargo.toml file requests {msg} from workspace')
+
+        return False
+
+    return bool(raw.get('workspace', False))
+
 @T.overload
 def _inherit_from_workspace(raw: raw.Package,
                             raw_from_workspace: T.Optional[T.Mapping[str, object]],
@@ -112,12 +124,7 @@ def _inherit_from_workspace(raw_: T.Union[raw.FromWorkspace, raw.Package, raw.De
     # allow accesses by non-literal key below
     raw = T.cast('T.Mapping[str, object]', raw_)
 
-    if not raw_from_workspace:
-        if raw.get('workspace', False) or \
-                any(isinstance(v, dict) and v.get('workspace', False) for v in raw):
-            raise MesonException(f'Cargo.toml file requests {msg} from workspace')
-
-        return raw
+    from_workspace = _check_from_workspace(raw, raw_from_workspace, msg)
 
     result = {k: v for k, v in raw.items() if k != 'workspace'}
     for k, v in raw.items():
@@ -129,7 +136,7 @@ def _inherit_from_workspace(raw_: T.Union[raw.FromWorkspace, raw.Package, raw.De
             else:
                 del result[k]
 
-    if raw.get('workspace', False):
+    if from_workspace:
         for k, v in raw_from_workspace.items():
             if k not in result or k in kwargs:
                 if k in kwargs:
