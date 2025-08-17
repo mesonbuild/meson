@@ -4826,144 +4826,143 @@ class AllPlatformTests(BasePlatformTests):
         shared_lib_name = lambda name: output_name(name, SharedLibrary)
         static_lib_name = lambda name: output_name(name, StaticLibrary)
         exe_name = lambda name: output_name(name, Executable)
-        get_path = lambda f: Path(f).as_posix()
 
         expected = {
             'targets': {
-                get_path(f'{self.builddir}/out1-notag.txt'): {
+                f'{self.builddir}/out1-notag.txt': {
                     'build_rpaths': [],
                     'destination': '{datadir}/out1-notag.txt',
                     'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/out2-notag.txt'): {
+                f'{self.builddir}/out2-notag.txt': {
                     'build_rpaths': [],
                     'destination': '{datadir}/out2-notag.txt',
                     'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/libstatic.a'): {
+                f'{self.builddir}/libstatic.a': {
                     'build_rpaths': [],
                     'destination': '{libdir_static}/libstatic.a',
                     'install_rpath': None,
                     'tag': 'devel',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/' + exe_name('app')): {
+                f'{self.builddir}/' + exe_name('app'): {
                     'build_rpaths': [],
                     'destination': '{bindir}/' + exe_name('app'),
                     'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/' + exe_name('app-otherdir')): {
+                f'{self.builddir}/' + exe_name('app-otherdir'): {
                     'build_rpaths': [],
                     'destination': '{prefix}/otherbin/' + exe_name('app-otherdir'),
                     'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/subdir/' + exe_name('app2')): {
+                f'{self.builddir}/subdir/' + exe_name('app2'): {
                     'build_rpaths': [],
                     'destination': '{bindir}/' + exe_name('app2'),
                     'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/' + shared_lib_name('shared')): {
+                f'{self.builddir}/' + shared_lib_name('shared'): {
                     'build_rpaths': [],
                     'destination': '{libdir_shared}/' + shared_lib_name('shared'),
                     'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/' + shared_lib_name('both')): {
+                f'{self.builddir}/' + shared_lib_name('both'): {
                     'build_rpaths': [],
                     'destination': '{libdir_shared}/' + shared_lib_name('both'),
                     'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/' + static_lib_name('both')): {
+                f'{self.builddir}/' + static_lib_name('both'): {
                     'build_rpaths': [],
                     'destination': '{libdir_static}/' + static_lib_name('both'),
                     'install_rpath': None,
                     'tag': 'devel',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/' + shared_lib_name('bothcustom')): {
+                f'{self.builddir}/' + shared_lib_name('bothcustom'): {
                     'build_rpaths': [],
                     'destination': '{libdir_shared}/' + shared_lib_name('bothcustom'),
                     'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/' + static_lib_name('bothcustom')): {
+                f'{self.builddir}/' + static_lib_name('bothcustom'): {
                     'build_rpaths': [],
                     'destination': '{libdir_static}/' + static_lib_name('bothcustom'),
                     'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/subdir/' + shared_lib_name('both2')): {
+                f'{self.builddir}/subdir/' + shared_lib_name('both2'): {
                     'build_rpaths': [],
                     'destination': '{libdir_shared}/' + shared_lib_name('both2'),
                     'install_rpath': None,
                     'tag': 'runtime',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/subdir/' + static_lib_name('both2')): {
+                f'{self.builddir}/subdir/' + static_lib_name('both2'): {
                     'build_rpaths': [],
                     'destination': '{libdir_static}/' + static_lib_name('both2'),
                     'install_rpath': None,
                     'tag': 'devel',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/out1-custom.txt'): {
+                f'{self.builddir}/out1-custom.txt': {
                     'build_rpaths': [],
                     'destination': '{datadir}/out1-custom.txt',
                     'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/out2-custom.txt'): {
+                f'{self.builddir}/out2-custom.txt': {
                     'build_rpaths': [],
                     'destination': '{datadir}/out2-custom.txt',
                     'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/out3-custom.txt'): {
+                f'{self.builddir}/out3-custom.txt': {
                     'build_rpaths': [],
                     'destination': '{datadir}/out3-custom.txt',
                     'install_rpath': None,
                     'tag': 'custom',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/subdir/out1.txt'): {
+                f'{self.builddir}/subdir/out1.txt': {
                     'build_rpaths': [],
                     'destination': '{datadir}/out1.txt',
                     'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/subdir/out2.txt'): {
+                f'{self.builddir}/subdir/out2.txt': {
                     'build_rpaths': [],
                     'destination': '{datadir}/out2.txt',
                     'install_rpath': None,
                     'tag': None,
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/out-devel.h'): {
+                f'{self.builddir}/out-devel.h': {
                     'build_rpaths': [],
                     'destination': '{includedir}/out-devel.h',
                     'install_rpath': None,
                     'tag': 'devel',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/out3-notag.txt'): {
+                f'{self.builddir}/out3-notag.txt': {
                     'build_rpaths': [],
                     'destination': '{datadir}/out3-notag.txt',
                     'install_rpath': None,
@@ -4972,80 +4971,80 @@ class AllPlatformTests(BasePlatformTests):
                 },
             },
             'configure': {
-                get_path(f'{self.builddir}/foo-notag.h'): {
+                f'{self.builddir}/foo-notag.h': {
                     'destination': '{datadir}/foo-notag.h',
                     'tag': None,
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/foo2-devel.h'): {
+                f'{self.builddir}/foo2-devel.h': {
                     'destination': '{includedir}/foo2-devel.h',
                     'tag': 'devel',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/foo-custom.h'): {
+                f'{self.builddir}/foo-custom.h': {
                     'destination': '{datadir}/foo-custom.h',
                     'tag': 'custom',
                     'subproject': None,
                 },
-                get_path(f'{self.builddir}/subdir/foo2.h'): {
+                f'{self.builddir}/subdir/foo2.h': {
                     'destination': '{datadir}/foo2.h',
                     'tag': None,
                     'subproject': None,
                 },
             },
             'data': {
-                get_path(f'{testdir}/bar-notag.txt'): {
+                f'{testdir}/bar-notag.txt': {
                     'destination': '{datadir}/bar-notag.txt',
                     'tag': None,
                     'subproject': None,
                 },
-                get_path(f'{testdir}/bar-devel.h'): {
+                f'{testdir}/bar-devel.h': {
                     'destination': '{includedir}/bar-devel.h',
                     'tag': 'devel',
                     'subproject': None,
                 },
-                get_path(f'{testdir}/bar-custom.txt'): {
+                f'{testdir}/bar-custom.txt': {
                     'destination': '{datadir}/bar-custom.txt',
                     'tag': 'custom',
                     'subproject': None,
                 },
-                get_path(f'{testdir}/subdir/bar2-devel.h'): {
+                f'{testdir}/subdir/bar2-devel.h': {
                     'destination': '{includedir}/bar2-devel.h',
                     'tag': 'devel',
                     'subproject': None,
                 },
-                get_path(f'{testdir}/subprojects/subproject/aaa.txt'): {
+                f'{testdir}/subprojects/subproject/aaa.txt': {
                     'destination': '{datadir}/subproject/aaa.txt',
                     'tag': None,
                     'subproject': 'subproject',
                 },
-                get_path(f'{testdir}/subprojects/subproject/bbb.txt'): {
+                f'{testdir}/subprojects/subproject/bbb.txt': {
                     'destination': '{datadir}/subproject/bbb.txt',
                     'tag': 'data',
                     'subproject': 'subproject',
                 },
             },
             'headers': {
-                get_path(f'{testdir}/foo1-devel.h'): {
+                f'{testdir}/foo1-devel.h': {
                     'destination': '{includedir}/foo1-devel.h',
                     'tag': 'devel',
                     'subproject': None,
                 },
-                get_path(f'{testdir}/subdir/foo3-devel.h'): {
+                f'{testdir}/subdir/foo3-devel.h': {
                     'destination': '{includedir}/foo3-devel.h',
                     'tag': 'devel',
                     'subproject': None,
                 },
             },
             'install_subdirs': {
-                get_path(f'{testdir}/custom_files'): {
+                f'{testdir}/custom_files': {
                     'destination': '{datadir}/custom_files',
                     'tag': 'custom',
                     'subproject': None,
                     'exclude_dirs': [],
                     'exclude_files': [],
                 },
-                get_path(f'{testdir}/excludes'): {
+                f'{testdir}/excludes': {
                     'destination': '{datadir}/excludes',
                     'tag': 'custom',
                     'subproject': None,
@@ -5055,10 +5054,11 @@ class AllPlatformTests(BasePlatformTests):
             }
         }
 
+        fix_path = lambda path: os.path.sep.join(path.split('/'))
         expected_fixed = {
             data_type: {
-                get_path(source): {
-                    key: get_path(value) if key == 'destination' else value
+                fix_path(source): {
+                    key: fix_path(value) if key == 'destination' else value
                     for key, value in attributes.items()
                 }
                 for source, attributes in files.items()
@@ -5069,7 +5069,6 @@ class AllPlatformTests(BasePlatformTests):
         for data_type, files in expected_fixed.items():
             for file, details in files.items():
                 with self.subTest(key='{}.{}'.format(data_type, file)):
-                    if data_type == 'data': print(res[data_type])
                     self.assertEqual(res[data_type][file], details)
 
     @skip_if_not_language('rust')
