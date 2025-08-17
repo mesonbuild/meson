@@ -254,6 +254,7 @@ class GnomeModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
+        self.gir_dep: T.Optional[Dependency] = None
         self.giscanner: T.Optional[ToolType] = None
         self.gicompiler: T.Optional[ToolType] = None
         self.install_glib_compile_schemas = False
@@ -787,18 +788,20 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gi(self, state: 'ModuleState') -> T.Tuple[ToolType, ToolType]:
-        if not self.giscanner:
-            self.giscanner = self._find_tool(state, 'g-ir-scanner', for_machine=MachineChoice.BUILD)
-            self.gicompiler = self._find_tool(state, 'g-ir-compiler', for_machine=MachineChoice.HOST)
-        return self.giscanner, self.gicompiler
+    def _get_gir_dep(self, state: 'ModuleState') -> T.Tuple[Dependency, T.Union[Executable, 'ExternalProgram', 'OverrideProgram'],
+                                                            T.Union[Executable, 'ExternalProgram', 'OverrideProgram']]:
+        if not self.gir_dep:
+            self.gir_dep = state.dependency('gobject-introspection-1.0')
+            self.giscanner = self._find_tool(state, 'g-ir-scanner')
+            self.gicompiler = self._find_tool(state, 'g-ir-compiler')
+        return self.gir_dep, self.giscanner, self.gicompiler
 
     def _giscanner_version_compare(self, state: 'ModuleState', cmp: str) -> bool:
         # Support for --version was introduced in g-i 1.58, but Ubuntu
         # Bionic shipped 1.56.1. As all our version checks are greater
         # than 1.58, we can just return False if get_version fails.
         try:
-            giscanner, _ = self._get_gi(state)
+            giscanner, _, _ = self._get_gir_dep(state)
             return mesonlib.version_compare(giscanner.get_version(), cmp)
         except MesonException:
             return False
@@ -994,8 +997,6 @@ class GnomeModule(ExtensionModule):
         run_env.set('CFLAGS', [quote_arg(x) for x in env_flags], ' ')
         run_env.merge(kwargs['env'])
 
-        giscanner, _ = self._get_gi(state)
-
         # response file supported?
         rspable = self._giscanner_version_compare(state, '>= 1.85.0')
 
@@ -1149,7 +1150,7 @@ class GnomeModule(ExtensionModule):
         if len(girtargets) > 1 and any(isinstance(el, Executable) for el in girtargets):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
 
-        giscanner, gicompiler = self._get_gi(state)
+        gir_dep, giscanner, gicompiler = self._get_gir_dep(state)
 
         ns = kwargs['namespace']
         nsversion = kwargs['nsversion']
@@ -1160,13 +1161,14 @@ class GnomeModule(ExtensionModule):
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
 
         depends: T.List[T.Union['FileOrString', 'build.GeneratedTypes', build.BuildTarget, build.StructuredSources]] = []
+        depends.extend(gir_dep.sources)
         depends.extend(girtargets)
 
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
         cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
         deps = self._get_gir_targets_deps(girtargets)
         deps += kwargs['dependencies']
-        deps += [state.dependency('glib-2.0'), state.dependency('gobject-2.0'), state.dependency('gmodule-2.0'), state.dependency('gio-2.0')]
+        deps += [gir_dep]
         typelib_includes, depends = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
