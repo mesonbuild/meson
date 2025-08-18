@@ -1236,10 +1236,6 @@ class BuildTarget(Target):
             else:
                 if not isinstance(name_suffix, str):
                     raise InvalidArguments('name_suffix must be a string.')
-                if name_suffix == '':
-                    raise InvalidArguments('name_suffix should not be an empty string. '
-                                           'If you want meson to use the default behaviour '
-                                           'for each platform pass `[]` (empty array)')
                 self.suffix = name_suffix
                 self.name_suffix_set = True
         if isinstance(self, StaticLibrary):
@@ -2549,7 +2545,7 @@ class SharedLibrary(BuildTarget):
             self.prefix = prefix
         if self.suffix is None:
             self.suffix = suffix
-        self.filename = self.filename_tpl.format(self)
+        self.filename = self.filename_tpl.format(self).removesuffix('.')
         if import_filename_tpl:
             self.import_filename = import_filename_tpl.format(self)
         # There may have been more outputs added by the time we get here, so

@@ -622,7 +622,7 @@ _BUILD_TARGET_KWS: T.List[KwargInfo] = [
     BT_SOURCES_KW,
     INCLUDE_DIRECTORIES.evolve(name='d_import_dirs'),
     _NAME_PREFIX_KW,
-    _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_suffix_validator),
+    _NAME_PREFIX_KW.evolve(name='name_suffix', validator=_name_validator),
     RUST_CRATE_TYPE_KW,
     KwargInfo('d_debug', ContainerTypeInfo(list, (str, int)), default=[], listify=True),
     D_MODULE_VERSIONS_KW,
