@@ -256,6 +256,7 @@ class GnomeModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.giscanner: T.Optional[ToolType] = None
+        self.giscanner_extra: T.List[Dependency] = []
         self.gicompiler: T.Optional[ToolType] = None
         self.install_glib_compile_schemas = False
         self.install_gio_querymodules: T.List[str] = []
@@ -788,18 +789,26 @@ class GnomeModule(ExtensionModule):
         if self.devenv is not None:
             b.devenv.append(self.devenv)
 
-    def _get_gi(self, state: 'ModuleState') -> T.Tuple[ToolType, ToolType]:
+    def _get_gi(self, state: 'ModuleState') -> T.Tuple[ToolType, T.List[Dependency], ToolType]:
         if not self.giscanner:
-            self.giscanner = self._find_tool(state, 'g-ir-scanner', for_machine=MachineChoice.BUILD)
+            self.giscanner = self._find_tool(state, 'g-ir-scanner')
+            if isinstance(self.giscanner, OverrideProgram):
+                # The gobject-introspection subproject just registers g-ir-scanner
+                # as a python script, with meson unaware of the native module the
+                # script depends upton that has to be built first. If g-i was
+                # configured with the right option, the gobject-introspection-1.0
+                # dependency itself indirectly depends on the native module; so if
+                # g-ir-scanner originates from a subproject, also add the g-i dep.
+                self.giscanner_extra.append(state.dependency('gobject-introspection-1.0'))
             self.gicompiler = self._find_tool(state, 'g-ir-compiler', for_machine=MachineChoice.HOST)
-        return self.giscanner, self.gicompiler
+        return self.giscanner, self.giscanner_extra, self.gicompiler
 
     def _giscanner_version_compare(self, state: 'ModuleState', cmp: str) -> bool:
         # Support for --version was introduced in g-i 1.58, but Ubuntu
         # Bionic shipped 1.56.1. As all our version checks are greater
         # than 1.58, we can just return False if get_version fails.
         try:
-            giscanner, _ = self._get_gi(state)
+            giscanner, _, _ = self._get_gi(state)
             return mesonlib.version_compare(giscanner.get_version(), cmp)
         except MesonException:
             return False
@@ -995,7 +1004,7 @@ class GnomeModule(ExtensionModule):
         run_env.set('CFLAGS', [quote_arg(x) for x in env_flags], ' ')
         run_env.merge(kwargs['env'])
 
-        giscanner, _ = self._get_gi(state)
+        giscanner, _, _ = self._get_gi(state)
 
         # response file supported?
         rspable = self._giscanner_version_compare(state, '>= 1.85.0')
@@ -1150,7 +1159,7 @@ class GnomeModule(ExtensionModule):
         if len(girtargets) > 1 and any(isinstance(el, Executable) for el in girtargets):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
 
-        giscanner, gicompiler = self._get_gi(state)
+        giscanner, giscanner_extra, gicompiler = self._get_gi(state)
 
         ns = kwargs['namespace']
         nsversion = kwargs['nsversion']
@@ -1161,12 +1170,15 @@ class GnomeModule(ExtensionModule):
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
 
         depends: T.List[T.Union['FileOrString', 'build.GeneratedTypes', build.BuildTarget, build.StructuredSources]] = []
+        for extra in giscanner_extra:
+            depends.extend(extra.sources)
         depends.extend(girtargets)
 
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
         cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
         deps = self._get_gir_targets_deps(girtargets)
         deps += kwargs['dependencies']
+        deps += giscanner_extra # probably not necessary
         deps += [state.dependency('glib-2.0'), state.dependency('gobject-2.0'), state.dependency('gmodule-2.0'), state.dependency('gio-2.0')]
         typelib_includes, depends = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
