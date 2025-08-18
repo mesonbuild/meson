@@ -22,7 +22,7 @@ from .. import build
 from .. import interpreter
 from .. import mesonlib
 from .. import mlog
-from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, OverrideExecutable
+from ..build import CustomTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments
 from ..dependencies import Dependency, InternalDependency
 from ..dependencies.pkgconfig import PkgConfigDependency, PkgConfigInterface
 from ..interpreter.type_checking import DEPENDS_KW, DEPEND_FILES_KW, ENV_KW, INSTALL_DIR_KW, INSTALL_KW, NoneType, DEPENDENCY_SOURCES_KW, in_set_validator
@@ -33,7 +33,7 @@ from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, join_args, quote_arg
 )
 from ..options import OptionKey
-from ..programs import ExternalProgram, OverrideProgram
+from ..programs import OverrideProgram
 from ..scripts.gettext import read_linguas
 
 if T.TYPE_CHECKING:
@@ -45,6 +45,7 @@ if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
     from ..interpreterbase import TYPE_var, TYPE_kwargs
     from ..mesonlib import FileOrString
+    from ..programs import ExternalProgram
 
     class PostInstall(TypedDict):
         glib_compile_schemas: bool
@@ -197,7 +198,7 @@ if T.TYPE_CHECKING:
         vtail: T.Optional[str]
         depends: T.List[T.Union[BuildTarget, CustomTarget, CustomTargetIndex]]
 
-    ToolType: TypeAlias = T.Union[OverrideExecutable, ExternalProgram, OverrideProgram]
+    ToolType: TypeAlias = T.Union[Executable, ExternalProgram, OverrideProgram]
 
 
 # Differs from the CustomTarget version in that it straight defaults to True
@@ -308,7 +309,7 @@ class GnomeModule(ExtensionModule):
                      once=True, fatal=False)
 
     @staticmethod
-    def _find_tool(state: 'ModuleState', tool: str, for_machine: MachineChoice = MachineChoice.HOST) -> 'ToolType':
+    def _find_tool(state: 'ModuleState', tool: str) -> 'ToolType':
         tool_map = {
             'gio-querymodules': 'gio-2.0',
             'glib-compile-schemas': 'gio-2.0',
@@ -321,7 +322,7 @@ class GnomeModule(ExtensionModule):
         }
         depname = tool_map[tool]
         varname = tool.replace('-', '_')
-        return state.find_tool(tool, depname, varname, for_machine=for_machine)
+        return state.find_tool(tool, depname, varname)
 
     @typed_kwargs(
         'gnome.post_install',
@@ -1195,32 +1196,6 @@ class GnomeModule(ExtensionModule):
 
         scan_command: T.List[T.Union[str, Executable, 'ExternalProgram', 'OverrideProgram']] = [giscanner]
         scan_command += ['--quiet']
-
-        if state.environment.is_cross_build() and state.environment.need_exe_wrapper():
-            if not state.environment.has_exe_wrapper():
-                mlog.error('generate_gir requires exe_wrapper')
-
-            binary_wrapper = state.environment.get_exe_wrapper().get_command()
-            ldd = state.environment.lookup_binary_entry(MachineChoice.HOST, 'ldd')
-            if ldd is None:
-                ldd_wrapper = ['ldd']
-            else:
-                ldd_wrapper = ExternalProgram.from_bin_list(state.environment, MachineChoice.HOST, 'ldd').get_command()
-
-            WRAPPER_ARGS_REQUIRED_VERSION = ">=1.85.0"
-            if not self._giscanner_version_compare(state, WRAPPER_ARGS_REQUIRED_VERSION):
-                msg = ('Use of gnome.generate_gir during cross compilation requires'
-                       f'g-ir-scanner {WRAPPER_ARGS_REQUIRED_VERSION}')
-                raise MesonException(msg)
-            else:
-                scan_command += ['--use-binary-wrapper', binary_wrapper[0]]
-                if len(binary_wrapper) > 1:
-                    scan_command += ['--binary-wrapper-args-begin', *binary_wrapper[1:], '--binary-wrapper-args-end']
-
-                scan_command += ['--use-ldd-wrapper', ldd_wrapper[0]]
-                if len(ldd_wrapper) > 1:
-                    scan_command += ['--ldd-wrapper-args-begin', *ldd_wrapper[1:], '--ldd-wrapper-args-end']
-
         scan_command += ['--no-libtool']
         scan_command += ['--namespace=' + ns, '--nsversion=' + nsversion]
         scan_command += ['--warn-all']
