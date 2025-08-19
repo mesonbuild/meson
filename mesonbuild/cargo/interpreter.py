@@ -597,7 +597,7 @@ class Interpreter:
         depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
 
         lib: mparser.BaseNode
-        if pkg.manifest.lib.proc_macro or crate_type == 'proc-macro':
+        if crate_type == 'proc-macro':
             lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
         else:
             if crate_type in {'lib', 'rlib', 'staticlib'}:

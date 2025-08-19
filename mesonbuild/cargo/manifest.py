@@ -347,13 +347,14 @@ class Library(BuildTarget):
     @classmethod
     def from_raw(cls, raw: raw.LibTarget, pkg: Package) -> Self:
         name = raw.get('name', fixup_meson_varname(pkg.name))
+        # If proc_macro is True, it takes precedence and sets crate_type to proc-macro
         proc_macro = raw.get('proc-macro', False)
-        crate_type = 'proc-macro' if proc_macro else 'lib'
         return _raw_to_dataclass(raw, cls, f'Library entry {name}',
                                  name=DefaultValue(name),
                                  path=DefaultValue('src/lib.rs'),
                                  edition=DefaultValue(pkg.edition),
-                                 crate_type=DefaultValue([crate_type]))
+                                 crate_type=ConvertValue(lambda x: ['proc-macro'] if proc_macro else x,
+                                                         ['lib']))
 
 
 @dataclasses.dataclass

@@ -280,6 +280,18 @@ class CargoTomlTest(unittest.TestCase):
         ]
     ''')
 
+    CARGO_TOML_3 = textwrap.dedent('''\
+        [package]
+        name = "bits"
+        edition = "2021"
+        rust-version = "1.70"
+        version = "0.1.0"
+
+        [lib]
+        proc-macro = true
+        crate-type = ["lib"] # ignored
+    ''')
+
     CARGO_TOML_WS = textwrap.dedent('''\
         [workspace]
         resolver = "2"
@@ -405,6 +417,19 @@ class CargoTomlTest(unittest.TestCase):
         self.assertEqual(manifest.dev_dependencies['gir-format-check'].version, '^0.1')
         self.assertEqual(manifest.dev_dependencies['gir-format-check'].meson_version, ['>= 0.1', '< 0.2'])
         self.assertEqual(manifest.dev_dependencies['gir-format-check'].api, '0.1')
+
+    def test_cargo_toml_proc_macro(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, 'Cargo.toml')
+            with open(fname, 'w', encoding='utf-8') as f:
+                f.write(self.CARGO_TOML_3)
+            manifest_toml = load_toml(fname)
+            manifest = Manifest.from_raw(manifest_toml, 'Cargo.toml')
+
+        self.assertEqual(manifest.lib.name, 'bits')
+        self.assertEqual(manifest.lib.crate_type, ['proc-macro'])
+        self.assertEqual(manifest.lib.path, 'src/lib.rs')
+        self.assertEqual(manifest.lib.proc_macro, True)
 
     def test_cargo_toml_targets(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
