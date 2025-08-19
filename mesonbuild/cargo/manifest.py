@@ -345,6 +345,13 @@ class Library(BuildTarget['raw.LibTarget']):
     crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['lib'])
     doc_scrape_examples: bool = True
 
+    def __post_init__(self) -> None:
+        # If proc_macro is True, it takes precedence and sets crate_type to proc-macro
+        if self.proc_macro:
+            self.crate_type = ['proc-macro']
+        # If crate_type contains 'proc-macro', that's also valid
+        # (no need to change anything, crate_type is already set correctly)
+
     @classmethod
     def from_raw(cls, raw: raw.LibTarget, fallback_name: str) -> Self:  # type: ignore[override]
         # We need to set the name field if it's not set manually, including if
