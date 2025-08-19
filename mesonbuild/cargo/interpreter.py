@@ -39,8 +39,9 @@ def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     return f'{basename}-{api}{suffix}'
 
 
-def _dependency_varname(package_name: str) -> str:
-    return f'{fixup_meson_varname(package_name)}_dep'
+def _dependency_varname(package_name: str, machine: MachineChoice) -> str:
+    suffix = '_native' if machine == MachineChoice.BUILD else ''
+    return f'{fixup_meson_varname(package_name)}_dep{suffix}'
 
 
 def _extra_args_varname() -> str:
@@ -142,35 +143,45 @@ class Interpreter:
         return build.block(ast)
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
-        ast: T.List[mparser.BaseNode] = [
-            build.assign(build.array([]), 'features_args'),
-            build.assign(build.array([]), 'features'),
-        ]
-        for f in itertools.chain(pkg.manifest.dependencies.keys(), pkg.manifest.features.keys()):
-            if f not in cfg.features:
-                continue
+        ast: T.List[mparser.BaseNode] = []
 
-            # features_args += ['--cfg', 'feature="f1"']
-            # features += ['--f1']
-            lines: T.List[mparser.BaseNode] = [
-                build.plusassign(build.array([build.string('--cfg'), build.string(f'feature="{f}"')]),
-                                 'features_args'),
-                build.plusassign(build.array([build.string(f)]),
-                                 'features')]
-            ast.extend(lines)
+        # Generate for each configured machine
+        first = True
+        for machine in MachineChoice:
+            if pkg.cfg[machine] is not None:
+                cfg = pkg.cfg[machine]
+                machine_name = machine.get_lower_case_name()
+                ast.extend([
+                    build.assign(build.array([]), 'features_args'),
+                    build.assign(build.array([]), 'features'),
+                ])
+                for f in itertools.chain(pkg.manifest.dependencies.keys(), pkg.manifest.features.keys()):
+                    if f not in cfg.features:
+                        continue
 
-        ast.append(build.function('message', [
-            build.string('Enabled features:'),
-            build.array([build.string(f) for f in cfg.features]),
-        ]))
+                    # features_args += ['--cfg', 'feature="f1"']
+                    # features += ['--f1']
+                    lines: T.List[mparser.BaseNode] = [
+                        build.plusassign(build.array([build.string('--cfg'), build.string(f'feature="{f}"')]),
+                                         'features_args'),
+                        build.plusassign(build.array([build.string(f)]),
+                                         'features')]
+                    ast.extend(lines)
 
-        ast += self._create_dependencies(pkg, build)
-        ast += self._create_meson_subdir(build)
+                ast.append(build.function('message', [
+                    build.string(f'Enabled features ({machine_name}):'),
+                    build.array([build.string(f) for f in cfg.features]),
+                ]))
 
-        if pkg.manifest.lib:
-            for crate_type in pkg.manifest.lib.crate_type:
-                ast.extend(self._create_lib(pkg, build, crate_type))
+                ast += self._create_dependencies(pkg, build, machine)
+                if first:
+                    # Only add meson subdir once (for HOST machine or first configured machine)
+                    # FIXME: how to handle different build.rs output for build vs. host?
+                    ast += self._create_meson_subdir(build)
+
+                if pkg.manifest.lib:
+                    for crate_type in pkg.manifest.lib.crate_type:
+                        ast.extend(self._create_lib(pkg, build, crate_type, machine))
 
         return ast
 
@@ -433,9 +444,9 @@ class Interpreter:
             value = value[1:-1]
         return pair[0], value
 
-    def _lints_to_args(self, pkg: PackageState) -> T.List[str]:
+    def _lints_to_args(self, pkg: PackageState, machine: MachineChoice) -> T.List[str]:
         args = []
-        has_check_cfg = self.has_check_cfg(MachineChoice.HOST)
+        has_check_cfg = self.has_check_cfg(machine)
         for lint in pkg.manifest.lints:
             args.extend(lint.to_arguments(has_check_cfg))
         if has_check_cfg:
@@ -474,9 +485,10 @@ class Interpreter:
         if pkg.downloaded:
             default_options['warning_level'] = build.string('0')
         else:
-            lint_args = build.array([build.string(arg) for arg in self._lints_to_args(pkg)])
-            default_options['rust_args'] = lint_args
-            default_options['build.rust_args'] = lint_args
+            default_options['rust_args'] = \
+                build.array([build.string(arg) for arg in self._lints_to_args(pkg, MachineChoice.HOST)])
+            default_options['build.rust_args'] = \
+                build.array([build.string(arg) for arg in self._lints_to_args(pkg, MachineChoice.BUILD)])
 
         kwargs.update({
             'version': build.string(pkg.manifest.package.version),
@@ -489,25 +501,26 @@ class Interpreter:
 
         return [build.function('project', args, kwargs)]
 
-    def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
+    def _create_dependencies(self, pkg: PackageState, build: builder.Builder, machine: MachineChoice) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg[machine]
         ast: T.List[mparser.BaseNode] = []
         for depname in cfg.required_deps:
             dep = pkg.manifest.dependencies[depname]
             dep_pkg = self._dep_package(pkg, dep)
             if dep_pkg.manifest.lib:
-                ast += self._create_dependency(dep_pkg, dep, build)
+                ast += self._create_dependency(dep_pkg, dep, build, machine)
         ast.append(build.assign(build.array([]), 'system_deps_args'))
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
-                ast += self._create_system_dependency(name, sys_dep, build)
+                ast += self._create_system_dependency(name, sys_dep, build, machine)
         return ast
 
-    def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+    def _create_system_dependency(self, name: str, dep: SystemDependency, build: builder.Builder, machine: MachineChoice) -> T.List[mparser.BaseNode]:
         # TODO: handle feature_overrides
         kw = {
             'version': build.array([build.string(s) for s in dep.meson_version]),
             'required': build.bool(not dep.optional),
+            'native': build.bool(machine == MachineChoice.BUILD),
         }
         varname = f'{fixup_meson_varname(name)}_system_dep'
         cfg = f'system_deps_have_{fixup_meson_varname(name)}'
@@ -530,12 +543,13 @@ class Interpreter:
             ),
         ]
 
-    def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
+    def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder, machine: MachineChoice) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg[machine]
         version_ = dep.meson_version or [pkg.manifest.package.version]
         api = dep.api or pkg.manifest.package.api
         kw = {
             'version': build.array([build.string(s) for s in version_]),
+            'native': build.bool(machine == MachineChoice.BUILD),
         }
         # Lookup for this dependency with the features we want in default_options kwarg.
         #
@@ -556,7 +570,7 @@ class Interpreter:
                     [build.string(_dependency_name(dep.package, api))],
                     kw,
                 ),
-                _dependency_varname(dep.package),
+                _dependency_varname(dep.package, machine),
             ),
             # actual_features = xxx_dep.get_variable('features', default_value : '').split(',')
             build.assign(
@@ -564,7 +578,7 @@ class Interpreter:
                     'split',
                     build.method(
                         'get_variable',
-                        build.identifier(_dependency_varname(dep.package)),
+                        build.identifier(_dependency_varname(dep.package, machine)),
                         [build.string('features')],
                         {'default_value': build.string('')}
                     ),
@@ -611,14 +625,14 @@ class Interpreter:
                       build.block([build.function('subdir', [build.string('meson')])]))
         ]
 
-    def _create_lib(self, pkg: PackageState, build: builder.Builder, crate_type: raw.CRATE_TYPE) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg[MachineChoice.HOST]
+    def _create_lib(self, pkg: PackageState, build: builder.Builder, crate_type: raw.CRATE_TYPE, machine: MachineChoice) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg[machine]
         dependencies: T.List[mparser.BaseNode] = []
         dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
         for name in cfg.required_deps:
             dep = pkg.manifest.dependencies[name]
             dep_pkg = self._dep_package(pkg, dep)
-            dependencies.append(build.identifier(_dependency_varname(dep.package)))
+            dependencies.append(build.identifier(_dependency_varname(dep.package, machine)))
             dep_lib_name = dep_pkg.manifest.lib.name
             dep_crate_name = name if name != dep.package else dep_lib_name
             dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(dep_crate_name)
@@ -658,6 +672,7 @@ class Interpreter:
                 target_type = 'shared_library'
             else:
                 raise MesonException(f'Unsupported crate type {crate_type}')
+            kwargs['native'] = build.bool(machine == MachineChoice.BUILD)
             if crate_type in {'staticlib', 'cdylib'}:
                 kwargs['rust_abi'] = build.string('c')
             lib = build.function(target_type, posargs, kwargs)
@@ -687,6 +702,7 @@ class Interpreter:
                     build.string(depname),
                     build.identifier('dep'),
                 ],
+                {'native': build.bool(machine == MachineChoice.BUILD)},
             ),
         ]
 
