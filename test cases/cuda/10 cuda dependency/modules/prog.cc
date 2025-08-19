@@ -1,5 +1,8 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <cupti.h>
+#include <cupti_checkpoint.h>
+#include <cupti_pcsampling_util.h>
 #include <iostream>
 
 int cuda_devices(void) {
@@ -9,6 +12,10 @@ int cuda_devices(void) {
 }
 
 int main(void) {
+    // known-error calls to ensure the library is loaded/linked
+    (void)::CUPTI::PcSamplingUtil::CuptiUtilGetHeaderData(nullptr);
+    (void)::NV::Cupti::Checkpoint::cuptiCheckpointFree(nullptr);
+
     int n = cuda_devices();
     if (n == 0) {
         std::cout << "No CUDA hardware found. Exiting.\n";
@@ -16,6 +23,12 @@ int main(void) {
     }
 
     std::cout << "Found " << n << " CUDA devices.\n";
+
+    uint32_t version;
+    if (cuptiGetVersion(&version) != CUPTI_SUCCESS) {
+        std::cout << "CUPTI version query failed. Exiting.\n";
+        return -1;
+    }
 
     cublasHandle_t handle;
     if (cublasCreate(&handle) != CUBLAS_STATUS_SUCCESS) {
