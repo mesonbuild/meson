@@ -51,15 +51,22 @@ def _extra_deps_varname() -> str:
 
 
 @dataclasses.dataclass
-class PackageState:
-    manifest: Manifest
-    downloaded: bool = False
+class PackageConfiguration:
+    """Configuration for a package during dependency resolution."""
     features: T.Set[str] = dataclasses.field(default_factory=set)
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
+
+
+@dataclasses.dataclass
+class PackageState:
+    manifest: Manifest
+    downloaded: bool = False
     # If this package is member of a workspace.
     ws_subdir: T.Optional[str] = None
     ws_member: T.Optional[str] = None
+    # Package configuration state
+    cfg: PackageConfiguration = dataclasses.field(default_factory=PackageConfiguration)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -131,10 +138,11 @@ class Interpreter:
         return build.block(ast)
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg
         ast: T.List[mparser.BaseNode] = [
             build.function('message', [
                 build.string('Enabled features:'),
-                build.array([build.string(f) for f in pkg.features]),
+                build.array([build.string(f) for f in cfg.features]),
             ]),
         ]
         ast += self._create_dependencies(pkg, build)
@@ -165,7 +173,8 @@ class Interpreter:
             if member in processed_members:
                 return
             pkg = ws.packages[member]
-            for depname in pkg.required_deps:
+            cfg = pkg.cfg
+            for depname in cfg.required_deps:
                 dep = pkg.manifest.dependencies[depname]
                 if dep.path:
                     dep_member = os.path.normpath(os.path.join(pkg.ws_member, dep.path))
@@ -316,25 +325,27 @@ class Interpreter:
         return manifest_
 
     def _add_dependency(self, pkg: PackageState, depname: str) -> None:
-        if depname in pkg.required_deps:
+        cfg = pkg.cfg
+        if depname in cfg.required_deps:
             return
         dep = pkg.manifest.dependencies.get(depname)
         if not dep:
             # It could be build/dev/target dependency. Just ignore it.
             return
-        pkg.required_deps.add(depname)
+        cfg.required_deps.add(depname)
         dep_pkg = self._dep_package(pkg, dep)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
         for f in dep.features:
             self._enable_feature(dep_pkg, f)
-        for f in pkg.optional_deps_features[depname]:
+        for f in cfg.optional_deps_features[depname]:
             self._enable_feature(dep_pkg, f)
 
     def _enable_feature(self, pkg: PackageState, feature: str) -> None:
-        if feature in pkg.features:
+        cfg = pkg.cfg
+        if feature in cfg.features:
             return
-        pkg.features.add(feature)
+        cfg.features.add(feature)
         # A feature can also be a dependency.
         if feature in pkg.manifest.dependencies:
             self._add_dependency(pkg, feature)
@@ -345,14 +356,14 @@ class Interpreter:
                 depname, dep_f = f.split('/', 1)
                 if depname[-1] == '?':
                     depname = depname[:-1]
-                    if depname in pkg.required_deps:
+                    if depname in cfg.required_deps:
                         dep = pkg.manifest.dependencies[depname]
                         dep_pkg = self._dep_package(pkg, dep)
                         self._enable_feature(dep_pkg, dep_f)
                     else:
                         # This feature will be enabled only if that dependency
                         # is later added.
-                        pkg.optional_deps_features[depname].add(dep_f)
+                        cfg.optional_deps_features[depname].add(dep_f)
                 else:
                     self._add_dependency(pkg, depname)
                     dep = pkg.manifest.dependencies.get(depname)
@@ -448,14 +459,15 @@ class Interpreter:
         return [build.function('project', args, kwargs)]
 
     def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg
         ast: T.List[mparser.BaseNode] = []
-        for depname in pkg.required_deps:
+        for depname in cfg.required_deps:
             dep = pkg.manifest.dependencies[depname]
             dep_pkg = self._dep_package(pkg, dep)
             ast += self._create_dependency(dep_pkg, dep, build)
         ast.append(build.assign(build.array([]), 'system_deps_args'))
         for name, sys_dep in pkg.manifest.system_dependencies.items():
-            if sys_dep.enabled(pkg.features):
+            if sys_dep.enabled(cfg.features):
                 ast += self._create_system_dependency(name, sys_dep, build)
         return ast
 
@@ -487,6 +499,7 @@ class Interpreter:
         ]
 
     def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg
         version_ = dep.meson_version or [pkg.manifest.package.version]
         api = dep.api or pkg.manifest.package.api
         kw = {
@@ -533,7 +546,7 @@ class Interpreter:
             #     error()
             #   endif
             # endforeach
-            build.assign(build.array([build.string(f) for f in pkg.features]), 'needed_features'),
+            build.assign(build.array([build.string(f) for f in cfg.features]), 'needed_features'),
             build.foreach(['f'], build.identifier('needed_features'), build.block([
                 build.if_(build.not_in(build.identifier('f'), build.identifier('actual_features')), build.block([
                     build.function('error', [
@@ -567,9 +580,10 @@ class Interpreter:
         ]
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, crate_type: raw.CRATE_TYPE) -> T.List[mparser.BaseNode]:
+        cfg = pkg.cfg
         dependencies: T.List[mparser.BaseNode] = []
         dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
-        for name in pkg.required_deps:
+        for name in cfg.required_deps:
             dep = pkg.manifest.dependencies[name]
             dependencies.append(build.identifier(_dependency_varname(dep.package)))
             if name != dep.package:
@@ -577,7 +591,7 @@ class Interpreter:
                 dep_lib_name = dep_pkg.manifest.lib.name
                 dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(name)
         for name, sys_dep in pkg.manifest.system_dependencies.items():
-            if sys_dep.enabled(pkg.features):
+            if sys_dep.enabled(cfg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
 
         rust_args: T.List[mparser.BaseNode] = [
@@ -617,7 +631,7 @@ class Interpreter:
             lib = build.function(target_type, posargs, kwargs)
 
         features_args: T.List[mparser.BaseNode] = []
-        for f in pkg.features:
+        for f in cfg.features:
             features_args += [build.string('--cfg'), build.string(f'feature="{f}"')]
 
         # features_args = ['--cfg', 'feature="f1"', ...]
@@ -633,7 +647,7 @@ class Interpreter:
                     kw={
                         'link_with': build.identifier('lib'),
                         'variables': build.dict({
-                            build.string('features'): build.string(','.join(pkg.features)),
+                            build.string('features'): build.string(','.join(cfg.features)),
                         }),
                         'version': build.string(pkg.manifest.package.version),
                     },
