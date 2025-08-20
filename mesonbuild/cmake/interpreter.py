@@ -474,12 +474,24 @@ class ConverterTarget:
         # Handle OSX frameworks
         def handle_frameworks(flags: T.List[str]) -> T.List[str]:
             res: T.List[str] = []
+            dedup: T.Set[str] = set()
             for i in flags:
-                p = Path(i)
-                if not p.exists() or not p.name.endswith('.framework'):
+                framework_name = None
+                if i.startswith('-framework'):
+                    splits = i.split(maxsplit=1)
+                    if len(splits) == 2:
+                        framework_name = splits[1]
+                else:
+                    p = Path(i)
+                    if p.exists and p.name.endswith('.framework'):
+                        framework_name = p.stem
+                if framework_name is not None:
+                    if framework_name in dedup:
+                        continue
+                    dedup.add(framework_name)
+                    res += ['-framework', framework_name]
+                else:
                     res += [i]
-                    continue
-                res += ['-framework', p.stem]
             return res
 
         self.link_libraries = handle_frameworks(self.link_libraries)
