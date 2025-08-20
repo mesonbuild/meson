@@ -158,7 +158,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
-        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang', 'intel-llvm'])
+        assert self.id in frozenset(['clang', 'lcc', 'gcc', 'emscripten', 'armltdclang', 'intel-llvm', 'nvidia_hpc'])
 
         if cpp_std not in CPP_FALLBACKS:
             # 'c++03' and 'c++98' don't have fallback types
