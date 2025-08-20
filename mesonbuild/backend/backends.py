@@ -1229,7 +1229,7 @@ class Backend:
                 ld_lib_path: T.Set[str] = set(os.path.join(env_build_dir, l.get_subdir()) for l in ld_lib_path_libs)
 
                 if ld_lib_path:
-                    t_env.prepend('LD_LIBRARY_PATH', list(ld_lib_path), ':')
+                    t_env.prepend('LIBPATH' if machine.is_zos() else 'LD_LIBRARY_PATH', list(ld_lib_path), ':')
                     if machine.is_darwin():
                         t_env.prepend('DYLD_LIBRARY_PATH', list(ld_lib_path), ':')
 
