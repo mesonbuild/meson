@@ -204,6 +204,9 @@ class ExternalProject(NewExtensionModule):
         log_filename = Path(mlog.get_log_dir(), f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
+            m += 'With environment variables:\n'
+            for k, v in sorted(self.run_env.items()):
+                m += f'  {k}={v}\n'
             output = open(log_filename, 'w', encoding='utf-8')
             output.write(m + '\n')
             output.flush()
