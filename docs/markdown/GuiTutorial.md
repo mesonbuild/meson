@@ -57,7 +57,7 @@ The build definition goes to a file called `meson.build` and looks
 like this:
 
 ```meson
-project('sdldemo', 'c')
+project('sdldemo', host_machine_languages : 'c')
 
 executable('sdlprog', 'sdlprog.c')
 ```
@@ -160,7 +160,7 @@ As a final step we need to update our build definition file to use the
 newly obtained dependency.
 
 ```meson
-project('sdldemo', 'c',
+project('sdldemo', host_machine_languages : 'c',
         default_options: 'default_library=static')
 
 sdl2_dep = dependency('sdl2')
@@ -173,7 +173,7 @@ executable('sdlprog', 'sdlprog.c',
 **NOTE:** If you're on Windows you need to include the sdl2main dependency as well; To do so you can modify the above build script like so:
 
 ```meson
-project('sdldemo', 'c',
+project('sdldemo', host_machine_languages : 'c',
         default_options: 'default_library=static')
 
 sdl2_dep = dependency('sdl2')
