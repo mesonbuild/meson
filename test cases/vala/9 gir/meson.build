@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright © 2025 Intel Corporation
+
 project('foo', 'c', 'vala')
 
 glib = dependency('glib-2.0')
@@ -12,6 +15,6 @@ foo = shared_library('foo', 'foo.vala',
 
 custom_target('foo-typelib',
               command: [g_ir_compiler, '--output', '@OUTPUT@', '@INPUT@'],
-              input: meson.current_build_dir() + '/Foo-1.0.gir',
+              input: foo.vala_gir(),
               output: 'Foo-1.0.typelib',
-              depends: foo)
+              build_by_default : true)
