@@ -1,4 +1,4 @@
-project('suboptions')
+project('suboptions', default_options: {'c_args': ['-O']})
 
 subproject('subproject')
 

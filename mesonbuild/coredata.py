@@ -581,6 +581,16 @@ class CoreData:
     def process_compiler_options(self, lang: str, comp: Compiler, subproject: str) -> None:
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine, subproject)
 
+        for key in [OptionKey(f'{lang}_args'), OptionKey(f'{lang}_link_args')]:
+            if self.is_cross_build():
+                key = key.evolve(machine=comp.for_machine)
+            # the global option is already there, but any augment is still
+            # sitting in pending_options has to be taken into account
+            assert key in self.optstore
+            if subproject:
+                skey = key.evolve(subproject=subproject)
+                self.optstore.add_compiler_option(lang, skey, self.optstore.get_value_object(key))
+
         for key in comp.base_options:
             if subproject:
                 skey = key.evolve(subproject=subproject)
