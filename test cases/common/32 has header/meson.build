@@ -1,6 +1,7 @@
 project('has header', 'c', 'cpp')
 
 host_system = host_machine.system()
+cpp = meson.get_compiler('cpp')
 
 non_existent_header = 'ouagadougou.h'
 
@@ -9,16 +10,20 @@ configure_file(input : non_existent_header,
   output : non_existent_header,
   configuration : configuration_data())
 
+is_libcxx = cpp.has_header_symbol('ciso646', '_LIBCPP_VERSION')
+
 # Test that the fallback to __has_include also works on all compilers
-if host_system != 'darwin'
+#
+# darwin: can't redefine builtin macros so the above doesn't work
+# libcxx: Undefining __has_include() breaks LLVM libcxx platform.h
+if host_system != 'darwin' and not is_libcxx
   fallbacks = ['', '\n#undef __has_include']
 else
-  # On Darwin's clang you can't redefine builtin macros so the above doesn't work
   fallbacks = ['']
 endif
 
 foreach fallback : fallbacks
-  foreach comp : [meson.get_compiler('c'), meson.get_compiler('cpp')]
+  foreach comp : [meson.get_compiler('c'), cpp]
     assert(comp.has_header('stdio.h', prefix : fallback), 'Stdio missing.')
 
     # stdio.h doesn't actually need stdlib.h, but just test that setting the
