@@ -565,9 +565,12 @@ class CoreData:
 
         return dirty
 
-    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice) -> None:
+    def add_compiler_options(self, c_options: MutableKeyedOptionDictType, lang: str, for_machine: MachineChoice,
+                             subproject: str) -> None:
         for k, o in c_options.items():
             assert k.subproject is None and k.machine is for_machine
+            if subproject:
+                k = k.evolve(subproject=subproject)
             if lang == 'objc' and k.name == 'c_std':
                 # For objective C, always fall back to c_std.
                 self.optstore.add_compiler_option('c', k, o)
@@ -577,7 +580,7 @@ class CoreData:
                 self.optstore.add_compiler_option(lang, k, o)
 
     def process_compiler_options(self, lang: str, comp: Compiler, subproject: str) -> None:
-        self.add_compiler_options(comp.get_options(), lang, comp.for_machine)
+        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, subproject)
 
         for key in comp.base_options:
             if subproject:
