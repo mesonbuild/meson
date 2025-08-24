@@ -375,20 +375,16 @@ class Interpreter:
                 depname, dep_f = f.split('/', 1)
                 if depname[-1] == '?':
                     depname = depname[:-1]
-                    if depname in cfg.required_deps:
-                        dep = pkg.manifest.dependencies[depname]
-                        dep_pkg = self._dep_package(pkg, dep)
-                        self._enable_feature(dep_pkg, dep_f)
-                    else:
-                        # This feature will be enabled only if that dependency
-                        # is later added.
-                        cfg.optional_deps_features[depname].add(dep_f)
                 else:
                     self._add_dependency(pkg, depname)
-                    dep = pkg.manifest.dependencies.get(depname)
-                    if dep:
-                        dep_pkg = self._dep_package(pkg, dep)
-                        self._enable_feature(dep_pkg, dep_f)
+                if depname in cfg.required_deps:
+                    dep = pkg.manifest.dependencies[depname]
+                    dep_pkg = self._dep_package(pkg, dep)
+                    self._enable_feature(dep_pkg, dep_f)
+                else:
+                    # This feature will be enabled only if that dependency
+                    # is later added.
+                    cfg.optional_deps_features[depname].add(dep_f)
             elif f.startswith('dep:'):
                 self._add_dependency(pkg, f[4:])
             else:
