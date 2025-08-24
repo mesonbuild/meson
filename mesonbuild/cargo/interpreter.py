@@ -17,7 +17,8 @@ import collections
 import urllib.parse
 import typing as T
 
-from . import builder, version, cfg
+from . import builder, version
+from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, Workspace, fixup_meson_varname
 from ..mesonlib import MesonException, MachineChoice, version_compare
@@ -301,7 +302,7 @@ class Interpreter:
         # Merge target specific dependencies that are enabled
         cfgs = self._get_cfgs(MachineChoice.HOST)
         for condition, dependencies in pkg.manifest.target.items():
-            if cfg.eval_cfg(condition, cfgs):
+            if eval_cfg(condition, cfgs):
                 pkg.manifest.dependencies.update(dependencies)
         # Fetch required dependencies recursively.
         for depname, dep in pkg.manifest.dependencies.items():
