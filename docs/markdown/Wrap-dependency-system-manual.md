@@ -363,6 +363,26 @@ Some naming conventions need to be respected:
 - The `extra_deps` variable is pre-defined and can be used to add extra dependencies.
   This is typically used as `extra_deps += dependency('foo')`.
 
+Cargo features are exposed as Meson boolean options, with the `feature-` prefix.
+This can be used to request features with `dependency('foo', default_options: '...')`.
+
+Currently, Meson is able to manage the set of enabled features for all crates found by a
+single invocation of `dependency()`, but not globally. Let's assume
+the main project depends on `foo-1-rs` and `bar-1-rs`, and they both depend on
+`common-1-rs`. The main project will first look up `foo-1-rs` which itself will
+configure `common-rs` with a set of features. Later, when `bar-1-rs` does a lookup
+for `common-1-rs` it has already been configured and the set of features cannot be
+changed. If `bar-1-rs` wants extra features from `common-1-rs`, Meson will error out.
+It is currently the responsibility of the main project to resolve those
+issues by enabling extra features on each subproject:
+```meson
+project(...,
+  default_options: {
+    'common-1-rs:feature-something': true,
+  },
+)
+```
+
 Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the root
 of (sub)project source tree. Meson will automatically load that file and convert
 it into a series of wraps definitions.

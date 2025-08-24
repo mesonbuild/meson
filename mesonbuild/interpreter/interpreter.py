@@ -1065,7 +1065,8 @@ class Interpreter(InterpreterBase, HoldableObject):
             self.add_languages(['rust'], True, MachineChoice.HOST)
             self.environment.cargo = cargo.Interpreter(self.environment)
         with mlog.nested(subp_name):
-            ast = self.environment.cargo.interpret(subdir)
+            ast, options = self.environment.cargo.interpret(subp_name, subdir, default_options)
+            self.coredata.optstore.update_project_options(options, subp_name)
             return self._do_subproject_meson(
                 subp_name, subdir, default_options, kwargs, ast,
                 # FIXME: Are there other files used by cargo interpreter?
