@@ -67,7 +67,7 @@ class PackageState:
     ws_subdir: T.Optional[str] = None
     ws_member: T.Optional[str] = None
     # Package configuration state
-    cfg: PackageConfiguration = dataclasses.field(default_factory=PackageConfiguration)
+    cfg: T.Optional[PackageConfiguration] = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -130,6 +130,7 @@ class Interpreter:
         else:
             pkg, cached = self._fetch_package(manifest.package.name, manifest.package.api)
             if not cached:
+                self._prepare_package(pkg)
                 # This is an entry point, always enable the 'default' feature.
                 # FIXME: We should have a Meson option similar to `cargo build --no-default-features`
                 self._enable_feature(pkg, 'default')
@@ -181,7 +182,8 @@ class Interpreter:
         ast: T.List[mparser.BaseNode] = []
         if not ws.required_members:
             for member in ws.workspace.default_members:
-                self._require_workspace_member(ws, member)
+                pkg = self._require_workspace_member(ws, member)
+                self._prepare_package(pkg)
 
         # Call subdir() for each required member of the workspace. The order is
         # important, if a member depends on another member, that member must be
@@ -243,7 +245,6 @@ class Interpreter:
         member = os.path.normpath(member)
         pkg = ws.packages[member]
         if member not in ws.required_members:
-            self._prepare_package(pkg)
             ws.required_members.append(member)
         return pkg
 
@@ -276,10 +277,13 @@ class Interpreter:
             return pkg, True
         pkg = PackageState(manifest, downloaded)
         self.packages[key] = pkg
-        self._prepare_package(pkg)
         return pkg, False
 
     def _prepare_package(self, pkg: PackageState) -> None:
+        if pkg.cfg:
+            return
+
+        pkg.cfg = PackageConfiguration()
         # Merge target specific dependencies that are enabled
         cfgs = self._get_cfgs(MachineChoice.HOST)
         for condition, dependencies in pkg.manifest.target.items():
@@ -353,6 +357,7 @@ class Interpreter:
             return
         cfg.required_deps.add(depname)
         dep_pkg = self._dep_package(pkg, dep)
+        self._prepare_package(dep_pkg)
         if dep.default_features:
             self._enable_feature(dep_pkg, 'default')
         for f in dep.features:
