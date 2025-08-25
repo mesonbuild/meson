@@ -12,6 +12,7 @@ port will be required.
 from __future__ import annotations
 import dataclasses
 import functools
+import itertools
 import os
 import collections
 import urllib.parse
@@ -139,12 +140,30 @@ class Interpreter:
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
         cfg = pkg.cfg
-        ast: T.List[mparser.BaseNode] = [
-            build.function('message', [
-                build.string('Enabled features:'),
-                build.array([build.string(f) for f in cfg.features]),
-            ]),
-        ]
+        ast = []
+
+        ast.extend([
+            build.assign(build.array([]), 'features_args'),
+            build.assign(build.array([]), 'features'),
+        ])
+        for f in itertools.chain(pkg.manifest.dependencies.keys(), pkg.manifest.features.keys()):
+            if f not in cfg.features:
+                continue
+
+            # features_args += ['--cfg', 'feature="f1"']
+            # features += ['--f1']
+            lines: T.List[mparser.BaseNode] = [
+                build.plusassign(build.array([build.string('--cfg'), build.string(f'feature="{f}"')]),
+                                 'features_args'),
+                build.plusassign(build.array([build.string(f)]),
+                                 'features')]
+            ast.extend(lines)
+
+        ast.append(build.function('message', [
+            build.string('Enabled features:'),
+            build.array([build.string(f) for f in cfg.features]),
+        ]))
+
         ast += self._create_dependencies(pkg, build)
         ast += self._create_meson_subdir(build)
 
@@ -630,16 +649,10 @@ class Interpreter:
                 kwargs['rust_abi'] = build.string('c')
             lib = build.function(target_type, posargs, kwargs)
 
-        features_args: T.List[mparser.BaseNode] = []
-        for f in cfg.features:
-            features_args += [build.string('--cfg'), build.string(f'feature="{f}"')]
-
-        # features_args = ['--cfg', 'feature="f1"', ...]
         # lib = xxx_library()
         # dep = declare_dependency()
         # meson.override_dependency()
         return [
-            build.assign(build.array(features_args), 'features_args'),
             build.assign(lib, 'lib'),
             build.assign(
                 build.function(
@@ -647,7 +660,7 @@ class Interpreter:
                     kw={
                         'link_with': build.identifier('lib'),
                         'variables': build.dict({
-                            build.string('features'): build.string(','.join(cfg.features)),
+                            build.string('features'): build.method('join', build.string(','), [build.identifier('features')]),
                         }),
                         'version': build.string(pkg.manifest.package.version),
                     },
