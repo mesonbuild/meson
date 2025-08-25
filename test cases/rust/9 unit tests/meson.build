@@ -1,4 +1,4 @@
-project('rust unit tests', 'rust', meson_version: '>=1.8.0')
+project('rust unit tests', 'rust', meson_version: '>=1.9.0')
 
 t = executable(
   'rust_test',
@@ -11,7 +11,7 @@ test(
   t,
   protocol : 'rust',
   suite : ['foo'],
-  should_fail : true,
+  expected_fail : true,
 )
 
 test(
@@ -50,7 +50,7 @@ endif
 
 exe = executable('rust_exe', ['test2.rs', 'test.rs'], build_by_default : false)
 
-rust.test('rust_test_from_exe', exe, should_fail : true)
+rust.test('rust_test_from_exe', exe, expected_fail : true)
 
 lib = static_library('rust_static', ['test.rs'], build_by_default : false, rust_abi: 'c')
 rust.test('rust_test_from_static', lib, args: ['--skip', 'test_add_intentional_fail'])
