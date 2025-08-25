@@ -97,6 +97,7 @@ machine](#specifying-options-per-machine) section for details.
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                   | no             | no                |
 | force_fallback_for                     | []            | Force fallback for those dependencies                          | no             | no                |
 | vsenv                                  | false         | Activate Visual Studio environment                             | no             | no                |
+| emxomf                                 | false         | Use OMF format on OS/2                                         | no             | no                |
 
 (For the Rust language only, `warning_level=0` disables all warnings).
 
@@ -201,6 +202,16 @@ used instead.
 When `default_both_libraries` is 'auto', passing a [[@both_libs]] dependency
 in [[both_libraries]] will link the static dependency with the static lib,
 and the shared dependency with the shared lib.
+
+#### Details for `emxomf`
+
+The `--emxomf` argument is supported since `1.9.0`, `-Demxomf=true` syntax is
+supported since `1.1.0`.
+
+Setting the `emxomf` option to `true` forces to use emxomf toolchains in order
+to generate OMF files instead of aout toolchains.
+
+`emxomf` is `false` by default.
 
 ## Base options
 
