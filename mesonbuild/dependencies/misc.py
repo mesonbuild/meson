@@ -404,6 +404,28 @@ class CursesSystemDependency(SystemDependency):
                 break
 
 
+class ExecinfoBuiltinDependency(BuiltinDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.9.0', "consider checking for `backtrace` with and without `find_library('execinfo')`")
+        code = '''#include <execinfo.h>\n\nint main() {\n   void *b[];\n    backtrace(&b,0);\n}''' # [ignore encoding] this is C, not python, Mr. Lint
+
+        if self.clib_compiler.links(code, env)[0]:
+            self.is_found = True
+
+
+class ExecinfoSystemDependency(SystemDependency):
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+        self.feature_since = ('1.9.0', "consider checking for `backtrace` with and without find_library('execinfo')")
+
+        h = self.clib_compiler.has_header('execinfo.h', '', env)
+        if not h[0]:
+            return
+        self.link_args = self.clib_compiler.find_library('execinfo', env, [], self.libtype)
+        self.is_found = bool(self.link_args)
+
+
 class IconvBuiltinDependency(BuiltinDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, env, kwargs)
@@ -592,6 +614,13 @@ packages['atomic'] = atomic_factory = DependencyFactory(
     [DependencyMethods.SYSTEM, DependencyMethods.BUILTIN],
     system_class=AtomicSystemDependency,
     builtin_class=AtomicBuiltinDependency,
+)
+
+packages['execinfo'] = execinfo_factory = DependencyFactory(
+    'execinfo',
+    [DependencyMethods.BUILTIN, DependencyMethods.SYSTEM],
+    builtin_class=ExecinfoBuiltinDependency,
+    system_class=ExecinfoSystemDependency,
 )
 
 packages['cups'] = cups_factory = DependencyFactory(
