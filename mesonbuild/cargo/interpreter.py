@@ -485,7 +485,8 @@ class Interpreter:
         for depname in pkg.required_deps:
             dep = pkg.manifest.dependencies[depname]
             dep_pkg = self._dep_package(pkg, dep)
-            ast += self._create_dependency(dep_pkg, dep, build)
+            if dep_pkg.manifest.lib:
+                ast += self._create_dependency(dep_pkg, dep, build)
         ast.append(build.assign(build.array([]), 'system_deps_args'))
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(pkg.features):
