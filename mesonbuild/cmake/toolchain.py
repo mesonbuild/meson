@@ -174,6 +174,16 @@ class CMakeToolchain:
             return p
 
         # Set the compiler variables
+        comp_obj = self.compilers.get('c', self.compilers.get('cpp', None))
+        if comp_obj and comp_obj.get_id() == 'msvc':
+            debug_args = comp_obj.get_debug_args(True)
+            if '/Z7' in debug_args:
+                defaults['CMAKE_MSVC_DEBUG_INFORMATION_FORMAT'] = ['Embedded']
+            elif '/Zi' in debug_args:
+                defaults['CMAKE_MSVC_DEBUG_INFORMATION_FORMAT'] = ['ProgramDatabase']
+            elif '/ZI' in debug_args:
+                defaults['CMAKE_MSVC_DEBUG_INFORMATION_FORMAT'] = ['EditAndContinue']
+
         for lang, comp_obj in self.compilers.items():
             language = language_map.get(lang, None)
 
