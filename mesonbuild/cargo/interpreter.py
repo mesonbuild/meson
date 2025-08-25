@@ -22,7 +22,7 @@ from . import builder, version
 from .cfg import eval_cfg
 from .toml import load_toml
 from .manifest import Manifest, CargoLock, Workspace, fixup_meson_varname
-from ..mesonlib import MesonException, MachineChoice, version_compare_many
+from ..mesonlib import MesonException, MachineChoice, PerMachine, version_compare_many
 from .. import coredata, mlog
 from ..wrap.wrap import PackageDefinition
 
@@ -66,8 +66,16 @@ class PackageState:
     # If this package is member of a workspace.
     ws_subdir: T.Optional[str] = None
     ws_member: T.Optional[str] = None
-    # Package configuration state
-    cfg: T.Optional[PackageConfiguration] = None
+    # Per-machine configuration state
+    cfg: PerMachine[T.Optional[PackageConfiguration]] = dataclasses.field(
+        default_factory=lambda: PerMachine(None, None)
+    )
+
+    def get_or_create_cfg(self, machine: MachineChoice) -> PackageConfiguration:
+        """Get configuration for machine, creating if necessary."""
+        if self.cfg[machine] is None:
+            self.cfg[machine] = PackageConfiguration()
+        return self.cfg[machine]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -140,7 +148,7 @@ class Interpreter:
         return build.block(ast)
 
     def _create_package(self, pkg: PackageState, build: builder.Builder, subdir: str) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         ast = []
 
         ast.extend([
@@ -194,7 +202,7 @@ class Interpreter:
             if member in processed_members:
                 return
             pkg = ws.packages[member]
-            cfg = pkg.cfg
+            cfg = pkg.cfg[MachineChoice.HOST]
             for depname in cfg.required_deps:
                 dep = pkg.manifest.dependencies[depname]
                 if dep.path:
@@ -280,10 +288,10 @@ class Interpreter:
         return pkg, False
 
     def _prepare_package(self, pkg: PackageState) -> None:
-        if pkg.cfg:
+        if pkg.cfg[MachineChoice.HOST]:
             return
 
-        pkg.cfg = PackageConfiguration()
+        _ = pkg.get_or_create_cfg(MachineChoice.HOST)
         # Merge target specific dependencies that are enabled
         cfgs = self._get_cfgs(MachineChoice.HOST)
         for condition, dependencies in pkg.manifest.target.items():
@@ -348,7 +356,7 @@ class Interpreter:
         return manifest_
 
     def _add_dependency(self, pkg: PackageState, depname: str) -> None:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         if depname in cfg.required_deps:
             return
         dep = pkg.manifest.dependencies.get(depname)
@@ -366,7 +374,7 @@ class Interpreter:
             self._enable_feature(dep_pkg, f)
 
     def _enable_feature(self, pkg: PackageState, feature: str) -> None:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         if feature in cfg.features:
             return
         cfg.features.add(feature)
@@ -479,7 +487,7 @@ class Interpreter:
         return [build.function('project', args, kwargs)]
 
     def _create_dependencies(self, pkg: PackageState, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         ast: T.List[mparser.BaseNode] = []
         for depname in cfg.required_deps:
             dep = pkg.manifest.dependencies[depname]
@@ -520,7 +528,7 @@ class Interpreter:
         ]
 
     def _create_dependency(self, pkg: PackageState, dep: Dependency, build: builder.Builder) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         version_ = dep.meson_version or [pkg.manifest.package.version]
         api = dep.api or pkg.manifest.package.api
         kw = {
@@ -601,7 +609,7 @@ class Interpreter:
         ]
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, crate_type: raw.CRATE_TYPE) -> T.List[mparser.BaseNode]:
-        cfg = pkg.cfg
+        cfg = pkg.cfg[MachineChoice.HOST]
         dependencies: T.List[mparser.BaseNode] = []
         dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
         for name in cfg.required_deps:
