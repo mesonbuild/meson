@@ -20,10 +20,13 @@ class DirectoryLockAction(enum.Enum):
     FAIL = 2
 
 class DirectoryLockBase:
-    def __init__(self, directory: str, lockfile: str, action: DirectoryLockAction, err: str) -> None:
+    def __init__(self, directory: str, lockfile: str, action: DirectoryLockAction, err: str,
+                 optional: bool = False) -> None:
         self.action = action
         self.err = err
         self.lockpath = os.path.join(directory, lockfile)
+        self.optional = optional
+        self.lockfile: T.Optional[T.TextIO] = None
 
     def __enter__(self) -> None:
         mlog.debug('Calling the no-op version of DirectoryLock')

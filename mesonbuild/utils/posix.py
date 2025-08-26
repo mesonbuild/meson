@@ -17,7 +17,16 @@ __all__ = ['DirectoryLock', 'DirectoryLockAction']
 class DirectoryLock(DirectoryLockBase):
 
     def __enter__(self) -> None:
-        self.lockfile = open(self.lockpath, 'w+', encoding='utf-8')
+        try:
+            self.lockfile = open(self.lockpath, 'w+', encoding='utf-8')
+        except (FileNotFoundError, IsADirectoryError):
+            # For FileNotFoundError, there is nothing to lock.
+            # For IsADirectoryError, something is seriously wrong.
+            raise
+        except OSError:
+            if self.action == DirectoryLockAction.IGNORE or self.optional:
+                return
+
         try:
             flags = fcntl.LOCK_EX
             if self.action != DirectoryLockAction.WAIT:
