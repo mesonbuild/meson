@@ -331,6 +331,11 @@ class OptionTests(unittest.TestCase):
         optstore = OptionStore(False)
         optstore.set_from_configure_command({OptionKey('b_ndebug'): True})
 
+    def test_unconfigure_nonexistent(self):
+        optstore = OptionStore(False)
+        with self.assertRaises(MesonException):
+            optstore.set_from_configure_command({OptionKey('nonexistent'): None})
+
     def test_subproject_proj_opt_with_same_name(self):
         name = 'tests'
         subp = 'subp'
