@@ -44,7 +44,7 @@ class Builder:
         :param value: the value of the string
         :return: A StringNode
         """
-        return mparser.StringNode(self._token('string', value))
+        return mparser.StringNode(self._token('string', value), escape=False)
 
     def number(self, value: int) -> mparser.NumberNode:
         """Build A NumberNode
