@@ -588,7 +588,7 @@ class Resolver:
         try:
             with DirectoryLock(self.subdir_root, '.wraplock',
                                DirectoryLockAction.WAIT,
-                               'Failed to lock subprojects directory'):
+                               'Failed to lock subprojects directory', optional=True):
                 return self._resolve(packagename, force_method)
         except FileNotFoundError:
             raise WrapNotFoundException('Attempted to resolve subproject without subprojects directory present.')
