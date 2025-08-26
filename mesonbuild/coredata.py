@@ -654,7 +654,13 @@ def update_cmd_line_file(build_dir: str, options: SharedCMDOptions) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
     config.read(filename)
-    config['options'].update({str(k): str(v) for k, v in options.cmd_line_options.items()})
+    for k, v in options.cmd_line_options.items():
+        keystr = str(k)
+        if v is not None:
+            config['options'][keystr] = str(v)
+        elif keystr in config['options']:
+            del config['options'][keystr]
+
     with open(filename, 'w', encoding='utf-8') as f:
         config.write(f)
 
