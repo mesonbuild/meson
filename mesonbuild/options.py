@@ -1117,6 +1117,9 @@ class OptionStore:
                 del self.augments[key]
                 dirty = True
             else:
+                if key not in self.options:
+                    raise MesonException(f"Unknown option: {key}")
+
                 # TODO: For project options, "dropping an augment" means going
                 # back to the superproject's value.  However, it's confusing
                 # that -U does not simply remove the option from the stored
