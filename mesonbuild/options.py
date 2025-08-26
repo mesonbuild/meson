@@ -1380,6 +1380,14 @@ class OptionStore:
                 key = key.evolve(subproject=subproject)
             options[key] = valstr
 
+        # then global settings from machine file and command line
+        # **but not if they are toplevel project options**
+        for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
+            if key.subproject is None and not self.is_project_option(key.as_root()):
+                subp_key = key.evolve(subproject=subproject)
+                # just leave in place the value that was set for the toplevel project
+                options.pop(subp_key, None)
+
         # augments from the toplevel project() default_options
         for key, valstr in self.pending_subproject_options.items():
             if key.subproject == subproject:
@@ -1394,14 +1402,6 @@ class OptionStore:
             if key.subproject is None:
                 key = key.evolve(subproject=subproject)
             options[key] = valstr
-
-        # then global settings from machine file and command line
-        # **but not if they are toplevel project options**
-        for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
-            if key.subproject is None and not self.is_project_option(key.as_root()):
-                subp_key = key.evolve(subproject=subproject)
-                self.pending_subproject_options.pop(subp_key, None)
-                options.pop(subp_key, None)
 
         # then finally per project augments from machine file and command line
         for key, valstr in itertools.chain(machine_file_options.items(), cmd_line_options.items()):
