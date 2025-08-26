@@ -384,10 +384,10 @@ command line: `-Dfoo:default_library=static`.
 The value is overridden in this order:
 - `opt=value` from parent project's `default_options`
 - `opt=value` from subproject's `default_options`
-- `subp:opt=value` from parent project's default options
-- `opt=value` from `subproject()` `default_options`
 - `opt=value` from machine file
 - `opt=value` from command line
+- `subp:opt=value` from parent project's default options
+- `opt=value` from `subproject()` `default_options`
 - `subp:opt=value` from machine file
 - `subp:opt=value` from command line
 
