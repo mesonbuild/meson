@@ -9,6 +9,7 @@ These are return values of the `get_id` (Compiler family) and
 | -----     | ---------------                  | --------------- |
 | arm       | ARM compiler                     |                 |
 | armclang  | ARMCLANG compiler                |                 |
+| bccclang  | Embarcadero C++ compiler         | gcc             |
 | ccomp     | The CompCert formally-verified C compiler |        |
 | ccrx      | Renesas RX Family C/C++ compiler |                 |
 | clang     | The Clang compiler               | gcc             |
@@ -70,6 +71,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | link       | MSVC linker                                 |
 | lld-link   | The LLVM linker, with the MSVC interface    |
 | xilink     | Used with Intel-cl only, MSVC like          |
+| ilink      | Turbo Incremental Link, used with bccclang  |
 | optlink    | optlink (used with DMD)                     |
 | rlink      | The Renesas linker, used with CCrx only     |
 | xc16-ar    | The Microchip linker, used with XC16 only   |
