@@ -1261,8 +1261,9 @@ class LinuxlikeTests(BasePlatformTests):
         myenv['PKG_CONFIG_PATH'] = _prepend_pkg_config_path(self.privatedir)
         stdo = subprocess.check_output([PKG_CONFIG, '--libs-only-l', 'libsomething'], env=myenv)
         deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
-        if is_windows() or is_cygwin() or is_osx() or is_openbsd():
+        if is_windows() or is_osx() or is_openbsd():
             # On Windows, libintl is a separate library
+            # It used to be on Cygwin as well, but no longer is.
             deps.append(b'-lintl')
         self.assertEqual(set(deps), set(stdo.split()))
 
