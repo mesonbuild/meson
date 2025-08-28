@@ -29,7 +29,7 @@ from ..compilers import Compiler
 from ..linkers import ArLikeLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
-    ProgressBar, quote_arg
+    ProgressBar, quote_arg, unique_list
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, is_parent_path
 from ..options import OptionKey
@@ -2208,6 +2208,8 @@ class NinjaBackend(backends.Backend):
             rustdoc = rustc.get_rustdoc(self.environment)
             args = rustdoc.get_exe_args()
             args += self.get_rust_compiler_args(target.doctests.target, rustdoc, target.rust_crate_type)
+            o, _ = self.flatten_object_list(target.doctests.target)
+            obj_list = unique_list(obj_list + o)
             # Rustc does not add files in the obj_list to Rust rlibs,
             # and is added by Meson to all of the dependencies, including here.
             _, _, deps_args = self.get_rust_compiler_deps_and_args(target.doctests.target, rustdoc, obj_list)
