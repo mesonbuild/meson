@@ -984,13 +984,6 @@ boost_libraries = {
         single=[],
         multi=[],
     ),
-    'boost_regex': BoostLibrary(
-        name='boost_regex',
-        shared=[],
-        static=[],
-        single=[],
-        multi=[],
-    ),
     'boost_serialization': BoostLibrary(
         name='boost_serialization',
         shared=[],
