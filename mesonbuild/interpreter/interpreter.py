@@ -694,7 +694,7 @@ class Interpreter(InterpreterBase, HoldableObject):
     def func_declare_dependency(self, node: mparser.BaseNode, args: T.List[TYPE_var],
                                 kwargs: kwtypes.FuncDeclareDependency) -> dependencies.Dependency:
         deps = kwargs['dependencies']
-        incs = self.extract_incdirs(kwargs)
+        incs = self.extract_incdirs(kwargs, strings_since='0.50.0')
         libs = kwargs['link_with']
         libs_whole = kwargs['link_whole']
         objects = kwargs['objects']
@@ -2788,12 +2788,12 @@ class Interpreter(InterpreterBase, HoldableObject):
                                               install_tag=install_tag, data_type='configure'))
         return mesonlib.File.from_built_file(self.subdir, output)
 
-    def extract_incdirs(self, kwargs, key: str = 'include_directories') -> T.List[build.IncludeDirs]:
+    def extract_incdirs(self, kwargs, key: str = 'include_directories', strings_since: T.Optional[str] = None) -> T.List[build.IncludeDirs]:
         prospectives = extract_as_list(kwargs, key)
-        if key == 'include_directories':
+        if strings_since:
             for i in prospectives:
                 if isinstance(i, str):
-                    FeatureNew.single_use('include_directories kwarg of type string', '0.50.0', self.subproject,
+                    FeatureNew.single_use(f'{key} kwarg of type string', strings_since, self.subproject,
                                           f'Use include_directories({i!r}) instead', location=self.current_node)
                     break
 
@@ -3461,7 +3461,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                             node=node)
                     outputs.update(o)
 
-        kwargs['include_directories'] = self.extract_incdirs(kwargs)
+        kwargs['include_directories'] = self.extract_incdirs(kwargs, strings_since='0.50.0')
 
         if targetclass is build.Executable:
             kwargs = T.cast('kwtypes.Executable', kwargs)

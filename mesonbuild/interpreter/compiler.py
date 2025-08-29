@@ -23,7 +23,7 @@ from ..interpreterbase import (ObjectHolder, noPosargs, noKwargs,
 from ..interpreterbase.decorators import ContainerTypeInfo, typed_kwargs, KwargInfo, typed_pos_args
 from ..options import OptionKey
 from .interpreterobjects import (extract_required_kwarg, extract_search_dirs)
-from .type_checking import REQUIRED_KW, in_set_validator, NoneType
+from .type_checking import INCLUDE_DIRECTORIES, REQUIRED_KW, in_set_validator, NoneType
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
@@ -86,7 +86,7 @@ if T.TYPE_CHECKING:
         # prepended to the key
         header_args: T.List[str]
         header_dependencies: T.List[dependencies.Dependency]
-        header_include_directories: T.List[build.IncludeDirs]
+        header_include_directories: T.List[T.Union[build.IncludeDirs, str]]
         header_no_builtin_args: bool
         header_prefix: str
         header_required: T.Union[bool, options.UserFeatureOption]
@@ -94,7 +94,7 @@ if T.TYPE_CHECKING:
     class PreprocessKW(TypedDict):
         output: str
         compile_args: T.List[str]
-        include_directories: T.List[build.IncludeDirs]
+        include_directories: T.List[T.Union[build.IncludeDirs, str]]
         dependencies: T.List[dependencies.Dependency]
         depends: T.List[T.Union[build.BuildTarget, build.CustomTarget, build.CustomTargetIndex]]
 
@@ -154,12 +154,6 @@ _DEPENDS_KW: KwargInfo[T.List[T.Union[build.BuildTarget, build.CustomTarget, bui
     listify=True,
     default=[],
 )
-_INCLUDE_DIRS_KW: KwargInfo[T.List[build.IncludeDirs]] = KwargInfo(
-    'include_directories',
-    ContainerTypeInfo(list, build.IncludeDirs),
-    default=[],
-    listify=True,
-)
 _PREFIX_KW: KwargInfo[str] = KwargInfo(
     'prefix',
     (str, ContainerTypeInfo(list, str)),
@@ -173,10 +167,10 @@ _WERROR_KW = KwargInfo('werror', bool, default=False, since='1.3.0')
 
 # Many of the compiler methods take this kwarg signature exactly, this allows
 # simplifying the `typed_kwargs` calls
-_COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _PREFIX_KW, _NO_BUILTIN_ARGS_KW]
+_COMMON_KWS: T.List[KwargInfo] = [_ARGS_KW, _DEPENDENCIES_KW, INCLUDE_DIRECTORIES, _PREFIX_KW, _NO_BUILTIN_ARGS_KW]
 
 # Common methods of compiles, links, runs, and similar
-_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, _INCLUDE_DIRS_KW, _NO_BUILTIN_ARGS_KW,
+_COMPILES_KWS: T.List[KwargInfo] = [_NAME_KW, _ARGS_KW, _DEPENDENCIES_KW, INCLUDE_DIRECTORIES, _NO_BUILTIN_ARGS_KW,
                                     _WERROR_KW,
                                     REQUIRED_KW.evolve(since='1.5.0', default=False)]
 
@@ -232,7 +226,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
     def _determine_args(self, kwargs: BaseCompileKW,
                         mode: CompileCheckMode = CompileCheckMode.LINK) -> T.List[str]:
         args: T.List[str] = []
-        for i in kwargs['include_directories']:
+        for i in self.interpreter.extract_incdirs(kwargs, strings_since='1.10.0'):
             for idir in i.to_string_list(self.environment.get_source_dir(), self.environment.get_build_dir()):
                 args.extend(self.compiler.get_include_args(idir, False))
         if not kwargs['no_builtin_args']:
@@ -687,13 +681,15 @@ class CompilerHolder(ObjectHolder['Compiler']):
             mlog.log('Library', mlog.bold(libname), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_library(libname)
 
+        include_directories = self.interpreter.extract_incdirs(kwargs, key='header_include_directories', strings_since='1.10.0')
+
         # This could be done with a comprehension, but that confuses the type
         # checker, and having it check this seems valuable
         has_header_kwargs: 'HeaderKW' = {
             'required': required,
             'args': kwargs['header_args'],
             'dependencies': kwargs['header_dependencies'],
-            'include_directories': kwargs['header_include_directories'],
+            'include_directories': include_directories,
             'prefix': kwargs['header_prefix'],
             'no_builtin_args': kwargs['header_no_builtin_args'],
         }
@@ -890,7 +886,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
         'compiler.preprocess',
         KwargInfo('output', str, default='@PLAINNAME@.i'),
         KwargInfo('compile_args', ContainerTypeInfo(list, str), listify=True, default=[]),
-        _INCLUDE_DIRS_KW,
+        INCLUDE_DIRECTORIES,
         _DEPENDENCIES_KW.evolve(since='1.1.0'),
         _DEPENDS_KW.evolve(since='1.4.0'),
     )
@@ -918,7 +914,7 @@ class CompilerHolder(ObjectHolder['Compiler']):
             compiler,
             self.interpreter.backend,
             kwargs['compile_args'],
-            kwargs['include_directories'],
+            self.interpreter.extract_incdirs(kwargs, strings_since='1.10.0'),
             kwargs['dependencies'],
             kwargs['depends'])
         self.interpreter.add_target(tg.name, tg)

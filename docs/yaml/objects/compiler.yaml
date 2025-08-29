@@ -61,9 +61,12 @@ methods:
   description: You have found a bug if you can see this!
   kwargs:
     include_directories:
-      type: inc | array[inc]
+      type: array[inc | str]
       since: 0.38.0
-      description: Extra directories for header searches.
+      description: |
+        Extra directories for header searches, created with the
+        [[include_directories]] function.
+        *(Since 1.10.0)* Strings are also accepted.
 
 - name: _dependencies
   returns: void
@@ -484,11 +487,12 @@ methods:
         When the `has_headers` kwarg is also used, this argument is passed to
         [[compiler.has_header]] as `args`.
     header_include_directories:
-      type: inc | array[inc]
+      type: array[inc | str]
       since: 0.51.0
       description: |
         When the `has_headers` kwarg is also used, this argument is passed to
         [[compiler.has_header]] as `include_directories`.
+        *(Since 1.10.0)* Strings are also accepted.
     header_dependencies:
       type: dep | array[dep]
       since: 0.51.0
