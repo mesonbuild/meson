@@ -851,6 +851,10 @@ class CMakeInterpreter:
         trace_args = self.trace.trace_args()
         cmcmp_args = [f'-DCMAKE_POLICY_WARNING_{x}=OFF' for x in DISABLE_POLICY_WARNINGS]
 
+        if mesonlib.version_compare(cmake_exe.version(), '>= 3.25'):
+            # Enable MSVC debug information variable
+            cmcmp_args += ['-DCMAKE_POLICY_CMP0141=NEW']
+
         self.fileapi.setup_request()
 
         # Run CMake
