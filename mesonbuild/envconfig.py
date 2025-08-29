@@ -101,6 +101,7 @@ ENV_VAR_COMPILER_MAP: T.Mapping[str, str] = {
     'rust': 'RUSTC',
     'vala': 'VALAC',
     'nasm': 'NASM',
+    'java': 'JAVAC',
 
     # Linkers
     'c_ld': 'CC_LD',
