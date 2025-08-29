@@ -5,19 +5,21 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 import dataclasses
 import os
 import typing as T
 
 from . import version
-from ..mesonlib import MesonException, lazy_property
+from ..mesonlib import MesonException, lazy_property, Version
 from .. import mlog
 
 if T.TYPE_CHECKING:
     from typing_extensions import Protocol, Self
 
     from . import raw
-    from .raw import EDITION, CRATE_TYPE
+    from .raw import EDITION, CRATE_TYPE, LINT_LEVEL
+    from ..wrap.wrap import PackageDefinition
 
     # Copied from typeshed. Blarg that they don't expose this
     class DataclassInstance(Protocol):
@@ -91,6 +93,18 @@ def _raw_to_dataclass(raw: T.Mapping[str, object], cls: T.Type[_DI],
     return cls(**new_dict)
 
 
+def _check_from_workspace(raw: T.Union[raw.FromWorkspace, T.Mapping[str, object]],
+                          from_workspace: T.Optional[object],
+                          msg: str) -> bool:
+    if not from_workspace:
+        if raw.get('workspace', False) or \
+                any(isinstance(v, dict) and v.get('workspace', False) for v in raw):
+            raise MesonException(f'Cargo.toml file requests {msg} from workspace')
+
+        return False
+
+    return bool(raw.get('workspace', False))
+
 @T.overload
 def _inherit_from_workspace(raw: raw.Package,
                             raw_from_workspace: T.Optional[T.Mapping[str, object]],
@@ -110,12 +124,7 @@ def _inherit_from_workspace(raw_: T.Union[raw.FromWorkspace, raw.Package, raw.De
     # allow accesses by non-literal key below
     raw = T.cast('T.Mapping[str, object]', raw_)
 
-    if not raw_from_workspace:
-        if raw.get('workspace', False) or \
-                any(isinstance(v, dict) and v.get('workspace', False) for v in raw):
-            raise MesonException(f'Cargo.toml file requests {msg} from workspace')
-
-        return raw
+    from_workspace = _check_from_workspace(raw, raw_from_workspace, msg)
 
     result = {k: v for k, v in raw.items() if k != 'workspace'}
     for k, v in raw.items():
@@ -127,7 +136,7 @@ def _inherit_from_workspace(raw_: T.Union[raw.FromWorkspace, raw.Package, raw.De
             else:
                 del result[k]
 
-    if raw.get('workspace', False):
+    if from_workspace:
         for k, v in raw_from_workspace.items():
             if k not in result or k in kwargs:
                 if k in kwargs:
@@ -253,7 +262,7 @@ class Dependency:
             elif v.startswith('='):
                 api.add(version.api(v[1:].strip()))
         if not api:
-            return '0'
+            return ''
         elif len(api) == 1:
             return api.pop()
         else:
@@ -278,6 +287,17 @@ class Dependency:
 
         raw_dep = _depv_to_dep(raw_depv)
         return cls.from_raw_dict(name, raw_dep, member_path, raw_ws_dep)
+
+    def update_version(self, v: str) -> None:
+        self.version = v
+        try:
+            delattr(self, 'api')
+        except AttributeError:
+            pass
+        try:
+            delattr(self, 'meson_version')
+        except AttributeError:
+            pass
 
 
 @dataclasses.dataclass
@@ -383,12 +403,70 @@ class Example(BuildTarget['raw.BuildTarget']):
     """Representation of a Cargo Example Entry."""
 
     crate_type: T.List[CRATE_TYPE] = dataclasses.field(default_factory=lambda: ['bin'])
+    doc_scrape_examples: bool = False
 
     @classmethod
     def from_raw(cls, raw: raw.BuildTarget) -> Self:
         if 'path' not in raw:
             raw['path'] = os.path.join('examples', raw['name'] + '.rs')
         return super().from_raw(raw)
+
+
+@dataclasses.dataclass
+class Lint:
+
+    """Cargo Lint definition.
+    """
+
+    name: str
+    level: LINT_LEVEL
+    priority: int
+    check_cfg: T.Optional[T.List[str]]
+
+    @classmethod
+    def from_raw(cls, r: T.Union[raw.FromWorkspace, T.Dict[str, T.Dict[str, raw.LintV]]],
+                 workspace: T.Optional[Workspace] = None) -> T.List[Lint]:
+        if _check_from_workspace(r, workspace.lints if workspace else None, 'Lints'):
+            return cls.from_raw(workspace.lints)
+
+        r = T.cast('T.Dict[str, T.Dict[str, raw.LintV]]', r)
+        lints: T.Dict[str, Lint] = {}
+        for tool, raw_lints in r.items():
+            prefix = '' if tool == 'rust' else f'{tool}::'
+            for name, settings in raw_lints.items():
+                name = prefix + name
+                if isinstance(settings, str):
+                    settings = T.cast('raw.Lint', {'level': settings})
+                check_cfg = None
+                if name == 'unexpected_cfgs':
+                    # 'cfg(test)' is added automatically by cargo
+                    check_cfg = ['cfg(test)'] + settings.get('check-cfg', [])
+                lints[name] = Lint(name=name,
+                                   level=settings['level'],
+                                   priority=settings.get('priority', 0),
+                                   check_cfg=check_cfg)
+
+        lints_final = list(lints.values())
+        lints_final.sort(key=lambda x: x.priority)
+        return lints_final
+
+    def to_arguments(self, check_cfg: bool) -> T.List[str]:
+        if self.level == "deny":
+            flag = "-D"
+        elif self.level == "allow":
+            flag = "-A"
+        elif self.level == "warn":
+            flag = "-W"
+        elif self.level == "forbid":
+            flag = "-F"
+        else:
+            raise MesonException(f"invalid level {self.level!r} for {self.name}")
+        args = [flag, self.name]
+        if check_cfg and self.check_cfg:
+            for arg in self.check_cfg:
+                args.append('--check-cfg')
+                args.append(arg)
+        return args
 
 
 @dataclasses.dataclass
@@ -416,6 +494,12 @@ class Manifest:
     example: T.List[Example] = dataclasses.field(default_factory=list)
     features: T.Dict[str, T.List[str]] = dataclasses.field(default_factory=dict)
     target: T.Dict[str, T.Dict[str, Dependency]] = dataclasses.field(default_factory=dict)
+    lints: T.List[Lint] = dataclasses.field(default_factory=list)
+
+    # irrelevant and should not warn, but no need to convert it to dataclass
+    badges: T.Optional[T.Dict[str, raw.Badge]] = None
+
+    # missing: workspace, profile
 
     path: str = ''
 
@@ -439,6 +523,7 @@ class Manifest:
                                   dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
                                   dev_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
                                   build_dependencies=lambda x: {k: Dependency.from_raw(k, v, member_path, workspace) for k, v in x.items()},
+                                  lints=lambda x: Lint.from_raw(x, workspace),
                                   lib=lambda x: Library.from_raw(x, raw['package']['name']),
                                   bin=lambda x: [Binary.from_raw(b) for b in x],
                                   test=lambda x: [Test.from_raw(b) for b in x],
@@ -464,7 +549,7 @@ class Workspace:
     # inheritable settings are kept in raw format, for use with _inherit_from_workspace
     package: T.Optional[raw.Package] = None
     dependencies: T.Dict[str, raw.Dependency] = dataclasses.field(default_factory=dict)
-    lints: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
+    lints: T.Dict[str, T.Dict[str, raw.LintV]] = dataclasses.field(default_factory=dict)
     metadata: T.Dict[str, T.Any] = dataclasses.field(default_factory=dict)
 
     # A workspace can also have a root package.
@@ -488,6 +573,14 @@ class CargoLockPackage:
     checksum: T.Optional[str] = None
     dependencies: T.List[str] = dataclasses.field(default_factory=list)
 
+    @lazy_property
+    def api(self) -> str:
+        return version.api(self.version)
+
+    @lazy_property
+    def subproject(self) -> str:
+        return f'{self.name}-{self.api}-rs'
+
     @classmethod
     def from_raw(cls, raw: raw.CargoLockPackage) -> CargoLockPackage:
         return _raw_to_dataclass(raw, cls, 'Cargo.lock package')
@@ -501,8 +594,21 @@ class CargoLock:
     version: int = 1
     package: T.List[CargoLockPackage] = dataclasses.field(default_factory=list)
     metadata: T.Dict[str, str] = dataclasses.field(default_factory=dict)
+    wraps: T.Dict[str, PackageDefinition] = dataclasses.field(default_factory=dict)
 
     @classmethod
     def from_raw(cls, raw: raw.CargoLock) -> CargoLock:
         return _raw_to_dataclass(raw, cls, 'Cargo.lock',
                                  package=lambda x: [CargoLockPackage.from_raw(p) for p in x])
+
+    def named(self, name: str) -> T.Sequence[CargoLockPackage]:
+        return self._versions[name]
+
+    @lazy_property
+    def _versions(self) -> T.Dict[str, T.List[CargoLockPackage]]:
+        versions = defaultdict(list)
+        for pkg in self.package:
+            versions[pkg.name].append(pkg)
+        for pkg_versions in versions.values():
+            pkg_versions.sort(reverse=True, key=lambda pkg: Version(pkg.version))
+        return versions
