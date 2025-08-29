@@ -450,7 +450,7 @@ install prefix. For example: if the install prefix is `/usr` and the
 | platlibdir        |               | Directory path              | Directory for site-specific, platform-specific files (Since 0.60.0) |
 | purelibdir        |               | Directory path              | Directory for site-specific, non-platform-specific files  (Since 0.60.0) |
 | allow_limited_api | true          | true, false                 | Disables project-wide use of the Python Limited API (Since 1.3.0) |
-| build_config      |               | File path                   | Specifies the Python build configuration file (PEP 739) (Since 1.9.0) |
+| build_config      |               | File path                   | Specifies the Python build configuration file (PEP 739) (Since 1.10.0) |
 
 *Since 0.60.0* The `python.platlibdir` and `python.purelibdir` options are used
 by the python module methods `python.install_sources()` and
