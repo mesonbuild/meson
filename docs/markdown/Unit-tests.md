@@ -51,14 +51,23 @@ flag `-Db_coverage=true`, you can generate coverage reports after
 running the tests (running the tests is required to gather the list of
 functions that get called). Meson will autodetect what coverage
 generator tools you have installed and will generate the corresponding
-targets. These targets are `coverage-xml` and `coverage-text` which
-are both provided by [Gcovr](http://gcovr.com) (version 3.3 or higher)
-`coverage-sonarqube` which is provided by [Gcovr](http://gcovr.com) (version 4.2 or higher)
-and `coverage-html`, which requires
+targets. The available targets are:
+
+* `coverage-xml` Cobertura xml report, since [Gcovr](http://gcovr.com) 3.3
+* `coverage-text` Gcovr text report, since [Gcovr](http://gcovr.com) 3.3
+* `coverage-sonarqube` Sonarqube xml report, since [Gcovr](http://gcovr.com) 4.2
+* `coverage-json-gcovr` Gcovr json report, since [Gcovr](http://gcovr.com) 4.2
+* `coverage-coveralls` Coveralls xml report, since [Gcovr](http://gcovr.com) 5.0
+* `coverage-csv-gcovr` Gcovr csv report, since [Gcovr](http://gcovr.com) 5.0
+* `coverage-lcov` Lcov text report, since [Gcovr](http://gcovr.com) 7.0
+* `coverage-clover` Clover xml report, since [Gcovr](http://gcovr.com) 7.0
+* `coverage-jacoco` Jacoco xml report, since [Gcovr](http://gcovr.com) 7.0
+
+Additionally, there is `coverage-html`, which requires
 [lcov](https://github.com/linux-test-project/lcov) and
 [GenHTML](https://linux.die.net/man/1/genhtml) or
 [Gcovr](http://gcovr.com). As a convenience, a high-level `coverage`
-target is also generated which will produce all 3 coverage report
+target is also generated which will produce all coverage report
 types, if possible.
 
 The output of these commands is written to the log directory `meson-logs` in
