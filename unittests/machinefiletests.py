@@ -563,18 +563,11 @@ class NativeFileTests(BasePlatformTests):
                 check = cm.exception.stdout
             self.assertIn(check, 'Parent should override default_library')
 
-    def test_builtin_options_machinefile_global_overrides_subproject(self):
-        # The buildfile says subproject(... default_library: static), ensure that's overridden
+    def test_builtin_options_machinefile_global_loses_over_subproject(self):
+        # The buildfile says subproject(... default_library: static), ensure that it overrides the machinefile
         testcase = os.path.join(self.common_test_dir, '223 persubproject options')
         config = self.helper_create_native_file({'built-in options': {'default_library': 'both'}})
-
-        with self.assertRaises((RuntimeError, subprocess.CalledProcessError)) as cm:
-            self.init(testcase, extra_args=['--native-file', config])
-            if isinstance(cm, RuntimeError):
-                check = str(cm.exception)
-            else:
-                check = cm.exception.stdout
-            self.assertIn(check, 'Parent should override default_library')
+        self.init(testcase, extra_args=['--native-file', config])
 
     def test_builtin_options_compiler_properties(self):
         # the properties section can have lang_args, and those need to be
