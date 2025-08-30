@@ -14,6 +14,7 @@
         --sbindir=%{_sbindir} \
         --includedir=%{_includedir} \
         --datadir=%{_datadir} \
+        --distconfdir=%{_distconfdir}
         --mandir=%{_mandir} \
         --infodir=%{_infodir} \
         --localedir=%{_datadir}/locale \
