@@ -1,0 +1,2 @@
+policy_module(my_policy, 1.0.0)
+type my_policy_t;
