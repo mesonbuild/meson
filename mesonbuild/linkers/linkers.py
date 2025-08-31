@@ -702,7 +702,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
             # For PE/COFF the soname argument has no effect
             return []
         sostr = '' if soversion is None else '.' + soversion
-        return self._apply_prefix(f'-soname,{prefix}{shlib_name}.{suffix}{sostr}')
+        return self._apply_prefix(['-soname', f'{prefix}{shlib_name}.{suffix}{sostr}'])
 
     def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
@@ -737,7 +737,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
             # by default, but is not on dragonfly/openbsd for some reason. Without this
             # $ORIGIN in the runtime path will be undefined and any binaries
             # linked against local libraries will fail to resolve them.
-            args.extend(self._apply_prefix('-z,origin'))
+            args.extend(self._apply_prefix(['-z', 'origin']))
 
         # In order to avoid relinking for RPATH removal, the binary needs to contain just
         # enough space in the ELF header to hold the final installation RPATH.
@@ -750,7 +750,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        args.extend(self._apply_prefix('-rpath,' + paths))
+        args.extend(self._apply_prefix(['-rpath', paths]))
 
         # TODO: should this actually be "for solaris/sunos"?
         # NOTE: Remove the zigcc check once zig support "-rpath-link"
@@ -780,7 +780,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         #   -Wl,-rpath-link,/path/to/folder1:/path/to/folder2:...
         if self.id in {'ld.bfd', 'ld.gold'} and mesonlib.version_compare(self.version, '<2.28'):
             for p in rpath_paths:
-                args.extend(self._apply_prefix('-rpath-link,' + os.path.join(build_dir, p)))
+                args.extend(self._apply_prefix(['-rpath-link', os.path.join(build_dir, p)]))
 
         return (args, rpath_dirs_to_remove)
 
@@ -797,7 +797,7 @@ class GnuLikeDynamicLinkerMixin(DynamicLinkerBase):
         if newvalue is not None:
             if versionsuffix is not None:
                 newvalue += f':{versionsuffix}'
-            args = [f'--subsystem,{newvalue}']
+            args = ['--subsystem', newvalue]
         else:
             raise mesonlib.MesonBugException(f'win_subsystem: {value!r} not handled in MinGW linker. This should not be possible.')
 
@@ -818,7 +818,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         if self.system == 'ios':
             return []
         else:
-            return self._apply_prefix('-undefined,dynamic_lookup')
+            return self._apply_prefix(['-undefined', 'dynamic_lookup'])
 
     def get_std_shared_module_args(self, target: 'BuildTarget') -> T.List[str]:
         if self.system == 'ios':
@@ -874,7 +874,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         if darwin_versions:
             args.extend(['-compatibility_version', darwin_versions[0],
                          '-current_version', darwin_versions[1]])
-        return args
+        return self._apply_prefix(args)
 
     def build_rpath_args(self, env: Environment, build_dir: str, from_dir: str,
                          target: BuildTarget, extra_paths: T.Optional[T.List[str]] = None) -> T.Tuple[T.List[str], T.Set[bytes]]:
@@ -894,12 +894,12 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             all_paths.update(extra_paths)
         for rp in all_paths:
             rpath_dirs_to_remove.add(rp.encode('utf8'))
-            args.extend(self._apply_prefix('-rpath,' + rp))
+            args.extend(self._apply_prefix(['-rpath', rp]))
 
         return (args, rpath_dirs_to_remove)
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
-        return ["-Wl,-cache_path_lto," + path]
+        return self._apply_prefix(['-cache_path_lto', path])
 
     def get_lto_obj_cache_path(self, path: str) -> T.List[str]:
         # https://clang.llvm.org/docs/CommandGuide/clang.html#cmdoption-flto
@@ -926,7 +926,7 @@ class GnuGoldDynamicLinker(GnuDynamicLinker):
     id = 'ld.gold'
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
-        return ['-Wl,-plugin-opt,cache-dir=' + path]
+        return self._apply_prefix(['-plugin-opt', 'cache-dir=' + path])
 
 
 class GnuBFDDynamicLinker(GnuDynamicLinker):
@@ -939,7 +939,7 @@ class MoldDynamicLinker(GnuDynamicLinker):
     id = 'ld.mold'
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
-        return ['-Wl,--thinlto-cache-dir=' + path]
+        return self._apply_prefix(['--thinlto-cache-dir=' + path])
 
 
 class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
@@ -990,7 +990,7 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         return []
 
     def get_thinlto_cache_args(self, path: str) -> T.List[str]:
-        return ['-Wl,--thinlto-cache-dir=' + path]
+        return self._apply_prefix(['--thinlto-cache-dir=' + path])
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         # lld does not support a numeric subsystem value
