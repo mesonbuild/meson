@@ -15,16 +15,17 @@ from .base import DependencyException, SystemDependency
 from .detect import packages
 from ..mesonlib import LibType
 
-
 if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..compilers import Compiler
+    from ..envconfig import MachineInfo
 
     TV_ResultTuple = T.Tuple[T.Optional[str], T.Optional[str], bool]
 
 class CudaDependency(SystemDependency):
 
     supported_languages = ['cpp', 'c', 'cuda'] # see also _default_language
+    targets_dir = 'targets' # Directory containing CUDA targets.
 
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         for_machine = self.get_for_machine_from_kwargs(kwargs)
@@ -54,11 +55,7 @@ class CudaDependency(SystemDependency):
             raise DependencyException(f'CUDA Toolkit path must be absolute, got \'{self.cuda_path}\'.')
 
         # Cuda target directory relative to cuda path.
-        if machine.is_linux():
-            # E.g. targets/x86_64-linux
-            self.target_path = os.path.join('targets', f'{machine.cpu_family}-{machine.system}')
-        else:
-            self.target_path = '.'
+        self.target_path = self._detect_target_path(machine)
 
         # nvcc already knows where to find the CUDA Toolkit, but if we're compiling
         # a mixed C/C++/CUDA project, we still need to make the include dir searchable
@@ -140,6 +137,32 @@ class CudaDependency(SystemDependency):
         if nvcc_warning:
             mlog.warning(nvcc_warning)
         return (None, None, False)
+
+    def _detect_target_path(self, machine: MachineInfo) -> str:
+        # Non-Linux hosts: nothing to detect.
+        if not machine.is_linux():
+            return '.'
+
+        # Canonical target: '<arch>-<system>', e.g. 'x86_64-linux'.
+        canonical_target = f'{machine.cpu_family}-{machine.system}'
+        rel_path = os.path.join(self.targets_dir, canonical_target)
+        abs_path = os.path.join(self.cuda_path, rel_path)
+
+        # AArch64 may need the SBSA fallback.
+        if machine.cpu_family == 'aarch64' and not os.path.exists(abs_path):
+            rel_path = os.path.join(self.targets_dir, f"sbsa-{machine.system}")
+            abs_path = os.path.join(self.cuda_path, rel_path)
+            mlog.debug(
+                f'Canonical CUDA target "{self.targets_dir}/{canonical_target}" missing; '
+                f'falling back to "{rel_path}".'
+            )
+
+        mlog.debug(f'CUDA target resolved to "{rel_path}".')
+
+        if not os.path.exists(abs_path):
+            mlog.error(f'CUDA target "{rel_path}" does not exist.')
+
+        return rel_path
 
     def _default_path_env_var(self) -> T.Optional[str]:
         env_vars = ['CUDA_PATH'] if self._is_windows() else ['CUDA_PATH', 'CUDA_HOME', 'CUDA_ROOT']
