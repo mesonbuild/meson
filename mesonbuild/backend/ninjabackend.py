@@ -2104,10 +2104,7 @@ class NinjaBackend(backends.Backend):
 
         for e in external_deps:
             for a in e.get_link_args():
-                if a in rustc.native_static_libs:
-                    # Exclude link args that rustc already add by default
-                    continue
-                elif a.startswith('-L'):
+                if a.startswith('-L'):
                     args.append(a)
                     continue
                 elif a.endswith(('.dll', '.so', '.dylib', '.a', '.lib')):
