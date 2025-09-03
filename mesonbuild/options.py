@@ -581,6 +581,12 @@ def choices_are_different(a: _U, b: _U) -> bool:
     return False
 
 
+class UseImportStd(UserBooleanOption):
+    def __init__(self, lang):
+        self.lang = lang.lower()
+        opt_name =f'{self.lang}_import_std'
+        super().__init__(opt_name, 'Whether to use import std; module in your targets', False)
+
 class UserStdOption(UserComboOption):
     '''
     UserOption specific to c_std and cpp_std options. User can set a list of

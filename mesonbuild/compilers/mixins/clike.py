@@ -287,6 +287,9 @@ class CLikeCompiler(Compiler):
                 mode = CompileCheckMode.COMPILE
         cargs, largs = self._get_basic_compiler_args(environment, mode)
         extra_flags = cargs + self.linker_to_compiler_args(largs)
+        if environment.coredata.optstore.get_value('cpp_import_std'):
+            # extra_flags.extend(self.get_import_std)
+            pass
 
         # Is a valid executable output for all toolchains and platforms
         binname += '.exe'
