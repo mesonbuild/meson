@@ -29,14 +29,14 @@
     %{shrink:%{__meson} compile \
         -C %{_vpath_builddir} \
         -j %{_smp_build_ncpus} \
-        %{?__meson_verbose:--verbose} \
+        %[ 0%{?__meson_verbose} ? "--verbose" : "" ] \
         %{nil}}
 
 %meson_install \
     %{shrink:DESTDIR=%{buildroot} %{__meson} install \
         -C %{_vpath_builddir} \
         --no-rebuild \
-        %{!?__meson_verbose:--quiet} \
+        %[ ! 0%{?__meson_verbose} ? "--quiet" : "" ] \
         %{nil}}
 
 %meson_test \
