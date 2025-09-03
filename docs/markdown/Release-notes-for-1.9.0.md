@@ -49,6 +49,11 @@ section of .editorconfig based on the parsed file name.
 
 When specified, it will add a `License:` attribute to the generated .pc file.
 
+## pkgconfig.generate supports internal dependencies in `requires`
+
+Internal dependencies can now be specified to `requires` if
+pkgconfig.generate was called on the underlying library.
+
 ## New experimental option `rust_dynamic_std`
 
 A new option `rust_dynamic_std` can be used to link Rust programs so
