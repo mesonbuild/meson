@@ -29,8 +29,9 @@ if T.TYPE_CHECKING:
 class PkgConfigInterface:
     '''Base class wrapping a pkg-config implementation'''
 
-    class_impl: PerMachine[T.Union[Literal[False], T.Optional[PkgConfigInterface]]] = PerMachine(False, False)
-    class_cli_impl: PerMachine[T.Union[Literal[False], T.Optional[PkgConfigCLI]]] = PerMachine(False, False)
+    # keyed on machine and extra_paths
+    class_impl: PerMachine[T.Dict[T.Optional[T.Tuple[str, ...]], T.Union[Literal[False], T.Optional[PkgConfigInterface]]]] = PerMachine({}, {})
+    class_cli_impl: PerMachine[T.Dict[T.Optional[T.Tuple[str, ...]], T.Union[Literal[False], T.Optional[PkgConfigCLI]]]] = PerMachine({}, {})
     pkg_bin_per_machine: PerMachine[T.Optional[ExternalProgram]] = PerMachine(None, None)
 
     @staticmethod
@@ -45,14 +46,15 @@ class PkgConfigInterface:
                  extra_paths: T.Optional[T.List[str]] = None) -> T.Optional[PkgConfigInterface]:
         '''Return a pkg-config implementation singleton'''
         for_machine = for_machine if env.is_cross_build() else MachineChoice.HOST
-        impl = PkgConfigInterface.class_impl[for_machine]
+        extra_paths_key = tuple(extra_paths) if extra_paths is not None else None
+        impl = PkgConfigInterface.class_impl[for_machine].get(extra_paths_key, False)
         if impl is False:
             impl = PkgConfigCLI(env, for_machine, silent, PkgConfigInterface.pkg_bin_per_machine[for_machine], extra_paths)
             if not impl.found():
                 impl = None
             if not impl and not silent:
                 mlog.log('Found pkg-config:', mlog.red('NO'))
-            PkgConfigInterface.class_impl[for_machine] = impl
+            PkgConfigInterface.class_impl[for_machine][extra_paths_key] = impl
         return impl
 
     @staticmethod
@@ -67,12 +69,13 @@ class PkgConfigInterface:
         impl: T.Union[Literal[False], T.Optional[PkgConfigInterface]] # Help confused mypy
         impl = PkgConfigInterface.instance(env, for_machine, silent)
         if impl and not isinstance(impl, PkgConfigCLI):
-            impl = PkgConfigInterface.class_cli_impl[for_machine]
+            extra_paths_key = tuple(extra_paths) if extra_paths is not None else None
+            impl = PkgConfigInterface.class_cli_impl[for_machine].get(extra_paths_key, False)
             if impl is False:
                 impl = PkgConfigCLI(env, for_machine, silent, PkgConfigInterface.pkg_bin_per_machine[for_machine], extra_paths)
                 if not impl.found():
                     impl = None
-                PkgConfigInterface.class_cli_impl[for_machine] = impl
+                PkgConfigInterface.class_cli_impl[for_machine][extra_paths_key] = impl
         return T.cast('T.Optional[PkgConfigCLI]', impl) # Trust me, mypy
 
     @staticmethod
