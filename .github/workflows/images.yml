@@ -32,19 +32,21 @@ jobs:
     env:
       HAS_DOCKER_CREDENTIALS: ${{ secrets.DOCKER_PASSWORD != '' }}
     name: ${{ matrix.cfg.name }}
-    runs-on: ubuntu-latest
+    # Output image architecture matches the runner's.
+    runs-on: ${{ matrix.cfg.runs-on }}
     strategy:
       fail-fast: false
       matrix:
         cfg:
-          - { name: Arch Linux,                   id: arch           }
-          - { name: CUDA (on Arch),               id: cuda           }
-          - { name: CUDA Cross (on Ubuntu Jammy), id: cuda-cross     }
-          - { name: Fedora,                       id: fedora         }
-          - { name: Gentoo,                       id: gentoo         }
-          - { name: OpenSUSE,                     id: opensuse       }
-          - { name: Ubuntu Bionic,                id: bionic         }
-          - { name: Ubuntu Rolling,               id: ubuntu-rolling }
+          - { name: Arch Linux,                   id: arch,           runs-on: ubuntu-latest }
+          - { name: CUDA (on Arch),               id: cuda,           runs-on: ubuntu-latest }
+          - { name: CUDA Cross (on Ubuntu Jammy), id: cuda-cross,     runs-on: ubuntu-latest }
+          - { name: Fedora,                       id: fedora,         runs-on: ubuntu-latest }
+          - { name: Gentoo,                       id: gentoo,         runs-on: ubuntu-latest }
+          - { name: OpenSUSE,                     id: opensuse,       runs-on: ubuntu-latest }
+          - { name: Ubuntu Bionic,                id: bionic,         runs-on: ubuntu-latest }
+          - { name: Ubuntu Rolling,               id: ubuntu-rolling, runs-on: ubuntu-latest }
+          - { name: Ubuntu Rolling AArch64,       id: ubuntu-rolling, runs-on: ubuntu-24.04-arm }
     steps:
         # Need v3 because of bionic
       - uses: actions/checkout@v3
