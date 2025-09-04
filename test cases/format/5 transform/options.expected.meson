@@ -65,11 +65,11 @@ endif
 # issue #15019
 if get_option('client')
   sources += files(
-    'pypaste/client/__init__.py',
-    'pypaste/client/__main__.py',
-    'pypaste/client/plugins/__init__.py',
     'pypaste/client/plugins/pgz/__init__.py',
     'pypaste/client/plugins/zen/__init__.py',
+    'pypaste/client/plugins/__init__.py',
+    'pypaste/client/__init__.py',
+    'pypaste/client/__main__.py',
   )
 
   dependencies += [ 'requests' ]
