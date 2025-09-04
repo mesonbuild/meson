@@ -17,6 +17,7 @@ from .ast.postprocess import AstConditionLevel
 from .ast.printer import RawPrinter
 from .ast.visitor import FullAstVisitor
 from .environment import build_filename
+from .utils.universal import pathname_sort_key
 
 if T.TYPE_CHECKING:
     import argparse
@@ -301,13 +302,12 @@ class TrimWhitespaces(FullAstVisitor):
         return value
 
     def sort_arguments(self, node: mparser.ArgumentNode) -> None:
-        # TODO: natsort
         def sort_key(arg: mparser.BaseNode) -> str:
             if isinstance(arg, mparser.StringNode):
                 return arg.raw_value
             return getattr(node, 'value', '')
 
-        node.arguments.sort(key=sort_key)
+        node.arguments.sort(key=lambda arg: pathname_sort_key(sort_key(arg)))
 
     def visit_EmptyNode(self, node: mparser.EmptyNode) -> None:
         self.enter_node(node)
@@ -1064,5 +1064,5 @@ def run(options: argparse.Namespace) -> int:
 # - Option to simplify string literals
 # - Option to recognize and parse meson.build in subdirs
 # - Correctly compute line length when using tabs
-# - By default, arguments in files() are sorted alphabetically
+# - By default, arguments in files() are sorted naturally
 # - Option to group '--arg', 'value' on same line in multiline arguments
