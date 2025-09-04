@@ -7,7 +7,7 @@ short-description: Overview of the Meson build system
 Meson is a build system that is designed to be as user-friendly as
 possible without sacrificing performance. The main tool for this is a
 custom language used to describe the structure of the build. The main
-design goals of this language has been simplicity, clarity and
+design goals of this language have been simplicity, clarity and
 conciseness. Much inspiration was drawn from the Python programming
 language, which is considered very readable, even to people who have
 not programmed in Python before.
