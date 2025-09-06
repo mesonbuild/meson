@@ -157,6 +157,8 @@ class DependenciesHelper:
             elif isinstance(obj, dependencies.ExternalDependency) and obj.name == 'threads':
                 pass
             elif isinstance(obj, dependencies.InternalDependency) and all(lib.get_id() in self.metadata for lib in obj.libraries):
+                FeatureNew.single_use('pkgconfig.generate requirement from internal dependency', '1.9.0',
+                                      self.state.subproject, location=self.state.current_node)
                 # Ensure BothLibraries are resolved:
                 if self.pub_libs and isinstance(self.pub_libs[0], build.StaticLibrary):
                     obj = obj.get_as_static(recursive=True)
@@ -166,8 +168,10 @@ class DependenciesHelper:
                     processed_reqs.append(self.metadata[lib.get_id()].filebase)
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
-                                              'library with pkgconfig-generated file '
-                                              f'or pkgconfig-dependency object, got {obj!r}')
+                                              'library with pkgconfig-generated file, '
+                                              'pkgconfig-dependency object, or '
+                                              'internal-dependency object with '
+                                              f'pkgconfig-generated file, got {obj!r}')
         return processed_reqs
 
     def add_cflags(self, cflags: T.List[str]) -> None:
