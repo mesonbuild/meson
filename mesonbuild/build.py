@@ -2312,6 +2312,18 @@ class StaticLibrary(BuildTarget):
                                                     [], [], [], [], [], {}, [], [], [],
                                                     '_rust_native_static_libs')
                 self.external_deps.append(d)
+
+        default_prefix, default_suffix = self.determine_default_prefix_and_suffix()
+        if not self.name_prefix_set:
+            self.prefix = default_prefix
+        if not self.name_suffix_set:
+            self.suffix = default_suffix
+        self.filename = self.prefix + self.name + '.' + self.suffix
+        self.outputs[0] = self.filename
+
+    def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
+        prefix = ''
+        suffix = ''
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
@@ -2323,16 +2335,16 @@ class StaticLibrary(BuildTarget):
         # See our FAQ for more detailed rationale:
         # https://mesonbuild.com/FAQ.html#why-does-building-my-project-with-msvc-output-static-libraries-called-libfooa
         if not hasattr(self, 'prefix'):
-            self.prefix = 'lib'
+            prefix = 'lib'
         if not hasattr(self, 'suffix'):
             if self.uses_rust():
                 if self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
-                    self.suffix = 'rlib'
+                    suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
-                    self.suffix = 'a'
+                    suffix = 'a'
             else:
-                self.suffix = 'a'
+                suffix = 'a'
                 if 'c' in self.compilers and self.compilers['c'].get_id() == 'tasking' and not self.prelink:
                     key = OptionKey('b_lto', self.subproject, self.for_machine)
                     try:
@@ -2341,9 +2353,8 @@ class StaticLibrary(BuildTarget):
                         v = self.environment.coredata.optstore.get_value_for(key)
                     assert isinstance(v, bool), 'for mypy'
                     if v:
-                        self.suffix = 'ma'
-        self.filename = self.prefix + self.name + '.' + self.suffix
-        self.outputs[0] = self.filename
+                        suffix = 'ma'
+        return (prefix, suffix)
 
     def get_link_deps_mapping(self, prefix: str) -> T.Mapping[str, str]:
         return {}
