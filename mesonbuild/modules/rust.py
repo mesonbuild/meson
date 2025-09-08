@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 import os
 import re
+import textwrap
 import typing as T
 
 from mesonbuild.interpreterbase.decorators import FeatureNew
@@ -336,6 +337,24 @@ class RustModule(ExtensionModule):
         # Copy to avoid subsequent calls mutating the original
         # TODO: if we want this to be per-machine we'll need a native kwarg
         clang_args = state.environment.properties.host.get_bindgen_clang_args().copy()
+
+        # Find the first C'ish compiler to fetch the default compiler flags
+        # from. Append those to the bindgen flags to ensure we use a compatible
+        # environment.
+        comp = mesonlib.first(
+            [state.environment.coredata.compilers.host.get(l) for l in ['c', 'cpp', 'objc', 'objcpp']],
+            lambda x: x is not None,
+        )
+        if comp:
+            clang_args.extend(comp.get_always_args())
+        else:
+            mlog.warning(textwrap.dedent('''\
+                Using `rust.bindgen` without configuring C (or a C-like)
+                language in Meson will skip compiler detection and can cause
+                ABI incompatibilities due to missing crucial compiler flags.
+                Consider calling `add_languages('c')` in your Meson build
+                files.
+            '''))
 
         for i in state.process_include_dirs(kwargs['include_directories']):
             # bindgen always uses clang, so it's safe to hardcode -I here
