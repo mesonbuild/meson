@@ -232,6 +232,7 @@ available on all platforms or with all compilers:
 | b_pgo               | off                  | off, generate, use                                            | Use profile guided optimization                                                |
 | b_sanitize          | none                 | see below                                                     | Code sanitizer to use                                                          |
 | b_staticpic         | true                 | true, false                                                   | Build static libraries as position independent                                 |
+| b_time64            | false                | true, false                                                   | Enable 64-bit time handling for 32-bit platforms (via `_TIME_BITS=64`)         |
 | b_pie               | false                | true, false                                                   | Build position-independent executables (since 0.49.0)                          |
 | b_vscrt             | from_buildtype       | none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0)  |
 

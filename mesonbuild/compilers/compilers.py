@@ -330,6 +330,11 @@ def get_base_compile_args(target: 'BuildTarget', compiler: 'Compiler', env: 'Env
             pass
     except KeyError:
         pass
+    try:
+        if env.coredata.get_option_for_target(target, 'b_time64'):
+            args += compiler.get_time64_args()
+    except (KeyError, AttributeError):
+        pass
     return args
 
 def get_base_link_args(target: 'BuildTarget',
@@ -1091,6 +1096,13 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         """Get arguments to enable or disable assertion.
 
         :param disable: Whether to disable assertions
+        :return: A list of string arguments for this compiler
+        """
+        return []
+
+    def get_time64_args(self) -> T.List[str]:
+        """Get arguments to enable 64-bit time handling for 32-bit platforms.
+
         :return: A list of string arguments for this compiler
         """
         return []
