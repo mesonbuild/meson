@@ -160,6 +160,7 @@ _meson_complete_filedir() {
     prefix |\
     bindir |\
     datadir |\
+    distconfdir |\
     includedir |\
     infodir |\
     libdir |\
@@ -228,6 +229,7 @@ _meson_common_setup_configure_longopts=(
   prefix
   bindir
   datadir
+  distconfdir
   includedir
   infodir
   libdir
