@@ -26,6 +26,7 @@ from .. import mlog
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import Compiler
+from ..compilers.cpp import CPPCompiler
 from ..linkers import ArLikeLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
@@ -1134,12 +1135,12 @@ class NinjaBackend(backends.Backend):
         if cpp.get_id() == 'clang':
             clang_version_ok = mesonlib.version_compare(cpp.version, '>=17')
             if not clang_version_ok:
-                raise MesonException('Tried to compile a library that uses modules. Modules feature is available in clang startint at version 17.')
+                raise MesonException('Tried to compile a library that uses modules. Modules feature is available in clang starting at version 17.')
             return (target_has_primary_module_interface or global_scan_enabled) and clang_version_ok and EXPERIMENTAL_CPP_MODULES_FEATURE != 'disabled'
         if cpp.get_id() == 'gcc':
             gcc_version_ok = mesonlib.version_compare(cpp.version, '>=14')
             if not gcc_version_ok:
-                raise MesonException('Tried to compile a library that uses modules. Modules feature is available in gcc startint at version 14.')
+                raise MesonException('Tried to compile a library that uses modules. Modules feature is available in gcc starting at version 14.')
             return (target_has_primary_module_interface or global_scan_enabled) and clang_version_ok and EXPERIMENTAL_CPP_MODULES_FEATURE != 'disabled'
 
         if cpp.get_id() != 'msvc':
@@ -1190,8 +1191,6 @@ class NinjaBackend(backends.Backend):
         elem = NinjaBuildElement(self.all_outputs, "deps.dd", rule_name, "compile_commands.json")
         elem.add_dep(self._all_scan_sources)
         self.add_build(elem)
-
-
 
     # def generate_dependency_scan_target(self, target: build.BuildTarget,
     #                                     compiled_sources: T.List[str],
@@ -3166,6 +3165,35 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             src_type_to_args[src_type_str] = commands.to_native()
         return src_type_to_args
 
+    def _get_cpp_module_output_name(self, src_basename: str,
+                                    compiler: CPPCompiler,
+                                    target: build.BuildTarget):
+        is_module_file = src_basename.endswith('.cppm')
+        if not is_module_file:
+            # The compiler will not use this output bc it is not a module
+            return 'dummy'
+
+        # Split the filename into root and extension, and take the root part
+        src_without_extension = os.path.splitext(src_basename)[0]
+
+        # The primary interface unit should have the name 'module.cpp' in all cases. It should
+        # export as the module name the name of your target. For example, 'hello.world' target
+        # 'export module hello.world'
+        if src_without_extension == 'module':
+            return f"{target.name}{compiler.get_cpp20_module_bmi_extension()}"
+        # This is an implementation partition. by convention, it is the name that
+        # will be used as the name of the module.
+        # For example, given GreetImpl.cppm, then it should declare 'module hello.world:Greet'
+        # internally.
+        elif (src_without_extension.endswith('Impl')):
+            private_partition_name = src_without_extension.split('Impl')[0]
+            return f"{target.name}-{private_partition_name}{compiler.get_cpp20_module_bmi_extension()}"
+        # This is an interface partition. Same convention as the Impl with the difference that
+        # it does not end in 'Impl'. So for a given file 'MySalutation.cppm', the module would do
+        # 'export hello.world:MySalutation'
+        else:
+            return f"{target.name}-{src_without_extension}{compiler.get_cpp20_module_bmi_extension()}"
+
     def generate_single_compile(self, target: build.BuildTarget, src,
                                 is_generated: bool = False, header_deps=None,
                                 order_deps: T.Optional[T.List[FileOrString]] = None,
@@ -3316,8 +3344,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             element.add_item('CUDA_ESCAPED_TARGET', quote_make_target(rel_obj))
 
         if self.should_use_dyndeps_for_target(target) and compiler.get_language() == 'cpp' and compiler.get_id() == 'clang':
+            src_with_extension = os.path.basename(src.fname)
+            mod_output_name = self._get_cpp_module_output_name(src_with_extension, compiler, target)
             commands.extend(['--start-no-unused-arguments',
-                             f'-fmodule-output={target.name}{compiler.get_cpp20_module_bmi_extension()}',
+                             f'-fmodule-output={mod_output_name}',
                              f'-fprebuilt-module-path={self.environment.get_build_dir()}',
                              '--end-no-unused-arguments'])
         element.add_item('ARGS', commands)

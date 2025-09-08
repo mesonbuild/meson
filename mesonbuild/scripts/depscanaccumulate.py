@@ -21,15 +21,18 @@ class ModuleProviderInfo:
 class CppDependenciesScanner:
     pass
 
+def normalize_filename(fname):
+    return fname.replace(':', '-')
+
 class DynDepRule:
     def __init__(self, out: str, imp_outs: T.Optional[T.List[str]], imp_ins: T.List[str]):
         self.output = [f'build {out}']
         if imp_outs:
-            imp_out_str = " ".join(imp_outs)
+            imp_out_str = " ".join([normalize_filename(o) for o in imp_outs])
             self.output.append(f" | {imp_out_str}")
         self.output.append(": dyndep")
         if imp_ins:
-            imp_ins_str = " ".join(imp_ins)
+            imp_ins_str = " ".join([normalize_filename(inf) for inf in imp_ins])
             self.output.append(" | " + imp_ins_str)
         self.output_str = "".join(self.output) + "\n"
 
