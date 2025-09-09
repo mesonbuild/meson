@@ -68,6 +68,12 @@ DEFAULT_STATIC_LIBRARY_NAMES = {
     'darwin': ('lib', 'a'),
 }
 
+DEFAULT_SHARED_LIBRARY_NAMES = {
+    'unix': ('lib', 'so', ''),
+    'windows': ('', 'dll', 'dll.lib'),
+    'darwin': ('lib', 'dylib', ''),
+}
+
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
 lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
@@ -2479,13 +2485,17 @@ class SharedLibrary(BuildTarget):
         return self.environment.get_shared_lib_dir(), '{libdir_shared}'
 
     def determine_naming_info(self) -> T.Tuple[str, str, str, str, bool]:
-        prefix = ''
-        suffix = ''
+        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        if scheme != 'default':
+            prefix, suffix, import_suffix_dotless = DEFAULT_SHARED_LIBRARY_NAMES[scheme]
+            import_suffix = '.' + import_suffix_dotless
+        else:
+            prefix = None
+            suffix = None
+            import_suffix = None
         filename_tpl = self.basic_filename_tpl
         import_filename_tpl = ''
         create_debug_file = False
-        prefix = ''
-        suffix = ''
         create_debug_file = False
         self.filename_tpl = self.basic_filename_tpl
         import_filename_tpl = None
@@ -2500,27 +2510,29 @@ class SharedLibrary(BuildTarget):
         # Only Windows uses a separate import library for linking
         # For all other targets/platforms import_filename stays None
         elif self.environment.machines[self.for_machine].is_windows():
-            suffix = 'dll'
+            suffix = suffix if suffix is not None else 'dll'
             if self.uses_rust():
                 # Shared library is of the form foo.dll
-                prefix = ''
+                prefix = prefix if prefix is not None else ''
                 # Import library is called foo.dll.lib
                 import_filename_tpl = '{0.prefix}{0.name}.dll.lib'
                 # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
-                prefix = ''
+                prefix = prefix if prefix is not None else ''
                 # Import library is called foo.lib
-                import_filename_tpl = '{0.prefix}{0.name}.lib'
+                import_suffix = import_suffix if import_suffix is not None else '.lib'
+                import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
                 # .pdb file is only created when debug symbols are enabled
                 create_debug_file = self.environment.coredata.optstore.get_value_for(OptionKey("debug"))
             # Assume GCC-compatible naming
             else:
                 # Shared library is of the form libfoo.dll
-                prefix = 'lib'
+                prefix = prefix if prefix is not None else 'lib'
                 # Import library is called libfoo.dll.a
-                import_filename_tpl = '{0.prefix}{0.name}.dll.a'
+                import_suffix = import_suffix if import_suffix is not None else '.dll.a'
+                import_filename_tpl = '{0.prefix}{0.name}' + import_suffix
             # Shared library has the soversion if it is defined
             if self.soversion:
                 filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
@@ -2532,15 +2544,16 @@ class SharedLibrary(BuildTarget):
             # (ld --dll-search-prefix=cyg is the default)
             prefix = 'cyg'
             # Import library is called libfoo.dll.a
+            import_suffix = import_suffix if import_suffix is not None else '.dll.a'
             import_prefix = self.prefix if self.prefix is not None else 'lib'
-            import_filename_tpl = import_prefix + '{0.name}.dll.a'
+            import_filename_tpl = import_prefix + '{0.name}{:0.import_suffix}'
             if self.soversion:
                 filename_tpl = '{0.prefix}{0.name}-{0.soversion}.{0.suffix}'
             else:
                 filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         elif self.environment.machines[self.for_machine].is_darwin():
-            prefix = 'lib'
-            suffix = 'dylib'
+            prefix = prefix if prefix is not None else 'lib'
+            suffix = prefix if prefix is not None else 'dylib'
             # On macOS, the filename can only contain the major version
             if self.soversion:
                 # libfoo.X.dylib
@@ -2549,13 +2562,13 @@ class SharedLibrary(BuildTarget):
                 # libfoo.dylib
                 filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         elif self.environment.machines[self.for_machine].is_android():
-            prefix = 'lib'
-            suffix = 'so'
+            prefix = prefix if prefix is not None else 'lib'
+            suffix = prefix if prefix is not None else 'so'
             # Android doesn't support shared_library versioning
             filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         else:
-            prefix = 'lib'
-            suffix = 'so'
+            prefix = prefix if prefix is not None else 'lib'
+            suffix = suffix if suffix is not None else 'so'
             if self.ltversion:
                 # libfoo.so.X[.Y[.Z]] (.Y and .Z are optional)
                 filename_tpl = '{0.prefix}{0.name}.{0.suffix}.{0.ltversion}'
