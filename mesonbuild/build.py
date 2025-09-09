@@ -62,6 +62,12 @@ if T.TYPE_CHECKING:
         import_dirs: T.List[IncludeDirs]
         versions: T.List[T.Union[str, int]]
 
+DEFAULT_STATIC_LIBRARY_NAMES = {
+    'unix': ('lib', 'a'),
+    'windows': ('', 'lib'),
+    'darwin': ('lib', 'a'),
+}
+
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
 lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
@@ -2326,6 +2332,9 @@ class StaticLibrary(BuildTarget):
         self.outputs[0] = self.filename
 
     def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
+        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        if scheme != 'default':
+            return DEFAULT_STATIC_LIBRARY_NAMES[scheme]
         prefix = ''
         suffix = ''
         # By default a static library is named libfoo.a even on Windows because
