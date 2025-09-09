@@ -62,6 +62,13 @@ if T.TYPE_CHECKING:
         import_dirs: T.List[IncludeDirs]
         versions: T.List[T.Union[str, int]]
 
+DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
+    'unix': ('lib', 'a'),
+    'windows': ('', 'lib'),
+    'darwin': ('lib', 'a'),
+    'cygwin': ('lib', 'a'),
+}
+
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
 lang_arg_kwargs = {f'{lang}_args' for lang in all_languages}
@@ -1920,6 +1927,17 @@ class BuildTarget(Target):
                         raise MesonException(f'Invalid arg for --just-symbols, {dir} is a directory.')
         return dirs
 
+    def get_platform_scheme_name(self) -> str:
+        m = self.environment.machines[self.for_machine]
+        if m.is_cygwin():
+            return 'cygwin'
+        elif m.is_windows():
+            return 'windows'
+        elif m.is_darwin():
+            return 'darwin'
+        else:
+            return 'unix'
+
 
 class FileInTargetPrivateDir:
     """Represents a file with the path '/path/to/build/target_private_dir/fname'.
@@ -2322,8 +2340,14 @@ class StaticLibrary(BuildTarget):
         self.outputs[0] = self.filename
 
     def determine_default_prefix_and_suffix(self) -> T.Tuple[str, str]:
-        prefix = ''
-        suffix = ''
+        scheme = self.environment.coredata.get_option_for_target(self, 'namingscheme')
+        assert isinstance(scheme, str), 'for mypy'
+        if scheme == 'platform':
+            schemename = self.get_platform_scheme_name()
+            prefix, suffix = DEFAULT_STATIC_LIBRARY_NAMES[schemename]
+        else:
+            prefix = ''
+            suffix = ''
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
