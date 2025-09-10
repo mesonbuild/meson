@@ -760,6 +760,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         varargs=(build.Executable, ExternalProgram, compilers.Compiler, mesonlib.File, str))
     @typed_kwargs(
         'run_command',
+        DEPEND_FILES_KW.evolve(since='1.X.0'),
         KwargInfo('check', (bool, NoneType), since='0.47.0'),
         KwargInfo('capture', bool, default=True, since='0.47.0'),
         ENV_KW.evolve(since='0.50.0'),
@@ -832,6 +833,9 @@ class Interpreter(InterpreterBase, HoldableObject):
                 expanded_args.append(prog.get_path())
             else:
                 raise InterpreterException(overridden_msg.format(a.name, cmd.description()))
+
+        for f in kwargs['depend_files']:
+            self.add_build_def_file(f)
 
         # If any file that was used as an argument to the command
         # changes, we must re-run the configuration step.
