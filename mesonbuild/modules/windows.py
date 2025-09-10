@@ -75,14 +75,20 @@ class WindowsModule(ExtensionModule):
         rescomp = ExternalProgram.from_bin_list(state.environment, for_machine, 'windres')
 
         if not rescomp or not rescomp.found():
+            def search_programs(names: T.List[str]) -> T.Optional[ExternalProgram]:
+                for name in names:
+                    program = ExternalProgram(name, silent=True)
+                    if program.found():
+                        return program
+                return None
+
             comp = self.detect_compiler(state.environment.coredata.compilers[for_machine])
             if comp.id in {'msvc', 'clang-cl', 'intel-cl'} or (comp.linker and comp.linker.id in {'link', 'lld-link'}):
-                # Microsoft compilers uses rc irrespective of the frontend
-                rescomp = ExternalProgram('rc', silent=True)
+                rescomp = search_programs(['rc', 'llvm-rc'])
             else:
-                rescomp = ExternalProgram('windres', silent=True)
+                rescomp = search_programs(['windres', 'llvm-windres'])
 
-        if not rescomp.found():
+        if not rescomp:
             raise MesonException('Could not find Windows resource compiler')
 
         for (arg, match, rc_type) in [
