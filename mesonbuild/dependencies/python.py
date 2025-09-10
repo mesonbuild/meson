@@ -192,6 +192,7 @@ class BasicPythonExternalProgram(ExternalProgram):
             'version': '0.0',
         }
         self.pure: bool = True
+        self.limited_api: T.Optional[str] = None
 
     @property
     def version(self) -> str:
@@ -295,6 +296,8 @@ class _PythonDependencyBase(_Base):
         # Py_GIL_DISABLED correctly. So do it here:
         if mesonlib.is_windows() and self.is_freethreaded:
             self.compile_args += ['-DPy_GIL_DISABLED']
+
+        self.limited_api: str = ''
 
     def find_libpy(self, environment: 'Environment') -> None:
         if self.build_config:
