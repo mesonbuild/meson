@@ -3799,9 +3799,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         gcda_elem.add_item('description', 'Deleting gcda files')
         self.add_build(gcda_elem)
 
-    def get_user_option_args(self, shut_up_pylint: bool = True) -> T.List[str]:
-        if shut_up_pylint:
-            return []
+    def get_user_option_args(self) -> T.List[str]:
         cmds = []
         for k, v in self.environment.coredata.optstore.items():
             if self.environment.coredata.optstore.is_project_option(k):
