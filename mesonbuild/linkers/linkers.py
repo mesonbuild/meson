@@ -8,6 +8,7 @@ import abc
 import os
 import typing as T
 import re
+import itertools
 
 from .base import ArLikeLinker, RSPFileSyntax
 from .. import mesonlib
@@ -1788,3 +1789,36 @@ class TaskingLinker(DynamicLinker):
         for a in args:
             l.extend(self._apply_prefix('-Wl--whole-archive=' + a))
         return l
+
+class DiabLinker(DynamicLinker):
+    """Linker for DiabCppCompiler
+
+    When used by DiabCppCompiler, prefix should be `-W:ld:,`, and empty if instantiated
+    independently controlling the Diab ld program _dld_ directly.
+    """
+    id = 'diab'
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ["-o", outputname]
+
+    def get_search_args(self, dirname: str) -> T.List[str]:
+        return ["-L", dirname]
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
+        return list(itertools.chain(*([self._apply_prefix("-A")[0], arg] for arg in args)))
+
+class DiabArchiver(StaticLinker):
+    """Archiver for DiabCppCompiler"""
+    id = 'diab'
+
+    def can_linker_accept_rsp(self) -> bool:
+        return False
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return [target]
+
+    def get_std_link_args(self, env: 'Environment', is_thin: bool) -> T.List[str]:
+        return ["-rc"]
