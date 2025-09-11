@@ -587,6 +587,94 @@ def shaderc_factory(env: 'Environment',
 packages['shaderc'] = shaderc_factory
 
 
+class CppFilesystemDependency(SystemDependency):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+        super().__init__(name, environment, kwargs)
+        self.is_found = False
+        can_run_host_binaries = not (
+            environment.is_cross_build() and
+            environment.need_exe_wrapper() and
+            environment.exe_wrapper is None
+        )
+        std_args = self.clib_compiler.get_option_std_args(None, environment)
+        # gcc 8 requires stdc++fs
+        # clang 7-8 requires c++fs
+        lib_candidates: T.List[str] = ['stdc++fs', 'c++fs']
+        if self.clib_compiler.has_header('filesystem', '', environment, extra_args=std_args)[0]:
+            if can_run_host_binaries:
+                # For instance when both gcc 8 and 9 are installed, gcc 9 does not need stdc++fs,
+                # while gcc 8 without stdc++fs causes segfault.
+                # So we need to actually run the test.
+                # We cannot rely on compiler versions, because clang can use libstdc++.
+                source = '''
+                #include <filesystem>
+                int main() {
+                    // return 0 if it does not crash
+                    return std::filesystem::exists("foo") * 0;
+                }'''
+                result = self.clib_compiler.run(source, environment, extra_args=std_args)
+                if result.returncode == 0:
+                    self.is_found = True
+                    return
+                for lib_candidate in lib_candidates:
+                    link_args = self.clib_compiler.find_library(lib_candidate, environment, [])
+                    if not link_args:
+                        continue
+                    result = self.clib_compiler.run(source, environment, extra_args=std_args + link_args)
+                    if result.returncode == 0:
+                        self.is_found = True
+                        self.link_args = link_args
+                        return
+            else:
+                # We can't run host binaries, so just assume we need the library candidates if found.
+                self.is_found = True
+                for lib_candidate in lib_candidates:
+                    link_args = self.clib_compiler.find_library(lib_candidate, environment, [])
+                    if link_args:
+                        self.link_args.extend(link_args)
+
+
+class CppExperimentalFilesystemDependency(SystemDependency):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
+        super().__init__(name, environment, kwargs)
+        self.is_found = False
+        can_run_host_binaries = not (
+            environment.is_cross_build() and
+            environment.need_exe_wrapper() and
+            environment.exe_wrapper is None
+        )
+        std_args = self.clib_compiler.get_option_std_args(None, environment)
+        # gcc 6-7 requires stdc++fs
+        # clang 5-6 requires c++experimental
+        lib_candidates: T.List[str] = ['stdc++fs', 'c++experimental']
+        if self.clib_compiler.has_header('experimental/filesystem', '', environment, extra_args=std_args)[0]:
+            if can_run_host_binaries:
+                source = '''
+                #include <experimental/filesystem>
+                int main() {
+                    return std::experimental::filesystem::exists("foo") * 0;
+                }'''
+                result = self.clib_compiler.run(source, environment, extra_args=std_args)
+                if result.returncode == 0:
+                    self.is_found = True
+                    return
+                for lib_candidate in lib_candidates:
+                    link_args = self.clib_compiler.find_library(lib_candidate, environment, [])
+                    if not link_args:
+                        continue
+                    result = self.clib_compiler.run(source, environment, extra_args=std_args + link_args)
+                    if result.returncode == 0:
+                        self.is_found = True
+                        self.link_args = link_args
+                        return
+            else:
+                self.is_found = True
+                for lib_candidate in lib_candidates:
+                    link_args = self.clib_compiler.find_library(lib_candidate, environment, [])
+                    if link_args:
+                        self.link_args.extend(link_args)
+
+
 packages['atomic'] = atomic_factory = DependencyFactory(
     'atomic',
     [DependencyMethods.SYSTEM, DependencyMethods.BUILTIN],
@@ -676,3 +764,15 @@ packages['libssl'] = libssl_factory = DependencyFactory(
 )
 
 packages['objfw'] = ObjFWDependency
+
+packages['cpp-filesystem'] = cpp_filesystem_factory = DependencyFactory(
+    'cpp-filesystem',
+    [DependencyMethods.SYSTEM],
+    system_class=CppFilesystemDependency,
+)
+
+packages['cpp-experimental-filesystem'] = cpp_experimental_filesystem_factory = DependencyFactory(
+    'cpp-experimental-filesystem',
+    [DependencyMethods.SYSTEM],
+    system_class=CppExperimentalFilesystemDependency,
+)
