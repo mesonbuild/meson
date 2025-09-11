@@ -1,4 +1,4 @@
-project('demo', 'c', 'vala')
+project('demo', 'c', 'vala', default_options: ['b_legal_code=false'])
 
 gnome = import('gnome', required: false)
 
