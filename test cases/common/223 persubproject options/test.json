@@ -1,3 +1,7 @@
 {
-  "skip_on_env": ["MESON_TEST_DDEFAULT_LIBRARY"]
+    "matrix": {
+        "options": {
+            "default_library": [ { "val": "both" } ]
+        }
+    }
 }
