@@ -39,6 +39,11 @@ def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     return f'{basename}-{api}{suffix}'
 
 
+def _fixup_meson_target_name(package_name: str, machine: MachineChoice) -> str:
+    suffix = '+build' if machine == MachineChoice.BUILD else ''
+    return fixup_meson_varname(package_name) + suffix
+
+
 def _dependency_varname(package_name: str, machine: MachineChoice) -> str:
     suffix = '_native' if machine == MachineChoice.BUILD else ''
     return f'{fixup_meson_varname(package_name)}_dep{suffix}'
@@ -635,7 +640,7 @@ class Interpreter:
             dependencies.append(build.identifier(_dependency_varname(dep.package, machine)))
             dep_lib_name = dep_pkg.manifest.lib.name
             dep_crate_name = name if name != dep.package else dep_lib_name
-            dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(dep_crate_name)
+            dependency_map[build.string(_fixup_meson_target_name(dep_lib_name, machine))] = build.string(dep_crate_name)
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
@@ -649,7 +654,7 @@ class Interpreter:
         dependencies.append(build.identifier(_extra_deps_varname()))
 
         posargs: T.List[mparser.BaseNode] = [
-            build.string(fixup_meson_varname(pkg.manifest.lib.name)),
+            build.string(_fixup_meson_target_name(pkg.manifest.lib.name, machine)),
             build.string(pkg.manifest.lib.path),
         ]
 
