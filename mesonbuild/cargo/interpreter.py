@@ -698,10 +698,10 @@ class Interpreter:
         for name in cfg.required_deps:
             dep = pkg.manifest.dependencies[name]
             dependencies.append(build.identifier(_dependency_varname(dep)))
-            if name != dep.package:
-                dep_pkg = self._dep_package(pkg, dep)
-                dep_lib_name = _library_name(dep_pkg.manifest.lib.name, dep_pkg.manifest.package.api)
-                dependency_map[build.string(dep_lib_name)] = build.string(name)
+            dep_pkg = self._dep_package(pkg, dep)
+            dep_lib_name = _library_name(dep_pkg.manifest.lib.name, dep_pkg.manifest.package.api)
+            dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
+            dependency_map[build.string(dep_lib_name)] = build.string(dep_crate_name)
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
