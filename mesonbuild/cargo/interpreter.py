@@ -58,6 +58,7 @@ def _extra_deps_varname() -> str:
 @dataclasses.dataclass
 class PackageConfiguration:
     """Configuration for a package during dependency resolution."""
+    for_machine: MachineChoice
     features: T.Set[str] = dataclasses.field(default_factory=set)
     required_deps: T.Set[str] = dataclasses.field(default_factory=set)
     optional_deps_features: T.Dict[str, T.Set[str]] = dataclasses.field(default_factory=lambda: collections.defaultdict(set))
@@ -78,7 +79,7 @@ class PackageConfiguration:
             dep = manifest.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
-            dep_lib_name = dep_pkg.library_name()
+            dep_lib_name = dep_pkg.library_name(self.for_machine)
             dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
             dependency_map[dep_lib_name] = dep_crate_name
         return dependency_map
@@ -106,14 +107,15 @@ class PackageState:
             return None
         return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
 
-    def library_name(self, lib_type: RUST_ABI = 'rust') -> str:
+    def library_name(self, machine: MachineChoice = MachineChoice.HOST, lib_type: RUST_ABI = 'rust') -> str:
         # Add the API version to the library name to avoid conflicts when multiple
         # versions of the same crate are used. The Ninja backend removed everything
         # after the + to form the crate name.
         name = fixup_meson_varname(self.manifest.package.name)
+        suffix = '+build' if machine == MachineChoice.BUILD else ''
         if lib_type == 'c':
             return name
-        return f'{name}+{self.manifest.package.api.replace(".", "_")}'
+        return f'{name}+{self.manifest.package.api.replace(".", "_")}{suffix}'
 
     def has_both_machines(self) -> bool:
         return bool(self.cfg[MachineChoice.HOST] and self.cfg[MachineChoice.BUILD])
@@ -568,7 +570,7 @@ class Interpreter:
         if pkg.cfg[machine] is not None:
             return  # Already prepared for this machine
 
-        pkg.cfg[machine] = PackageConfiguration()
+        pkg.cfg[machine] = PackageConfiguration(for_machine=machine)
         # Merge target-specific dependencies that are enabled for this machine
         target_cfgs = self._get_cfgs(machine)
         for condition, dependencies in pkg.manifest.target.items():
@@ -778,8 +780,9 @@ class Interpreter:
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
                     lib_type: RUST_ABI) -> T.List[mparser.BaseNode]:
+        machine = MachineChoice.BUILD if lib_type == 'proc-macro' else MachineChoice.HOST
         posargs: T.List[mparser.BaseNode] = [
-            build.string(pkg.library_name(lib_type)),
+            build.string(pkg.library_name(machine, lib_type)),
         ]
 
         kwargs: T.Dict[str, mparser.BaseNode] = {
