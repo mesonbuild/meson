@@ -387,6 +387,8 @@ class RustPackage(RustCrate):
         if not self.package.manifest.lib:
             raise MesonException("no [lib] section in Cargo package")
 
+        self.merge_kw_args(state, kwargs)
+
         sources: T.Union[StructuredSources, str]
         tgt_name, sources = tgt_args
         if not tgt_name:
@@ -395,14 +397,12 @@ class RustPackage(RustCrate):
                 rust_abi = 'rust' if kwargs['rust_crate_type'] in {'lib', 'rlib', 'dylib', 'proc-macro'} else 'c'
             else:
                 rust_abi = kwargs['rust_abi']
-            tgt_name = self.package.library_name(rust_abi)
+            tgt_name = self.package.library_name(kwargs['native'], rust_abi)
         if not sources:
             sources = os.path.relpath(os.path.join(self.package.path, self.package.manifest.lib.path),
                                       state.subdir)
 
         lib_args: T.Tuple[str, SourcesVarargsType] = (tgt_name, [sources])
-        self.merge_kw_args(state, kwargs)
-
         if shared_mod:
             return state._interpreter.build_target(state.current_node, lib_args,
                                                    T.cast('_kwargs.SharedModule', kwargs),
