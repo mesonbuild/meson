@@ -2051,9 +2051,14 @@ class NinjaBackend(backends.Backend):
                 modifiers.append('+verbatim')
             else:
                 # undo the effects of -l without verbatim
+                badname = not is_library(libname)
                 libname, ext = os.path.splitext(libname)
                 if libname.startswith('lib'):
                     libname = libname[3:]
+                else:
+                    badname = True
+                if badname:
+                    raise MesonException(f"rustc does not implement '-l{type_}:+verbatim'; cannot link to '{orig_libname}' due to nonstandard name")
 
             if modifiers:
                 type_ += ':' + ','.join(modifiers)
