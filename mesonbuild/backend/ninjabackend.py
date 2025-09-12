@@ -2041,6 +2041,7 @@ class NinjaBackend(backends.Backend):
         has_verbatim = mesonlib.version_compare(rustc.version, '>= 1.67.0')
 
         def _link_library(libname: str, static: bool, bundle: bool = False) -> None:
+            orig_libname = libname
             type_ = 'static' if static else 'dylib'
             modifiers = []
             # Except with -Clink-arg, search is limited to the -L search paths
@@ -2052,9 +2053,14 @@ class NinjaBackend(backends.Backend):
                 modifiers.append('+verbatim')
             else:
                 # undo the effects of -l without verbatim
+                badname = not is_library(libname)
                 libname, ext = os.path.splitext(libname)
                 if libname.startswith('lib'):
                     libname = libname[3:]
+                else:
+                    badname = True
+                if badname:
+                    raise MesonException(f"rustc does not implement '-l{type_}:+verbatim'; cannot link to '{orig_libname}' due to nonstandard name")
 
             if modifiers:
                 type_ += ':' + ','.join(modifiers)
