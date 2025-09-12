@@ -614,11 +614,11 @@ class Interpreter:
         dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {}
         for name in cfg.required_deps:
             dep = pkg.manifest.dependencies[name]
+            dep_pkg = self._dep_package(pkg, dep)
             dependencies.append(build.identifier(_dependency_varname(dep.package)))
-            if name != dep.package:
-                dep_pkg = self._dep_package(pkg, dep)
-                dep_lib_name = dep_pkg.manifest.lib.name
-                dependency_map[build.string(fixup_meson_varname(dep_lib_name))] = build.string(name)
+            dep_lib_name = dep_pkg.manifest.lib.name
+            dep_crate_name = name if name != dep.package else dep_lib_name
+            dependency_map[build.string(_fixup_meson_varname(dep_lib_name))] = build.string(dep_crate_name)
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
                 dependencies.append(build.identifier(f'{fixup_meson_varname(name)}_system_dep'))
