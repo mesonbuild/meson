@@ -50,13 +50,14 @@ def _dependency_varname(dep: Dependency, machine: MachineChoice) -> str:
     return f'{fixup_meson_varname(dep.package)}_{(dep.api.replace(".", "_"))}_dep{suffix}'
 
 
-def _library_name(name: str, api: str, lib_type: Literal['rust', 'c', 'proc-macro'] = 'rust') -> str:
+def _library_name(name: str, api: str, machine: MachineChoice, lib_type: Literal['rust', 'c', 'proc-macro'] = 'rust') -> str:
     # Add the API version to the library name to avoid conflicts when multiple
     # versions of the same crate are used. The Ninja backend removed everything
     # after the + to form the crate name.
+    suffix = '+build' if machine == MachineChoice.BUILD else ''
     if lib_type == 'c':
-        return name
-    return f'{name}+{api.replace(".", "_")}'
+        return name + suffix
+    return f'{name}+{api.replace(".", "_")}{suffix}'
 
 
 def _extra_args_varname() -> str:
@@ -83,14 +84,14 @@ class PackageConfiguration:
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
 
-    def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
+    def get_dependency_map(self, manifest: Manifest, machine: MachineChoice) -> T.Dict[str, str]:
         """Get the rust dependency mapping for this package configuration."""
         dependency_map: T.Dict[str, str] = {}
         for name in self.required_deps:
             dep = manifest.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
-            dep_lib_name = _library_name(dep_pkg.manifest.lib.name, dep_pkg.manifest.package.api)
+            dep_lib_name = _library_name(dep_pkg.manifest.lib.name, dep_pkg.manifest.package.api, machine)
             dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
             dependency_map[dep_lib_name] = dep_crate_name
         return dependency_map
@@ -750,7 +751,7 @@ class Interpreter:
             dependencies.append(build.identifier(_dependency_varname(dep, machine)))
 
         dependency_map: T.Dict[mparser.BaseNode, mparser.BaseNode] = {
-            build.string(k): build.string(v) for k, v in cfg.get_dependency_map(pkg.manifest).items()}
+            build.string(k): build.string(v) for k, v in cfg.get_dependency_map(pkg.manifest, machine).items()}
 
         for name, sys_dep in pkg.manifest.system_dependencies.items():
             if sys_dep.enabled(cfg.features):
@@ -770,7 +771,7 @@ class Interpreter:
         }
 
         posargs: T.List[mparser.BaseNode] = [
-            build.string(_library_name(pkg.manifest.lib.name, pkg.manifest.package.api, lib_type)),
+            build.string(_library_name(pkg.manifest.lib.name, pkg.manifest.package.api, machine, lib_type)),
             build.string(pkg.manifest.lib.path),
         ]
 
