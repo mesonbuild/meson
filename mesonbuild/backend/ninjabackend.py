@@ -2036,8 +2036,6 @@ class NinjaBackend(backends.Backend):
             except (KeyError, AttributeError):
                 pass
 
-        has_verbatim = mesonlib.version_compare(rustc.version, '>= 1.67.0')
-
         def _link_library(libname: str, static: bool, bundle: bool = False):
             orig_libname = libname
             type_ = 'static' if static else 'dylib'
@@ -2047,7 +2045,7 @@ class NinjaBackend(backends.Backend):
             linkdirs.add(dir_)
             if not bundle and static:
                 modifiers.append('-bundle')
-            if has_verbatim:
+            if rustc.has_verbatim():
                 modifiers.append('+verbatim')
             else:
                 # undo the effects of -l without verbatim
