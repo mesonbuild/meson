@@ -1946,6 +1946,8 @@ class NinjaBackend(backends.Backend):
         # Rustc replaces - with _. spaces or dots are not allowed, so we replace them with underscores
         # Also +SUFFIX is dropped, which can be used to distinguish host from build crates
         crate_name = target_name.replace('-', '_').replace(' ', '_').replace('.', '_')
+        if '+' in crate_name:
+            crate_name = re.sub(r'\+.*$', '', crate_name)
         return crate_name
 
     @staticmethod
