@@ -1950,8 +1950,9 @@ class NinjaBackend(backends.Backend):
     @staticmethod
     def _get_rust_crate_name(target_name: str) -> str:
         # Rustc replaces - with _. spaces or dots are not allowed, so we replace them with underscores
+        # Also +SUFFIX is dropped, which can be used to distinguish host from build crates
         crate_name = target_name.replace('-', '_').replace(' ', '_').replace('.', '_')
-        return crate_name
+        return crate_name.split('+', 1)[0]
 
     @staticmethod
     def _get_rust_dependency_name(target: build.BuildTarget, dependency: LibTypes) -> str:

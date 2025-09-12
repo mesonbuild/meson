@@ -98,3 +98,11 @@ target is a proc macro or dylib, or it depends on a dylib, in which case [`-C
 prefer-dynamic`](https://doc.rust-lang.org/rustc/codegen-options/index.html#prefer-dynamic)
 will be passed to the Rust compiler, and the standard libraries will be
 dynamically linked.
+
+## Multiple targets for the same crate name
+
+For library targets that have `rust_abi: 'rust'`, the crate name is derived from the
+target name.  First, dashes, spaces and dots are replaced with underscores.  Second,
+*since 1.10.0* anything after the first `+` is dropped.  This allows creating multiple
+targets for the same crate name, for example when the same crate is built multiple
+times with different features, or for both the build and the host machine.
