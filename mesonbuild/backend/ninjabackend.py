@@ -25,7 +25,7 @@ from .. import build
 from .. import mlog
 from .. import compilers
 from ..arglist import CompilerArgs
-from ..compilers import Compiler
+from ..compilers import Compiler, is_library
 from ..linkers import ArLikeLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
@@ -2036,18 +2036,28 @@ class NinjaBackend(backends.Backend):
             except (KeyError, AttributeError):
                 pass
 
-        if mesonlib.version_compare(rustc.version, '>= 1.67.0'):
-            verbatim = '+verbatim'
-        else:
-            verbatim = ''
-
         def _link_library(libname: str, static: bool, bundle: bool = False):
+            orig_libname = libname
             type_ = 'static' if static else 'dylib'
             modifiers = []
+            # Except with -Clink-arg, search is limited to the -L search paths
+            dir_, libname = os.path.split(libname)
+            linkdirs.add(dir_)
             if not bundle and static:
                 modifiers.append('-bundle')
-            if verbatim:
-                modifiers.append(verbatim)
+            if rustc.has_verbatim():
+                modifiers.append('+verbatim')
+            else:
+                # undo the effects of -l without verbatim
+                badname = not is_library(libname)
+                libname, ext = os.path.splitext(libname)
+                if libname.startswith('lib'):
+                    libname = libname[3:]
+                else:
+                    badname = True
+                if badname:
+                    raise MesonException(f"rustc does not implement '-l{type_}:+verbatim'; cannot link to '{orig_libname}' due to nonstandard name")
+
             if modifiers:
                 type_ += ':' + ','.join(modifiers)
             args.append(f'-l{type_}={libname}')
@@ -2060,11 +2070,11 @@ class NinjaBackend(backends.Backend):
         external_deps = target.external_deps.copy()
         target_deps = target.get_dependencies()
         for d in target_deps:
-            linkdirs.add(d.subdir)
             deps.append(self.get_dependency_filename(d))
             if isinstance(d, build.StaticLibrary):
                 external_deps.extend(d.external_deps)
             if d.uses_rust_abi():
+                linkdirs.add(d.subdir)
                 if d not in itertools.chain(target.link_targets, target.link_whole_targets):
                     # Indirect Rust ABI dependency, we only need its path in linkdirs.
                     continue
@@ -2092,8 +2102,7 @@ class NinjaBackend(backends.Backend):
             link_whole = d in target.link_whole_targets
             if isinstance(target, build.StaticLibrary) or (isinstance(target, build.Executable) and rustc.get_crt_static()):
                 static = isinstance(d, build.StaticLibrary)
-                libname = os.path.basename(lib) if verbatim else d.name
-                _link_library(libname, static, bundle=link_whole)
+                _link_library(lib, static, bundle=link_whole)
             elif link_whole:
                 link_whole_args = rustc.linker.get_link_whole_for([lib])
                 args += [f'-Clink-arg={a}' for a in link_whole_args]
@@ -2108,18 +2117,14 @@ class NinjaBackend(backends.Backend):
                 elif a.startswith('-L'):
                     args.append(a)
                     continue
-                elif a.endswith(('.dll', '.so', '.dylib', '.a', '.lib')):
-                    dir_, lib = os.path.split(a)
-                    linkdirs.add(dir_)
-
+                elif is_library(a):
                     if isinstance(target, build.StaticLibrary):
-                        if not verbatim:
-                            lib, ext = os.path.splitext(lib)
-                            if lib.startswith('lib'):
-                                lib = lib[3:]
                         static = a.endswith(('.a', '.lib'))
-                        _link_library(lib, static)
+                        _link_library(a, static)
                         continue
+
+                    dir_, _ = os.path.split(lib)
+                    linkdirs.add(dir_)
 
                 args.append(f'-Clink-arg={a}')
 
