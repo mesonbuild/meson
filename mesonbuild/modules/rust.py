@@ -368,7 +368,7 @@ class RustPackage(RustCrate):
                 rust_abi = 'rust' if kwargs['rust_crate_type'] in {'lib', 'rlib', 'dylib', 'proc-macro'} else 'c'
             else:
                 rust_abi = kwargs['rust_abi']
-            tgt_name = self.package.library_name(rust_abi)
+            tgt_name = self.package.library_name(kwargs['native'], rust_abi)
         if not sources:
             sources = self.package.manifest.lib.path
 

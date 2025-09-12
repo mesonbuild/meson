@@ -46,6 +46,11 @@ def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
     return f'{basename}-{api}{suffix}'
 
 
+def _dependency_varname(dep: Dependency, machine: MachineChoice) -> str:
+    suffix = '_native' if machine == MachineChoice.BUILD else ''
+    return f'{fixup_meson_varname(dep.package)}_{(dep.api.replace(".", "_"))}_dep{suffix}'
+
+
 def _extra_args_varname() -> str:
     return 'extra_args'
 
@@ -70,14 +75,14 @@ class PackageConfiguration:
             args.extend(['--cfg', f'feature="{feature}"'])
         return args
 
-    def get_dependency_map(self, manifest: Manifest) -> T.Dict[str, str]:
+    def get_dependency_map(self, manifest: Manifest, machine: MachineChoice) -> T.Dict[str, str]:
         """Get the rust dependency mapping for this package configuration."""
         dependency_map: T.Dict[str, str] = {}
         for name in sorted(self.required_deps):
             dep = manifest.dependencies[name]
             dep_key = PackageKey(dep.package, dep.api)
             dep_pkg = self.dep_packages[dep_key]
-            dep_lib_name = dep_pkg.library_name()
+            dep_lib_name = dep_pkg.library_name(machine)
             dep_crate_name = name if name != dep.package else dep_pkg.manifest.lib.name
             dependency_map[dep_lib_name] = dep_crate_name
         return dependency_map
@@ -105,14 +110,15 @@ class PackageState:
             return None
         return os.path.normpath(os.path.join(self.ws_subdir, self.ws_member))
 
-    def library_name(self, lib_type: RUST_ABI = 'rust') -> str:
+    def library_name(self, machine: MachineChoice = MachineChoice.HOST, lib_type: RUST_ABI = 'rust') -> str:
         # Add the API version to the library name to avoid conflicts when multiple
         # versions of the same crate are used. The Ninja backend removed everything
         # after the + to form the crate name.
         name = fixup_meson_varname(self.manifest.package.name)
+        suffix = '+build' if machine == MachineChoice.BUILD else ''
         if lib_type == 'c':
             return name
-        return f'{name}+{self.manifest.package.api.replace(".", "_")}'
+        return f'{name}+{self.manifest.package.api.replace(".", "_")}{suffix}'
 
     def get_env_dict(self, environment: Environment, subdir: str) -> T.Dict[str, str]:
         """Get environment variables for this package."""
@@ -746,8 +752,9 @@ class Interpreter:
 
     def _create_lib(self, pkg: PackageState, build: builder.Builder, subdir: str,
                     lib_type: RUST_ABI) -> T.List[mparser.BaseNode]:
+        machine = MachineChoice.BUILD if lib_type == 'proc-macro' else MachineChoice.HOST
         posargs: T.List[mparser.BaseNode] = [
-            build.string(pkg.library_name(lib_type)),
+            build.string(pkg.library_name(machine, lib_type)),
         ]
 
         kwargs: T.Dict[str, mparser.BaseNode] = {
