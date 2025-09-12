@@ -17,6 +17,11 @@ fallback : '1.0.0')
 version_src_fallback = vcs_tag(input : 'vcstag.c.in',
 output : 'vcstag-fallback.c')
 
+version_src_prefix_suffix = vcs_tag(input : 'vcstag.c.in',
+output : 'vcstag-prefix-suffix.c',
+prefix : 'prefix string -> ',
+suffix : ' <- suffix string')
+
 git = find_program('git')
 
 version_src_git_program = vcs_tag(input : 'vcstag.c.in',
@@ -38,6 +43,7 @@ install_dir: get_option('includedir'))
 
 executable('tagprog-custom', 'tagprog.c', version_src_custom)
 executable('tagprog-fallback', 'tagprog.c', version_src_fallback)
+executable('tagprog-prefix-suffix', 'tagprog.c', version_src_prefix_suffix)
 executable('tagprog-notfound-fallback', 'tagprog.c', version_src_notfound_fallback)
 executable('tagprog-git-program', 'tagprog.c', version_src_git_program)
 executable('tagprog-executable', 'tagprog.c', version_src_executable)
