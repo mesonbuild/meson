@@ -872,3 +872,15 @@ PKGCONFIG_DEFINE_KW: KwargInfo = KwargInfo(
 DEPENDENCY_KWS: T.List[KwargInfo] = [
     DEFAULT_OPTIONS.evolve(since='0.38.0'),
 ]
+
+PREFIX_KW: KwargInfo[str] = KwargInfo(
+    'prefix',
+    str,
+    default='',
+)
+
+SUFFIX_KW: KwargInfo[str] = KwargInfo(
+    'suffix',
+    str,
+    default='',
+)

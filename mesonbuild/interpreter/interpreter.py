@@ -83,9 +83,11 @@ from .type_checking import (
     LANGUAGE_KW,
     NATIVE_KW,
     PRESERVE_PATH_KW,
+    PREFIX_KW,
     REQUIRED_KW,
     SHARED_LIB_KWS,
     SHARED_MOD_KWS,
+    SUFFIX_KW,
     DEPENDENCY_SOURCES_KW,
     SOURCES_VARARGS,
     STATIC_LIB_KWS,
@@ -1953,11 +1955,15 @@ class Interpreter(InterpreterBase, HoldableObject):
         INSTALL_DIR_KW.evolve(since='1.7.0'),
         INSTALL_TAG_KW.evolve(since='1.7.0'),
         INSTALL_MODE_KW.evolve(since='1.7.0'),
+        PREFIX_KW.evolve(since='1.10.0'),
+        SUFFIX_KW.evolve(since='1.10.0'),
     )
     def func_vcs_tag(self, node: mparser.BaseNode, args: T.List['TYPE_var'], kwargs: 'kwtypes.VcsTag') -> build.CustomTarget:
         if kwargs['fallback'] is None:
             FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject, location=node)
         fallback = kwargs['fallback'] or self.project_version
+        prefix = kwargs.get('prefix', '')
+        suffix = kwargs.get('suffix', '')
         replace_string = kwargs['replace_string']
         regex_selector = '(.*)' # default regex selector for custom command: use complete output
         vcs_cmd = kwargs['command']
@@ -1988,6 +1994,8 @@ class Interpreter(InterpreterBase, HoldableObject):
              'vcstagger',
              '@INPUT0@',
              '@OUTPUT0@',
+             prefix,
+             suffix,
              fallback,
              source_dir,
              replace_string,
