@@ -25,7 +25,7 @@ from .. import build
 from .. import mlog
 from .. import compilers
 from ..arglist import CompilerArgs
-from ..compilers import Compiler
+from ..compilers import Compiler, is_library
 from ..linkers import ArLikeLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonBugException, MesonException, OrderedSet, PerMachine,
@@ -2110,7 +2110,7 @@ class NinjaBackend(backends.Backend):
                 elif a.startswith('-L'):
                     args.append(a)
                     continue
-                elif a.endswith(('.dll', '.so', '.dylib', '.a', '.lib')):
+                elif is_library(a):
                     dir_, lib = os.path.split(a)
                     linkdirs.add(dir_)
 
