@@ -3751,7 +3751,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):
-            return self.get_target_shsym_filename(t)
+            if t.uses_rust() and t.rust_crate_type == 'proc-macro':
+                return self.get_target_filename(t)
+            else:
+                return self.get_target_shsym_filename(t)
         elif isinstance(t, mesonlib.File):
             if t.is_built:
                 return t.relative_name()
