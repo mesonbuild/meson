@@ -33,3 +33,8 @@ lib12_rlib = static_library('lib12', 'lib1-dylib.rs',
 
 rust = import('rust')
 rust.doctest('rlib with dep', lib12_rlib)
+
+lib12_rlib_nodep = static_library('lib12_nodep', 'lib1-dylib.rs')
+rust.doctest('rlib with dep in tests', lib12_rlib_nodep,
+  rust_args: ['--cfg', 'nodep'],
+  dependencies: dep2)
