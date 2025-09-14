@@ -84,6 +84,7 @@ machine](#specifying-options-per-machine) section for details.
 | errorlogs                              | true          | Whether to print the logs from failing tests.                  | no             | no                |
 | install_umask {preserve, 0000-0777}    | 022           | Default umask to apply on permissions of installed files       | no             | no                |
 | layout {mirror,flat}                   | mirror        | Build directory layout                                         | no             | no                |
+| namingscheme {platform, classic} | classic | Library naming scheme to use                                  | no             | 1.10.0             |
 | optimization {plain, 0, g, 1, 2, 3, s} | 0             | Optimization level                                             | no             | 1.8.0             |
 | pkg_config_path {OS separated path}    | ''            | Additional paths for pkg-config to search before builtin paths | yes            | no                |
 | prefer_static                          | false         | Whether to try static linking before shared linking            | no             | no                |
