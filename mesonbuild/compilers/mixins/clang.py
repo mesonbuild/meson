@@ -54,6 +54,23 @@ class ClangCompiler(GnuLikeCompiler):
 
     id = 'clang'
 
+    # -fms-runtime-lib is not supported together with -c, emulate it
+    CRT_D_ARGS: T.Dict[str, T.List[str]] = {
+        'none': [],
+        'md': ['-D_MT', '-D_DLL'],
+        'mdd': ['-D_MT', '-D_DLL', '-D_DEBUG'],
+        'mt': ['-D_MT'],
+        'mtd': ['-D_MT', '-D_DEBUG'],
+    }
+
+    CRT_ARGS: T.Dict[str, T.List[str]] = {
+        'none': [],
+        'md': ['-fms-runtime-lib=dll'],
+        'mdd': ['-fms-runtime-lib=dll_dbg'],
+        'mt': ['-fms-runtime-lib=static'],
+        'mtd': ['-fms-runtime-lib=static_dbg'],
+    }
+
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.defines = defines or {}
@@ -65,10 +82,18 @@ class ClangCompiler(GnuLikeCompiler):
         # linkers don't have base_options.
         if isinstance(self.linker, AppleDynamicLinker):
             self.base_options.add(OptionKey('b_bitcode'))
-        elif isinstance(self.linker, MSVCDynamicLinker):
+        elif isinstance(self.linker, MSVCDynamicLinker) or self.info.is_windows():
             self.base_options.add(OptionKey('b_vscrt'))
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
+
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        crt_val = self.get_crt_val(crt_val, buildtype)
+        return self.CRT_D_ARGS[crt_val]
+
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        crt_val = self.get_crt_val(crt_val, buildtype)
+        return self.CRT_ARGS[crt_val]
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         return clang_color_args[colortype][:]
