@@ -363,7 +363,9 @@ class CLikeCompiler(Compiler):
             try:
                 crt_val = env.coredata.optstore.get_value('b_vscrt')
                 buildtype = env.coredata.optstore.get_value('buildtype')
-                cargs += self.get_crt_compile_args(crt_val, buildtype) # type: ignore[arg-type]
+                assert isinstance(crt_val, str), 'for mypy'
+                assert isinstance(buildtype, str), 'for mypy'
+                cargs += self.get_crt_compile_args(crt_val, buildtype)
             except (KeyError, AttributeError):
                 pass
 
