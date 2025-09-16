@@ -29,7 +29,7 @@ from ..mesonlib import (
     File, MachineChoice, MesonException, MesonBugException, OrderedSet,
     ExecutableSerialisation, EnvironmentException,
     classify_unity_sources, get_compiler_for_source,
-    get_rsp_threshold,
+    get_rsp_threshold, unique_list
 )
 from ..options import OptionKey
 
@@ -471,11 +471,11 @@ class Backend:
     def flatten_object_list(self, target: build.BuildTarget, proj_dir_to_build_root: str = ''
                             ) -> T.Tuple[T.List[str], T.List[build.BuildTargetTypes]]:
         obj_list, deps = self._flatten_object_list(target, target.get_objects(), proj_dir_to_build_root)
-        return list(dict.fromkeys(obj_list)), deps
+        return unique_list(obj_list), deps
 
     def determine_ext_objs(self, objects: build.ExtractedObjects) -> T.List[str]:
         obj_list, _ = self._flatten_object_list(objects.target, [objects], '')
-        return list(dict.fromkeys(obj_list))
+        return unique_list(obj_list)
 
     def _flatten_object_list(self, target: build.BuildTarget,
                              objects: T.Sequence[T.Union[str, 'File', build.ExtractedObjects]],
