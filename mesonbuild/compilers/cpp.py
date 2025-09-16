@@ -10,7 +10,7 @@ import enum
 
 from .. import options
 from .. import mlog
-from ..mesonlib import MesonException, version_compare, File, FileOrString
+from ..mesonlib import MesonException, version_compare
 
 from .compilers import (
     gnu_winlibs,
@@ -40,7 +40,7 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers.linkers import DynamicLinker
-    from ..mesonlib import MachineChoice
+    from ..mesonlib import MachineChoice, File, FileOrString
     from ..build import BuildTarget
     CompilerMixinBase = CLikeCompiler
 else:
@@ -1269,10 +1269,10 @@ class DiabCppCompiler(CPPCompiler):
         """No such levels"""
         return []
 
-    def get_werror_args(self):
+    def get_werror_args(self) -> T.List[str]:
         return ["-Xstop-on-warning"]
 
-    def get_optimization_args(self, optimization_level):
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return {"plain": [],
                 "0": [],
                 "g": ["-O", "-Xno-optimized-debug"],
@@ -1297,7 +1297,10 @@ class DiabCppCompiler(CPPCompiler):
 
     def get_options(self) -> 'MutableKeyedOptionDictType':
         opts = super().get_options()
-        opts[self.form_compileropt_key('std')].set_versions(['c++98'])
+        key = self.form_compileropt_key("std")
+        std_opt = opts[key]
+        assert isinstance(std_opt, options.UserStdOption), "for mypy"
+        std_opt.set_versions(["c++98"])
         opts.update([
             self._create_string_option('args', "compile args"),
             self._create_string_option('link_args', "link args"),
@@ -1321,11 +1324,18 @@ class DiabCppCompiler(CPPCompiler):
         if self.get_compileropt_value('subprog_cmd', env, target, subproject):
             args.append('-#')
 
-        args.append('-t{0}{1}{2}:simple'.format(
-            self.get_compileropt_value('tgt_proc', env, target, subproject),
-            self.object_format[self.get_compileropt_value('tgt_fmt', env, target, subproject)],
-            self.floating_point[self.get_compileropt_value('tgt_fp', env, target, subproject)],
-        ))
+        tgt_fmt = self.get_compileropt_value("tgt_fmt", env, target, subproject)
+        assert isinstance(tgt_fmt, str)
+        tgt_fp = self.get_compileropt_value("tgt_fp", env, target, subproject)
+        assert isinstance(tgt_fp, str)
+
+        args.append(
+            "-t{0}{1}{2}:simple".format(
+                self.get_compileropt_value("tgt_proc", env, target, subproject),
+                self.object_format[tgt_fmt],
+                self.floating_point[tgt_fp],
+            )
+        )
 
         return args
 
@@ -1367,4 +1377,4 @@ class DiabCppCompiler(CPPCompiler):
         return []
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
-        return super(CPPCompiler, self).get_compiler_check_args(mode)# + ['-fpermissive']
+        return super(CPPCompiler, self).get_compiler_check_args(mode)
