@@ -1241,6 +1241,16 @@ class DiabCppCompiler(CPPCompiler):
         'ramdisk': 'cross' # Ram-disk file input/output
     }
 
+    optimization_args: T.Dict[str, T.List[str]] = {
+        "plain": [],
+        "0": [],
+        "g": ["-O", "-Xno-optimized-debug"],
+        "1": ["-O"],
+        "2": ["-O", "-Xinline=40"],
+        "3": ["XO"],
+        "s": ["-Xsize-opt"],
+    }
+
     class Prefix(enum.Enum):
         CPP = "cpp"
         CXX = "c++"
@@ -1273,14 +1283,7 @@ class DiabCppCompiler(CPPCompiler):
         return ["-Xstop-on-warning"]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
-        return {"plain": [],
-                "0": [],
-                "g": ["-O", "-Xno-optimized-debug"],
-                "1": ["-O"],
-                "2": ["-O", "-Xinline=40"],
-                "3": ["XO"],
-                "s": ["-Xsize-opt"],
-                }[optimization_level]
+        return self.optimization_args[optimization_level]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return ['-g'] if is_debug else []
