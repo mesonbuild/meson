@@ -868,7 +868,6 @@ class Interpreter(InterpreterBase, HoldableObject):
             pass
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            assert feature, 'for mypy'
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
@@ -1299,7 +1298,6 @@ class Interpreter(InterpreterBase, HoldableObject):
         native = kwargs['native']
 
         if disabled:
-            assert feature, 'for mypy'
             for lang in sorted(langs, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
@@ -1754,7 +1752,6 @@ class Interpreter(InterpreterBase, HoldableObject):
                           ) -> T.Union['build.Executable', ExternalProgram, 'OverrideProgram']:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            assert feature, 'for mypy'
             mlog.log('Program', mlog.bold(' '.join(args[0])), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args[0])
 
