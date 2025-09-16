@@ -366,6 +366,7 @@ class CLikeCompiler(Compiler):
                 assert isinstance(crt_val, str), 'for mypy'
                 assert isinstance(buildtype, str), 'for mypy'
                 cargs += self.get_crt_compile_args(crt_val, buildtype)
+                largs += self.get_crt_link_args(crt_val, buildtype)
             except (KeyError, AttributeError):
                 pass
 
