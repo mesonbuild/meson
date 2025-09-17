@@ -371,10 +371,10 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         return clike_debug_args[is_debug] + ddebug_args
 
-    def _get_crt_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def _get_crt_args(self, crt_val: str, env: Environment) -> T.List[str]:
         if not self.info.is_windows():
             return []
-        return self.mscrt_args[self.get_crt_val(crt_val, buildtype)]
+        return self.mscrt_args[self.get_crt_val(crt_val, env)]
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
@@ -552,10 +552,10 @@ class DCompiler(Compiler):
             return ['-m32']
         return []
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
         return []
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str, env: Environment) -> T.List[str]:
         return []
 
     def _get_compile_extra_args(self, extra_args: T.Union[T.List[str], T.Callable[[CompileCheckMode], T.List[str]], None] = None) -> T.List[str]:
@@ -747,8 +747,8 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
     def get_pic_args(self) -> T.List[str]:
         return ['-relocation-model=pic']
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        return self._get_crt_args(crt_val, buildtype)
+    def get_crt_link_args(self, crt_val: str, env: Environment) -> T.List[str]:
+        return self._get_crt_args(crt_val, env)
 
     def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         return self._unix_args_to_native(args, self.info, self.linker.id)
@@ -834,8 +834,8 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             return ['-m32']
         return []
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        return self._get_crt_args(crt_val, buildtype)
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
+        return self._get_crt_args(crt_val, env)
 
     def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         return self._unix_args_to_native(args, self.info, self.linker.id)

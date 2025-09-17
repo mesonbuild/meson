@@ -1331,7 +1331,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
         # CRT type; debug or release
         vscrt_type = self.get_target_option(target, 'b_vscrt')
-        vscrt_val = compiler.get_crt_val(vscrt_type, self.buildtype)
+        vscrt_val = compiler.get_crt_val(vscrt_type, self.environment)
         if vscrt_val == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'

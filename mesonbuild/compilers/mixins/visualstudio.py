@@ -353,8 +353,8 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return []
         return os.environ['INCLUDE'].split(os.pathsep)
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        crt_val = self.get_crt_val(crt_val, buildtype)
+    def get_crt_compile_args(self, crt_val: str, env: Environment) -> T.List[str]:
+        crt_val = self.get_crt_val(crt_val, env)
         return self.crt_args[crt_val]
 
     def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
