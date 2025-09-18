@@ -527,7 +527,7 @@ class PythonSystemDependency(SystemDependency, _PythonDependencyBase):
         # `link_libpython` (which *shouldn't* be set, but just in case)
         if self.platform.startswith('ios-'):
             # iOS doesn't use link_libpython - it links with the *framework*.
-            self.link_args = ['-framework', 'Python', '-F', self.variables.get('prefix')]
+            self.link_args = ['-framework', 'Python', '-F', self.variables.get('base_prefix')]
             self.is_found = True
         elif self.link_libpython:
             # link args
