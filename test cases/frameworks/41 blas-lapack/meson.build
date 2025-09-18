@@ -56,7 +56,13 @@ foreach name : ['openblas', 'accelerate', 'mkl', 'netlib']
       found_any = true
       blas_interface = deps[0].get_variable('interface')
       symbol_suffix = deps[0].get_variable('symbol_suffix')
+      found_names = []
+      foreach dep : deps
+        found_names += [dep.name()]
+      endforeach
+      message(f'Found @name@ @blas_interface@ @threading@: @found_names@; symbol suffix: @symbol_suffix@')
       assert(blas_interface == interface)
+
       blas_c_args = ['-DBLAS_SYMBOL_SUFFIX=' + symbol_suffix]
       if blas_interface == 'ilp64'
         blas_c_args += ['-DHAVE_BLAS_ILP64']
