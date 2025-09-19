@@ -517,7 +517,9 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 if version != 'unknown version':
                     break
             else:
-                raise EnvironmentException(f'Failed to detect MSVC compiler version: stderr was\n{err!r}')
+                raise EnvironmentException(
+                    f"Failed to detect MSVC compiler version: stderr was\n{err!r}"
+                )
             cl_signature = lookat.split('\n', maxsplit=1)[0]
             match = re.search(r'.*(x86|x64|ARM|ARM64)([^_A-Za-z0-9]|$)', cl_signature)
             if match:
@@ -639,9 +641,15 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 full_version=full_version, linker=linker)
 
         if 'Wind River Systems, Inc.' in out:
-            if lang == "cpp":
-                linker = linkers.DiabLinker(compiler, for_machine, '-W:ld:,', [], system='none', version=version)
-                return cpp.DiabCppCompiler(ccache, compiler, version, for_machine, is_cross, info, linker)
+            cls = c.DiabCCompiler if lang == "c" else cpp.DiabCppCompiler
+            env.add_lang_args(cls.language, cls, for_machine)
+            ld = env.lookup_binary_entry(for_machine, cls.language + '_ld')
+            if ld is None:
+                raise MesonException(f'{cls.language}_ld was not properly defined in your cross file')
+            linker = linkers.DiabLinker(
+                compiler, for_machine, "-W:ld:,", [], system="none", version=version
+            )
+            return cls(ccache, compiler, version, for_machine, is_cross, info, linker)
 
     _handle_exceptions(popen_exceptions, compilers)
     raise EnvironmentException(f'Unknown compiler {compilers}')
