@@ -1771,8 +1771,8 @@ class XCodeBackend(backends.Backend):
                         lang = 'cpp'
                     langs.add(lang)
                     langname = LANGNAMEMAP[lang]
-                    langargs.setdefault(langname, [])
-                    langargs[langname] = cargs + cti_args + args
+                    langargs.setdefault(langname, set())
+                    langargs[langname] |= set(cargs + cti_args + args)
             symroot = os.path.join(self.environment.get_build_dir(), target.subdir).rstrip('/')
             bt_dict = PbxDict()
             objects_dict.add_item(valid, bt_dict, buildtype)
