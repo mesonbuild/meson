@@ -134,7 +134,7 @@ lrelease, it takes no positional arguments, and the following keyword arguments:
  - `qresource` string: rcc source file to extract ts_files from; cannot be used
    with ts_files kwarg.
  - `rcc_extra_arguments` string[]: any additional arguments to `rcc` (optional),
-   when used with `qresource.
+   when used with `qresource`.
 
 Returns either: a list of custom targets for the compiled
 translations, or, if using a `qresource` file, a single custom target

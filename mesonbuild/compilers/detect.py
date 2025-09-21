@@ -5,8 +5,9 @@ from __future__ import annotations
 
 from ..mesonlib import (
     MesonException, EnvironmentException, MachineChoice, join_args,
-    search_version, is_windows, Popen_safe, Popen_safe_logged, windows_proof_rm,
+    search_version, is_windows, Popen_safe, Popen_safe_logged, version_compare, windows_proof_rm,
 )
+from ..programs import ExternalProgram
 from ..envconfig import BinaryTable
 from .. import mlog
 
@@ -118,7 +119,7 @@ def detect_compiler_for(env: 'Environment', lang: str, for_machine: MachineChoic
 # =======
 
 def _get_compilers(env: 'Environment', lang: str, for_machine: MachineChoice,
-                   allow_build_machine: bool = False) -> T.Tuple[T.List[T.List[str]], T.List[str]]:
+                   allow_build_machine: bool = False) -> T.Tuple[T.List[T.List[str]], T.Union[None, ExternalProgram]]:
     '''
     The list of compilers is detected in the exact same way for
     C, C++, ObjC, ObjC++, Fortran, CS so consolidate it here.
@@ -269,7 +270,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
     from . import c, cpp
     from ..linkers import linkers
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
-    compilers, ccache = _get_compilers(env, lang, for_machine)
+    compilers, ccache_exe = _get_compilers(env, lang, for_machine)
+    ccache = ccache_exe.get_command() if (ccache_exe and ccache_exe.found()) else []
     if override_compiler is not None:
         compilers = [override_compiler]
     is_cross = env.is_cross_build(for_machine)
@@ -516,9 +518,10 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
                 raise EnvironmentException(m)
             cls = c.VisualStudioCCompiler if lang == 'c' else cpp.VisualStudioCPPCompiler
             linker = guess_win_linker(env, ['link'], cls, version, for_machine)
-            # As of this writing, CCache does not support MSVC but sccache does.
-            if 'sccache' not in ccache:
-                ccache = []
+            if ccache_exe and ccache_exe.found():
+                if ccache_exe.get_name() == 'ccache' and version_compare(ccache_exe.get_version(), '< 4.6'):
+                    mlog.warning('Visual Studio support requires ccache 4.6 or higher. You have ccache {}. '.format(ccache_exe.get_version()), once=True)
+                    ccache = []
             return cls(
                 ccache, compiler, version, for_machine, is_cross, info, target,
                 full_version=cl_signature, linker=linker)
@@ -641,7 +644,8 @@ def detect_cuda_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
     from ..linkers.linkers import CudaLinker
     popen_exceptions = {}
     is_cross = env.is_cross_build(for_machine)
-    compilers, ccache = _get_compilers(env, 'cuda', for_machine)
+    compilers, ccache_exe = _get_compilers(env, 'cuda', for_machine)
+    ccache = ccache_exe.get_command() if (ccache_exe and ccache_exe.found()) else []
     info = env.machines[for_machine]
     for compiler in compilers:
         arg = '--version'
@@ -876,7 +880,8 @@ def detect_objcpp_compiler(env: 'Environment', for_machine: MachineChoice) -> 'C
 def _detect_objc_or_objcpp_compiler(env: 'Environment', lang: str, for_machine: MachineChoice) -> 'Compiler':
     from . import objc, objcpp
     popen_exceptions: T.Dict[str, T.Union[Exception, str]] = {}
-    compilers, ccache = _get_compilers(env, lang, for_machine)
+    compilers, ccache_exe = _get_compilers(env, lang, for_machine)
+    ccache = ccache_exe.get_command() if (ccache_exe and ccache_exe.found()) else []
     is_cross = env.is_cross_build(for_machine)
     info = env.machines[for_machine]
     comp: T.Union[T.Type[objc.ObjCCompiler], T.Type[objcpp.ObjCPPCompiler]]

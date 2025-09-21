@@ -289,7 +289,7 @@ def run_mtest_inprocess(commandlist: T.List[str]) -> T.Tuple[int, str]:
 def clear_meson_configure_class_caches() -> None:
     CCompiler.find_library_cache.clear()
     CCompiler.find_framework_cache.clear()
-    PkgConfigInterface.class_impl.assign(False, False)
+    PkgConfigInterface.class_impl.assign({}, {})
     mesonlib.project_meson_versions.clear()
 
 def run_configure_inprocess(commandlist: T.List[str], env: T.Optional[T.Dict[str, str]] = None, catch_exception: bool = False) -> T.Tuple[int, str, str]:

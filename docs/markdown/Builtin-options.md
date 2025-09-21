@@ -384,10 +384,10 @@ command line: `-Dfoo:default_library=static`.
 The value is overridden in this order:
 - `opt=value` from parent project's `default_options`
 - `opt=value` from subproject's `default_options`
-- `subp:opt=value` from parent project's default options
-- `opt=value` from `subproject()` `default_options`
 - `opt=value` from machine file
 - `opt=value` from command line
+- `subp:opt=value` from parent project's default options
+- `opt=value` from `subproject()` `default_options`
 - `subp:opt=value` from machine file
 - `subp:opt=value` from command line
 
@@ -400,12 +400,17 @@ Between *0.54.0* and *1.7.x* only a few options could be defined per subproject:
 
 The value was overridden in this order:
 
-- Value from parent project
-- Value from subproject's `default_options`
-- Value from `subproject()` `default_options`
-- Value from machine file
-- Value from command line
+- `opt=value` from parent project's `default_options`
+- `opt=value` from machine file
+- `opt=value` from command line
+- `opt=value` from subproject's `default_options`
+- `subp:opt=value` from parent project's default options
+- `opt=value` from `subproject()` `default_options`
+- `subp:opt=value` from machine file
+- `subp:opt=value` from command line
 
+In other word, the subproject's `default_options` had a *higher* priority
+than `opt=value` from machine file or command line.
 
 ## Module options
 

@@ -8,6 +8,7 @@ project('subproj user', 'c',
 assert(meson.project_name() == 'subproj user', 'Incorrect project name')
 
 sub = subproject('sublib', version : '1.0.0')
+assert(sub.found())
 
 if meson.project_version() != '2.3.4'
   error('Incorrect master project version string:' + meson.project_version())
@@ -29,3 +30,6 @@ unknown_var = sub.get_variable('does-not-exist', [])
 if unknown_var != []
   error ('unexpected fallback value for subproject.get_variable()')
 endif
+
+unusedsub = subproject('subunused', required: get_option('disabled_feature'))
+assert(not unusedsub.found())

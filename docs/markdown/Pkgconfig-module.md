@@ -44,7 +44,9 @@ keyword arguments.
   `${PREFIX}/include/foobar-1`, the correct value for this argument
   would be `foobar-1`
 - `requires` list of strings, pkgconfig-dependencies or libraries that
-   `pkgconfig.generate()` was used on to put in the `Requires` field
+  `pkgconfig.generate()` was used on to put in the `Requires` field.
+  *Since 1.9.0* internal dependencies are supported if `pkgconfig.generate()`
+  was used on the underlying library.
 - `requires_private` the same as `requires` but for the `Requires.private` field
 - `url` a string with a url for the library
 - `license` (*Since 1.9.0*) a string with a SPDX license to add to the generated file.

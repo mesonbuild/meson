@@ -51,6 +51,37 @@ If the project name is too generic or ambiguous (e.g. `benchmark`),
 consider using `organization-project` naming format (e.g.
 `google-benchmark`).
 
+## Overriding dependencies in the submitted project
+
+Ideally the project you submit should make a call to `meson.override_dependency`
+for each dependency you would like to expose, with the first argument
+matching the pkg-config file name. This abstracts away the
+need to know and keep track of the variable names downstream.
+
+For instance, the Apache Arrow project exposes multiple dependencies like
+its base `arrow` library, along with an `arrow-compute` library. The
+project generates `arrow.pc` and `arrow-compute.pc` files for pkg-config
+respectively, so internally the project also calls:
+
+```meson
+arrow_dep = declare_dependency(...)
+meson.override_dependency('arrow', arrow_dep)
+
+arrow_compute_dep = declare_dependency(...)
+meson.override_dependency('arrow-compute', arrow_compute_dep)
+```
+Note that `meson.override_dependency` was introduced in Meson version
+0.54.0. If your project supports older versions of Meson, you should
+add a condition to only call that function in versions where it is
+available:
+
+```meson
+if meson.version().version_compare('>=0.54.0')
+    meson.override_dependency('arrow', arrow_dep)
+    meson.override_dependency('arrow-compute', arrow_compute_dep)
+endif
+```
+
 ## How to contribute a new wrap
 
 If the project already uses Meson build system, then only a wrap file
@@ -83,22 +114,41 @@ shasum -a 256 path/to/libfoo-1.0.0.tar.gz
 
 Next you need to add the entries that define what dependencies the
 current project provides. This is important, as it is what makes
-Meson's automatic dependency resolver work. It is done by adding a
-`provide` entry at the end of the `upstream.wrap` file. Using the Ogg
-library as an example, this is what it would look like:
+Meson's automatic dependency resolver work.
+
+Assuming the project that you are creating
+a wrap file for has called `meson.override_dependency`, then you
+can declare those overridden dependencies in the `provide` section
+of the wrap file:
 
 ```ini
 [provide]
-ogg = ogg_dep
+dependency_names = arrow, arrow_compute
 ```
 
-The `ogg` part on the left refers to the dependency name, which should
-be the same as its Pkg-Config name. `ogg_dep` on the right refers to
-the variable in the build definitions that provides the dependency.
-Most commonly it holds the result of a `declare_dependency` call. If a
-variable of that name is not defined, Meson will exit with a hard
-error. For further details see [the main Wrap
-manual](Wrap-dependency-system-manual.md).
+In the case that you do not control the upstream Meson configuration
+and it does not already make a call to `meson.override_dependency`,
+then you can still expose dependency variables in the wrap file, using
+a syntax like:
+
+```ini
+[provide]
+arrow = arrow_dep
+arrow_compute = arrow_compute_dep
+```
+
+The `arrow` and `arrow_compute` parts on the left refer to the dependency
+names, which should be the same as their Pkg-Config name. `arrow_dep` and
+`arrow_compute_dep` on the right refer to the variables in the build
+definition that provide the dependencies. Most commonly, they hold the
+result of a `declare_dependency` call. If a variable of that name is
+not defined, Meson will exit with a hard error. For further details see
+[the main Wrap manual](Wrap-dependency-system-manual.md).
+
+However, it is strongly advised in such cases to request that the upstream
+repository use `meson.override_dependency` for its next release, so that
+the variable names chosen in the upstream configuration file can be
+decoupled from the wrap file contents.
 
 Now you can create the build files, if the upstream project does not
 contain any, and work on them until the project builds correctly.

@@ -7,5 +7,12 @@
     {"type": "file", "file": "usr/share/sublib/COPYING"},
     {"type": "file", "file": "usr/share/sublib/subprojects/sublib/sublicense1.txt"},
     {"type": "file", "file": "usr/share/sublib/subprojects/sublib/sublicense2.txt"}
-  ]
+  ],
+  "matrix": {
+    "options": {
+      "subunused:opt1": [
+	{ "val": "42" }
+      ]
+    }
+  }
 }

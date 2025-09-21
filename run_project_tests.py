@@ -555,8 +555,8 @@ def clear_internal_caches() -> None:
     from mesonbuild.mesonlib import PerMachine
     mesonbuild.interpreterbase.FeatureNew.feature_registry = {}
     CMakeDependency.class_cmakeinfo = PerMachine(None, None)
-    PkgConfigInterface.class_impl = PerMachine(False, False)
-    PkgConfigInterface.class_cli_impl = PerMachine(False, False)
+    PkgConfigInterface.class_impl = PerMachine({}, {})
+    PkgConfigInterface.class_cli_impl = PerMachine({}, {})
     PkgConfigInterface.pkg_bin_per_machine = PerMachine(None, None)
 
 
