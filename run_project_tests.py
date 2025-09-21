@@ -1577,11 +1577,11 @@ def detect_tools(report: bool = True) -> None:
         print('{0:<{2}}: {1}'.format(tool.tool, get_version(tool), max_width))
     print()
 
-symlink_test_dir1 = None
-symlink_test_dir2 = None
-symlink_file1 = None
-symlink_file2 = None
-symlink_file3 = None
+symlink_test_dir1: T.Optional[Path] = None
+symlink_test_dir2: T.Optional[Path] = None
+symlink_file1: T.Optional[Path] = None
+symlink_file2: T.Optional[Path] = None
+symlink_file3: T.Optional[Path] = None
 
 def scan_test_data_symlinks() -> None:
     global symlink_test_dir1, symlink_test_dir2, symlink_file1, symlink_file2, symlink_file3

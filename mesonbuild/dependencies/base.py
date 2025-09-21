@@ -631,7 +631,8 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[st
     # Set the detection method. If the method is set to auto, use any available method.
     # If method is set to a specific string, allow only that detection method.
     if method == DependencyMethods.AUTO:
-        methods = list(possible)
+        # annotated for https://github.com/python/mypy/issues/19894
+        methods: T.List[DependencyMethods] = list(possible)
     elif method in possible:
         methods = [method]
     else:

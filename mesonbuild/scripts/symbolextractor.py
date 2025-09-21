@@ -23,7 +23,7 @@ parser.add_argument('--cross-host', default=None, dest='cross_host',
                     help='cross compilation host platform')
 parser.add_argument('args', nargs='+')
 
-TOOL_WARNING_FILE = None
+TOOL_WARNING_FILE: str
 RELINKING_WARNING = 'Relinking will always happen on source changes.'
 
 def dummy_syms(outfilename: str) -> None:

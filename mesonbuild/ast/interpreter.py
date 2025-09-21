@@ -731,7 +731,8 @@ class AstInterpreter(InterpreterBase):
         else:
             args = [args_raw]
 
-        flattened_args: T.List[TYPE_var] = []
+        # BaseNode resolves to Any. :/
+        flattened_args: T.List[T.Union[TYPE_var, T.Any]] = []
 
         # Resolve the contents of args
         for i in args:

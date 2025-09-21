@@ -243,7 +243,7 @@ class CMakeSubprojectOptions(ModuleObject):
 
 class CmakeModule(ExtensionModule):
     cmake_detected = False
-    cmake_root = None
+    cmake_root: str
 
     INFO = ModuleInfo('cmake', '0.50.0')
 
