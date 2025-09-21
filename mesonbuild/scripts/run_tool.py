@@ -98,7 +98,7 @@ def parse_pattern_file(fname: Path) -> T.List[str]:
 
 def all_clike_files(name: str, srcdir: Path, builddir: Path) -> T.Iterable[Path]:
     patterns = parse_pattern_file(srcdir / f'.{name}-include')
-    globs: T.Union[T.List[T.List[Path]], T.List[T.Generator[Path, None, None]]]
+    globs: T.Sequence[T.Union[T.List[Path], T.Iterator[Path], T.Generator[Path, None, None]]]
     if patterns:
         globs = [srcdir.glob(p) for p in patterns]
     else:
