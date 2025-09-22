@@ -244,6 +244,7 @@ class ExternalProject(NewExtensionModule):
             [f'{self.name}.stamp'],
             depfile=f'{self.name}.d',
             console=True,
+            build_by_default=True,
             extra_depends=extra_depends,
             description='Generating external project {}',
         )
