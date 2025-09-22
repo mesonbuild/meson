@@ -55,6 +55,7 @@ modules = [
     'mesonbuild/modules/__init__.py',
     'mesonbuild/modules/cmake.py',
     'mesonbuild/modules/cuda.py',
+    'mesonbuild/modules/dlang.py',
     'mesonbuild/modules/external_project.py',
     'mesonbuild/modules/fs.py',
     'mesonbuild/modules/gnome.py',
