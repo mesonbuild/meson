@@ -257,6 +257,7 @@ class ExternalProject(NewExtensionModule):
                                 exclude=None,
                                 strip_directory=True,
                                 from_source_dir=False,
+                                follow_symlinks=False,
                                 subproject=self.subproject)
 
         return [self.target, idir]
