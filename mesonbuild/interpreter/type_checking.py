@@ -490,7 +490,9 @@ VARIABLES_KW: KwargInfo[T.Dict[str, str]] = KwargInfo(
 PRESERVE_PATH_KW: KwargInfo[bool] = KwargInfo('preserve_path', bool, default=False, since='0.63.0')
 
 TEST_KWS_NO_ARGS: T.List[KwargInfo] = [
-    KwargInfo('should_fail', bool, default=False),
+    KwargInfo('should_fail', (bool, NoneType), deprecated='1.10.0', deprecated_message='Use expected_fail instead of should_fail'),
+    KwargInfo('expected_fail', (bool, NoneType), since='1.10.0'),
+    KwargInfo('expected_exitcode', (int, NoneType), since='1.10.0'),
     KwargInfo('timeout', int, default=30),
     KwargInfo('workdir', (str, NoneType), default=None,
               validator=lambda x: 'must be an absolute path' if not os.path.isabs(x) else None),
