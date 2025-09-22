@@ -364,6 +364,10 @@ Some naming conventions need to be respected:
   This is typically used as `extra_deps += dependency('foo')`.
 - Since *1.10.0* the `features` variable is an array of enabled features for the subproject.
 
+Note that currently `meson/meson.build` is only evaluated once even if a given
+dependency is needed for both the build and host machine.  This should rarely be
+a problem, but it should be kept in mind to avoid problems when cross compiling.
+
 Since *1.5.0* Cargo wraps can also be provided with `Cargo.lock` file at the root
 of (sub)project source tree. Meson will automatically load that file and convert
 it into a series of wraps definitions.
