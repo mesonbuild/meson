@@ -59,7 +59,7 @@ def setup_backend():
     be = 'ninja'
     for a in sys.argv:
         if a.startswith('--backend'):
-            be = a.split('=')[1]
+            be = a.split('=', 1)[1]
         else:
             filtered.append(a)
     # Since we invoke the tests via unittest or xtest test runner

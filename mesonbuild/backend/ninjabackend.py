@@ -1915,7 +1915,7 @@ class NinjaBackend(backends.Backend):
                                 from_subproject: bool, proc_macro_dylib_path: T.Optional[str],
                                 deps: T.List[RustDep]) -> None:
         raw_edition: T.Optional[str] = mesonlib.first(reversed(args), lambda x: x.startswith('--edition'))
-        edition: RUST_EDITIONS = '2015' if not raw_edition else raw_edition.split('=')[-1]
+        edition: RUST_EDITIONS = '2015' if not raw_edition else raw_edition.split('=', 1)[-1]
 
         cfg: T.List[str] = []
         arg_itr: T.Iterator[str] = iter(args)
