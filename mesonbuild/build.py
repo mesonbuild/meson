@@ -662,19 +662,6 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def get_id(self) -> str:
         return self.id
 
-    def process_kwargs_base(self, kwargs: T.Dict[str, T.Any]) -> None:
-        if 'build_by_default' in kwargs:
-            self.build_by_default = kwargs['build_by_default']
-            if not isinstance(self.build_by_default, bool):
-                raise InvalidArguments('build_by_default must be a boolean value.')
-
-        if not self.build_by_default and kwargs.get('install', False):
-            # For backward compatibility, if build_by_default is not explicitly
-            # set, use the value of 'install' if it's enabled.
-            self.build_by_default = True
-
-        self.raw_overrides = kwargs.get('override_options', {})
-
     def get_override(self, name: str) -> T.Optional[str]:
         return self.raw_overrides.get(name, None)
 
@@ -1173,8 +1160,19 @@ class BuildTarget(Target):
         return self.install_mode
 
     def process_kwargs(self, kwargs):
-        self.process_kwargs_base(kwargs)
         self.original_kwargs = kwargs
+
+        if 'build_by_default' in kwargs:
+            self.build_by_default = kwargs['build_by_default']
+            if not isinstance(self.build_by_default, bool):
+                raise InvalidArguments('build_by_default must be a boolean value.')
+
+        if not self.build_by_default and kwargs.get('install', False):
+            # For backward compatibility, if build_by_default is not explicitly
+            # set, use the value of 'install' if it's enabled.
+            self.build_by_default = True
+
+        self.raw_overrides = kwargs.get('override_options', {})
 
         self.add_pch('c', extract_as_list(kwargs, 'c_pch'))
         self.add_pch('cpp', extract_as_list(kwargs, 'cpp_pch'))
