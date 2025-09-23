@@ -100,3 +100,13 @@ n = [
     2,
     3,
 ]
+
+# Overindent regressions (issue #14935)
+if (host_cpu_family == 'x86' and host_system in [
+    'cygwin',
+    'windows',
+    'os2',
+    'interix',
+])
+    message('hi')
+endif
