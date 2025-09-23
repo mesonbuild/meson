@@ -1297,11 +1297,8 @@ class BuildTarget(Target):
         self.gnu_symbol_visibility = kwargs.get('gnu_symbol_visibility', '')
         self.rust_dependency_map = kwargs.get('rust_dependency_map', {})
 
-        self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode')
-
-        self.swift_module_name = kwargs.get('swift_module_name')
-        if self.swift_module_name == '':
-            self.swift_module_name = self.name
+        self.swift_interoperability_mode = kwargs.get('swift_interoperability_mode', 'c')
+        self.swift_module_name = kwargs.get('swift_module_name') or self.name
 
     @T.overload
     def _extract_pic_pie(self, kwargs: StaticLibraryKeywordArguments, arg: Literal['pic'],
