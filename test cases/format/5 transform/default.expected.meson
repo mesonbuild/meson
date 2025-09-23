@@ -8,7 +8,7 @@ f = files(options_ini, 'expected.meson', 'source.meson')
 # This array should fit on one line
 a1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 
-# This array is too long and should be splitted
+# This array is too long and should be split
 a2 = [
     2,
     3,
@@ -80,5 +80,18 @@ arguments = [
     'again',
     '--x',
 ]
+
+# issue #15032
+if true
+    if true
+        if (
+            true
+            and true
+            and false
+        )
+            message('Hello, world!')
+        endif
+    endif
+endif
 
 # no final endline
