@@ -1325,10 +1325,6 @@ class BuildTarget(Target):
                                            'for each platform pass `[]` (empty array)')
                 self.suffix = name_suffix
                 self.name_suffix_set = True
-        if isinstance(self, StaticLibrary):
-            self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
-        if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
-            self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
@@ -1353,7 +1349,16 @@ class BuildTarget(Target):
         if self.swift_module_name == '':
             self.swift_module_name = self.name
 
-    def _extract_pic_pie(self, kwargs: BuildTargetKeywordArguments, arg: str, option: str) -> bool:
+    @T.overload
+    def _extract_pic_pie(self, kwargs: StaticLibraryKeywordArguments, arg: Literal['pic'],
+                         option: Literal['b_staticpic']) -> bool: ...
+
+    @T.overload
+    def _extract_pic_pie(self, kwargs: T.Union[StaticLibraryKeywordArguments, ExecutableKeywordArguments],
+                         arg: Literal['pie'], option: Literal['b_pie']) -> bool: ...
+
+    def _extract_pic_pie(self, kwargs: T.Union[StaticLibraryKeywordArguments, ExecutableKeywordArguments],
+                         arg: Literal['pic', 'pie'], option: Literal['b_staticpic', 'b_pie']) -> bool:
         # You can't disable PIC on OS X. The compiler ignores -fno-PIC.
         # PIC is always on for Windows (all code is position-independent
         # since library loading is done differently)
@@ -1374,9 +1379,9 @@ class BuildTarget(Target):
 
         k = OptionKey(option)
         if kwargs.get(arg) is not None:
-            val = T.cast('bool', kwargs[arg])
+            val = kwargs[arg]
         elif k in self.environment.coredata.optstore:
-            val = self.environment.coredata.optstore.get_value_for(k.name, k.subproject)
+            val = self.environment.coredata.get_option_for_target(self, k)
         else:
             val = False
 
@@ -2209,12 +2214,10 @@ class Executable(BuildTarget):
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
             kwargs: ExecutableKeywordArguments):
-        key = OptionKey('b_pie')
-        if 'pie' not in kwargs and key in environment.coredata.optstore:
-            kwargs['pie'] = environment.coredata.optstore.get_value_for(key)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
         self.win_subsystem = kwargs.get('win_subsystem') or 'console'
+        self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
         assert kwargs.get('android_exe_type') is None or kwargs.get('android_exe_type') in {'application', 'executable'}
         # Check for export_dynamic
         self.export_dynamic = kwargs.get('export_dynamic', False)
@@ -2367,6 +2370,9 @@ class StaticLibrary(BuildTarget):
         self.prelink = kwargs.get('prelink', False)
         super().__init__(name, subdir, subproject, for_machine, sources, structured_sources, objects,
                          environment, compilers, kwargs)
+        self.pic = self._extract_pic_pie(kwargs, 'pic', 'b_staticpic')
+        if not self.pic:
+            self.pie = self._extract_pic_pie(kwargs, 'pie', 'b_pie')
 
     def post_init(self) -> None:
         super().post_init()
