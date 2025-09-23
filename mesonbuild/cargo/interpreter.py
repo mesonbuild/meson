@@ -723,8 +723,10 @@ class Interpreter:
         depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
 
         lib: mparser.BaseNode
+        machines: T.Iterable[MachineChoice]
         if lib_type == 'proc-macro':
             lib = build.method('proc_macro', build.identifier('rust'), posargs, kwargs)
+            machines = MachineChoice
         else:
             if static and shared:
                 target_type = 'both_libraries'
@@ -734,6 +736,7 @@ class Interpreter:
             kwargs['rust_abi'] = build.string(lib_type)
             kwargs['native'] = build.bool(machine == MachineChoice.BUILD)
             lib = build.function(target_type, posargs, kwargs)
+            machines = [machine]
 
         features_args: T.List[mparser.BaseNode] = []
         for f in cfg.features:
@@ -743,7 +746,7 @@ class Interpreter:
         # lib = xxx_library()
         # dep = declare_dependency()
         # meson.override_dependency()
-        return [
+        result: T.List[mparser.BaseNode] = [
             build.assign(build.array(features_args), 'features_args'),
             build.assign(lib, 'lib'),
             build.assign(
@@ -759,16 +762,19 @@ class Interpreter:
                 ),
                 'dep'
             ),
-            build.method(
+        ]
+
+        for m in machines:
+            result.append(build.method(
                 'override_dependency',
                 build.identifier('meson'),
                 [
                     build.string(depname),
                     build.identifier('dep'),
                 ],
-                {'native': build.bool(machine == MachineChoice.BUILD)},
-            ),
-        ]
+                {'native': build.bool(m == MachineChoice.BUILD)},
+            ))
+        return result
 
 
 def _parse_git_url(url: str, branch: T.Optional[str] = None) -> T.Tuple[str, str, str]:
