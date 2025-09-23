@@ -257,7 +257,7 @@ class IntrospectionInterpreter(AstInterpreter):
         # Make sure nothing can crash when creating the build class
         kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in {'install', 'build_by_default', 'build_always', 'name_prefix'}}
         kwargs_reduced = {k: v.value if isinstance(v, ElementaryNode) else v for k, v in kwargs_reduced.items()}
-        kwargs_reduced = {k: v for k, v in kwargs_reduced.items() if not isinstance(v, BaseNode)}
+        kwargs_reduced = {k: v for k, v in kwargs_reduced.items() if not isinstance(v, (BaseNode, UnknownValue))}
         for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
         objects: T.List[T.Any] = []
         empty_sources: T.List[T.Any] = []
@@ -267,6 +267,14 @@ class IntrospectionInterpreter(AstInterpreter):
                              self.environment, self.coredata.compilers[for_machine], kwargs_reduced)
         target.process_compilers_late()
 
+        build_by_default: T.Union[UnknownValue, bool] = target.build_by_default
+        if 'build_by_default' in kwargs and isinstance(kwargs['build_by_default'], UnknownValue):
+            build_by_default = kwargs['build_by_default']
+
+        install: T.Union[UnknownValue, bool] = target.should_install()
+        if 'install' in kwargs and isinstance(kwargs['install'], UnknownValue):
+            install = kwargs['install']
+
         new_target = IntrospectionBuildTarget(
             name=target.get_basename(),
             machine=target.for_machine.get_lower_case_name(),
@@ -274,8 +282,8 @@ class IntrospectionInterpreter(AstInterpreter):
             typename=target.get_typename(),
             defined_in=os.path.normpath(os.path.join(self.source_root, self.subdir, environment.build_filename)),
             subdir=self.subdir,
-            build_by_default=target.build_by_default,
-            installed=target.should_install(),
+            build_by_default=build_by_default,
+            installed=install,
             outputs=target.get_outputs(),
             source_nodes=source_nodes,
             extra_files=extraf_nodes,

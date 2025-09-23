@@ -174,7 +174,7 @@ def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
         return subdir
 
 def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, object]]:
-    tlist = []
+    tlist: T.List[T.Dict[str, object]] = []
     root_dir = Path(intr.source_root).resolve()
 
     for i in intr.targets:
