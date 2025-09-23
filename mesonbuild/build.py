@@ -63,6 +63,52 @@ if T.TYPE_CHECKING:
         import_dirs: T.List[IncludeDirs]
         versions: T.List[T.Union[str, int]]
 
+    class BuildTargetKeywordArguments(TypedDict, total=False):
+
+        # The use of Sequence[str] here is intentional to get the generally
+        # undesirable behavior of Sequence[str]
+
+        build_by_default: bool
+        build_rpath: str
+        c_pch: T.Sequence[str]
+        cpp_pch: T.Sequence[str]
+        d_debug: T.List[T.Union[str, int]]
+        d_import_dirs: T.List[IncludeDirs]
+        d_module_versions: T.List[T.Union[str, int]]
+        d_unittest: bool
+        dependencies: T.List[dependencies.Dependency]
+        extra_files: T.List[File]
+        gnu_symbol_visibility: Literal['default', 'internal', 'hidden', 'protected', 'inlineshidden', '']
+        implicit_include_directories: bool
+        include_directories: T.List[IncludeDirs]
+        install: bool
+        install_dir: T.List[T.Union[str, Literal[False]]]
+        install_mode: FileMode
+        install_rpath: str
+        install_tag: T.List[str]
+        language_args: T.DefaultDict[str, T.List[str]]
+        link_args: T.List[str]
+        link_depends: T.List[T.Union[str, File, CustomTarget, CustomTargetIndex]]
+        link_language: str
+        link_whole: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]
+        link_with: T.List[BuildTargetTypes]
+        name_prefix: T.Optional[str]
+        name_suffix: T.Optional[str]
+        native: MachineChoice
+        override_options: T.Dict[OptionKey, str]
+        resources: T.List[str]
+        swift_interoperability_mode: Literal['c', 'cpp']
+        swift_module_name: str
+        rust_abi: Literal['c', 'rust']
+        rust_crate_type: str  # Literal?
+        rust_dependency_map: T.Dict[str, str]
+        vala_gir: str
+        vala_header: str
+        vala_vapi: str
+        win_subsystem: str
+
+        _allow_no_sources: bool
+
 DEFAULT_STATIC_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str]] = {
     'unix': ('lib', 'a'),
     'windows': ('', 'lib'),
@@ -76,6 +122,7 @@ DEFAULT_SHARED_LIBRARY_NAMES: T.Mapping[str, T.Tuple[str, str, str]] = {
     'darwin': ('lib', 'dylib', ''),
     'cygwin': ('cyg', 'dll', 'dll.a'),
 }
+
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -699,7 +746,7 @@ class BuildTarget(Target):
             objects: T.List[ObjectTypes],
             environment: environment.Environment,
             compilers: T.Dict[str, 'Compiler'],
-            kwargs: T.Dict[str, T.Any]):
+            kwargs: BuildTargetKeywordArguments):
         super().__init__(name, subdir, subproject, True, for_machine, environment, install=kwargs.get('install', False))
         self.all_compilers = compilers
         self.compilers: OrderedDict[str, Compiler] = OrderedDict()
@@ -811,12 +858,12 @@ class BuildTarget(Target):
             else:
                 mlog.warning('Installing target build for the build machine. This will fail in a cross build.')
 
-    def check_unknown_kwargs(self, kwargs):
+    def check_unknown_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
         # Override this method in derived classes that have more
         # keywords.
         self.check_unknown_kwargs_int(kwargs, self.known_kwargs)
 
-    def check_unknown_kwargs_int(self, kwargs, known_kwargs):
+    def check_unknown_kwargs_int(self, kwargs: BuildTargetKeywordArguments, known_kwargs: T.Set[str]) -> None:
         unknowns = []
         for k in kwargs:
             if k == 'language_args':
@@ -1159,7 +1206,7 @@ class BuildTarget(Target):
     def get_custom_install_mode(self) -> T.Optional['FileMode']:
         return self.install_mode
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs(self, kwargs: BuildTargetKeywordArguments) -> None:
         self.original_kwargs = kwargs
 
         if 'build_by_default' in kwargs:
@@ -1299,7 +1346,7 @@ class BuildTarget(Target):
         if self.swift_module_name == '':
             self.swift_module_name = self.name
 
-    def _extract_pic_pie(self, kwargs: T.Dict[str, T.Any], arg: str, option: str) -> bool:
+    def _extract_pic_pie(self, kwargs: BuildTargetKeywordArguments, arg: str, option: str) -> bool:
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
@@ -1797,7 +1844,7 @@ class BuildTarget(Target):
                 'a file object, a Custom Target, or a Custom Target Index')
         self.process_link_depends(path)
 
-    def extract_targets_as_list(self, kwargs: T.Dict[str, T.Union[LibTypes, T.Sequence[LibTypes]]], key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
+    def extract_targets_as_list(self, kwargs: BuildTargetKeywordArguments, key: T.Literal['link_with', 'link_whole']) -> T.List[LibTypes]:
         bl_type = self.environment.coredata.optstore.get_value_for(OptionKey('default_both_libraries'))
         if bl_type == 'auto':
             if isinstance(self, StaticLibrary):
