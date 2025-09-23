@@ -109,8 +109,8 @@ class IntrospectionBuildTarget(MesonInterpreterObject):
     typename: str
     defined_in: str
     subdir: str
-    build_by_default: bool
-    installed: bool
+    build_by_default: T.Union[bool, UnknownValue]
+    installed: T.Union[bool, UnknownValue]
     outputs: T.List[str]
     source_nodes: T.List[BaseNode]
     extra_files: BaseNode

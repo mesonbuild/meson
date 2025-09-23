@@ -33,7 +33,7 @@ from .compilers import (
     is_header, is_object, is_source, clink_langs, sort_clink, all_languages,
     is_known_suffix, detect_static_linker, LANGUAGES_USING_LDFLAGS
 )
-from .interpreterbase import FeatureNew, FeatureDeprecated, UnknownValue
+from .interpreterbase import FeatureNew, FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
@@ -650,7 +650,7 @@ class Target(HoldableObject, metaclass=abc.ABCMeta):
     def process_kwargs_base(self, kwargs: T.Dict[str, T.Any]) -> None:
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
-            if not isinstance(self.build_by_default, (bool, UnknownValue)):
+            if not isinstance(self.build_by_default, bool):
                 raise InvalidArguments('build_by_default must be a boolean value.')
 
         if not self.build_by_default and kwargs.get('install', False):
@@ -1225,9 +1225,7 @@ class BuildTarget(Target):
         self.resources = resources
         if kwargs.get('name_prefix') is not None:
             name_prefix = kwargs['name_prefix']
-            if isinstance(name_prefix, UnknownValue):
-                pass
-            elif isinstance(name_prefix, list):
+            if isinstance(name_prefix, list):
                 if name_prefix:
                     raise InvalidArguments('name_prefix array must be empty to signify default.')
             else:
@@ -1237,9 +1235,7 @@ class BuildTarget(Target):
                 self.name_prefix_set = True
         if kwargs.get('name_suffix') is not None:
             name_suffix = kwargs['name_suffix']
-            if isinstance(name_suffix, UnknownValue):
-                pass
-            elif isinstance(name_suffix, list):
+            if isinstance(name_suffix, list):
                 if name_suffix:
                     raise InvalidArguments('name_suffix array must be empty to signify default.')
             else:
