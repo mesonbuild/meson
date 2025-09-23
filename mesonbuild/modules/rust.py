@@ -26,7 +26,7 @@ from ..programs import ExternalProgram, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..build import IncludeDirs, LibTypes
+    from ..build import BuildTargetTypes, IncludeDirs, LibTypes
     from ..compilers.rust import RustCompiler
     from ..dependencies import Dependency, ExternalLibrary
     from ..interpreter import Interpreter
@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
         dependencies: T.List[T.Union[Dependency, ExternalLibrary]]
         is_parallel: bool
         link_with: T.List[LibTypes]
-        link_whole: T.List[LibTypes]
+        link_whole: T.List[T.Union[StaticLibrary, CustomTarget, CustomTargetIndex]]
         rust_args: T.List[str]
 
     FuncTest = FuncRustTest[_kwargs.TestArgs]
@@ -179,16 +179,15 @@ class RustModule(ExtensionModule):
         tkwargs['protocol'] = 'rust'
 
         new_target_kwargs = base_target.original_kwargs.copy()
-        # Don't mutate the shallow copied list, instead replace it with a new
-        # one
+        del new_target_kwargs['rust_crate_type']
+        for kw in ('pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions'):
+            if kw in new_target_kwargs:
+                del new_target_kwargs[kw]  # type: ignore[misc]
+
         new_target_kwargs['install'] = False
         new_target_kwargs['dependencies'] = new_target_kwargs.get('dependencies', []) + kwargs['dependencies']
-        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + kwargs['link_with']
+        new_target_kwargs['link_with'] = new_target_kwargs.get('link_with', []) + T.cast('T.List[BuildTargetTypes]', kwargs['link_with'])
         new_target_kwargs['link_whole'] = new_target_kwargs.get('link_whole', []) + kwargs['link_whole']
-        del new_target_kwargs['rust_crate_type']
-        for kw in ['pic', 'prelink', 'rust_abi', 'version', 'soversion', 'darwin_versions']:
-            if kw in new_target_kwargs:
-                del new_target_kwargs[kw]
 
         lang_args = base_target.extra_args.copy()
         lang_args['rust'] = base_target.extra_args['rust'] + kwargs['rust_args'] + ['--test']
