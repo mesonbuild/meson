@@ -40,8 +40,9 @@ if T.TYPE_CHECKING:
 
     RUST_ABI = Literal['rust', 'c', 'proc-macro']
 
-def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
+def _dependency_name(package_name: str, api: str, suffix: str = '-rs', machine: T.Optional[MachineChoice] = None) -> str:
     basename = package_name[:-len(suffix)] if suffix and package_name.endswith(suffix) else package_name
+    suffix += '-build' if machine == MachineChoice.BUILD else ''
     return f'{basename}-{api}{suffix}'
 
 
@@ -666,6 +667,8 @@ class Interpreter:
         kw = {
             'version': build.array([build.string(s) for s in version_]),
             'native': build.bool(machine == MachineChoice.BUILD),
+            # note the subproject name does not use the machine
+            'fallback': build.string(_dependency_name(dep.package, dep.api)),
         }
         # Lookup for this dependency with the features we want in default_options kwarg.
         #
@@ -683,7 +686,7 @@ class Interpreter:
             build.assign(
                 build.function(
                     'dependency',
-                    [build.string(_dependency_name(dep.package, dep.api))],
+                    [build.string(_dependency_name(dep.package, dep.api, machine=machine))],
                     kw,
                 ),
                 _dependency_varname(dep, machine),
@@ -783,7 +786,6 @@ class Interpreter:
         }
 
         depname_suffix = '' if lib_type == 'c' else '-rs'
-        depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
 
         lib: mparser.BaseNode
         machines: T.Iterable[MachineChoice]
@@ -822,6 +824,8 @@ class Interpreter:
         ]
 
         for m in machines:
+            depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api,
+                                       depname_suffix, m)
             result.append(build.method(
                 'override_dependency',
                 build.identifier('meson'),
