@@ -34,7 +34,8 @@ if T.TYPE_CHECKING:
     from ..interpreterbase import SubProject
     from ..compilers.rust import RustCompiler
 
-def _dependency_name(package_name: str, api: str, suffix: str = '-rs') -> str:
+def _dependency_name(package_name: str, api: str, suffix: str = '-rs', machine: T.Optional[MachineChoice] = None) -> str:
+    suffix += '-build' if machine == MachineChoice.BUILD else ''
     basename = package_name[:-len(suffix)] if package_name.endswith(suffix) else package_name
     return f'{basename}-{api}{suffix}'
 
@@ -555,6 +556,8 @@ class Interpreter:
         kw = {
             'version': build.array([build.string(s) for s in version_]),
             'native': build.bool(machine == MachineChoice.BUILD),
+            # note the subproject name does not use the machine
+            'fallback': build.string(_dependency_name(dep.package, api)),
         }
         # Lookup for this dependency with the features we want in default_options kwarg.
         #
@@ -572,7 +575,7 @@ class Interpreter:
             build.assign(
                 build.function(
                     'dependency',
-                    [build.string(_dependency_name(dep.package, api))],
+                    [build.string(_dependency_name(dep.package, api, machine=machine))],
                     kw,
                 ),
                 _dependency_varname(dep.package, machine),
@@ -665,7 +668,6 @@ class Interpreter:
         }
 
         depname_suffix = '-rs' if crate_type in {'lib', 'rlib', 'proc-macro'} else f'-{crate_type}'
-        depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api, depname_suffix)
 
         lib: mparser.BaseNode
         machines: T.Iterable[MachineChoice]
@@ -706,6 +708,8 @@ class Interpreter:
         ]
 
         for m in machines:
+            depname = _dependency_name(pkg.manifest.package.name, pkg.manifest.package.api,
+                                       depname_suffix, m)
             result.append(build.method(
                 'override_dependency',
                 build.identifier('meson'),
