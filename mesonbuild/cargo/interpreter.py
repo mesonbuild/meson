@@ -124,6 +124,17 @@ class Interpreter:
 
     def _fetch_package_from_subproject(self, package_name: str, meson_depname: str) -> T.Tuple[PackageState, bool]:
         subp_name, _ = self.environment.wrap_resolver.find_dep_provider(meson_depname)
+        if subp_name is None:
+            # If Cargo.lock has a different version, this could be a resolution
+            # bug, but maybe also a version mismatch?  I am not sure yet...
+            similar_deps = [pkg.subproject
+                            for pkg in self.cargolock.named(package_name)]
+            if similar_deps:
+                similar_msg = f'Cargo.lock provides: {", ".join(similar_deps)}.'
+            else:
+                similar_msg = 'Cargo.lock does not contain this crate name.'
+            raise MesonException(f'Dependency {meson_depname!r} not found in any wrap files or Cargo.lock; {similar_msg} This could be a Meson bug, please report it.')
+
         subdir, _ = self.environment.wrap_resolver.resolve(subp_name)
         subprojects_dir = os.path.join(subdir, 'subprojects')
         self.environment.wrap_resolver.load_and_merge(subprojects_dir, T.cast('SubProject', meson_depname))
