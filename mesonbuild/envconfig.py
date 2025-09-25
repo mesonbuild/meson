@@ -424,11 +424,11 @@ class BinaryTable:
 
     @staticmethod
     def detect_ccache() -> ExternalProgram:
-        return ExternalProgram('ccache')
+        return ExternalProgram('ccache', silent=True)
 
     @staticmethod
     def detect_sccache() -> ExternalProgram:
-        return ExternalProgram('sccache')
+        return ExternalProgram('sccache', silent=True)
 
     @staticmethod
     def detect_compiler_cache() -> ExternalProgram:
