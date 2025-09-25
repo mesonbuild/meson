@@ -23,6 +23,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from .compilers import Compiler
+    from .asm import ASMCompiler
     from .c import CCompiler
     from .cpp import CPPCompiler
     from .fortran import FortranCompiler
@@ -1334,6 +1335,7 @@ def detect_nasm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
             continue
 
         version = search_version(output)
+        comp_class: T.Type[ASMCompiler]
         if 'NASM' in output:
             comp_class = NasmCompiler
             env.add_lang_args(comp_class.language, comp_class, for_machine)
@@ -1366,7 +1368,7 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
         info = env.machines[for_machine]
 
     from .asm import MasmCompiler, MasmARMCompiler
-    comp_class: T.Type[Compiler]
+    comp_class: T.Type[ASMCompiler]
     if info.cpu_family == 'x86':
         comp = ['ml']
         comp_class = MasmCompiler
@@ -1400,7 +1402,7 @@ def detect_masm_compiler(env: 'Environment', for_machine: MachineChoice) -> Comp
 def detect_linearasm_compiler(env: Environment, for_machine: MachineChoice) -> Compiler:
     from .asm import TILinearAsmCompiler
     comp = ['cl6x']
-    comp_class: T.Type[Compiler] = TILinearAsmCompiler
+    comp_class: T.Type[ASMCompiler] = TILinearAsmCompiler
     arg = '-h'
     info = env.machines[for_machine]
     cc = detect_c_compiler(env, for_machine)
