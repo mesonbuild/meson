@@ -876,8 +876,10 @@ class NinjaBackend(backends.Backend):
             os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target)
+            return
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target)
+            return
         compiled_sources: T.List[str] = []
         source2object: T.Dict[str, str] = {}
         name = target.get_id()
