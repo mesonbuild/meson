@@ -92,7 +92,7 @@ def generate_guid_from_path(path, path_type) -> str:
     return str(uuid.uuid5(uuid.NAMESPACE_URL, 'meson-vs-' + path_type + ':' + str(path))).upper()
 
 def detect_microsoft_gdk(platform: str) -> bool:
-    return re.match(r'Gaming\.(Desktop|Xbox.XboxOne|Xbox.Scarlett)\.x64', platform, re.IGNORECASE)
+    return re.match(r'Gaming\.(Desktop|Xbox.XboxOne|Xbox.Scarlett)\.x64', platform, re.IGNORECASE) is not None
 
 def filtered_src_langs_generator(sources: T.List[str]):
     for src in sources:
