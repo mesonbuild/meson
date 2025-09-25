@@ -1162,7 +1162,7 @@ class OptionStore:
     def get_default_for_b_option(self, key: OptionKey) -> ElementaryOptionValues:
         assert self.is_base_option(key)
         try:
-            return T.cast('ElementaryOptionValues', COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default)
+            return COMPILER_BASE_OPTIONS[key.evolve(subproject=None)].default
         except KeyError:
             raise MesonBugException(f'Requested base option {key} which does not exist.')
 
