@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import textwrap
 import typing as T
 
 from .. import mlog
@@ -195,6 +196,35 @@ class NasmCompiler(ASMCompiler):
         if not self.info.is_windows():
             return []
         return self.crt_args[self.get_crt_val(crt_val, buildtype)]
+
+    def _sanity_check_compile_args(self, env: Environment, sourcename: str, binname: str) -> T.List[str]:
+        return (self.exelist_no_ccache + [sourcename] + self.get_output_args(binname) +
+                self.get_always_args() + self.get_crt_link_args('mt', ''))
+
+    def _sanity_check_source_code(self) -> str:
+        if self.info.is_linux():
+            return textwrap.dedent('''
+                section .text
+                    global main
+
+                main:
+                    mov eax, 1
+                    mov ebx, 0
+                    int 0x80
+                ''')
+        elif self.info.is_cygwin() or self.info.is_windows():
+            return textwrap.dedent('''
+                extern _ExitProcess@4
+
+                section .text
+                global main
+
+                main:
+                    push 0
+                    call _ExitProcess@4
+                ''')
+        return super()._sanity_check_source_code()
+
 
 class YasmCompiler(NasmCompiler):
     id = 'yasm'
